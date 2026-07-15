@@ -1,0 +1,40 @@
+name: Deploy to ConoHa
+
+# リリースイメージ完成後に ConoHa VPS へデプロイする。
+# 手順: compose 転送 → イメージ pull → マイグレーション → アプリ再起動。
+# 必要な Secrets: CONOHA_HOST / CONOHA_USER / CONOHA_SSH_KEY
+on:
+  workflow_run:
+    workflows: ["Release (build & push image)"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Copy compose file to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.CONOHA_HOST }}
+          username: ${{ secrets.CONOHA_USER }}
+          key: ${{ secrets.CONOHA_SSH_KEY }}
+          source: "docker-compose.prod.yml"
+          target: "~/app/"
+      - name: Pull, migrate, restart
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.CONOHA_HOST }}
+          username: ${{ secrets.CONOHA_USER }}
+          key: ${{ secrets.CONOHA_SSH_KEY }}
+          script: |
+            cd ~/app
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker compose -f docker-compose.prod.yml pull
+            # マイグレーションを先に一度だけ実行(失敗したらデプロイ中止)
+            docker compose -f docker-compose.prod.yml run --rm migrate
+            docker compose -f docker-compose.prod.yml up -d app db
+            docker image prune -f

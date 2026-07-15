@@ -1,0 +1,9 @@
+
+/* ダッシュボードグリッド(DashboardGrid) */
+.platform-dashboard {
+  display: grid;
+  grid-template-columns: repeat(var(--dash-cols, 12), minmax(0, 1fr));
+}
+@media (max-width: 640px) {
+  .platform-dashboard { grid-template-columns: 1fr; }
+}

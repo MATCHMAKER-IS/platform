@@ -1,0 +1,38 @@
+# 本番(ConoHa VPS)用。CI が push した GHCR イメージを pull して起動する。
+services:
+  app:
+    image: ghcr.io/OWNER/REPO/internal-app:main    # OWNER/REPO を自リポジトリに置換
+    restart: always
+    env_file: .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # デプロイ時に一度だけ実行するマイグレーション(run --rm で使う)
+  migrate:
+    image: ghcr.io/OWNER/REPO/internal-app-migrate:main
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  db:
+    image: postgres:17-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db-data:

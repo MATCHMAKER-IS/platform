@@ -1,0 +1,1658 @@
+{
+  "packages": [
+    {
+      "name": "@platform/core",
+      "purpose": "エラー規約とResult型（土台）",
+      "exports": [
+        "AppError",
+        "ErrorCode",
+        "Result",
+        "ok",
+        "err",
+        "tryCatch",
+        "createLifecycle(graceful shutdown・SIGTERM/SIGINT)",
+        "httpStatusFor/isRetryable(エラー分類の中央化)",
+        "toErrorEnvelope(標準エラー応答)",
+        "createBulkhead(並行制限/負荷遮断)",
+        "installProcessGuards(未処理例外の安全網)",
+        "ERROR_POLICY/httpStatusFor/isRetryable(エラー分類中央化)",
+        "toErrorEnvelope(APIエラーエンベロープ)",
+        "createBulkhead(並行制限/バックプレッシャ)",
+        "defaultShouldRetry(リトライ層共通の分類)",
+        "isPermanent",
+        "createBulkhead(queueTimeoutMs対応)"
+      ],
+      "wraps": null
+    },
+    {
+      "name": "@platform/logger",
+      "purpose": "構造化ログ（機微情報マスク）",
+      "exports": [
+        "createLogger",
+        "DEFAULT_REDACT_PATHS",
+        "createContextStore(AsyncLocalStorage 相関)",
+        "contextProvider(全ログに traceId 自動付与)"
+      ],
+      "wraps": "pino",
+      "summary": "構造化ログ(pino・機微マスキング + 相関コンテキストで traceId 自動付与)"
+    },
+    {
+      "name": "@platform/env",
+      "purpose": "環境変数の起動時検証（fail-fast）",
+      "exports": [
+        "parseEnv",
+        "z"
+      ],
+      "wraps": "zod"
+    },
+    {
+      "name": "@platform/validation",
+      "purpose": "共通バリデーション（日本固有・フォームパターン・正規化）",
+      "exports": [
+        "validate",
+        "requiredString",
+        "email",
+        "zipCodeJp",
+        "phoneJp",
+        "mobileJp",
+        "katakana",
+        "hiragana",
+        "prefecture",
+        "myNumber",
+        "corporateNumber",
+        "amount",
+        "agreement",
+        "password",
+        "passwordWithConfirm",
+        "dateRange",
+        "toHalfWidth",
+        "alphanumeric",
+        "halfWidthKana",
+        "time",
+        "httpsUrl",
+        "creditCard",
+        "bankCode",
+        "branchCode",
+        "accountNumber",
+        "between",
+        "futureDate",
+        "pastDate",
+        "nonEmptyArray",
+        "fileConstraints",
+        "isValidPostalCode",
+        "formatPostalCode",
+        "本人確認書類の書式検証(運転免許/日本旅券/在留カード)",
+        "validateIdentityDocument(種別指定検証)"
+      ],
+      "wraps": "zod"
+    },
+    {
+      "name": "@platform/db",
+      "purpose": "DBアクセス・生SQL・トランザクション・監査ログ",
+      "exports": [
+        "createDb",
+        "queryRaw",
+        "queryRawValidated",
+        "executeRaw",
+        "transaction",
+        "recordAudit",
+        "normalizeBigInt",
+        "sql",
+        "mapPrismaError",
+        "paginate",
+        "cursorPaginate",
+        "transactionWithRetry",
+        "checkDatabase",
+        "createRepository",
+        "withTransaction",
+        "abortTransaction",
+        "bulkInsert",
+        "bulkInsertReturning",
+        "bulkUpsert",
+        "insertReturning",
+        "runMigrations",
+        "createSeeder",
+        "fullTextSearch",
+        "ginIndexSql",
+        "createTenantClient",
+        "tenantWhere",
+        "tenantData",
+        "recordAuditChange",
+        "diffChanges",
+        "cachedQuery",
+        "createQueryCache",
+        "rawQuery",
+        "rawExecute",
+        "hasChanges",
+        "transactionWithRetry(分離レベル伝播+abort正処理)",
+        "asTransactionAbort",
+        "transactionWithRetry(分離レベル伝播+abort正規化)"
+      ],
+      "wraps": "prisma"
+    },
+    {
+      "name": "@platform/mail",
+      "purpose": "メール送信（Transport差し替え可）",
+      "exports": [
+        "createMailer",
+        "createSmtpTransport",
+        "createMemoryTransport",
+        "isValidEmail",
+        "normalizeEmail",
+        "parseAddress",
+        "formatAddress",
+        "parseEmailList",
+        "dedupeEmails",
+        "withMailRetry(リトライ)",
+        "createFallbackMailTransport(SMTP→SESフォールバック)",
+        "リトライ既定を defaultShouldRetry に統一(恒久エラーは再試行しない)",
+        "テンプレートメール(createTemplateMailer/renderEmailTemplate/wrapHtmlEmail・HTML自動エスケープ)",
+        "宛先ホワイトリスト(withRecipientPolicy/applyRecipientPolicy・許可ドメイン/ブロック/redirect)",
+        "添付ファイル(attachmentFromBase64/validateAttachments/inlineImage・サイズ/種別/拡張子検証)",
+        "配信停止(unsubscribeUrl/verifyUnsubscribeToken・HMAC署名・List-Unsubscribe/RFC8058ワンクリック・抑制リスト)"
+      ],
+      "wraps": "nodemailer"
+    },
+    {
+      "name": "@platform/auth",
+      "purpose": "認証状態・RBAC・OIDC設定標準化",
+      "exports": [
+        "definePolicy",
+        "can",
+        "assertCan",
+        "permissionsOf",
+        "AuthUser",
+        "Session",
+        "resolveIssuer",
+        "resolveHierarchy(ロール継承)",
+        "canAny",
+        "canAll",
+        "canScoped(own/any)",
+        "filterAuthorized",
+        "featureFlags",
+        "OTP/SMS認証(createOtpChallenge/verifyOtpCode・HMACハッシュ保存・試行制限/TTL/再送クールダウン)",
+        "TOTP(RFC6238・Google Authenticator互換・totpAuthUri/verifyTotp/base32・公式ベクタ検証済)",
+        "バックアップコード(generateBackupCodes/verifyBackupCode・ハッシュ保存・単回利用・リカバリー)",
+        "2FA統合フロー(verifyTwoFactor/verifyAnyTwoFactor・TOTP/SMS/バックアップを一元化)",
+        "パスキー/WebAuthn(登録・認証オプション/clientData検証/authData解析/署名検証・ES256実検証済)"
+      ],
+      "wraps": null
+    },
+    {
+      "name": "@platform/session",
+      "purpose": "セッション・クッキー処理",
+      "exports": [
+        "parseCookies",
+        "serializeCookie",
+        "clearCookie",
+        "createSession",
+        "createServerSession",
+        "無操作タイムアウト(idleTimeoutSec・既定オフ・refresh でスライド・絶対期限は維持)",
+        "createIdleTimer/bindActivityListeners(クライアント自動ログアウトUX)",
+        "createLoginThrottle(ブルートフォース対策・段階バックオフ)",
+        "regenerate(セッション固定攻撃対策・ID再生成)",
+        "destroyAllForUser/listUserSessions(全端末ログアウト)",
+        "createStepUp(重要操作の再認証)/sessionMaxAge(Remember-me)",
+        "createLoginAudit(ログイン監査の標準化)"
+      ],
+      "wraps": "@platform/crypto"
+    },
+    {
+      "name": "@platform/guard",
+      "purpose": "ルート/ページ保護（認証必須・権限・レート制限）",
+      "exports": [
+        "requireSession",
+        "requireRole",
+        "requirePermission",
+        "enforceRateLimit"
+      ],
+      "wraps": "@platform/session, @platform/auth, @platform/ratelimit"
+    },
+    {
+      "name": "@platform/http",
+      "purpose": "AppError→HTTP変換・Route処理の共通化",
+      "exports": [
+        "handleRoute",
+        "toHttpError",
+        "resultToResponse",
+        "STATUS_BY_CODE"
+      ],
+      "wraps": null
+    },
+    {
+      "name": "@platform/datetime",
+      "purpose": "JST前提の日時整形・境界計算",
+      "exports": [
+        "formatJst",
+        "startOfDayJst",
+        "endOfDayJst",
+        "JST",
+        "isLeapYear",
+        "daysInMonth",
+        "addDays",
+        "addMonths",
+        "addYears",
+        "daysBetween",
+        "daysUntil",
+        "isPast",
+        "isFuture",
+        "isToday",
+        "age",
+        "weekdayNameJa",
+        "isWeekend",
+        "quarter",
+        "startOfMonth",
+        "endOfMonth",
+        "formatDate",
+        "parseDate",
+        "isHoliday",
+        "holidayName",
+        "holidaysInYear",
+        "isBusinessDay",
+        "addBusinessDays",
+        "businessDaysBetween",
+        "rangeContains",
+        "rangesOverlap",
+        "rangeIntersection",
+        "rangeDays",
+        "eachDayOfRange",
+        "splitRangeByMonth",
+        "clampDate",
+        "toWareki",
+        "formatWareki",
+        "formatRelativeDay",
+        "addMinutes",
+        "addHours",
+        "roundToNearestMinutes",
+        "floorToMinutes",
+        "ceilToMinutes",
+        "formatDuration",
+        "parseDuration",
+        "businessMinutesBetween"
+      ],
+      "wraps": "date-fns"
+    },
+    {
+      "name": "@platform/storage",
+      "purpose": "ファイル操作（ローカル/S3互換）",
+      "exports": [
+        "createStorage",
+        "createLocalStorage",
+        "createS3Storage",
+        "presignUpload",
+        "presignDownload",
+        "withStorageRetry(リトライ)",
+        "createFallbackStorage(多段フォールバック/ミラー)",
+        "リトライ既定を defaultShouldRetry に統一(恒久エラーは再試行しない)"
+      ],
+      "wraps": "@aws-sdk/client-s3",
+      "summary": "ファイル保存(ローカル/S3・署名付きURL)+ リトライ/多段フォールバック/ミラー書込"
+    },
+    {
+      "name": "@platform/image",
+      "purpose": "画像処理（サーバ=sharp / 寸法計算は共通）",
+      "exports": [
+        "createImageProcessor",
+        "normalizeUpload",
+        "fitDimensions",
+        "clampRect",
+        "createRemoveBgRemover",
+        "createBackgroundRemover",
+        "addWatermark",
+        "watermarkTextSvg",
+        "mapWithConcurrency",
+        "processBatch",
+        "stripMetadata",
+        "runBatch"
+      ],
+      "wraps": "sharp"
+    },
+    {
+      "name": "@platform/ocr",
+      "purpose": "画像OCR（tesseract.js / クラウドHTTP）",
+      "exports": [
+        "createTesseractOcr",
+        "createHttpOcr",
+        "extractReceiptFields",
+        "parseJapaneseDate",
+        "extractAmount",
+        "extractReceiptFieldsWithConfidence",
+        "recognizeReceiptsBatch",
+        "extractReceiptsFromResults",
+        "normalizeOcrText",
+        "extractLineItems",
+        "extractInvoiceFields",
+        "extractTaxBreakdown"
+      ],
+      "wraps": "tesseract.js / OCR API"
+    },
+    {
+      "name": "@platform/sms",
+      "purpose": "SMS/電話送信（Transport差し替え可）",
+      "exports": [
+        "createSms",
+        "createTwilioTransport",
+        "createMemoryTransport",
+        "smsEncoding",
+        "smsLength",
+        "smsSegments",
+        "smsInfo",
+        "withSmsRetry(リトライ)",
+        "createFallbackSmsTransport(業者フォールバック)",
+        "リトライ既定を defaultShouldRetry に統一(恒久エラーは再試行しない)",
+        "認証コードSMS文面(buildOtpSms)"
+      ],
+      "wraps": "twilio"
+    },
+    {
+      "name": "@platform/integrations",
+      "purpose": "外部API連携の型付きHTTPクライアント",
+      "exports": [
+        "createApiClient",
+        "createApiClient(fetchImpl注入対応)",
+        "createApiClient(defaultQuery対応)",
+        "multipart対応"
+      ],
+      "wraps": null
+    },
+    {
+      "name": "@platform/xlsx",
+      "purpose": "Excel(.xlsx)の読み書き",
+      "exports": [
+        "readSheet",
+        "writeSheet",
+        "writeWorkbook"
+      ],
+      "wraps": "exceljs"
+    },
+    {
+      "name": "@platform/csv",
+      "purpose": "CSV 生成・解析・ダウンロード",
+      "exports": [
+        "toCsv",
+        "parseCsv",
+        "downloadCsv",
+        "csvEscape"
+      ],
+      "wraps": "-"
+    },
+    {
+      "name": "@platform/notify",
+      "purpose": "チャット通知(Slack/Teams/LINE)",
+      "exports": [
+        "createNotifier",
+        "createSlackChannel",
+        "createTeamsChannel",
+        "createLineChannel",
+        "renderTemplate",
+        "createWebhookChannel",
+        "createDiscordChannel",
+        "crossedMilestones",
+        "createMailChannel",
+        "createSmsChannel",
+        "notifyAllSettled",
+        "summarizeResults",
+        "createLineClientChannel",
+        "withDedup/createMemorySeenStore(重複抑制)",
+        "withRetry(チャネル別リトライ)",
+        "createFallbackChannel(主→副フォールバック)",
+        "SeenStore.has(peek・成功後dedup記録に使用)",
+        "createRedisSeenStore(本番重複抑制)",
+        "リトライ既定を defaultShouldRetry に統一(恒久エラーは再試行しない)",
+        "通知プレファレンス(resolveDelivery/partitionDeliveries・チャネル選択/静音時間/ダイジェスト/緊急)"
+      ],
+      "wraps": null,
+      "summary": "通知(Slack/Teams/LINE/メール/SMS・同報)+ 重複抑制/チャネル別リトライ/フォールバック"
+    },
+    {
+      "name": "@platform/jobs",
+      "purpose": "非同期ジョブ(キュー)",
+      "exports": [
+        "createQueue",
+        "createWorker",
+        "createMemoryQueue",
+        "defineJob",
+        "createMemoryQueue(attempts再試行+デッドレター)",
+        "connectionFromUrl",
+        "createQueue(queueFactory 注入でテスト可)"
+      ],
+      "wraps": "bullmq"
+    },
+    {
+      "name": "@platform/realtime",
+      "purpose": "自動更新（ポーリング・再接続WebSocket）",
+      "exports": [
+        "createPoller",
+        "createReconnectingWebSocket",
+        "backoffDelay",
+        "再接続WS 送信キュー(切断中バッファ→再接続時flush)",
+        "createBroadcastHub(Redis Pub/Sub で WS 水平スケール)"
+      ],
+      "wraps": "-"
+    },
+    {
+      "name": "@platform/cache",
+      "purpose": "キャッシュ(メモリ/Redis)",
+      "exports": [
+        "createCache",
+        "createMemoryCache",
+        "createRedisCache",
+        "getOrSet(single-flight)",
+        "getOrSetSwr(stale-while-revalidate)",
+        "createRedisCache(クライアント注入可・テスト検証済)",
+        "createRedisCache(クライアント注入でテスト可)"
+      ],
+      "wraps": "ioredis",
+      "summary": "キャッシュ(adapter/getOrSet + スタンピード防止 single-flight + stale-while-revalidate)"
+    },
+    {
+      "name": "@platform/crypto",
+      "purpose": "機密データ暗号化・パスワードハッシュ",
+      "exports": [
+        "encrypt",
+        "decrypt",
+        "deriveKey",
+        "hashPassword",
+        "verifyPassword",
+        "randomToken",
+        "generatePassword",
+        "passwordStrength",
+        "deriveKey(salt必須化・弱い既定廃止)"
+      ],
+      "wraps": null
+    },
+    {
+      "name": "@platform/pdf",
+      "purpose": "帳票PDF生成（HTML→PDF）",
+      "exports": [
+        "createPdf",
+        "createPlaywrightRenderer",
+        "帳票向け既定オプション(DEFAULT_INVOICE_PDF_OPTIONS)"
+      ],
+      "wraps": "playwright"
+    },
+    {
+      "name": "@platform/print",
+      "purpose": "印刷（ブラウザ印刷・ESC/POSレシート）",
+      "exports": [
+        "printHtml",
+        "printElement",
+        "printPage",
+        "pageCss",
+        "createReceipt",
+        "connectReceiptPrinter",
+        "RECEIPT_PROFILES"
+      ],
+      "wraps": "window.print / ESC/POS"
+    },
+    {
+      "name": "@platform/report",
+      "purpose": "帳票（請求書・消費税計算・インボイス）",
+      "exports": [
+        "calculateInvoice",
+        "renderInvoiceHtml",
+        "formatYen",
+        "roundAmount",
+        "expenseFromReceiptFields",
+        "renderExpenseHtml",
+        "expenseToRow",
+        "monthlyExpenseSummary",
+        "renderMonthlyReportHtml",
+        "monthlyReportSheets",
+        "見積書/納品書(renderQuotationHtml/renderDeliveryNoteHtml)",
+        "源泉徴収の表示(InvoiceDocument.withholding)",
+        "印刷/PDF最適化(printableInvoiceHtml/wrapForPrint/combineForPrint・@page/改ページ/一括結合・@platform/pdf連携)",
+        "統合レポート(trialBalanceSheet/agingSheet/taxReportSheet/inventoryValuationSheet/combineSheets/sheetToCsv・xlsx/csv向けシート整形)"
+      ],
+      "wraps": "-"
+    },
+    {
+      "name": "@platform/search",
+      "purpose": "全文検索（Meilisearch/メモリ）",
+      "exports": [
+        "createSearch",
+        "createMeilisearchAdapter",
+        "createMemorySearch",
+        "createBm25Index(BM25転置索引)",
+        "tokenize(CJKバイグラム)",
+        "createMemorySearch(BM25版)"
+      ],
+      "wraps": "meilisearch",
+      "summary": "全文検索(BM25 転置インデックス・日本語CJKバイグラム・フィールド重み / Meilisearch)"
+    },
+    {
+      "name": "@platform/workflow",
+      "purpose": "多段承認ワークフロー状態機械",
+      "exports": [
+        "startWorkflow",
+        "approve",
+        "reject",
+        "currentStep",
+        "notificationForTransition",
+        "approverRecipients",
+        "sendBack",
+        "routeByAmount/resolveRoute(金額別・条件別の承認ルート生成)",
+        "resolveApprovalAuthority/effectiveRoles(代理承認・委任・期間対応)",
+        "並列承認(startParallel/recordParallelApproval/isParallelComplete・all/any)",
+        "催促・エスカレーション(evaluateSla/findStalledApprovals/escalationTarget・SLA滞留判定)"
+      ],
+      "wraps": null
+    },
+    {
+      "name": "@platform/cron",
+      "purpose": "定期実行（スケジューラ）",
+      "exports": [
+        "createScheduler",
+        "createMemoryLockStore/LockStore(分散ロック)",
+        "createGuardedJob(重複防止/ジッタ/統計)",
+        "scheduler.stats()",
+        "createRedisLockStore(本番分散ロック・所有者照合解放)"
+      ],
+      "wraps": "croner",
+      "summary": "定期実行(croner)+ 分散ロック/オーバーラップ防止/ジッタ/実行統計"
+    },
+    {
+      "name": "@platform/context",
+      "purpose": "リクエスト相関ID(AsyncLocalStorage)",
+      "exports": [
+        "runWithContext",
+        "getContext",
+        "getRequestId",
+        "bindLogger"
+      ],
+      "wraps": null
+    },
+    {
+      "name": "@platform/ratelimit",
+      "purpose": "レート制限(メモリ/Redis)",
+      "exports": [
+        "createRateLimiter",
+        "createMemoryStore",
+        "createRedisStore",
+        "createRedisStore(Lua でアトミック・注入可)"
+      ],
+      "wraps": "ioredis"
+    },
+    {
+      "name": "@platform/security",
+      "purpose": "セキュリティヘッダ・HTMLサニタイズ",
+      "exports": [
+        "securityHeaders",
+        "sanitize",
+        "stripHtml",
+        "createCsrf",
+        "assertCsrf"
+      ],
+      "wraps": "sanitize-html"
+    },
+    {
+      "name": "@platform/testing",
+      "purpose": "テスト工具・契約テスト",
+      "exports": [
+        "fakeAuthUser",
+        "fakeSession",
+        "testId",
+        "runCacheContract",
+        "runStorageContract"
+      ],
+      "wraps": null
+    },
+    {
+      "name": "@platform/utils",
+      "purpose": "規律ある汎用ヘルパー",
+      "exports": [
+        "sleep",
+        "chunk",
+        "groupBy",
+        "uniqueBy",
+        "assertNever",
+        "safeJsonParse",
+        "retry",
+        "truncate",
+        "truncateMiddle",
+        "truncateByWidth",
+        "toHalfWidth",
+        "toFullWidth",
+        "toFullWidthKana",
+        "normalizeText",
+        "normalizeSpace",
+        "slugify",
+        "camelCase",
+        "kebabCase",
+        "snakeCase",
+        "mask",
+        "maskEmail",
+        "escapeHtml",
+        "stripHtml",
+        "textWidth",
+        "padStartWidth",
+        "padEndWidth",
+        "wrapText",
+        "highlight",
+        "parseTemplate",
+        "randomString",
+        "nanoid",
+        "highlightTerms",
+        "clamp",
+        "round",
+        "roundHalfEven",
+        "formatNumber",
+        "formatCompact",
+        "formatManOku",
+        "formatBytes",
+        "parseNumber",
+        "safeDivide",
+        "percentChange",
+        "mean",
+        "median",
+        "mode",
+        "variance",
+        "stddev",
+        "percentile",
+        "sum",
+        "sequence",
+        "gcd",
+        "movingAverage",
+        "cumulativeSum",
+        "histogram",
+        "quartiles",
+        "formatRange",
+        "outliers",
+        "outlierBounds",
+        "withoutOutliers",
+        "linearRegression",
+        "linearRegressionXY",
+        "predict",
+        "trend",
+        "correlation",
+        "covariance",
+        "regressionInterval",
+        "regressionBand",
+        "decompose",
+        "pluckNumbers",
+        "seriesFromRows",
+        "autocorrelation",
+        "acf",
+        "dominantLag",
+        "levenshtein",
+        "levenshteinSimilarity",
+        "jaro",
+        "jaroWinkler",
+        "bestMatch",
+        "toKanjiNumber",
+        "toDaijiAmount",
+        "関数(debounce/throttle/memoize/once/pipe/compose)",
+        "オブジェクト(pick/omit/deepClone/deepMerge/deepEqual/mapValues/isEmpty)",
+        "配列(sortBy/partition/keyBy/zip/range/difference/intersection)",
+        "非同期(pMapLimit/retry/pTimeout)"
+      ],
+      "wraps": null
+    },
+    {
+      "name": "@platform/faker",
+      "purpose": "日本語ダミーデータ生成",
+      "exports": [
+        "seedMany",
+        "japaneseName",
+        "companyName",
+        "email",
+        "address",
+        "zipCode",
+        "setSeed"
+      ],
+      "wraps": "@faker-js/faker"
+    },
+    {
+      "name": "@platform/line",
+      "purpose": "LINE Messaging API クライアント",
+      "exports": [
+        "createLineClient",
+        "lineRecipientType",
+        "isValidLineRecipient",
+        "メッセージビルダー(buttons/confirm/carousel/flex/quickReply)",
+        "Webhook受信(verifyLineSignature=base64・parseLineWebhook・parsePostbackData)",
+        "リッチメニュー(createRichMenu/linkRichMenu/setDefaultRichMenu)",
+        "showLoadingAnimation/getMessageQuota/getGroupMemberProfile"
+      ],
+      "wraps": "@platform/integrations"
+    },
+    {
+      "name": "@platform/google",
+      "purpose": "Google Workspace 連携(ログイン/Sheets/Calendar/Gmail/Drive/Maps)",
+      "exports": [
+        "createGoogleSheetsClient",
+        "createGoogleCalendarClient",
+        "createGoogleMapsClient",
+        "buildGoogleAuthUrl/exchangeGoogleCode(ログイン)",
+        "createGoogleTokenManager/createGoogleAuthedFetch(トークン自動更新)",
+        "getGoogleUserInfo(SSO・社内判定 hd)",
+        "createGmailClient(送信/検索・MIME件名)",
+        "createGoogleDriveClient(アップロード/共有/フォルダ)",
+        "Calendar createEvent/updateEvent/deleteEvent/freeBusy"
+      ],
+      "wraps": "@platform/integrations"
+    },
+    {
+      "name": "@platform/freee",
+      "purpose": "freee 会計 API クライアント + OAuth トークン管理 + 証憑/振替伝票ビルダー",
+      "exports": [
+        "createFreeeClient",
+        "OAuthトークン管理(createFreeeTokenManager/createFreeeAuthedFetch・自動更新・401リトライ)",
+        "証憑アップロード(uploadReceipt=multipart/getReceipts)",
+        "振替伝票(createManualJournal/buildManualJournal=借方貸方検証)",
+        "仕訳帳/支払(requestJournals/createDealPayment)",
+        "セグメント・タグ(getSegments/createTag)",
+        "createFreeeTokenManager",
+        "createFreeeAuthedFetch",
+        "uploadReceipt",
+        "createManualJournal",
+        "buildManualJournal",
+        "buildDeal",
+        "buildInvoice",
+        "getSegmentTags",
+        "fetchAllPages",
+        "createFreeeHrClient(人事労務:勤怠/給与)",
+        "actionExpenseApplication/actionApprovalRequest(承認ワークフロー)",
+        "verifyFreeeSignature/parseFreeeWebhook(Webhook受信)"
+      ],
+      "wraps": "@platform/integrations"
+    },
+    {
+      "name": "@platform/zoho",
+      "purpose": "Zoho CRM API クライアント",
+      "exports": [
+        "core",
+        "crm",
+        "books",
+        "desk(拡張: search/threads/sendReply/accounts/products)",
+        "inventory",
+        "campaigns",
+        "projects",
+        "people",
+        "sign",
+        "recruit",
+        "workdrive",
+        "analytics",
+        "cliq",
+        "creator",
+        "bookings",
+        "core: createZohoTokenManager/createAuthedFetch(自動更新)",
+        "core: buildAuthorizationUrl/exchangeCodeForToken/getUserInfo(ログイン)",
+        "workdrive: uploadFile(multipart)"
+      ],
+      "wraps": "@platform/integrations",
+      "summary": "Zoho 連携(14サブパッケージ)"
+    },
+    {
+      "name": "@platform/stripe",
+      "purpose": "Stripe 決済(公式SDKラッパー)",
+      "exports": [
+        "createStripeClient"
+      ],
+      "wraps": "stripe"
+    },
+    {
+      "name": "@platform/paypal",
+      "purpose": "PayPal 決済(Orders v2)",
+      "exports": [
+        "createPayPalClient"
+      ],
+      "wraps": "@platform/integrations"
+    },
+    {
+      "name": "@platform/address",
+      "purpose": "郵便番号→住所 逆引き（zipcloud）",
+      "exports": [
+        "createAddressLookup",
+        "createZipcloudAdapter",
+        "normalizeZipcode"
+      ],
+      "wraps": "@platform/integrations"
+    },
+    {
+      "name": "@platform/media",
+      "purpose": "動画・音声処理（ffmpeg）",
+      "exports": [
+        "createMediaProcessor"
+      ],
+      "wraps": "fluent-ffmpeg"
+    },
+    {
+      "name": "@platform/upload",
+      "purpose": "アップロード/ダウンロードのHTTP境界処理",
+      "exports": [
+        "handleUpload",
+        "serveDownload",
+        "downloadFromStorage"
+      ],
+      "wraps": "@platform/storage"
+    },
+    {
+      "name": "@platform/device",
+      "purpose": "端末・ブラウザ・OS・ネットワーク情報取得",
+      "exports": [
+        "parseUserAgent",
+        "getClientInfo",
+        "requestGeolocation"
+      ],
+      "wraps": "ua-parser-js"
+    },
+    {
+      "name": "@platform/bluetooth",
+      "purpose": "Web Bluetooth（BLE機器連携）",
+      "exports": [
+        "connectBluetooth",
+        "isBluetoothSupported",
+        "readBatteryLevel",
+        "parseText",
+        "parseUint16",
+        "readDeviceInformation"
+      ],
+      "wraps": "Web Bluetooth API"
+    },
+    {
+      "name": "@platform/hid",
+      "purpose": "WebHID（PC周辺機器連携）",
+      "exports": [
+        "connectHid",
+        "isHidSupported",
+        "reportBytes"
+      ],
+      "wraps": "WebHID API"
+    },
+    {
+      "name": "@platform/ui",
+      "purpose": "共通UI部品",
+      "exports": [
+        "Button",
+        "PasswordStrengthMeter",
+        "Textarea",
+        "PasswordInput",
+        "Input",
+        "Select",
+        "Checkbox",
+        "Switch",
+        "Slider",
+        "Combobox",
+        "DropdownMenu",
+        "Dialog",
+        "Tooltip",
+        "Carousel",
+        "cn",
+        "RadioGroup",
+        "ToggleGroup",
+        "NumberInput",
+        "DatePicker",
+        "TimePicker",
+        "DateTimePicker",
+        "ColorPicker",
+        "FileUpload",
+        "DataTable",
+        "Steps",
+        "Progress",
+        "Seekbar",
+        "Spinner",
+        "LoadingOverlay",
+        "Toaster",
+        "toast",
+        "Modal",
+        "ConfirmDialog",
+        "ErrorDialog",
+        "NumericKeypad",
+        "SoftwareKeyboard",
+        "RichTextEditor",
+        "Tabs",
+        "Accordion",
+        "Avatar",
+        "Badge",
+        "Skeleton",
+        "Breadcrumb",
+        "Pagination",
+        "Rating",
+        "Autocomplete",
+        "TagInput",
+        "OTPInput",
+        "SignaturePad",
+        "VideoPlayer",
+        "AudioPlayer",
+        "StreamPlayer",
+        "Waveform",
+        "AudioRecorder",
+        "VideoRecorder",
+        "AudioVisualizer",
+        "Icon",
+        "FileUploader",
+        "useUpload",
+        "VoiceInput",
+        "useSpeechRecognition",
+        "useClientInfo",
+        "Card",
+        "CardGrid",
+        "List",
+        "ListItem",
+        "Block",
+        "BlockGrid",
+        "BackToTop",
+        "DataView",
+        "ViewToggle",
+        "SimplePagination",
+        "useBluetooth",
+        "usePrint",
+        "PrintButton",
+        "useHid",
+        "BarChart",
+        "LineChart",
+        "ComboChart",
+        "PieChart",
+        "RadarChart",
+        "ScatterChart",
+        "GanttChart",
+        "Heatmap",
+        "Treemap",
+        "FunnelChart",
+        "CsvExportButton",
+        "ChartCard",
+        "elementToPng",
+        "DashboardGrid",
+        "DashboardWidget",
+        "StatCard",
+        "CandlestickChart",
+        "BubbleChart",
+        "BandChart",
+        "Histogram",
+        "HorizontalBarChart",
+        "DraggableDashboard",
+        "useDashboardLayout",
+        "createLocalStorageLayoutStore",
+        "usePolling",
+        "useWebSocket",
+        "WaterfallChart",
+        "SankeyChart",
+        "Gauge",
+        "ProgressRing",
+        "createFetchLayoutStore",
+        "useLiveSeries",
+        "appendCapped",
+        "resizeImage",
+        "cropImage",
+        "pixelate",
+        "applyFilters",
+        "flipImage",
+        "convertFormat",
+        "removeBackgroundColor",
+        "maskImage",
+        "ImageCropper",
+        "useImageUpload",
+        "FieldReview",
+        "splitByConfidence",
+        "queryRows",
+        "SheetGrid",
+        "rangeToTsv",
+        "applyColumnResize",
+        "computeVisibleRange",
+        "tsvToRows",
+        "parseTsv",
+        "RecipientManager",
+        "upsertRecipient",
+        "validateImportRows",
+        "cellErrorLookup",
+        "computeVisibleColumns",
+        "recipientsToRows",
+        "recipientsFromRows",
+        "filterErrorRows",
+        "errorRowIndices",
+        "ImportReview",
+        "diffRecords",
+        "DiffPreview",
+        "applyColumnPrefs",
+        "ColumnSettings",
+        "summarizeImport",
+        "buildImportHistory",
+        "createColumnPrefsStore",
+        "useColumnPrefs",
+        "validRows",
+        "partitionRows",
+        "canRollback",
+        "ImportHistoryTable",
+        "ColumnPresets",
+        "createColumnPresetStore",
+        "canRollbackWith",
+        "ImportHistoryDetail",
+        "defaultPreset",
+        "resolveInitialPrefs",
+        "classifyConfidence",
+        "ConfidenceHighlight",
+        "collectCorrections",
+        "buildOcrFeedback",
+        "createOcrFeedbackStore",
+        "bucketWords",
+        "countByTier",
+        "resolveThresholds",
+        "aggregateOcrFeedback",
+        "OcrFeedbackDashboard",
+        "LocaleProvider",
+        "useI18n",
+        "useT",
+        "createLocalStorageLocaleStore",
+        "createFetchLocaleStore",
+        "useLocalePreference",
+        "Highlight",
+        "LogViewer",
+        "detectLogLevel",
+        "parseLogLines",
+        "filterLogLines",
+        "countByLevel",
+        "extractTimestamp",
+        "bucketByTime",
+        "logLinesToText",
+        "formatRelativeTime",
+        "parseStructuredLog",
+        "firstLineIndexAtOrAfter",
+        "collectFieldKeys",
+        "fieldFacets",
+        "filterByFields",
+        "createLogStream",
+        "useLogStream",
+        "Sparkline",
+        "StatSummary",
+        "sparklineData",
+        "histogramData",
+        "movingAverageData",
+        "BoxPlot",
+        "Trend",
+        "KpiCard",
+        "Scatter",
+        "TimelineChart",
+        "MetricGrid",
+        "MiniCalendar",
+        "DateRangePicker",
+        "CalendarHeatmap",
+        "Separator/Alert/EmptyState/DescriptionList/ActivityTimeline/Drawer(業務アプリ定番部品)",
+        "Popover/ButtonGroup/SearchInput/Tree/AppShell/SidebarNav(レイアウト・ナビ・検索・階層)",
+        "NoticeBoard/Kanban(ダッシュボードのお知らせ・カンバン・moveCard等の純ロジック付き)",
+        "ScheduleCalendar(閲覧用カレンダー・月/週/日/予定の4ビュー・Googleカレンダー風。重なり配置/月グリッド等の純ロジックは lib/schedule)",
+        "CalendarLegend(カテゴリ凡例・表示切替フィルタ)",
+        "空き枠計算(computeFreeSlots/findAvailableSlots/computeBusyIntervals/totalBusyMinutes・会議室の空き・予約枠)",
+        "現在時刻ライン(nowOffset)",
+        "EventDetailCard(予定詳細カード・Popover/Dialogの中身)",
+        "ResourceSchedule(会議室/担当者を列で並べる1日ビュー・resourceId割当・layoutResourceDay)",
+        "一覧の選択状態(toggleRow/toggleAll/isIndeterminate/selectedKeys・複数選択/一括操作)",
+        "ダッシュボード部品(DonutChart/BreakdownBar/RankingList/GoalProgress/Funnel/FreshnessIndicator + 純ロジック computeShares/donutSegments/achievementRate/funnelStages/relativeTime)",
+        "ソーシャルログインUI(LoginCard完成画面/SocialLoginButton/SocialLoginGroup/LoginDivider・Google/Zoho等6プロバイダ・socialLoginLabel/PROVIDER_AUTH_BACKEND)",
+        "メールログインフォーム(EmailLoginForm/validateEmailLogin・メール+パスワード・クライアント検証・LoginCardのメール認証スロット)",
+        "レイアウト部品(AppHeader/HeaderNav/HamburgerButton/NavMenu/SiteFooter/UserMenu/PageHeader・ヘッダー/サイドメニュー/フッター/ハンバーガー・isNavActive/findActiveNavアクティブ判定)",
+        "テーマ切替(ThemeToggle/resolveTheme/nextThemePreference/toggleTheme/applyTheme・ダーク/ライト/システム・Tailwind dark対応)",
+        "ThemeProvider(useTheme/ThemeProvider/themeInitScript・選好保持/OS変更監視/localStorage永続化/FOUC対策)",
+        "通知センター(NotificationBell/unreadCount/groupByDate/markRead/markAllRead・未読バッジ+ドロップダウン・今日/昨日/それ以前グループ)",
+        "Breadcrumb区切り文字カスタム(separator prop・シェブロン/スラッシュ等)",
+        "コマンドパレット(CommandPalette/filterCommands/groupCommands/nextIndex・⌘K検索・スコア順/グループ/キーボード操作)",
+        "リアルタイム通知(useNotifications/notificationReducer・realtime購読→NotificationBell・受信で未読更新/同一ID置換/上限管理)",
+        "右クリック/コピペ/ショートカット(ContextMenu/useDisableContextMenu/CopyButton/useCopyToClipboard/usePaste/copyToClipboard/readClipboard/useKeyboardShortcuts/ErrorBoundary・Mac⌘Win Ctrl・g h連続入力)",
+        "キーボードショートカット(useKeyboardShortcuts/parseShortcut/matchShortcut/formatShortcut/sequenceMatches・mod+k/g h連続入力)",
+        "エラー境界(ErrorBoundary・描画エラー捕捉+フォールバック)",
+        "RBAC出し分け(filterNavByPermission/NavItem.permission・権限述語でメニュー絞込・空グループ非表示・ui は auth 非依存)",
+        "スクロールエリア(ScrollArea/useScrolledToBottom・利用規約表示・読了判定onReachBottom)",
+        "利用規約同意(TermsAcceptance・最下部まで読んで同意 read-before-agree)",
+        "ブループリントUI(BlueprintActions・状態バッジ+実行可能アクションのボタン出し分け・blueprint非依存)"
+      ],
+      "wraps": "shadcn/ui"
+    },
+    {
+      "name": "@platform/form",
+      "purpose": "フォーム統合（react-hook-form + zod + ui）",
+      "exports": [
+        "useZodForm",
+        "Form",
+        "FormField",
+        "TextField",
+        "PasswordField",
+        "SelectField",
+        "ComboboxField",
+        "CheckboxField",
+        "SwitchField",
+        "TextareaField",
+        "NumberField",
+        "DateField",
+        "TimeField",
+        "ColorField",
+        "RadioField",
+        "RatingField",
+        "TagsField",
+        "OtpField",
+        "AutocompleteField",
+        "CsrfField",
+        "useCsrfToken",
+        "csrfHeaders",
+        "HoneypotField",
+        "SubmitButton",
+        "useUnsavedChangesWarning",
+        "applyServerErrors",
+        "useFormAutosave",
+        "VoiceField",
+        "動的フォーム(FormField/visibleFields/条件付き表示・visibleWhen equals/in/truthy/AND)",
+        "多段ステップ(stepVisibleFields/stepProgress/isStepFilled)",
+        "zodスキーマ生成(buildFormSchema/defaultValues/stripHiddenValues)",
+        "入力→確認→完了フロー(useSubmitFlow/reviewData/submitSucceeded・確認画面でデータ保持・二重送信防止)",
+        "確認/詳細画面の項目生成(reviewItems/describeRecord/formatFieldValue)",
+        "バリデーションエラー整形(issuesToFieldErrors/fieldError/hasNoErrors/formError・validate()のissue→項目別エラー)"
+      ],
+      "wraps": "react-hook-form"
+    },
+    {
+      "name": "@platform/i18n",
+      "summary": "多言語対応(日英中韓)・翻訳/補間/フォールバック/Intl整形",
+      "exports": [
+        "createI18n",
+        "mergeCatalogs",
+        "detectLocale",
+        "uiCatalogs",
+        "LOCALES",
+        "LOCALE_LABELS",
+        "namespaced"
+      ]
+    },
+    {
+      "name": "@platform/fs",
+      "summary": "ファイル/フォルダ操作・パスユーティリティ",
+      "exports": [
+        "joinPath",
+        "normalizePath",
+        "withoutExt",
+        "splitExt",
+        "changeExt",
+        "sanitizeFilename",
+        "uniqueFilename",
+        "isSubPath",
+        "guessMimeType",
+        "pathExists",
+        "ensureDir",
+        "readText",
+        "writeText",
+        "readJson",
+        "writeJson",
+        "writeFileAtomic",
+        "remove",
+        "emptyDir",
+        "copyFile",
+        "copyDir",
+        "move",
+        "listDir",
+        "walk",
+        "dirSize",
+        "detectFileType",
+        "isAllowedFileType",
+        "extensionMatchesContent"
+      ]
+    },
+    {
+      "name": "@platform/phone",
+      "summary": "日本の電話番号(正規化/種別/E.164/整形)",
+      "exports": [
+        "normalizePhone",
+        "phoneType",
+        "isValidJpPhone",
+        "toE164",
+        "fromE164",
+        "formatJpPhone",
+        "maskPhone",
+        "internationalPhoneType"
+      ]
+    },
+    {
+      "name": "@platform/net",
+      "summary": "ネットワーク(URL/リトライ/IP-CIDR)とソケット(TCPフレーミング)",
+      "exports": [
+        "joinUrl",
+        "withQuery",
+        "parseQuery",
+        "buildQuery",
+        "backoffDelay",
+        "retry",
+        "withTimeout",
+        "isValidIpv4",
+        "ipToLong",
+        "ipInCidr",
+        "isPrivateIp",
+        "parseCidr",
+        "encodeLengthPrefixed",
+        "LengthPrefixedDecoder",
+        "LineDecoder",
+        "encodeLine",
+        "createFramedServer",
+        "connectFramed",
+        "createUdpSocket",
+        "encodeWsFrame",
+        "encodeWsText",
+        "WsFrameDecoder",
+        "WsOpcode",
+        "formatSseEvent",
+        "SseDecoder",
+        "poll"
+      ]
+    },
+    {
+      "name": "@platform/color",
+      "summary": "色変換・WCAGコントラスト・明暗調整・混色",
+      "exports": [
+        "hexToRgb",
+        "rgbToHex",
+        "rgbToHsl",
+        "hslToRgb",
+        "contrastRatio",
+        "wcagLevel",
+        "lighten",
+        "darken",
+        "mix",
+        "readableTextColor"
+      ]
+    },
+    {
+      "name": "@platform/fsm",
+      "summary": "汎用ステートマシン(宣言的な状態遷移)",
+      "exports": [
+        "can",
+        "transition",
+        "availableEvents",
+        "isFinal",
+        "run",
+        "createStateMachine"
+      ]
+    },
+    {
+      "name": "@platform/currency",
+      "summary": "通貨・為替(端数処理/換算/複数通貨合算)",
+      "exports": [
+        "currencyMeta",
+        "roundMoney",
+        "money",
+        "formatMoney",
+        "convert",
+        "addMoney",
+        "sumMoney",
+        "totalInBaseCurrency"
+      ]
+    },
+    {
+      "name": "@platform/units",
+      "summary": "単位変換(長さ/重さ/面積/体積/温度/尺貫法)",
+      "exports": [
+        "convertLength",
+        "convertWeight",
+        "convertArea",
+        "convertVolume",
+        "convertTemperature",
+        "round"
+      ]
+    },
+    {
+      "name": "@platform/observability",
+      "summary": "依存ゼロの観測性・信頼性(トレース/メトリクス/冪等性/サーキットブレーカー/Outbox/ヘルスチェック)",
+      "exports": [
+        "createTracer",
+        "toTraceparent/parseTraceparent(W3C)",
+        "createMetrics(Prometheus出力)",
+        "withIdempotency/createMemoryIdempotencyStore",
+        "runHealthChecks",
+        "createCircuitBreaker(障害遮断)",
+        "relayOutbox/createMemoryOutboxStore(確実送信)",
+        "createRedisIdempotencyStore(本番冪等性)",
+        "createSqlOutboxStore(DB永続Outbox)",
+        "createOtlpExporter(トレースをCollectorへ送信)",
+        "createAlertManager(SLO評価・発報/回復)"
+      ]
+    },
+    {
+      "name": "@platform/secrets",
+      "summary": "シークレット取得の抽象(env/Secrets Manager/Vault・キャッシュ/TTL/ローテーション追随・必須チェック)",
+      "exports": [
+        "createSecretStore",
+        "createEnvProvider",
+        "createFetchProvider",
+        "createChainProvider"
+      ]
+    },
+    {
+      "name": "@platform/flags",
+      "summary": "フィーチャーフラグ(kill switch・段階ロールアウト・ターゲティング・A/Bバリアント・決定的評価)",
+      "exports": [
+        "createFlags",
+        "evaluateFlag",
+        "selectVariant",
+        "createStaticProvider",
+        "createRemoteProvider"
+      ]
+    },
+    {
+      "name": "@platform/pii",
+      "summary": "個人情報保護(マスキング・検索可能暗号 blind index・フィールド暗号・匿名化/保持ポリシー)",
+      "exports": [
+        "maskEmail",
+        "maskPhone",
+        "blindIndex",
+        "createFieldCipher",
+        "anonymizeRecord",
+        "isRetentionExpired",
+        "maskMyNumber(番号法対応・既定全桁マスク)",
+        "maskIdentityNumber(本人確認番号の末尾マスク)",
+        "本人の権利対応(buildDisclosureReport/erasePersonalData/recordsToErase・開示/削除/保持期限・個人情報保護法)"
+      ]
+    },
+    {
+      "name": "@platform/tax",
+      "summary": "日本の消費税・インボイス(税込税抜変換・軽減税率混在・端数処理・税率別集計・登録番号検証)",
+      "exports": [
+        "grossFromNet",
+        "netFromGross",
+        "summarizeTax",
+        "isValidInvoiceNumber",
+        "isValidCorporateNumber",
+        "源泉徴収税(withholdingTax/applyWithholding・10.21%/20.42%・100万境界)"
+      ]
+    },
+    {
+      "name": "@platform/importer",
+      "summary": "一括インポート枠組み(行ごと検証・エラー行集約・ドライラン・トランザクション適用)",
+      "exports": [
+        "validateRows",
+        "runImport",
+        "rowsToObjects"
+      ]
+    },
+    {
+      "name": "@platform/sequence",
+      "summary": "帳票番号の連番採番(プレフィックス・ゼロ埋め・年度/月次リセット・原子的発番)",
+      "exports": [
+        "createSequencer",
+        "createMemorySequenceStore",
+        "periodToken"
+      ]
+    },
+    {
+      "name": "@platform/webhook",
+      "summary": "Webhook 受信枠組み(HMAC署名検証・冪等・イベントディスパッチ)",
+      "exports": [
+        "createWebhookReceiver",
+        "verifyHmacSignature",
+        "createMemoryWebhookStore"
+      ]
+    },
+    {
+      "name": "@platform/apikey",
+      "summary": "API キー/M2M 認証(発行・ハッシュ照合・スコープ・失効/期限)",
+      "exports": [
+        "generateApiKey",
+        "verifyApiKey",
+        "authenticateApiKey",
+        "hasScope",
+        "hasAllScopes"
+      ]
+    },
+    {
+      "name": "@platform/zengin",
+      "summary": "全銀協フォーマット総合振込データ生成(固定長・半角カナ・件数/合計集計)",
+      "exports": [
+        "buildZenginTransfer",
+        "buildDataRecord",
+        "toHankakuKana"
+      ]
+    },
+    {
+      "name": "@platform/status-page",
+      "purpose": "メンテナンス/エラー画面テンプレート + メンテナンス切り替えゲート",
+      "exports": [
+        "renderMaintenancePage",
+        "renderErrorPage",
+        "renderServiceUnavailablePage",
+        "renderNotFoundPage",
+        "renderStatusPage",
+        "createMaintenanceGate(env/フラグ/予定期間・許可ロール/IP/バイパス)",
+        "createAsyncMaintenanceGate(DB/フラグ連動)",
+        "createCachedConfig(TTLキャッシュ)",
+        "stateToConfig/MaintenanceStore(GUIトグル・再起動なし切替)"
+      ]
+    },
+    {
+      "name": "@platform/ekyc",
+      "purpose": "eKYC(オンライン本人確認)ベンダー連携(TRUSTDOCK 等)",
+      "exports": [
+        "createEkycClient/createTrustdockClient(申込作成/状態取得/画像URL/取消・エンドポイント設定可)",
+        "verifyEkycSignature/parseEkycWebhook(判定Webhookの署名検証+正規化)",
+        "normalizeEkycStatus/EkycStatus(判定ステータス正規化)"
+      ]
+    },
+    {
+      "name": "@platform/mobile",
+      "purpose": "タブレット・スマホ向けの処理(レスポンシブ・ネットワーク状態・画面向き・端末操作)",
+      "exports": [
+        "matchBreakpoint/deviceSizeFromWidth(レスポンシブ純ロジック)",
+        "useBreakpoint/useDeviceSize/useIsMobile/useViewportSize/useOrientation(React フック)",
+        "classifyConnection/useNetworkStatus/useOnlineStatus(ネットワーク状態・低速回線対応)",
+        "useWakeLock/usePageVisibility(スリープ防止・可視性)",
+        "share/vibrate/copyToClipboard/isStandalone/isTouchPrimary(端末操作・feature detection)",
+        "カメラ撮影(startCamera/captureFrame/cameraConstraints・前面/背面切替)",
+        "バーコード読取(detectBarcodes + JAN/EAN検証 isValidJan/detectBarcodeKind・BarcodeDetector)"
+      ]
+    },
+    {
+      "name": "@platform/payroll",
+      "purpose": "勤怠・給与計算(労働基準法)",
+      "exports": [
+        "勤怠集計(splitDailyWork/nightMinutes・時間外/深夜/法定休日区分)",
+        "割増賃金(calcPay・時間外25%/深夜25%/休日35%・複合率・月60h超50%)",
+        "月次集計(aggregateMonthly/calcMonthlyPay)",
+        "給与明細(buildPayslip・総支給/控除/差引支給)",
+        "給与明細HTML描画(renderPayslipHtml・@platform/pdfでPDF化・支給/控除/差引)"
+      ]
+    },
+    {
+      "name": "@platform/dencho",
+      "purpose": "電子帳簿保存法(電帳法)対応",
+      "exports": [
+        "改ざん検知(appendEvidence/verifyEvidenceChain・ハッシュチェーン・真実性の確保)",
+        "検索要件(searchTransactions・取引年月日/金額/取引先・範囲/AND・可視性の確保)",
+        "タイムスタンプ(createTimestampToken/verifyTimestampToken・内部時刻証跡)",
+        "保存期間管理(retentionDeadline/isWithinRetention・原則7年)"
+      ]
+    },
+    {
+      "name": "@platform/commerce",
+      "purpose": "EC サイトの基盤処理(カート・お気に入り・割引・注文計算・在庫)",
+      "exports": [
+        "カート(addToCart/setQuantity/cartSubtotal/mergeCarts・不変操作・ゲスト統合)",
+        "お気に入り(toggleFavorite/isFavorite)+最近見た商品(pushRecentlyViewed)",
+        "クーポン割引(computeDiscount・定率/定額/最低購入額/上限)",
+        "注文サマリ(buildOrderSummary・外税/内税/軽減税率/送料無料・@platform/tax連携)",
+        "在庫引当(reserveStock/commitStock/releaseStock/canFulfill)",
+        "商品バリエーション(findVariant/availableValues/priceRange・サイズ/色・在庫別選択肢)",
+        "レビュー評価(ratingSummary/averageRating/ratingDistribution)",
+        "注文ステータス(canTransition/nextStatuses・未払い→配達完了/キャンセル/返金)",
+        "ポイント(earnPoints/pointsBalance/redeemPoints・失効考慮)",
+        "送料計算(shippingFeeForRegion/weightBasedFee・地域別/重量段階)"
+      ]
+    },
+    {
+      "name": "@platform/blog",
+      "purpose": "ブログ/コンテンツの基盤処理",
+      "exports": [
+        "スラッグ生成(slugify/ensureSlug/uniqueSlug・日本語対応・衝突回避)",
+        "抜粋(excerpt/stripMarkdown)+読了時間(readingTime・日本語/欧文)",
+        "目次(extractHeadings・アンカー重複回避)",
+        "記事公開(isPublished/publishedPosts・下書き/予約公開)+絞込(postsByTag/tagCounts)+関連記事(relatedPosts)",
+        "RSS/サイトマップ(buildRssFeed/buildSitemap・XMLエスケープ)",
+        "コメント(buildCommentTree/approvedComments/pendingCount・ネスト/モデレーション)",
+        "記事ナビゲーション(adjacentPosts/seriesPosts/seriesNavigation・前後/連載)",
+        "パーマリンク(buildPermalink/postUrl/matchPermalink・URLパターン:year/:month/:slug等・TZ対応・逆引き・joinUrl)"
+      ]
+    },
+    {
+      "name": "@platform/seo",
+      "purpose": "SEO のための機能(メタタグ・OGP・構造化データ・robots)",
+      "exports": [
+        "メタタグ(buildMeta/renderMeta・title テンプレート/description調整/canonical/robots)",
+        "Open Graph/Twitter Card(buildOpenGraphTags/buildTwitterCardTags・article拡張)",
+        "JSON-LD構造化データ(articleJsonLd/breadcrumbJsonLd/productJsonLd/faqJsonLd/websiteJsonLd・XSS対策renderJsonLd)",
+        "robots.txt(buildRobotsTxt/allowAllRobotsTxt)",
+        "可視性ポリシー(robotsForVisibility/xRobotsTag/internalRobotsTxt/buildMeta visibility・社内は既定noindex・公開のみSEO適用)"
+      ]
+    },
+    {
+      "name": "@platform/site",
+      "purpose": "公式サイト・LP のための基盤処理",
+      "exports": [
+        "ページ構成(visibleBlocks/reorderBlocks・セクションブロック・期間限定表示・並べ替え)",
+        "ナビゲーションメニュー(activeTrail/breadcrumbFromMenu/isActive・階層・アクティブ判定)",
+        "URLリダイレクト(resolveRedirect/resolveRedirectChain・完全一致/ワイルドカード:splat/連鎖)",
+        "お知らせバー(activeAnnouncements/topAnnouncement・期間/対象ページ/優先度)",
+        "パンくず自動生成(breadcrumbFromPath・URLパス→累積リンク/ラベル指定/見出し化)"
+      ]
+    },
+    {
+      "name": "@platform/url",
+      "purpose": "URL・ドメインの汎用処理",
+      "exports": [
+        "URL解析/組み立て(parseUrl/buildUrl/getOrigin/getPath・相対base解決)",
+        "クエリ操作(setParam/setParams/appendParam/keepParams/parseQuery・URL保持)",
+        "ドメイン抽出(getRegistrableDomain eTLD+1/getSubdomain/getTld/isSameDomain・co.jp等多段TLD対応)",
+        "正規化(normalizeUrl/urlsEqual・host小文字/トラッキング除去/クエリソート/末尾スラッシュ)",
+        "検証・安全性(isValidUrl/isHttpUrl/isSafeUrl危険スキーム排除/isSameOrigin/isExternalUrl)"
+      ]
+    },
+    {
+      "name": "@platform/social",
+      "purpose": "ソーシャル(X/TikTok/Instagram)連携の基盤処理",
+      "exports": [
+        "プラットフォーム定義(PLATFORMS/platformFromHostname・X/TikTok/Instagram)",
+        "ハンドル処理(normalizeHandle/isValidHandle/buildProfileUrl/displayHandle・プラットフォーム別規則)",
+        "URL解析(parseSocialUrl・プロフィール/投稿・handle/postId/postKind抽出)",
+        "oEmbed(oembedEndpoint/supportsOEmbed・X/TikTok対応・IGはトークン要)",
+        "アカウント集合(accountsFromUrls/accountLinks/accountsByPlatform・貼付URL群→正規化+重複排除)",
+        "統合フィード(mergeSocialFeed/latestPerPlatform/newPosts/recentPosts・重複排除/新しい順/新着差分・定期取得の正規化)"
+      ]
+    },
+    {
+      "name": "@platform/booking",
+      "purpose": "予約サイトの基盤処理",
+      "exports": [
+        "営業時間(resolveDayHours/isOpenAt/isBusinessDay・曜日別/昼休み分割/臨時休業/特別営業)",
+        "スロット生成(generateSlots/slotsForRange・所要時間/刻み幅)",
+        "空き枠計算(availableSlots/remainingCapacity/hasConflict・キャパシティ考慮/重なり判定)",
+        "予約ルール(isWithinBookingWindow/canCancel/validatePartySize・受付期間/キャンセル期限/人数)",
+        "予約ステータス(canTransition/isActiveBooking・リクエスト→確定→完了/キャンセル/無断)",
+        "リマインダー(reminderSchedule/dueReminders/reminderMessage・前日/当日/直前・発火時刻/送信済管理/grace/日本語本文)",
+        "シフト空き枠(staffAvailableSlots/slotStaffing/availableWithStaffing・指名予約=シフト内−予約・複数スタッフの動的キャパシティ)"
+      ]
+    },
+    {
+      "name": "@platform/cast",
+      "purpose": "キャスト(スタッフ/タレント)の基盤処理",
+      "exports": [
+        "一覧(activeCasts/castsByTag/castsByAllTags/tagCounts・在籍/タグ絞込)",
+        "並び替え・抽出(sortCasts featured/rating/newest/name・featuredCasts注目・newcomers新人)",
+        "プロフィール(profileItems/profileCompleteness/hasRequiredProfile・項目組立/充実度/必須判定)",
+        "口コミ連動ランキング(rankCasts/weightedRating/rankByRawRating・ベイズ平均で件数補正・少件数高評価の独占防止)"
+      ]
+    },
+    {
+      "name": "@platform/invoice",
+      "summary": "請求書(適格請求書対応)。明細計算・税率別集計・番号採番・支払期限/入金状態。",
+      "exports": [
+        "請求書(lineNet/invoiceTotals/buildInvoice・税率区分ごとの消費税=適格請求書要件)",
+        "採番(formatInvoiceNumber/parseInvoiceSequence)",
+        "支払期限/入金状態(dueDateFrom/endOfNextMonth/paymentStatus/balanceDue/daysUntilDue)",
+        "登録番号検証(isValidInvoiceNumber/normalizeInvoiceNumber・@platform/tax再エクスポート)",
+        "入金消込/繰越/売掛年齢(applyPayment FIFO/reconcile/outstandingTotal/agingBuckets)",
+        "請求書HTML描画(renderInvoiceHtml・@platform/pdfでPDF化)",
+        "定期請求/サブスク(billingDateAt/nextBillingDate/billingDatesBetween/dueForBilling・月末クランプ)",
+        "督促(dunningLevel/dunningMessage/shouldSendDunning・段階別文面)"
+      ]
+    },
+    {
+      "name": "@platform/quote",
+      "summary": "見積書。明細計算は @platform/invoice を再利用し、有効期限・状態・請求書変換を提供。",
+      "exports": [
+        "見積(buildQuote/quoteTotals・税計算はinvoice委譲)",
+        "有効期限/状態(isExpired/quoteStatus draft-sent-accepted-rejected-expired/daysUntilExpiry)",
+        "請求書変換(convertToInvoice・承認済み見積→請求書)"
+      ]
+    },
+    {
+      "name": "@platform/purchase",
+      "summary": "発注(購買)。明細・金額(@platform/invoice再利用)・入荷/発注残・状態。",
+      "exports": [
+        "発注(buildPurchaseOrder/purchaseTotals・税計算はinvoice委譲)",
+        "入荷/発注残(receivingStatus/totalOutstanding/overReceivedLines)",
+        "発注状態(purchaseStatus draft-ordered-partially_received-received-cancelled)"
+      ]
+    },
+    {
+      "name": "@platform/inventory",
+      "summary": "在庫管理。入出庫台帳・発注点・在庫評価(移動平均)。",
+      "exports": [
+        "入出庫台帳(onHand/summarize/applyMovement・inbound/outbound/adjustment)",
+        "発注点(reorderPoint/needsReorder/reorderQuantity・安全在庫+リードタイム需要)",
+        "在庫評価(movingAverage・移動平均単価/在庫金額)",
+        "ロット/賞味期限(lotBalances/expiringSoon/expiredLots/allocateFEFO・FEFO引当)",
+        "複数倉庫(onHandByWarehouse/totalOnHand/warehouseOnHand/transfer・倉庫間移動)"
+      ]
+    },
+    {
+      "name": "@platform/accounting",
+      "summary": "会計(複式簿記の仕訳)。貸借均衡・試算表・業務イベントからの仕訳生成・freee連携。",
+      "exports": [
+        "仕訳(JournalEntry/isBalanced/debitTotal/creditTotal)",
+        "業務イベント→仕訳(salesJournal/purchaseJournal/receiptJournal/paymentJournal・勘定科目差替可)",
+        "試算表(trialBalance/trialBalanceBalanced)",
+        "freee連携(toFreeeDetails→buildManualJournal)",
+        "月次決算(filterByPeriod/profitAndLoss/balanceSheet・損益と貸借)",
+        "消費税集計表(consumptionTaxSummary・税率別 仮受/仮払/納付税額)",
+        "エクスポート(journalToRows CSV用/journalToFreeeDetails freee仕訳変換・未登録科目検出)",
+        "経費精算仕訳(expenseJournal・経費/仮払消費税 / 未払金・現金・仮払金)",
+        "給与支給仕訳(payrollJournal・給与手当 / 預り金(源泉・社保)・未払金/現金)",
+        "部門別集計(departmentSummary/profitAndLossByDepartment・明細のdepartmentで集計)",
+        "外部SaaS送信バッチ(prepareBatch/syncJournals/summarizeSync・冪等キーで二重送信防止・未登録科目検出・送信関数注入でfreee/MF両対応)"
+      ]
+    },
+    {
+      "name": "@platform/blueprint",
+      "summary": "業務プロセスのブループリント(Zoho CRM相当)。状態遷移+条件/必須項目/アクション/ロールの強制。",
+      "exports": [
+        "ブループリント定義(Blueprint/BlueprintTransition・from/to/name/requiredFields/condition/actions/allowedRoles)",
+        "遷移評価(availableTransitions/evaluateTransition/missingRequiredFields・状態/条件/必須項目/ロール検証)",
+        "遷移適用(applyTransition・検証を通れば状態更新+アクション返却)",
+        "fsm連携(toStateMachine/transitionNames/isFinalState)"
+      ]
+    },
+    {
+      "name": "@platform/audit",
+      "summary": "監査ログ(操作履歴)。追記専用+ハッシュチェーンで改ざん検知、差分抽出、検索。",
+      "exports": [
+        "監査イベント/差分(AuditEvent/diffChanges/describeEvent)",
+        "追記+改ざん検知(appendEvent/appendAll/verifyChain・書換え/削除/並替を検知・ハッシュ注入可)",
+        "検索(filterByActor/filterByAction/filterByPeriod/historyOf)"
+      ]
+    },
+    {
+      "name": "@platform/chat",
+      "summary": "チャット(メッセージ・ルーム・未読・整列・メンション)。純ロジック。realtimeと組合せて配信",
+      "layer": "domain"
+    },
+    {
+      "name": "@platform/board",
+      "summary": "掲示板(スレッド・投稿・返信・リアクション集計・一覧整列/検索)。純ロジック",
+      "layer": "domain"
+    }
+  ],
+  "planned": [],
+  "@platform/task": {
+    "summary": "タスク管理(担当・期限・状態遷移・進捗・かんばん・負荷)",
+    "category": "ドメイン"
+  },
+  "@platform/faq": {
+    "summary": "社内FAQ(質問と回答・カテゴリ・検索・役に立った投票・要見直し検出)",
+    "category": "コンテンツ・サイト"
+  },
+  "@platform/contract": {
+    "summary": "契約管理(期間・自動更新・解約予告期限・更新アラート)",
+    "category": "業務ドメイン"
+  }
+}

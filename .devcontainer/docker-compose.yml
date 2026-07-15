@@ -1,0 +1,18 @@
+# devcontainer 用オーバーレイ(ベースの docker-compose.yml に workspace を追加し、db に初期DB作成を足す)
+services:
+  workspace:
+    image: mcr.microsoft.com/devcontainers/typescript-node:22-bookworm
+    volumes:
+      - ..:/workspaces/platform:cached
+    command: sleep infinity
+    environment:
+      PGHOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+
+  db:
+    volumes:
+      - ./init-db.sql:/docker-entrypoint-initdb.d/90-extra-dbs.sql:ro

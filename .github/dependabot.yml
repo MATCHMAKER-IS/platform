@@ -1,0 +1,23 @@
+# 依存の脆弱性・更新を自動 PR 化。CI の pnpm audit / CodeQL と併用。
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      # マイナー/パッチはまとめて1PRに(レビュー負荷軽減)
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies"]
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["ci"]
+  - package-ecosystem: "docker"
+    directory: "/apps/internal-app"
+    schedule:
+      interval: "weekly"
+    labels: ["docker"]

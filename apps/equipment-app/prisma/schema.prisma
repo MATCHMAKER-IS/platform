@@ -1,0 +1,27 @@
+// 備品管理の Prisma スキーマ(PostgreSQL)。備品 + 貸出履歴(子レコード)。
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model EquipmentRow {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  note      String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model LendingRow {
+  id         String  @id @default(cuid())
+  code       String
+  borrower   String
+  lentAt     String
+  returnedAt String?
+  @@index([code])
+}

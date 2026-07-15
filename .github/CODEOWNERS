@@ -1,0 +1,31 @@
+# ============================================================================
+# コードオーナー(自動レビュー割り当て)
+#
+# ⚠️ 導入時に必ず置換してください
+#   `@platform-team` は**プレースホルダ**です。実在しないチームのままブランチ保護で
+#   「コードオーナーのレビュー必須」を有効にすると、**誰も承認できず PR がマージ不能**になります。
+#   自社の GitHub チーム(例: @your-org/platform)か個人(例: @yamada)に置き換えてください。
+#
+# 目的
+#   基盤(packages) の変更は必ず基盤担当のレビューを必須にし、
+#   「アプリ作業で基盤を勝手に変えない」運用を PR レベルで担保する。
+#
+# 設定方法
+#   1. このファイルの @platform-team を実在のチーム/個人に置換
+#   2. GitHub → Settings → Branches → main → Require review from Code Owners を有効化
+#   詳細: docs/ops/CI_FIRST_RUN.md
+# ============================================================================
+
+# 基盤(全アプリに影響する)
+/packages/            @platform-team
+
+# 開発ツール・検査(壊れると全員が困る)
+/tools/               @platform-team
+
+# 規約・設定(勝手に変えられると統制が効かなくなる)
+/CLAUDE.md            @platform-team
+/CONTRIBUTING.md      @platform-team
+/eslint.config.mjs    @platform-team
+/tsconfig.base.json   @platform-team
+/turbo.json           @platform-team
+/.github/             @platform-team

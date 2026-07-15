@@ -1,0 +1,54 @@
+name: 機能要望・改善提案
+description: 「こうなったらいいのに」を提案する
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提案ありがとうございます。**困っていること**から書いていただけると、より良い解決策が見つかることがあります。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 今、何に困っているか
+      description: 「◯◯機能が欲しい」より「◯◯するのに毎回△△していて手間」の方が、良い案が出ます
+      placeholder: |
+        毎月の経費集計で、承認済みだけを手作業で抜き出して Excel に貼っている。
+        30分くらいかかるし、貼り間違いも起きる。
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: どうなれば解決するか（案があれば）
+      placeholder: |
+        経費一覧に「承認済みのみ CSV 出力」ボタンがあれば済む
+    validations:
+      required: false
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: どこの話か
+      options:
+        - 社内アプリ (internal-app)
+        - 公開サイト (public-site)
+        - 備品管理 (equipment-app)
+        - 基盤 (packages/)
+        - 開発環境・ドキュメント
+        - 分からない
+    validations:
+      required: true
+
+  - type: dropdown
+    id: urgency
+    attributes:
+      label: 急ぎ具合
+      options:
+        - 困っているが回避策はある
+        - 業務が止まっている
+        - あったら嬉しい程度
+    validations:
+      required: true

@@ -1,0 +1,14 @@
+/** レディネスチェック API(GET)。DB・マイグレーション等を集約し 200/503 を返す(デプロイの健全性確認用)。 */
+import { withApiObservability } from "../../../server/instrument.js";
+import { checkReadiness, readinessHttpStatus } from "../../../lib/readiness.js";
+import { serverEnv } from "../../../server/env.js";
+
+async function handleGET(_req: Request): Promise<Response> {
+  const result = await checkReadiness([
+    { name: "database", probe: async () => ({ ok: Boolean(serverEnv.DATABASE_URL), detail: "connection" }) },
+    { name: "session-secret", probe: async () => ({ ok: Boolean(serverEnv.SESSION_SECRET) }) },
+  ]);
+  return Response.json(result, { status: readinessHttpStatus(result) });
+}
+
+export const GET = withApiObservability("/api/ready", handleGET);

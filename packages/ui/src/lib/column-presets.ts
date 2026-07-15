@@ -1,0 +1,97 @@
+/**
+ * 列設定のプリセット(名前付き・共有可能)。個人用と共有用を扱う。
+ * @packageDocumentation
+ */
+import type { ColumnPrefs } from "./column-prefs.js";
+
+/** 列プリセット。 */
+export interface ColumnPreset {
+  id: string;
+  name: string;
+  prefs: ColumnPrefs;
+  /** 全員に共有するか(false=個人)。 */
+  shared?: boolean;
+  /** テーブルの既定として初期適用する。 */
+  isDefault?: boolean;
+  ownerId?: string;
+}
+
+/** id 一致で更新、無ければ追加。 */
+export function upsertPreset(list: ColumnPreset[], preset: ColumnPreset): ColumnPreset[] {
+  const i = list.findIndex((p) => p.id === preset.id);
+  if (i >= 0) { const c = [...list]; c[i] = preset; return c; }
+  return [...list, preset];
+}
+
+/** id のプリセットを除く。 */
+export function removePreset(list: ColumnPreset[], id: string): ColumnPreset[] {
+  return list.filter((p) => p.id !== id);
+}
+
+/** id からプリセットを探す。 */
+export function findPreset(list: ColumnPreset[], id: string): ColumnPreset | undefined {
+  return list.find((p) => p.id === id);
+}
+
+/** 共有 / 個人 に分ける(表示用)。 */
+export function splitPresets(list: ColumnPreset[]): { shared: ColumnPreset[]; personal: ColumnPreset[] } {
+  return { shared: list.filter((p) => p.shared), personal: list.filter((p) => !p.shared) };
+}
+
+/** プリセット保存先。 */
+export interface ColumnPresetStore {
+  list(table: string): Promise<ColumnPreset[]>;
+  save(table: string, preset: ColumnPreset): Promise<void>;
+  remove(table: string, id: string): Promise<void>;
+}
+
+/** {@link createColumnPresetStore} のオプション。 */
+export interface ColumnPresetStoreOptions {
+  endpoint: string;
+  userId: string;
+  headers?: Record<string, string>;
+  fetch?: typeof fetch;
+}
+
+/** サーバにプリセットを保存する fetch ストア(個人+共有を返す)。 */
+export function createColumnPresetStore(options: ColumnPresetStoreOptions): ColumnPresetStore {
+  const doFetch = options.fetch ?? (typeof fetch !== "undefined" ? fetch : undefined);
+  const base = (table: string) => `${options.endpoint}?user=${encodeURIComponent(options.userId)}&table=${encodeURIComponent(table)}`;
+  return {
+    async list(table) {
+      if (!doFetch) return [];
+      try {
+        const res = await doFetch(base(table), { headers: options.headers });
+        if (!res.ok) return [];
+        return (await res.json()) as ColumnPreset[];
+      } catch { return []; }
+    },
+    async save(table, preset) {
+      if (!doFetch) return;
+      await doFetch(base(table), { method: "PUT", headers: { "content-type": "application/json", ...options.headers }, body: JSON.stringify({ table, preset, ownerId: options.userId }) });
+    },
+    async remove(table, id) {
+      if (!doFetch) return;
+      await doFetch(`${base(table)}&id=${encodeURIComponent(id)}`, { method: "DELETE", headers: options.headers });
+    },
+  };
+}
+
+/** テーブルごとの既定プリセット(isDefault)を探す。 */
+export function defaultPreset(list: ColumnPreset[]): ColumnPreset | undefined {
+  return list.find((p) => (p as ColumnPreset & { isDefault?: boolean }).isDefault);
+}
+
+/**
+ * 初期表示の列設定を決める。優先度: ユーザー保存 > 既定プリセット > 空。
+ * @param saved ユーザーが保存した設定(無ければ null)
+ * @param presets テーブルのプリセット一覧
+ */
+export function resolveInitialPrefs(
+  saved: import("./column-prefs.js").ColumnPrefs | null,
+  presets: ColumnPreset[],
+): import("./column-prefs.js").ColumnPrefs {
+  if (saved && (saved.order.length > 0 || saved.hidden.length > 0)) return saved;
+  const def = defaultPreset(presets);
+  return def ? def.prefs : { order: [], hidden: [] };
+}

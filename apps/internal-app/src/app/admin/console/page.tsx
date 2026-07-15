@@ -1,0 +1,4 @@
+import * as React from "react";
+import { AdminConsoleClient } from "./console-client.js";
+export const metadata = { title: "管理コンソール" };
+export default function AdminConsolePage() { return <AdminConsoleClient />; }

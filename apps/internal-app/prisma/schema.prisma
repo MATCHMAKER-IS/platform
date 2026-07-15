@@ -1,0 +1,779 @@
+// 経費アプリの Prisma スキーマ(PostgreSQL)。
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Expense {
+  id        String   @id @default(cuid())
+  date      DateTime @db.Date
+  category  String
+  amount    Int
+  note      String?
+  batchId   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+  @@index([category])
+  @@index([batchId])
+}
+
+model ExpenseRequest {
+  id          String   @id @default(cuid())
+  applicant   String
+  expenseId   String
+  status      String   @default("pending") // pending | approved | rejected
+  currentStep Int      @default(0)
+  history     Json     @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actor     String
+  action    String
+  target    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([action])
+  @@index([target])
+  @@index([createdAt])
+}
+
+model ImportBatch {
+  id         String   @id @default(cuid())
+  source     String
+  userId     String
+  total      Int
+  inserted   Int
+  errorCount Int      @default(0)
+  status     String   @default("success") // success | partial | failed | rolled_back
+  createdAt  DateTime @default(now())
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model SystemSetting {
+  key       String   @id
+  value     Json
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+// ─────────── チャット / 掲示板 ───────────
+
+model ChatRoomRow {
+  id        String   @id @default(cuid())
+  name      String
+  kind      String   @default("group") // dm | group
+  createdAt DateTime @default(now())
+
+  members  RoomMemberRow[]
+  messages ChatMessageRow[]
+
+  @@index([kind])
+}
+
+model RoomMemberRow {
+  id       String   @id @default(cuid())
+  roomId   String
+  userId   String
+  role     String   @default("member") // owner | member
+  joinedAt DateTime @default(now())
+
+  room ChatRoomRow @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@index([userId])
+}
+
+model ChatMessageRow {
+  id          String   @id
+  roomId      String
+  senderId    String
+  text        String
+  at          DateTime
+  replyTo     String?
+  editedAt    DateTime?
+  attachments Json     @default("[]")
+
+  room ChatRoomRow @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, at])
+  @@index([senderId])
+}
+
+model MessageReadRow {
+  id         String   @id @default(cuid())
+  userId     String
+  roomId     String
+  lastReadAt DateTime
+
+  @@unique([userId, roomId])
+  @@index([roomId])
+}
+
+model MessageReactionRow {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  kind      String
+  createdAt DateTime @default(now())
+
+  @@unique([messageId, userId, kind])
+  @@index([messageId])
+}
+
+model PinRow {
+  id        String   @id @default(cuid())
+  roomId    String
+  messageId String
+  pinnedBy  String
+  pinnedAt  DateTime @default(now())
+
+  @@unique([roomId, messageId])
+  @@index([roomId])
+}
+
+model BookmarkRow {
+  id        String   @id @default(cuid())
+  userId    String
+  messageId String
+  roomId    String
+  at        DateTime @default(now())
+
+  @@unique([userId, messageId])
+  @@index([userId])
+}
+
+// ─────────── 通知センター / ファイル / 監査 ───────────
+
+model NotificationRow {
+  id        String   @id
+  userId    String
+  title     String
+  body      String?
+  href      String?
+  kind      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+}
+
+model FileRow {
+  key        String   @id
+  name       String
+  size       Int
+  type       String
+  uploadedBy String
+  uploadedAt DateTime @default(now())
+
+  @@index([uploadedAt])
+}
+
+model NotificationPreferenceRow {
+  userId          String   @id
+  defaultChannels Json     @default("[]")
+  categories      Json     @default("{}")
+  quietStart      Int?
+  quietEnd        Int?
+  updatedAt       DateTime @updatedAt
+}
+
+model AuditEntryRow {
+  seq      Int      @id
+  at       DateTime
+  actor    String
+  action   String
+  target   String
+  before   Json?
+  after    Json?
+  prevHash String
+  hash     String
+
+  @@index([actor])
+  @@index([target])
+  @@index([at])
+}
+
+model AnalyticsEventRow {
+  id        String   @id @default(cuid())
+  type      String
+  path      String
+  sessionId String
+  userId    String?
+  referrer  String?
+  name      String?
+  at        DateTime @default(now())
+
+  @@index([at])
+  @@index([path])
+  @@index([sessionId])
+}
+
+model DashboardPrefRow {
+  userId    String   @id
+  widgets   Json     @default("[]")
+  updatedAt DateTime @updatedAt
+}
+
+model CmsPostRow {
+  slug        String    @id
+  title       String
+  categoryId  String?
+  excerpt     String?
+  eyecatch    String?
+  body        String
+  tags        Json      @default("[]")
+  status      String    @default("draft")
+  publishedAt DateTime?
+  updatedAt   DateTime
+
+  @@index([status])
+  @@index([updatedAt])
+}
+
+model CmsPageRow {
+  slug      String   @id
+  title     String
+  blocks    Json     @default("[]")
+  status    String   @default("draft")
+  updatedAt DateTime
+
+  @@index([status])
+  @@index([updatedAt])
+}
+
+model AnnouncementRow {
+  id        String    @id @default(cuid())
+  message   String
+  startAt   DateTime?
+  endAt     DateTime?
+  paths     Json      @default("[]")
+  ctaLabel  String?
+  ctaHref   String?
+  level     String?
+  createdAt DateTime  @default(now())
+
+  @@index([createdAt])
+}
+
+model CategoryRow {
+  id       String  @id @default(cuid())
+  name     String
+  slug     String  @unique
+  parentId String?
+  order    Int     @default(0)
+
+  @@index([order])
+}
+
+model CmsRevisionRow {
+  id          String    @id @default(cuid())
+  postSlug    String
+  version     Int
+  title       String
+  body        String
+  categoryId  String?
+  excerpt     String?
+  eyecatch    String?
+  tags        Json      @default("[]")
+  status      String
+  publishedAt DateTime?
+  savedBy     String
+  savedAt     DateTime  @default(now())
+
+  @@unique([postSlug, version])
+  @@index([postSlug])
+}
+
+model PublishRequestRow {
+  id          String    @id @default(cuid())
+  postSlug    String
+  requestedBy String
+  requestedAt DateTime  @default(now())
+  status      String    @default("pending")
+  decidedBy   String?
+  decidedAt   DateTime?
+  note        String?
+
+  @@index([status])
+  @@index([postSlug])
+}
+
+model ProductRow {
+  sku          String   @id
+  name         String
+  unit         String
+  safetyStock  Int?
+  dailyDemand  Float?
+  leadTimeDays Int?
+  targetLevel  Int?
+}
+
+model StockMovementRow {
+  id       String   @id @default(cuid())
+  sku      String
+  type     String
+  quantity Float
+  at       DateTime @default(now())
+  ref      String?
+  unitCost Float?
+
+  @@index([sku])
+}
+
+model InvoiceRow {
+  number             String   @id
+  issueDate          String
+  dueDate            String
+  registrationNumber String?
+  billTo             String
+  lines              Json     @default("[]")
+  subtotal           Float
+  tax                Float
+  total              Float
+  issued             Boolean  @default(true)
+  paidAmount         Float    @default(0)
+  cancelled          Boolean  @default(false)
+}
+
+model QuoteRow {
+  number     String @id
+  issueDate  String
+  validUntil String
+  billTo     String
+  lines      Json   @default("[]")
+  subtotal   Float
+  tax        Float
+  total      Float
+  state      String @default("draft")
+}
+
+model PurchaseOrderRow {
+  number    String  @id
+  orderDate String
+  supplier  String
+  dueDate   String?
+  lines     Json    @default("[]")
+  skus      Json    @default("[]")
+  receipts  Json    @default("[]")
+  subtotal  Float
+  tax       Float
+  total     Float
+  state     String  @default("ordered")
+}
+
+model RecurringPlanRow {
+  number     String  @id
+  billTo     String
+  interval   String
+  startDate  String
+  endDate    String?
+  lines      Json    @default("[]")
+  lastBilled String?
+  active     Boolean @default(true)
+}
+
+model AttendanceRow {
+  id           String   @id @default(cuid())
+  userId       String
+  date         String
+  clockIn      String
+  clockOut     String
+  breakMinutes Int?
+  isHoliday    Boolean  @default(false)
+
+  @@index([userId, date])
+}
+
+model WageRow {
+  userId     String @id
+  hourlyWage Float
+  allowances Json   @default("[]")
+  deductions Json   @default("[]")
+}
+
+model AttendanceApprovalRow {
+  id          String @id @default(cuid())
+  userId      String
+  month       String
+  status      String @default("pending")
+  submittedAt String
+  history     Json   @default("[]")
+
+  @@unique([userId, month])
+}
+
+model PurchasePaymentRow {
+  id       String @id @default(cuid())
+  poNumber String
+  amount   Float
+  paidAt   String
+
+  @@index([poNumber])
+}
+
+model FeePaymentRow {
+  id       String @id @default(cuid())
+  payee    String
+  category String
+  base     Float
+  paidAt   String
+
+  @@index([payee])
+}
+
+model AssetRow {
+  code           String @id
+  name           String
+  acquiredOn     String
+  cost           Float
+  usefulLifeYears Int
+  method         String @default("straight_line")
+  disposedOn     String?
+  disposalType   String?
+  proceeds       Float?
+}
+
+model BudgetRow {
+  id         String @id @default(cuid())
+  department String
+  category   String
+  period     String
+  amount     Float
+
+  @@index([period])
+}
+
+model PartnerRow {
+  code    String  @id
+  name    String
+  kinds   String  @default("")
+  contact String?
+  note    String?
+}
+
+model InvoiceReceiptRow {
+  id            String @id @default(cuid())
+  invoiceNumber String
+  amount        Float
+  receivedAt    String
+
+  @@index([invoiceNumber])
+}
+
+model DocApprovalRow {
+  id          String @id @default(cuid())
+  docType     String
+  docNumber   String
+  amount      Float
+  status      String @default("pending")
+  currentStep Int    @default(0)
+  submittedAt String
+  history     Json   @default("[]")
+
+  @@unique([docType, docNumber])
+}
+
+model PeriodLockRow {
+  period   String @id
+  lockedAt String
+  lockedBy String
+}
+
+model MailboxRow {
+  id      String  @id @default(cuid())
+  owner   String
+  from    String
+  to      String
+  subject String
+  body    String
+  sentAt  String
+  read    Boolean @default(false)
+
+  @@index([owner])
+}
+
+model ManualJournalRow {
+  id          String @id @default(cuid())
+  date        String
+  description String
+  lines       Json   @default("[]")
+
+  @@index([date])
+}
+
+model AccountMasterRow {
+  account String @id
+  type    String
+}
+
+model InquiryRow {
+  id        String @id @default(cuid())
+  name      String
+  email     String
+  category  String
+  subject   String
+  message   String
+  status    String @default("new")
+  createdAt String
+
+  @@index([status])
+}
+
+model UserRow {
+  email         String  @id
+  name          String
+  department    String  @default("")
+  roles         String  @default("")
+  permissions   String  @default("")
+  active        Boolean @default(true)
+  createdAt     String
+  passwordHash  String?
+  passwordSetAt String?
+}
+
+model SettingRow {
+  key   String @id
+  value String
+}
+
+model SurveyRow {
+  id          String  @id @default(cuid())
+  title       String
+  description String  @default("")
+  questions   Json    @default("[]")
+  status      String  @default("draft")
+  audience    Json    @default("{}")
+  anonymous   Boolean @default(false)
+  closesAt    String?
+  createdAt   String
+}
+
+model SurveyResponseRow {
+  id          String  @id @default(cuid())
+  surveyId    String
+  respondent  String?
+  answers     Json    @default("[]")
+  submittedAt String
+
+  @@index([surveyId])
+}
+
+model ReviewRow {
+  id          String  @id @default(cuid())
+  subjectType String
+  subjectId   String
+  author      String
+  rating      Int
+  title       String  @default("")
+  comment     String  @default("")
+  hidden      Boolean @default(false)
+  createdAt   String
+
+  @@index([subjectType, subjectId])
+}
+
+model SignatureRow {
+  id          String @id @default(cuid())
+  subjectType String
+  subjectId   String
+  signer      String
+  image       String
+  signedAt    String
+
+  @@index([subjectType, subjectId])
+}
+
+model WebhookSubscriptionRow {
+  id        String  @id @default(cuid())
+  url       String
+  events    String
+  secret    String
+  active    Boolean @default(true)
+  createdAt String
+}
+
+model ServiceAccountRow {
+  id            String  @id @default(cuid())
+  name          String
+  hash          String  @unique
+  displayPrefix String
+  scopes        String
+  active        Boolean @default(true)
+  createdAt     String
+  lastUsedAt    String?
+}
+
+model SecretRow {
+  name       String @id
+  ciphertext String
+  updatedAt  String
+}
+
+model SearchDocRow {
+  id       String @id
+  type     String
+  title    String
+  subtitle String
+  href     String
+  text     String
+}
+
+model ExportScheduleRow {
+  id        String  @id @default(cuid())
+  type      String
+  frequency String
+  enabled   Boolean @default(true)
+  lastRunAt String?
+}
+
+model ExportRunRow {
+  id          String @id @default(cuid())
+  type        String
+  at          String
+  status      String
+  recordCount Int
+  note        String?
+  @@index([at])
+}
+
+model ReportScheduleRow {
+  id         String  @id @default(cuid())
+  reportType String
+  frequency  String
+  recipient  String
+  enabled    Boolean @default(true)
+  lastSentAt String?
+}
+
+model ReportPresetRow {
+  id         String  @id @default(cuid())
+  owner      String
+  name       String
+  reportType String
+  fromDate   String?
+  toDate     String?
+  partner    String?
+  @@index([owner])
+}
+
+model DeliveryLogRow {
+  id             String @id @default(cuid())
+  at             String
+  reportType     String
+  recipients     String
+  recipientCount Int
+  status         String
+  @@index([at])
+}
+
+// ─────────── 辞書(RAG 検索・文字起こしの表記統一) ───────────
+
+// 補正ルール: 誤変換 from を正しい表記 to に置換する。from が主キー(重複時は上書き)。
+model GlossaryReplacement {
+  from      String   @id
+  to        String
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+
+  @@map("glossary_replacements")
+}
+
+// 固有名詞・専門用語: LLM へのヒントに使う。term が主キー。
+model GlossaryTerm {
+  term      String   @id
+  createdBy String?
+  createdAt DateTime @default(now())
+
+  @@map("glossary_terms")
+}
+
+/// タスク(プロジェクト管理も兼ねる。projectId で束ねるだけ)
+model Task {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  /// todo / doing / review / done / canceled(@platform/task の TaskStatus)
+  status        String    @default("todo")
+  /// low / normal / high / urgent
+  priority      String    @default("normal")
+  assignee      String?
+  /// 期限(日付のみ。時刻は扱わない)
+  dueDate       DateTime? @db.Date
+  /// 所属プロジェクト(無ければ単独タスク)
+  projectId     String?
+  /// 親タスク(サブタスクの場合)
+  parentId      String?
+  estimateHours Int?
+  actualHours   Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status])
+  @@index([assignee])
+  @@index([projectId])
+  @@index([dueDate])
+}
+
+/// 社内 FAQ(質問と回答・カテゴリ・役に立った投票)
+model Faq {
+  id         String   @id @default(cuid())
+  question   String
+  answer     String
+  category   String
+  /// 別の言い方・略語(検索でヒットさせるため)
+  keywords   String[]
+  /// draft / published / archived
+  status     String   @default("draft")
+  helpful    Int      @default(0)
+  notHelpful Int      @default(0)
+  views      Int      @default(0)
+  /// 関連する FAQ の id
+  relatedIds String[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([status])
+  @@index([category])
+}
+
+/// 契約(期間・自動更新・解約予告)
+model Contract {
+  id            String    @id @default(cuid())
+  title         String
+  partner       String
+  /// draft / pending / active / expired / terminated
+  status        String    @default("draft")
+  startDate     DateTime  @db.Date
+  endDate       DateTime  @db.Date
+  /// auto / manual / none
+  renewalType   String    @default("manual")
+  renewalMonths Int?
+  /// 解約予告期間(日数)。終了日のこの日数前までに申し出ないと自動更新される
+  noticeDays    Int?
+  amount        Int?
+  owner         String?
+  documentRef   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status])
+  @@index([partner])
+  @@index([endDate])
+}

@@ -1,0 +1,18 @@
+// CRUDテンプレートの Prisma スキーマ(PostgreSQL)。エンティティを差し替えて使う。
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ItemRow {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  note      String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,22 @@
+// Prisma 7: PostgreSQL ドライバアダプタ(@prisma/adapter-pg)を使用。
+// クライアント生成はコード側(createDb)でアダプタを注入する。
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// 監査ログ: 誰が・いつ・何をしたか(業務系社内アプリで後から必ず要求される)
+model AuditLog {
+  id        String   @id @default(cuid())
+  actor     String
+  action    String
+  target    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([actor, createdAt])
+}

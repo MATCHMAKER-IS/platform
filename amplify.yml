@@ -1,0 +1,23 @@
+# AWS Amplify Hosting(monorepo)用ビルド定義。⚠ 未検証: 本環境では実走不可(docs/ops/DEPLOY_AWS.md の初回チェック参照)。
+# 前提: pnpm-lock.yaml コミット済み / Amplify コンソールで App root = apps/internal-app を指定 / 環境変数は実値を設定。
+version: 1
+applications:
+  - appRoot: apps/internal-app
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - corepack enable
+            - cd ../.. && pnpm install --frozen-lockfile
+            - cd ../.. && pnpm --filter @platform/db exec prisma generate --schema=../../apps/internal-app/prisma/schema.prisma
+        build:
+          commands:
+            - cd ../.. && pnpm --filter internal-app build
+      artifacts:
+        baseDirectory: .next
+        files:
+          - "**/*"
+      cache:
+        paths:
+          - ../../node_modules/**/*
+          - .next/cache/**/*

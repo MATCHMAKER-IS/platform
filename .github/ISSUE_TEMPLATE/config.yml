@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 使い方の質問
+    url: https://github.com/
+    about: "まず docs/ops/GETTING_STARTED.md と docs/ops/COMMANDS.md を確認してください。それでも分からなければ情シス担当へ。"

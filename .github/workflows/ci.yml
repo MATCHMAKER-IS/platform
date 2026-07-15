@@ -1,0 +1,146 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4  # バージョンは package.json の packageManager を使用
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install
+        run: pnpm install  # TODO: pnpm-lock.yaml をコミットしたら --frozen-lockfile に戻す
+      - name: Prisma generate (internal-app schema)
+        run: |
+          pnpm --filter @platform/db exec prisma generate --schema=../../apps/internal-app/prisma/schema.prisma
+          pnpm --filter @platform/db exec prisma generate --schema=../../apps/crud-template/prisma/schema.prisma
+          pnpm --filter @platform/db exec prisma generate --schema=../../apps/equipment-app/prisma/schema.prisma
+      - name: Typecheck
+        run: pnpm -r typecheck
+      - name: Lint
+        run: pnpm lint
+      - name: i18n coverage check
+        run: node tools/i18n-check.mjs --catalog=demos/showcase/src/i18n/catalog.ts#catalogs
+      - name: Prisma schema check (offline lint)
+        run: node tools/check-schema.mjs
+      - name: Prisma validate
+        run: pnpm --filter @platform/db exec prisma validate --schema=../../apps/internal-app/prisma/schema.prisma
+      - name: Smoke (dependency-free logic checks)
+        run: pnpm smoke
+      - name: Unit tests
+        run: pnpm -r test --if-present
+      - name: Build
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+          MAIL_FROM: "ci@example.com"
+          SESSION_SECRET: "ci-session-secret-for-build-only"
+        run: pnpm -r build
+
+  e2e:
+    runs-on: ubuntu-latest
+    continue-on-error: true  # TODO: DB/起動手順の整備後にこの行を削除
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4  # バージョンは package.json の packageManager を使用
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install
+        run: pnpm install  # TODO: pnpm-lock.yaml をコミットしたら --frozen-lockfile に戻す
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+      - name: E2E
+        run: pnpm e2e
+
+  boundaries:
+    name: 依存境界・公開API検査
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - run: node tools/doctor.mjs  # 環境診断(Node/生成物 等)。必須項目 NG なら失敗
+      - run: node tools/preflight.mjs  # smoke/check-deps/api-surface/schema×3/env-example/advisor/setup構文 を一括
+      - run: node tools/check-generated.mjs  # 生成物(module-list/advisor-report)の drift 検出
+      - run: node tools/check-win-setup.mjs  # Windows セットアップ(ps1/bat)の静的検証
+
+  windows-scripts:
+    name: Windows スクリプト検証 (PSScriptAnalyzer)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      # PowerShell 構文の解析(パースエラーがあれば失敗)
+      - name: PowerShell 構文チェック
+        shell: pwsh
+        run: |
+          $errors = $null
+          $null = [System.Management.Automation.Language.Parser]::ParseFile(
+            "scripts/setup.ps1", [ref]$null, [ref]$errors)
+          if ($errors) { $errors | ForEach-Object { Write-Error $_.Message }; exit 1 }
+          Write-Host "setup.ps1: 構文 OK"
+      # PSScriptAnalyzer による静的解析(警告以上で失敗)
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser -SkipPublisherCheck
+          $r = Invoke-ScriptAnalyzer -Path scripts/setup.ps1 -Settings scripts/PSScriptAnalyzerSettings.psd1
+          if ($r) { $r | Format-Table -AutoSize; Write-Error "PSScriptAnalyzer が指摘を検出しました"; exit 1 }
+          Write-Host "PSScriptAnalyzer: 指摘なし"
+      # 軽量チェックも Windows 上で実行(ubuntu と二重の保険)
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: setup スクリプト静的検査
+        run: node tools/check-win-setup.mjs
+
+  # CI が失敗したとき、失敗ジョブのログを取得して要約し、PR にコメントする。
+  # ci-log-report.mjs でステップ別の失敗理由・エラー行を抽出する。
+  ci-log-summary:
+    name: CI 失敗ログ要約を PR へ
+    runs-on: ubuntu-latest
+    needs: [verify, boundaries, windows-scripts]
+    if: failure() && github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: 失敗ジョブのログを取得して要約
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # この実行(run)の全ジョブログを ZIP で取得し、テキストを結合して解析にかける。
+          gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/logs" > logs.zip || echo "ログ取得に失敗(まだ書き込み中の可能性)"
+          if [ -f logs.zip ]; then
+            mkdir -p _logs && unzip -o -q logs.zip -d _logs || true
+            cat _logs/**/*.txt 2>/dev/null | node tools/ci-log-report.mjs > ci-summary.txt || true
+          fi
+          if [ ! -s ci-summary.txt ]; then echo "❌ CI 失敗（ログ要約を生成できませんでした。Actions の詳細を確認してください）" > ci-summary.txt; fi
+          cat ci-summary.txt
+      - name: PR にコメント(失敗要約)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('ci-summary.txt', 'utf8');
+            const marker = '## ⚠️ CI 失敗ログ要約';
+            const body = `${marker}\n\n\`\`\`\n${summary}\n\`\`\`\n\n<sub>tools/ci-log-report.mjs による自動要約。詳細は Actions のログを参照。</sub>`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number,
+            });
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body });
+            }

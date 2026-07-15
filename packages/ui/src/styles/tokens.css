@@ -1,0 +1,12 @@
+/* 社内基盤 共通デザイントークン。アプリはこの変数を参照して配色を統一する。 */
+:root {
+  --color-bg: #ffffff;
+  --color-fg: #0f172a;
+  --color-muted: #64748b;
+  --color-border: #e2e8f0;
+  --color-primary: #0f766e;
+  --color-primary-fg: #ffffff;
+  --color-danger: #b91c1c;
+  --radius: 0.5rem;
+  --font-sans: "Inter", system-ui, "Hiragino Sans", "Noto Sans JP", sans-serif;
+}

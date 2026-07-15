@@ -1,0 +1,59 @@
+name: i18n
+
+on:
+  pull_request:
+    paths:
+      - "packages/i18n/**"
+      - "packages/ui/**"
+      - "demos/**"
+      - "apps/**"
+      - "tools/i18n-check.mjs"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  keys:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4  # バージョンは package.json の packageManager を使用
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install
+        run: pnpm install  # TODO: pnpm-lock.yaml をコミットしたら --frozen-lockfile に戻す
+      - name: Translation key coverage (base + app catalogs)
+        id: check
+        run: |
+          set +e
+          node tools/i18n-check.mjs \
+            --catalog=demos/showcase/src/i18n/catalog.ts#catalogs \
+            --report=i18n-report.md
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+      - name: Comment PR with i18n report
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let body = '## i18n チェック結果\n\n(レポート生成に失敗しました)';
+            try { body = fs.readFileSync('i18n-report.md', 'utf8'); } catch {}
+            const marker = '<!-- i18n-check-report -->';
+            body = marker + '\n' + body;
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.rest.issues.listComments({ owner, repo, issue_number });
+            const existing = comments.data.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+      - name: Fail if i18n check failed
+        if: steps.check.outputs.status != '0'
+        run: |
+          echo "i18n チェックに失敗しました。上記PRコメント参照。"
+          exit 1

@@ -1,0 +1,39 @@
+# ローカル開発用の共通インフラ。
+# `docker compose up -d` で PostgreSQL と MailHog(メール確認用)を起動する。
+# 本番(AWS / ConoHa)では同じ Dockerfile でアプリを動かし、DB/メールは
+# マネージド or 別コンテナに差し替える(構成を共通化して選び直せる状態を保つ)。
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+    ports: ["5432:5432"]
+    volumes: ["db-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mailhog:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI (http://localhost:8025)
+
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    environment:
+      MEILI_MASTER_KEY: masterKey
+    ports:
+      - "7700:7700"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  db-data:

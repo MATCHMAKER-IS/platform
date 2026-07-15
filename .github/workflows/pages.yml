@@ -1,0 +1,59 @@
+name: Reference Site (Pages)
+
+# main への push 時に、リファレンスサイト(docs/site)を生成して GitHub Pages に公開する。
+# 生成物(api-reference/depgraph/appmap/erd)から gen-ref-site が HTML を作る。
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/**"
+      - "apps/**"
+      - "docs/**"
+      - "tools/gen-ref-site.mjs"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch: {}
+
+# Pages への書き込みに必要な権限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同時実行は 1 つに絞る(古いデプロイをキャンセル)
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: サイト生成
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      # 生成物を最新化してからサイトを作る(install 不要のツールのみ)
+      - name: 生成物を再生成
+        run: |
+          node tools/gen-module-list.mjs
+          node tools/gen-reference.mjs
+          node tools/gen-depgraph.mjs
+          node tools/gen-app-map.mjs
+          node tools/gen-erd.mjs
+      - name: リファレンスサイトを生成
+        run: node tools/gen-ref-site.mjs
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/site
+
+  deploy:
+    name: Pages へデプロイ
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,292 @@
+# 開発規約 (AI・開発者 共通)
+
+このリポジトリは **社内基盤(packages)** と **アプリ(apps)** を分離したモノレポです。
+**作業する前に必ず本ファイルを読んでください。**
+
+> **このファイルの位置づけ**: 「**何を守るか**」を書いています。人間にも AI にも同じく適用されます。
+> Claude Code / Cursor / GitHub Copilot などは、このファイルを自動で読みます。
+>
+> | 知りたいこと | 見るファイル |
+> |---|---|
+> | **何を守るか**（規約・大原則） | このファイル |
+> | どう書くか（定型コード） | `docs/ai/patterns.md` |
+> | なぜそうなのか（設計判断） | `docs/ai/architecture.md` / `docs/adr/` |
+> | **Cursor の使い方**（道具の操作） | `docs/ops/CURSOR_GUIDE.md` |
+> | どのコマンドを打つか | `docs/ops/COMMANDS.md` |
+
+## AI向けドキュメント(まずここを読む)
+
+- `docs/ai/architecture.md` … 層のルール・ストアの作り方・検証手順・変更チェックリスト
+- `docs/ai/module-list.md` … 107 パッケージのカテゴリ別インデックス(自動生成: `node tools/gen-module-list.mjs`)
+- `docs/ai/patterns.md` … ストア/route/スモーク/通知/UI の定型コード
+- 各 `packages/<name>/README.md` … 個別パッケージの用途・使い方(107/107 整備済み)
+
+新機能の前に module-list で既存部品を確認し、車輪の再発明を避けること。
+
+**MCP が使える環境なら** `search_platform` ツールで基盤を直接検索できる(接続方法: `docs/ai/mcp-catalog.md`)。
+`pnpm mcp:catalog` で起動。日本語で「csv 出力」「メール送信」等と引けば、該当パッケージと API が返る。
+`find_examples` で使用例(demos/)、`explain_rules` で設計ルールも引ける。
+
+## AI が守ること(人間のレビュー前に自分で確認する)
+
+- **実装前に基盤を検索する**(`search_platform` / module-list)。既にある部品を再実装しない。
+  基盤にあれば**必ず使う**。無ければ「基盤に追加すべきか」を提案してから実装する。
+- **apps に汎用処理を書かない**(CSV・PDF・ログ・バリデーション・HTTP など。上の表を参照)。
+- **`pnpm check` を通す**。「テストが通りました」と報告する前に、実際に実行する。
+- **`any` / `@ts-ignore` で型エラーを塞がない**。型エラーは設計の問題を示すサイン。
+- **存在しない API を提案しない**。不確かなら `describe_package` で確認する。
+- **色をハードコードしない**(`var(--color-primary)` を使う)。テーマ切り替えに追従させるため。
+- **`process.env` を直接読まない**(`server/env.ts` に集約)。
+
+## アプリ開発の基本フロー(最重要)
+
+**基盤(`packages/`)は共通機能の唯一の実装元。** アプリ(`apps/`)は業務ロジックと UI に専念する。
+
+`apps/` や `demos/` を実装するときは、必ずこの順で進める:
+
+1. **まず基盤に既存機能が無いか探す。**
+   - MCP が使えるなら `search_platform("csv 出力")`(最速)
+   - `pnpm dev:portal`(:3005)で検索
+   - `docs/ai/module-list.md`(カテゴリ別インデックス)
+   - 使い方の実例は `find_examples("請求書")` または `demos/`
+2. **あれば必ず使う。** 似た処理を自作しない。
+3. **無ければ**、それが汎用部品か業務固有かを判断する(下の基準)。
+   - 汎用なら **基盤への追加を提案**する(`pnpm scaffold <name>`。**別 PR** にする)
+   - 業務固有ならアプリ側に実装する
+
+### apps に実装してよいもの / いけないもの
+
+| ✅ apps に書く(業務そのもの) | ❌ apps に書かない(基盤にある) |
+|---|---|
+| 経費申請の承認フロー | 認証・認可・権限判定 |
+| 勤怠の集計ロジック | ログ・監査 |
+| 見積の金額計算・税計算の適用 | バリデーション・日付/数値/文字列処理 |
+| 画面の表示制御・遷移 | CSV・PDF・Excel・帳票 |
+| 業務フロー固有の分岐 | メール・通知・SMS |
+| このアプリだけの設定 | ファイル操作・ストレージ |
+| | HTTP クライアント・外部 API 連携 |
+| | AI 連携・RAG・MCP |
+| | Workflow・Scheduler・Queue・Cache |
+| | Feature Flag・設定管理 |
+| | テストユーティリティ |
+
+### 判断基準(基盤 or アプリ)
+
+**基盤に置く**: 他のアプリでも使う可能性がある / 業務に依存しない / 汎用的 / テストしやすい
+**アプリに置く**: このアプリだけで使い、業務依存が強い
+
+迷ったら「**この処理、隣の部署のアプリでも使うか?**」と考える。使うなら基盤。
+
+### 禁止事項(車輪の再発明)
+
+- 独自のユーティリティを量産する
+- 独自の HTTP クライアント / バリデーション / ログ / CSV / PDF を作る
+- 他のアプリからコピー&ペーストして持ち込む
+
+**実装前チェック**: 基盤に同等機能はないか / 似た処理が既にアプリ内にないか / 業務依存か / 再利用性はあるか
+
+## 大原則
+
+1. **アプリ/デモ(`apps/**`・`demos/**`)の修正時に、基盤(`packages/**`)のソースを編集してはいけない。**
+   - アプリで不足する機能があっても、`packages/` のファイルを直接書き換えないこと。
+   - 基盤の変更が必要な場合は、**アプリ作業とは別タスク**として切り出し、
+     基盤側(CODEOWNERS の基盤担当)のレビューを経て変更する。
+   - 基盤を変更したら `pnpm platform:check` で影響範囲(削除した API を誰が使っているか)を確認し、
+     `pnpm platform:sync` で生成物を更新して同じ PR に含める。
+     **バージョンは上げない**(理由: docs/adr/0011)。アプリのコミットに `packages/` の変更を混ぜない。
+
+2. **ロジックはアプリ側に置く。** 基盤はロジックを持たない。
+   基盤が担うのは「外部サービス連携・バリデーション・メール・電話・ファイル操作・
+   共通UI」などの **機能単位の共通部品** のみ。
+
+3. **有名ライブラリはラッパー(Adapter)経由で使う。**
+   アプリは `nodemailer` や `@prisma/client` を直接 import しない。
+   必ず `@platform/mail` `@platform/db` などの公開 API 経由で呼ぶ。
+   ライブラリ差し替え時に基盤内部だけ直せばアプリは無変更で済む状態を保つ。
+
+4. **公開 API は各パッケージの `src/index.ts` からの export のみ。**
+   内部ファイル(`src/internal/*` など)へアプリから import しない
+   (ESLint `boundaries` が機械的に禁止する)。
+
+## 開発ルール(AI・セキュリティ / 壁打ち2026-07反映)
+
+- **AI 呼び出しは必ず `@platform/ai`(AI Gateway)経由**。プロバイダ API の直叩き・API キーのコード直書きは禁止(理由: docs/adr/0010)。pricing / limits / logStore を設定してコストとログを一元化する。
+- **RAG は「検索」、MCP は「操作」**として役割を分離する。自動化の優先順位は API > MCP > RPA(API があるなら RPA は使わない)。
+- RAG を実装する際は**利用者の権限を継承した検索**にする(管理者権限での全検索は禁止)。
+- 環境変数を増やしたら `.env.example` に追記(`node tools/check-env-example.mjs` が CI で検査)。
+- 重要な設計決定は **ADR**(docs/adr/)に1枚残す。全体方針は docs/platform/ROADMAP.md。
+
+## TSDoc(公開 API の説明)
+
+**新しく作る/触る公開関数には必ず書く。** 型だけでは「何を渡すのか」「何が返るのか」「いつ例外が出るのか」が分からない。
+エディタの補完に説明が出ないと、使う人は実装を読みに行くことになる。**AI も TSDoc が無いと誤った使い方を提案する。**
+
+```ts
+/**
+ * 何をするか(1 行で)。
+ *
+ * 補足があれば段落で。**なぜそうしているか**を書くと価値が高い
+ * (例:「中止は分母から除く。やらないと決めたものを未完扱いすると進捗が永久に 100% にならないため」)。
+ *
+ * @param tasks 対象のタスク
+ * @param today 基準日(テスト注入用。既定は今日)
+ * @returns 件数・完了率・期限切れ数
+ * @throws {@link @platform/core#AppError} コード `VALIDATION` — 不正な入力の場合
+ *
+ * @example
+ * ```ts
+ * const p = summarize(tasks);
+ * console.log(`${Math.round(p.rate * 100)}% 完了`);
+ * ```
+ */
+```
+
+| タグ | いつ書くか |
+|---|---|
+| 説明文 | **必ず**。1 行目は「何をするか」 |
+| `@param` | 引数があるなら必ず。**型で分かることは書かない**(「文字列」ではなく「対象のタスク」) |
+| `@returns` | 戻り値が void 以外なら必ず |
+| `@throws` | `throw` するなら必ず。**どのコードで、どんな条件か**まで書く |
+| `@example` | 使い方に迷いそうなものに。**動くコード**を書く |
+
+**UI(React コンポーネント)にも書く。** props が何か、いつ使うかが分からないと再利用されない。
+
+```tsx
+/**
+ * 設定を区分ごとの表で見せる。
+ *
+ * **秘密値は必ずサーバ側でマスクしてから渡すこと**(この画面は渡された値をそのまま表示する)。
+ *
+ * @param props.rows       表示する設定
+ * @param props.groupNotes 区分ごとの説明(任意)
+ * @param props.runtime    実行環境の情報(任意)
+ */
+export function EnvSettingsTable({ rows, groupNotes, runtime }: EnvSettingsTableProps) {
+```
+
+検査: `node tools/check-tsdoc.mjs`(全体の完備率)/ `node tools/check-tsdoc.mjs <package>`(不足の詳細)
+
+**リファレンスサイト**(`pnpm site`)は TSDoc から**引数・戻り値・例外・使用例**を自動生成する。
+書かなければサイトにも出ない = 使う人に伝わらない。
+
+> 既存 1,691 関数のうち完備は 241(14%)。**一斉修正はせず、新規と改修時に少しずつ直す**方針
+> (一度に直すと差分が巨大でレビューできない。**正規表現での一括処理は関数を壊す**ので、
+> 1 ファイルずつ意味を確認しながら書く。触ったところから確実に良くする)。
+
+## コーディング規約
+
+- 言語は **TypeScript**、`strict` 必須。
+- すべての公開関数・型・クラスに **TSDoc コメント**(`/** ... */`)を書く。
+  `@param` `@returns` `@throws` `@example` を適切に付ける。
+- エラーは `@platform/core` の `AppError` / `Result` 規約に従う
+  (全パッケージで失敗の形を統一する)。
+- **`Result` と例外(throw)の使い分け:**
+  - *想定内の実行時失敗*(外部連携の失敗、DB エラー、入力検証など、呼び出し側が
+    分岐して処理すべきもの)→ `Result` を返す(`ok`/`err`)。
+  - *プログラマエラー・起動時の設定不備*(あってはならない状態、環境変数の欠落など、
+    復旧不能で即停止すべきもの)→ `AppError` を throw する。
+  - 例: `@platform/env` の `parseEnv` は throw、`@platform/mail`・`@platform/db`・
+    `@platform/validation` は `Result` を返す。
+- ログは `console.log` ではなく `@platform/logger` を使う。
+- 環境変数は直接 `process.env` を読まず、`@platform/env` の検証済み値を使う。
+- 各機能にはテスト(`*.test.ts`)を書く。外部依存はモックする。
+
+## ドキュメント
+
+- **基盤側ドキュメント** → `docs/platform/`(TSDoc から `pnpm docs:platform` で生成)。
+- **アプリ側ドキュメント** → `docs/apps/`。
+- 両者を混在させない。
+
+## よく使うコマンド
+
+### まずこれ
+
+| コマンド | 何をするか | 引数 |
+|---|---|---|
+| **`pnpm check`** | **型 + Lint + スモーク**を一括。**コミット前に必ず** | — |
+| `pnpm dev` | 全アプリを一斉起動(3000〜3005) | — |
+| `pnpm doctor` | 環境診断(Node/pnpm/Docker/.env/生成物)。動かないときの切り分け | — |
+
+### 開発サーバ(個別)
+
+| コマンド | アプリ | ポート |
+|---|---|---|
+| `pnpm dev:internal` | 社内アプリ | 3000 |
+| `pnpm dev:demos` | 基盤ショーケース | 3001 |
+| `pnpm dev:crud` | CRUD テンプレート(新規アプリのコピー元) | 3002 |
+| `pnpm dev:equipment` | 備品管理 | 3003 |
+| `pnpm dev:site` | 公開サイト | 3004 |
+| `pnpm dev:portal` | 基盤ポータル(部品を探す) | 3005 |
+
+### 検証
+
+| コマンド | 何を確かめるか | 引数 |
+|---|---|---|
+| `pnpm smoke` | ロジック 1100+ 項目(DB 不要・10 秒) | — |
+| `pnpm typecheck` | 型 | — |
+| `pnpm lint` | 書き方(依存境界も含む) | `--fix` で自動修正 |
+| `pnpm test` | ユニットテスト(vitest) | — |
+| `pnpm test:watch` | 変更を監視して自動テスト | — |
+| `pnpm test:pkg <pkg> test` | 特定パッケージだけ | 例: `pnpm test:pkg @platform/tax test` |
+| `pnpm e2e` | ブラウザで実操作(Playwright。DB 必要) | — |
+| `pnpm e2e:ui` | E2E を UI モードで(失敗箇所が見える) | — |
+| **`pnpm verify:offline`** | **preflight 全 17 項目 + 生成物 drift**。PR 前 | — |
+| `pnpm loadtest` | 負荷テスト | `-- --url <URL> --concurrency 20 --duration 10000`(`--dry` でネットワーク不要) |
+
+### 基盤(packages/)を作る・変える
+
+| コマンド | 何をするか | 引数 |
+|---|---|---|
+| **`pnpm scaffold <name> "<説明>"`** | **規約どおりの雛形を生成**(手作りしない) | 例: `pnpm scaffold shipping "配送(送り状・追跡)"` |
+| **`pnpm platform:check`** | 基盤の変更が**アプリに与える影響**を確認(削除した API を誰が使っているか) | — |
+| **`pnpm platform:sync`** | 生成物(カタログ・API 一覧・ER 図)を更新 | — |
+| `pnpm check:api` | 公開 API の破壊的変更を検出 | `--update` でスナップショット更新 |
+| `pnpm check:deps` | 循環依存・層破り | — |
+| `pnpm advisor` | 重複・類似・孤立パッケージの検出 | `dup` / `find <キーワード>` |
+
+### 生成物(手で編集しない)
+
+| コマンド | 何を生成するか |
+|---|---|
+| **`pnpm gen:all`** | **全生成物を正しい順で再生成**し drift ゼロを確認(2 パス) |
+| `pnpm gen:reference` | API リファレンス JSON(TSDoc から引数・戻り値も) |
+| `pnpm gen:site` / `pnpm site` | リファレンスサイト(`docs/site/index.html`) |
+| `pnpm gen:erd` | ER 図(Mermaid) |
+| `pnpm gen:appmap` | 各アプリの画面・API 一覧 |
+| `pnpm gen:depgraph` | パッケージ依存グラフ |
+
+### データベース(ローカル Docker)
+
+| コマンド | 何をするか |
+|---|---|
+| `pnpm db:up` | PostgreSQL + Mailpit を起動 |
+| `pnpm db:down` | 停止 |
+| `pnpm db:reset` | 作り直し(**データは消える**) |
+| `pnpm db:psql` | psql に接続 |
+
+> スキーマの適用は **`db push`**(マイグレーション履歴は持たない。理由: docs/adr/0013)。
+> `pnpm --filter internal-app exec prisma db push` で反映する。
+
+### AI・環境
+
+| コマンド | 何をするか |
+|---|---|
+| **`pnpm mcp:catalog`** | **基盤カタログ MCP** を起動。AI から `search_platform("csv 出力")` で部品を探せる |
+| `pnpm mcp` | 社内データの MCP サーバ |
+| `pnpm fresh` | node_modules を消して再インストール(依存が壊れたとき) |
+| `pnpm clean` | dist / .next / .turbo / node_modules を全削除 |
+| `pnpm outdated` | 依存の更新可能なものを確認(変更はしない) |
+
+### 個別の検査ツール(preflight に同梱。単体でも呼べる)
+
+| コマンド | 何を検出するか |
+|---|---|
+| `node tools/check-tsdoc.mjs [pkg]` | TSDoc の不足(引数 or 戻り値 or 例外の説明が無い) |
+| `node tools/check-app-rules.mjs` | apps が基盤の役割を侵していないか |
+| `node tools/check-ports.mjs` | 開発ポートの重複・ドキュメントとの不一致 |
+| `node tools/check-package-shape.mjs` | tsconfig / scripts / vitest.config の欠落 |
+| `node tools/check-docs-links.mjs` | 資料のリンク切れ・存在しないコマンドの案内 |
+| `node tools/check-e2e-quality.mjs` | E2E の Flaky リスク(固定待ち等) |
+
+> **`pnpm changeset` は使わない。** バージョンを上げない方針(docs/adr/0011)。
+> `.changeset/` は将来 外部配布する日のために残してあるだけ。

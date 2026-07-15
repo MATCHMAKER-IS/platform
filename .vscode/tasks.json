@@ -1,0 +1,47 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev (showcase)",
+      "type": "shell",
+      "command": "pnpm --filter @demos/showcase dev",
+      "problemMatcher": []
+    },
+    {
+      "label": "test (all)",
+      "type": "shell",
+      "command": "pnpm -r test",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "smoke",
+      "type": "shell",
+      "command": "pnpm smoke",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "typecheck",
+      "type": "shell",
+      "command": "pnpm -r typecheck",
+      "problemMatcher": [
+        "$tsc"
+      ]
+    },
+    {
+      "label": "ws demo server",
+      "type": "shell",
+      "command": "pnpm ws:demo",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "i18n: check",
+      "type": "shell",
+      "command": "node tools/i18n-check.mjs",
+      "group": "test",
+      "problemMatcher": []
+    }
+  ]
+}

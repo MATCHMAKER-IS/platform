@@ -1,0 +1,33 @@
+name: E2E
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app_test
+      MAIL_FROM: no-reply@example.co.jp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install  # TODO: pnpm-lock.yaml をコミットしたら --frozen-lockfile に戻す
+      # マイグレーション履歴は持たない方針(ADR 0013)。E2E は毎回まっさらな DB なので db push で足りる
+      - run: pnpm --filter internal-app exec prisma db push --skip-generate
+      - run: pnpm --filter internal-app exec playwright install --with-deps chromium
+      - run: pnpm --filter internal-app e2e

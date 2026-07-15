@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "internal-app": {
+      "command": "pnpm",
+      "args": [
+        "-C",
+        "/ABSOLUTE/PATH/TO/platform",
+        "--filter",
+        "internal-app",
+        "mcp"
+      ],
+      "env": {
+        "DATABASE_URL": "postgresql://user:pass@localhost:5432/app",
+        "SESSION_SECRET": "change-me",
+        "CHAT_PERSISTENCE": "prisma",
+        "ZOHO_DC": "jp",
+        "ZOHO_CLIENT_ID": "",
+        "ZOHO_CLIENT_SECRET": "",
+        "ZOHO_REFRESH_TOKEN": "",
+        "MCP_ENABLE_WRITES": "0",
+        "MCP_API_KEY_SCOPES": "invoice:read"
+      }
+    }
+  }
+}

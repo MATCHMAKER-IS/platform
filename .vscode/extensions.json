@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "vitest.explorer",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "Prisma.prisma",
+    "ms-playwright.playwright",
+    "yoavbls.pretty-ts-errors"
+  ]
+}

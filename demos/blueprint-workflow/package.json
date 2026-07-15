@@ -1,0 +1,17 @@
+{
+  "name": "@demos/blueprint-workflow",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@platform/blueprint": "workspace:*",
+    "@platform/workflow": "workspace:*",
+    "@platform/notify": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}

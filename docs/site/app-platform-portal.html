@@ -1,0 +1,61 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>platform-portal リファレンス</title><style>
+:root{--bg:#f7f8fa;--fg:#1a1a2e;--muted:#6b7280;--surface:#fff;--border:#e5e7eb;--primary:#2563eb;--radius:10px}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--fg);line-height:1.6}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;position:sticky;top:0;z-index:10}
+header h1{margin:0;font-size:18px}
+.wrap{max-width:1000px;margin:0 auto;padding:24px}
+.search{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;margin-bottom:20px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.pkg-name{font-size:15px;font-weight:700;color:var(--primary)}
+.pkg-summary{font-size:13px;color:var(--muted);margin:4px 0 8px}
+.exp{font-size:12px;padding:6px 0;border-top:1px solid #f3f4f6}
+.exp-head{display:flex;gap:8px;align-items:baseline}
+.exp-detail{margin:4px 0 2px 12px;padding-left:8px;border-left:2px solid var(--border)}
+.sig{font-size:11px;color:var(--muted);margin-bottom:3px;word-break:break-all}
+.meta{font-size:11px;color:var(--fg);margin:2px 0}
+.meta-label{display:inline-block;min-width:44px;color:var(--muted);font-weight:600}
+.meta ul{margin:2px 0 2px 48px;padding:0}
+.meta li{list-style:disc;margin:1px 0}
+.meta.throws{color:#b45309}
+.ex{margin-top:4px}
+.ex summary{font-size:11px;color:var(--primary);cursor:pointer}
+.ex pre{margin:4px 0;font-size:11px}
+.exp code{color:#4338ca;min-width:180px}
+.exp .kind{color:#999;min-width:70px;font-size:11px}
+.exp .sum{color:#555}
+.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.tab{padding:6px 14px;border:1px solid var(--border);border-radius:999px;background:var(--surface);cursor:pointer;font-size:13px;text-decoration:none;color:var(--fg)}
+.tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border)}
+th{color:var(--muted);font-weight:600}
+.count{color:var(--muted);font-size:12px}
+pre{background:#f8f8f8;padding:12px;border-radius:8px;overflow-x:auto;font-size:11px}
+.hidden{display:none}
+a{color:var(--primary)}
+.cross{display:flex;gap:10px;align-items:center;padding:8px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:var(--surface);text-decoration:none;color:var(--fg);font-size:13px}
+.cross:hover{border-color:var(--primary)}
+.cross-type{font-size:11px;color:var(--muted);min-width:110px}
+</style></head><body>
+<header><h1>platform-portal リファレンス</h1></header>
+<div class="wrap">
+<div class="tabs"><a class="tab" href="index.html">← 基盤に戻る</a></div>
+<p class="count">画面 1 / API 1</p>
+<input class="search" placeholder="パス・タイトルで検索…" oninput="filterCards(this.value)">
+<h2>画面（1）</h2>
+<div class="card"><table><thead><tr><th>パス</th><th>タイトル</th></tr></thead><tbody><tr data-search="/ "><td><code>/</code></td><td></td></tr></tbody></table></div>
+<h2>API（1）</h2>
+<div class="card"><table><thead><tr><th>パス</th><th>タイトル</th></tr></thead><tbody><tr data-search="/api/catalog GET"><td><code>/api/catalog</code></td><td>GET</td></tr></tbody></table></div>
+</div>
+<script>
+function filterCards(q){
+  q=q.toLowerCase();
+  document.querySelectorAll('[data-search]').forEach(function(el){
+    el.classList.toggle('hidden', q && el.getAttribute('data-search').toLowerCase().indexOf(q)<0);
+  });
+}
+
+function filterRows(q){filterCards(q);}
+</script>
+</body></html>

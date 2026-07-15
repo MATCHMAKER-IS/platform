@@ -1,0 +1,105 @@
+name: オンボーディング（新メンバー向け）
+description: 新しく参加した人が最初にやること。担当者に割り当てて使ってください
+title: "[Onboarding] ◯◯さん"
+labels: ["onboarding"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ようこそ。**この Issue を上から順にこなせば、開発を始められます。**
+
+        所要時間の目安: **半日〜1日**（ダウンロード待ちが大半です）
+
+        詰まったら遠慮なくコメントで聞いてください。**詰まった箇所はドキュメントの不備**なので、
+        報告してもらえると次の人が助かります。
+
+  - type: checkboxes
+    id: setup
+    attributes:
+      label: "1. 環境を作る（30分〜1時間）"
+      description: "[docs/ops/GETTING_STARTED.md](../blob/main/docs/ops/GETTING_STARTED.md) を見ながら"
+      options:
+        - label: "ツールを入れた（Git / Node.js 22 / pnpm / Docker Desktop / エディタ）"
+        - label: "Docker Desktop を**起動**した（`docker ps` が通る）"
+        - label: "リポジトリを clone した"
+        - label: "セットアップを実行した（`bash scripts/setup.sh` または `.\\scripts\\setup.ps1`）"
+        - label: "`pnpm doctor` が緑になった"
+
+  - type: checkboxes
+    id: run
+    attributes:
+      label: "2. 動かしてみる（15分）"
+      options:
+        - label: "`pnpm dev` で全アプリが起動した"
+        - label: "http://localhost:3000 （社内アプリ）が開いた"
+        - label: "http://localhost:3005 （基盤ポータル）で部品を検索してみた"
+        - label: "http://localhost:8025 （Mailpit）を開いた（開発中のメールはここに届く）"
+
+  - type: checkboxes
+    id: understand
+    attributes:
+      label: "3. 全体像をつかむ（30分）"
+      options:
+        - label: "[docs/README.md](../blob/main/docs/README.md)（ドキュメントの地図）に目を通した"
+        - label: "[docs/APPS_AND_DEMOS.md](../blob/main/docs/APPS_AND_DEMOS.md) で何があるか把握した"
+        - label: "**基盤（packages/）とアプリ（apps/）を分ける理由**を理解した（[CLAUDE.md](../blob/main/CLAUDE.md)）"
+        - label: "`pnpm check` を実行して、何が検査されるか見た"
+
+  - type: checkboxes
+    id: git
+    attributes:
+      label: "4. Git の準備（Git が初めてなら）"
+      description: "[docs/ops/GIT_GUIDE.md](../blob/main/docs/ops/GIT_GUIDE.md)"
+      options:
+        - label: "`git config --global user.name` と `user.email` を設定した"
+        - label: "ブランチの切り方・PR の出し方を読んだ"
+
+  - type: checkboxes
+    id: tools
+    attributes:
+      label: "5. 開発ツールの設定（任意だが推奨）"
+      options:
+        - label: "Cursor を使うなら [CURSOR_GUIDE.md](../blob/main/docs/ops/CURSOR_GUIDE.md) を読んだ"
+        - label: "基盤カタログ MCP を繋いだ（AI が基盤を検索できるようになる）"
+
+  - type: checkboxes
+    id: first-pr
+    attributes:
+      label: "6. 最初の PR を出す（練習）"
+      description: |
+        **小さくて安全な変更**で、一連の流れを体験してください。おすすめのお題:
+
+        - このオンボーディング手順で**詰まった箇所をドキュメントに追記**する（最高のお題です）
+        - `docs/` の誤字を直す
+        - `demos/` のどれかを読んで、README に分かりにくかった点を追記
+      options:
+        - label: "ブランチを切った（`docs/xxx` など）"
+        - label: "変更して `pnpm check` を通した"
+        - label: "push して PR を出した（テンプレートを埋めた）"
+        - label: "CI が緑になった"
+        - label: "レビューをもらってマージされた 🎉"
+
+  - type: textarea
+    id: stuck
+    attributes:
+      label: 詰まった箇所・分かりにくかったこと
+      description: |
+        **ここが一番大事です。**
+        ドキュメント通りにやって動かなかった箇所、説明が足りない箇所を書いてください。
+        あなたが詰まった場所は、次の人も必ず詰まります。
+      placeholder: |
+        - setup.ps1 で「実行できません」と出た。Set-ExecutionPolicy が必要だと書いてあったが見落とした（もっと目立たせてほしい）
+        - Docker Desktop を起動していなかったことに 10 分気づかなかった
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+
+        ## 終わったら
+
+        - この Issue を閉じてください
+        - 「詰まった箇所」に書いたことは、**ドキュメント修正の PR** にすると次の人が助かります
+        - 分からないことが出てきたら、[docs/README.md](../blob/main/docs/README.md) の地図から探すか、`pnpm mcp:catalog` を繋いだ AI に聞いてください

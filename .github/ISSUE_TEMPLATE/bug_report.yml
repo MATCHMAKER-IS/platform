@@ -1,0 +1,81 @@
+name: バグ報告
+description: 動かない・おかしい挙動を報告する
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        報告ありがとうございます。**再現手順**と**環境情報**があると解決が早くなります。
+
+  - type: textarea
+    id: what
+    attributes:
+      label: 何が起きたか
+      description: 「どうなると思ったか」と「実際どうなったか」の両方を書いてください
+      placeholder: |
+        期待: 経費申請ボタンを押すと申請が保存される
+        実際: ボタンを押しても何も起きない（画面が固まる）
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順
+      description: 他の人が同じ状況を作れるように、順番に書いてください
+      placeholder: |
+        1. http://localhost:3000/expenses を開く
+        2. 「新規申請」を押す
+        3. 金額に 0 を入れて「申請」を押す
+        4. 画面が固まる
+    validations:
+      required: true
+
+  - type: textarea
+    id: env
+    attributes:
+      label: 環境情報
+      description: |
+        ターミナルで `pnpm doctor` を実行し、出力をそのまま貼ってください。
+        （環境が原因のことが多いため、これがあると切り分けが速くなります）
+      render: shell
+      placeholder: |
+        🩺 開発環境の診断
+        [ランタイム]
+          ✅ Node.js v22.x
+        ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: エラーメッセージ
+      description: |
+        ターミナル（`pnpm dev` を実行した画面）と、ブラウザの Console（F12）に出ているエラーを貼ってください。
+      render: shell
+    validations:
+      required: false
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS
+      options:
+        - Windows
+        - Mac (Apple Silicon)
+        - Mac (Intel)
+        - Linux
+        - その他
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checked
+    attributes:
+      label: 確認したこと
+      options:
+        - label: "`pnpm doctor` で環境に問題がないことを確認した"
+        - label: "`docs/ops/GETTING_STARTED_2.md` の「困ったときは」を見た"
+        - label: 同じ Issue が既に無いか検索した

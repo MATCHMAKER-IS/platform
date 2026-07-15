@@ -1,0 +1,43 @@
+name: Deploy to AWS (ECS)
+
+# AWS を選ぶ場合のテンプレート。使用時は拡張子から .template を外す。
+# 必要な Secrets/設定: AWS_ROLE_ARN(OIDC), ECR リポジトリ, ECS クラスタ/サービス名。
+on:
+  workflow_run:
+    workflows: ["Release (build & push image)"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  id-token: write   # OIDC で AWS ロールを引き受ける
+  contents: read
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-northeast-1
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      # ここで GHCR のイメージを ECR にコピー、または最初から ECR に push する構成にする。
+      - name: Render task definition
+        id: taskdef
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: deploy/ecs-task-definition.json
+          container-name: internal-app
+          image: ${{ steps.ecr.outputs.registry }}/internal-app:latest
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.taskdef.outputs.task-definition }}
+          service: internal-app
+          cluster: internal-cluster
+          wait-for-service-stability: true

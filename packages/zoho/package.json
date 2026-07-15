@@ -1,0 +1,89 @@
+{
+  "name": "@platform/zoho",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "default": "./dist/core/index.js"
+    },
+    "./crm": {
+      "types": "./dist/crm/index.d.ts",
+      "default": "./dist/crm/index.js"
+    },
+    "./books": {
+      "types": "./dist/books/index.d.ts",
+      "default": "./dist/books/index.js"
+    },
+    "./desk": {
+      "types": "./dist/desk/index.d.ts",
+      "default": "./dist/desk/index.js"
+    },
+    "./inventory": {
+      "types": "./dist/inventory/index.d.ts",
+      "default": "./dist/inventory/index.js"
+    },
+    "./campaigns": {
+      "types": "./dist/campaigns/index.d.ts",
+      "default": "./dist/campaigns/index.js"
+    },
+    "./projects": {
+      "types": "./dist/projects/index.d.ts",
+      "default": "./dist/projects/index.js"
+    },
+    "./people": {
+      "types": "./dist/people/index.d.ts",
+      "default": "./dist/people/index.js"
+    },
+    "./sign": {
+      "types": "./dist/sign/index.d.ts",
+      "default": "./dist/sign/index.js"
+    },
+    "./recruit": {
+      "types": "./dist/recruit/index.d.ts",
+      "default": "./dist/recruit/index.js"
+    },
+    "./workdrive": {
+      "types": "./dist/workdrive/index.d.ts",
+      "default": "./dist/workdrive/index.js"
+    },
+    "./analytics": {
+      "types": "./dist/analytics/index.d.ts",
+      "default": "./dist/analytics/index.js"
+    },
+    "./cliq": {
+      "types": "./dist/cliq/index.d.ts",
+      "default": "./dist/cliq/index.js"
+    },
+    "./creator": {
+      "types": "./dist/creator/index.d.ts",
+      "default": "./dist/creator/index.js"
+    },
+    "./bookings": {
+      "types": "./dist/bookings/index.d.ts",
+      "default": "./dist/bookings/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@platform/core": "workspace:*",
+    "@platform/integrations": "workspace:*"
+  },
+  "devDependencies": {
+    "@platform/config": "workspace:*",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.4"
+  }
+}
