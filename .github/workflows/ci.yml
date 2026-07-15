@@ -128,7 +128,7 @@ jobs:
           if [ ! -s ci-summary.txt ]; then echo "❌ CI 失敗（ログ要約を生成できませんでした。Actions の詳細を確認してください）" > ci-summary.txt; fi
           cat ci-summary.txt
       - name: PR にコメント(失敗要約)
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
