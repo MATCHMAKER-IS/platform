@@ -12,7 +12,7 @@
     "test": "vitest run",
     "lint": "eslint src"
   },
-  "dependencies": { "@platform/core": "workspace:*", "bullmq": "^5.34.0" },
+  "dependencies": { "@platform/core": "workspace:*", "bullmq": "^5.80.4" },
   "devDependencies": {
     "@platform/config": "workspace:*",
     "typescript": "^5.7.3",

@@ -12,7 +12,7 @@
     "test": "vitest run",
     "lint": "eslint src"
   },
-  "dependencies": { "@platform/core": "workspace:*", "meilisearch": "^0.48.2" },
+  "dependencies": { "@platform/core": "workspace:*", "meilisearch": "^0.59.0" },
   "devDependencies": {
     "@platform/config": "workspace:*",
     "typescript": "^5.7.3",
