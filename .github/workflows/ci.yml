@@ -9,7 +9,7 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4  # バージョンは package.json の packageManager を使用
       - uses: actions/setup-node@v4
         with:
@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true  # TODO: DB/起動手順の整備後にこの行を削除
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4  # バージョンは package.json の packageManager を使用
       - uses: actions/setup-node@v4
         with:
@@ -64,7 +64,7 @@ jobs:
     name: 依存境界・公開API検査
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with: { node-version: "22" }
       - run: node tools/doctor.mjs  # 環境診断(Node/生成物 等)。必須項目 NG なら失敗
@@ -76,7 +76,7 @@ jobs:
     name: Windows スクリプト検証 (PSScriptAnalyzer)
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # PowerShell 構文の解析(パースエラーがあれば失敗)
       - name: PowerShell 構文チェック
         shell: pwsh
@@ -112,7 +112,7 @@ jobs:
       actions: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with: { node-version: "22" }
       - name: 失敗ジョブのログを取得して要約
