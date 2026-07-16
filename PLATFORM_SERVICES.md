@@ -3742,3 +3742,32 @@ return new Response(body, { ... });
 ### 同種のエラーを探した
 `new Blob([res.value])` は問題ない(`BlobPart` は `ArrayBufferView` を受け付ける)。
 `Response` の `BodyInit` だけが厳格。他に該当箇所は無かった。
+
+---
+
+## 【前進】型検査の段階に到達 — この環境で型検査を回せるようにした
+
+コンパイルが通り、**型検査で落ちる**ようになった。1 件ずつ潰していては終わらないので、
+**この環境で showcase の型検査を回す仕組み**を作った。
+
+### 仕組み
+`node_modules` が無いので、`/tmp` に合成する:
+1. `demos/showcase/src` をコピー
+2. **依存する 48 パッケージをコピー**し、`tsconfig.paths` で解決させる
+3. react / next / 外部ライブラリ(32 個)を **`any` の宣言で埋める**
+
+これで `tsc --noEmit` が回り、**76 件の型エラー**が見えた
+(うち多くは shim の粗さによる誤検知。本物は 52 件)。
+
+### 直した型エラー
+| # | 内容 | 種類 |
+|---|---|---|
+| 1 | `parsed.data` → `parsed.value` | **既存のバグ**(`Result<T>` は `.value`) |
+| 2 | `applyTableOptions` の import を削除 | **私のミス**(存在しない・未使用) |
+| 3 | `Histogram`/`Gauge` → `ChartHistogram`/`ChartGauge` | **私の改名の追随漏れ** |
+| 4 | `className` → `align` | **既存のバグ**(`DataTableColumn` の props) |
+| 5 | `new Blob([Uint8Array])` → ArrayBuffer に変換 | TS 5.9 の厳格化 |
+
+### 残る型エラー
+`DataTable` のジェネリクス制約(`Record<string, unknown>` に代入できない)など。
+**shim の粗さによる誤検知と混ざっている**ので、次のビルドログで本物を選り分ける。

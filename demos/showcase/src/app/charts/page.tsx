@@ -1,6 +1,6 @@
 "use client";
 /** グラフ(チャート)デモ。全種+主要オプション。 */
-import { BarChart, LineChart, ComboChart, PieChart, RadarChart, ScatterChart, GanttChart, Heatmap, Treemap, FunnelChart, CandlestickChart, BubbleChart, BandChart, Histogram, HorizontalBarChart, WaterfallChart, SankeyChart, Gauge, ProgressRing, CsvExportButton } from "@platform/ui";
+import { BarChart, LineChart, ComboChart, PieChart, RadarChart, ScatterChart, GanttChart, Heatmap, Treemap, FunnelChart, CandlestickChart, BubbleChart, BandChart, ChartHistogram, HorizontalBarChart, WaterfallChart, SankeyChart, ChartGauge, ProgressRing, CsvExportButton } from "@platform/ui";
 
 const monthly = [
   { month: "1月", 売上: 420, 費用: 280, 利益率: 33 },
@@ -93,7 +93,7 @@ export default function Page() {
           <BandChart title="帯グラフ(構成比100%)" data={stacked} xKey="地域" series={[{ key: "文具" }, { key: "食品" }, { key: "家電" }]} />
         </Box>
         <Box>
-          <Histogram title="ヒストグラム(点数分布)" binCount={8}
+          <ChartHistogram title="ヒストグラム(点数分布)" binCount={8}
             values={[42,55,60,61,63,65,66,68,70,70,71,72,73,74,75,75,76,78,80,82,85,88,90,95,52,58,67,69,77,81]} unit="人" />
         </Box>
         <Box>
@@ -131,7 +131,7 @@ export default function Page() {
         <Box>
           <div style={{ display: "flex", gap: "1.5rem", alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}>
             <div style={{ textAlign: "center" }}><ProgressRing value={72} /><div style={{ fontSize: ".85rem", color: "var(--color-muted)" }}>達成率</div></div>
-            <div style={{ textAlign: "center" }}><Gauge value={68} unit="%" /><div style={{ fontSize: ".85rem", color: "var(--color-muted)" }}>稼働率</div></div>
+            <div style={{ textAlign: "center" }}><ChartGauge value={68} unit="%" /><div style={{ fontSize: ".85rem", color: "var(--color-muted)" }}>稼働率</div></div>
           </div>
         </Box>
         <Box>

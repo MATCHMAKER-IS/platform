@@ -6,7 +6,6 @@
  * 一覧・検索・作成・編集・削除という、どのアプリにも要る形を示す。
  */
 import * as React from "react";
-import { applyTableOptions } from "@platform/ui";
 
 interface Row { id: string; name: string; email: string; dept: string; createdAt: string }
 

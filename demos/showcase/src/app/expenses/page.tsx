@@ -58,7 +58,7 @@ export default function Page() {
           <Button onClick={() => setHtml(renderMonthlyReportHtml(summary))}>締めレポートを生成</Button>
           <Button variant="secondary" onClick={async () => {
             const res = await writeWorkbook(monthlyReportSheets(summary));
-            if (res.ok) downloadBlob(new Blob([res.value], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), `expense-2026-01.xlsx`);
+            if (res.ok) downloadBlob(new Blob([res.value.buffer.slice(res.value.byteOffset, res.value.byteOffset + res.value.byteLength) as ArrayBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), `expense-2026-01.xlsx`);
           }}>Excel(xlsx)出力</Button>
         </div>
         {html && <iframe title="monthly" srcDoc={html} style={{ width: "100%", height: 460, marginTop: "1rem", border: "1px solid var(--color-border)", borderRadius: "var(--radius)", background: "#fff" }} />}

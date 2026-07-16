@@ -28,7 +28,7 @@ export const POST = handleRoute(async (req: Request) => {
   const now = new Date();
   const inquiry = {
     id: crypto.randomUUID(),
-    ...parsed.data,
+    ...parsed.value,
     createdAt: now.toISOString(),
   };
   addInquiry(inquiry);

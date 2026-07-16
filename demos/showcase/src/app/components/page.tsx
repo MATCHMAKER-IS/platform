@@ -23,7 +23,7 @@ const rows: Row[] = [
 const columns: Column<Row>[] = [
   { key: "name", header: "氏名", sortable: true },
   { key: "dept", header: "部署", sortable: true },
-  { key: "age", header: "年齢", sortable: true, className: "text-right" },
+  { key: "age", header: "年齢", sortable: true, align: "right" },
 ];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
