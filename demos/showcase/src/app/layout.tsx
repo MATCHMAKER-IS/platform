@@ -1,6 +1,6 @@
 import "@platform/ui/tokens.css";
-import { Toaster, AppSkin, ThemeSwitcher } from "@platform/ui";
-import { themeRegistry } from "../lib/theme-registry";
+import { Toaster, ThemeSwitcher } from "@platform/ui";
+import { Skin } from "./skin";
 import { DemoSidebar } from "../components/demo-sidebar";
 
 export const metadata = {
@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           margin: 0,
         }}
       >
-        <AppSkin registry={themeRegistry}>
+        <Skin>
           <div style={{ display: "flex", minHeight: "100vh" }}>
             {/* 左: 区分ごとのナビ(基盤デモ / アプリデモ / 使用例) */}
             <aside
@@ -57,7 +57,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
           <Toaster />
-        </AppSkin>
+        </Skin>
       </body>
     </html>
   );
