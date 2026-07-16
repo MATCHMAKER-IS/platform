@@ -20,22 +20,43 @@ export interface AppNotification {
   kind?: NotificationKind;
 }
 
-/** 未読件数。 */
+/**
+ * 未読件数を返す。
+ *
+ * @param notifications 通知の配列
+ * @returns 未読の件数(**バッジに出す数**)
+ */
 export function unreadCount(notifications: AppNotification[]): number {
   return notifications.reduce((n, x) => n + (x.read ? 0 : 1), 0);
 }
 
-/** 新しい順に並べる。 */
+/**
+ * 新しい順に並べる。
+ *
+ * @param notifications 通知の配列
+ * @returns 並べ替えた新しい配列
+ */
 export function sortNotifications<T extends AppNotification>(notifications: T[]): T[] {
   return [...notifications].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
-/** 指定 ID を既読にする(元配列は変更しない)。 */
+/**
+ * 指定した通知を既読にする。
+ *
+ * @param notifications 通知の配列
+ * @param id 既読にする id
+ * @returns 更新した**新しい配列**(元は変更しない)
+ */
 export function markRead<T extends AppNotification>(notifications: T[], id: string): T[] {
   return notifications.map((x) => (x.id === id ? { ...x, read: true } : x));
 }
 
-/** すべて既読にする。 */
+/**
+ * すべて既読にする。
+ *
+ * @param notifications 通知の配列
+ * @returns 更新した新しい配列
+ */
 export function markAllRead<T extends AppNotification>(notifications: T[]): T[] {
   return notifications.map((x) => (x.read ? x : { ...x, read: true }));
 }
@@ -55,7 +76,15 @@ function dayDiff(iso: string, now: Date): number {
   return Math.round((a - b) / 86_400_000);
 }
 
-/** 通知を今日/昨日/それ以前に分ける(各グループ内は新しい順)。 */
+/**
+ * 通知を今日 / 昨日 / それ以前に分ける。
+ *
+ * **日付そのものより「いつ頃か」が分かる方が役に立つ**(通知は鮮度が重要)。
+ *
+ * @param notifications 通知の配列
+ * @param now 基準時刻(テスト注入用)
+ * @returns グループごとの通知(**各グループ内は新しい順**)
+ */
 export function groupByDate<T extends AppNotification>(notifications: T[], now: Date = new Date()): NotificationGroups<T> {
   const sorted = sortNotifications(notifications);
   const groups: NotificationGroups<T> = { today: [], yesterday: [], earlier: [] };

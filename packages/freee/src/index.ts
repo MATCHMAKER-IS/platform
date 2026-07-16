@@ -124,6 +124,7 @@ export interface FreeeClient {
  * const freee = createFreeeClient({ accessToken });
  * const deals = await freee.getDeals(companyId, { limit: 50 });
  * ```
+ * @returns 会計のクライアント。**すべてのメソッドは Result 型を返す**(例外を投げない)
  */
 export function createFreeeClient(config: { accessToken: string; fetchImpl?: typeof fetch }): FreeeClient {
   const api = createApiClient({
@@ -200,6 +201,7 @@ export function createFreeeClient(config: { accessToken: string; fetchImpl?: typ
  * @param extract レスポンスから配列を取り出す関数
  * @param pageSize 1ページ件数(既定 100)
  * @param maxPages 安全上限(既定 50)
+ * @returns 全ページを結合した配列。**件数が多いと時間もメモリも食う**(freee は 1 ページ 100 件が上限)
  */
 export async function fetchAllPages<T>(
   fetchPage: (paging: FreeePaging) => Promise<Result<unknown>>,

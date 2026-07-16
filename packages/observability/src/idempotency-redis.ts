@@ -28,6 +28,7 @@ export interface AsyncIdempotencyStore {
  * @param client ioredis 互換クライアント(またはフェイク)
  * @param ttlMs レコードの保持期間(既定 24 時間)
  * @param keyPrefix キー接頭辞(既定 "idem:")
+ * @returns 冪等ストア。**複数プロセスでも重複を検出できる**(メモリ実装と違い、本番で使える)
  */
 export function createRedisIdempotencyStore(client: RedisIdempotencyClient, ttlMs = 24 * 60 * 60 * 1000, keyPrefix = "idem:"): AsyncIdempotencyStore {
   const k = (key: string) => `${keyPrefix}${key}`;

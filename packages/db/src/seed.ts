@@ -36,6 +36,7 @@ export interface Seeder {
  *   })
  *   .run();
  * ```
+ * @returns シーダー(**開発・テスト用**。本番で実行しないよう、環境を確認すること)
  */
 export function createSeeder(logger: SeedLogger = console): Seeder {
   const steps: { name: string; run: () => Promise<void> }[] = [];

@@ -31,6 +31,9 @@ function stableEqual(a: unknown, b: unknown): boolean {
  * diffChanges({ name: "A", age: 20 }, { name: "B", age: 20 });
  * // => { name: { before: "A", after: "B" } }
  * ```
+ * @param before 変更前
+ * @param after 変更後
+ * @param options.ignore 無視するフィールド(`updatedAt` など。**毎回変わる項目を差分に出さない**)
  */
 export function diffChanges(
   before: Record<string, unknown> | null | undefined,
@@ -52,7 +55,13 @@ export function diffChanges(
   return out;
 }
 
-/** 差分があるか。 */
+/**
+ * 差分があるか。
+ *
+ *
+ * @param diff 差分
+ * @returns 変更があれば true(**変更が無ければ監査ログに残さない**。ノイズになる)
+ */
 export function hasChanges(diff: Record<string, FieldChange>): boolean {
   return Object.keys(diff).length > 0;
 }

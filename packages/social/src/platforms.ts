@@ -54,7 +54,14 @@ export const PLATFORMS: Record<SocialPlatform, PlatformSpec> = {
 /** 全プラットフォームの一覧。 */
 export const ALL_PLATFORMS: SocialPlatform[] = ["x", "tiktok", "instagram"];
 
-/** ホスト名(登録可能ドメイン)からプラットフォームを判定する。 */
+/**
+ * ホスト名からプラットフォームを判定する。
+ *
+ * **旧ドメインにも対応**(`twitter.com` → x)。利用者は古い URL を貼ることがある。
+ *
+ * @param hostname ホスト名(登録可能ドメイン)
+ * @returns プラットフォーム。**対応外なら null**
+ */
 export function platformFromHostname(hostname: string): SocialPlatform | null {
   const host = hostname.toLowerCase().replace(/^www\./, "").replace(/^(vm|mobile|m)\./, "");
   for (const spec of Object.values(PLATFORMS)) {

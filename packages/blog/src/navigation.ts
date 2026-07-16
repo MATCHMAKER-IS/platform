@@ -16,6 +16,11 @@ export interface AdjacentPosts<T> {
 /**
  * 指定記事の前後(公開日順)を返す。
  * newer=1つ新しい記事, older=1つ古い記事。公開記事のみ対象。
+ *
+ * @param posts 記事の配列
+ * @param current 現在の記事
+ * @param now 判定する時点(テスト注入用)
+ * @returns 前後の記事(**公開日順**。連載の順番で辿るなら seriesNavigation を使う)
  */
 export function adjacentPosts<T extends BlogPost>(posts: T[], currentId: string, now?: Date): AdjacentPosts<T> {
   const sorted = publishedPosts(posts, now); // 新しい順
@@ -35,14 +40,32 @@ export interface SeriesPost extends BlogPost {
   seriesOrder?: number;
 }
 
-/** 指定連載の記事を順番どおりに返す(公開記事のみ)。 */
+/**
+ * 連載の記事を順番どおりに返す。
+ *
+ * **公開記事のみ**。連載の途中に下書きがあっても、読者には見せない。
+ *
+ * @param posts 記事の配列
+ * @param series 連載名
+ * @param now 判定する時点(テスト注入用)
+ * @returns 連載の記事(順番どおり)
+ */
 export function seriesPosts<T extends SeriesPost>(posts: T[], series: string, now?: Date): T[] {
   return publishedPosts(posts, now)
     .filter((p) => p.series === series)
     .sort((a, b) => (a.seriesOrder ?? 0) - (b.seriesOrder ?? 0));
 }
 
-/** 連載内での前後(順番ベース)。 */
+/**
+ * 連載内の前後の記事を返す。
+ *
+ * **公開日ではなく連載の順番**で決める(後から書いた第 1 話が「次」になっては困る)。
+ *
+ * @param posts 記事の配列
+ * @param current 現在の記事
+ * @param now 判定する時点(テスト注入用)
+ * @returns 前後の記事(**端なら undefined**)
+ */
 export function seriesNavigation<T extends SeriesPost>(posts: T[], currentId: string, now?: Date): { prev: T | null; next: T | null; index: number; total: number } {
   const current = posts.find((p) => p.id === currentId);
   if (!current?.series) return { prev: null, next: null, index: -1, total: 0 };

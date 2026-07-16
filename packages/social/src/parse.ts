@@ -22,7 +22,14 @@ export interface ParsedSocialUrl {
   postKind?: string;
 }
 
-/** URL からプラットフォームと内容を解析する。判別できなければ null。 */
+/**
+ * URL からプラットフォームと内容を解析する。
+ *
+ * **プロフィールか投稿かも判別する**(`x.com/name` と `x.com/name/status/123`)。
+ *
+ * @param url URL
+ * @returns プラットフォーム・種別・ハンドル・投稿 ID。**判別できなければ null**
+ */
 export function parseSocialUrl(url: string): ParsedSocialUrl | null {
   let u: URL;
   try {
@@ -68,7 +75,12 @@ export function parseSocialUrl(url: string): ParsedSocialUrl | null {
   return null;
 }
 
-/** URL がソーシャルプロフィール/投稿 URL か。 */
+/**
+ * URL がソーシャルのプロフィール / 投稿 URL かを判定する。
+ *
+ * @param url URL
+ * @returns 対応プラットフォームの URL なら true
+ */
 export function isSocialUrl(url: string): boolean {
   return parseSocialUrl(url) !== null;
 }

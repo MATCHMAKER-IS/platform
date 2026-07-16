@@ -61,7 +61,18 @@ async function refreshFreeeToken(config: FreeeTokenConfig): Promise<FreeeTokenRe
   };
 }
 
-/** freee トークンマネージャを作る。 */
+/**
+ * freee のトークンマネージャを作る。
+ *
+ * **freee のアクセストークンは 6 時間、リフレッシュトークンは 1 回しか使えない**
+ * (使うたびに新しいものが返る)。取りこぼすと再認可が必要になるので、
+ * **必ず `onRefresh` で保存すること**。
+ *
+ * @param options.refreshToken リフレッシュトークン
+ * @param options.clientId / clientSecret アプリの認証情報
+ * @param options.onRefresh 更新時の通知(**保存に使う。必須**)
+ * @returns トークンマネージャ
+ */
 export function createFreeeTokenManager(config: FreeeTokenConfig): FreeeTokenManager {
   const buffer = config.expiryBufferMs ?? 5 * 60 * 1000;
   const now = config.now ?? (() => Date.now());
@@ -91,7 +102,16 @@ export function createFreeeTokenManager(config: FreeeTokenConfig): FreeeTokenMan
   };
 }
 
-/** トークンマネージャを使う認証付き fetch を作る(401 で1度だけ再更新して再試行)。 */
+/**
+ * 認証付きの fetch を作る。
+ *
+ * **401 が返ったら 1 度だけトークンを更新して再試行する**
+ * (何度も繰り返すと、認証が壊れているときに無限ループになる)。
+ *
+ * @param manager トークンマネージャ
+ * @param fetchImpl fetch の実装(テスト注入用)
+ * @returns 認証ヘッダを自動で付ける fetch
+ */
 export function createFreeeAuthedFetch(manager: FreeeTokenManager, baseFetch?: typeof fetch): typeof fetch {
   const doFetch = baseFetch ?? fetch;
   const authed = (async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {

@@ -15,17 +15,39 @@ export interface ReorderPolicy {
   targetLevel?: number;
 }
 
-/** 発注点 = 安全在庫 + リードタイム needs（リードタイム中の需要）。 */
+/**
+ * 発注点を求める(= 安全在庫 + リードタイム中の需要)。
+ *
+ * **発注してから届くまでの間にも在庫は減る**。その分を見込まないと、
+ * 発注したのに欠品する。
+ *
+ * @param dailyDemand 1 日あたりの需要
+ * @param leadTimeDays 発注から入荷までの日数
+ * @param safetyStock 安全在庫(需要の変動に備える分)
+ * @returns 発注点(この数を下回ったら発注する)
+ */
 export function reorderPoint(policy: ReorderPolicy): number {
   return policy.safetyStock + Math.ceil(policy.dailyDemand * policy.leadTimeDays);
 }
 
-/** 補充が必要か(現在庫 <= 発注点）。 */
+/**
+ * 補充が必要かを判定する。
+ *
+ * @param onHand 現在庫
+ * @param reorderPointValue 発注点
+ * @returns 現在庫が発注点以下なら true
+ */
 export function needsReorder(onHandQty: number, policy: ReorderPolicy): boolean {
   return onHandQty <= reorderPoint(policy);
 }
 
-/** 発注すべき数量（目標在庫まで補充。不要なら 0）。 */
+/**
+ * 発注すべき数量を求める(目標在庫まで補充)。
+ *
+ * @param onHand 現在庫
+ * @param targetStock 目標在庫
+ * @returns 発注数量。**補充が不要なら 0**(マイナスにしない)
+ */
 export function reorderQuantity(onHandQty: number, policy: ReorderPolicy): number {
   if (!needsReorder(onHandQty, policy)) return 0;
   const target = policy.targetLevel ?? reorderPoint(policy) * 2;

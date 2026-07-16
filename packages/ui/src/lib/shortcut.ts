@@ -26,7 +26,14 @@ export interface KeyChord {
 
 const MOD_TOKENS = new Set(["mod", "cmdctrl"]);
 
-/** "mod+shift+k" のような文字列を解析する。 */
+/**
+ * ショートカット文字列を解析する。
+ *
+ * **`mod` は Mac なら ⌘、他なら Ctrl**。これを使うと、OS ごとに書き分けなくてよい。
+ *
+ * @param combo `mod+shift+k` のような文字列
+ * @returns 解析した修飾キーとキー
+ */
 export function parseShortcut(input: string): ParsedShortcut {
   const parts = input.toLowerCase().split("+").map((p) => p.trim()).filter(Boolean);
   const result: ParsedShortcut = { key: "", mod: false, ctrl: false, meta: false, shift: false, alt: false };
@@ -41,7 +48,14 @@ export function parseShortcut(input: string): ParsedShortcut {
   return result;
 }
 
-/** キー入力がショートカットに一致するか。isMac で mod の解決を切り替える。 */
+/**
+ * キー入力がショートカットに一致するかを判定する。
+ *
+ * @param event キーイベント
+ * @param combo ショートカット文字列
+ * @param isMac Mac か(**`mod` の解決に使う**)
+ * @returns 一致すれば true
+ */
 export function matchShortcut(chord: KeyChord, shortcut: ParsedShortcut, isMac: boolean): boolean {
   if (chord.key.toLowerCase() !== shortcut.key) return false;
   const wantCtrl = shortcut.ctrl || (shortcut.mod && !isMac);
@@ -49,7 +63,16 @@ export function matchShortcut(chord: KeyChord, shortcut: ParsedShortcut, isMac: 
   return chord.ctrlKey === wantCtrl && chord.metaKey === wantMeta && chord.shiftKey === shortcut.shift && chord.altKey === shortcut.alt;
 }
 
-/** ショートカットを表示用文字列にする(Mac は記号、他は語)。 */
+/**
+ * ショートカットを表示用にする。
+ *
+ * **Mac は記号(⌘⇧K)、他は語(Ctrl+Shift+K)**。OS の慣習に合わせないと、
+ * 利用者は自分のキーボードのどれを押すか分からない。
+ *
+ * @param combo ショートカット文字列
+ * @param isMac Mac か
+ * @returns 表示用の文字列
+ */
 export function formatShortcut(shortcut: ParsedShortcut, isMac: boolean): string {
   const parts: string[] = [];
   if (shortcut.mod) parts.push(isMac ? "⌘" : "Ctrl");
@@ -61,12 +84,24 @@ export function formatShortcut(shortcut: ParsedShortcut, isMac: boolean): string
   return isMac ? parts.join("") : parts.join("+");
 }
 
-/** 連続入力("g h")か。 */
+/**
+ * 連続入力かを判定する(`g h` のように空白区切り)。
+ *
+ * **Vim 風の連続キー**(g を押してから h)。同時押しとは区別が要る。
+ *
+ * @param combo ショートカット文字列
+ * @returns 連続入力なら true
+ */
 export function isSequence(input: string): boolean {
   return input.trim().includes(" ");
 }
 
-/** 連続入力をキー配列に分解する("g h" → ["g","h"])。 */
+/**
+ * 連続入力をキーの配列に分解する。
+ *
+ * @param combo `g h` のような文字列
+ * @returns `["g", "h"]`
+ */
 export function parseSequence(input: string): string[] {
   return input.toLowerCase().split(/\s+/).map((k) => k.trim()).filter(Boolean);
 }
@@ -74,6 +109,10 @@ export function parseSequence(input: string): string[] {
 /**
  * 入力履歴が目的の連続入力にどこまで一致しているか。
  * 履歴の末尾が連続入力の「先頭からの一致」になっているかを見る(g→h の途中で g だけなら partial)。
+ *
+ * @param pressed 押されたキーの列
+ * @param combo 連続入力のショートカット
+ * @returns 一致すれば true(**途中まで一致していれば待つ**)
  */
 export function sequenceMatches(history: string[], sequence: string[]): "complete" | "partial" | "none" {
   if (sequence.length === 0) return "none";

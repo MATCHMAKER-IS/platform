@@ -21,7 +21,13 @@ export interface Coupon {
   maxDiscount?: number;
 }
 
-/** クーポンが適用可能か(最低購入額を満たすか)。 */
+/**
+ * クーポンが使えるかを判定する。
+ *
+ * @param coupon クーポン
+ * @param subtotal 小計
+ * @returns 使えるなら true(**最低購入額を満たすか**)
+ */
 export function isCouponApplicable(coupon: Coupon, subtotal: number): boolean {
   return subtotal > 0 && (coupon.minPurchase === undefined || subtotal >= coupon.minPurchase);
 }
@@ -29,6 +35,10 @@ export function isCouponApplicable(coupon: Coupon, subtotal: number): boolean {
 /**
  * 割引額を計算する(小計を超えず、上限・最低購入額を考慮。1 円未満は切り捨て)。
  * 適用不可なら 0。
+ *
+ * @param coupon クーポン
+ * @param subtotal 小計
+ * @returns 割引額。**小計を超えない**(超えると返金になってしまう)
  */
 export function computeDiscount(coupon: Coupon, subtotal: number): number {
   if (!isCouponApplicable(coupon, subtotal)) return 0;
@@ -42,7 +52,15 @@ export function computeDiscount(coupon: Coupon, subtotal: number): number {
   return Math.floor(Math.min(discount, subtotal));
 }
 
-/** 割引後の小計を返す。 */
+/**
+ * 割引後の小計を返す。
+ *
+ * **0 円未満にはしない**(割引額が小計を超えても、マイナスにはならない)。
+ *
+ * @param coupon クーポン
+ * @param subtotal 小計
+ * @returns 割引後の小計
+ */
 export function applyDiscount(subtotal: number, coupon: Coupon): number {
   return subtotal - computeDiscount(coupon, subtotal);
 }

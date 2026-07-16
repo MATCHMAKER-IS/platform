@@ -37,6 +37,7 @@ export interface Payslip {
  * 給与明細を組み立てる。
  * @param breakdown 割増込みの賃金(calcPay / calcMonthlyPay の結果)
  * @param options 諸手当・控除(算出済みの金額)
+ * @returns 給与明細(**支給・控除・差引支給額**。法定の記載事項を満たす)
  */
 export function buildPayslip(
   breakdown: PayBreakdown,

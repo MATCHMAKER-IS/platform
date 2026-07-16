@@ -15,7 +15,14 @@ export interface FormStep {
   fields: string[];
 }
 
-/** 指定ステップに属し、かつ現在の値で表示されるフィールドを返す。 */
+/**
+ * 指定したステップの、今表示されるフィールドを返す。
+ *
+ * @param fields フィールド定義の配列
+ * @param step ステップ番号
+ * @param values 現在の入力値
+ * @returns そのステップで表示するフィールド
+ */
 export function stepVisibleFields(step: FormStep, allFields: FormField[], values: Record<string, unknown>): FormField[] {
   const inStep = new Set(step.fields);
   return visibleFields(allFields.filter((f) => inStep.has(f.name)), values);
@@ -35,7 +42,13 @@ export interface StepProgress {
   ratio: number;
 }
 
-/** ステップ進捗を求める。 */
+/**
+ * ステップの進捗を求める(プログレスバー用)。
+ *
+ * @param current 現在のステップ
+ * @param total 全ステップ数
+ * @returns 現在位置・全体・割合(0〜1)
+ */
 export function stepProgress(index: number, total: number): StepProgress {
   const clamped = Math.max(0, Math.min(index, total - 1));
   return {
@@ -47,12 +60,23 @@ export function stepProgress(index: number, total: number): StepProgress {
   };
 }
 
-/** 次のステップ番号(最後なら据え置き)。 */
+/**
+ * 次のステップ番号を返す。
+ *
+ * @param current 現在のステップ
+ * @param total 全ステップ数
+ * @returns 次の番号。**最後なら据え置き**(範囲外に飛ばさない)
+ */
 export function nextStep(index: number, total: number): number {
   return Math.min(index + 1, total - 1);
 }
 
-/** 前のステップ番号(最初なら据え置き)。 */
+/**
+ * 前のステップ番号を返す。
+ *
+ * @param current 現在のステップ
+ * @returns 前の番号。**最初なら据え置き**(負にしない)
+ */
 export function prevStep(index: number): number {
   return Math.max(index - 1, 0);
 }
@@ -60,6 +84,11 @@ export function prevStep(index: number): number {
 /**
  * ステップ内の必須フィールドがすべて入力済みか(表示中のもののみ対象)。
  * バリデーションの詳細は zod スキーマに委ね、ここは「必須の空欄が無いか」の簡易判定。
+ *
+ * @param fields フィールド定義の配列
+ * @param step ステップ番号
+ * @param values 入力値
+ * @returns そのステップの必須項目がすべて埋まっていれば true(**次へ進めるかの判定**)
  */
 export function isStepFilled(step: FormStep, allFields: FormField[], values: Record<string, unknown>): boolean {
   return stepVisibleFields(step, allFields, values)

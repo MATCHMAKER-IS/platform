@@ -32,7 +32,14 @@ export interface ZohoProjectsClient {
   logTime(projectId: string, taskId: string, log: Record<string, string>): Promise<Result<ProjectsRecord>>;
 }
 
-/** Zoho Projects クライアントを作る。 */
+/**
+ * Zoho Projects(プロジェクト管理)のクライアントを作る。
+ *
+ * @param config.tokenManager トークンマネージャ(**自動更新される**)
+ * @param config.dc データセンター(**契約時の DC を指定**。間違えると 404 になる)
+ * @param config.fetchImpl fetch の実装(テスト注入用)
+ * @returns Projects のクライアント。**すべてのメソッドは Result 型を返す**(例外を投げない)
+ */
 export function createZohoProjectsClient(config: ZohoProjectsConfig): ZohoProjectsClient {
   const api = createZohoApiClient({
     apiDomain: serviceBaseUrl("projects", config.dataCenter),

@@ -33,7 +33,14 @@ export interface ZohoInventoryClient {
   listContacts(params?: { page?: number; perPage?: number }): Promise<Result<InventoryListResult>>;
 }
 
-/** Zoho Inventory クライアントを作る。 */
+/**
+ * Zoho Inventory(在庫・受発注)のクライアントを作る。
+ *
+ * @param config.tokenManager トークンマネージャ(**自動更新される**)
+ * @param config.dc データセンター(**契約時の DC を指定**。間違えると 404 になる)
+ * @param config.fetchImpl fetch の実装(テスト注入用)
+ * @returns Inventory のクライアント。**すべてのメソッドは Result 型を返す**(例外を投げない)
+ */
 export function createZohoInventoryClient(config: ZohoInventoryConfig): ZohoInventoryClient {
   const api = createZohoApiClient({
     apiDomain: serviceBaseUrl("inventory", config.dataCenter),

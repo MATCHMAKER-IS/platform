@@ -19,6 +19,15 @@ export interface RankedCast extends Cast {
  * score = (v/(v+m))*R + (m/(v+m))*C
  *   R=そのキャストの平均, v=件数, m=信頼に足る最小件数, C=全体平均。
  * 件数が少ないほど全体平均に引き寄せられる。
+ *
+ * **1 件だけ 5 点の人を 1 位にしない**ための仕組み(ベイズ平均)。
+ * 「評価が高いのか、たまたま 1 件が良かっただけか」を区別する。
+ *
+ * @param rating そのキャストの平均評価(R)
+ * @param count そのキャストの評価件数(v)
+ * @param globalAverage 全体の平均評価(C)
+ * @param minCount 信頼できるとみなす件数(m)。**これを下回るほど全体平均に寄る**
+ * @returns 重み付きスコア
  */
 export function weightedRating(rating: number, reviewCount: number, minCount: number, globalMean: number): number {
   const v = Math.max(0, reviewCount);
@@ -28,7 +37,15 @@ export function weightedRating(rating: number, reviewCount: number, minCount: nu
   return Math.round(score * 1000) / 1000;
 }
 
-/** 全キャストの評価の平均(件数で重み付け)。 */
+/**
+ * 全キャストの評価を集計する(**件数で重み付け**)。
+ *
+ * **単純平均だと 1 件だけ 5 点の人が 1 位になる**。件数の少ない評価は信頼できないので、
+ * 全体平均に寄せる(ベイズ平均)。
+ *
+ * @param casts キャストの配列
+ * @returns 全体の平均評価
+ */
 export function globalMeanRating(casts: RankedCast[]): number {
   let totalScore = 0;
   let totalCount = 0;
@@ -52,6 +69,8 @@ export interface RankingEntry<T> {
 
 /**
  * 口コミ連動のランキングを作る(在籍中のみ・重み付きスコア降順)。
+ *
+ * @returns ランキング(**重み付きスコアの降順**。件数の少ない高評価は上位に来ない)
  * @param minCount 信頼に足る最小件数(既定 10)
  */
 export function rankCasts<T extends RankedCast>(casts: T[], options: { minCount?: number; limit?: number } = {}): RankingEntry<T>[] {
@@ -65,7 +84,15 @@ export function rankCasts<T extends RankedCast>(casts: T[], options: { minCount?
   return options.limit !== undefined ? ranked.slice(0, options.limit) : ranked;
 }
 
-/** 単純平均評価の降順ランキング(件数を問わない)。同点は件数の多い順。 */
+/**
+ * 単純平均でランキングする(**件数を問わない**)。
+ *
+ * **1 件だけの満点が上位に来る**ので、公開ランキングには向かない
+ * (それでよい場面用。通常は {@link bayesianRanking} を使う)。
+ *
+ * @param casts キャストの配列
+ * @returns 平均評価の降順。**同点なら件数の多い順**
+ */
 export function rankByRawRating<T extends RankedCast>(casts: T[], limit?: number): RankingEntry<T>[] {
   const ranked = activeCasts(casts)
     .slice()

@@ -18,7 +18,14 @@ export interface InvoiceTotals {
   taxByRate: TaxSummary["byRate"];
 }
 
-/** 明細群から請求書の合計を計算する。 */
+/**
+ * 明細群から請求書の合計を計算する。
+ *
+ *
+ * @param lines 明細
+ * @param options.rounding 端数処理(既定 floor)
+ * @returns 小計・税額・合計と、**税率別の内訳**(適格請求書に必要な区分記載)
+ */
 export function invoiceTotals(lines: InvoiceLine[], rounding: Rounding = "floor"): InvoiceTotals {
   const taxLines: TaxLine[] = lines.map((l) => ({ net: lineNet(l), rate: lineTaxRate(l) }));
   const summary = summarizeTax(taxLines, rounding);
@@ -45,7 +52,14 @@ export interface Invoice extends InvoiceHeader {
   totals: InvoiceTotals;
 }
 
-/** ヘッダ + 明細から請求書を組み立てる(合計を計算して埋める)。 */
+/**
+ * ヘッダ + 明細から請求書を組み立てる(合計を計算して埋める)。
+ *
+ *
+ * @param header 取引先・日付・請求書番号など
+ * @param lines 明細
+ * @returns 請求書(**合計は自動計算**)
+ */
 export function buildInvoice(header: InvoiceHeader, lines: InvoiceLine[], rounding: Rounding = "floor"): Invoice {
   return { ...header, lines, totals: invoiceTotals(lines, rounding) };
 }

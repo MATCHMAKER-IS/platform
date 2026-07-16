@@ -19,7 +19,16 @@ export interface ReviewItem {
 /** 空値の表示。 */
 const EMPTY_DISPLAY = "—";
 
-/** フィールドの値を表示用文字列に整形する(選択肢→ラベル、真偽→はい/いいえ 等)。 */
+/**
+ * フィールドの値を確認画面用の文字列に整形する。
+ *
+ * **確認画面に生の値を出さない**。選択肢は `value` ではなくラベルを、
+ * 真偽値は `true` ではなく「はい」を出す(利用者は内部の値を知らない)。
+ *
+ * @param field フィールド定義
+ * @param value 入力された値
+ * @returns 表示用の文字列。**未入力なら空文字**
+ */
 export function formatFieldValue(field: FormField, value: unknown): string {
   if (value === null || value === undefined || value === "") return EMPTY_DISPLAY;
   if (field.type === "checkbox") return value ? "はい" : "いいえ";
@@ -33,6 +42,10 @@ export function formatFieldValue(field: FormField, value: unknown): string {
 /**
  * 確認画面の項目一覧を作る(現在の値で表示されるフィールドのみ)。
  * 入力 → 確認 の確認画面で、入力内容を「ラベル: 値」で見直せるようにする。
+ *
+ * @param fields フィールド定義の配列
+ * @param values 入力値
+ * @returns 確認画面に出す項目(**表示中のものだけ**・ラベルと整形済みの値)
  */
 export function reviewItems(fields: FormField[], values: Record<string, unknown>): ReviewItem[] {
   return visibleFields(fields, values).map((f) => ({
@@ -45,6 +58,10 @@ export function reviewItems(fields: FormField[], values: Record<string, unknown>
 /**
  * 詳細画面の項目一覧を作る(全フィールドを対象。表示条件は無視して定義順に並べる)。
  * レコードを description-list 等で表示するのに使う。
+ *
+ * @param record 任意のオブジェクト
+ * @param labels 項目名 → 表示名 の対応(任意)
+ * @returns 表示用の項目リスト(**フィールド定義が無いデータ向け**)
  */
 export function describeRecord(fields: FormField[], record: Record<string, unknown>): ReviewItem[] {
   return fields.map((f) => ({

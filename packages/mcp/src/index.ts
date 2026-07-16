@@ -82,17 +82,38 @@ export interface McpServerOptions {
 /** 対応プロトコルバージョン(新しい順)。 */
 export const SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"] as const;
 
-/** テキスト1件の成功結果を作る。 */
+/**
+ * テキスト 1 件の成功結果を作る。
+ *
+ * @param text 返すテキスト
+ * @returns MCP のツール結果
+ */
 export function textResult(text: string): McpToolResult {
   return { content: [{ type: "text", text }] };
 }
 
-/** エラー結果を作る(ツール実行エラーは JSON-RPC エラーではなく isError で返すのが MCP 流儀)。 */
+/**
+ * エラー結果を作る。
+ *
+ * **ツールの実行エラーは JSON-RPC のエラーにしない**のが MCP の流儀。
+ * `isError` で返すことで、AI が「エラーが起きた」と理解して次の手を考えられる
+ * (プロトコルのエラーにすると、AI には何が起きたか分からない)。
+ *
+ * @param message エラーメッセージ(**AI が読んで理解できる文言に**)
+ * @returns MCP のツール結果(isError)
+ */
 export function errorResult(message: string): McpToolResult {
   return { content: [{ type: "text", text: message }], isError: true };
 }
 
-/** JSON を McpToolResult にする(整形済みテキスト)。 */
+/**
+ * JSON をツール結果にする。
+ *
+ * **整形して返す**(AI も人も読むため)。
+ *
+ * @param value 返す値
+ * @returns MCP のツール結果
+ */
 export function jsonResult(value: unknown): McpToolResult {
   return textResult(JSON.stringify(value, null, 2));
 }
@@ -100,7 +121,15 @@ export function jsonResult(value: unknown): McpToolResult {
 const rpcError = (id: number | string | null, code: number, message: string): JsonRpcResponse => ({ jsonrpc: "2.0", id, error: { code, message } });
 const rpcResult = (id: number | string | null, result: unknown): JsonRpcResponse => ({ jsonrpc: "2.0", id, result });
 
-/** 1行の JSON をリクエストとして解析する。壊れていれば -32700 のエラーレスポンスを返す。 */
+/**
+ * 1 行の JSON をリクエストとして解析する。
+ *
+ * **壊れていれば -32700(Parse error)を返す**(JSON-RPC の規定)。
+ * 例外を投げるとサーバが落ちるので、レスポンスとして返す。
+ *
+ * @param line 1 行の JSON
+ * @returns リクエスト、またはエラーレスポンス
+ */
 export function parseJsonRpc(line: string): { ok: true; value: JsonRpcRequest } | { ok: false; error: JsonRpcResponse } {
   try {
     const obj = JSON.parse(line) as JsonRpcRequest;
@@ -114,6 +143,10 @@ export function parseJsonRpc(line: string): { ok: true; value: JsonRpcRequest } 
 /**
  * MCP メッセージを処理する(純関数)。通知(id 無し)は null を返し、応答しない。
  * 対応メソッド: initialize / notifications/initialized / ping / tools/list / tools/call
+ *
+ * @param request MCP のリクエスト
+ * @param handlers ツールの実装
+ * @returns レスポンス。**通知(id 無し)には null**(JSON-RPC の規定)
  */
 export async function handleMcpMessage(options: McpServerOptions, req: JsonRpcRequest, ctx: McpCallContext = {}): Promise<JsonRpcResponse | null> {
   const isNotification = req.id === undefined;
@@ -191,6 +224,8 @@ export interface StdioLike {
 /**
  * 改行区切り JSON の stdio サーバを起動する。入力ストリームが閉じるまで動く。
  * 本番: `serveStdio(options)`(process.stdin/stdout)。ログは stderr へ(標準出力はプロトコル専用)。
+ * @param handlers ツールの実装
+ * @param io 入出力(**テストで差し替えられる**)
  */
 export async function serveStdio(options: McpServerOptions, io?: StdioLike, ctx: McpCallContext = {}): Promise<void> {
   const input = io?.input ?? process.stdin;
@@ -215,7 +250,12 @@ export async function serveStdio(options: McpServerOptions, io?: StdioLike, ctx:
 // 公式 SDK 非依存の薄いアダプタとして一般化。handleMcpMessage(純関数)を Web 標準 Request/Response に橋渡しする。
 // Next.js Route Handler / Amplify(serverless)など、セッションを持てない環境でそのまま動く。
 
-/** Authorization ヘッダから Bearer トークンを取り出す。無ければ null。 */
+/**
+ * Authorization ヘッダから Bearer トークンを取り出す。
+ *
+ * @param header Authorization ヘッダの値
+ * @returns トークン。**無ければ null**
+ */
 export function extractBearerToken(authorizationHeader: string | null | undefined): string | null {
   if (!authorizationHeader) return null;
   const m = authorizationHeader.match(/^Bearer\s+(.+)$/i);
@@ -251,6 +291,11 @@ const jsonResponse = (body: unknown, status: number, headers: Record<string, str
  *   resourceMetadataUrl: `${base}/.well-known/oauth-protected-resource`,
  * });
  * ```
+ *
+ * @param req HTTP リクエスト
+ * @param handlers ツールの実装
+ * @param options.token 認証トークン(**設定すれば Bearer を検証**)
+ * @returns HTTP レスポンス
  */
 export async function handleHttpMcp(request: Request, options: HttpMcpOptions): Promise<Response> {
   if (request.method !== "POST") {

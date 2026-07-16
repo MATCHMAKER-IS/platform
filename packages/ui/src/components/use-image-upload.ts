@@ -29,7 +29,13 @@ export interface UseImageUploadResult<T> {
   reset: () => void;
 }
 
-/** 選択→自動縮小→アップロードを1つにまとめたフック。 */
+/**
+ * 選択→自動縮小→アップロードを1つにまとめたフック。
+ *
+ *
+ * @param options.maxSizeBytes / accept 受け入れる条件
+ * @returns 選択・プレビュー・アップロードの状態と操作(**アップロード前にブラウザ内でリサイズできる**ので、通信量を減らせる)
+ */
 export function useImageUpload<T = unknown>(options: UseImageUploadOptions<T>): UseImageUploadResult<T> {
   const [uploading, setUploading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);

@@ -10,6 +10,12 @@
  * ```ts
  * const results = await mapWithConcurrency(files, (f) => processor.normalizeUpload(f), 4);
  * ```
+ *
+ * @param items 処理する項目
+ * @param fn 処理する関数
+ * @param concurrency 並列数(**無制限にしない**。画像処理はメモリを食う)
+ * @param onProgress 各完了時に呼ばれる(任意)
+ * @returns 結果の配列(**入力と同じ順序**)
  */
 export async function mapWithConcurrency<T, R>(
   items: T[],
@@ -29,7 +35,18 @@ export async function mapWithConcurrency<T, R>(
   return results;
 }
 
-/** 進捗コールバックつきの並行処理。onProgress は各完了時に呼ばれる。 */
+/**
+ * 進捗つきで並行処理する。
+ *
+ * **画像処理は重い**(1 枚数秒)。100 枚を無言で待たせず、進捗を見せる。
+ * **並列数を制限する**のも重要(無制限だとメモリを食い尽くす)。
+ *
+ * @param items 処理する項目
+ * @param fn 処理する関数
+ * @param options.concurrency 並列数
+ * @param options.onProgress 各完了時に呼ばれる
+ * @returns 結果の配列(**入力と同じ順序**)
+ */
 export async function runBatch<T, R>(
   items: T[],
   fn: (item: T, index: number) => Promise<R>,

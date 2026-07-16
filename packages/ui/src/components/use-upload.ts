@@ -18,6 +18,12 @@ export interface UseUploadOptions {
   headers?: Record<string, string>;
 }
 
+/**
+ * ファイルをアップロードするフック(進捗つき)。
+ *
+ * @param options.endpoint 送信先
+ * @param options.maxSizeBytes 上限(**サーバ側でも検証すること**。ブラウザの検証は迂回できる)
+ */
 export function useUpload({ url, field = "file", headers = {} }: UseUploadOptions) {
   const [progress, setProgress] = React.useState(0);
   const [uploading, setUploading] = React.useState(false);

@@ -33,12 +33,27 @@ export interface Beacon {
   pageview(path: string, extra?: { userId?: string; referrer?: string }): void;
 }
 
-/** セッションIDを組み立てる（無ければ生成関数で作る）。 */
+/**
+ * セッション ID を用意する(**無ければ作る**)。
+ *
+ * @param existing 既存の ID(Cookie など)
+ * @param generate ID を作る関数
+ * @returns セッション ID
+ */
 export function ensureSessionId(current: string | null | undefined, generate: () => string): string {
   return current && current.length > 0 ? current : generate();
 }
 
-/** ビーコンを作る。 */
+/**
+ * 計測ビーコンを作る。
+ *
+ * **個人を特定する情報を入れないこと**。パスにユーザー ID や検索語が入ると、
+ * 意図せず個人情報を計測基盤に送ることになる。
+ *
+ * @param input パス・セッション ID・参照元など
+ * @param now 現在時刻(テスト注入用)
+ * @returns ビーコン(送信する形)
+ */
 export function createBeacon(config: { sessionId: string } & BeaconDeps): Beacon {
   const endpoint = config.endpoint ?? "/api/analytics";
   const send = (payload: BeaconPayload) => {

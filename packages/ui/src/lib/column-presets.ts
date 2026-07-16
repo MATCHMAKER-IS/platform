@@ -16,24 +16,50 @@ export interface ColumnPreset {
   ownerId?: string;
 }
 
-/** id 一致で更新、無ければ追加。 */
+/**
+ * プリセットを更新または追加する。
+ *
+ * @param presets 現在のプリセット
+ * @param preset 保存するプリセット
+ * @returns 更新した**新しい配列**(id が一致すれば更新、無ければ追加)
+ */
 export function upsertPreset(list: ColumnPreset[], preset: ColumnPreset): ColumnPreset[] {
   const i = list.findIndex((p) => p.id === preset.id);
   if (i >= 0) { const c = [...list]; c[i] = preset; return c; }
   return [...list, preset];
 }
 
-/** id のプリセットを除く。 */
+/**
+ * プリセットを削除する。
+ *
+ * @param presets 現在のプリセット
+ * @param id 削除する id
+ * @returns 削除した新しい配列
+ */
 export function removePreset(list: ColumnPreset[], id: string): ColumnPreset[] {
   return list.filter((p) => p.id !== id);
 }
 
-/** id からプリセットを探す。 */
+/**
+ * プリセットを id で探す。
+ *
+ * @param presets プリセットの配列
+ * @param id 探す id
+ * @returns プリセット。**無ければ undefined**
+ */
 export function findPreset(list: ColumnPreset[], id: string): ColumnPreset | undefined {
   return list.find((p) => p.id === id);
 }
 
-/** 共有 / 個人 に分ける(表示用)。 */
+/**
+ * 共有と個人に分ける(表示用)。
+ *
+ * **共有プリセットは全員に見える**ので、誤って個人の設定を共有しないよう
+ * 画面で明確に分ける。
+ *
+ * @param presets プリセットの配列
+ * @returns 共有と個人それぞれの配列
+ */
 export function splitPresets(list: ColumnPreset[]): { shared: ColumnPreset[]; personal: ColumnPreset[] } {
   return { shared: list.filter((p) => p.shared), personal: list.filter((p) => !p.shared) };
 }
@@ -53,7 +79,15 @@ export interface ColumnPresetStoreOptions {
   fetch?: typeof fetch;
 }
 
-/** サーバにプリセットを保存する fetch ストア(個人+共有を返す)。 */
+/**
+ * サーバに保存するストアを作る。
+ *
+ * **端末をまたいで設定を持ち回れる**(localStorage だと別の PC では使えない)。
+ *
+ * @param options.endpoint API の URL
+ * @param options.fetchImpl fetch の実装(テスト注入用)
+ * @returns ストア(個人 + 共有のプリセットを返す)
+ */
 export function createColumnPresetStore(options: ColumnPresetStoreOptions): ColumnPresetStore {
   const doFetch = options.fetch ?? (typeof fetch !== "undefined" ? fetch : undefined);
   const base = (table: string) => `${options.endpoint}?user=${encodeURIComponent(options.userId)}&table=${encodeURIComponent(table)}`;
@@ -77,7 +111,15 @@ export function createColumnPresetStore(options: ColumnPresetStoreOptions): Colu
   };
 }
 
-/** テーブルごとの既定プリセット(isDefault)を探す。 */
+/**
+ * テーブルの既定プリセットを探す。
+ *
+ * **初回表示で使う**(何も選ばれていないときの列構成)。
+ *
+ * @param presets プリセットの配列
+ * @param tableId テーブル
+ * @returns 既定のプリセット。**無ければ undefined**
+ */
 export function defaultPreset(list: ColumnPreset[]): ColumnPreset | undefined {
   return list.find((p) => (p as ColumnPreset & { isDefault?: boolean }).isDefault);
 }
@@ -86,6 +128,7 @@ export function defaultPreset(list: ColumnPreset[]): ColumnPreset | undefined {
  * 初期表示の列設定を決める。優先度: ユーザー保存 > 既定プリセット > 空。
  * @param saved ユーザーが保存した設定(無ければ null)
  * @param presets テーブルのプリセット一覧
+ * @returns 初期の列設定(**既定プリセット → 保存済み設定 → 素の列定義**の順で解決)
  */
 export function resolveInitialPrefs(
   saved: import("./column-prefs.js").ColumnPrefs | null,

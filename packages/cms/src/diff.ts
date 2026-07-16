@@ -9,7 +9,15 @@ export interface DiffLine {
   text: string;
 }
 
-/** 2 つのテキストを行単位で差分する（LCS ベース）。 */
+/**
+ * 2 つのテキストを行単位で差分する(LCS ベース)。
+ *
+ * **リビジョン間の変更を見せる**のに使う。
+ *
+ * @param before 変更前のテキスト
+ * @param after 変更後のテキスト
+ * @returns 行ごとの差分(追加・削除・変更なし)
+ */
 export function diffLines(before: string, after: string): DiffLine[] {
   const a = before.split("\n");
   const b = after.split("\n");
@@ -67,7 +75,13 @@ export interface RevisionDiff {
   bodyChanged: boolean;
 }
 
-/** 2 つの版を比較する（before → after）。 */
+/**
+ * 2 つの版を比較する。
+ *
+ * @param before 前の版
+ * @param after 後の版
+ * @returns タイトル・本文・タグそれぞれの差分
+ */
 export function diffRevisions(before: RevisionLike, after: RevisionLike): RevisionDiff {
   const body = diffLines(before.body, after.body);
   const diff: RevisionDiff = {

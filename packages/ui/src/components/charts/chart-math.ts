@@ -28,7 +28,14 @@ export function candleGeometry(c: Candle, x: number, width: number, y: number, h
   };
 }
 
-/** 各行の系列値を合計 100% に正規化する(帯グラフ用)。 */
+/**
+ * 各行を合計 100% に正規化する(帯グラフ用)。
+ *
+ * **構成比の推移を見る**のに使う(実数だと全体の増減に紛れて、割合の変化が見えない)。
+ *
+ * @param rows 行ごとの系列値
+ * @returns 各行が 100% になるよう正規化した値。**合計 0 の行は全て 0**
+ */
 export function toPercentStacked<T extends Record<string, unknown>>(data: T[], keys: string[]): T[] {
   return data.map((row) => {
     const total = keys.reduce((s, k) => s + (Number(row[k]) || 0), 0) || 1;
@@ -41,7 +48,13 @@ export function toPercentStacked<T extends Record<string, unknown>>(data: T[], k
 /** ヒストグラムのビン。 */
 export interface HistBin { label: string; count: number; x0: number; x1: number }
 
-/** 数値配列を等幅ビンに分ける(ヒストグラム用)。 */
+/**
+ * 数値を等幅のビンに分ける(ヒストグラム用)。
+ *
+ * @param values 数値の配列
+ * @param binCount ビンの数
+ * @returns 各ビンの範囲と件数(**最後のビンだけ上端を含む**。でないと最大値がどこにも入らない)
+ */
 export function histogramBins(values: number[], binCount = 10): HistBin[] {
   if (values.length === 0) return [];
   const min = Math.min(...values);
@@ -77,7 +90,15 @@ export interface WaterfallRow {
   cumulative: number;
 }
 
-/** 増減項目を、滝グラフ用の offset/bar に変換する(純関数)。 */
+/**
+ * 増減項目を滝グラフ用に変換する。
+ *
+ * **「前期からどう変わって今期になったか」を見せる**(売上 100 → +30 → -10 → 120)。
+ * 各バーの浮き位置(offset)を計算する。
+ *
+ * @param items 増減項目
+ * @returns 各バーの offset と高さ
+ */
 export function toWaterfall(items: WaterfallItem[]): WaterfallRow[] {
   let running = 0;
   return items.map((it) => {
@@ -92,13 +113,30 @@ export function toWaterfall(items: WaterfallItem[]): WaterfallRow[] {
   });
 }
 
-/** 極座標→直交座標(角度は度、0°=真上、時計回り)。 */
+/**
+ * 極座標を直交座標にする。
+ *
+ * **0° は真上・時計回り**(数学の慣習とは違う)。円グラフは 12 時から
+ * 時計回りに描くのが一般的なので、それに合わせてある。
+ *
+ * @param cx / cy 中心
+ * @param radius 半径
+ * @param angleDeg 角度(**度**。0 = 真上)
+ * @returns `{ x, y }`
+ */
 export function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number): { x: number; y: number } {
   const a = ((angleDeg - 90) * Math.PI) / 180;
   return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
 }
 
-/** 円弧の SVG パス(startAngle→endAngle、度)。 */
+/**
+ * 円弧の SVG パスを作る。
+ *
+ * @param cx / cy 中心
+ * @param radius 半径
+ * @param startAngle / endAngle 角度(度)
+ * @returns SVG の `d` 属性の値
+ */
 export function arcPath(cx: number, cy: number, r: number, startAngle: number, endAngle: number): string {
   const s = polarToCartesian(cx, cy, r, endAngle);
   const e = polarToCartesian(cx, cy, r, startAngle);
@@ -106,7 +144,15 @@ export function arcPath(cx: number, cy: number, r: number, startAngle: number, e
   return `M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 0 ${e.x} ${e.y}`;
 }
 
-/** 進捗リングの stroke-dashoffset(progress 0〜1)。 */
+/**
+ * 進捗リングの `stroke-dashoffset` を計算する。
+ *
+ * **円周を破線として扱い、見せる長さを変える**のが定石(SVG で弧を描くより簡単)。
+ *
+ * @param radius 半径
+ * @param progress 進捗(0–1)
+ * @returns `stroke-dashoffset` の値
+ */
 export function ringDashOffset(progress: number, radius: number): number {
   const p = Math.max(0, Math.min(1, progress));
   return 2 * Math.PI * radius * (1 - p);

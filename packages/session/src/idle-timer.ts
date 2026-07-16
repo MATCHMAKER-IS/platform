@@ -32,7 +32,16 @@ export interface IdleTimer {
   stop(): void;
 }
 
-/** 無操作タイマーを作る。 */
+/**
+ * 無操作タイマーを作る(自動ログアウト用)。
+ *
+ * **席を離れたまま放置されたセッションを閉じる**。共用 PC で他人に操作される事故を防ぐ。
+ *
+ * @param options.timeoutMs 無操作がこの時間続いたら発火
+ * @param options.onIdle 発火したときの処理(ログアウトなど)
+ * @param options.onWarn 発火前の警告(任意。「あと 1 分で切れます」)
+ * @returns タイマー。`touch` で操作があったことを伝える
+ */
 export function createIdleTimer(config: IdleTimerConfig): IdleTimer {
   const warnBeforeMs = config.warnBeforeMs ?? 0;
   const sched = config.scheduler ?? { set: (fn, ms) => setTimeout(fn, ms), clear: (h) => clearTimeout(h as ReturnType<typeof setTimeout>) };
@@ -77,6 +86,10 @@ export const IDLE_ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "scrol
  * const unbind = bindActivityListeners(timer);
  * // クリーンアップ: unbind(); timer.stop();
  * ```
+ *
+ * @param timer 無操作タイマー
+ * @param target イベントを購読する対象(既定はブラウザの window)
+ * @returns 購読を解除する関数。**画面を離れるときに必ず呼ぶ**(呼ばないとリークする)
  */
 export function bindActivityListeners(timer: IdleTimer, target: { addEventListener: (t: string, h: () => void, o?: unknown) => void; removeEventListener: (t: string, h: () => void, o?: unknown) => void } = globalThis as unknown as Window): () => void {
   const handler = () => timer.activity();

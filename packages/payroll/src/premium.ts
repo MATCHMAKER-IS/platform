@@ -71,6 +71,10 @@ function pay(hourlyWage: number, minutes: number, rate: number): number {
  * 割増込みの賃金を計算する。
  * モデル: 全ての非休日労働に基本(1.0)、時間外にさらに割増、深夜は全区分に加算、
  * 法定休日は基本+休日割増で別建て(休日には時間外の概念なし)。
+ *
+ * @param summary 月次の集計
+ * @param hourlyRate 時間単価
+ * @returns 割増ごとの金額と合計
  */
 export function calcPay(input: PayInput, rates: PremiumRates = DEFAULT_PREMIUM_RATES): PayBreakdown {
   const wage = input.hourlyWage;
@@ -109,6 +113,9 @@ export interface MonthlyAttendance {
 /**
  * 日次の勤怠区分を月次に合算し、月60時間超の時間外を算出する。
  * 給与計算に渡す月次入力を作る。
+ *
+ * @param days 日次の勤務記録
+ * @returns 月次の集計(**時間外・深夜・休日を分けて数える**。割増率が違うため)
  */
 export function aggregateMonthly(days: WorkSplit[]): MonthlyAttendance {
   const sum = days.reduce<Omit<MonthlyAttendance, "over60Minutes">>(
@@ -125,7 +132,17 @@ export function aggregateMonthly(days: WorkSplit[]): MonthlyAttendance {
   return { ...sum, over60Minutes };
 }
 
-/** 月次集計から割増込みの賃金を計算する(時間単価を渡す)。 */
+/**
+ * 割増込みの賃金を計算する。
+ *
+ * **労基法の割増率**: 時間外 25%(月 60 時間超は 50%)、深夜 25%、休日 35%。
+ * **重複する場合は加算**(深夜の時間外は 25% + 25% = 50%)。
+ * 率を間違えると未払い賃金になり、遡って請求される。
+ *
+ * @param summary 月次の集計(時間外・深夜・休日の時間数)
+ * @param hourlyRate 時間単価
+ * @returns 割増ごとの金額と合計
+ */
 export function calcMonthlyPay(month: MonthlyAttendance, hourlyWage: number, rates: PremiumRates = DEFAULT_PREMIUM_RATES): PayBreakdown {
   return calcPay(
     {

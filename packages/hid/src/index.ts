@@ -17,12 +17,24 @@ function getHid(): HidLike | null {
   return (navigator as unknown as { hid?: HidLike }).hid ?? null;
 }
 
-/** この環境で WebHID が使えるか。 */
+/**
+ * この環境で WebHID が使えるかを判定する。
+ *
+ * **対応が限られる**(Chrome 系のみ)。**HTTPS が必須**で、
+ * **利用者の操作から呼ばないと拒否される**。使う前に必ず確認すること。
+ *
+ * @returns 使えるなら true
+ */
 export function isHidSupported(): boolean {
   return getHid() !== null;
 }
 
-/** DataView をバイト配列にする(レポート解析用)。 */
+/**
+ * DataView をバイト配列にする(レポート解析用)。
+ *
+ * @param view DataView
+ * @returns バイト配列
+ */
 export function reportBytes(view: DataView): number[] {
   return Array.from({ length: view.byteLength }, (_v, i) => view.getUint8(i));
 }
@@ -57,6 +69,8 @@ function mapHidError(e: unknown): AppError {
  *   await res.value.sendReport(0, new Uint8Array([0x01]));
  * }
  * ```
+ * @returns 接続したデバイス
+ * @throws 利用者が選択をキャンセルした場合、または非対応の環境
  */
 export async function connectHid(filters: HidFilter[] = []): Promise<Result<HidConnection>> {
   const hid = getHid();

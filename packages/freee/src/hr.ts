@@ -47,6 +47,7 @@ export interface FreeeHrClient {
 /**
  * freee 人事労務クライアントを作る。
  * @param config `accessToken`(会計と同じ OAuth)/ `fetchImpl`(認証付き fetch を注入可能)
+ * @returns 人事労務のクライアント。**会計とは別の API**(ドメインもトークンのスコープも違う)
  */
 export function createFreeeHrClient(config: { accessToken: string; fetchImpl?: typeof fetch }): FreeeHrClient {
   const api = createApiClient({

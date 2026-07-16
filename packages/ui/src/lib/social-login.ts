@@ -17,7 +17,13 @@ export const PROVIDER_LABELS: Record<SocialProvider, string> = {
   line: "LINE",
 };
 
-/** ボタン表示ラベルを組み立てる(例「Google でログイン」)。 */
+/**
+ * ボタン表示ラベルを組み立てる(例「Google でログイン」)。
+ *
+ *
+ * @param provider プロバイダ
+ * @returns 表示名(**各社のブランド表記に合わせる**。『Googleでログイン』は規約で表記が決まっている)
+ */
 export function socialLoginLabel(provider: SocialProvider, action = "ログイン"): string {
   return `${PROVIDER_LABELS[provider]} で${action}`;
 }

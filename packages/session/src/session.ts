@@ -61,6 +61,17 @@ interface SessionEnvelope<T> {
   seen?: number;
 }
 
+/**
+ * 署名付きセッションを作る(Cookie に値を入れる方式)。
+ *
+ * **値は署名される**ので改ざんできないが、**暗号化はされない**(Base64 を解けば中身は読める)。
+ * パスワードや個人情報を入れないこと。**サーバ側に持ちたいなら {@link createServerSession}**。
+ *
+ * @param config.secret 署名鍵(**開発用の値のまま本番にしない**)
+ * @param config.maxAgeSec 有効期間(秒)
+ * @param config.cookieName Cookie 名
+ * @returns セッション。`seal` で署名、`unseal` で検証
+ */
 export function createSession<T>(config: SessionConfig): Session<T> {
   const { secret, cookieName = "session", maxAgeSec = 60 * 60 * 24 * 7, idleTimeoutSec, cookie } = config;
   const key = deriveKey(secret);

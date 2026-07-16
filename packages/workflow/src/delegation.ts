@@ -19,7 +19,15 @@ export interface Delegation {
   until?: Date;
 }
 
-/** 指定時刻に有効な委任だけを返す。 */
+/**
+ * 指定時刻に有効な委任を返す。
+ *
+ * **代理承認**(出張・休暇中の承認を他の人に任せる)。期間で有効・無効が変わる。
+ *
+ * @param delegations 委任の配列
+ * @param at 判定する時刻
+ * @returns 有効な委任
+ */
 export function activeDelegations(delegations: Delegation[], now: Date = new Date()): Delegation[] {
   const t = now.getTime();
   return delegations.filter((d) =>
@@ -30,6 +38,7 @@ export function activeDelegations(delegations: Delegation[], now: Date = new Dat
 /**
  * actor の実効ロールを返す(自分のロール + actor に委任されたロール)。
  * @param roleOf 委任元 ID からその人のロールを引く関数(委任元の全ロールを委任する場合に使用)。
+ * @returns 委任を反映したロール(**代理人が本人のロールで承認できる**)
  */
 export function effectiveRoles(
   actor: Actor,
@@ -49,6 +58,9 @@ export function effectiveRoles(
 /**
  * actor が(代理を含めて)そのステップを承認できるか。
  * 代理で承認する場合、その委任元(onBehalfOf)も返す(監査ログ用)。
+ * @param userId 承認しようとする人
+ * @param delegations 委任の配列
+ * @param at 判定する時刻
  */
 export function resolveApprovalAuthority(
   step: WorkflowStep,

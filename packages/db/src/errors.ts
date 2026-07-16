@@ -24,6 +24,10 @@ function isPrismaKnownError(e: unknown): e is PrismaKnownError {
  * - P2003 外部キー → `VALIDATION`(400)
  * - P2034 書き込み競合/デッドロック → `CONFLICT`(409、{@link isRetryablePrismaError} が true)
  * - その他 → `DATABASE`(500)
+ *
+ * @param error Prisma のエラー
+ * @returns {@link @platform/core#AppError} に正規化したエラー(**Prisma のエラーコードをアプリの語彙に翻訳する**。
+ *   `P2002` では何のことか分からない)
  */
 export function mapPrismaError(e: unknown): AppError {
   if (isPrismaKnownError(e)) {
@@ -44,7 +48,14 @@ export function mapPrismaError(e: unknown): AppError {
   return AppError.from(e, ErrorCode.DATABASE);
 }
 
-/** 再試行で回復しうる Prisma エラーか(デッドロック・シリアライズ失敗)。 */
+/**
+ * 再試行で回復しうる Prisma エラーか(デッドロック・シリアライズ失敗)。
+ *
+ *
+ * @param error エラー
+ * @returns 再試行で回復しうるなら true(**デッドロック・シリアライズ失敗**)。
+ *   一意制約違反などは再試行しても無駄
+ */
 export function isRetryablePrismaError(e: unknown): boolean {
   if (isPrismaKnownError(e)) return e.code === "P2034";
   // 生 SQL の場合のシリアライズ/デッドロック(SQLSTATE 40001/40P01)

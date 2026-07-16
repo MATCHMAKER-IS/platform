@@ -46,6 +46,7 @@ export interface SqlOutboxStore extends OutboxStore {
  * @param client DB アクセス実装(アプリの Prisma ラッパー)
  * @param genId  ID 生成関数(既定: 時刻+乱数。運用では uuid 推奨)
  * @param now    現在時刻(テスト用)
+ * @returns Outbox ストア。**プロセスが落ちても通知が消えない**(メモリ実装と違い、本番で使える)
  */
 export function createSqlOutboxStore(
   client: OutboxDbClient,

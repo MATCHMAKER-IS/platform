@@ -21,7 +21,16 @@ export interface IdempotencyStore {
   delete(key: string): Promise<void> | void;
 }
 
-/** メモリ実装(TTL 付き・単一プロセス内でアトミック)。 */
+/**
+ * 冪等ストアのメモリ実装(TTL 付き・単一プロセス内でアトミック)。
+ *
+ * **複数プロセスでは使えない**(プロセスごとに別のメモリを持つため、
+ * 重複を検出できない)。本番では Redis 実装を使うこと。
+ *
+ * @param options.ttlMs 保持する時間(既定 24 時間)
+ * @param options.now 時刻の取得(テスト注入用)
+ * @returns 冪等ストア
+ */
 export function createMemoryIdempotencyStore(ttlMs = 24 * 60 * 60 * 1000, now: () => number = () => Date.now()): IdempotencyStore {
   const map = new Map<string, IdempotencyRecord>();
   const prune = () => { const t = now(); for (const [k, v] of map) if (t - v.createdAt > ttlMs) map.delete(k); };
@@ -50,6 +59,14 @@ export class IdempotencyConflictError extends Error {
  *  - 未実行 → fn を実行し結果を保存して返す。
  *  - 完了済み → 保存済み結果を返す(fn は実行しない)。
  *  - 進行中 → IdempotencyConflictError(同時多重を防ぐ)。
+ *
+ * @param store 冪等ストア
+ * @param key 冪等キー(**同じ処理には同じキー**。リクエスト ID など)
+ * @param fn 実行する処理
+ * @param options.ttlMs 記録の保持期間
+ * @returns 処理の結果と、**新規実行か再利用か**(`replayed`)
+ * @throws {@link @platform/core#AppError} コード `CONFLICT` — 同じキーの処理が実行中の場合
+ *   (二重実行を防ぐため、待たずに失敗させる)
  */
 export async function withIdempotency<T>(store: IdempotencyStore, key: string, fn: () => Promise<T>, now: () => number = () => Date.now()): Promise<T> {
   const existing = await store.reserve(key, { status: "in_progress", createdAt: now() });

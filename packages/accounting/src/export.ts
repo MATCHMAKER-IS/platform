@@ -15,7 +15,15 @@ export interface JournalRow {
   memo: string;
 }
 
-/** 仕訳群を CSV 用の行(明細ごと)に平坦化する。@platform/csv の toCsv に渡す。 */
+/**
+ * 仕訳を CSV 用の行(明細ごと)に平坦化する。
+ *
+ * **1 仕訳が複数行になる**(明細ごとに 1 行)。会計ソフトの取り込み形式に合わせるため。
+ * 出力は `@platform/csv` の `toCsv` に渡す。
+ *
+ * @param entries 仕訳の配列
+ * @returns CSV の行(オブジェクトの配列)
+ */
 export function journalToRows(entries: JournalEntry[]): JournalRow[] {
   return entries.flatMap((e) =>
     e.lines.map((l) => ({
@@ -39,6 +47,10 @@ export interface FreeeJournalDetail {
 /**
  * 仕訳を freee の振替伝票明細に変換する。勘定科目名 → freee 勘定科目 ID の対応表が必要。
  * 未登録の科目があれば unknownAccounts に集める(送信前チェック用)。
+ *
+ * @param entry 仕訳
+ * @param accountItemIds 勘定科目名 → freee 勘定科目 ID の対応表
+ * @returns 明細と、**未登録の科目名**(空でなければ送信前に登録が必要)
  */
 export function journalToFreeeDetails(
   entry: JournalEntry,

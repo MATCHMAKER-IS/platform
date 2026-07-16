@@ -2,6 +2,11 @@
 /** 動画/音声要素の再生状態を扱う内部フック。 */
 import * as React from "react";
 
+/**
+ * audio / video 要素の状態を扱うフック(再生位置・音量・再生中か)。
+ *
+ * @param ref メディア要素への参照
+ */
 export function useMediaElement(ref: React.RefObject<HTMLMediaElement | null>) {
   const [playing, setPlaying] = React.useState(false);
   const [current, setCurrent] = React.useState(0);

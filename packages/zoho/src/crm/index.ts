@@ -34,7 +34,14 @@ export interface ZohoCrmClient {
   coql(selectQuery: string): Promise<Result<{ data?: CrmRecord[]; info?: CrmPageInfo }>>;
 }
 
-/** Zoho CRM クライアントを作る。 */
+/**
+ * Zoho Crm(顧客・案件管理)のクライアントを作る。
+ *
+ * @param config.tokenManager トークンマネージャ(**自動更新される**)
+ * @param config.dc データセンター(**契約時の DC を指定**。間違えると 404 になる)
+ * @param config.fetchImpl fetch の実装(テスト注入用)
+ * @returns Crm のクライアント。**すべてのメソッドは Result 型を返す**(例外を投げない)
+ */
 export function createZohoCrmClient(config: Omit<ZohoClientConfig, "basePath">): ZohoCrmClient {
   const api = createZohoApiClient({ ...config, basePath: "/crm/v8" });
   const enc = encodeURIComponent;

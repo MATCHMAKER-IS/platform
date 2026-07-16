@@ -21,7 +21,14 @@ export interface Announcement {
   level?: "info" | "warning" | "sale";
 }
 
-/** お知らせが今の時点・このパスで表示対象か。 */
+/**
+ * お知らせが今このパスで表示されるかを判定する。
+ *
+ * @param announcement お知らせ
+ * @param context.path 現在のパス
+ * @param context.now 判定する時点(テスト注入用)
+ * @returns 表示するなら true
+ */
 export function isAnnouncementActive(a: Announcement, currentPath: string, now: Date = new Date()): boolean {
   const t = now.getTime();
   if (a.startAt && new Date(a.startAt).getTime() > t) return false;
@@ -40,6 +47,7 @@ export function isAnnouncementActive(a: Announcement, currentPath: string, now: 
 /**
  * 表示すべきお知らせを返す(期間・パス・閉じた状態で絞り込み)。
  * @param dismissedIds ユーザーが閉じたお知らせの ID
+ * @returns 表示するお知らせ(**閉じたものは除く**。一度閉じたものを再表示すると鬱陶しい)
  */
 export function activeAnnouncements(
   announcements: Announcement[],
@@ -50,7 +58,16 @@ export function activeAnnouncements(
   return announcements.filter((a) => !dismissed.has(a.id) && isAnnouncementActive(a, currentPath, options.now));
 }
 
-/** 最も優先度の高いお知らせ 1 件を返す(sale > warning > info、その中では先頭)。 */
+/**
+ * 最も優先度の高いお知らせを 1 件返す。
+ *
+ * **複数を同時に出さない**(お知らせが積み重なると誰も読まなくなる)。
+ * 優先度は sale > warning > info、同じなら先頭。
+ *
+ * @param announcements お知らせの配列
+ * @param context パス・時点
+ * @returns 表示するお知らせ。**対象が無ければ null**
+ */
 export function topAnnouncement(announcements: Announcement[], currentPath: string, options?: { now?: Date; dismissedIds?: Iterable<string> }): Announcement | null {
   const active = activeAnnouncements(announcements, currentPath, options);
   const rank: Record<string, number> = { sale: 3, warning: 2, info: 1 };

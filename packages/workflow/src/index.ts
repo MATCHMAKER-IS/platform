@@ -199,6 +199,7 @@ export function sendBack(
  * 現在待ちのステップを返す(pending 以外は null)。UI 表示に使う。
  * @param def   定義
  * @param state 状態
+ * @returns 現在のステップ。**完了済みなら undefined**
  */
 export function currentStep(def: WorkflowDefinition, state: WorkflowState): WorkflowStep | null {
   if (state.status !== "pending") return null;

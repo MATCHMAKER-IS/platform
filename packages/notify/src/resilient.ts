@@ -17,7 +17,16 @@ export interface RetryOptions {
   sleep?: (ms: number) => Promise<void>;
 }
 
-/** チャネルをリトライでラップする。失敗時は backoff して再試行、最終的に失敗なら throw。 */
+/**
+ * 通知をリトライでラップする。
+ *
+ * **恒久エラーは再試行しない**(存在しない宛先に何度送っても届かない)。
+ *
+ * @param channel 元のチャネル
+ * @param options.attempts 最大試行回数
+ * @param options.shouldRetry 再試行するか判定する関数
+ * @returns ラップしたチャネル
+ */
 export function withRetry(channel: NotifyChannel, options: RetryOptions = {}): NotifyChannel {
   const retries = options.retries ?? 2;
   const backoffMs = options.backoffMs ?? ((n: number) => 200 * 2 ** (n - 1));
@@ -55,6 +64,10 @@ export interface FallbackOptions {
  * ```ts
  * const channel = createFallbackChannel([slack, email]); // Slack 失敗時は email
  * ```
+ *
+ * @param channels チャネルの配列(優先順)
+ * @returns ラップしたチャネル
+ * @throws 全部失敗した場合
  */
 export function createFallbackChannel(channels: NotifyChannel[], options: FallbackOptions = {}): NotifyChannel {
   if (channels.length === 0) throw new Error("フォールバックには 1 つ以上のチャネルが必要です");

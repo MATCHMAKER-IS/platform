@@ -34,7 +34,14 @@ export interface Alert {
   firing: boolean;
 }
 
-/** SLO ヘルパー: エラー率がしきい値を超えたら発報する条件を作る。 */
+/**
+ * エラー率がしきい値を超えたら発報する条件を作る。
+ *
+ * @param totalCounter 総数のカウンタ名
+ * @param errorCounter エラー数のカウンタ名
+ * @param threshold しきい値(0〜1。**0.01 なら 1%**)
+ * @returns アラート条件。**総数が 0 なら発報しない**(データが無いだけで騒がない)
+ */
 export function errorRateAbove(totalKey: string, errorKey: string, threshold: number): (m: MetricsView) => boolean {
   return (m) => {
     const total = m.counters[totalKey] ?? 0;
@@ -44,7 +51,16 @@ export function errorRateAbove(totalKey: string, errorKey: string, threshold: nu
   };
 }
 
-/** SLO ヘルパー: ヒストグラムの平均がしきい値(ms)を超えたら発報。 */
+/**
+ * 平均レイテンシがしきい値を超えたら発報する条件を作る。
+ *
+ * **平均は外れ値に弱い**ので、本来は p95 を見たい。ただし発報の判定としては
+ * 平均でも「明らかに遅い」は捉えられる(詳しくは ADR 0012 の性能基準)。
+ *
+ * @param histogram ヒストグラムの名前
+ * @param thresholdMs しきい値(ミリ秒)
+ * @returns アラート条件。**サンプルが 0 なら発報しない**
+ */
 export function avgLatencyAbove(histogramKey: string, thresholdMs: number): (m: MetricsView) => boolean {
   return (m) => {
     const h = m.histograms[histogramKey];
@@ -53,7 +69,15 @@ export function avgLatencyAbove(histogramKey: string, thresholdMs: number): (m: 
   };
 }
 
-/** SLO ヘルパー: ゲージがしきい値以上なら発報(例: サーキットブレーカー open=2)。 */
+/**
+ * ゲージがしきい値以上なら発報する条件を作る。
+ *
+ * 「サーキットブレーカーが開いた」「キューが溜まった」など、**状態を数値で見る**もの。
+ *
+ * @param gauge ゲージの名前
+ * @param threshold しきい値(**以上**で発報)
+ * @returns アラート条件
+ */
 export function gaugeAtLeast(gaugeKey: string, threshold: number): (m: MetricsView) => boolean {
   return (m) => (m.gauges[gaugeKey] ?? 0) >= threshold;
 }
@@ -66,7 +90,16 @@ export interface AlertManager {
   active(): Alert[];
 }
 
-/** アラートマネージャを作る。 */
+/**
+ * アラートマネージャを作る。
+ *
+ * **状態を保つ**ので、アプリで 1 つだけ作って使い回すこと
+ * (毎回作ると「発報中かどうか」が分からず、鳴り続ける)。
+ *
+ * @param rules 評価するルール
+ * @returns マネージャ。`evaluate` は**状態が変わったアラートだけ**を返す
+ *   (発報中ずっと通知すると、やがて誰も見なくなる)
+ */
 export function createAlertManager(rules: AlertRule[]): AlertManager {
   const streak = new Map<string, number>(); // ルール名 -> 連続異常回数
   const firing = new Map<string, Alert>();   // 発報中

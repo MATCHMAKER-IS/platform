@@ -16,7 +16,14 @@ export interface ShippingZone {
   freeThreshold?: number;
 }
 
-/** 地域が属するエリアを返す。 */
+/**
+ * 都道府県からエリアを返す。
+ *
+ * **送料はエリアで決まる**(北海道・沖縄は高い)。
+ *
+ * @param prefecture 都道府県
+ * @returns エリア。**未知の都道府県なら null**
+ */
 export function resolveZone(zones: ShippingZone[], region: string): ShippingZone | undefined {
   return zones.find((z) => z.regions.includes(region));
 }
@@ -24,6 +31,10 @@ export function resolveZone(zones: ShippingZone[], region: string): ShippingZone
 /**
  * 地域と小計から送料を算出する。エリアの無料閾値を満たせば 0。
  * エリア不明時は fallbackFee(既定 0)。
+ *
+ * @param prefecture 都道府県
+ * @param table 送料表
+ * @returns 送料。**未知の都道府県なら既定の送料**(注文を止めない)
  */
 export function shippingFeeForRegion(zones: ShippingZone[], region: string, subtotal: number, fallbackFee = 0): number {
   const zone = resolveZone(zones, region);
@@ -42,6 +53,10 @@ export interface WeightTier {
 /**
  * 重量から送料を求める(段階制。昇順の tier を上から探す)。
  * どの段階も超える場合は最後の段階の送料。
+ *
+ * @param weight 重量
+ * @param table 重量別の送料表
+ * @returns 送料(**該当する段の料金**)
  */
 export function weightBasedFee(weightGrams: number, tiers: WeightTier[]): number {
   const sorted = [...tiers].sort((a, b) => a.maxWeight - b.maxWeight);
@@ -51,7 +66,14 @@ export function weightBasedFee(weightGrams: number, tiers: WeightTier[]): number
   return sorted[sorted.length - 1]?.fee ?? 0;
 }
 
-/** 合計重量を計算する(明細の 重量 × 数量)。 */
+/**
+ * 合計重量を計算する。
+ *
+ * **重量で送料が変わる**運送会社が多い。
+ *
+ * @param items 明細(重量つき)
+ * @returns 合計重量
+ */
 export function totalWeight(items: { weight: number; quantity: number }[]): number {
   return items.reduce((sum, i) => sum + i.weight * i.quantity, 0);
 }

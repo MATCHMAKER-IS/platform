@@ -32,6 +32,7 @@ export interface ValidationReport<Raw, T> {
  * 全行を検証し、有効行とエラー行に振り分ける(適用はしない=ドライラン相当)。
  * @param rows 生の行データ
  * @param validate 行バリデータ
+ * @returns 行ごとの検証結果。**エラーがあっても他の行は処理する**(1 行の不備で全体を止めない)
  */
 export function validateRows<Raw, T>(rows: Raw[], validate: RowValidator<Raw, T>): ValidationReport<Raw, T> {
   const valid: ValidRow<T>[] = [];
@@ -73,6 +74,7 @@ export interface ImportOptions<T> {
  * @param rows 生の行
  * @param validate 行バリデータ
  * @param options 適用オプション
+ * @returns 取り込み結果(成功・失敗の件数と、**失敗した行の理由**)。**部分的な成功を許す**(全件やり直しは現実的でない)
  */
 export async function runImport<Raw, T>(
   rows: Raw[],
@@ -91,7 +93,17 @@ export async function runImport<Raw, T>(
   return { ...base, applied: toApply.length, committed: true };
 }
 
-/** ヘッダ行と値行から、列名→値のオブジェクト配列を作る(CSV パース後の整形に)。 */
+/**
+ * ヘッダ行と値行から、列名 → 値のオブジェクトを作る。
+ *
+ * **CSV をパースした後の整形**に使う。列数がヘッダと違う行は、
+ * 足りない分を空文字で埋める(**行ごと捨てない**。取り込みで 1 行の欠損が
+ * 全体の失敗になると使いにくい)。
+ *
+ * @param header ヘッダ行
+ * @param rows 値の行
+ * @returns 列名 → 値 のオブジェクト配列
+ */
 export function rowsToObjects(header: string[], rows: string[][]): Record<string, string>[] {
   return rows.map((cols) => {
     const obj: Record<string, string> = {};

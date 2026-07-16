@@ -11,14 +11,26 @@ export interface Reaction {
   kind: string;
 }
 
-/** リアクションを付与/解除する(同じ種別を再度押すと解除=トグル)。 */
+/**
+ * リアクションを付ける/外す(同じものを再度押すと解除)。
+ *
+ * @param reactions 現在のリアクション
+ * @param reaction 付ける/外すリアクション(投稿・ユーザー・種別)
+ * @returns 更新した**新しい**配列と、付けたか外したか
+ */
 export function toggleReaction(reactions: Reaction[], reaction: Reaction): Reaction[] {
   const exists = reactions.some((r) => r.postId === reaction.postId && r.userId === reaction.userId && r.kind === reaction.kind);
   if (exists) return reactions.filter((r) => !(r.postId === reaction.postId && r.userId === reaction.userId && r.kind === reaction.kind));
   return [...reactions, reaction];
 }
 
-/** 投稿ごと・種別ごとの件数を集計する。 */
+/**
+ * 投稿のリアクションを種別ごとに数える。
+ *
+ * @param reactions リアクションの配列
+ * @param postId 投稿
+ * @returns 種別 → 件数(**多い順**)
+ */
 export function countReactions(reactions: Reaction[], postId: string): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const r of reactions) {
@@ -28,7 +40,16 @@ export function countReactions(reactions: Reaction[], postId: string): Record<st
   return counts;
 }
 
-/** あるユーザーがその投稿に押した種別を返す。 */
+/**
+ * あるユーザーがその投稿に押した種別を返す。
+ *
+ * 画面で「自分が押したもの」を強調するのに使う。
+ *
+ * @param reactions リアクションの配列
+ * @param postId 投稿
+ * @param userId ユーザー
+ * @returns 押した種別の配列
+ */
 export function userReactions(reactions: Reaction[], postId: string, userId: string): string[] {
   return reactions.filter((r) => r.postId === postId && r.userId === userId).map((r) => r.kind);
 }

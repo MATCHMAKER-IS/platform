@@ -15,7 +15,13 @@ export interface UsePrintResult<T extends HTMLElement> {
   printContent: (html: string, options?: PrintOptions) => Promise<void>;
 }
 
-/** 印刷フック。 */
+/**
+ * 印刷フック。
+ *
+ *
+ * @param options 用紙・向き・余白
+ * @returns 印刷の操作(**印刷ダイアログが開く**)
+ */
 export function usePrint<T extends HTMLElement = HTMLDivElement>(options?: PrintElementOptions): UsePrintResult<T> {
   const ref = React.useRef<T | null>(null);
   const print = React.useCallback(async () => {

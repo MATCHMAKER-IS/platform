@@ -41,7 +41,19 @@ export interface RelayOptions {
   now?: () => number;
 }
 
-/** 1 バッチ分をリレーする。処理結果の集計を返す。 */
+/**
+ * Outbox の 1 バッチ分を送信する。
+ *
+ * **Outbox パターン**: DB の更新と外部への通知を「同じトランザクション」で行えないため、
+ * 通知したい内容を一旦 DB に書き(ここまでは原子的)、後から別プロセスが送る。
+ * これで「DB は更新されたのに通知されない」を防ぐ。
+ *
+ * @param store Outbox ストア
+ * @param send 送信する関数
+ * @param options.batchSize 1 回に処理する件数
+ * @param options.maxAttempts 最大試行回数(**超えたら諦めて dead 扱い**。無限に再試行しない)
+ * @returns 成功・失敗・諦めた件数
+ */
 export async function relayOutbox(store: OutboxStore, dispatch: OutboxDispatcher, options: RelayOptions = {}): Promise<{ sent: number; failed: number; exhausted: number }> {
   const batchSize = options.batchSize ?? 20;
   const maxAttempts = options.maxAttempts ?? 5;
@@ -71,7 +83,15 @@ export async function relayOutbox(store: OutboxStore, dispatch: OutboxDispatcher
   return { sent, failed, exhausted };
 }
 
-/** メモリ Outbox ストア(テスト・単一プロセス用)。 */
+/**
+ * Outbox ストアのメモリ実装(テスト・単一プロセス用)。
+ *
+ * **本番では SQL 実装を使うこと**(メモリだとプロセスが落ちたら通知が消える。
+ * それでは Outbox の意味が無い)。
+ *
+ * @param seed 初期データ
+ * @returns Outbox ストア
+ */
 export function createMemoryOutboxStore(now: () => number = () => Date.now()): OutboxStore & { add(topic: string, payload: unknown): OutboxMessage; all(): OutboxMessage[] } {
   const messages: OutboxMessage[] = [];
   let seq = 0;

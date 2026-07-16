@@ -17,6 +17,11 @@ export interface WorkflowNotification {
  * const n = notificationForTransition(prev, next, { title: "経費申請#123" });
  * if (n) await notifier.notify(n);
  * ```
+ *
+ * @param request 申請
+ * @param from 前の状態
+ * @param to 次の状態
+ * @returns 通知の内容。**通知不要な遷移なら null**(全部の遷移を通知すると、誰も読まなくなる)
  */
 export function notificationForTransition(
   prev: WorkflowState,
@@ -48,6 +53,8 @@ export interface ApproverDirectory {
  * const to = approverRecipients(def, state, directory);
  * for (const p of to) await mailer.sendMail({ to: p.email!, subject, text });
  * ```
+ * @param request 申請
+ * @param delegations 委任の配列
  */
 export function approverRecipients(
   def: { steps: { approverRole: string }[] },

@@ -10,6 +10,7 @@
  * 番号法上、収集・表示は必要最小限に限られる。既定は全桁伏字(下 `visible` 桁のみ表示)。
  * @param value 個人番号(ハイフン・空白は無視)
  * @param visible 末尾に残す桁数(既定 0 = 全桁マスク)
+ * @returns マスクしたマイナンバー(**下 4 桁のみ**。マイナンバーは法律で扱いが厳しく、原則ログに残さない)
  */
 export function maskMyNumber(value: string, visible = 0): string {
   const digits = value.replace(/\D/g, "");
@@ -27,6 +28,7 @@ export function maskMyNumber(value: string, visible = 0): string {
  * 運転免許証・在留カード・パスポート等に使える。
  * @param value 書類番号
  * @param visible 末尾に残す文字数(既定 4)
+ * @returns マスクした番号(**末尾のみ残す**)
  */
 export function maskIdentityNumber(value: string, visible = 4): string {
   const v = value.replace(/[\s\-]/g, "");

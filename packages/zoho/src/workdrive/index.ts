@@ -33,7 +33,14 @@ export interface ZohoWorkDriveClient {
   uploadFile(parentId: string, filename: string, content: Uint8Array | Blob, contentType?: string): Promise<Result<WorkDriveRecord>>;
 }
 
-/** Zoho WorkDrive クライアントを作る。 */
+/**
+ * Zoho WorkDrive(ファイル共有)のクライアントを作る。
+ *
+ * @param config.tokenManager トークンマネージャ(**自動更新される**)
+ * @param config.dc データセンター(**契約時の DC を指定**。間違えると 404 になる)
+ * @param config.fetchImpl fetch の実装(テスト注入用)
+ * @returns WorkDrive のクライアント。**すべてのメソッドは Result 型を返す**(例外を投げない)
+ */
 export function createZohoWorkDriveClient(config: ZohoWorkDriveConfig): ZohoWorkDriveClient {
   const api = createZohoApiClient({ apiDomain: serviceBaseUrl("workdrive", config.dataCenter), basePath: "", accessToken: config.accessToken, fetchImpl: config.fetchImpl });
   const enc = encodeURIComponent;

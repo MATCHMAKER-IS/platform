@@ -24,7 +24,17 @@ export interface ScheduledReminder {
   fireAt: string;
 }
 
-/** 予約日時とルールから発火予定を組み立てる(発火時刻の昇順)。 */
+/**
+ * リマインダーの発火予定を組み立てる。
+ *
+ * **既に過ぎたものは含めない**(予約の 1 時間前に登録された予約に、
+ * 「24 時間前」のリマインダーを送らない)。
+ *
+ * @param bookingAt 予約日時
+ * @param rules ルール(何分前に送るか)
+ * @param now 現在時刻(テスト注入用)
+ * @returns 発火予定(**発火時刻の昇順**)
+ */
 export function reminderSchedule(bookingAt: string | Date, rules: ReminderRule[]): ScheduledReminder[] {
   const base = (typeof bookingAt === "string" ? new Date(bookingAt) : bookingAt).getTime();
   return rules
@@ -32,7 +42,16 @@ export function reminderSchedule(bookingAt: string | Date, rules: ReminderRule[]
     .sort((a, b) => new Date(a.fireAt).getTime() - new Date(b.fireAt).getTime());
 }
 
-/** リマインダーの一意キー(送信済み管理用)。 */
+/**
+ * リマインダーの一意キーを作る。
+ *
+ * **同じリマインダーを二重に送らない**ため(バッチが再実行されても、
+ * このキーで送信済みを判定する)。
+ *
+ * @param bookingId 予約
+ * @param minutesBefore 何分前か
+ * @returns 一意キー
+ */
 export function reminderKey(bookingId: string, reminder: { channel: ReminderChannel; beforeMinutes: number }): string {
   return `${bookingId}:${reminder.channel}:${reminder.beforeMinutes}`;
 }
@@ -42,6 +61,7 @@ export function reminderKey(bookingId: string, reminder: { channel: ReminderChan
  * cron で定期的に呼び、返ったものを送信して sent に記録する運用を想定。
  * @param sentKeys 送信済みキー(reminderKey)
  * @param graceMinutes 発火から何分までを対象にするか(遅延実行の取りこぼし防止・既定 実質無制限)
+ * @returns 今送るべきリマインダー(**送信済みは除く**。二重送信を防ぐ)
  */
 export function dueReminders(
   bookingId: string,
@@ -62,14 +82,27 @@ export function dueReminders(
 /** リマインダーのタイミング区分。 */
 export type ReminderTiming = "day_before" | "same_day" | "soon";
 
-/** 何分前かからタイミング区分を判定する。 */
+/**
+ * 何分前かから区分を判定する。
+ *
+ * **文面を変える**のに使う(前日と 1 時間前では、伝えるべきことが違う)。
+ *
+ * @param minutesBefore 何分前か
+ * @returns 区分(`day-before` / `hours-before` / `soon`)
+ */
 export function reminderTiming(beforeMinutes: number): ReminderTiming {
   if (beforeMinutes >= 1440) return "day_before";
   if (beforeMinutes > 120) return "same_day";
   return "soon";
 }
 
-/** リマインダー本文(日本語)を組み立てる。 */
+/**
+ * リマインダーの本文を組み立てる(日本語)。
+ *
+ * @param booking 予約
+ * @param minutesBefore 何分前か
+ * @returns 本文(**区分に応じて文面を変える**)
+ */
 export function reminderMessage(input: {
   customerName?: string;
   bookingAt: string | Date;

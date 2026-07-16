@@ -12,7 +12,15 @@ function rgbToHex(r: number, g: number, b: number): string {
   return `#${c(r)}${c(g)}${c(b)}`;
 }
 
-/** 2 色を t(0〜1)で線形補間する。 */
+/**
+ * 2 色を t(0〜1)で線形補間する。
+ *
+ *
+ * @param from 開始色
+ * @param to 終了色
+ * @param t 進捗(0–1)
+ * @returns 補間した色
+ */
 export function interpolateColor(from: string, to: string, t: number): string {
   const a = hexToRgb(from);
   const b = hexToRgb(to);
@@ -20,7 +28,14 @@ export function interpolateColor(from: string, to: string, t: number): string {
   return rgbToHex(a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k);
 }
 
-/** value を [min,max] で正規化し、from→to の色に写像する。 */
+/**
+ * value を [min,max] で正規化し、from→to の色に写像する。
+ *
+ *
+ * @param colors 色の配列(**2 色以上**)
+ * @param t 位置(0–1)
+ * @returns その位置の色(**多段のグラデーション**。ヒートマップなどに使う)
+ */
 export function colorScale(value: number, min: number, max: number, from = "#e0f2f1", to = "#0d9488"): string {
   const t = max === min ? 0.5 : (value - min) / (max - min);
   return interpolateColor(from, to, t);

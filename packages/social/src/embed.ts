@@ -29,6 +29,9 @@ export interface OEmbedOptions {
 /**
  * 投稿 URL から oEmbed エンドポイント URL を作る。
  * Instagram はトークンが必要なため null(アプリ側で Graph API 経由に)。
+ *
+ * @param url 投稿の URL
+ * @returns oEmbed のエンドポイント。**Instagram はトークンが必要なため null**(Graph API 経由にする)
  */
 export function oembedEndpoint(platform: SocialPlatform, postUrl: string, options: OEmbedOptions = {}): string | null {
   const base = OEMBED_ENDPOINTS[platform];
@@ -41,7 +44,15 @@ export function oembedEndpoint(platform: SocialPlatform, postUrl: string, option
   return `${base}?${params.toString()}`;
 }
 
-/** そのプラットフォームが公開 oEmbed に対応しているか。 */
+/**
+ * そのプラットフォームが公開 oEmbed に対応しているかを判定する。
+ *
+ * **対応していないものは埋め込めない**(認証が要るか、そもそも API が無い)。
+ * 埋め込みを試みる前に確認する。
+ *
+ * @param platform プラットフォーム
+ * @returns 対応していれば true
+ */
 export function supportsOEmbed(platform: SocialPlatform): boolean {
   return OEMBED_ENDPOINTS[platform] !== null;
 }

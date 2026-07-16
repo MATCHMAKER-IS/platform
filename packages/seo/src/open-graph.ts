@@ -32,7 +32,14 @@ export interface OpenGraphInput {
   };
 }
 
-/** Open Graph タグ(property="og:*")を組み立てる。 */
+/**
+ * Open Graph のタグを組み立てる(SNS でシェアされたときの見た目)。
+ *
+ * **画像は 1200x630 が目安**。小さすぎると SNS 側で表示されない。
+ *
+ * @param input タイトル・説明・URL・画像・種別
+ * @returns メタタグの配列
+ */
 export function buildOpenGraphTags(input: OpenGraphInput): MetaTag[] {
   const tags: MetaTag[] = [
     { property: "og:title", content: input.title },
@@ -70,7 +77,14 @@ export interface TwitterCardInput {
   creator?: string;
 }
 
-/** Twitter Card タグ(name="twitter:*")を組み立てる。 */
+/**
+ * Twitter Card のタグを組み立てる。
+ *
+ * **OGP があれば多くは補完される**ので、差分だけ指定すればよい。
+ *
+ * @param input カード種別・タイトル・説明・画像
+ * @returns メタタグの配列
+ */
 export function buildTwitterCardTags(input: TwitterCardInput): MetaTag[] {
   const tags: MetaTag[] = [
     { name: "twitter:card", content: input.card ?? "summary_large_image" },

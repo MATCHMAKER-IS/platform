@@ -29,6 +29,7 @@ const DEFAULT_STATUS_MAP: Record<string, EkycStatus> = {
  * ベンダー生ステータスを正規化する。
  * @param raw ベンダーの status 文字列
  * @param mapping 追加/上書きマッピング(ベンダー独自語彙に対応)
+ * @returns 正規化した状態。**サービスごとに状態名が違う**ので、ここで揃える(未知の値は `pending` 扱い)
  */
 export function normalizeEkycStatus(raw: string | undefined | null, mapping?: Record<string, EkycStatus>): EkycStatus {
   if (!raw) return "unknown";
@@ -36,12 +37,27 @@ export function normalizeEkycStatus(raw: string | undefined | null, mapping?: Re
   return mapping?.[key] ?? DEFAULT_STATUS_MAP[key] ?? "unknown";
 }
 
-/** 判定が確定(承認/却下/期限切れ/取消)したか。 */
+/**
+ * 判定が確定したかを判定する(承認 / 却下 / 期限切れ / 取消)。
+ *
+ * **確定していないものは待つ**(審査中に督促しても意味がない)。
+ *
+ * @param status eKYC の状態
+ * @returns 確定していれば true
+ */
 export function isEkycFinal(status: EkycStatus): boolean {
   return status === "approved" || status === "rejected" || status === "expired" || status === "canceled";
 }
 
-/** 本人確認が成立したか。 */
+/**
+ * 本人確認が成立したかを判定する。
+ *
+ * **`isFinal` とは違う**(却下も「確定」だが「成立」ではない)。
+ * サービスを使わせてよいかの判断はこちら。
+ *
+ * @param status eKYC の状態
+ * @returns 承認されていれば true
+ */
 export function isEkycApproved(status: EkycStatus): boolean {
   return status === "approved";
 }

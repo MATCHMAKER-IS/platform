@@ -48,7 +48,15 @@ export interface Flags {
   variant(name: string, context?: FlagContext): Promise<string | null>;
 }
 
-/** FNV-1a による安定ハッシュ → 0..99 のバケット。 */
+/**
+ * 安定ハッシュでバケットを決める(FNV-1a)。
+ *
+ * **同じ利用者は常に同じバケット**になる(乱数では毎回変わり、
+ * A/B テストで「昨日は A、今日は B」となって結果が濁る)。
+ *
+ * @param key 利用者 ID など
+ * @returns 0〜99
+ */
 export function bucketOf(input: string): number {
   let h = 0x811c9dc5;
   for (let i = 0; i < input.length; i++) {
@@ -64,7 +72,16 @@ function matches(attributes: Record<string, unknown> | undefined, target: Record
   return Object.entries(target).every(([k, v]) => attributes[k] === v);
 }
 
-/** 1 ルールを決定的に評価する(純関数・テストしやすい)。 */
+/**
+ * 1 つのルールを評価する。
+ *
+ * **決定的**(同じ入力なら常に同じ結果)なので、テストしやすく、
+ * 「なぜこの人には出ないのか」を再現できる。
+ *
+ * @param rule ルール
+ * @param context 利用者の情報
+ * @returns 有効なら true
+ */
 export function evaluateFlag(rule: FlagRule, context: FlagContext = {}, flagName = ""): boolean {
   if (typeof rule === "boolean") return rule;
   if (rule.enabled === false) return false; // kill switch
@@ -80,7 +97,13 @@ export function evaluateFlag(rule: FlagRule, context: FlagContext = {}, flagName
   return bucket < pct;
 }
 
-/** バリアントを決定的に選ぶ(重み付き)。 */
+/**
+ * バリアントを決定的に選ぶ(重み付き)。
+ *
+ * @param variants バリアント(重み付き)
+ * @param key 利用者 ID など
+ * @returns 選ばれたバリアント。**同じ人には常に同じもの**
+ */
 export function selectVariant(rule: FlagRule, context: FlagContext = {}, flagName = ""): string | null {
   if (typeof rule === "boolean" || !rule.variants || rule.variants.length === 0) return null;
   const total = rule.variants.reduce((s, v) => s + v.weight, 0);
@@ -94,7 +117,14 @@ export function selectVariant(rule: FlagRule, context: FlagContext = {}, flagNam
   return rule.variants[rule.variants.length - 1]!.name;
 }
 
-/** Provider を注入して Flags を作る。 */
+/**
+ * フラグを作る(Provider を注入)。
+ *
+ * **定義の取得元を差し替えられる**(env・設定ファイル・DB・外部サービス)。
+ *
+ * @param provider 定義を返す Provider
+ * @returns フラグ。`isEnabled` / `variant` で判定
+ */
 export function createFlags(provider: FlagProvider): Flags {
   return {
     async isEnabled(name, context) {
@@ -112,12 +142,26 @@ export function createFlags(provider: FlagProvider): Flags {
   };
 }
 
-/** 静的な定義から Provider を作る(env/設定ファイル向け)。 */
+/**
+ * 静的な定義から Provider を作る(env・設定ファイル向け)。
+ *
+ * **再起動しないと反映されない**。動的に切り替えたいなら DB の Provider を作る。
+ *
+ * @param definitions フラグの定義
+ * @returns Provider
+ */
 export function createStaticProvider(definitions: FlagDefinitions): FlagProvider {
   return { getAll: () => definitions };
 }
 
-/** 非同期フェッチャから Provider を作る(リモート設定サービス向け)。 */
+/**
+ * 非同期フェッチャから Provider を作る(リモート設定サービス向け)。
+ *
+ *
+ * @param options.fetchDefinitions 定義を取得する関数
+ * @param options.ttlMs キャッシュの有効期間
+ * @returns Provider。**TTL のぶん反映が遅れる**(即時に切り替えたいなら短くするが、負荷とのトレードオフ)
+ */
 export function createRemoteProvider(fetcher: () => Promise<FlagDefinitions>): FlagProvider {
   return { getAll: fetcher };
 }

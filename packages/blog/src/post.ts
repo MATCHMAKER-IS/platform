@@ -21,31 +21,65 @@ export interface BlogPost {
   [key: string]: unknown;
 }
 
-/** 指定時点で公開済みか(published、または scheduled で公開日時を過ぎている)。 */
+/**
+ * 指定時点で公開済みかを判定する。
+ *
+ * **`status` をそのまま信じない**。予約公開(scheduled)は、日時を過ぎたら公開扱いにする
+ * 必要がある(DB を書き換えるバッチが動いていなくても、読む側で正しく判定する)。
+ *
+ * @param post 記事
+ * @param now 判定する時点(テスト注入用)
+ * @returns 公開済みなら true
+ */
 export function isPublished(post: BlogPost, now: Date = new Date()): boolean {
   if (post.status === "draft") return false;
   if (!post.publishedAt) return post.status === "published";
   return new Date(post.publishedAt).getTime() <= now.getTime();
 }
 
-/** 公開済みの記事だけを、公開日の新しい順で返す。 */
+/**
+ * 公開済みの記事だけを、公開日の新しい順で返す。
+ *
+ * **一覧を返す前に必ず通す**。下書きが漏れると事故になる。
+ *
+ * @param posts 記事の配列
+ * @param now 判定する時点(テスト注入用)
+ * @returns 公開済みの記事(新しい順)
+ */
 export function publishedPosts<T extends BlogPost>(posts: T[], now: Date = new Date()): T[] {
   return posts
     .filter((p) => isPublished(p, now))
     .sort((a, b) => new Date(b.publishedAt ?? 0).getTime() - new Date(a.publishedAt ?? 0).getTime());
 }
 
-/** タグで絞り込む(いずれかのタグを含む)。 */
+/**
+ * タグで絞り込む(**いずれかを含む** = OR 条件)。
+ *
+ * @param posts 記事の配列
+ * @param tags 絞り込むタグ
+ * @returns いずれかのタグを持つ記事
+ */
 export function postsByTag<T extends BlogPost>(posts: T[], tag: string): T[] {
   return posts.filter((p) => p.tags?.includes(tag));
 }
 
-/** カテゴリで絞り込む。 */
+/**
+ * カテゴリで絞り込む。
+ *
+ * @param posts 記事の配列
+ * @param category カテゴリ
+ * @returns そのカテゴリの記事
+ */
 export function postsByCategory<T extends BlogPost>(posts: T[], category: string): T[] {
   return posts.filter((p) => p.category === category);
 }
 
-/** 全記事からタグの出現数を集計する(タグクラウド用)。多い順。 */
+/**
+ * タグの出現数を集計する(タグクラウド用)。
+ *
+ * @param posts 記事の配列
+ * @returns タグと件数(**多い順**)
+ */
 export function tagCounts(posts: BlogPost[]): { tag: string; count: number }[] {
   const map = new Map<string, number>();
   for (const p of posts) for (const t of p.tags ?? []) map.set(t, (map.get(t) ?? 0) + 1);
@@ -55,6 +89,7 @@ export function tagCounts(posts: BlogPost[]): { tag: string; count: number }[] {
 /**
  * 関連記事を抽出する(共有タグ数の多い順)。自身は除外。
  * @param limit 返す最大件数
+ * @returns 関連記事(**タグの一致数が多い順**。自分自身は含まない)
  */
 export function relatedPosts<T extends BlogPost>(target: BlogPost, posts: T[], limit = 5): T[] {
   const targetTags = new Set(target.tags ?? []);

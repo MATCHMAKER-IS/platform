@@ -7,7 +7,12 @@ import * as React from "react";
 import type { Locale } from "@platform/i18n";
 import type { LocaleStore } from "../lib/locale-store.js";
 
-/** ロケール設定フック。 */
+/**
+ * ロケール設定フック。
+ *
+ * @param options.supported 対応するロケール
+ * @param options.fallback 既定
+ */
 export function useLocalePreference(store: LocaleStore, fallback: Locale = "ja") {
   const [locale, setLocaleState] = React.useState<Locale>(fallback);
   React.useEffect(() => {

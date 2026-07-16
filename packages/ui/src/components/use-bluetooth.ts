@@ -23,7 +23,11 @@ export interface UseBluetoothState {
   disconnect: () => void;
 }
 
-/** BLE 接続フック。 */
+/**
+ * BLE 接続フック。
+ *
+ * @returns 接続状態と操作。**非対応の環境では available: false**(使う前に確認して代替を案内する)
+ */
 export function useBluetooth(): UseBluetoothState {
   const [connecting, setConnecting] = React.useState(false);
   const [device, setDevice] = React.useState<{ id: string; name?: string } | null>(null);

@@ -53,7 +53,17 @@ function toOtlpSpan(s: Span): Record<string, unknown> {
   };
 }
 
-/** OTLP エクスポータを作る。 */
+/**
+ * OTLP エクスポータを作る(OpenTelemetry の標準形式で送信)。
+ *
+ * **送信の失敗はアプリを止めない**(監視のために本業が止まっては本末転倒)。
+ *
+ * @param options.endpoint 送信先の URL
+ * @param options.headers 認証ヘッダなど
+ * @param options.fetchImpl fetch の実装(テスト注入用)
+ * @returns エクスポータ
+ * @throws なし — **送信に失敗してもアプリを止めない**(監視のために本業が止まっては本末転倒)
+ */
 export function createOtlpExporter(options: OtlpExporterOptions): OtlpExporter {
   const maxBatchSize = options.maxBatchSize ?? 100;
   const flushIntervalMs = options.flushIntervalMs ?? 5000;

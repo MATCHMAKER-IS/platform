@@ -27,6 +27,7 @@ export interface GoogleDriveClient {
 /**
  * Google Drive クライアントを作る。
  * @param config `accessToken`(scope: drive 等)/ `fetchImpl`(認証付き fetch 注入可)
+ * @returns Drive クライアント(**すべてのメソッドは Result 型を返す**)
  */
 export function createGoogleDriveClient(config: { accessToken: string; fetchImpl?: typeof fetch }): GoogleDriveClient {
   // メタデータ操作は /drive/v3、アップロードは /upload/drive/v3。ベースは共通ホスト。

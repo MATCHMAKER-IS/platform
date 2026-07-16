@@ -16,7 +16,12 @@ export interface AnnouncementInput {
   level?: string;
 }
 
-/** 入力を検証する。 */
+/**
+ * お知らせの入力を検証する。
+ *
+ * @param input 入力
+ * @returns 問題の一覧(空なら妥当)
+ */
 export function validateAnnouncementInput(input: AnnouncementInput): { ok: true; value: AnnouncementInput } | { ok: false; error: string } {
   if (!input.message.trim()) return { ok: false, error: "メッセージは必須です" };
   if (input.startAt !== undefined && isNaN(new Date(input.startAt).getTime())) return { ok: false, error: "開始日時が不正です" };
@@ -44,7 +49,12 @@ export interface AnnouncementStore {
   remove(id: string): Promise<boolean>;
 }
 
-/** インメモリ実装。 */
+/**
+ * お知らせストアのメモリ実装(開発・テスト用)。
+ *
+ * @param seed 初期データ
+ * @returns お知らせストア(再起動で消える)
+ */
 export function createMemoryAnnouncementStore(genId: () => string = () => `ann_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`): AnnouncementStore {
   const byId = new Map<string, Announcement>();
   const order: string[] = [];
@@ -127,7 +137,12 @@ function toAnnouncementRowData(input: AnnouncementInput): AnnouncementRowData {
   return { message: input.message, startAt: input.startAt ? new Date(input.startAt) : null, endAt: input.endAt ? new Date(input.endAt) : null, paths: input.paths ?? [], ctaLabel: input.ctaLabel ?? null, ctaHref: input.ctaHref ?? null, level: input.level ?? null };
 }
 
-/** Prisma 実装。 */
+/**
+ * お知らせストアの Prisma 実装(本番用)。
+ *
+ * @param db Prisma クライアント
+ * @returns お知らせストア
+ */
 export function createPrismaAnnouncementStore(db: AnnouncementStoreDb): AnnouncementStore {
   return {
     async list() {

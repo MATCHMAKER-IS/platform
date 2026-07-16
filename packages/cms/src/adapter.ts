@@ -17,7 +17,14 @@ export interface BlogView {
   tags: string[];
 }
 
-/** 1 記事をブログビューに変換する。 */
+/**
+ * 記事を公開サイト用のブログビューに変換する。
+ *
+ * **管理用の項目(status など)を落とす**。公開サイトに内部情報を渡さないため。
+ *
+ * @param post 記事
+ * @returns 公開サイト用のビュー
+ */
 export function cmsPostToBlog(post: CmsPost): BlogView {
   const view: BlogView = { slug: post.slug, title: post.title, body: post.body, tags: post.tags, publishedAt: post.publishedAt ?? post.updatedAt };
   if (post.categoryId !== undefined) view.categoryId = post.categoryId;
@@ -26,7 +33,13 @@ export function cmsPostToBlog(post: CmsPost): BlogView {
   return view;
 }
 
-/** 公開中の記事だけをブログビューの配列（新しい順）にする。 */
+/**
+ * 公開中の記事だけを、公開サイト用の配列にする(新しい順)。
+ *
+ * @param posts 記事の配列(下書きが混ざっていてよい)
+ * @param now 判定する時点(テスト注入用)
+ * @returns 公開中の記事のビュー(新しい順)
+ */
 export function liveBlogViews(posts: CmsPost[], now: Date = new Date()): BlogView[] {
   return livePosts(posts, now).map(cmsPostToBlog);
 }

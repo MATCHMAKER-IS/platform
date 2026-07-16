@@ -43,6 +43,12 @@ const STATUS = {
  * ブランド色から light/dark 両モードのトークンを組み立てる。
  * - primaryFg は主色に対して読みやすい黒/白を自動選択
  * - 背景・サーフェス・枠線・補助テキストは base 系統から派生
+ *
+ * **1 色決めれば全部できる**のが要点。11 個のトークンを手で選ぶと、
+ * 必ずどこかでコントラストを外す(そして気づかない)。
+ *
+ * @param seed ブランド色と、任意の調整値
+ * @returns light / dark 両モードのテーマ
  */
 export function deriveTheme(seed: ThemeSeed): Theme {
   const base = seed.base ?? "light";

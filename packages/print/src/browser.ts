@@ -14,7 +14,16 @@ export interface PageOptions {
   margin?: string;
 }
 
-/** `@page` の CSS を生成する。 */
+/**
+ * `@page` の CSS を生成する。
+ *
+ * **画面用の CSS のままでは紙に収まらない**(余白・改ページ・背景色の扱いが違う)。
+ *
+ * @param options.size 用紙(既定 A4)
+ * @param options.orientation 向き
+ * @param options.margin 余白
+ * @returns CSS 文字列
+ */
 export function pageCss(options: PageOptions = {}): string {
   const { size = "A4", margin = "12mm" } = options;
   return `@page { size: ${size}; margin: ${margin}; }`;
@@ -35,6 +44,10 @@ export interface PrintOptions {
  * import { renderInvoiceHtml } from "@platform/report";
  * await printHtml(renderInvoiceHtml(doc), { title: "請求書", pageStyle: pageCss({ size: "A4" }) });
  * ```
+ *
+ * @param html 印刷する HTML
+ * @param options 用紙・向き・余白
+ * @returns なし(**別ウィンドウを開いて印刷する**)
  */
 export function printHtml(html: string, options: PrintOptions = {}): Promise<Result<void>> {
   if (typeof document === "undefined") {
@@ -71,7 +84,12 @@ export function printHtml(html: string, options: PrintOptions = {}): Promise<Res
   });
 }
 
-/** ページ全体を印刷する(window.print)。 */
+/**
+ * ページ全体を印刷する。
+ *
+ * @param options 用紙・向き・余白
+ * @returns なし(**印刷ダイアログが開く**)
+ */
 export function printPage(): Result<void> {
   if (typeof window === "undefined") return err(new AppError(ErrorCode.INTERNAL, "ブラウザでのみ印刷できます"));
   window.print();
@@ -84,7 +102,15 @@ export interface PrintElementOptions extends PrintOptions {
   copyStyles?: boolean;
 }
 
-/** 特定の DOM 要素だけを印刷する。 */
+/**
+ * 特定の要素だけを印刷する。
+ *
+ * **画面のヘッダやナビを紙に出さない**ため。一時的に他を隠して印刷し、元に戻す。
+ *
+ * @param element 印刷する要素
+ * @param options 用紙・向き・余白
+ * @returns なし
+ */
 export function printElement(element: HTMLElement, options: PrintElementOptions = {}): Promise<Result<void>> {
   if (typeof document === "undefined") {
     return Promise.resolve(err(new AppError(ErrorCode.INTERNAL, "ブラウザでのみ印刷できます")));

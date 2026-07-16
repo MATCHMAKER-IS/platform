@@ -11,6 +11,7 @@ export interface KanbanColumnLike<C extends KanbanCardLike = KanbanCardLike> { i
  * @param cardId 動かすカード
  * @param toColumnId 移動先カラム
  * @param toIndex 移動先の挿入位置(省略時は末尾)
+ * @returns 移動後の**新しい配列**(元は変更しない)
  */
 export function moveCard<C extends KanbanCardLike>(
   columns: KanbanColumnLike<C>[],
@@ -37,7 +38,13 @@ export function moveCard<C extends KanbanCardLike>(
   });
 }
 
-/** カラムごとの枚数を数える。 */
+/**
+ * カラムごとの枚数を数える。
+ *
+ *
+ * @param cards カードの配列
+ * @returns 列ごとの件数(**WIP 制限の判定に使う**)
+ */
 export function countByColumn(columns: KanbanColumnLike[]): Record<string, number> {
   const out: Record<string, number> = {};
   for (const col of columns) out[col.id] = col.cards.length;

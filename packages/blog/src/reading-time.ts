@@ -36,7 +36,17 @@ function countWords(text: string): number {
   return m ? m.length : 0;
 }
 
-/** 本文(Markdown 可)から読了時間を推定する。 */
+/**
+ * 本文から読了時間を推定する。
+ *
+ * **日本語と英語で読む速さが違う**ので、文字種で判定する
+ * (日本語 400〜600 字/分、英語 200〜250 語/分が目安)。
+ *
+ * @param content 本文(Markdown 可)
+ * @param options.japaneseCharsPerMinute 日本語の速さ(既定 500)
+ * @param options.englishWordsPerMinute 英語の速さ(既定 220)
+ * @returns 分数(**最低 1 分**。「0 分で読めます」とは出さない)
+ */
 export function readingTime(content: string, options: ReadingTimeOptions = {}): ReadingTime {
   const cjkPerMinute = options.cjkPerMinute ?? 500;
   const wordsPerMinute = options.wordsPerMinute ?? 250;

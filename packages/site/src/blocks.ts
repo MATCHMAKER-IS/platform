@@ -32,7 +32,16 @@ export interface Page {
   blocks: PageBlock[];
 }
 
-/** ブロックが今の時点で表示対象か(visible + 期間)。 */
+/**
+ * ブロックが今表示されるかを判定する(表示フラグ + 期間)。
+ *
+ * **期間の指定があれば、それも見る**。「キャンペーンバナーを 3/1〜3/31 だけ出す」
+ * といった予約を、人手で消さずに済ませるため。
+ *
+ * @param block ブロック
+ * @param now 判定する時点(テスト注入用)
+ * @returns 表示するなら true
+ */
 export function isBlockVisible(block: PageBlock, now: Date = new Date()): boolean {
   if (block.visible === false) return false;
   const t = now.getTime();
@@ -41,22 +50,51 @@ export function isBlockVisible(block: PageBlock, now: Date = new Date()): boolea
   return true;
 }
 
-/** 公開中のブロックだけを順序どおりに返す(描画用)。 */
+/**
+ * 表示対象のブロックだけを順序どおりに返す(描画用)。
+ *
+ * **画面に出す前に必ず通す**。期間外のブロックが表示される事故を防ぐ。
+ *
+ * @param blocks ブロックの配列
+ * @param now 判定する時点(テスト注入用)
+ * @returns 表示対象のブロック(order 順)
+ */
 export function visibleBlocks(page: Page, now?: Date): PageBlock[] {
   return page.blocks.filter((b) => isBlockVisible(b, now));
 }
 
-/** 指定タイプのブロックを返す。 */
+/**
+ * 指定した種類のブロックを返す。
+ *
+ * @param blocks ブロックの配列
+ * @param type 種類
+ * @returns その種類のブロック
+ */
 export function blocksByType(page: Page, type: BlockType): PageBlock[] {
   return page.blocks.filter((b) => b.type === type);
 }
 
-/** ブロックを ID で探す。 */
+/**
+ * ブロックを ID で探す。
+ *
+ * @param blocks ブロックの配列
+ * @param id ID
+ * @returns 見つかったブロック。**無ければ undefined**
+ */
 export function findBlock(page: Page, id: string): PageBlock | undefined {
   return page.blocks.find((b) => b.id === id);
 }
 
-/** ブロックを並べ替える(from の位置から to の位置へ移動)。元配列は変更しない。 */
+/**
+ * ブロックを並べ替える(from の位置から to の位置へ移動)。
+ *
+ * 管理画面のドラッグ&ドロップに使う。
+ *
+ * @param blocks ブロックの配列
+ * @param from 移動元の位置
+ * @param to 移動先の位置
+ * @returns 並べ替えた**新しい配列**(元は変更しない)。**範囲外の位置なら元のまま**
+ */
 export function reorderBlocks(blocks: PageBlock[], fromIndex: number, toIndex: number): PageBlock[] {
   if (fromIndex < 0 || fromIndex >= blocks.length || toIndex < 0 || toIndex >= blocks.length) return blocks;
   const next = [...blocks];
@@ -65,13 +103,25 @@ export function reorderBlocks(blocks: PageBlock[], fromIndex: number, toIndex: n
   return next;
 }
 
-/** ブロックを 1 つ上へ。 */
+/**
+ * ブロックを 1 つ上へ移動する。
+ *
+ * @param blocks ブロックの配列
+ * @param id 移動するブロックの ID
+ * @returns 並べ替えた新しい配列。**先頭なら変わらない**
+ */
 export function moveBlockUp(blocks: PageBlock[], id: string): PageBlock[] {
   const i = blocks.findIndex((b) => b.id === id);
   return i > 0 ? reorderBlocks(blocks, i, i - 1) : blocks;
 }
 
-/** ブロックを 1 つ下へ。 */
+/**
+ * ブロックを 1 つ下へ移動する。
+ *
+ * @param blocks ブロックの配列
+ * @param id 移動するブロックの ID
+ * @returns 並べ替えた新しい配列。**末尾なら変わらない**
+ */
 export function moveBlockDown(blocks: PageBlock[], id: string): PageBlock[] {
   const i = blocks.findIndex((b) => b.id === id);
   return i >= 0 && i < blocks.length - 1 ? reorderBlocks(blocks, i, i + 1) : blocks;

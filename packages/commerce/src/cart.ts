@@ -34,12 +34,22 @@ export interface AddToCartInput {
   [key: string]: unknown;
 }
 
-/** 空のカート。 */
+/**
+ * 空のカートを作る。
+ *
+ * @returns 空のカート
+ */
 export function emptyCart(): Cart {
   return { items: [] };
 }
 
-/** カート内の該当明細を返す。 */
+/**
+ * カート内の明細を探す。
+ *
+ * @param cart カート
+ * @param variantId 商品バリアント
+ * @returns 明細。**無ければ undefined**
+ */
 export function findCartItem(cart: Cart, productId: string): CartItem | undefined {
   return cart.items.find((i) => i.productId === productId);
 }
@@ -47,6 +57,7 @@ export function findCartItem(cart: Cart, productId: string): CartItem | undefine
 /**
  * 商品を追加する。既にあれば数量を加算、無ければ明細追加。
  * @param item 追加する明細(quantity 既定 1)
+ * @returns 更新した新しいカート(**同じ商品なら数量を足す**。明細を増やさない)
  */
 export function addToCart(cart: Cart, item: AddToCartInput): Cart {
   const qty = item.quantity ?? 1;
@@ -61,55 +72,121 @@ export function addToCart(cart: Cart, item: AddToCartInput): Cart {
   return { items: [...cart.items, newItem] };
 }
 
-/** 数量を設定する(0 以下は明細ごと削除)。 */
+/**
+ * 数量を設定する。
+ *
+ * **0 以下なら明細ごと削除**(「0 個」の明細を残さない)。
+ *
+ * @param cart カート
+ * @param variantId 商品バリアント
+ * @param quantity 数量
+ * @returns 更新した**新しいカート**(元は変更しない)
+ */
 export function setQuantity(cart: Cart, productId: string, quantity: number): Cart {
   if (quantity <= 0) return removeFromCart(cart, productId);
   return { items: cart.items.map((i) => (i.productId === productId ? { ...i, quantity } : i)) };
 }
 
-/** 数量を増やす。 */
+/**
+ * 数量を増やす。
+ *
+ * @param cart カート
+ * @param variantId 商品バリアント
+ * @param delta 増やす数(既定 1)
+ * @returns 更新した新しいカート
+ */
 export function incrementQuantity(cart: Cart, productId: string, by = 1): Cart {
   const item = findCartItem(cart, productId);
   return item ? setQuantity(cart, productId, item.quantity + by) : cart;
 }
 
-/** 数量を減らす(0 以下になれば削除)。 */
+/**
+ * 数量を減らす。
+ *
+ * **0 以下になれば削除**。
+ *
+ * @param cart カート
+ * @param variantId 商品バリアント
+ * @param delta 減らす数(既定 1)
+ * @returns 更新した新しいカート
+ */
 export function decrementQuantity(cart: Cart, productId: string, by = 1): Cart {
   const item = findCartItem(cart, productId);
   return item ? setQuantity(cart, productId, item.quantity - by) : cart;
 }
 
-/** 明細を削除する。 */
+/**
+ * 明細を削除する。
+ *
+ * @param cart カート
+ * @param variantId 商品バリアント
+ * @returns 更新した新しいカート
+ */
 export function removeFromCart(cart: Cart, productId: string): Cart {
   return { items: cart.items.filter((i) => i.productId !== productId) };
 }
 
-/** カートを空にする。 */
+/**
+ * カートを空にする。
+ *
+ * @param cart カート
+ * @returns 空のカート
+ */
 export function clearCart(): Cart {
   return emptyCart();
 }
 
-/** 明細の小計(単価 × 数量)。 */
+/**
+ * 明細の小計を返す(単価 × 数量)。
+ *
+ * @param item 明細
+ * @returns 小計
+ */
 export function lineTotal(item: CartItem): number {
   return item.unitPrice * item.quantity;
 }
 
-/** カート小計(全明細の合計)。 */
+/**
+ * カートの小計を返す。
+ *
+ * **税・送料は含まない**(それらは注文時に確定する。カートの時点では
+ * 配送先が決まっておらず、送料を出せない)。
+ *
+ * @param cart カート
+ * @returns 小計
+ */
 export function cartSubtotal(cart: Cart): number {
   return cart.items.reduce((sum, i) => sum + lineTotal(i), 0);
 }
 
-/** 総点数(数量の合計)。 */
+/**
+ * 総点数を返す(数量の合計)。
+ *
+ * @param cart カート
+ * @returns 点数(**バッジに出す数**)
+ */
 export function cartItemCount(cart: Cart): number {
   return cart.items.reduce((sum, i) => sum + i.quantity, 0);
 }
 
-/** 商品種類数(明細数)。 */
+/**
+ * 商品の種類数を返す(明細数)。
+ *
+ * **総点数とは違う**(同じ商品を 3 個なら、種類は 1・点数は 3)。
+ *
+ * @param cart カート
+ * @returns 種類数
+ */
 export function cartUniqueCount(cart: Cart): number {
   return cart.items.length;
 }
 
-/** カートが空か。 */
+/**
+ * カートが空かを判定する。
+ *
+ * @param cart カート
+ * @returns 空なら true
+ */
 export function isCartEmpty(cart: Cart): boolean {
   return cart.items.length === 0;
 }
@@ -117,6 +194,10 @@ export function isCartEmpty(cart: Cart): boolean {
 /**
  * 2 つのカートを統合する(ゲストカート + ログイン後のカートなど)。
  * 同一商品は数量を加算する。base の並び順を保ち、base に無い商品を追加。
+ *
+ * @param guest 未ログイン時のカート
+ * @param user ログイン後のカート
+ * @returns 統合したカート(**ログイン時に使う**。同じ商品は数量を合算)
  */
 export function mergeCarts(base: Cart, incoming: Cart): Cart {
   let result = base;

@@ -16,7 +16,14 @@ export interface SmsRetryOptions {
   sleep?: (ms: number) => Promise<void>;
 }
 
-/** Transport をリトライでラップする。 */
+/**
+ * Transport をリトライでラップする。
+ *
+ *
+ * @param transport 元の送信
+ * @param options.attempts 最大試行回数
+ * @returns ラップした送信(**恒久エラーは再試行しない**)
+ */
 export function withSmsRetry(transport: SmsTransport, options: SmsRetryOptions = {}): SmsTransport {
   const retries = options.retries ?? 2;
   const backoffMs = options.backoffMs ?? ((n: number) => 200 * 2 ** (n - 1));
@@ -37,7 +44,14 @@ export function withSmsRetry(transport: SmsTransport, options: SmsRetryOptions =
 /** フォールバック設定。 */
 export interface SmsFallbackOptions { onFallback?: (failedIndex: number, error: unknown) => void }
 
-/** 複数業者を順に試し、最初に成功したもので確定(主→副→…)。全失敗時のみ throw。 */
+/**
+ * 複数業者を順に試し、最初に成功したもので確定(主→副→…)。全失敗時のみ throw。
+ *
+ *
+ * @param transports 送信の配列(優先順)
+ * @returns ラップした送信
+ * @throws 全部失敗した場合
+ */
 export function createFallbackSmsTransport(transports: SmsTransport[], options: SmsFallbackOptions = {}): SmsTransport {
   if (transports.length === 0) throw new Error("フォールバックには 1 つ以上の Transport が必要です");
   return {

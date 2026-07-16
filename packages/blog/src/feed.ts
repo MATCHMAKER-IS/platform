@@ -4,7 +4,15 @@
  * @packageDocumentation
  */
 
-/** XML の特殊文字をエスケープする。 */
+/**
+ * XML の特殊文字をエスケープする。
+ *
+ * **記事タイトルに `&` が入るだけで RSS が壊れる**(リーダーが読めなくなる)。
+ * XML に埋め込む値は必ず通す。
+ *
+ * @param value 対象の文字列
+ * @returns エスケープした文字列
+ */
 export function escapeXml(text: string): string {
   return text
     .replace(/&/g, "&amp;")
@@ -42,7 +50,13 @@ function toRfc822(iso: string): string {
   return new Date(iso).toUTCString();
 }
 
-/** RSS 2.0 のフィード XML を生成する。 */
+/**
+ * RSS 2.0 のフィード XML を生成する。
+ *
+ * @param posts 記事の配列(**公開済みのものだけを渡すこと**)
+ * @param options.title / description / baseUrl サイトの情報
+ * @returns RSS の XML 文字列
+ */
 export function buildRssFeed(meta: FeedMeta, items: FeedItem[]): string {
   const entries = items
     .map((item) => {
@@ -76,7 +90,13 @@ export interface SitemapUrl {
   priority?: number;
 }
 
-/** サイトマップ XML を生成する。 */
+/**
+ * サイトマップ XML を生成する(検索エンジン向け)。
+ *
+ * @param posts 記事の配列(**公開済みのものだけ**)
+ * @param baseUrl サイトの URL
+ * @returns サイトマップの XML 文字列
+ */
 export function buildSitemap(urls: SitemapUrl[]): string {
   const entries = urls
     .map((u) => {

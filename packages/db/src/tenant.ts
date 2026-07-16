@@ -8,7 +8,14 @@
  */
 import type { PrismaClient } from "@prisma/client";
 
-/** where 句にテナント条件を合成する。 */
+/**
+ * where 句にテナント条件を合成する。
+ *
+ *
+ * @param tenantId テナント
+ * @param where 元の条件
+ * @returns テナント条件を足した where。**全クエリに必ず適用する**(1 箇所でも漏れると、他社のデータが見える)
+ */
 export function tenantWhere(tenantId: string, where: unknown, tenantField = "tenantId"): Record<string, unknown> {
   return where && typeof where === "object"
     ? { AND: [where, { [tenantField]: tenantId }] }
@@ -44,6 +51,10 @@ const WHERE_OPS = new Set(["findFirst", "findFirstOrThrow", "findMany", "count",
  * await tdb.order.findMany();               // 自動で WHERE tenantId = ...
  * await tdb.order.create({ data: {...} });  // 自動で tenantId を付与
  * ```
+ *
+ * @param db Prisma クライアント
+ * @param tenantId テナント
+ * @returns テナント条件を自動で付けるクライアント(**付け忘れを防ぐ**。手で書くと必ずどこかで漏れる)
  */
 export function createTenantClient(db: PrismaClient, tenantId: string, options: TenantClientOptions = {}): PrismaClient {
   const tenantField = options.tenantField ?? "tenantId";

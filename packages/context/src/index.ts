@@ -46,17 +46,30 @@ export function runWithContext<T>(
   return storage.run(ctx, fn);
 }
 
-/** 現在のコンテキストを取得する(境界の外では undefined)。 */
+/**
+ * 現在のコンテキストを取得する(境界の外では undefined)。
+ *
+ * @returns 現在のコンテキスト。**コンテキスト外なら undefined**(バッチや起動時の処理では無い)
+ */
 export function getContext(): RequestContext | undefined {
   return storage.getStore();
 }
 
-/** 現在の相関ID(コンテキスト外では undefined)。 */
+/**
+ * 現在の相関ID(コンテキスト外では undefined)。
+ *
+ * @returns リクエスト ID。**無ければ undefined**(ログに出すときは `unknown` などにフォールバックする)
+ */
 export function getRequestId(): string | undefined {
   return storage.getStore()?.requestId;
 }
 
-/** 現在のコンテキストに値を追記する(例: 認証後に userId を足す)。 */
+/**
+ * 現在のコンテキストに値を追記する(例: 認証後に userId を足す)。
+ *
+ * @param key キー
+ * @param value 値(**リクエストの間だけ有効**。非同期処理をまたいでも保たれる)
+ */
 export function setContextValue(key: string, value: unknown): void {
   const ctx = storage.getStore();
   if (ctx) ctx[key] = value;

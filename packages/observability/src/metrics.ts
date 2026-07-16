@@ -20,7 +20,14 @@ export interface Metrics {
   snapshot(): { counters: Record<string, number>; gauges: Record<string, number>; histograms: Record<string, { count: number; sum: number }> };
 }
 
-/** メトリクスレジストリを作る。 */
+/**
+ * メトリクスレジストリを作る。
+ *
+ * **アプリで 1 つだけ作る**(複数あると数値が分散して意味をなさない)。
+ *
+ * @param options.defaultLabels すべての指標に付けるラベル(サービス名など)
+ * @returns レジストリ。カウンタ・ゲージ・ヒストグラムを記録できる
+ */
 export function createMetrics(histogramBuckets: number[] = [5, 10, 25, 50, 100, 250, 500, 1000, 2500]): Metrics {
   const counters = new Map<string, number>();
   const gauges = new Map<string, number>();

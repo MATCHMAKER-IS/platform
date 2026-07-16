@@ -26,7 +26,16 @@ export interface ApplyPaymentResult {
   applied: { number: string; amount: number }[];
 }
 
-/** 入金を古い期限の請求書から順に充当する(FIFO 消込)。 */
+/**
+ * 入金を請求書に充当する(FIFO 消込)。
+ *
+ * **古い期限から順に充当する**のが会計の慣習。新しいものから充当すると、
+ * 古い債権がいつまでも残り、年齢表が実態と合わなくなる。
+ *
+ * @param payment 入金
+ * @param invoices 請求書の配列
+ * @returns 充当の内訳と、**充当しきれなかった額**
+ */
 export function applyPayment(invoices: OpenInvoice[], amount: number): ApplyPaymentResult {
   const sorted = [...invoices].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
   let remaining = Math.max(0, amount);
@@ -42,7 +51,13 @@ export function applyPayment(invoices: OpenInvoice[], amount: number): ApplyPaym
   return { invoices: result, unapplied: remaining, applied };
 }
 
-/** 複数の入金を順に充当する。 */
+/**
+ * 複数の入金を順に充当する。
+ *
+ * @param payments 入金の配列
+ * @param invoices 請求書の配列
+ * @returns 充当の内訳
+ */
 export function reconcile(invoices: OpenInvoice[], payments: number[]): ApplyPaymentResult {
   let state = invoices;
   let unapplied = 0;
@@ -56,7 +71,13 @@ export function reconcile(invoices: OpenInvoice[], payments: number[]): ApplyPay
   return { invoices: state, unapplied, applied };
 }
 
-/** 未収残高の合計(繰越額)。 */
+/**
+ * 未収残高の合計を返す(繰越額)。
+ *
+ * @param invoices 請求書の配列
+ * @param payments 入金の配列
+ * @returns 合計残高
+ */
 export function outstandingTotal(invoices: OpenInvoice[]): number {
   return invoices.reduce((sum, inv) => sum + balanceDue(inv.total, inv.paidAmount), 0);
 }
@@ -77,7 +98,17 @@ export interface AgingBuckets {
   total: number;
 }
 
-/** 請求書群を売掛金年齢表に集計する。 */
+/**
+ * 売掛金年齢表を作る。
+ *
+ * **回収が遅れている債権を見つける**(30 日以内・60 日・90 日超)。
+ * 90 日を超えると回収率が大きく落ちるので、早期に手を打つ。
+ *
+ * @param invoices 請求書の配列
+ * @param payments 入金の配列
+ * @param now 基準日(テスト注入用)
+ * @returns 年齢別の残高
+ */
 export function agingBuckets(invoices: OpenInvoice[], asOf: Date = new Date()): AgingBuckets {
   const b: AgingBuckets = { current: 0, d1_30: 0, d31_60: 0, d61_90: 0, over90: 0, total: 0 };
   const today = new Date(asOf.getFullYear(), asOf.getMonth(), asOf.getDate()).getTime();

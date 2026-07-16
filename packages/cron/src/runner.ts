@@ -43,7 +43,13 @@ export interface GuardOptions {
   sleep?: (ms: number) => Promise<void>;
 }
 
-/** 状態つきのジョブランナーを作る(統計を保持)。 */
+/**
+ * 状態つきのジョブランナーを作る(統計を保持)。
+ *
+ * @param options.lock ロックストア
+ * @param options.key ジョブの識別子
+ * @param options.ttlMs ロックの有効期間(**処理より長く**。短いと途中で解けて二重実行になる)
+ */
 export function createGuardedJob(options: GuardOptions): { run: () => Promise<void>; stats: () => JobStats } {
   const now = options.now ?? (() => Date.now());
   const random = options.random ?? Math.random;

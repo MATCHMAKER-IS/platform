@@ -48,6 +48,12 @@ export interface LoadResult {
 
 /**
  * 負荷テストを実行する。並列ワーカーが、停止条件を満たすまでリクエスト関数を呼び続ける。
+ *
+ * @param options.url 対象の URL
+ * @param options.concurrency 並列数
+ * @param options.iterations 実行回数
+ * @param options.dry ネットワークを使わず擬似実行するか(**CI で疎通なしに試せる**)
+ * @returns 実行結果(統計つき)
  */
 export async function runLoad(request: RequestFn, options: LoadOptions): Promise<LoadResult> {
   const now = options.now ?? Date.now;
@@ -100,7 +106,14 @@ export async function runLoad(request: RequestFn, options: LoadOptions): Promise
   };
 }
 
-/** 結果を人間可読な 1 行サマリーにする。 */
+/**
+ * 結果を人が読める 1 行にする。
+ *
+ * **CI のログで一目で分かる**形にする(詳細は JSON で別途出す)。
+ *
+ * @param result 実行結果
+ * @returns 1 行のサマリー
+ */
 export function formatResult(r: LoadResult): string {
   return `${r.total} reqs, ${(r.throughput).toFixed(1)} req/s, err ${(r.errorRate * 100).toFixed(1)}%, p50 ${r.latency.p50.toFixed(0)}ms / p95 ${r.latency.p95.toFixed(0)}ms / p99 ${r.latency.p99.toFixed(0)}ms`;
 }

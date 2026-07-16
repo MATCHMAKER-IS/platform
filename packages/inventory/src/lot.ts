@@ -20,7 +20,12 @@ export interface LotBalance {
   expiry?: string;
 }
 
-/** ロットごとの現在庫を集計する（数量 0 以下は除外）。 */
+/**
+ * ロットごとの現在庫を集計する。
+ *
+ * @param movements 入出庫の履歴
+ * @returns ロットごとの在庫数。**0 以下は除外**(在庫が無いロットを一覧に出さない)
+ */
 export function lotBalances(movements: LotMovement[]): LotBalance[] {
   const map = new Map<string, { quantity: number; expiry?: string }>();
   const order: string[] = [];
@@ -38,7 +43,16 @@ export function lotBalances(movements: LotMovement[]): LotBalance[] {
     .filter((l) => l.quantity > 0);
 }
 
-/** 指定日から days 日以内に期限切れになる在庫ロット。 */
+/**
+ * まもなく期限切れになるロットを返す。
+ *
+ * **食品・医薬品では廃棄損に直結する**。早めに気づいて値引きや優先出荷を判断する。
+ *
+ * @param movements 入出庫の履歴
+ * @param days 何日以内か
+ * @param asOf 基準日(テスト注入用)
+ * @returns 期限が近いロット(**期限の近い順**)
+ */
 export function expiringSoon(movements: LotMovement[], asOf: string, days: number): LotBalance[] {
   const asOfTime = new Date(`${asOf.slice(0, 10)}T00:00:00Z`).getTime();
   const limit = asOfTime + days * 86_400_000;
@@ -49,7 +63,15 @@ export function expiringSoon(movements: LotMovement[], asOf: string, days: numbe
   });
 }
 
-/** 期限切れ(asOf 時点で期限超過）のロット。 */
+/**
+ * 期限切れのロットを返す。
+ *
+ * **出荷してはいけない在庫**。数字上は在庫があっても、売れない。
+ *
+ * @param movements 入出庫の履歴
+ * @param asOf 基準日(テスト注入用)
+ * @returns 期限切れのロット
+ */
 export function expiredLots(movements: LotMovement[], asOf: string): LotBalance[] {
   const asOfTime = new Date(`${asOf.slice(0, 10)}T00:00:00Z`).getTime();
   return lotBalances(movements).filter((l) => {
@@ -67,6 +89,13 @@ export interface Allocation {
 /**
  * FEFO(First Expired, First Out）で引当する。期限の早いロットから順に払い出す。
  * 期限なしのロットは最後に回す。在庫不足なら shortfall に不足数を返す。
+ *
+ * **期限の早いものから出す**のが原則(FIFO = 先入先出 ではなく FEFO)。
+ * 入庫順に出すと、後から入った期限の近い在庫が残って廃棄になる。
+ *
+ * @param movements 入出庫の履歴
+ * @param quantity 引き当てたい数量
+ * @returns 引当の内訳と、**不足数**(在庫が足りなければ 0 より大きい)
  */
 export function allocateFEFO(movements: LotMovement[], quantity: number): { allocations: Allocation[]; shortfall: number } {
   const lots = lotBalances(movements).slice().sort((a, b) => {

@@ -29,7 +29,13 @@ export interface UseSubmitFlow<T> {
   reset: () => void;
 }
 
-/** 入力→確認→完了フローを管理するフック。 */
+/**
+ * 入力 → 確認 → 完了フローを管理するフック。
+ *
+ * **二重送信は自動で防ぐ**(送信中は `submitting` になり、`submit` を呼んでも無視される)。
+ *
+ * @returns 現在の段階と操作(`toConfirm` / `back` / `submit` / `reset`)
+ */
 export function useSubmitFlow<T>(): UseSubmitFlow<T> {
   const [state, setState] = useState<SubmitFlowState<T>>(() => initialSubmitFlow<T>());
 

@@ -31,6 +31,7 @@ function newToken(): string {
  * Redis 分散ロックを作る。
  * @param client ioredis 互換クライアント(またはテスト用フェイク)
  * @param keyPrefix キー接頭辞(既定 "lock:")
+ * @returns ロックストア(**複数サーバでも 1 つだけ実行される**。cron が複数台で動くと二重実行になる)
  */
 export function createRedisLockStore(client: RedisLockClient, keyPrefix = "lock:"): LockStore {
   // key -> 所有トークン(このプロセスが保持中のもの)

@@ -13,17 +13,36 @@ export interface StockLevel {
   reserved: number;
 }
 
-/** 在庫を作る。 */
+/**
+ * 在庫を作る。
+ *
+ * @param variantId 商品バリアント
+ * @param quantity 数量
+ * @returns 在庫
+ */
 export function stock(available: number, reserved = 0): StockLevel {
   return { available: Math.max(0, available), reserved: Math.max(0, reserved) };
 }
 
-/** 指定数量の在庫があるか。 */
+/**
+ * 指定数量の在庫があるかを判定する。
+ *
+ * **引当済みを除いた数**で見る(誰かがカートに入れている分は買えない)。
+ *
+ * @param stock 在庫
+ * @param quantity 欲しい数量
+ * @returns 足りていれば true
+ */
 export function inStock(level: StockLevel, quantity = 1): boolean {
   return level.available >= quantity;
 }
 
-/** 在庫切れか。 */
+/**
+ * 在庫切れかを判定する。
+ *
+ * @param stock 在庫
+ * @returns 引当可能な数が 0 なら true
+ */
 export function isOutOfStock(level: StockLevel): boolean {
   return level.available <= 0;
 }
@@ -37,19 +56,41 @@ export interface StockResult {
 /**
  * 在庫を引き当てる(available を減らし reserved を増やす)。
  * 在庫不足なら ok:false で在庫は変更しない。
+ *
+ * @param stock 在庫
+ * @param quantity 引き当てる数量
+ * @returns 更新した在庫。**足りなければ元のまま**(勝手にマイナスにしない)
  */
 export function reserveStock(level: StockLevel, quantity: number): StockResult {
   if (quantity <= 0 || level.available < quantity) return { ok: false, level };
   return { ok: true, level: { available: level.available - quantity, reserved: level.reserved + quantity } };
 }
 
-/** 引当を解放する(キャンセル等。reserved を減らし available を戻す)。 */
+/**
+ * 引当を解放する(キャンセル・カートの期限切れ)。
+ *
+ * **引当したまま放置すると、在庫があるのに買えない**状態になる。
+ * カートに期限を設けて、自動で解放すること。
+ *
+ * @param stock 在庫
+ * @param quantity 解放する数量
+ * @returns 更新した新しい在庫
+ */
 export function releaseStock(level: StockLevel, quantity: number): StockResult {
   if (quantity <= 0 || level.reserved < quantity) return { ok: false, level };
   return { ok: true, level: { available: level.available + quantity, reserved: level.reserved - quantity } };
 }
 
-/** 引当を確定する(出荷・決済完了。reserved を減らすだけ。available は引当時に減済み)。 */
+/**
+ * 引当を確定する(出荷・決済完了)。
+ *
+ * **`reserved` を減らすだけ**(`available` は引当の時点で減っている)。
+ * ここで両方減らすと二重に減る。
+ *
+ * @param stock 在庫
+ * @param quantity 確定する数量
+ * @returns 更新した新しい在庫
+ */
 export function commitStock(level: StockLevel, quantity: number): StockResult {
   if (quantity <= 0 || level.reserved < quantity) return { ok: false, level };
   return { ok: true, level: { available: level.available, reserved: level.reserved - quantity } };

@@ -17,7 +17,12 @@ export interface TimestampToken {
   signature: string;
 }
 
-/** 任意データの SHA-256(hex)を返す。 */
+/**
+ * データの SHA-256 ハッシュを返す。
+ *
+ * @param data 対象のデータ
+ * @returns SHA-256(16 進)
+ */
 export function sha256Hex(data: string): string {
   return createHash("sha256").update(data).digest("hex");
 }
@@ -26,13 +31,31 @@ function sign(dataHash: string, time: string, secret: string): string {
   return createHmac("sha256", secret).update(`${dataHash}\u0000${time}`).digest("hex");
 }
 
-/** データハッシュと時刻を署名して内部タイムスタンプトークンを作る。 */
+/**
+ * 内部タイムスタンプトークンを作る。
+ *
+ * **これは認定タイムスタンプではない**。電子帳簿保存法が求める「タイムスタンプ」は
+ * 認定事業者(アマノ・セイコー等)の発行が必要。これは**内部の改ざん検知**用で、
+ * 法令要件を満たすには外部サービスとの連携が要る。
+ *
+ * @param dataHash データのハッシュ
+ * @param secret 署名鍵
+ * @param now 現在時刻(テスト注入用)
+ * @returns トークン
+ */
 export function createTimestampToken(dataHash: string, secret: string, time: Date = new Date()): TimestampToken {
   const iso = time.toISOString();
   return { dataHash, time: iso, signature: sign(dataHash, iso, secret) };
 }
 
-/** タイムスタンプトークンを検証する(署名が正当で、データハッシュが一致するか)。 */
+/**
+ * タイムスタンプトークンを検証する。
+ *
+ * @param token トークン
+ * @param dataHash 検証するデータのハッシュ
+ * @param secret 署名鍵
+ * @returns 署名が正当で、データが改ざんされていなければ true
+ */
 export function verifyTimestampToken(token: TimestampToken, secret: string, expectedDataHash?: string): boolean {
   if (expectedDataHash !== undefined && token.dataHash !== expectedDataHash) return false;
   const expected = sign(token.dataHash, token.time, secret);

@@ -19,6 +19,9 @@ export interface UseTweenOptions {
 /**
  * from → to へ duration(ms)かけて値を補間するフック。RAF で毎フレーム更新。
  * @returns 現在値
+ * @param options.from / to 開始と終了の値
+ * @param options.duration 時間
+ * @param options.easing イージング
  */
 export function useTween(from: number, to: number, options: UseTweenOptions = {}): number {
   const { duration = 300, easing = "easeOutCubic" } = options;
@@ -52,6 +55,7 @@ export function useTween(from: number, to: number, options: UseTweenOptions = {}
 /**
  * バネ物理で target に追従する値を返すフック。ドラッグ追従・滑らかな数値変化に。
  * @returns 現在値
+ * @param options.stiffness / damping バネの特性(**硬さと減衰**。tween と違い、**途中で目標が変わっても自然に繋がる**)
  */
 export function useSpring(target: number, config: SpringConfig = {}): number {
   const [value, setValue] = React.useState(target);
@@ -91,6 +95,8 @@ export interface UseInViewOptions {
  * 要素がビューポートに入ったかを検知するフック(IntersectionObserver)。
  * reveal アニメーション(フェードイン等)のトリガーに使う。
  * @returns [ref を渡す関数, 表示中か]
+ * @param options.threshold 交差の割合(**0.5 なら半分見えたら発火**)
+ * @param options.once 一度だけ発火するか
  */
 export function useInView<T extends Element = Element>(options: UseInViewOptions = {}): [(el: T | null) => void, boolean] {
   const { once = true, threshold = 0.1, rootMargin } = options;

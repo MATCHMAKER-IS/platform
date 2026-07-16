@@ -50,6 +50,10 @@ export interface Repository<T> {
  * const page = await users.list({ page: 1, pageSize: 20 });
  * await users.remove(id);                        // deletedAt をセット(ソフト削除)
  * ```
+ *
+ * @param model Prisma のモデル
+ * @param options.toDomain / toRow ドメインと行の変換
+ * @returns リポジトリ(**Prisma の型をアプリに漏らさない**)
  */
 export function createRepository<T>(delegate: RepositoryDelegate<T>, options: RepositoryOptions = {}): Repository<T> {
   const { idField = "id", softDeleteField } = options;

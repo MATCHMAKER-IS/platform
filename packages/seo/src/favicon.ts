@@ -24,7 +24,12 @@ export interface FaviconConfig {
   maskIcon?: string;
 }
 
-/** ファビコン等の link/meta タグ HTML を生成する。 */
+/**
+ * ファビコン等の link / meta タグを生成する。
+ *
+ * @param input 各サイズのアイコン・テーマ色など
+ * @returns head に入れる HTML 文字列
+ */
 export function faviconLinks(config: FaviconConfig): string {
   const tags: string[] = [];
   if (config.icon) tags.push(`<link rel="icon" href="${escapeAttr(config.icon)}">`);
@@ -39,7 +44,14 @@ export function faviconLinks(config: FaviconConfig): string {
   return tags.join("\n");
 }
 
-/** Next.js の Metadata.icons 形式に変換する。 */
+/**
+ * Next.js の `Metadata.icons` 形式に変換する。
+ *
+ * App Router の `metadata` にそのまま渡せる。
+ *
+ * @param input 各サイズのアイコン
+ * @returns Next.js の icons オブジェクト
+ */
 export function faviconMetadata(config: FaviconConfig): { icon?: (string | { url: string; type?: string; sizes?: string })[]; apple?: string; other?: { rel: string; url: string }[] } {
   const icon: (string | { url: string; type?: string; sizes?: string })[] = [];
   if (config.icon) icon.push(config.icon);

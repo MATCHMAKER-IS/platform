@@ -31,7 +31,14 @@ export interface Bm25Index {
   size(): number;
 }
 
-/** BM25 インデックスを作る。 */
+/**
+ * BM25 インデックスを作る。
+ *
+ *
+ * @param docs 文書の配列
+ * @param options.k1 / b BM25 のパラメータ(**既定で十分**。調整は効果を測ってから)
+ * @returns 索引(**メモリ上の総当たり**。数万件が限界。それ以上は Meilisearch などを使う)
+ */
 export function createBm25Index(options: Bm25Options = {}): Bm25Index {
   const k1 = options.k1 ?? 1.2;
   const b = options.b ?? 0.75;

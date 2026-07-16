@@ -14,7 +14,14 @@ export interface ColumnPrefs {
 /** 空の設定。 */
 export const emptyColumnPrefs: ColumnPrefs = { order: [], hidden: [] };
 
-/** 列定義に設定(並び・非表示)を適用する。 */
+/**
+ * 列定義に設定(並び・非表示)を適用する。
+ *
+ *
+ * @param columns 列定義
+ * @param prefs 利用者の設定(表示・順序・幅)
+ * @returns 適用後の列定義(**設定に無い列は既定のまま**。列が増えても壊れない)
+ */
 export function applyColumnPrefs<C extends { key: string }>(columns: C[], prefs?: ColumnPrefs): C[] {
   if (!prefs) return columns;
   const map = new Map(columns.map((c) => [c.key, c]));
@@ -24,13 +31,28 @@ export function applyColumnPrefs<C extends { key: string }>(columns: C[], prefs?
   return [...ordered, ...rest].filter((c) => !prefs.hidden.includes(c.key));
 }
 
-/** 表示/非表示を切り替える。 */
+/**
+ * 表示/非表示を切り替える。
+ *
+ *
+ * @param prefs 現在の設定
+ * @param id 対象の列
+ * @returns 更新した新しい設定
+ */
 export function toggleColumnHidden(prefs: ColumnPrefs, key: string): ColumnPrefs {
   const hidden = prefs.hidden.includes(key) ? prefs.hidden.filter((k) => k !== key) : [...prefs.hidden, key];
   return { ...prefs, hidden };
 }
 
-/** order 内で key を上(-1)/下(+1)に移動する。order 未確定なら allKeys で初期化。 */
+/**
+ * order 内で key を上(-1)/下(+1)に移動する。order 未確定なら allKeys で初期化。
+ *
+ *
+ * @param prefs 現在の設定
+ * @param fromId 移動する列
+ * @param toId 移動先
+ * @returns 更新した新しい設定
+ */
 export function moveColumn(prefs: ColumnPrefs, key: string, dir: -1 | 1, allKeys: string[]): ColumnPrefs {
   const order = prefs.order.length ? [...prefs.order] : [...allKeys];
   const i = order.indexOf(key);
@@ -56,7 +78,13 @@ export interface ColumnPrefsStoreOptions {
   fetch?: typeof fetch;
 }
 
-/** サーバに列設定をユーザー別で保存する fetch ストアを作る。 */
+/**
+ * サーバに列設定をユーザー別で保存する fetch ストアを作る。
+ *
+ *
+ * @param options.storage 保存先(既定 localStorage)
+ * @returns ストア。**端末ごとの設定**(サーバに持つなら createFetchPresetStore)
+ */
 export function createColumnPrefsStore(options: ColumnPrefsStoreOptions): ColumnPrefsStore {
   const doFetch = options.fetch ?? (typeof fetch !== "undefined" ? fetch : undefined);
   const url = (table: string) => `${options.endpoint}?user=${encodeURIComponent(options.userId)}&table=${encodeURIComponent(table)}`;

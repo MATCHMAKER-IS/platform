@@ -15,7 +15,18 @@ export interface PollOptions<T> {
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-/** 条件が満たされるまで fn を繰り返し呼ぶ。タイムアウトで reject。 */
+/**
+ * 条件が満たされるまで繰り返し確認する。
+ *
+ * **非同期な処理の完了を待つ**のに使う(バッチの終了、外部システムの反映)。
+ * ただし**ポーリングは最後の手段**。webhook やイベントで通知できるなら、そちらが良い。
+ *
+ * @param fn 確認する処理
+ * @param options.intervalMs 確認の間隔
+ * @param options.timeoutMs 諦めるまでの時間
+ * @returns 条件を満たした結果
+ * @throws タイムアウトした場合
+ */
 export async function poll<T>(fn: (attempt: number) => Promise<T>, options: PollOptions<T> = {}): Promise<T> {
   const { intervalMs = 1000, timeoutMs = 30_000, until = (v) => Boolean(v) } = options;
   const deadline = Date.now() + timeoutMs;

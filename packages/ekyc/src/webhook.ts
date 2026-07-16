@@ -12,6 +12,7 @@ import { normalizeEkycStatus, type EkycStatus } from "./status.js";
  * @param signature 署名ヘッダ値
  * @param secret 署名シークレット
  * @param encoding 署名のエンコード("hex" | "base64"。既定 "hex")
+ * @returns 署名が正当なら true。**必ず検証すること**(本人確認の結果を偽装されると、なりすましを許す)
  */
 export function verifyEkycSignature(body: string, signature: string, secret: string, encoding: "hex" | "base64" = "hex"): boolean {
   const expected = createHmac("sha256", secret).update(body).digest(encoding);
@@ -40,6 +41,9 @@ export interface EkycWebhookEvent {
 /**
  * Webhook ボディをパースして正規化イベントにする。
  * フィールド名はベンダーで異なるため、抽出関数で調整できる(既定は一般的な名前を探す)。
+ *
+ * @param body リクエストボディ
+ * @returns イベント。**解析できなければ null**
  */
 export function parseEkycWebhook(
   body: string,

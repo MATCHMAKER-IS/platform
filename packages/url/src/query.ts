@@ -4,7 +4,12 @@
  * @packageDocumentation
  */
 
-/** クエリ文字列をオブジェクトに解析する(同名キーは配列)。 */
+/**
+ * クエリ文字列をオブジェクトに解析する。
+ *
+ * @param query クエリ文字列(先頭の `?` はあってもなくてもよい)
+ * @returns キー → 値。**同名キーが複数あれば配列**(`?a=1&a=2` → `{ a: ["1","2"] }`)
+ */
 export function parseQuery(search: string): Record<string, string | string[]> {
   const params = new URLSearchParams(search.replace(/^\?/, ""));
   const out: Record<string, string | string[]> = {};
@@ -15,7 +20,15 @@ export function parseQuery(search: string): Record<string, string | string[]> {
   return out;
 }
 
-/** オブジェクトをクエリ文字列に組み立てる(キー順ソート・先頭 ? なし)。 */
+/**
+ * オブジェクトをクエリ文字列に組み立てる。
+ *
+ * **キー順にソートする**ので、同じ内容なら常に同じ文字列になる
+ * (キャッシュキーや比較に使える)。
+ *
+ * @param params キー → 値
+ * @returns クエリ文字列(**先頭の `?` は付かない**)
+ */
 export function stringifyQuery(params: Record<string, string | number | boolean | (string | number)[] | null | undefined>): string {
   const sp = new URLSearchParams();
   for (const key of Object.keys(params).sort()) {
@@ -40,7 +53,13 @@ function editSearch(url: string, edit: (sp: URLSearchParams) => void): string {
   return path + (search ? `?${search}` : "") + hash;
 }
 
-/** クエリパラメータを取得する(複数あれば最初の 1 つ)。 */
+/**
+ * クエリパラメータを取得する。
+ *
+ * @param url URL
+ * @param key キー
+ * @returns 値。**複数あれば最初の 1 つ**。無ければ undefined
+ */
 export function getParam(url: string, key: string): string | null {
   const qIndex = url.indexOf("?");
   if (qIndex < 0) return null;
@@ -49,12 +68,25 @@ export function getParam(url: string, key: string): string | null {
   return new URLSearchParams(query).get(key);
 }
 
-/** パラメータを設定する(既存は置き換え)。 */
+/**
+ * クエリパラメータを設定する(既存は置き換え)。
+ *
+ * @param url URL
+ * @param key キー
+ * @param value 値
+ * @returns 新しい URL(**元は変更しない**)
+ */
 export function setParam(url: string, key: string, value: string | number | boolean): string {
   return editSearch(url, (sp) => sp.set(key, String(value)));
 }
 
-/** 複数パラメータをまとめて設定する。 */
+/**
+ * 複数のクエリパラメータをまとめて設定する。
+ *
+ * @param url URL
+ * @param params キー → 値
+ * @returns 新しい URL
+ */
 export function setParams(url: string, params: Record<string, string | number | boolean | null | undefined>): string {
   return editSearch(url, (sp) => {
     for (const [k, v] of Object.entries(params)) {
@@ -64,22 +96,52 @@ export function setParams(url: string, params: Record<string, string | number | 
   });
 }
 
-/** パラメータを追加する(同名を残して増やす)。 */
+/**
+ * クエリパラメータを追加する(**同名を残して増やす**)。
+ *
+ * 置き換えたいなら {@link setQueryParam}。
+ *
+ * @param url URL
+ * @param key キー
+ * @param value 値
+ * @returns 新しい URL
+ */
 export function appendParam(url: string, key: string, value: string | number): string {
   return editSearch(url, (sp) => sp.append(key, String(value)));
 }
 
-/** パラメータを削除する。 */
+/**
+ * クエリパラメータを削除する。
+ *
+ * @param url URL
+ * @param key キー
+ * @returns 新しい URL
+ */
 export function removeParam(url: string, key: string): string {
   return editSearch(url, (sp) => sp.delete(key));
 }
 
-/** パラメータの有無を返す。 */
+/**
+ * クエリパラメータの有無を判定する。
+ *
+ * @param url URL
+ * @param key キー
+ * @returns あれば true(**値が空でも true**)
+ */
 export function hasParam(url: string, key: string): boolean {
   return getParam(url, key) !== null;
 }
 
-/** 指定キー群だけを残す(許可リスト)。 */
+/**
+ * 指定したキーだけを残す(許可リスト)。
+ *
+ * **トラッキングパラメータ(`utm_*` など)を落とす**のに使う。
+ * 除外リストではなく許可リストなのは、**知らないパラメータを残さない**ため。
+ *
+ * @param url URL
+ * @param keys 残すキー
+ * @returns 新しい URL
+ */
 export function keepParams(url: string, keys: string[]): string {
   const allow = new Set(keys);
   return editSearch(url, (sp) => {

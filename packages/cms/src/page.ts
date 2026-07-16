@@ -25,12 +25,24 @@ export interface PageInput {
   status?: PageStatus;
 }
 
-/** ページ slug の妥当性（空文字＝トップページ、または英小文字・数字・ハイフン）。 */
+/**
+ * ページの slug が妥当かを判定する。
+ *
+ * **空文字はトップページ**として許す(記事の slug とはここが違う)。
+ *
+ * @param slug 判定する slug
+ * @returns 妥当なら true
+ */
 export function isValidPageSlug(slug: string): boolean {
   return slug === "" || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug);
 }
 
-/** ページ入力を検証する。 */
+/**
+ * ページの入力を検証する。
+ *
+ * @param input 入力
+ * @returns 問題の一覧(空なら妥当)
+ */
 export function validatePageInput(input: PageInput): { ok: true; value: PageInput } | { ok: false; error: string } {
   if (!isValidPageSlug(input.slug)) return { ok: false, error: "slug は空（トップ）か英小文字・数字・ハイフンで指定してください" };
   if (!input.title.trim()) return { ok: false, error: "タイトルは必須です" };
@@ -41,17 +53,35 @@ function toManagedPage(input: PageInput, now: string): ManagedPage {
   return { slug: input.slug, title: input.title, blocks: input.blocks, status: input.status ?? "draft", updatedAt: now };
 }
 
-/** 公開中のページだけを返す。 */
+/**
+ * 公開中のページだけを返す。
+ *
+ * @param pages ページの配列
+ * @returns 公開中のページ
+ */
 export function livePages(pages: ManagedPage[]): ManagedPage[] {
   return pages.filter((p) => p.status === "published");
 }
 
-/** 管理ページを公開サイト用の Page に変換する（status を落とす）。 */
+/**
+ * 管理用のページを、公開サイト用の形に変換する。
+ *
+ * **`status` を落とす**のは、公開サイトに「これは下書きです」といった内部情報を
+ * 渡さないため(渡した先で誤って表示される事故を防ぐ)。
+ *
+ * @param page 管理用のページ
+ * @returns 公開サイト用のページ
+ */
 export function toPageView(page: ManagedPage): Page {
   return { slug: page.slug, title: page.title, blocks: page.blocks };
 }
 
-/** 公開中のページを Page ビューの配列にする。 */
+/**
+ * 公開中のページを、公開サイト用の配列にする。
+ *
+ * @param pages ページの配列(下書きが混ざっていてよい)
+ * @returns 公開中のページだけを変換した配列
+ */
 export function livePageViews(pages: ManagedPage[]): Page[] {
   return livePages(pages).map(toPageView);
 }
@@ -65,7 +95,12 @@ export interface PageStore {
   remove(slug: string): Promise<boolean>;
 }
 
-/** インメモリ実装。 */
+/**
+ * ページストアのメモリ実装(開発・テスト用)。
+ *
+ * @param seed 初期データ
+ * @returns ページストア(**再起動で消える**)
+ */
 export function createMemoryPageStore(now: () => string = () => new Date().toISOString()): PageStore {
   const bySlug = new Map<string, ManagedPage>();
   const sorted = () => [...bySlug.values()].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : 0));
@@ -133,7 +168,12 @@ function pageToRowData(page: ManagedPage): CmsPageRowData {
   return { slug: page.slug, title: page.title, blocks: page.blocks, status: page.status, updatedAt: new Date(page.updatedAt) };
 }
 
-/** Prisma 実装。 */
+/**
+ * ページストアの Prisma 実装(本番用)。
+ *
+ * @param db Prisma クライアント
+ * @returns ページストア
+ */
 export function createPrismaPageStore(db: PageStoreDb, now: () => string = () => new Date().toISOString()): PageStore {
   return {
     async list(options = {}) {

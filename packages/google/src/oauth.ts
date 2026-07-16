@@ -21,7 +21,13 @@ export interface GoogleAuthUrlParams {
   loginHint?: string;
 }
 
-/** Google のログイン画面 URL を組み立てる。 */
+/**
+ * Google のログイン画面 URL を組み立てる。
+ *
+ *
+ * @param config.clientId / redirectUri / scope 認可の設定
+ * @returns 認可 URL。**`access_type=offline` を付けないとリフレッシュトークンが返らない**
+ */
 export function buildGoogleAuthUrl(params: GoogleAuthUrlParams): string {
   const q = new URLSearchParams({
     client_id: params.clientId,
@@ -47,7 +53,15 @@ export interface GoogleTokenResult {
   idToken?: string;
 }
 
-/** 認可コードをトークンに交換する(ログインのコールバックで呼ぶ)。 */
+/**
+ * 認可コードをトークンに交換する(ログインのコールバックで呼ぶ)。
+ *
+ *
+ * @param code 認可コード
+ * @param config クライアント情報
+ * @returns トークン
+ * @throws {@link @platform/core#AppError} コード `EXTERNAL` — 交換に失敗した場合
+ */
 export async function exchangeGoogleCode(params: {
   clientId: string;
   clientSecret: string;
@@ -99,7 +113,14 @@ export interface GoogleTokenManager {
   invalidate(): void;
 }
 
-/** リフレッシュトークンで自動更新するトークンマネージャを作る。 */
+/**
+ * リフレッシュトークンで自動更新するトークンマネージャを作る。
+ *
+ *
+ * @param options.refreshToken / clientId / clientSecret 認証情報
+ * @returns トークンマネージャ(**自動更新する**)
+ * @throws {@link @platform/core#AppError} コード `EXTERNAL` — 更新に失敗した場合
+ */
 export function createGoogleTokenManager(config: GoogleTokenConfig): GoogleTokenManager {
   const buffer = config.expiryBufferMs ?? 5 * 60 * 1000;
   const now = config.now ?? (() => Date.now());
@@ -138,7 +159,13 @@ export function createGoogleTokenManager(config: GoogleTokenConfig): GoogleToken
   };
 }
 
-/** トークンマネージャを使う認証付き fetch(401 で1度だけ再更新して再試行)。 */
+/**
+ * トークンマネージャを使う認証付き fetch(401 で1度だけ再更新して再試行)。
+ *
+ *
+ * @param manager トークンマネージャ
+ * @returns 認証ヘッダを自動で付ける fetch
+ */
 export function createGoogleAuthedFetch(manager: GoogleTokenManager, baseFetch?: typeof fetch): typeof fetch {
   const doFetch = baseFetch ?? fetch;
   return (async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
@@ -163,7 +190,14 @@ export interface GoogleUserInfo {
   hd?: string; // Google Workspace のドメイン(社内判定に使える)
 }
 
-/** アクセストークンからユーザー情報を取得する(SSO ログイン後のプロフィール確定)。 */
+/**
+ * アクセストークンからユーザー情報を取得する(SSO ログイン後のプロフィール確定)。
+ *
+ *
+ * @param accessToken アクセストークン
+ * @returns メールアドレス・氏名など
+ * @throws {@link @platform/core#AppError} コード `EXTERNAL` — 取得に失敗した場合
+ */
 export async function getGoogleUserInfo(accessToken: string, fetchImpl?: typeof fetch): Promise<GoogleUserInfo> {
   const doFetch = fetchImpl ?? fetch;
   const res = await doFetch("https://www.googleapis.com/oauth2/v3/userinfo", {

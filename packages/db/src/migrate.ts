@@ -24,6 +24,8 @@ export interface MigrateOptions {
  * const res = await runMigrations();
  * if (!res.ok) { logger.error(res.error); process.exit(1); }
  * ```
+ * @param options.dir マイグレーションのディレクトリ
+ * @param options.dryRun 実行せずに確認だけするか
  */
 export function runMigrations(options: MigrateOptions = {}): Promise<Result<void>> {
   return new Promise((resolve) => {

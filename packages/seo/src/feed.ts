@@ -40,7 +40,12 @@ function toRfc822(iso: string): string {
   return isNaN(d.getTime()) ? iso : d.toUTCString();
 }
 
-/** RSS 2.0 フィードを生成する。 */
+/**
+ * RSS 2.0 のフィードを生成する。
+ *
+ * @param input サイト情報と記事の配列
+ * @returns RSS の XML 文字列(**値はエスケープ済み**)
+ */
 export function buildRssFeed(channel: FeedChannel, items: FeedItem[]): string {
   const chParts = [
     `    <title>${xmlEscape(channel.title)}</title>`,
@@ -66,7 +71,14 @@ export function buildRssFeed(channel: FeedChannel, items: FeedItem[]): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n  <channel>\n${chParts.join("\n")}\n${itemXml}\n  </channel>\n</rss>`;
 }
 
-/** Atom フィードを生成する。 */
+/**
+ * Atom のフィードを生成する。
+ *
+ * RSS より仕様が厳密。**どちらか一方でよい**(両方出す必要はない)。
+ *
+ * @param input サイト情報と記事の配列
+ * @returns Atom の XML 文字列
+ */
 export function buildAtomFeed(channel: FeedChannel, items: FeedItem[]): string {
   const updated = channel.updated ?? items[0]?.updated ?? items[0]?.published ?? new Date().toISOString();
   const head = [

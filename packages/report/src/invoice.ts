@@ -69,6 +69,9 @@ export interface InvoiceCalculation {
  * });
  * // calc.subtotal / calc.totalTax / calc.total / calc.taxBreakdown
  * ```
+ *
+ * @param input 明細と税率・端数処理の指定
+ * @returns 小計・税額・合計と、**税率別の内訳**(適格請求書に必要な区分記載)
  */
 export function calculateInvoice(
   input: { lines: InvoiceLineInput[] } & InvoiceCalcOptions,

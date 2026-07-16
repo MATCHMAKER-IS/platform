@@ -22,7 +22,13 @@ export interface EnvVarInfo {
   secret: boolean;
 }
 
-/** 名前から秘密値らしさを判定する。 */
+/**
+ * 名前から秘密値らしさを判定する。
+ *
+ *
+ * @param name 環境変数名
+ * @returns 秘密らしければ true(**`SECRET` / `TOKEN` / `PASSWORD` / `KEY` を含む**)
+ */
 export function isSecretName(name: string): boolean {
   return /(_KEY|_SECRET|_TOKEN|_PASSWORD|^SECRET|PASSWORD$|APIKEY|API_KEY)/i.test(name);
 }
@@ -73,6 +79,9 @@ function isOptional(schema: z.ZodTypeAny): boolean {
  * const schema = z.object({ DATABASE_URL: z.string().url().describe("接続先 DB") });
  * describeEnv(schema); // => [{ name: "DATABASE_URL", required: true, type: "文字列(URL)", ... }]
  * ```
+ *
+ * @param env 環境変数
+ * @returns 変数の一覧(**秘密はマスク済み**。そのまま画面に出せる)
  */
 export function describeEnv(schema: z.ZodObject<z.ZodRawShape>): EnvVarInfo[] {
   const shape = schema.shape;
@@ -97,6 +106,9 @@ export function describeEnv(schema: z.ZodObject<z.ZodRawShape>): EnvVarInfo[] {
 /**
  * 環境変数の値をログに出せる形にマスクする。秘密値は `***` にする。
  * 障害調査で「今の設定」を出したいが、鍵は出したくない場面で使う。
+ *
+ * @param env 環境変数
+ * @returns マスクした環境変数(**ログや画面に出す前に必ず通す**)
  */
 export function maskSecrets(values: Record<string, unknown>): Record<string, string> {
   const out: Record<string, string> = {};
@@ -110,6 +122,9 @@ export function maskSecrets(values: Record<string, unknown>): Record<string, str
 /**
  * スキーマから .env.example の中身を生成する。必須・任意でセクション分けし、
  * 説明・型・既定値をコメントで添える。秘密値は空にしておく(値を書かない)。
+ *
+ * @param env 環境変数
+ * @returns `.env.example` の内容(**値は空にする**。秘密をコミットしないため)
  */
 export function renderEnvExample(schema: z.ZodObject<z.ZodRawShape>, options: { header?: string } = {}): string {
   const infos = describeEnv(schema);
@@ -168,6 +183,9 @@ export function requireEnv<K extends string>(
 
 /**
  * 任意の環境変数を読む(既定値付き)。requireEnv と対になる読み取り口。
+ *
+ * @param name 環境変数名
+ * @returns 値。**無ければ undefined**(必須なら requireEnv を使う)
  */
 export function optionalEnv(
   name: string,
@@ -249,6 +267,8 @@ export function checkSecretStrength(values: Record<string, string | undefined>):
  * @param options.isProduction 本番か(既定: NODE_ENV === "production")
  * @param options.onWarn 警告の出力先(既定: console.warn)
  * @throws {@link @platform/core#AppError} コード `CONFIG` — 本番で error 級の問題がある場合
+ * @returns なし
+ * @throws {@link @platform/core#AppError} コード `CONFIG` — 秘密鍵が短すぎる・開発用の既定値のままの場合(**本番で `changeme` を使わせない**)
  */
 export function assertSecretStrength(
   values: Record<string, string | undefined>,

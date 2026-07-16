@@ -26,6 +26,9 @@ export interface ThemeValidationIssue {
 /**
  * 未知の値が Theme として妥当か検証し、問題の一覧を返す（空なら妥当）。
  * 例外は投げない。投げてほしい場合は {@link parseTheme} を使う。
+ *
+ * @param value 検証する値(JSON からパースした直後など)
+ * @returns 問題の一覧。**空なら妥当**
  */
 export function validateTheme(value: unknown): ThemeValidationIssue[] {
   const issues: ThemeValidationIssue[] = [];
@@ -66,7 +69,15 @@ export function validateTheme(value: unknown): ThemeValidationIssue[] {
   return issues;
 }
 
-/** 妥当なら Theme として返し、不正なら VALIDATION エラーを投げる。 */
+/**
+ * 検証して Theme として返す。
+ *
+ * **不正なら例外を投げる**。問題を一覧で受け取りたいなら {@link validateTheme}。
+ *
+ * @param value 検証する値
+ * @returns テーマ
+ * @throws {@link @platform/core#AppError} コード `VALIDATION` — テーマとして不正な場合
+ */
 export function parseTheme(value: unknown): Theme {
   const issues = validateTheme(value);
   if (issues.length > 0) {
@@ -76,18 +87,34 @@ export function parseTheme(value: unknown): Theme {
   return value as Theme;
 }
 
-/** テーマを JSON 文字列にする（保存・書き出し用・整形済み）。 */
+/**
+ * テーマを JSON 文字列にする(保存・書き出し用)。
+ *
+ * @param theme テーマ
+ * @returns 整形済みの JSON 文字列
+ */
 export function themeToJson(theme: Theme): string {
   return JSON.stringify(theme, null, 2);
 }
 
-/** 複数テーマを JSON にする（書き出し用）。 */
+/**
+ * 複数のテーマを JSON にする(書き出し用)。
+ *
+ * **`{ version, themes }` の形**にすることで、将来の形式変更に備える。
+ *
+ * @param themes テーマの配列
+ * @returns 整形済みの JSON 文字列
+ */
 export function themesToJson(themes: Theme[]): string {
   return JSON.stringify({ version: 1, themes }, null, 2);
 }
 
 /**
  * JSON 文字列からテーマを読み込む（単体 or `{version, themes}` の束の両方に対応）。
+ *
+ * @param json JSON 文字列
+ * @returns テーマの配列
+ * @throws {@link @platform/core#AppError} コード `VALIDATION` — JSON が不正、またはテーマとして妥当でない場合
  * 不正なテーマは VALIDATION エラー。読み込めたテーマの配列を返す。
  */
 export function themesFromJson(json: string): Theme[] {

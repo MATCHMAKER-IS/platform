@@ -27,6 +27,14 @@ export const TRACKING_PARAMS = [
 /**
  * URL を正規化する。scheme/host は小文字化、既定ポート除去、末尾スラッシュ・トラッキング除去など。
  * 不正な URL はそのまま返す。
+ *
+ * **同じページを指す URL を 1 つに揃える**ため(重複判定・キャッシュキー・SEO の正規化)。
+ *
+ * @param url URL
+ * @param options.stripTracking トラッキングパラメータを除くか(既定 true)
+ * @param options.stripTrailingSlash 末尾スラッシュを除くか
+ * @param options.sortQuery クエリをキー順に並べるか
+ * @returns 正規化した URL。**不正ならそのまま返す**(例外にしない)
  */
 export function normalizeUrl(url: string, options: NormalizeOptions = {}): string {
   let u: URL;
@@ -59,7 +67,17 @@ export function normalizeUrl(url: string, options: NormalizeOptions = {}): strin
   return result;
 }
 
-/** 2 つの URL が正規化後に等しいか。 */
+/**
+ * 2 つの URL が正規化後に等しいかを判定する。
+ *
+ * **文字列比較では別物になる**(`example.com/a?b=1&a=2` と `example.com/a/?a=2&b=1` は
+ * 同じページ)。正規化してから比べる。
+ *
+ * @param a URL
+ * @param b URL
+ * @param options 正規化のオプション
+ * @returns 同じページを指していれば true
+ */
 export function urlsEqual(a: string, b: string, options?: NormalizeOptions): boolean {
   return normalizeUrl(a, options) === normalizeUrl(b, options);
 }

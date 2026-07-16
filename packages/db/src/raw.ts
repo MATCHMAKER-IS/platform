@@ -171,6 +171,11 @@ export async function rawQuery<T = Record<string, unknown>>(
  * const res = await rawExecute(db, "UPDATE users SET active = $1 WHERE id = $2", [false, id]);
  * if (res.ok) console.log(`${res.value} 行更新`);
  * ```
+ *
+ * @param db Prisma クライアント
+ * @param sql SQL(**値は必ずプレースホルダで渡す**。文字列連結は SQL インジェクションを許す)
+ * @param params パラメータ
+ * @returns 影響行数
  */
 export async function rawExecute(
   db: PrismaClient,

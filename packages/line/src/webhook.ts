@@ -11,6 +11,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
  * @param body    リクエストの生ボディ(パース前の文字列)
  * @param signature `x-line-signature` ヘッダ値(base64)
  * @param channelSecret チャネルシークレット
+ * @returns 署名が正当なら true。**必ず検証すること**(しないと誰でも偽のイベントを送れる)
  */
 export function verifyLineSignature(body: string, signature: string, channelSecret: string): boolean {
   const expected = createHmac("sha256", channelSecret).update(body).digest("base64");
@@ -59,13 +60,28 @@ export interface LineSimpleEvent extends LineEventBase {
 /** 受信イベントの判別可能ユニオン。 */
 export type LineWebhookEvent = LineMessageEvent | LinePostbackEvent | LineSimpleEvent | LineEventBase;
 
-/** Webhook ボディをパースしてイベント配列を返す。 */
+/**
+ * Webhook のボディを解析する。
+ *
+ * **署名の検証は別途行うこと**(この関数は解析するだけ)。
+ *
+ * @param body リクエストボディ
+ * @returns イベントの配列。**解析できなければ空配列**
+ */
 export function parseLineWebhook(body: string): LineWebhookEvent[] {
   const parsed = JSON.parse(body) as { events?: LineWebhookEvent[] };
   return parsed.events ?? [];
 }
 
-/** postback の data(クエリ文字列形式)を key/value に分解する補助。 */
+/**
+ * ポストバックの data を解析する。
+ *
+ * **クエリ文字列形式**(`action=buy&id=123`)を想定。JSON より短く、
+ * LINE の data は 300 文字までなので有利。
+ *
+ * @param data ポストバックの data
+ * @returns キー → 値
+ */
 export function parsePostbackData(data: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const pair of data.split("&")) {
@@ -76,7 +92,15 @@ export function parsePostbackData(data: string): Record<string, string> {
   return out;
 }
 
-/** イベントのソースから宛先 ID(返信先ではなく push 先)を取り出す。 */
+/**
+ * イベントから push 先の ID を取り出す。
+ *
+ * **返信(reply)とは別**。reply トークンは 1 回・短時間しか使えないので、
+ * 後から送るなら push を使う(こちらは課金対象)。
+ *
+ * @param event イベント
+ * @returns 宛先 ID。**取れなければ null**
+ */
 export function eventSourceId(source: LineEventSource): string | undefined {
   return source.userId ?? source.groupId ?? source.roomId;
 }

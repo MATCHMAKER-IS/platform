@@ -21,13 +21,25 @@ export interface InvoiceLine {
   reducedRate?: boolean;
 }
 
-/** 明細の税抜金額(数量×単価 − 割引、0 未満にはしない)。 */
+/**
+ * 明細の税抜金額(数量×単価 − 割引、0 未満にはしない)。
+ *
+ *
+ * @param line 明細
+ * @returns 税抜金額(数量 × 単価 − 割引)。**0 未満にはしない**(割引が金額を超えても、マイナスにならない)
+ */
 export function lineNet(line: InvoiceLine): number {
   const gross = line.quantity * line.unitPrice - (line.discount ?? 0);
   return Math.max(0, Math.round(gross));
 }
 
-/** 明細の税率(未指定は 10）。 */
+/**
+ * 明細の税率(未指定は 10）。
+ *
+ *
+ * @param line 明細
+ * @returns 税率。**未指定は 10**(標準税率。軽減税率の品は明細に 8 を明記する)
+ */
 export function lineTaxRate(line: InvoiceLine): TaxRate {
   return line.taxRate ?? 10;
 }

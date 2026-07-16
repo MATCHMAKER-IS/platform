@@ -6,7 +6,13 @@
 
 const CJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/;
 
-/** 文字列をトークン配列に分割する。 */
+/**
+ * 文字列をトークン配列に分割する。
+ *
+ *
+ * @param text 対象の文字列
+ * @returns トークンの配列(**日本語は 2-gram**。形態素解析が無くても、それなりに検索できる)
+ */
 export function tokenize(input: string): string[] {
   const text = input.toLowerCase();
   const tokens: string[] = [];

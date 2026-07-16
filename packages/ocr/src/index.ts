@@ -43,6 +43,7 @@ export interface TesseractLike {
  * const res = await ocr.recognize(imageBytes);
  * if (res.ok) console.log(res.value.text);
  * ```
+ * @returns OCR の実装。**ローカルで動く**ので外部に画像を送らない(機密文書に向く)。ただし精度はクラウドに劣る
  */
 export function createTesseractOcr(tesseract: TesseractLike, options: { lang?: string } = {}): OcrEngine {
   const lang = options.lang ?? "jpn+eng";
@@ -73,7 +74,18 @@ export interface HttpOcrOptions {
   fetch?: typeof fetch;
 }
 
-/** クラウド OCR(HTTP API)を FormData で呼ぶ汎用アダプタ。 */
+/**
+ * クラウド OCR を呼ぶ汎用アダプタ(HTTP + FormData)。
+ *
+ * **OCR サービスは差し替わる**(精度・価格・対応言語で選び直す)。
+ * ここを通すことで、アプリ側のコードは変えずに済む。
+ *
+ * @param options.endpoint API の URL
+ * @param options.apiKey 認証キー
+ * @param options.fieldName 画像を送るフィールド名(既定 `file`)
+ * @param options.parseResponse 応答からテキストを取り出す関数
+ * @returns OCR の実装
+ */
 export function createHttpOcr(options: HttpOcrOptions): OcrEngine {
   const doFetch = options.fetch ?? fetch;
   return {

@@ -40,7 +40,14 @@ const PAIRS: { label: string; fg: keyof Theme["modes"]["light"]; bg: keyof Theme
 ];
 
 /**
- * テーマ 1 モードのコントラストを検査する。テキスト系ペアが AA(4.5)以上かを見る。
+ * テーマ 1 モードのコントラストを検査する。
+ *
+ * **テキスト系のペア**(背景と文字・主色と文字など)が基準を満たすかを見る。
+ * ここを外すと、**見えるが読めない画面**ができる(薄いグレーの文字など)。
+ *
+ * @param theme テーマ
+ * @param mode 検査するモード(light / dark)
+ * @returns 各ペアのコントラスト比と合否
  */
 export function checkThemeContrast(theme: Theme, mode: ThemeMode): ThemeContrastReport {
   const tokens = theme.modes[mode];
@@ -55,7 +62,16 @@ export function checkThemeContrast(theme: Theme, mode: ThemeMode): ThemeContrast
   return { themeId: theme.id, mode, checks, passesAA, minRatio: minRatio === Infinity ? 0 : minRatio };
 }
 
-/** テーマの light / dark 両方を検査する。 */
+/**
+ * テーマの light / dark 両方のコントラストを検査する。
+ *
+ * **片方だけ見ても意味がない**。ダークモードで文字が読めなくなるのは、
+ * light だけ確認して見落とす典型。
+ *
+ * @param theme テーマ
+ * @param level 達成基準(既定 AA)
+ * @returns light / dark それぞれの検査結果
+ */
 export function checkTheme(theme: Theme): ThemeContrastReport[] {
   return [checkThemeContrast(theme, "light"), checkThemeContrast(theme, "dark")];
 }
@@ -63,6 +79,11 @@ export function checkTheme(theme: Theme): ThemeContrastReport[] {
 /**
  * 複数テーマをまとめて検査し、AA を満たさないものだけ抜き出す。
  * CI や smoke で「壊れたスキン」を検出するのに使う。
+ *
+ * **人の目視では見落とす**(11 スキン × light/dark で 22 通り)。機械に任せる。
+ *
+ * @param themes テーマの配列
+ * @returns 基準を満たさないテーマの検査結果。**問題が無ければ空配列**
  */
 export function findContrastIssues(themes: Theme[]): ThemeContrastReport[] {
   const issues: ThemeContrastReport[] = [];

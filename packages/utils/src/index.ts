@@ -11,12 +11,29 @@
 
 import { AppError, ErrorCode, ok, err, type Result } from "@platform/core";
 
-/** 指定ミリ秒だけ待つ。 */
+/**
+ * 指定ミリ秒だけ待つ。
+ *
+ * **テストや再試行の待機に使う**。本番のリクエスト処理で安易に使わないこと
+ * (待っている間もサーバの資源を占有する)。
+ *
+ * @param ms 待つミリ秒
+ * @returns 待機の Promise
+ */
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** 配列を size ごとのチャンクに分割する。 */
+/**
+ * 配列を指定サイズごとに分割する。
+ *
+ * 一括処理の API に「100 件ずつ」渡すときなどに使う。
+ *
+ * @param array 対象の配列
+ * @param size 1 塊の大きさ
+ * @returns 分割した配列の配列。**最後の塊は size より小さいことがある**
+ * @throws {@link @platform/core#AppError} コード `VALIDATION` — size が 1 未満の場合
+ */
 export function chunk<T>(array: readonly T[], size: number): T[][] {
   if (size <= 0) throw new AppError(ErrorCode.VALIDATION, "size は 1 以上である必要があります");
   const out: T[][] = [];
@@ -24,7 +41,13 @@ export function chunk<T>(array: readonly T[], size: number): T[][] {
   return out;
 }
 
-/** keyFn の結果でグルーピングする。 */
+/**
+ * キーごとにグループ分けする。
+ *
+ * @param array 対象の配列
+ * @param keyFn キーを取り出す関数
+ * @returns キー → 要素の配列 の辞書(**元の順序を保つ**)
+ */
 export function groupBy<T, K extends string | number>(
   array: readonly T[],
   keyFn: (item: T) => K,
@@ -37,7 +60,13 @@ export function groupBy<T, K extends string | number>(
   return out;
 }
 
-/** keyFn の結果で重複を除いた配列を返す(先勝ち)。 */
+/**
+ * キーが重複するものを除く。
+ *
+ * @param array 対象の配列
+ * @param keyFn キーを取り出す関数
+ * @returns 重複を除いた新しい配列。**先に現れたものを残す**(先勝ち)
+ */
 export function uniqueBy<T, K>(array: readonly T[], keyFn: (item: T) => K): T[] {
   const seen = new Set<K>();
   const out: T[] = [];
@@ -54,6 +83,7 @@ export function uniqueBy<T, K>(array: readonly T[], keyFn: (item: T) => K): T[] 
 /**
  * 網羅性チェック。switch の default 等で「起きないはず」を型で保証する。
  * @param value never のはずの値
+ * @returns 返らない(必ず例外を投げる)
  * @throws {@link @platform/core#AppError} 到達したら実行時にも失敗させる
  */
 export function assertNever(value: never): never {

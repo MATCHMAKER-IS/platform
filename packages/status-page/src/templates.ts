@@ -41,6 +41,9 @@ function paragraphs(message: string | string[]): string {
 /**
  * 汎用ステータスページを HTML 文字列で生成する。
  * インライン CSS・レスポンシブ・ダークモード対応。外部リソースを一切読み込まない。
+ *
+ * @param content 画面の内容(タイトル・メッセージなど)
+ * @returns HTML。**外部依存なし**(CSS もインライン。障害時に CDN が死んでいても表示できる)
  */
 export function renderStatusPage(options: StatusPageOptions): string {
   const {
@@ -98,7 +101,15 @@ ${headExtra}
 </html>`;
 }
 
-/** メンテナンス画面(503 相当)のプリセット。 */
+/**
+ * メンテナンス画面のプリセット(503 相当)。
+ *
+ * **復旧予定を書く**(「しばらくお待ちください」だけでは、利用者は何度もリロードする)。
+ *
+ * @param options.until 復旧予定(任意)
+ * @param options.message 追加のメッセージ
+ * @returns 画面の内容
+ */
 export function renderMaintenancePage(options?: Partial<StatusPageOptions> & { estimatedRecovery?: string }): string {
   const msg: string[] = [
     "ただいまシステムメンテナンスを実施しています。",
@@ -111,7 +122,15 @@ export function renderMaintenancePage(options?: Partial<StatusPageOptions> & { e
   });
 }
 
-/** システムエラー画面(500 相当)のプリセット。参照 ID を渡すとサポート追跡に使える。 */
+/**
+ * システムエラー画面のプリセット(500 相当)。
+ *
+ * **参照 ID を出す**と、問い合わせを受けたときにログと突合できる
+ * (「エラーが出ました」だけでは調べようがない)。
+ *
+ * @param options.referenceId 参照 ID(trace ID など)
+ * @returns 画面の内容
+ */
 export function renderErrorPage(options?: Partial<StatusPageOptions>): string {
   return renderStatusPage({
     title: "システムエラー",
@@ -123,7 +142,14 @@ export function renderErrorPage(options?: Partial<StatusPageOptions>): string {
   });
 }
 
-/** サービス停止(503・一時的な高負荷/障害)のプリセット。 */
+/**
+ * サービス停止のプリセット(503・一時的な高負荷や障害)。
+ *
+ * **メンテナンスとは区別する**(こちらは意図しない停止)。
+ *
+ * @param options.message 追加のメッセージ
+ * @returns 画面の内容
+ */
 export function renderServiceUnavailablePage(options?: Partial<StatusPageOptions>): string {
   return renderStatusPage({
     title: "ただいま混み合っています",
@@ -135,7 +161,12 @@ export function renderServiceUnavailablePage(options?: Partial<StatusPageOptions
   });
 }
 
-/** 404 画面のプリセット。 */
+/**
+ * 404 画面のプリセット。
+ *
+ * @param options.message 追加のメッセージ
+ * @returns 画面の内容
+ */
 export function renderNotFoundPage(options?: Partial<StatusPageOptions>): string {
   return renderStatusPage({
     title: "ページが見つかりません",

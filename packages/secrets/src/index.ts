@@ -30,7 +30,17 @@ export interface SecretStoreOptions {
   now?: () => number;
 }
 
-/** シークレットストアを作る。 */
+/**
+ * シークレットストアを作る。
+ *
+ * **取得元を差し替えられる**(env・AWS Secrets Manager・Vault)。
+ * アプリのコードは変えずに、環境ごとに提供元を変えられる。
+ *
+ * @param provider 取得元
+ * @param options.cacheTtlMs キャッシュの有効期間(**外部サービスを毎回叩かない**)
+ * @returns ストア(`get` で取得)
+ * @throws {@link @platform/core#AppError} コード `CONFIG` — 必須のシークレットが見つからない場合(`get` 実行時)
+ */
 export function createSecretStore(provider: SecretProvider, options: SecretStoreOptions = {}): SecretStore {
   const ttlMs = options.ttlMs ?? 5 * 60 * 1000;
   const now = options.now ?? (() => Date.now());
@@ -58,7 +68,15 @@ export function createSecretStore(provider: SecretProvider, options: SecretStore
   };
 }
 
-/** 環境変数プロバイダ(開発・シンプルな本番向け)。 */
+/**
+ * 環境変数から取得するプロバイダ(開発・シンプルな本番向け)。
+ *
+ * **プロセスの環境変数は他のプロセスから見える**(`ps e` など)。
+ * 機密度が高いなら Secrets Manager などを使うこと。
+ *
+ * @param env 環境変数(既定は `process.env`)
+ * @returns プロバイダ
+ */
 export function createEnvProvider(env: Record<string, string | undefined> = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {}): SecretProvider {
   return { get: async (name) => env[name] ?? null };
 }
@@ -72,6 +90,10 @@ export function createEnvProvider(env: Record<string, string | undefined> = (glo
  *   return r.SecretString ?? null;
  * });
  * ```
+ *
+ * @param options.endpoint 取得先の URL
+ * @param options.headers 認証ヘッダ
+ * @returns プロバイダ(**Secrets Manager など HTTP API 経由**)
  */
 export function createFetchProvider(fetcher: (name: string) => Promise<string | null>): SecretProvider {
   return { get: fetcher };
@@ -80,6 +102,9 @@ export function createFetchProvider(fetcher: (name: string) => Promise<string | 
 /**
  * 複数プロバイダのフォールバック(先頭優先)。
  * 例: 環境変数を優先しつつ、無ければ Secrets Manager を見る。
+ *
+ * @param providers プロバイダの配列
+ * @returns 連鎖プロバイダ。**先に見つかったものを使う**(env → Secrets Manager の順で探す、といった構成に)
  */
 export function createChainProvider(providers: SecretProvider[]): SecretProvider {
   return {

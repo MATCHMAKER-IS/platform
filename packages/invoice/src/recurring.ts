@@ -29,12 +29,24 @@ function iso(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-/** 開始日から数えて index 回目(0 始まり)の請求日。 */
+/**
+ * n 回目の請求日を返す。
+ *
+ * @param schedule 定期請求の設定
+ * @param index 回数(**0 始まり**)
+ * @returns 請求日
+ */
 export function billingDateAt(schedule: RecurringSchedule, index: number): string {
   return iso(addMonths(toDate(schedule.startDate), index * intervalMonths(schedule.interval)));
 }
 
-/** from(含む)以降で最初の請求日。終了後は null。 */
+/**
+ * 次の請求日を返す。
+ *
+ * @param schedule 定期請求の設定
+ * @param from 基準日(**この日を含む**)
+ * @returns 次の請求日。**終了後は null**
+ */
 export function nextBillingDate(schedule: RecurringSchedule, from: string): string | null {
   const start = toDate(schedule.startDate);
   const fromD = toDate(from);
@@ -49,7 +61,14 @@ export function nextBillingDate(schedule: RecurringSchedule, from: string): stri
   return iso(d);
 }
 
-/** from〜to(両端含む)の請求日をすべて返す。 */
+/**
+ * 期間内の請求日をすべて返す。
+ *
+ * @param schedule 定期請求の設定
+ * @param from 開始(含む)
+ * @param to 終了(含む)
+ * @returns 請求日の配列
+ */
 export function billingDatesBetween(schedule: RecurringSchedule, from: string, to: string): string[] {
   const start = toDate(schedule.startDate);
   const toD = toDate(to);
@@ -65,7 +84,17 @@ export function billingDatesBetween(schedule: RecurringSchedule, from: string, t
   return out;
 }
 
-/** asOf 時点で請求すべきか(前回請求日以降に請求日が到来しているか)。 */
+/**
+ * 今請求すべきかを判定する。
+ *
+ * **前回の請求日以降に請求日が来ているか**で見る。バッチが止まっていても、
+ * 復旧時にまとめて処理できる(取りこぼさない)。
+ *
+ * @param schedule 定期請求の設定
+ * @param lastIssuedAt 前回の請求日
+ * @param asOf 基準日(テスト注入用)
+ * @returns 請求すべきなら true
+ */
 export function dueForBilling(schedule: RecurringSchedule, asOf: string, lastBilled?: string): boolean {
   const from = lastBilled ? iso(addMonths(toDate(lastBilled), 0)) : schedule.startDate;
   const next = lastBilled ? nextBillingDate(schedule, iso(new Date(toDate(lastBilled).getTime() + 86_400_000))) : nextBillingDate(schedule, from);

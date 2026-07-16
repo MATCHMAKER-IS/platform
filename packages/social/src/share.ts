@@ -20,7 +20,17 @@ function enc(v: string): string {
   return encodeURIComponent(v);
 }
 
-/** 指定プラットフォームのシェア URL を生成する。 */
+/**
+ * シェア URL を生成する。
+ *
+ * **プラットフォームごとにパラメータ名が違う**(X は `text`、他は別)。
+ * ここで吸収するので、呼び出し側は意識しなくてよい。
+ *
+ * @param platform プラットフォーム
+ * @param options.url シェアする URL
+ * @param options.text 添える文
+ * @returns シェア用の URL(**新しいタブで開く**)
+ */
 export function shareUrl(platform: SharePlatform, target: ShareTarget): string {
   const url = enc(target.url);
   const title = target.title ? enc(target.title) : "";
@@ -56,7 +66,14 @@ export const SHARE_LABELS: Record<SharePlatform, string> = {
   x: "X", facebook: "Facebook", line: "LINE", hatena: "はてブ", linkedin: "LinkedIn", email: "メール", whatsapp: "WhatsApp", telegram: "Telegram",
 };
 
-/** 複数プラットフォームのシェアリンクをまとめて作る。 */
+/**
+ * 複数プラットフォームのシェアリンクをまとめて作る。
+ *
+ * @param options.url シェアする URL
+ * @param options.text 添える文
+ * @param options.platforms 対象(既定は全部)
+ * @returns プラットフォームとシェア URL の配列
+ */
 export function shareLinks(platforms: SharePlatform[], target: ShareTarget): { platform: SharePlatform; label: string; url: string }[] {
   return platforms.map((p) => ({ platform: p, label: SHARE_LABELS[p], url: shareUrl(p, target) }));
 }

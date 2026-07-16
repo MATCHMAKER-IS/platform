@@ -12,12 +12,22 @@ export interface CategoryInput {
   order?: number;
 }
 
-/** slug の妥当性（英小文字・数字・ハイフン）。 */
+/**
+ * カテゴリの slug が妥当かを判定する(英小文字・数字・ハイフン)。
+ *
+ * @param slug 判定する slug
+ * @returns 妥当なら true
+ */
 export function isValidCategorySlug(slug: string): boolean {
   return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug);
 }
 
-/** 入力を検証する。 */
+/**
+ * カテゴリの入力を検証する。
+ *
+ * @param input 入力
+ * @returns 問題の一覧(空なら妥当)
+ */
 export function validateCategoryInput(input: CategoryInput): { ok: true; value: CategoryInput } | { ok: false; error: string } {
   if (!input.name.trim()) return { ok: false, error: "カテゴリ名は必須です" };
   if (!input.slug || !isValidCategorySlug(input.slug)) return { ok: false, error: "slug は英小文字・数字・ハイフンで指定してください" };
@@ -45,7 +55,12 @@ function sortByOrder(list: Category[]): Category[] {
   return list.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 }
 
-/** インメモリ実装。 */
+/**
+ * カテゴリストアのメモリ実装(開発・テスト用)。
+ *
+ * @param seed 初期データ
+ * @returns カテゴリストア(再起動で消える)
+ */
 export function createMemoryCategoryStore(genId: () => string = () => `cat_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`): CategoryStore {
   const byId = new Map<string, Category>();
   return {
@@ -117,7 +132,12 @@ function rowToCategory(row: CategoryRow): Category {
   return c;
 }
 
-/** Prisma 実装。 */
+/**
+ * カテゴリストアの Prisma 実装(本番用)。
+ *
+ * @param db Prisma クライアント
+ * @returns カテゴリストア
+ */
 export function createPrismaCategoryStore(db: CategoryStoreDb): CategoryStore {
   return {
     async list() {

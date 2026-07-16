@@ -50,7 +50,14 @@ export interface SpeechRecognitionState {
   reset: () => void;
 }
 
-/** 音声認識フック。 */
+/**
+ * 音声認識フック。
+ *
+ *
+ * @param options.lang 言語(既定 ja-JP)
+ * @param options.continuous 継続して認識するか
+ * @returns 認識結果と操作。**Chrome 系のみ・HTTPS 必須**
+ */
 export function useSpeechRecognition({ lang = "ja-JP", continuous = false }: UseSpeechRecognitionOptions = {}): SpeechRecognitionState {
   const [listening, setListening] = React.useState(false);
   const [transcript, setTranscript] = React.useState("");

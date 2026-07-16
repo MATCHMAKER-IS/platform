@@ -50,7 +50,18 @@ export interface ThrottleCheck {
   remaining?: number;
 }
 
-/** ログインスロットルを作る。 */
+/**
+ * ログイン試行の制限を作る(総当たり攻撃への対策)。
+ *
+ * **失敗が続いたらしばらく受け付けない**。これが無いと、パスワードを機械的に
+ * 試され続ける。
+ *
+ * @param store 試行回数の保存先
+ * @param options.maxAttempts 何回失敗したらロックするか
+ * @param options.windowMs 試行を数える期間
+ * @param options.lockMs ロックする時間
+ * @returns スロットル。`check` で判定、`record` で結果を記録
+ */
 export function createLoginThrottle(config: LoginThrottleConfig) {
   const maxFails = config.maxFails ?? 5;
   const windowMs = config.windowMs ?? 15 * 60 * 1000;
@@ -98,7 +109,15 @@ export function createLoginThrottle(config: LoginThrottleConfig) {
   };
 }
 
-/** メモリ実装(単一プロセス/テスト用。分散環境では Redis 実装を注入)。 */
+/**
+ * 試行回数ストアのメモリ実装(単一プロセス・テスト用)。
+ *
+ * **複数プロセスでは使えない**(プロセスごとに別のメモリを持つため、
+ * 攻撃者は別のプロセスに当たれば制限を回避できる)。**本番では Redis 実装を注入すること**。
+ *
+ * @param options.now 時刻の取得(テスト注入用)
+ * @returns 試行回数ストア
+ */
 export function createMemoryThrottleStore(now: () => number = () => Date.now()): ThrottleStore {
   const map = new Map<string, { record: AttemptRecord; expiresAt: number }>();
   return {

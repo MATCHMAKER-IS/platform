@@ -28,6 +28,9 @@ export function requireSession<T>(cookieHeader: string | null | undefined, sessi
 
 /**
  * ユーザーが指定ロールを持つことを必須にする。無ければ 403(FORBIDDEN)。
+ * @param user 利用者
+ * @param roles 必要なロール(**いずれか 1 つ**)
+ * @throws {@link @platform/core#AppError} コード `FORBIDDEN` — 権限が無い場合
  */
 export function requireRole(user: AuthUser, role: string): void {
   if (!user.roles.includes(role)) {
@@ -38,6 +41,8 @@ export function requireRole(user: AuthUser, role: string): void {
 /**
  * ユーザーが指定権限を持つことを必須にする(RBAC)。無ければ 403。
  * `@platform/auth` の `assertCan` に委譲。
+ * @param user 利用者
+ * @param permission 必要な権限
  */
 export function requirePermission(policy: Policy, user: AuthUser, permission: Permission): void {
   assertCan(policy, user, permission);

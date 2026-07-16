@@ -41,7 +41,14 @@ export interface ZohoCreatorClient {
   listReports(): Promise<Result<CreatorRecord>>;
 }
 
-/** Zoho Creator クライアントを作る。 */
+/**
+ * Zoho Creator(ローコードアプリ)のクライアントを作る。
+ *
+ * @param config.tokenManager トークンマネージャ(**自動更新される**)
+ * @param config.dc データセンター(**契約時の DC を指定**。間違えると 404 になる)
+ * @param config.fetchImpl fetch の実装(テスト注入用)
+ * @returns Creator のクライアント。**すべてのメソッドは Result 型を返す**(例外を投げない)
+ */
 export function createZohoCreatorClient(config: ZohoCreatorConfig): ZohoCreatorClient {
   const api = createZohoApiClient({ apiDomain: serviceBaseUrl("creator", config.dataCenter), basePath: "", accessToken: config.accessToken, fetchImpl: config.fetchImpl });
   const enc = encodeURIComponent;

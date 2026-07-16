@@ -51,7 +51,16 @@ export interface MaintenanceDecision {
 
 const DEFAULT_ALLOW_PATHS = ["/api/health", "/api/healthz", "/_next/", "/favicon.ico"];
 
-/** 現在メンテナンス扱いにすべき時間帯かを判定する(手動フラグ or 予定期間)。 */
+/**
+ * 今メンテナンス中かを判定する。
+ *
+ * **手動フラグと予定期間の両方を見る**。「今すぐ止める」と「金曜 22 時から止める」の
+ * どちらも扱えるようにするため。
+ *
+ * @param config メンテナンスの設定
+ * @param now 判定する時点(テスト注入用)
+ * @returns メンテナンス中なら true
+ */
 export function isInMaintenanceWindow(config: MaintenanceConfig, now: Date): boolean {
   if (config.enabled) return true;
   if (config.window) {
@@ -63,7 +72,15 @@ export function isInMaintenanceWindow(config: MaintenanceConfig, now: Date): boo
   return false;
 }
 
-/** メンテナンスゲートを作る。config は都度評価(情報源を注入して最新値を反映)。 */
+/**
+ * メンテナンスゲートを作る。
+ *
+ * **設定は都度評価する**(関数で渡す)。起動時に固定すると、DB でフラグを立てても
+ * 再起動するまで反映されない。
+ *
+ * @param getConfig 設定を返す関数(**呼ばれるたびに最新を取る**)
+ * @returns ゲート。`check` でアクセスの可否を判定
+ */
 export function createMaintenanceGate(getConfig: () => MaintenanceConfig, now: () => Date = () => new Date()) {
   return {
     /** リクエストごとに判定する。 */
@@ -121,7 +138,16 @@ export interface MaintenanceStore {
   set(state: MaintenanceState): Promise<void> | void;
 }
 
-/** 保存状態と静的ポリシー(許可ロール/IP/バイパス)を合成して MaintenanceConfig にする。 */
+/**
+ * 保存状態と静的ポリシーを合成して設定にする。
+ *
+ * **メンテナンス中でも管理者は入れる**必要がある(復旧作業のため)。
+ * 許可ロール・IP・バイパストークンを組み合わせる。
+ *
+ * @param state DB などに保存された状態
+ * @param policy 静的なポリシー(許可ロール・IP)
+ * @returns メンテナンスの設定
+ */
 export function stateToConfig(state: MaintenanceState, policy?: Omit<MaintenanceConfig, "enabled" | "window" | "estimatedRecovery">): MaintenanceConfig {
   return {
     ...(policy ?? {}),
@@ -135,6 +161,7 @@ export function stateToConfig(state: MaintenanceState, policy?: Omit<Maintenance
  * 非同期の設定源(DB/フラグ/リモート)に対応したメンテナンスゲート。
  * middleware は毎リクエスト評価するため、実運用では {@link createCachedConfig} と併用して
  * ストアアクセスを間引くこと。
+ * @param getConfig 設定を返す非同期関数(**DB から都度読む**場合に使う)
  */
 export function createAsyncMaintenanceGate(
   getConfig: () => MaintenanceConfig | Promise<MaintenanceConfig>,
@@ -154,6 +181,8 @@ export function createAsyncMaintenanceGate(
  * 非同期フェッチを TTL でキャッシュするラッパー(middleware がストアを叩きすぎないように)。
  * @param fetch 設定/状態を取得する関数
  * @param ttlMs キャッシュ有効期間(既定 5 秒)
+ * @returns キャッシュ付きの設定取得関数。**DB を毎回叩かない**(全リクエストで読むと負荷になる)が、
+ *   TTL のぶん反映が遅れる(緊急停止には向かない)
  */
 export function createCachedConfig<T>(fetch: () => Promise<T> | T, ttlMs = 5000, now: () => number = () => Date.now()): () => Promise<T> {
   let cached: T | undefined;
@@ -173,7 +202,15 @@ export function createCachedConfig<T>(fetch: () => Promise<T> | T, ttlMs = 5000,
   };
 }
 
-/** 参照用のメモリ実装(テスト/デモ向け。本番は DB 実装をアプリ側で)。 */
+/**
+ * メンテナンス状態ストアのメモリ実装(テスト・デモ向け)。
+ *
+ * **本番では DB 実装を使うこと**(メモリだとサーバごとに状態が違い、
+ * 一部のサーバだけメンテナンス中になる)。
+ *
+ * @param initial 初期状態
+ * @returns ストア
+ */
 export function createMemoryMaintenanceStore(initial?: Partial<MaintenanceState>): MaintenanceStore {
   let state: MaintenanceState = { enabled: false, ...initial };
   return {

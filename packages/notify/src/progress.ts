@@ -14,6 +14,11 @@
  *   prev = done;
  * };
  * ```
+ *
+ * @param before 前回の進捗
+ * @param after 今回の進捗
+ * @param milestones 通知する節目
+ * @returns 今回またいだ節目(**節目だけ通知する**。1% ごとに通知すると鬱陶しい)
  */
 export function crossedMilestones(prevDone: number, done: number, total: number, step = 25): number[] {
   if (total <= 0 || step <= 0) return [];

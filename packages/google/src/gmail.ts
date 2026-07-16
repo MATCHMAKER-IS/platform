@@ -35,7 +35,13 @@ function encodeHeader(value: string): string {
   return `=?UTF-8?B?${b64}?=`;
 }
 
-/** GmailMessageInput から RFC822 の生メールを組み立てる。 */
+/**
+ * GmailMessageInput から RFC822 の生メールを組み立てる。
+ *
+ *
+ * @param message 宛先・件名・本文
+ * @returns RFC 2822 形式を base64url にした文字列(**Gmail API はこの形式を要求する**)
+ */
 export function buildRawEmail(msg: GmailMessageInput): string {
   const list = (v: string | string[]) => (Array.isArray(v) ? v.join(", ") : v);
   const headers: string[] = [];
@@ -71,6 +77,7 @@ export interface GmailClient {
 /**
  * Gmail クライアントを作る。
  * @param config `accessToken`(scope: gmail.send 等)/ `fetchImpl`(認証付き fetch 注入可)
+ * @returns Gmail クライアント
  */
 export function createGmailClient(config: { accessToken: string; fetchImpl?: typeof fetch }): GmailClient {
   const api = createApiClient({

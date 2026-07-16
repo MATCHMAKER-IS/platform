@@ -14,14 +14,29 @@ import { buildRobotsTxt } from "./robots.js";
 /** サイトの公開区分。internal=社内(検索避け), public=一般公開(SEO 対象)。 */
 export type SiteVisibility = "public" | "internal";
 
-/** 公開区分に応じた robots ディレクティブを返す。社内は noindex/nofollow/noarchive。 */
+/**
+ * 公開区分に応じた robots ディレクティブを返す。
+ *
+ * **社内アプリが検索に載ると情報漏洩になる**。区分を間違えないよう、
+ * 「公開サイトか社内ツールか」を明示的に選ばせる設計にしている。
+ *
+ * @param visibility 公開区分(`public` = 公開サイト / `internal` = 社内)
+ * @returns robots のディレクティブ。社内は `noindex, nofollow, noarchive`
+ */
 export function robotsForVisibility(visibility: SiteVisibility): RobotsDirective {
   return visibility === "public"
     ? { index: true, follow: true }
     : { index: false, follow: false, noarchive: true };
 }
 
-/** 社内ツール用の robots メタ content("noindex, nofollow, noarchive")。 */
+/**
+ * 社内ツール用の robots メタ content を返す。
+ *
+ * `noindex`(検索に載せない)+ `nofollow`(リンクを辿らせない)+
+ * `noarchive`(キャッシュを残させない)。**3 つ揃えないと漏れる**。
+ *
+ * @returns `"noindex, nofollow, noarchive"`
+ */
 export function noindexRobots(): string {
   return robotsContent(robotsForVisibility("internal"));
 }
@@ -29,17 +44,32 @@ export function noindexRobots(): string {
 /**
  * X-Robots-Tag ヘッダの値を返す。HTML 以外(PDF・API・画像)にも効き、ページ単位の
  * メタ付け忘れを補える。社内アプリのミドルウェアで全レスポンスに付与する。
+ *
+ * @param visibility 公開区分(`public` / `internal`)
+ * @returns ヘッダ値。社内は `noindex, nofollow, noarchive`
  */
 export function xRobotsTag(visibility: SiteVisibility): string {
   return robotsContent(robotsForVisibility(visibility));
 }
 
-/** 社内ツール用 robots.txt(全クローラーを全パス拒否)。 */
+/**
+ * 社内ツール用の robots.txt を返す(全クローラーを全パス拒否)。
+ *
+ * **robots.txt は「お願い」でしかない**(行儀の悪いクローラーは無視する)。
+ * 本当に守るなら認証で守ること。これは補助。
+ *
+ * @returns robots.txt の中身
+ */
 export function internalRobotsTxt(): string {
   return buildRobotsTxt({ rules: [{ userAgent: "*", disallow: ["/"] }] });
 }
 
-/** 公開サイト用 robots.txt(全許可 + サイトマップ)。 */
+/**
+ * 公開サイト用の robots.txt を返す(全許可 + サイトマップの場所)。
+ *
+ * @param sitemap サイトマップの URL(任意)
+ * @returns robots.txt の中身
+ */
 export function publicRobotsTxt(sitemap?: string): string {
   return buildRobotsTxt({ rules: [{ userAgent: "*", allow: ["/"] }], sitemaps: sitemap ? [sitemap] : undefined });
 }

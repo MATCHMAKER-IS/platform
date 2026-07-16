@@ -28,7 +28,15 @@ export interface ExpenseRecord {
   note?: string;
 }
 
-/** 抽出フィールドから経費記録を作る(不足分は overrides で補う)。 */
+/**
+ * 抽出したフィールドから経費記録を作る。
+ *
+ * **OCR や AI の抽出結果を受け取る**前提。読み取れなかった項目は `overrides` で補う。
+ *
+ * @param fields 抽出されたフィールド
+ * @param overrides 上書きする値(人が直した分)
+ * @returns 経費記録
+ */
 export function expenseFromReceiptFields(fields: ExtractedFields, overrides: Partial<ExpenseRecord> = {}): ExpenseRecord {
   return {
     amount: overrides.amount ?? fields.amount ?? 0,
@@ -45,14 +53,28 @@ function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 }
 
-/** 経費記録の税内訳(税込金額から内税で税抜・消費税を逆算)。 */
+/**
+ * 経費記録の税内訳を求める(税込から逆算)。
+ *
+ * **領収書には税込金額しか書かれていないことが多い**ため、そこから税抜と消費税を割り出す。
+ * 計算は `@platform/tax` の `netFromGross` に委譲する。
+ *
+ * @param record 経費記録
+ * @returns 税抜・消費税・税込
+ * @param record 経費記録
+ */
 export function expenseTaxBreakdown(record: ExpenseRecord): { subtotal: number; tax: number; total: number; rate: number } {
   const rate = record.taxRate ?? 10;
   const calc = calculateInvoice({ lines: [{ description: "計", quantity: 1, unitPrice: record.amount, taxRate: rate }], taxMode: "inclusive" });
   return { subtotal: calc.subtotal, tax: calc.totalTax, total: calc.total, rate };
 }
 
-/** 経費/支払記録の印刷用 HTML を生成する。 */
+/**
+ * 経費・支払記録の印刷用 HTML を生成する。
+ *
+ * @param record 経費記録
+ * @returns 印刷用の HTML
+ */
 export function renderExpenseHtml(record: ExpenseRecord): string {
   const b = expenseTaxBreakdown(record);
   const row = (k: string, v: string) => `<tr><th>${esc(k)}</th><td>${v}</td></tr>`;
@@ -92,7 +114,15 @@ export interface ExpenseRow {
   note: string | null;
 }
 
-/** 経費記録を DB 保存用の行に変換する(税内訳を確定し、日付を Date 化)。 */
+/**
+ * 経費記録を DB 保存用の行に変換する。
+ *
+ * **税内訳をここで確定させる**(保存後に計算方法が変わっても、記録は当時のまま残る)。
+ * 日付は文字列から Date に変換する。
+ *
+ * @param record 経費記録
+ * @returns DB に保存できる形の行
+ */
 export function expenseToRow(record: ExpenseRecord): ExpenseRow {
   const b = expenseTaxBreakdown(record);
   return {

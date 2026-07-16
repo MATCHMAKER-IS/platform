@@ -31,7 +31,17 @@ export interface AttachmentLimits {
 /** 検証結果。 */
 export type AttachmentResult = { ok: true } | { ok: false; error: string };
 
-/** 添付の件数・サイズ・種別を検証する。 */
+/**
+ * 添付を検証する(件数・サイズ・種別)。
+ *
+ * **保存する前に必ず通す**。大きすぎるファイルや、許可していない種別を弾く。
+ *
+ * @param attachments 添付の配列
+ * @param options.maxCount 最大件数
+ * @param options.maxTotalBytes 合計サイズの上限
+ * @param options.allowedTypes 許可する MIME 種別
+ * @returns 問題の一覧(**空なら妥当**)
+ */
 export function validateAttachments(attachments: Attachment[], limits: AttachmentLimits = {}): AttachmentResult {
   const { maxCount, maxSizeBytes, allowedTypes } = limits;
   if (maxCount != null && attachments.length > maxCount) {
@@ -48,12 +58,22 @@ export function validateAttachments(attachments: Attachment[], limits: Attachmen
   return { ok: true };
 }
 
-/** 画像添付だけを返す。 */
+/**
+ * 画像の添付だけを返す(サムネイル表示用)。
+ *
+ * @param attachments 添付の配列
+ * @returns 画像だけの配列
+ */
 export function imageAttachments(attachments: Attachment[]): Attachment[] {
   return attachments.filter((a) => a.type.startsWith("image/"));
 }
 
-/** 合計バイト数。 */
+/**
+ * 添付の合計サイズを返す。
+ *
+ * @param attachments 添付の配列
+ * @returns 合計バイト数
+ */
 export function totalSize(attachments: Attachment[]): number {
   return attachments.reduce((sum, a) => sum + a.size, 0);
 }

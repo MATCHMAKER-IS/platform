@@ -19,7 +19,17 @@ export interface RuleCheck {
   reason?: "too_soon" | "too_far" | "past" | "too_few" | "too_many";
 }
 
-/** 予約日時が受付可能期間内か。 */
+/**
+ * 予約日時が受付可能な期間内かを判定する。
+ *
+ * **直前すぎる予約と、先すぎる予約を弾く**(30 分後の予約は準備できない、
+ * 1 年先の予約は営業時間が変わるかもしれない)。
+ *
+ * @param bookingAt 予約日時
+ * @param rules 最短・最長のリードタイム
+ * @param now 現在時刻(テスト注入用)
+ * @returns 受付できれば true
+ */
 export function isWithinBookingWindow(bookingAt: string | Date, window: BookingWindow, now: Date = new Date()): RuleCheck {
   const target = typeof bookingAt === "string" ? new Date(bookingAt) : bookingAt;
   const diffMinutes = (target.getTime() - now.getTime()) / 60_000;
@@ -29,14 +39,30 @@ export function isWithinBookingWindow(bookingAt: string | Date, window: BookingW
   return { ok: true };
 }
 
-/** キャンセル可能か(期限=開始の何分前まで)。 */
+/**
+ * キャンセルできるかを判定する。
+ *
+ * **期限を過ぎたらキャンセル料がかかる**運用が多い(この関数は可否だけを返す。
+ * 料金の計算はアプリ側)。
+ *
+ * @param bookingAt 予約日時
+ * @param deadlineMinutes 開始の何分前まで
+ * @param now 現在時刻(テスト注入用)
+ * @returns キャンセルできれば true
+ */
 export function canCancel(bookingAt: string | Date, cancelDeadlineMinutes: number, now: Date = new Date()): boolean {
   const target = typeof bookingAt === "string" ? new Date(bookingAt) : bookingAt;
   const diffMinutes = (target.getTime() - now.getTime()) / 60_000;
   return diffMinutes >= cancelDeadlineMinutes;
 }
 
-/** 人数制約の判定。 */
+/**
+ * 人数が制約を満たすかを判定する。
+ *
+ * @param partySize 人数
+ * @param rules 最小・最大
+ * @returns 満たせば true
+ */
 export function validatePartySize(size: number, limits: { min?: number; max?: number }): RuleCheck {
   if (limits.min !== undefined && size < limits.min) return { ok: false, reason: "too_few" };
   if (limits.max !== undefined && size > limits.max) return { ok: false, reason: "too_many" };

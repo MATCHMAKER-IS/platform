@@ -33,7 +33,13 @@ export interface MonthlySummary {
   byTaxRate: { rate: number; subtotal: number; tax: number; total: number }[];
 }
 
-/** records のうち yearMonth("YYYY-MM")の経費を集計する(純関数)。 */
+/**
+ * 指定した年月の経費を集計する。
+ *
+ * @param records 経費記録
+ * @param yearMonth 年月(`YYYY-MM`)
+ * @returns その月の集計(件数・合計・カテゴリ別)
+ */
 export function monthlyExpenseSummary(records: ExpenseRecord[], yearMonth: string): MonthlySummary {
   const inMonth = records.filter((r) => (r.date ?? "").startsWith(yearMonth));
   const catMap = new Map<string, { total: number; count: number }>();
@@ -63,7 +69,12 @@ function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 }
 
-/** 月次締めレポートの印刷用 HTML を生成する。 */
+/**
+ * 月次締めレポートの印刷用 HTML を生成する。
+ *
+ * @param summary 月次の集計
+ * @returns 印刷用の HTML
+ */
 export function renderMonthlyReportHtml(summary: MonthlySummary, options: { locale?: ReportLocale } = {}): string {
   const yen = moneyFmt(options.locale);
   const ymLabel = monthLabel(summary.yearMonth, options.locale);
@@ -92,7 +103,12 @@ export function renderMonthlyReportHtml(summary: MonthlySummary, options: { loca
 </body></html>`;
 }
 
-/** 月次レポートをシート配列(name+rows)に変換する。@platform/xlsx の writeWorkbook にそのまま渡せる。 */
+/**
+ * 月次レポートをシートの配列に変換する。
+ *
+ * @param summary 月次の集計
+ * @returns シートの配列。`@platform/xlsx` の `writeWorkbook` にそのまま渡せる
+ */
 export function monthlyReportSheets(summary: MonthlySummary): { name: string; rows: Record<string, string | number>[]; freezeHeader: boolean }[] {
   return [
     {

@@ -17,7 +17,15 @@ export interface OcrFeedback {
   acceptedCount: number;
 }
 
-/** 抽出値と確定値を比較し、変更されたフィールドの一覧を返す。 */
+/**
+ * 抽出値と確定値を比較して、直された項目を返す。
+ *
+ * **人が直したところが、AI の弱点**。これを集めることで改善点が分かる。
+ *
+ * @param extracted OCR / AI が抽出した値
+ * @param confirmed 人が確定した値
+ * @returns 変更された項目(**変わっていないものは含まない**)
+ */
 export function collectCorrections(
   original: Record<string, string>,
   corrected: Record<string, string>,
@@ -33,7 +41,14 @@ export function collectCorrections(
   return out;
 }
 
-/** フィードバック記録を組み立てる。 */
+/**
+ * フィードバック記録を組み立てる。
+ *
+ * @param meta 文書の情報
+ * @param changes 変更された項目
+ * @param confidences 各項目の確信度
+ * @returns フィードバック記録
+ */
 export function buildOcrFeedback(
   meta: { userId: string; docId?: string; source?: string; at?: string },
   original: Record<string, string>,
@@ -57,7 +72,16 @@ export interface OcrFeedbackStore {
   record(feedback: OcrFeedback): Promise<void>;
 }
 
-/** サーバにフィードバックを送る fetch ストア(学習データ蓄積)。 */
+/**
+ * フィードバックを送るストアを作る(学習データの蓄積)。
+ *
+ * **送信の失敗で業務を止めない**(フィードバックは改善のためのもので、
+ * 本来の処理より優先度が低い)。
+ *
+ * @param options.endpoint API の URL
+ * @param options.fetchImpl fetch の実装(テスト注入用)
+ * @returns ストア
+ */
 export function createOcrFeedbackStore(options: { endpoint: string; headers?: Record<string, string>; fetch?: typeof fetch }): OcrFeedbackStore {
   const doFetch = options.fetch ?? (typeof fetch !== "undefined" ? fetch : undefined);
   return {
@@ -80,7 +104,15 @@ export interface FeedbackAggregate {
   byField: FieldFeedbackStat[];
 }
 
-/** フィードバック記録群を集計する(フィールド別の修正率・平均信頼度)。 */
+/**
+ * フィードバックを集計する。
+ *
+ * **修正率が高い項目 = AI が苦手な項目**。確信度が高いのに修正率も高いなら、
+ * **AI が自信満々に間違えている**(最も危険な状態)。
+ *
+ * @param records フィードバック記録
+ * @returns 項目ごとの修正率と平均確信度
+ */
 export function aggregateOcrFeedback(feedbacks: OcrFeedback[]): FeedbackAggregate {
   const fieldTotal = new Map<string, number>();
   const fieldCorr = new Map<string, number>();

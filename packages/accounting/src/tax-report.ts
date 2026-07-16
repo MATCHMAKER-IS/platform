@@ -45,7 +45,16 @@ function sumByRate(items: RateAmount[]): Map<number, { net: number; tax: number 
   return map;
 }
 
-/** 課税売上・課税仕入(いずれも税率別)から消費税集計表を作る。 */
+/**
+ * 課税売上・課税仕入から消費税の集計表を作る。
+ *
+ * **納付税額 = 仮受消費税(売上) - 仮払消費税(仕入)**。
+ * マイナスなら還付。税率別に分けるのは、軽減税率(8%)と標準税率(10%)が混在するため。
+ *
+ * @param sales 課税売上(税率別)
+ * @param purchases 課税仕入(税率別)
+ * @returns 税率別の内訳と納付税額
+ */
 export function consumptionTaxSummary(sales: RateAmount[], purchases: RateAmount[]): TaxReport {
   const s = sumByRate(sales);
   const p = sumByRate(purchases);

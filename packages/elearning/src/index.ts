@@ -78,6 +78,7 @@ function sameSet(a: number[], b: number[]): boolean {
 /**
  * クイズを採点する。answers は questionId → 選んだ選択肢インデックス配列。
  * @param passRatio 合格に必要な正答率(0–1・既定 0.6)
+ * @returns 得点と合否(**合格点は問題側で決める**。コースによって基準が違う)
  */
 export function gradeQuiz(questions: QuizQuestion[], answers: Record<string, number[]>, passRatio = 0.6): Result<QuizResult> {
   if (questions.length === 0) return err(new AppError(ErrorCode.VALIDATION, "設問がありません"));
@@ -101,7 +102,12 @@ export interface Progress {
   completedLessons: string[];
 }
 
-/** コース内の全レッスンを平坦化して返す。 */
+/**
+ * コース内の全レッスンを平坦化して返す。
+ *
+ * @param course コース(モジュールの入れ子)
+ * @returns すべてのレッスン(**モジュールの順序を保つ**)
+ */
 export function flattenLessons(course: Course): Lesson[] {
   return course.modules.flatMap((m) => m.lessons);
 }
@@ -114,6 +120,8 @@ function lessonWeight(lesson: Lesson): number {
 /**
  * コース進捗を計算する。完了レッスンの重み合計 / 全体の重み合計。
  * @returns 完了率(0–1)・完了数・総数・修了したか
+ * @param course コース
+ * @param completed 完了したレッスン ID
  */
 export function courseProgress(course: Course, progress: Progress): { ratio: number; completed: number; total: number; completedMinutes: number; totalMinutes: number; certified: boolean } {
   const lessons = flattenLessons(course);
@@ -132,7 +140,16 @@ export function courseProgress(course: Course, progress: Progress): { ratio: num
   };
 }
 
-/** モジュール単位の進捗(章ごとの完了率)。 */
+/**
+ * モジュール単位の進捗を返す。
+ *
+ * **章ごとに見せる**ことで「あと 1 つで終わる」が分かり、離脱を防げる
+ * (全体の進捗だけだと、長いコースでは進んでいる実感が無い)。
+ *
+ * @param course コース
+ * @param completed 完了したレッスン ID
+ * @returns モジュールごとの完了率
+ */
 export function moduleProgress(course: Course, progress: Progress): { moduleId: string; title: string; completed: number; total: number; ratio: number }[] {
   const done = new Set(progress.completedLessons);
   return course.modules.map((m) => {
@@ -143,6 +160,10 @@ export function moduleProgress(course: Course, progress: Progress): { moduleId: 
 
 /**
  * 次に取り組むべきレッスンを返す(コース順で最初の未完了)。全完了なら null。
+ *
+ * @param course コース
+ * @param completed 完了したレッスン ID
+ * @returns 次に受けるレッスン。**すべて完了なら undefined**
  */
 export function nextLesson(course: Course, progress: Progress): Lesson | null {
   const done = new Set(progress.completedLessons);
@@ -155,6 +176,10 @@ export function nextLesson(course: Course, progress: Progress): Lesson | null {
 /**
  * レッスンを完了としてマークした新しい進捗を返す(元は破壊しない・重複しない)。
  * 存在しないレッスン ID は VALIDATION。
+ *
+ * @param completed 完了済みの ID
+ * @param lessonId 完了したレッスン
+ * @returns 追加した**新しい配列**(**重複しない**)
  */
 export function markLessonComplete(course: Course, progress: Progress, lessonId: string): Result<Progress> {
   const exists = flattenLessons(course).some((l) => l.id === lessonId);
@@ -173,6 +198,18 @@ export interface Certificate {
   completedAt: string;
   ratio: number;
 }
+/**
+ * 修了証を発行する。
+ *
+ * **修了していない人には発行しない**(`FORBIDDEN`)。研修の受講記録は
+ * 監査や資格要件の証跡になるため、未修了で出すと意味を失う。
+ *
+ * @param course コース
+ * @param progress 学習の進捗
+ * @param learnerId 受講者
+ * @param now 発行時刻(テスト注入用)
+ * @returns 修了証({@link Result})。**未修了なら `FORBIDDEN` の err**
+ */
 export function issueCertificate(course: Course, progress: Progress, learnerId: string, now: Date = new Date()): Result<Certificate> {
   const p = courseProgress(course, progress);
   if (!p.certified) return err(new AppError(ErrorCode.FORBIDDEN, "コースを修了していません"));

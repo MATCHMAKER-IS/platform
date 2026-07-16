@@ -37,7 +37,15 @@ function matches(buf: Uint8Array, sig: Signature): boolean {
   return true;
 }
 
-/** 先頭バイト列からファイル種別を判定する。不明なら null。 */
+/**
+ * 先頭のバイト列からファイル種別を判定する(マジックナンバー)。
+ *
+ * **拡張子は偽装できる**(`virus.exe` を `photo.jpg` にリネームできる)。
+ * 中身を見ることで、本当の種別が分かる。
+ *
+ * @param bytes ファイルの先頭バイト(**16 バイトあれば足りる**)
+ * @returns 判定した種別。**不明なら null**
+ */
 export function detectFileType(buffer: Uint8Array): FileTypeInfo | null {
   for (const sig of SIGNATURES) {
     if (matches(buffer, sig)) return { ext: sig.ext, mime: sig.mime };
@@ -45,13 +53,30 @@ export function detectFileType(buffer: Uint8Array): FileTypeInfo | null {
   return null;
 }
 
-/** 判定結果が許可リストの拡張子に含まれるか(アップロード検証用)。 */
+/**
+ * 判定した種別が許可リストに含まれるかを判定する(アップロード検証用)。
+ *
+ * **拡張子ではなく中身で判定する**ので、偽装を弾ける。
+ *
+ * @param bytes ファイルの先頭バイト
+ * @param allowed 許可する拡張子
+ * @returns 許可された種別なら true。**判定できない場合も false**(安全側)
+ */
 export function isAllowedFileType(buffer: Uint8Array, allowedExts: readonly string[]): boolean {
   const detected = detectFileType(buffer);
   return detected !== null && allowedExts.map((e) => e.toLowerCase().replace(/^\./, "")).includes(detected.ext);
 }
 
-/** 中身から判定した拡張子と、ファイル名の拡張子が一致するか(偽装検出)。 */
+/**
+ * 中身の種別とファイル名の拡張子が一致するかを判定する(偽装検出)。
+ *
+ * **一致しないファイルは疑う**。悪意が無くても(拡張子の付け間違い)、
+ * 開けないファイルを保存させないために有用。
+ *
+ * @param bytes ファイルの先頭バイト
+ * @param filename ファイル名
+ * @returns 一致すれば true。**判定できない場合は true**(未知の形式を一律に弾かない)
+ */
 export function extensionMatchesContent(filename: string, buffer: Uint8Array): boolean {
   const detected = detectFileType(buffer);
   if (!detected) return false;

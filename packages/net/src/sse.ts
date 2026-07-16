@@ -6,7 +6,15 @@
 /** SSE イベント。 */
 export interface SseEvent { event?: string; data: string; id?: string; retry?: number }
 
-/** SSE イベントをワイヤ形式("event: ...\ndata: ...\n\n")に整形する。 */
+/**
+ * SSE イベントをワイヤ形式に整形する。
+ *
+ * **末尾の空行が区切り**(`\n\n`)。これが無いとクライアントはイベントを受け取れない。
+ * **データに改行が含まれる場合は行ごとに `data:` を付ける**必要がある(この関数が処理する)。
+ *
+ * @param event イベント名・データ・ID
+ * @returns ワイヤ形式の文字列
+ */
 export function formatSseEvent(ev: SseEvent): string {
   const lines: string[] = [];
   if (ev.id !== undefined) lines.push(`id: ${ev.id}`);

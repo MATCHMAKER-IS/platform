@@ -15,7 +15,13 @@ export interface ThreadSummary {
   lastActivityAt: string;
 }
 
-/** スレッドの投稿から要約を作る。 */
+/**
+ * スレッドの要約を作る(一覧表示用)。
+ *
+ * @param thread スレッド
+ * @param posts そのスレッドの投稿
+ * @returns 返信数・最終更新・最後の投稿者などを含む要約
+ */
 export function summarize(thread: Thread, posts: Post[]): ThreadSummary {
   const replies = posts.filter((p) => p.replyTo);
   const authors = new Set(posts.map((p) => p.authorId));
@@ -25,7 +31,15 @@ export function summarize(thread: Thread, posts: Post[]): ThreadSummary {
   return { thread, replyCount: replies.length, participants: authors.size, lastActivityAt };
 }
 
-/** スレッド一覧を「ピン → 最終更新の新しい順」で並べる。 */
+/**
+ * スレッド一覧を並べる。
+ *
+ * **ピン留めを最上部**に、その中と外はそれぞれ最終更新の新しい順。
+ * 重要な告知が流れないようにするため。
+ *
+ * @param summaries スレッドの要約
+ * @returns 並べ替えた新しい配列
+ */
 export function sortThreads(summaries: ThreadSummary[]): ThreadSummary[] {
   return summaries.slice().sort((a, b) => {
     const ap = a.thread.pinned ? 1 : 0;
@@ -35,12 +49,26 @@ export function sortThreads(summaries: ThreadSummary[]): ThreadSummary[] {
   });
 }
 
-/** タグで絞り込む。 */
+/**
+ * タグで絞り込む。
+ *
+ * @param summaries スレッドの要約
+ * @param tag タグ
+ * @returns そのタグを持つスレッド
+ */
 export function filterByTag(summaries: ThreadSummary[], tag: string): ThreadSummary[] {
   return summaries.filter((s) => s.thread.tags?.includes(tag));
 }
 
-/** タイトル・本文のキーワードで検索する。 */
+/**
+ * キーワードで検索する(タイトル・本文)。
+ *
+ * **簡易検索**。本格的な全文検索が要るなら `@platform/search`(BM25)を使う。
+ *
+ * @param summaries スレッドの要約
+ * @param keyword 検索語(**大文字小文字は区別しない**)
+ * @returns 一致したスレッド
+ */
 export function searchThreads(summaries: ThreadSummary[], postsByThread: Record<string, Post[]>, keyword: string): ThreadSummary[] {
   const kw = keyword.toLowerCase();
   return summaries.filter((s) => {

@@ -11,12 +11,26 @@ import { PrismaClient, Prisma } from "@prisma/client";
 import { AppError, ErrorCode, tryCatch, type Result } from "@platform/core";
 import { mapPrismaError } from "./errors.js";
 
-/** SQL 識別子として安全か(英数字とアンダースコアのみ、先頭は英字/アンダースコア)。 */
+/**
+ * SQL 識別子として安全か(英数字とアンダースコアのみ、先頭は英字/アンダースコア)。
+ *
+ *
+ * @param name 識別子(テーブル名・カラム名)
+ * @returns 安全なら true。**生 SQL に埋め込む前に必ず通す**(識別子はプレースホルダで渡せないため、
+ *   検証しないと SQL インジェクションを許す)
+ */
 export function isSafeIdentifier(name: string): boolean {
   return /^[A-Za-z_][A-Za-z0-9_]*$/.test(name);
 }
 
-/** tsvector 生成式を組み立てる(識別子は検証済み前提)。 */
+/**
+ * tsvector 生成式を組み立てる(識別子は検証済み前提)。
+ *
+ *
+ * @param columns 対象のカラム(**検証済みであること**)
+ * @param config 全文検索の設定
+ * @returns tsvector の式
+ */
 export function buildTsVectorExpr(columns: string[], language: string): string {
   const parts = columns.map((c) => `coalesce("${c}"::text, '')`).join(" || ' ' || ");
   return `to_tsvector('${language}', ${parts})`;
@@ -91,6 +105,11 @@ export async function fullTextSearch<T = Record<string, unknown>>(
  * ginIndexSql("articles", ["title", "body"], "simple");
  * // CREATE INDEX ... USING GIN (to_tsvector('simple', ...));
  * ```
+ *
+ * @param table テーブル名
+ * @param columns カラム
+ * @returns GIN インデックスの SQL(**全文検索にはこれが必須**。無いと全件走査になる)
+ * @throws {@link @platform/core#AppError} コード `VALIDATION` — 識別子が不正な場合
  */
 export function ginIndexSql(table: string, columns: string[], language = "simple"): string {
   if (!isSafeIdentifier(table) || !columns.every(isSafeIdentifier) || !isSafeIdentifier(language)) {

@@ -23,7 +23,14 @@ const CALLING_CODES: CallingCode[] = [
   { code: "7", country: "RU", name: "ロシア" }, { code: "1", country: "US", name: "米国/カナダ" },
 ].sort((a, b) => b.code.length - a.code.length);
 
-/** E.164 形式として妥当か(+ と 7〜15 桁)。 */
+/**
+ * E.164 形式として妥当かを判定する。
+ *
+ * **`+` と 7〜15 桁**(ITU-T の規定)。
+ *
+ * @param input 電話番号
+ * @returns 妥当なら true
+ */
 export function isValidE164(input: string): boolean {
   return /^\+[1-9]\d{6,14}$/.test(input.trim());
 }
@@ -31,7 +38,12 @@ export function isValidE164(input: string): boolean {
 /** E.164 のパース結果。 */
 export interface E164Parts { e164: string; callingCode: string; country: string; nationalNumber: string }
 
-/** E.164 文字列をパースする(国番号・国コード・国内番号)。不正なら null。 */
+/**
+ * E.164 を解析する。
+ *
+ * @param e164 E.164 形式
+ * @returns 国番号・国コード・国内番号。**不正なら null**
+ */
 export function parseE164(input: string): E164Parts | null {
   const e164 = input.trim().replace(/[\s\-()]/g, "");
   if (!isValidE164(e164)) return null;
@@ -44,12 +56,29 @@ export function parseE164(input: string): E164Parts | null {
   return null;
 }
 
-/** E.164 から国コード(ISO・US/CA は US)を判定する。不明なら null。 */
+/**
+ * E.164 から国コードを判定する。
+ *
+ * **US と CA は同じ国番号(+1)**なので、区別できない(US を返す)。
+ * 厳密に区別するには市外局番の表が要る。
+ *
+ * @param e164 E.164 形式
+ * @returns ISO の国コード。**不明なら null**
+ */
 export function detectCountry(input: string): string | null {
   return parseE164(input)?.country ?? null;
 }
 
-/** 国番号 + 国内番号(先頭 0 は自動除去)を E.164 に組み立てる。 */
+/**
+ * 国番号と国内番号から E.164 を組み立てる。
+ *
+ * **先頭の 0 は自動で除去**する(日本の `090-...` は E.164 では `+8190-...`)。
+ * ここを間違えると番号が届かない。
+ *
+ * @param countryCode 国番号(`81` など)
+ * @param nationalNumber 国内番号
+ * @returns E.164 形式
+ */
 export function toE164International(callingCode: string, nationalNumber: string): string {
   const cc = callingCode.replace(/^\+/, "").replace(/\D/g, "");
   const national = nationalNumber.replace(/\D/g, "").replace(/^0+/, "");
@@ -77,6 +106,12 @@ const TYPE_RULES: Record<string, (national: string) => IntlPhoneType> = {
 /**
  * 国際番号(E.164)の携帯/固定などの種別を判定する。
  * 国別ルールが無い場合は "unknown"、判別不能な国(米国等)は "fixed_or_mobile"。
+ *
+ * **国によっては携帯と固定を番号から区別できない**(米国など。番号ポータビリティで
+ * 携帯番号を固定電話に移せる)。「不明」を返すのは正直な設計。
+ *
+ * @param input E.164 形式の電話番号
+ * @returns 種別。**判別できなければ `unknown` / `fixed_or_mobile`**
  */
 export function internationalPhoneType(input: string): IntlPhoneType {
   const parts = parseE164(input);

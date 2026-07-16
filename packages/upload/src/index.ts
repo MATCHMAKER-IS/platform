@@ -98,7 +98,13 @@ export interface DownloadOptions {
   inline?: boolean;
 }
 
-/** バイト列をダウンロード用のレスポンスに変換する(Content-Disposition 付き)。 */
+/**
+ * バイト列をダウンロード用のレスポンスに変換する(Content-Disposition 付き)。
+ *
+ *
+ * @param options.filename / contentType / body 返すファイル
+ * @returns Response(**`Content-Disposition` を付ける**ので、ブラウザで開かずダウンロードされる)
+ */
 export function serveDownload(data: Uint8Array, options: DownloadOptions): Response {
   const { filename, contentType = "application/octet-stream", inline = false } = options;
   const disposition = inline ? "inline" : "attachment";

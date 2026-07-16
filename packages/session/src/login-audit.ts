@@ -34,7 +34,15 @@ export interface LoginAuditSink {
   record(event: LoginAuditEvent): void | Promise<void>;
 }
 
-/** 監査ロガーを作る。共通フィールドを補いつつ sink に流す。 */
+/**
+ * ログイン監査のロガーを作る。
+ *
+ * **「誰が・いつ・どこから・成功したか失敗したか」を残す**。不正アクセスの調査に必要。
+ *
+ * @param sink 実際の書き込み先(DB・ログ基盤など)
+ * @param options.now 時刻の取得(テスト注入用)
+ * @returns ロガー
+ */
 export function createLoginAudit(sink: LoginAuditSink, options?: { now?: () => Date }) {
   const now = options?.now ?? (() => new Date());
   async function emit(event: LoginEventType, fields: Omit<LoginAuditEvent, "event" | "at"> = {}): Promise<void> {
@@ -54,7 +62,15 @@ export function createLoginAudit(sink: LoginAuditSink, options?: { now?: () => D
   };
 }
 
-/** 監査イベントから、機微情報を落とした要約行を作る(ログ表示用)。 */
+/**
+ * 監査イベントから、**機微情報を落とした**要約行を作る。
+ *
+ * **パスワードやトークンをログに残さない**ため。ログは広く読まれるので、
+ * ここで落としておかないと漏洩経路になる。
+ *
+ * @param event 監査イベント
+ * @returns 表示用の要約(1 行)
+ */
 export function summarizeLoginEvent(e: LoginAuditEvent): string {
   const who = e.subject ?? "(unknown)";
   const from = e.ip ? ` from ${e.ip}` : "";

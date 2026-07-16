@@ -10,12 +10,24 @@ export interface LocaleStore {
   save(locale: Locale): Promise<void>;
 }
 
-/** 文字列が対応ロケールか。 */
+/**
+ * 文字列が対応ロケールか。
+ *
+ *
+ * @param value 判定する値
+ * @returns 対応するロケールなら true(**型ガード**)
+ */
 export function isLocale(v: unknown): v is Locale {
   return typeof v === "string" && (LOCALES as string[]).includes(v);
 }
 
-/** localStorage に保存するストア。 */
+/**
+ * localStorage に保存するストア。
+ *
+ *
+ * @param key 保存キー
+ * @returns ストア
+ */
 export function createLocalStorageLocaleStore(key = "app.locale"): LocaleStore {
   return {
     async load() {
@@ -30,7 +42,13 @@ export function createLocalStorageLocaleStore(key = "app.locale"): LocaleStore {
   };
 }
 
-/** サーバにユーザー別で保存するストア。 */
+/**
+ * サーバにユーザー別で保存するストア。
+ *
+ *
+ * @param options.endpoint API の URL
+ * @returns ストア(**端末をまたいで言語設定を持ち回れる**)
+ */
 export function createFetchLocaleStore(options: { endpoint: string; userId: string; headers?: Record<string, string>; fetch?: typeof fetch }): LocaleStore {
   const doFetch = options.fetch ?? (typeof fetch !== "undefined" ? fetch : undefined);
   const url = `${options.endpoint}?user=${encodeURIComponent(options.userId)}`;

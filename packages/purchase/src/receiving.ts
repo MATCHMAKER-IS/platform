@@ -28,7 +28,13 @@ export interface LineReceivingStatus {
 /** 発注状態。 */
 export type PurchaseStatus = "draft" | "ordered" | "partially_received" | "received" | "cancelled";
 
-/** 明細ごとの入荷状況を集計する。 */
+/**
+ * 明細ごとの入荷状況を集計する。
+ *
+ * @param order 発注書
+ * @param receipts 入荷の記録
+ * @returns 明細ごとの発注数・入荷数・残
+ */
 export function receivingStatus(lines: PurchaseLine[], receipts: Receipt[]): LineReceivingStatus[] {
   return lines.map((line, i) => {
     const received = receipts.filter((r) => r.lineIndex === i).reduce((s, r) => s + r.quantity, 0);
@@ -38,12 +44,26 @@ export function receivingStatus(lines: PurchaseLine[], receipts: Receipt[]): Lin
   });
 }
 
-/** 全明細の発注残合計。 */
+/**
+ * 発注残の合計を返す。
+ *
+ * **未入荷を放置しない**ため(発注したのに届いていないものを可視化する)。
+ *
+ * @param order 発注書
+ * @param receipts 入荷の記録
+ * @returns 残数の合計
+ */
 export function totalOutstanding(lines: PurchaseLine[], receipts: Receipt[]): number {
   return receivingStatus(lines, receipts).reduce((s, l) => s + l.outstanding, 0);
 }
 
-/** 発注全体の入荷状態を判定する。 */
+/**
+ * 発注全体の入荷状態を判定する。
+ *
+ * @param order 発注書
+ * @param receipts 入荷の記録
+ * @returns `pending`(未入荷)/ `partial`(一部)/ `complete`(完了)
+ */
 export function purchaseStatus(
   order: { lines: PurchaseLine[]; state?: "draft" | "ordered" | "cancelled" },
   receipts: Receipt[],
@@ -56,7 +76,16 @@ export function purchaseStatus(
   return statuses.every((l) => l.complete) ? "received" : "partially_received";
 }
 
-/** 過入荷(発注数量を超える入荷)がある明細を返す。 */
+/**
+ * 過入荷の明細を返す(発注数量を超える入荷)。
+ *
+ * **発注より多く届くのは異常**(誤配送・入力ミス)。検収の前に気づく必要がある
+ * (受け入れてしまうと、請求と合わなくなる)。
+ *
+ * @param order 発注書
+ * @param receipts 入荷の記録
+ * @returns 過入荷の明細と超過数
+ */
 export function overReceivedLines(lines: PurchaseLine[], receipts: Receipt[]): number[] {
   return lines
     .map((line, i) => {

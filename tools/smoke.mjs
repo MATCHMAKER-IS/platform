@@ -9850,8 +9850,8 @@ export const z = anyChain;
   const T = await import(`${base}/catalog-tools.mts`);
 
   const demos = C.loadDemos({ root });
-  ok("loadDemos: 26デモ・説明・使用パッケージをソースの import から抽出",
-    demos.length === 26 && demos.every((d) => d.name && d.summary) &&
+  ok("loadDemos: 27デモ・説明・使用パッケージをソースの import から抽出",
+    demos.length === 27 && demos.every((d) => d.name && d.summary) &&
     demos.find((d) => d.name === "showcase").packages.includes("theme"));
   ok("searchDemos: パッケージ名/日本語/@platform付きで引ける・該当なしは空",
     C.searchDemos(demos, "pdf").some((h) => h.name === "invoice-pdf") &&
@@ -10630,8 +10630,9 @@ export const z = anyChain;
     claude.includes("## TSDoc") && claude.includes("@param") && claude.includes("@throws") &&
     claude.includes("型で分かることは書かない") && claude.includes("なぜそうしているか") &&
     claude.includes("check-tsdoc.mjs"));
-  ok("CLAUDE.md: 一斉修正はせず新規/改修時に直す方針を明記",
-    claude.includes("新規と改修時に少しずつ直す"));
+  ok("CLAUDE.md: 全関数が完備・この状態を保つ方針・一括処理の危険を明記",
+    claude.includes("全 1,691 関数・105 パッケージが完備") && claude.includes("この状態を保つ") &&
+    claude.includes("正規表現での一括処理は関数を壊す"));
 }
 
 // ── リファレンス生成: 引数・戻り値・例外・使用例 ──
@@ -10957,6 +10958,66 @@ export const z = anyChain;
     client.includes("解約予告期限") && client.includes("過ぎた") && client.includes("var(--color-danger"));
   const nav = await fsc.readFile(new URL("../apps/internal-app/src/components/AppNav.tsx", import.meta.url), "utf8");
   ok("AppNav: 契約への導線", nav.includes('href: "/contracts"'));
+
+  await fsc.rm(base, { recursive: true, force: true });
+}
+
+// ── demos/workplace-ops(3基盤の横断) ──
+{
+  section("demo: workplace-ops(タスク/契約/FAQ の横断)");
+  const fsc = await import("node:fs/promises");
+  const osc = await import("node:os");
+  const base = `${osc.tmpdir()}/wo-${Date.now()}`;
+  await fsc.mkdir(base, { recursive: true });
+  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
+  await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
+  for (const pkg of ["task", "faq", "contract"]) {
+    await fsc.writeFile(`${base}/${pkg}.ts`, (await fsc.readFile(new URL(`../packages/${pkg}/src/${pkg}.ts`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  }
+  let src = (await fsc.readFile(new URL("../demos/workplace-ops/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  for (const pkg of ["task", "faq", "contract"]) src = src.replace(`from "@platform/${pkg}"`, `from "${base}/${pkg}.ts"`);
+  await fsc.writeFile(`${base}/wo.ts`, src);
+  const W = await import(`${base}/wo.ts`);
+
+  const today = new Date("2026-07-15T00:00:00Z");
+  const b = { createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z" };
+  const tasks = [
+    { id: "t1", title: "サーバ更新", status: "doing", priority: "urgent", assignee: "田中", dueDate: "2026-07-10", estimateHours: 8, ...b },
+    { id: "t2", title: "資料整理", status: "todo", priority: "low", dueDate: "2026-07-12", ...b },
+    { id: "t3", title: "完了済み", status: "done", priority: "normal", ...b },
+  ];
+  const contracts = [
+    { id: "c1", title: "クラウド契約", partner: "A社", status: "active", startDate: "2025-01-01", endDate: "2026-09-01", renewalType: "auto", renewalMonths: 12, noticeDays: 60, amount: 1_200_000, owner: "情シス", ...b },
+    { id: "c2", title: "清掃委託", partner: "B社", status: "active", startDate: "2025-01-01", endDate: "2026-07-18", renewalType: "manual", amount: 360_000, owner: "総務", ...b },
+  ];
+  const faqs = [
+    { id: "f1", question: "古い情報", answer: "x", category: "経費", keywords: [], status: "published", helpful: 1, notHelpful: 9, views: 60, relatedIds: [], ...b },
+    { id: "f2", question: "良いFAQ", answer: "y", category: "経費", keywords: [], status: "published", helpful: 20, notHelpful: 1, views: 100, relatedIds: [], ...b },
+  ];
+
+  const todos = W.buildTodoList({ tasks, contracts, faqs, today });
+  ok("buildTodoList: 3領域から集め、放っておくと損をするものが先(契約→タスク→FAQ)",
+    todos.some((t) => t.source === "contract") && todos.some((t) => t.source === "task") && todos.some((t) => t.source === "faq") &&
+    todos[0].level === "danger" && todos[todos.length - 1].source === "faq");
+  ok("buildTodoList: 判定は基盤に委ねる(期限切れのみ・良いFAQは出さない・優先度で深刻度)",
+    todos.filter((t) => t.source === "task").length === 2 && !todos.some((t) => t.title.includes("完了済み")) &&
+    todos.filter((t) => t.source === "faq").length === 1 &&
+    todos.some((t) => t.title.includes("サーバ更新") && t.level === "danger") &&
+    todos.some((t) => t.title.includes("資料整理") && t.level === "warning"));
+  ok("buildTodoList: 担当者と詳細リンク・「何をすべきか」を必ず添える",
+    todos.every((t) => t.action.length > 0 && t.href.length > 0) &&
+    todos.some((t) => t.owner === "田中") && todos.some((t) => t.owner === "情シス"));
+
+  const s = W.morningSummary({ tasks, contracts, faqs, today });
+  ok("morningSummary: 各領域の集計を基盤に委ねて束ねるだけ(再実装しない)",
+    s.todoCount === todos.length && s.urgentCount >= 1 && s.taskProgress > 0 && s.overdueTasks === 2 &&
+    s.contractAmount === 1_560_000 && s.faqHelpfulRate > 0 && s.busiestPerson.assignee === "田中");
+  ok("groupByOwner: 担当者別・未割り当ても見せる(放置されがちなので)",
+    W.groupByOwner(todos).some((g) => g.owner === "田中") && W.groupByOwner(todos).some((g) => g.owner === "(未割り当て)"));
+  ok("formatTodoList: Slack/メモ用のテキスト(🔴🟡⚪ と → アクション)・空なら案内",
+    W.formatTodoList(todos).includes("🔴") && W.formatTodoList(todos).includes("→") &&
+    W.formatTodoList([]) === "今日やるべきことはありません。");
 
   await fsc.rm(base, { recursive: true, force: true });
 }

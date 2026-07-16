@@ -7,6 +7,12 @@ export interface UseMediaRecorderOptions {
   video?: boolean;
 }
 
+/**
+ * 音声・映像を記録するフック。**利用者の許可が要る**(初回にダイアログが出る)。
+ *
+ * @param options.mimeType 記録形式
+ * @param options.maxDurationMs 最大の長さ(**上限が無いとメモリを食い尽くす**)
+ */
 export function useMediaRecorder({ audio = true, video = false }: UseMediaRecorderOptions) {
   const [recording, setRecording] = React.useState(false);
   const [seconds, setSeconds] = React.useState(0);

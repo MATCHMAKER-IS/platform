@@ -33,7 +33,16 @@ function isNumberLike(s: string): boolean {
   return /^-?[\d,]+(\.\d+)?$/.test(s);
 }
 
-/** 取り込み行を検証し、行/セル単位のエラーを返す。 */
+/**
+ * 取り込み行を検証する。
+ *
+ * **セル単位でエラーを返す**(行単位だと「この行のどこが悪いか」が分からず、
+ * 利用者は全部見直すことになる)。
+ *
+ * @param rows 取り込む行
+ * @param rules 検証ルール
+ * @returns 行・セル単位のエラー
+ */
 export function validateImportRows(rows: Record<string, unknown>[], fields: ImportField[]): ImportValidation {
   const seen: Record<string, Map<string, number>> = {};
   for (const f of fields) if (f.unique) seen[f.key] = new Map();
@@ -61,19 +70,40 @@ export function validateImportRows(rows: Record<string, unknown>[], fields: Impo
   return { rows: result, valid: errorCount === 0, errorCount };
 }
 
-/** (row,key)→エラーメッセージ を引ける関数を作る(SheetGrid の cellError 用)。 */
+/**
+ * セルのエラーを引ける関数を作る(表の赤枠表示用)。
+ *
+ * **エラーをセルの位置に表示する**ため。一覧の下にまとめて出すより、
+ * 該当セルを赤くする方が直せる。
+ *
+ * @param errors 検証結果
+ * @returns `(row, key)` → エラーメッセージ を返す関数
+ */
 export function cellErrorLookup(validation: ImportValidation): (rowIndex: number, key: string) => string | null {
   const map = new Map<string, string>();
   for (const r of validation.rows) for (const e of r.errors) map.set(`${r.index}:${e.key}`, e.message);
   return (rowIndex, key) => map.get(`${rowIndex}:${key}`) ?? null;
 }
 
-/** エラーを含む行のインデックス一覧。 */
+/**
+ * エラーを含む行のインデックスを返す。
+ *
+ * @param errors 検証結果
+ * @returns 行インデックスの配列(**重複なし・昇順**)
+ */
 export function errorRowIndices(validation: ImportValidation): number[] {
   return validation.rows.filter((r) => r.errors.length > 0).map((r) => r.index);
 }
 
-/** エラーを含む行だけを(元インデックス付きで)抽出する。 */
+/**
+ * エラーを含む行だけを抽出する。
+ *
+ * **元インデックスを付ける**(「3 行目を直して」と伝えるため。抽出後の番号では通じない)。
+ *
+ * @param rows 全行
+ * @param errors 検証結果
+ * @returns エラー行と元インデックス
+ */
 export function filterErrorRows<T>(rows: T[], validation: ImportValidation): { row: T; index: number }[] {
   const idx = new Set(errorRowIndices(validation));
   return rows.map((row, index) => ({ row, index })).filter((x) => idx.has(x.index));
@@ -82,7 +112,13 @@ export function filterErrorRows<T>(rows: T[], validation: ImportValidation): { r
 /** 取り込みサマリ。 */
 export interface ImportSummary { total: number; valid: number; errorRows: number; errorCount: number; ok: boolean }
 
-/** 検証結果からサマリを作る。 */
+/**
+ * 検証結果の要約を作る。
+ *
+ * @param rows 全行
+ * @param errors 検証結果
+ * @returns 総数・有効・無効の件数
+ */
 export function summarizeImport(validation: ImportValidation): ImportSummary {
   const errorRows = errorRowIndices(validation).length;
   return {
@@ -106,7 +142,16 @@ export interface ImportHistoryRow {
   status: "success" | "partial" | "failed" | "rolled_back";
 }
 
-/** 取り込みメタ + サマリ + 実挿入件数から履歴行を作る。 */
+/**
+ * 取り込み履歴の行を作る。
+ *
+ * **誰がいつ何件取り込んだかを残す**(後から「このデータはどこから来たか」を追える)。
+ *
+ * @param meta 取り込みのメタ情報(ファイル名・実行者)
+ * @param summary 検証の要約
+ * @param inserted 実際に挿入した件数
+ * @returns 履歴行
+ */
 export function buildImportHistory(
   meta: { source: string; userId: string; importId?: string; at?: string },
   summary: ImportSummary,
@@ -125,7 +170,15 @@ export function buildImportHistory(
   };
 }
 
-/** ロールバック可能な状態か(挿入があり、未ロールバック)。 */
+/**
+ * ロールバックできるかを判定する。
+ *
+ * **挿入があり、まだロールバックしていない**ときだけ。二重に取り消すと、
+ * 別の取り込みで入れたデータまで消える。
+ *
+ * @param history 履歴行
+ * @returns ロールバックできれば true
+ */
 export function canRollback(status: ImportHistoryRow["status"]): boolean {
   return status === "success" || status === "partial";
 }
@@ -133,6 +186,10 @@ export function canRollback(status: ImportHistoryRow["status"]): boolean {
 /**
  * ユーザーがロールバックできるか(状態 + ロール)。allowedRoles のいずれかを持つ場合のみ可。
  * allowedRoles 未指定なら状態のみで判定。
+ *
+ * @param history 履歴行
+ * @param options.maxAgeMs ロールバックを許す期間
+ * @returns ロールバックできるか(**古い取り込みは戻せない**。後続の変更を壊すため)
  */
 export function canRollbackWith(status: ImportHistoryRow["status"], actorRoles: string[], allowedRoles?: string[]): boolean {
   if (!canRollback(status)) return false;
@@ -140,13 +197,29 @@ export function canRollbackWith(status: ImportHistoryRow["status"], actorRoles: 
   return actorRoles.some((r) => allowedRoles.includes(r));
 }
 
-/** エラーの無い行だけを返す(部分保存用)。 */
+/**
+ * エラーの無い行だけを返す(部分保存用)。
+ *
+ * **1 行の不備で全体を止めない**(100 件中 1 件が悪いだけで全部やり直しは現実的でない)。
+ *
+ * @param rows 全行
+ * @param errors 検証結果
+ * @returns 有効な行
+ */
 export function validRows<T>(rows: T[], validation: ImportValidation): T[] {
   const err = new Set(errorRowIndices(validation));
   return rows.filter((_r, i) => !err.has(i));
 }
 
-/** 有効行/無効行に分割する(元インデックス付き)。 */
+/**
+ * 有効行と無効行に分ける。
+ *
+ * **有効な分は保存し、無効な分は直してもらう**という流れに使う。
+ *
+ * @param rows 全行
+ * @param errors 検証結果
+ * @returns 有効行と無効行(**それぞれ元インデックス付き**)
+ */
 export function partitionRows<T>(rows: T[], validation: ImportValidation): { valid: { row: T; index: number }[]; invalid: { row: T; index: number }[] } {
   const err = new Set(errorRowIndices(validation));
   const valid: { row: T; index: number }[] = [];

@@ -48,6 +48,7 @@ export interface ReceiptBuilder {
  *   .align("left").line("合計  \\u00a51,320").feed(1).cut().build();
  * // conn.write("...serial svc...", "...", bytes) 等で送信
  * ```
+ * @returns レシートビルダー。**ESC/POS はプリンタごとに方言がある**(機種で確認すること)
  */
 export function createReceipt(): ReceiptBuilder {
   const chunks: number[][] = [];

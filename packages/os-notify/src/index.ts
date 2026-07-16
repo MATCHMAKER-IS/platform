@@ -48,6 +48,7 @@ function shEscape(s: string): string {
 /**
  * デスクトップ通知を出すコマンドを OS 別に生成する(純関数)。
  * @param platform process.platform 相当
+ * @returns OS ごとの通知コマンド(**macOS は osascript、Windows は PowerShell、Linux は notify-send**)
  */
 export function buildNotifyCommand(platform: OsPlatform, n: OsNotification): OsCommand {
   const title = n.title;
@@ -74,6 +75,9 @@ export function buildNotifyCommand(platform: OsPlatform, n: OsNotification): OsC
 /**
  * 音を鳴らすコマンドを OS 別に生成する(純関数)。
  * soundFile 未指定ならシステム既定音(ビープ等)。
+ *
+ * @param sound 音の種類
+ * @returns OS ごとの再生コマンド
  */
 export function buildSoundCommand(platform: OsPlatform, soundFile?: string): OsCommand {
   if (platform === "win32") {
@@ -110,7 +114,15 @@ export interface OsNotifyLogStore {
   list(limit?: number): OsNotifyLogEntry[];
 }
 
-/** メモリ実装の通知履歴ストア(最大件数を超えたら古いものを捨てる)。 */
+/**
+ * 通知履歴ストアのメモリ実装。
+ *
+ * **最大件数を超えたら古いものから捨てる**(通知履歴は無限に増えるため)。
+ * 本番で長期保存したいなら DB 実装を使う。
+ *
+ * @param options.capacity 保持する件数
+ * @returns 履歴ストア
+ */
 export function createMemoryNotifyLog(options: { max?: number } = {}): OsNotifyLogStore {
   const max = options.max ?? 200;
   const entries: OsNotifyLogEntry[] = [];
@@ -150,6 +162,10 @@ export interface OsNotifier {
  * const notifier = createOsNotifier({ platform: process.platform as OsPlatform, spawn });
  * await notifier.notify({ title: "完了", message: "バッチが終わりました", sound: true });
  * ```
+ *
+ * @param options.exec コマンドを実行する関数(**テストで差し替えられる**)
+ * @param options.store 履歴ストア
+ * @returns 通知器。**開発者の手元向け**(サーバでは意味がない。利用者に届けるなら @platform/notify)
  */
 export function createOsNotifier(options: OsNotifierOptions = {}): OsNotifier {
   const platform = options.platform ?? "linux";

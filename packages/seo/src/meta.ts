@@ -27,7 +27,15 @@ export interface RobotsDirective {
   maxSnippet?: number;
 }
 
-/** HTML 属性値をエスケープする。 */
+/**
+ * HTML の属性値をエスケープする。
+ *
+ * **メタタグに記事タイトルを入れるときは必ず通す**。
+ * タイトルに `"` が含まれると属性が壊れ、そこから任意のタグを差し込まれる。
+ *
+ * @param value 属性値
+ * @returns エスケープした文字列
+ */
 export function escapeAttr(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
@@ -37,7 +45,12 @@ function robotsForVisibilityInline(visibility: "public" | "internal"): RobotsDir
   return visibility === "public" ? { index: true, follow: true } : { index: false, follow: false, noarchive: true };
 }
 
-/** robots の content 文字列を作る("index, follow" など)。 */
+/**
+ * robots の content 文字列を組み立てる。
+ *
+ * @param options index / follow / archive などの指定
+ * @returns `"index, follow"` 形式の文字列
+ */
 export function robotsContent(directive: RobotsDirective): string {
   const parts: string[] = [];
   parts.push(directive.index === false ? "noindex" : "index");
@@ -69,13 +82,30 @@ export interface MetaInput {
   visibility?: "public" | "internal";
 }
 
-/** タイトルにテンプレートを適用する。 */
+/**
+ * タイトルにテンプレートを適用する。
+ *
+ * 「記事タイトル | サイト名」のような形を全ページで揃える。
+ *
+ * @param title ページのタイトル
+ * @param titleTemplate テンプレート(`%s` がタイトルに置き換わる。省略時はそのまま)
+ * @returns 適用したタイトル。**テンプレートが無ければそのまま**
+ */
 export function buildTitle(title: string, titleTemplate?: string): string {
   if (!titleTemplate) return title;
   return titleTemplate.replace("%s", title);
 }
 
-/** description を検索結果向けの長さに調整する(既定 160 文字)。 */
+/**
+ * description を検索結果向けの長さに調整する。
+ *
+ * **長すぎると検索結果で途中で切られる**(何を言いたいか伝わらない)。
+ * 160 文字程度が目安。
+ *
+ * @param text 説明文
+ * @param maxLength 最大文字数(既定 160)
+ * @returns 調整した説明文
+ */
 export function truncateDescription(text: string, maxLength = 160): string {
   const t = text.replace(/\s+/g, " ").trim();
   if (t.length <= maxLength) return t;
@@ -89,7 +119,12 @@ export interface MetaResult {
   canonical?: string;
 }
 
-/** メタタグ一式を組み立てる。 */
+/**
+ * メタタグ一式を組み立てる(title / description / OGP / Twitter Card)。
+ *
+ * @param input タイトル・説明・URL・画像など
+ * @returns メタ情報のオブジェクト
+ */
 export function buildMeta(input: MetaInput): MetaResult {
   const title = buildTitle(input.title, input.titleTemplate);
   const tags: MetaTag[] = [];
@@ -100,7 +135,14 @@ export function buildMeta(input: MetaInput): MetaResult {
   return { title, tags, canonical: input.canonical };
 }
 
-/** メタ情報を HTML 文字列(head 内タグ)に変換する。 */
+/**
+ * メタ情報を HTML(head 内のタグ)に変換する。
+ *
+ * **値はエスケープ済み**({@link escapeAttribute} を内部で通す)。
+ *
+ * @param meta メタ情報
+ * @returns head に入れる HTML 文字列
+ */
 export function renderMeta(result: MetaResult): string {
   const lines: string[] = [`<title>${escapeAttr(result.title)}</title>`];
   for (const tag of result.tags) {
@@ -111,7 +153,12 @@ export function renderMeta(result: MetaResult): string {
   return lines.join("\n");
 }
 
-/** MetaTag 配列を <meta> 行の HTML に変換する(OGP/Twitter 用)。 */
+/**
+ * メタタグの配列を HTML に変換する(OGP / Twitter Card 用)。
+ *
+ * @param tags メタタグの配列
+ * @returns `<meta>` 行の HTML
+ */
 export function renderMetaTags(tags: MetaTag[]): string {
   return tags
     .map((tag) => {

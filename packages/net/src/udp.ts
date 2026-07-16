@@ -14,7 +14,16 @@ export interface UdpSocket {
   close(): Promise<void>;
 }
 
-/** UDP ソケットを作成する(port 省略/0 で自動割当)。 */
+/**
+ * UDP ソケットを作成する。
+ *
+ * **UDP は届く保証も順序の保証も無い**。落ちてもよいもの(メトリクス・死活監視)に使う。
+ * 確実に届けたいなら TCP を使うこと。
+ *
+ * @param options.port 待ち受けポート(**省略または 0 で自動割当**)
+ * @param options.onMessage 受信時の処理
+ * @returns ソケット。`send` で送信、`close` で停止
+ */
 export function createUdpSocket(
   options: { port?: number; host?: string } = {},
   onMessage?: (message: Uint8Array, from: { address: string; port: number }) => void,

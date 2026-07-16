@@ -3,7 +3,18 @@
  * @packageDocumentation
  */
 
-/** 連続呼び出しを最後の1回にまとめる(入力確定を待つ用途)。 */
+/**
+ * 連続呼び出しを最後の 1 回にまとめる。
+ *
+ * **入力が止まるのを待つ**用途。検索ボックスで 1 文字ごとに API を叩かないようにする。
+ *
+ * {@link throttle} との違い: debounce は「静かになってから 1 回」、
+ * throttle は「一定間隔で定期的に」。**入力補完は debounce、スクロール追従は throttle**。
+ *
+ * @param fn 実行する関数
+ * @param waitMs 待つ時間(ミリ秒)。**この時間内に再度呼ばれると先延ばしになる**
+ * @returns ラップした関数(`cancel()` で予約を取り消せる)
+ */
 export function debounce<A extends unknown[]>(fn: (...args: A) => void, waitMs: number): ((...args: A) => void) & { cancel(): void } {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const debounced = (...args: A) => {
@@ -14,7 +25,16 @@ export function debounce<A extends unknown[]>(fn: (...args: A) => void, waitMs: 
   return debounced;
 }
 
-/** 一定間隔に1回だけ実行する(先頭で即実行し、以降は間隔内を無視)。 */
+/**
+ * 一定間隔に 1 回だけ実行する。
+ *
+ * **先頭で即実行**し、以降は間隔内の呼び出しを無視する。
+ * スクロール・リサイズなど「連続するが、定期的に反応したい」用途。
+ *
+ * @param fn 実行する関数
+ * @param intervalMs 間隔(ミリ秒)
+ * @returns ラップした関数
+ */
 export function throttle<A extends unknown[]>(fn: (...args: A) => void, intervalMs: number): (...args: A) => void {
   let last = 0;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -31,7 +51,18 @@ export function throttle<A extends unknown[]>(fn: (...args: A) => void, interval
   };
 }
 
-/** 引数をキーに結果をキャッシュする。 */
+/**
+ * 引数をキーに結果をキャッシュする。
+ *
+ * **同じ引数なら計算し直さない**。重い計算に使う。
+ *
+ * 注意: **キャッシュは無限に増える**(上限が無い)。引数の種類が多いなら
+ * `@platform/cache`(LRU・TTL つき)を使うこと。
+ *
+ * @param fn キャッシュしたい関数
+ * @param keyOf 引数からキーを作る関数(既定は `JSON.stringify`)
+ * @returns ラップした関数
+ */
 export function memoize<A extends unknown[], R>(fn: (...args: A) => R, keyOf: (...args: A) => string = (...a) => JSON.stringify(a)): ((...args: A) => R) & { clear(): void } {
   const cache = new Map<string, R>();
   const memoized = (...args: A): R => {
@@ -45,7 +76,14 @@ export function memoize<A extends unknown[], R>(fn: (...args: A) => R, keyOf: (.
   return memoized;
 }
 
-/** 最初の1回だけ実行し、以降は最初の結果を返す。 */
+/**
+ * 最初の 1 回だけ実行し、以降は最初の結果を返す。
+ *
+ * 初期化処理に使う(**何度呼ばれても 1 回しか走らない**)。
+ *
+ * @param fn 実行する関数
+ * @returns ラップした関数
+ */
 export function once<A extends unknown[], R>(fn: (...args: A) => R): (...args: A) => R {
   let called = false;
   let result: R;
@@ -55,12 +93,31 @@ export function once<A extends unknown[], R>(fn: (...args: A) => R): (...args: A
   };
 }
 
-/** 左から右へ関数を適用する(pipe(f,g)(x) === g(f(x)))。 */
+/**
+ * 左から右へ関数を適用する。
+ *
+ * **読む順に書ける**ので、こちらの方が直感的なことが多い。
+ *
+ * @param fns 適用する関数(左から順に)
+ * @returns 合成した関数
+ *
+ * @example
+ * ```ts
+ * pipe(trim, toLowerCase)("  ABC  ");  // => "abc"(trim してから小文字)
+ * ```
+ */
 export function pipe<T>(...fns: ((value: T) => T)[]): (value: T) => T {
   return (value: T) => fns.reduce((acc, fn) => fn(acc), value);
 }
 
-/** 右から左へ関数を適用する(compose(f,g)(x) === f(g(x)))。 */
+/**
+ * 右から左へ関数を適用する(数学の関数合成と同じ向き)。
+ *
+ * `compose(f, g)(x)` は `f(g(x))`。**{@link pipe} と逆**なので注意。
+ *
+ * @param fns 適用する関数(右から順に)
+ * @returns 合成した関数
+ */
 export function compose<T>(...fns: ((value: T) => T)[]): (value: T) => T {
   return (value: T) => fns.reduceRight((acc, fn) => fn(acc), value);
 }

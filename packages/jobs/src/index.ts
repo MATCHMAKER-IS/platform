@@ -23,7 +23,11 @@ export interface JobsConnection {
   url: string;
 }
 
-/** Redis URL から接続情報(host/port/password)を作る。 */
+/**
+ * Redis URL から接続情報(host/port/password)を作る。
+ *
+ * @param url Redis の URL
+ */
 export function connectionFromUrl(url: string) {
   const u = new URL(url);
   return {

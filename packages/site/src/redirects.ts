@@ -30,6 +30,10 @@ function normalize(path: string): string {
 /**
  * パスに一致するリダイレクトを返す(先に定義したルールが優先)。無ければ null。
  * ワイルドカード: from "/blog/*" は "/blog/..." に一致し、末尾を to の :splat に差し込む。
+ *
+ * @param rules リダイレクトのルール
+ * @param from 元のパス
+ * @returns 転送先。**該当が無ければ undefined**
  */
 export function resolveRedirect(rules: RedirectRule[], path: string): RedirectResult | null {
   const target = normalize(path);
@@ -48,7 +52,16 @@ export function resolveRedirect(rules: RedirectRule[], path: string): RedirectRe
   return null;
 }
 
-/** リダイレクトの連鎖を解決する(A→B→C を A→C に)。循環は maxHops で打ち切り。 */
+/**
+ * リダイレクトの連鎖を解決する(A→B→C を A→C に)。
+ *
+ * **連鎖したままだと遅く、SEO でも不利**(検索エンジンは何度も辿らない)。
+ * **循環は `maxHops` で打ち切る**(A→B→A を無限に辿らないため)。
+ *
+ * @param rules リダイレクトのルール
+ * @param maxHops 辿る最大回数(既定 10)
+ * @returns 解決済みのルール。**循環したものは元のまま残す**(消すと 404 になり、原因も分からなくなる)
+ */
 export function resolveRedirectChain(rules: RedirectRule[], path: string, maxHops = 10): RedirectResult | null {
   let current = path;
   let last: RedirectResult | null = null;

@@ -9,7 +9,13 @@ import { matchBreakpoint, deviceSizeFromWidth, type Breakpoints, type DeviceSize
 import { classifyConnection, type ConnectionQuality } from "./network.js";
 import { orientationFromDimensions, type Orientation } from "./orientation.js";
 
-/** メディアクエリの一致を購読する。 */
+/**
+ * メディアクエリの一致を購読する。
+ *
+ *
+ * @param query メディアクエリ
+ * @returns 一致するか(**SSR では false**)
+ */
 export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(false);
   useEffect(() => {
@@ -36,30 +42,52 @@ export function useViewportSize(): { width: number; height: number } {
   return size;
 }
 
-/** 現在のブレークポイント名を購読する。 */
+/**
+ * 現在のブレークポイント名を購読する。
+ *
+ *
+ * @param breakpoints ブレークポイントの定義
+ * @returns 現在のブレークポイント名
+ */
 export function useBreakpoint(breakpoints?: Breakpoints): string {
   const { width } = useViewportSize();
   return matchBreakpoint(width, breakpoints);
 }
 
-/** 端末カテゴリ(mobile/tablet/desktop)を購読する。 */
+/**
+ * 端末カテゴリ(mobile/tablet/desktop)を購読する。
+ *
+ * @returns 画面の幅・高さ(**リサイズに追従**)
+ */
 export function useDeviceSize(): DeviceSize {
   const { width } = useViewportSize();
   return deviceSizeFromWidth(width || 1024);
 }
 
-/** モバイル幅かどうか。 */
+/**
+ * モバイル幅かどうか。
+ *
+ * @returns モバイル幅なら true
+ */
 export function useIsMobile(): boolean {
   return useDeviceSize() === "mobile";
 }
 
-/** 画面の向きを購読する。 */
+/**
+ * 画面の向きを購読する。
+ *
+ * @returns 画面の向き(**回転に追従**)
+ */
 export function useOrientation(): Orientation {
   const { width, height } = useViewportSize();
   return orientationFromDimensions(width || 1, height || 2);
 }
 
-/** オンライン/オフライン状態を購読する。 */
+/**
+ * オンライン/オフライン状態を購読する。
+ *
+ * @returns オンラインか。**`navigator.onLine` は当てにならない**(LAN に繋がっていれば true になる。実際の疎通は別途確認する)
+ */
 export function useOnlineStatus(): boolean {
   const [online, setOnline] = useState(true);
   useEffect(() => {
@@ -90,7 +118,11 @@ export function useNetworkStatus(): { online: boolean; quality: ConnectionQualit
   return { online, quality: classifyConnection({ online, ...info }), saveData: info.saveData === true };
 }
 
-/** ページの可視状態(タブがアクティブか)を購読する。 */
+/**
+ * ページの可視状態(タブがアクティブか)を購読する。
+ *
+ * @returns 画面が見えているか(**裏に回ったらポーリングを止める**のに使う。電池とデータ量を節約できる)
+ */
 export function usePageVisibility(): boolean {
   const [visible, setVisible] = useState(true);
   useEffect(() => {
@@ -106,6 +138,7 @@ export function usePageVisibility(): boolean {
 /**
  * 画面のスリープを防ぐ(Wake Lock)。enabled が true の間、画面を点灯し続ける。
  * バーコード読み取り・キオスク・現場入力などに。非対応環境では無視される。
+ * @param enabled 有効にするか(**画面を消さない**。レジ・調理の手順表示など、見続ける画面で使う。**電池を食う**ので必要なときだけ)
  */
 export function useWakeLock(enabled: boolean): { supported: boolean } {
   const [supported, setSupported] = useState(false);

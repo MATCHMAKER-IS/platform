@@ -64,7 +64,15 @@ export interface EkycClient {
   getImageUrls(applicationId: string): Promise<Result<unknown>>;
 }
 
-/** 汎用 eKYC クライアントを作る。 */
+/**
+ * 汎用 eKYC クライアントを作る。
+ *
+ *
+ * @param options.baseUrl API の URL
+ * @param options.headers 認証ヘッダ
+ * @param options.fetchImpl fetch の実装(テスト注入用)
+ * @returns eKYC クライアント。**サービスを差し替えられる**(TRUSTDOCK 以外にも対応できる)
+ */
 export function createEkycClient(config: EkycClientConfig): EkycClient {
   const authHeader = config.authHeader ?? "X-Api-Key";
   const authValue = (config.apiKeyPrefix ?? "") + config.apiKey;
@@ -84,7 +92,13 @@ export function createEkycClient(config: EkycClientConfig): EkycClient {
   };
 }
 
-/** TRUSTDOCK 向けプリセット(ベース URL と認証ヘッダの既定を設定)。 */
+/**
+ * TRUSTDOCK 向けプリセット(ベース URL と認証ヘッダの既定を設定)。
+ *
+ *
+ * @param options.apiKey API キー
+ * @returns TRUSTDOCK 向けに設定済みのクライアント
+ */
 export function createTrustdockClient(config: {
   apiKey: string;
   /** 環境。sandbox は検証用。既定 "production"。 */

@@ -14,7 +14,12 @@ export const easing = {
   easeInOutCubic: (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2),
 } as const;
 
-/** 0–1 に丸める。 */
+/**
+ * 0–1 に丸める。
+ *
+ * @param value 値
+ * @returns 0–1 の値
+ */
 export function clamp01(v: number): number {
   return v < 0 ? 0 : v > 1 ? 1 : v;
 }
@@ -22,6 +27,10 @@ export function clamp01(v: number): number {
 /**
  * パララックスのオフセット（px）を計算する。
  * speed > 0 で背景がゆっくり動く（要素が画面中央にあるとき 0）。
+ *
+ * @param progress スクロール進捗(0–1)
+ * @param distance 移動量
+ * @returns オフセット(**背景をゆっくり動かす**と奥行きが出る)
  */
 export function parallaxOffset(scrollY: number, elementTop: number, viewportHeight: number, speed: number): number {
   // 要素の中心が画面中央に来たときを基準（0）にした相対移動量
@@ -30,7 +39,15 @@ export function parallaxOffset(scrollY: number, elementTop: number, viewportHeig
   return (viewportCenter - elementCenter) * speed;
 }
 
-/** スクロール進捗（要素が入ってから出るまでを 0→1）。 */
+/**
+ * スクロール進捗を返す(要素が入ってから出るまでを 0→1)。
+ *
+ * **視差効果やスクロール連動アニメーション**に使う。
+ *
+ * @param rect 要素の位置
+ * @param viewportHeight 表示領域の高さ
+ * @returns 0–1 の進捗
+ */
 export function scrollProgress(scrollY: number, elementTop: number, elementHeight: number, viewportHeight: number): number {
   const start = elementTop - viewportHeight;
   const end = elementTop + elementHeight;
@@ -46,7 +63,16 @@ export const transitionPresets = {
   spring: "all 500ms cubic-bezier(0.34, 1.56, 0.64, 1)",
 } as const;
 
-/** フェード/スライドインの初期・最終スタイルを返す（IntersectionObserver と併用）。 */
+/**
+ * フェード・スライドインのスタイルを返す。
+ *
+ * **`IntersectionObserver` と併用**する(画面に入ったら最終スタイルに切り替える)。
+ * **CSS の transition に任せる**ので、JS でフレームを回さない(軽い)。
+ *
+ * @param options.direction 方向
+ * @param options.distance 移動量
+ * @returns 初期と最終のスタイル
+ */
 export function revealStyle(visible: boolean, options: { distance?: number; axis?: "y" | "x" } = {}): { opacity: number; transform: string } {
   const distance = options.distance ?? 16;
   const axis = options.axis ?? "y";

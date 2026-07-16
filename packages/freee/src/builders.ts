@@ -19,7 +19,13 @@ export interface DealDetail {
   description?: string;
 }
 
-/** 取引明細を1行作る。 */
+/**
+ * 取引明細を 1 行作る。
+ *
+ * @param input 勘定科目・金額・税区分など
+ * @returns 明細 1 行
+ * @throws {@link @platform/core#AppError} コード `VALIDATION` — 金額が 0 以下、または勘定科目 ID が不正な場合
+ */
 export function dealDetail(params: {
   accountItemId: number;
   taxCode: number;
@@ -41,7 +47,16 @@ export function dealDetail(params: {
   };
 }
 
-/** 取引(deal)作成ペイロードを組み立てる。details の合計を検証する。 */
+/**
+ * 取引(deal)の作成ペイロードを組み立てる。
+ *
+ * **明細の合計が総額と一致するか検証する**。ずれたまま送ると freee 側で
+ * エラーになるが、原因が分かりにくい。手元で弾く方が親切。
+ *
+ * @param input 取引の情報と明細
+ * @returns freee API に渡すペイロード
+ * @throws {@link @platform/core#AppError} コード `VALIDATION` — 明細の合計が総額と一致しない場合
+ */
 export function buildDeal(params: {
   companyId: number;
   issueDate: string; // "YYYY-MM-DD"
@@ -77,7 +92,13 @@ export interface InvoiceLine {
   account_item_id?: number;
 }
 
-/** 請求書明細を1行作る(金額=単価×数量を自動計算)。 */
+/**
+ * 請求書明細を 1 行作る(**金額 = 単価 × 数量を自動計算**)。
+ *
+ * @param input 品名・単価・数量・税区分
+ * @returns 明細 1 行
+ * @throws {@link @platform/core#AppError} コード `VALIDATION` — 単価または数量が負の場合
+ */
 export function invoiceLine(params: {
   description: string;
   unitPrice: number;
@@ -97,7 +118,15 @@ export function invoiceLine(params: {
   };
 }
 
-/** 請求書(invoice)作成ペイロードを組み立てる。明細合計(税抜)を自動計算する。 */
+/**
+ * 請求書(invoice)の作成ペイロードを組み立てる。
+ *
+ * **明細の合計は自動計算**するので、呼び出し側は明細を並べるだけでよい。
+ *
+ * @param input 請求書の情報と明細
+ * @returns freee API に渡すペイロード
+ * @throws {@link @platform/core#AppError} コード `VALIDATION` — 明細が空、または不正な明細を含む場合
+ */
 export function buildInvoice(params: {
   companyId: number;
   partnerId: number;
@@ -137,7 +166,16 @@ export interface ManualJournalDetail {
   sectionId?: number;
 }
 
-/** 振替伝票の作成ボディを組み立てる。借方合計=貸方合計の検証つき。 */
+/**
+ * 振替伝票の作成ボディを組み立てる。
+ *
+ * **借方合計 = 貸方合計 を検証する**(複式簿記の必須条件)。
+ * 一致しない仕訳を送ると、freee 側で拒否されるか、最悪そのまま登録されて帳簿が壊れる。
+ *
+ * @param input 日付・明細
+ * @returns freee API に渡すボディ
+ * @throws {@link @platform/core#AppError} コード `VALIDATION` — 貸借が一致しない場合
+ */
 export function buildManualJournal(params: {
   companyId: number;
   issueDate: string;

@@ -22,7 +22,18 @@ export interface NavItem {
   permission?: string;
 }
 
-/** 現在パスがこの href に一致するか。exact でなければ前方一致(親のハイライト)。 */
+/**
+ * 現在パスが href に一致するかを判定する。
+ *
+ * **既定は前方一致**(`/products/123` で親の「製品」もハイライトする)。
+ * トップページのように完全一致で判定したい項目は `exact` を指定する
+ * (**前方一致だと `/` は全ページに一致してしまう**)。
+ *
+ * @param href リンク先
+ * @param currentPath 現在のパス
+ * @param exact 完全一致で判定するか
+ * @returns 一致すれば true
+ */
 export function isNavActive(href: string, currentPath: string, exact = false): boolean {
   const h = href.replace(/\/+$/, "") || "/";
   const p = (currentPath.split("?")[0] ?? "").replace(/\/+$/, "") || "/";
@@ -30,14 +41,28 @@ export function isNavActive(href: string, currentPath: string, exact = false): b
   return p === h || p.startsWith(h + "/");
 }
 
-/** 項目群のうちアクティブなものを返す(最も具体的=href が長い一致を優先)。 */
+/**
+ * アクティブな項目を返す。
+ *
+ * **最も具体的な一致を優先**(`/settings` と `/settings/users` が両方一致するなら、
+ * 後者を選ぶ)。そうしないと、常に親だけがハイライトされる。
+ *
+ * @param items ナビ項目
+ * @param currentPath 現在のパス
+ * @returns アクティブな項目。**無ければ undefined**
+ */
 export function findActiveNav(items: NavItem[], currentPath: string): NavItem | undefined {
   const matches = flattenNav(items).filter((i) => isNavActive(i.href, currentPath));
   if (matches.length === 0) return undefined;
   return matches.reduce((best, i) => (i.href.length > best.href.length ? i : best));
 }
 
-/** 入れ子のナビ項目を平坦化する。 */
+/**
+ * 入れ子のナビ項目を平坦化する。
+ *
+ * @param items ナビ項目(入れ子)
+ * @returns すべての項目(**深さ優先・元の順序**)
+ */
 export function flattenNav(items: NavItem[]): NavItem[] {
   const out: NavItem[] = [];
   for (const item of items) {
@@ -47,7 +72,16 @@ export function flattenNav(items: NavItem[]): NavItem[] {
   return out;
 }
 
-/** 親項目が(子のいずれかが)アクティブか。親メニューを開いた状態にする判定に。 */
+/**
+ * 子のいずれかがアクティブかを判定する。
+ *
+ * **親メニューを開いた状態にする**のに使う(現在地の項目が畳まれていると、
+ * 利用者は自分がどこにいるか分からない)。
+ *
+ * @param item 親の項目
+ * @param currentPath 現在のパス
+ * @returns 子のいずれかがアクティブなら true
+ */
 export function hasActiveChild(item: NavItem, currentPath: string): boolean {
   return !!item.children && flattenNav(item.children).some((c) => isNavActive(c.href, currentPath));
 }
@@ -56,6 +90,10 @@ export function hasActiveChild(item: NavItem, currentPath: string): boolean {
  * 権限述語でナビ項目を絞り込む(RBAC による出し分け)。
  * ui は auth に依存せず、`isAllowed(permission)` を受け取るだけ(例: `(p) => can(policy, roles, p)`)。
  * 子を持つ項目は、表示可能な子が 1 つも残らなければ(空グループ)非表示にする。
+ *
+ * @param items ナビ項目
+ * @param has 権限を判定する関数
+ * @returns 権限のある項目だけ(**見えないページへのリンクを出さない**。押しても 403 では不親切)
  */
 export function filterNavByPermission(items: NavItem[], isAllowed: (permission: string) => boolean): NavItem[] {
   const out: NavItem[] = [];

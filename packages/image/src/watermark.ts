@@ -7,7 +7,12 @@
 /** 配置位置。 */
 export type Gravity = "center" | "north" | "south" | "east" | "west" | "northeast" | "northwest" | "southeast" | "southwest";
 
-/** 位置 → sharp の gravity 文字列。 */
+/**
+ * 位置指定を sharp の gravity 文字列に変換する。
+ *
+ * @param position 位置(`top-left` など)
+ * @returns sharp の gravity
+ */
 export function gravityToSharp(g: Gravity): string {
   return g === "center" ? "centre" : g;
 }
@@ -27,7 +32,16 @@ function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 }
 
-/** テキスト透かしの SVG を生成する(純関数)。 */
+/**
+ * テキスト透かしの SVG を生成する。
+ *
+ * **SVG にするのは、フォントの用意なしに文字を描ける**ため
+ * (sharp のテキスト描画は環境依存のフォントが要る)。
+ *
+ * @param options.text 透かしの文字
+ * @param options.fontSize / color / opacity 見た目
+ * @returns SVG 文字列
+ */
 export function watermarkTextSvg(text: string, options: WatermarkTextOptions = {}): string {
   const { fontSize = 32, color = "#ffffff", opacity = 0.6, shadow = true, fontFamily = "sans-serif" } = options;
   const pad = Math.round(fontSize * 0.4);
@@ -51,7 +65,12 @@ export interface WatermarkOptions {
   gravity?: Gravity;
 }
 
-/** 透かし用の composite 項目(sharp に渡す形)を組み立てる。 */
+/**
+ * 透かし用の composite 項目を組み立てる(sharp に渡す形)。
+ *
+ * @param options 透かしの内容と位置
+ * @returns sharp の `composite` に渡す配列
+ */
 export function buildWatermarkComposite(options: WatermarkOptions): { input: Uint8Array; gravity: string } {
   const gravity = gravityToSharp(options.gravity ?? "southeast");
   if (options.image) return { input: options.image, gravity };

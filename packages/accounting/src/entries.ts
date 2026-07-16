@@ -39,7 +39,22 @@ export const DEFAULT_ACCOUNTS: AccountNames = {
   socialPayable: "預り金(社会保険)",
 };
 
-/** 売上（請求書発行）の仕訳: 売掛金 / 売上高・仮受消費税。 */
+/**
+ * 売上(請求書発行)の仕訳を作る。
+ *
+ * ```
+ * 借方: 売掛金 (net + tax)   貸方: 売上高 (net)
+ *                                  仮受消費税 (tax)
+ * ```
+ * **「請求した」時点で計上する**(入金時ではない)。入金は {@link receiptJournal}。
+ *
+ * @param input.date 計上日(YYYY-MM-DD)
+ * @param input.description 摘要(任意)
+ * @param input.net 税抜金額
+ * @param input.tax 消費税額(**計算は `@platform/tax` で**。ここでは受け取るだけ)
+ * @param accounts 勘定科目名(既定は DEFAULT_ACCOUNTS)
+ * @returns 貸借の一致した仕訳
+ */
 export function salesJournal(
   input: { date: string; description?: string; net: number; tax: number },
   accounts: AccountNames = DEFAULT_ACCOUNTS,
@@ -56,7 +71,22 @@ export function salesJournal(
   };
 }
 
-/** 仕入（発注・仕入計上）の仕訳: 仕入高・仮払消費税 / 買掛金。 */
+/**
+ * 仕入(発注・仕入計上)の仕訳を作る。
+ *
+ * ```
+ * 借方: 仕入高 (net)         貸方: 買掛金 (net + tax)
+ *       仮払消費税 (tax)
+ * ```
+ * **売上と借方・貸方が逆**になる。支払は {@link paymentJournal}。
+ *
+ * @param input.date 計上日
+ * @param input.description 摘要(任意)
+ * @param input.net 税抜金額
+ * @param input.tax 消費税額
+ * @param accounts 勘定科目名(既定は DEFAULT_ACCOUNTS)
+ * @returns 貸借の一致した仕訳
+ */
 export function purchaseJournal(
   input: { date: string; description?: string; net: number; tax: number },
   accounts: AccountNames = DEFAULT_ACCOUNTS,
@@ -73,7 +103,20 @@ export function purchaseJournal(
   };
 }
 
-/** 入金（売掛金回収）の仕訳: 現金預金 / 売掛金。 */
+/**
+ * 入金(売掛金の回収)の仕訳を作る。
+ *
+ * ```
+ * 借方: 現金預金 (amount)    貸方: 売掛金 (amount)
+ * ```
+ * **消費税は登場しない**(売上計上時に済んでいる)。ここは「債権が現金に変わった」だけ。
+ *
+ * @param input.date 入金日
+ * @param input.description 摘要(任意)
+ * @param input.amount 入金額(税込)
+ * @param accounts 勘定科目名(既定は DEFAULT_ACCOUNTS)
+ * @returns 貸借の一致した仕訳
+ */
 export function receiptJournal(
   input: { date: string; description?: string; amount: number },
   accounts: AccountNames = DEFAULT_ACCOUNTS,
@@ -88,7 +131,20 @@ export function receiptJournal(
   };
 }
 
-/** 支払（買掛金支払）の仕訳: 買掛金 / 現金預金。 */
+/**
+ * 支払(買掛金の支払)の仕訳を作る。
+ *
+ * ```
+ * 借方: 買掛金 (amount)      貸方: 現金預金 (amount)
+ * ```
+ * **消費税は登場しない**(仕入計上時に済んでいる)。
+ *
+ * @param input.date 支払日
+ * @param input.description 摘要(任意)
+ * @param input.amount 支払額(税込)
+ * @param accounts 勘定科目名(既定は DEFAULT_ACCOUNTS)
+ * @returns 貸借の一致した仕訳
+ */
 export function paymentJournal(
   input: { date: string; description?: string; amount: number },
   accounts: AccountNames = DEFAULT_ACCOUNTS,
@@ -109,7 +165,20 @@ export type ExpensePayment = "unpaid" | "cash" | "advance";
 /**
  * 経費精算の仕訳: 経費科目・仮払消費税 / 未払金 or 現金預金 or 仮払金。
  * 立替経費の未精算は unpaid(未払金)、即時現金払いは cash、仮払金からの精算は advance。
+ *
+ * ```
+ * 借方: 経費科目 (net)       貸方: 未払金/現金預金/仮払金 (net + tax)
+ *       仮払消費税 (tax)
+ * ```
+ *
+ * @param input.date 計上日
+ * @param input.description 摘要(任意)
+ * @param input.net 税抜金額
+ * @param input.tax 消費税額
+ * @param input.settlement 決済方法。`unpaid`(未払金)/ `cash`(即時現金)/ `advance`(仮払金から精算)
  * @param input.account 費用科目(未指定なら既定の経費科目)
+ * @param accounts 勘定科目名(既定は DEFAULT_ACCOUNTS)
+ * @returns 貸借の一致した仕訳
  */
 export function expenseJournal(
   input: { date: string; description?: string; net: number; tax: number; account?: string; payment?: ExpensePayment },
@@ -126,8 +195,23 @@ export function expenseJournal(
 }
 
 /**
- * 給与支給の仕訳: 給与手当 / 預り金(源泉所得税・社会保険)・未払金 or 現金預金。
- * 総支給から源泉・社保を控除し、差引の手取りを未払金(未払)または現金(支払済)で計上。
+ * 給与支給の仕訳を作る。
+ *
+ * ```
+ * 借方: 給与手当 (総支給)    貸方: 預り金 (源泉所得税 + 社会保険)
+ *                                  未払金/現金預金 (手取り)
+ * ```
+ * **預り金は会社のお金ではない**(従業員から預かって、後で国・年金機構へ納める)。
+ * 総支給から源泉・社保を控除し、差引の手取りを未払金(未払)または現金(支払済)で計上する。
+ *
+ * @param input.date 支給日
+ * @param input.description 摘要(任意)
+ * @param input.gross 総支給額
+ * @param input.withholding 源泉所得税
+ * @param input.socialInsurance 社会保険料(従業員負担分)
+ * @param input.paid 支払済みか(true なら現金預金、false なら未払金)
+ * @param accounts 勘定科目名(既定は DEFAULT_ACCOUNTS)
+ * @returns 貸借の一致した仕訳
  */
 export function payrollJournal(
   input: { date: string; description?: string; gross: number; withholdingTax: number; socialInsurance: number; paid?: boolean; department?: string },

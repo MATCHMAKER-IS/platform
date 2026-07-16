@@ -96,7 +96,15 @@ export function createLineClient(config: { channelAccessToken: string; fetchImpl
 /** LINE 宛先の種別。 */
 export type LineRecipientType = "user" | "group" | "room" | "unknown";
 
-/** 宛先 ID から種別を判定する(U…=ユーザー, C…=グループ, R…=ルーム)。 */
+/**
+ * LINE の宛先 ID から種別を判定する。
+ *
+ * **接頭辞で分かる**(`U` = ユーザー、`C` = グループ、`R` = ルーム)。
+ * 種別で使える API が違うので、送る前に確認する。
+ *
+ * @param id 宛先 ID
+ * @returns 種別。**判定できなければ null**
+ */
 export function lineRecipientType(id: string): LineRecipientType {
   if (/^U[0-9a-f]{32}$/i.test(id)) return "user";
   if (/^C[0-9a-f]{32}$/i.test(id)) return "group";
@@ -104,7 +112,12 @@ export function lineRecipientType(id: string): LineRecipientType {
   return "unknown";
 }
 
-/** 有効な LINE 宛先 ID か。 */
+/**
+ * LINE の宛先 ID として妥当かを判定する。
+ *
+ * @param id 宛先 ID
+ * @returns 妥当なら true
+ */
 export function isValidLineRecipient(id: string): boolean {
   return lineRecipientType(id) !== "unknown";
 }

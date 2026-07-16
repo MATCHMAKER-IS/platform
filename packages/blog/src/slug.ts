@@ -15,7 +15,15 @@ export interface SlugifyOptions {
   maxLength?: number;
 }
 
-/** タイトル等からスラッグを生成する。 */
+/**
+ * タイトルからスラッグを生成する。
+ *
+ * **日本語は残らない**(URL に使える文字だけになる)。日本語タイトルでは
+ * 空文字になるので、{@link slugFrom} を使うこと。
+ *
+ * @param input タイトル
+ * @returns スラッグ。**日本語だけの入力では空文字になりうる**
+ */
 export function slugify(text: string, options: SlugifyOptions = {}): string {
   const sep = options.separator ?? "-";
   let s = text.trim().toLowerCase();
@@ -35,7 +43,15 @@ export function slugify(text: string, options: SlugifyOptions = {}): string {
   return s;
 }
 
-/** スラッグを生成し、空になる場合は fallback(記事 ID など)を使う。 */
+/**
+ * スラッグを生成し、**空になる場合は fallback を使う**。
+ *
+ * 日本語タイトルでも URL を作れるようにするため(実務ではこちらを使う)。
+ *
+ * @param input タイトル
+ * @param fallback 空のときに使う値(記事 ID など)
+ * @returns スラッグ
+ */
 export function ensureSlug(text: string, fallback: string, options?: SlugifyOptions): string {
   return slugify(text, options) || slugify(fallback, options) || fallback;
 }
@@ -43,6 +59,7 @@ export function ensureSlug(text: string, fallback: string, options?: SlugifyOpti
 /**
  * 既存スラッグと衝突しないユニークなスラッグを返す(重複時は -2, -3... を付与)。
  * @param existing 既存のスラッグ集合
+ * @returns 衝突しないスラッグ(`my-post` → `my-post-2`)
  */
 export function uniqueSlug(base: string, existing: Iterable<string>, separator = "-"): string {
   const set = new Set(existing);

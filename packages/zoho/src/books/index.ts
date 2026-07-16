@@ -36,7 +36,14 @@ export interface ZohoBooksClient {
   createItem(item: BooksRecord): Promise<Result<BooksRecord>>;
 }
 
-/** Zoho Books クライアントを作る。organizationId は必須。 */
+/**
+ * Zoho Books(会計・請求)のクライアントを作る。
+ *
+ * @param config.tokenManager トークンマネージャ(**自動更新される**)
+ * @param config.dc データセンター(**契約時の DC を指定**。間違えると 404 になる)
+ * @param config.fetchImpl fetch の実装(テスト注入用)
+ * @returns Books のクライアント。**すべてのメソッドは Result 型を返す**(例外を投げない)
+ */
 export function createZohoBooksClient(config: Omit<ZohoClientConfig, "basePath" | "defaultQuery"> & { organizationId: string }): ZohoBooksClient {
   const { organizationId, ...rest } = config;
   const api = createZohoApiClient({ ...rest, basePath: "/books/v3", defaultQuery: { organization_id: organizationId } });

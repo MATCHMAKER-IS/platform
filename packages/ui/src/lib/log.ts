@@ -19,7 +19,15 @@ function mapToken(token: string): LogLevel {
   return "debug"; // DEBUG / TRACE / VERBOSE
 }
 
-/** 行からログレベルを判定する(先頭寄りの大文字トークンを優先)。 */
+/**
+ * 行からログレベルを判定する。
+ *
+ * **先頭寄りの大文字トークンを優先**(本文に「ERROR」が含まれていても、
+ * 行頭の `INFO` を採用する。多くのログは先頭にレベルを置くため)。
+ *
+ * @param line ログ行
+ * @returns レベル。**判定できなければ null**
+ */
 export function detectLogLevel(line: string): LogLevel | null {
   const upper = line.match(/\b(FATAL|ERROR|ERR|WARNING|WARN|INFO|NOTICE|DEBUG|TRACE|VERBOSE)\b/);
   if (upper) return mapToken(upper[1]!);
@@ -31,7 +39,12 @@ export function detectLogLevel(line: string): LogLevel | null {
 /** 解析済みのログ行。 */
 export interface LogLine { index: number; line: string; level: LogLevel | null; timestamp: number | null; message: string | null; fields?: Record<string, string> }
 
-/** 行配列を解析してレベル・時刻(・構造化フィールド)を付与する。 */
+/**
+ * ログ行を解析してレベル・時刻・構造化フィールドを付ける。
+ *
+ * @param lines ログ行の配列
+ * @returns 解析済みの行(**元の順序と原インデックスを保つ**。絞り込んでも元の行に戻れる)
+ */
 export function parseLogLines(lines: string[], options: { structured?: boolean } = {}): LogLine[] {
   return lines.map((line, index) => {
     if (options.structured) {
@@ -55,7 +68,13 @@ export interface LogFilter {
   caseSensitive?: boolean;
 }
 
-/** 解析済みログ行をフィルタする。 */
+/**
+ * ログを絞り込む。
+ *
+ * @param lines 解析済みの行
+ * @param filter レベル・キーワード・時間範囲
+ * @returns 条件に合う行
+ */
 export function filterLogLines(parsed: LogLine[], options: LogFilter = {}): LogLine[] {
   const { levels, minLevel, query, regex, caseSensitive } = options;
   const minSev = minLevel ? SEVERITY[minLevel] : 0;
@@ -74,7 +93,14 @@ export function filterLogLines(parsed: LogLine[], options: LogFilter = {}): LogL
   });
 }
 
-/** レベル別の件数を数える。 */
+/**
+ * レベル別の件数を数える。
+ *
+ * **エラーが何件あるかを一目で**(全部読まずに済む)。
+ *
+ * @param lines 解析済みの行
+ * @returns レベル → 件数
+ */
 export function countByLevel(parsed: LogLine[]): Record<LogLevel | "none", number> {
   const out: Record<LogLevel | "none", number> = { error: 0, warn: 0, info: 0, debug: 0, none: 0 };
   for (const p of parsed) out[p.level ?? "none"]++;
@@ -83,7 +109,15 @@ export function countByLevel(parsed: LogLine[]): Record<LogLevel | "none", numbe
 
 const TS_RE = /(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)/;
 
-/** 行からタイムスタンプ(epoch ms)を抽出する。無ければ null。 */
+/**
+ * 行からタイムスタンプを抽出する。
+ *
+ * **複数の形式に対応**(ISO 8601・`[2026-07-15 10:00:00]`・syslog 形式)。
+ * ログの形式は出力元によってばらばらなので、いくつか試す。
+ *
+ * @param line ログ行
+ * @returns epoch ミリ秒。**見つからなければ null**
+ */
 export function extractTimestamp(line: string): number | null {
   const m = line.match(TS_RE);
   if (!m) return null;
@@ -94,7 +128,15 @@ export function extractTimestamp(line: string): number | null {
 /** 時間バケット(レベル別件数つき)。 */
 export interface TimeBucket { start: number; counts: Record<LogLevel | "none", number>; total: number }
 
-/** タイムスタンプを持つ行を intervalMs 単位で集計する(時系列ミニチャート用)。 */
+/**
+ * ログを時系列に集計する(ミニチャート用)。
+ *
+ * **エラーがいつ集中したかが分かる**(件数だけでは「いつ」が見えない)。
+ *
+ * @param lines 解析済みの行
+ * @param intervalMs 集計の単位
+ * @returns 時刻と件数(**タイムスタンプの無い行は除外**)
+ */
 export function bucketByTime(parsed: LogLine[], intervalMs: number): TimeBucket[] {
   const withTs = parsed.filter((p) => p.timestamp != null);
   if (withTs.length === 0 || intervalMs <= 0) return [];
@@ -112,14 +154,27 @@ export function bucketByTime(parsed: LogLine[], intervalMs: number): TimeBucket[
   return [...buckets.values()].sort((a, b) => a.start - b.start);
 }
 
-/** 行(文字列 or LogLine)をテキスト化する(コピー/ダウンロード用)。 */
+/**
+ * 行をテキストにする(コピー・ダウンロード用)。
+ *
+ * @param lines 行(文字列でも解析済みでも可)
+ * @returns 改行で連結したテキスト
+ */
 export function logLinesToText(lines: Array<LogLine | string>): string {
   return lines.map((l) => (typeof l === "string" ? l : l.line)).join("\n");
 }
 
 const LOCALE_TAG: Record<string, string> = { ja: "ja-JP", en: "en-US", zh: "zh-CN", ko: "ko-KR" };
 
-/** 相対時刻(例: 3分前)。Intl.RelativeTimeFormat 利用。 */
+/**
+ * 相対時刻にする(`3分前` など)。
+ *
+ * **「10:23:45」より「3分前」の方が状況が分かる**(障害対応中は特に)。
+ *
+ * @param timestamp epoch ミリ秒
+ * @param now 現在時刻(テスト注入用)
+ * @returns `3分前` 形式(`Intl.RelativeTimeFormat` を使うのでロケールに追従)
+ */
 export function formatRelativeTime(fromMs: number, nowMs: number = Date.now(), locale = "ja"): string {
   const diff = fromMs - nowMs;
   const abs = Math.abs(diff);
@@ -154,7 +209,15 @@ export interface StructuredLog {
   message: string | null;
 }
 
-/** JSON もしくは logfmt(key=value)のログ行を解析する。非対応形式は null。 */
+/**
+ * 構造化ログを解析する(JSON または logfmt)。
+ *
+ * **構造化ログはフィールドで絞り込める**(`userId=123` の行だけ見る、など)。
+ * 生のテキストログでは grep しかできない。
+ *
+ * @param line ログ行
+ * @returns フィールドの辞書。**対応しない形式なら null**
+ */
 export function parseStructuredLog(line: string): StructuredLog | null {
   const trimmed = line.trim();
   const fields: Record<string, string> = {};
@@ -183,13 +246,28 @@ export function parseStructuredLog(line: string): StructuredLog | null {
   };
 }
 
-/** timestamp が ms 以上の最初の行の原インデックスを返す(時系列ジャンプ用)。無ければ -1。 */
+/**
+ * 指定時刻以降の最初の行を探す(時系列ジャンプ用)。
+ *
+ * **チャートをクリックしてその時刻に飛ぶ**のに使う。
+ *
+ * @param lines 解析済みの行
+ * @param ms epoch ミリ秒
+ * @returns 原インデックス。**無ければ -1**
+ */
 export function firstLineIndexAtOrAfter(parsed: LogLine[], ms: number): number {
   for (const p of parsed) if (p.timestamp != null && p.timestamp >= ms) return p.index;
   return -1;
 }
 
-/** 構造化ログに含まれるフィールドキーを列挙する(出現順・重複なし)。 */
+/**
+ * 構造化ログのフィールドキーを列挙する。
+ *
+ * **絞り込みの選択肢を作る**のに使う(どんなフィールドがあるか、事前には分からない)。
+ *
+ * @param lines 解析済みの行
+ * @returns キーの配列(**出現順・重複なし**)
+ */
 export function collectFieldKeys(parsed: LogLine[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -200,7 +278,16 @@ export function collectFieldKeys(parsed: LogLine[]): string[] {
   return out;
 }
 
-/** あるフィールドの値ごとの件数(ファセット)。件数降順。 */
+/**
+ * フィールドの値ごとの件数を数える(ファセット)。
+ *
+ * **「どの API がエラーを出しているか」を絞り込む前に見せる**(選択肢に件数が
+ * 付いていると、どこを見るべきか分かる)。
+ *
+ * @param lines 解析済みの行
+ * @param key フィールドキー
+ * @returns 値と件数(**多い順**)
+ */
 export function fieldFacets(parsed: LogLine[], key: string): Array<{ value: string; count: number }> {
   const counts = new Map<string, number>();
   for (const p of parsed) {
@@ -211,7 +298,16 @@ export function fieldFacets(parsed: LogLine[], key: string): Array<{ value: stri
   return [...counts.entries()].map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
 }
 
-/** フィールド値でフィルタする(キー間は AND、値内は OR)。値配列が空のキーは無視。 */
+/**
+ * フィールドの値で絞り込む。
+ *
+ * **キー間は AND、値内は OR**(`level=[error,warn]` かつ `service=[api]`)。
+ * これがログ検索の直感に合う(「エラーか警告で、かつ API のもの」)。
+ *
+ * @param lines 解析済みの行
+ * @param facets キー → 値の配列。**値が空のキーは無視**(絞り込まない)
+ * @returns 条件に合う行
+ */
 export function filterByFields(parsed: LogLine[], filters: Record<string, string[]>): LogLine[] {
   const active = Object.entries(filters).filter(([, vals]) => vals.length > 0);
   if (active.length === 0) return parsed;
@@ -223,7 +319,16 @@ export function filterByFields(parsed: LogLine[], filters: Record<string, string
   );
 }
 
-/** ストリーム用: buffer に incoming を足し、末尾 max 件に丸める。 */
+/**
+ * ストリームのバッファを更新する。
+ *
+ * **末尾 max 件に丸める**(ログは無限に流れてくるので、上限が無いとメモリを食い尽くす)。
+ *
+ * @param buffer 現在のバッファ
+ * @param incoming 新しく届いた行
+ * @param max 保持する件数
+ * @returns 更新したバッファ(**新しい配列**)
+ */
 export function appendCapped<T>(buffer: readonly T[], incoming: readonly T[], max: number): T[] {
   const combined = buffer.concat(incoming as T[]);
   return max > 0 && combined.length > max ? combined.slice(combined.length - max) : combined;

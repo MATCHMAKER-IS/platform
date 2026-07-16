@@ -12,7 +12,12 @@ export interface ReviewField {
   confidence?: number;
 }
 
-/** threshold 未満(または不明)を要確認とみなして分ける。 */
+/**
+ * threshold 未満(または不明)を要確認とみなして分ける。
+ *
+ * @param fields 抽出フィールド
+ * @param threshold しきい値
+ */
 export function splitByConfidence(fields: ReviewField[], threshold = 70): { review: ReviewField[]; confirmed: ReviewField[] } {
   const review: ReviewField[] = [];
   const confirmed: ReviewField[] = [];
@@ -23,7 +28,14 @@ export function splitByConfidence(fields: ReviewField[], threshold = 70): { revi
   return { review, confirmed };
 }
 
-/** そのフィールドが要確認か。 */
+/**
+ * そのフィールドが要確認か。
+ *
+ *
+ * @param fields 抽出フィールド
+ * @param threshold しきい値
+ * @returns 人が確認すべき項目(**確信度が低いものだけ**。全部を確認させると意味がない)
+ */
 export function needsReview(confidence: number | undefined, threshold = 70): boolean {
   return confidence == null || confidence < threshold;
 }

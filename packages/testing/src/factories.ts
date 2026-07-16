@@ -7,13 +7,25 @@ import type { AuthUser, Session } from "@platform/auth";
 
 let counter = 0;
 
-/** 連番付きのテスト用 ID を作る。 */
+/**
+ * 連番付きのテスト用 ID を作る。
+ *
+ *
+ * @param prefix 接頭辞
+ * @returns テスト用の ID(**連番なので再現できる**。ランダムだとテストが不安定になる)
+ */
 export function testId(prefix = "id"): string {
   counter += 1;
   return `${prefix}-${counter}`;
 }
 
-/** 認証済みユーザーのダミーを作る。 */
+/**
+ * 認証済みユーザーのダミーを作る。
+ *
+ *
+ * @param overrides 上書きする値
+ * @returns テスト用のユーザー
+ */
 export function fakeAuthUser(overrides: Partial<AuthUser> = {}): AuthUser {
   return {
     id: overrides.id ?? testId("user"),
@@ -23,7 +35,13 @@ export function fakeAuthUser(overrides: Partial<AuthUser> = {}): AuthUser {
   };
 }
 
-/** セッションのダミーを作る。 */
+/**
+ * セッションのダミーを作る。
+ *
+ *
+ * @param overrides 上書きする値
+ * @returns テスト用のセッション
+ */
 export function fakeSession(overrides: Partial<Session> = {}): Session {
   return {
     user: overrides.user ?? fakeAuthUser(),
@@ -31,7 +49,13 @@ export function fakeSession(overrides: Partial<Session> = {}): Session {
   };
 }
 
-/** テストで固定した日時を返す(既定: 2026-01-01T00:00:00Z)。 */
+/**
+ * テストで固定した日時を返す(既定: 2026-01-01T00:00:00Z)。
+ *
+ *
+ * @param iso ISO 文字列
+ * @returns 固定の日時(**テストで `new Date()` を使わない**。実行のたびに変わると再現できない)
+ */
 export function fixedDate(iso = "2026-01-01T00:00:00.000Z"): Date {
   return new Date(iso);
 }

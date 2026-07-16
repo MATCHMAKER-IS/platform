@@ -21,7 +21,14 @@ function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-/** 給与明細を A4 想定の HTML 文字列に描画する。 */
+/**
+ * 給与明細を HTML に描画する(A4 想定)。
+ *
+ * **法定の記載事項**(支給額の内訳・控除の内訳・差引支給額)を満たす形にする。
+ *
+ * @param payslip 給与明細
+ * @returns HTML 文字列
+ */
 export function renderPayslipHtml(payslip: Payslip, options: PayslipHtmlOptions = {}): string {
   const earnings: [string, number][] = [
     ["基本賃金", payslip.base],

@@ -4,7 +4,17 @@
  * @packageDocumentation
  */
 
-/** 指数バックオフの待ち時間(ms)。attempt=0,1,2... で base*2^n を max で頭打ち。 */
+/**
+ * 再接続の待ち時間を計算する(指数バックオフ)。
+ *
+ * **切断のたびに即座に再接続すると、サーバ復旧の妨げになる**
+ * (全クライアントが一斉に殺到する)。回数を重ねるごとに待つ。
+ *
+ * @param attempt 試行回数(**0 始まり**)
+ * @param options.baseMs 基準の待ち時間
+ * @param options.maxMs 上限(**青天井にしない**)
+ * @returns 待ち時間(ミリ秒)
+ */
 export function backoffDelay(attempt: number, baseMs = 500, maxMs = 15000): number {
   return Math.min(maxMs, baseMs * 2 ** attempt);
 }
@@ -20,6 +30,10 @@ export interface Poller {
 /**
  * 一定間隔で関数を呼ぶポーラーを作る。開始時に即時 1 回実行する。
  * テスト用に scheduler/clear を差し替え可能。
+ *
+ * @param options.fetch 取得する処理
+ * @param options.intervalMs 間隔
+ * @returns ポーラー。**WebSocket が使えない環境の代替**(常時接続より重いので、可能なら WS を使う)
  */
 export function createPoller(
   fn: () => void | Promise<void>,
@@ -83,6 +97,10 @@ export interface ReconnectingWebSocket {
 
 /**
  * 自動再接続する WebSocket を作る(指数バックオフ)。JSON メッセージを自動 parse。
+ *
+ * @param url 接続先
+ * @param options.maxRetries 最大再接続回数
+ * @returns 自動再接続する WebSocket。**指数バックオフで待つ**(切断のたびに即再接続すると、サーバ復旧の妨げになる)
  */
 export function createReconnectingWebSocket<T = unknown>(url: string, options: ReconnectingWsOptions<T> = {}): ReconnectingWebSocket {
   const {

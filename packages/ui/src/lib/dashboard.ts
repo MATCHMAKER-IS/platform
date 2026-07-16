@@ -14,7 +14,12 @@ export interface Share {
   percent: number;
 }
 
-/** 数値配列を構成比に変換する(合計 0 のときは全て 0)。 */
+/**
+ * 数値を構成比に変換する。
+ *
+ * @param values 数値の配列
+ * @returns 各要素の比率(0–1)。**合計が 0 なら全て 0**(0 除算を避ける)
+ */
 export function computeShares(values: number[]): Share[] {
   const total = values.reduce((s, v) => s + Math.max(0, v), 0);
   return values.map((v) => {
@@ -40,6 +45,9 @@ export interface DonutSegment {
 /**
  * ドーナツの各セグメントを計算する(SVG の stroke-dasharray/offset 方式)。
  * 各セグメントを circle として重ね、dasharray=[dash, C-dash]、dashoffset で開始位置をずらす。
+ *
+ * @param values 数値の配列
+ * @returns 各セグメントの角度(**0° は真上・時計回り**)
  */
 export function donutSegments(values: number[], radius: number): DonutSegment[] {
   const circumference = 2 * Math.PI * radius;
@@ -53,7 +61,13 @@ export function donutSegments(values: number[], radius: number): DonutSegment[] 
   });
 }
 
-/** 目標に対する達成率(%)。target が 0 以下なら 0。 */
+/**
+ * 目標に対する達成率を返す。
+ *
+ * @param actual 実績
+ * @param target 目標
+ * @returns 達成率(%)。**目標が 0 以下なら 0**(「目標なし」を 100% にしない)
+ */
 export function achievementRate(actual: number, target: number): number {
   if (target <= 0) return 0;
   return Math.round((actual / target) * 1000) / 10;
@@ -71,7 +85,16 @@ export interface FunnelStage {
   dropoff: number;
 }
 
-/** ファネルの各段の比率・遷移率・離脱を計算する。 */
+/**
+ * ファネルの各段を計算する。
+ *
+ * **遷移率(前の段から何%進んだか)を出す**のが要点。全体比だけでは
+ * 「どこで落ちているか」が分からない(訪問 1000 → 登録 100 → 購入 90 なら、
+ * 問題は登録であって購入ではない)。
+ *
+ * @param stages 各段の名前と件数
+ * @returns 全体比・遷移率・離脱数
+ */
 export function funnelStages(steps: { label: string; value: number }[]): FunnelStage[] {
   const first = steps[0]?.value ?? 0;
   return steps.map((step, i) => {
@@ -86,7 +109,15 @@ export function funnelStages(steps: { label: string; value: number }[]): FunnelS
   });
 }
 
-/** 相対時刻(日本語)。「たった今 / N分前 / N時間前 / N日前 / 日付」。 */
+/**
+ * 相対時刻を返す(日本語)。
+ *
+ * **古くなったら日付に切り替える**(「300日前」より「2025-09-18」の方が分かる)。
+ *
+ * @param date 対象の日時
+ * @param now 現在時刻(テスト注入用)
+ * @returns `たった今` / `3分前` / `2時間前` / `5日前` / 日付
+ */
 export function relativeTime(fromMs: number, nowMs: number = Date.now()): string {
   const diff = nowMs - fromMs;
   if (diff < 0) return "たった今";

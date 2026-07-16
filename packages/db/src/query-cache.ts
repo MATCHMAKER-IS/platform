@@ -12,12 +12,24 @@ import type { Result } from "@platform/core";
  * ```ts
  * const res = await cachedQuery(cache, "users:active", 60, () => db.user.findMany({ where: { active: true } }));
  * ```
+ *
+ * @param cache キャッシュ
+ * @param key キー
+ * @param fn 取得する処理
+ * @returns 結果(**キャッシュがあればそれを返す**)
  */
 export function cachedQuery<T>(cache: Cache, key: string, ttlSeconds: number, loader: () => Promise<T>): Promise<Result<T>> {
   return cache.getOrSet(key, ttlSeconds, loader);
 }
 
-/** キャッシュを無効化する(キー指定)。 */
+/**
+ * キャッシュを無効化する(キー指定)。
+ *
+ *
+ * @param cache キャッシュ
+ * @param key 無効化するキー
+ * @returns なし(**更新の後に必ず呼ぶ**。呼び忘れると古いデータが返り続ける)
+ */
 export function invalidateQuery(cache: Cache, key: string): Promise<Result<void>> {
   return cache.delete(key);
 }
@@ -49,6 +61,10 @@ export interface QueryCache {
  * await qc.cached("orders:page1", () => db.order.findMany(...), { tags: ["orders"], ttlSec: 120 });
  * await qc.invalidateTag("orders"); // orders タグの全キャッシュを無効化
  * ```
+ *
+ * @param options.ttlMs 保持時間
+ * @param options.maxSize 最大件数(**上限が無いとメモリを食い尽くす**)
+ * @returns キャッシュ
  */
 export function createQueryCache(cache: Cache, options: QueryCacheOptions = {}): QueryCache {
   const prefix = options.prefix ?? "q";

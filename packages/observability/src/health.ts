@@ -11,7 +11,16 @@ export interface HealthReport { status: "healthy" | "unhealthy"; checks: CheckRe
 /** 1 つの依存チェック(true/void で up、throw で down)。 */
 export type HealthCheck = () => Promise<void | boolean> | void | boolean;
 
-/** チェック群を実行して集約する(タイムアウト付き)。 */
+/**
+ * 依存の健全性をまとめて確認する。
+ *
+ * **1 つが遅くても全体が止まらない**よう、並列に実行してタイムアウトを設ける。
+ *
+ * @param checks 確認する項目(名前 → 確認する関数)
+ * @param options.timeoutMs 1 項目あたりのタイムアウト(既定 2000)
+ * @param options.now 時刻の取得(テスト注入用)
+ * @returns 各項目の結果。**タイムアウトも「異常」として扱う**(応答しないのは落ちているのと同じ)
+ */
 export async function runHealthChecks(checks: Record<string, HealthCheck>, options: { timeoutMs?: number; now?: () => number } = {}): Promise<HealthReport> {
   const timeoutMs = options.timeoutMs ?? 3000;
   const now = options.now ?? (() => Date.now());

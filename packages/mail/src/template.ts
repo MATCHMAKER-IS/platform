@@ -22,7 +22,13 @@ export interface RenderedEmail {
   text?: string;
 }
 
-/** HTML の特殊文字をエスケープする。 */
+/**
+ * HTML の特殊文字をエスケープする。
+ *
+ *
+ * @param text 対象の文字列
+ * @returns エスケープした文字列(**メール本文に利用者の入力を埋め込むときは必ず通す**)
+ */
 export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -45,6 +51,10 @@ function interpolate(template: string, values: Record<string, unknown>, escape: 
 /**
  * テンプレートを差し込んで件名・本文を生成する。
  * HTML 本文の変数は自動エスケープ、件名・テキストはそのまま差し込む。
+ *
+ * @param template テンプレート
+ * @param values 置換する値(**HTML はエスケープされる**)
+ * @returns 置換した文字列
  */
 export function renderEmailTemplate(template: EmailTemplate, values: Record<string, unknown>): RenderedEmail {
   return {
@@ -69,6 +79,10 @@ export interface HtmlEmailLayoutOptions {
 /**
  * 本文 HTML を、レスポンシブな標準メールレイアウトで包む。
  * bodyHtml は既にエスケープ済み/信頼できる HTML であること(renderEmailTemplate の html はエスケープ済み)。
+ *
+ * @param body 本文の HTML
+ * @param options.title / preheader 見出しとプレビュー文
+ * @returns メール用の HTML(**インライン CSS**。メーラーは `<style>` を落とすことがある)
  */
 export function wrapHtmlEmail(bodyHtml: string, options: HtmlEmailLayoutOptions = {}): string {
   const accent = options.accentColor ?? "#2563eb";

@@ -26,6 +26,11 @@ export interface RetryOptions extends TransactionOptions {
  *   return acc;
  * });
  * ```
+ *
+ * @param db Prisma クライアント
+ * @param fn トランザクション内の処理
+ * @param options.attempts 最大試行回数
+ * @returns 処理の結果(**デッドロックは再試行で回復する**ことが多い)
  */
 export async function transactionWithRetry<T>(
   db: PrismaClient,
@@ -51,6 +56,8 @@ export async function transactionWithRetry<T>(
 /**
  * データベース接続の疎通確認(SELECT 1)。ヘルスチェックエンドポイント向き。
  * @returns 疎通 OK なら `ok(true)`、失敗は `DATABASE` の `err`
+ * @param db Prisma クライアント
+ * @param options.timeoutMs タイムアウト
  */
 export async function checkDatabase(db: PrismaClient): Promise<Result<true>> {
   const res = await tryCatch(() => db.$queryRaw`SELECT 1`);

@@ -26,7 +26,17 @@ function fourDigits(n: number, style: Style): string {
   return out;
 }
 
-/** 整数を漢数字にする(例: 12345 → 一万二千三百四十五)。負数・0 対応。 */
+/**
+ * 整数を漢数字にする。
+ *
+ * @param n 整数(**負数・0 も扱える**)
+ * @returns 漢数字の文字列
+ *
+ * @example
+ * ```ts
+ * toKanjiNumber(12345);  // => "一万二千三百四十五"
+ * ```
+ */
 export function toKanjiNumber(value: number, options: { daiji?: boolean } = {}): string {
   if (!Number.isFinite(value)) return "";
   const daiji = options.daiji ?? false;
@@ -47,7 +57,15 @@ export function toKanjiNumber(value: number, options: { daiji?: boolean } = {}):
   return (value < 0 ? (daiji ? "マイナス" : "マイナス") : "") + out;
 }
 
-/** 金額を大字の証書表記にする(例: 12345 → 金壱萬弐千参百四拾五円)。 */
+/**
+ * 金額を大字(だいじ)の証書表記にする。
+ *
+ * **契約書・領収書で改ざんを防ぐため**の表記(「一」に線を足して「二」にできない)。
+ * 法的な文書で求められることがある。
+ *
+ * @param amount 金額(円)
+ * @returns 「金壱萬弐千参百四拾五円」形式
+ */
 export function toDaijiAmount(value: number, options: { withPrefix?: boolean; withSuffix?: boolean } = {}): string {
   const { withPrefix = true, withSuffix = true } = options;
   // 大字の証書慣行では「万」も「萬」を用いることが多い。

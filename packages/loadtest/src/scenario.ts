@@ -54,7 +54,16 @@ export interface ScenarioResult {
   steps: StepStats[];
 }
 
-/** 累積重みからステップを選ぶ（純関数）。r は 0–1。 */
+/**
+ * 重み付きでステップを選ぶ。
+ *
+ * **乱数を引数で受け取る**ので純関数(テストで結果を固定できる)。
+ * 「一覧 7 割・詳細 2 割・更新 1 割」といった実際の利用パターンを再現する。
+ *
+ * @param steps ステップ(重み付き)
+ * @param r 0–1 の乱数
+ * @returns 選ばれたステップ
+ */
 export function weightedPick(steps: ScenarioStep[], r: number): ScenarioStep {
   const weights = steps.map((s) => (s.weight ?? 1));
   const total = weights.reduce((a, b) => a + b, 0);
@@ -69,6 +78,10 @@ export function weightedPick(steps: ScenarioStep[], r: number): ScenarioStep {
 /**
  * ランプアップ中に、経過時間に応じて「今アクティブにすべきワーカー数」を返す（純関数）。
  * elapsed >= rampUpMs なら全開。rampUpMs=0 なら即全開。
+ *
+ * @param elapsedMs 経過時間
+ * @param ramp 増やし方(**一気に負荷をかけない**。徐々に増やして、どこで壊れるかを見る)
+ * @returns その時点の並列数
  */
 export function activeWorkers(concurrency: number, rampUpMs: number, elapsedMs: number): number {
   if (rampUpMs <= 0 || elapsedMs >= rampUpMs) return concurrency;
@@ -76,7 +89,16 @@ export function activeWorkers(concurrency: number, rampUpMs: number, elapsedMs: 
   return Math.max(1, Math.ceil(concurrency * ratio));
 }
 
-/** シナリオを実行する。 */
+/**
+ * シナリオを実行する。
+ *
+ * **本番に負荷をかけすぎないこと**。並列数と回数を確認してから実行する。
+ *
+ * @param scenario シナリオ
+ * @param options.concurrency 並列数
+ * @param options.iterations 実行回数
+ * @returns 実行結果(統計つき)
+ */
 export async function runScenario(scenario: Scenario, options: ScenarioOptions): Promise<ScenarioResult> {
   const now = options.now ?? Date.now;
   const random = options.random ?? Math.random;

@@ -35,6 +35,17 @@ export interface CreateThemeRegistryOptions {
   defaultId?: string;
 }
 
+/**
+ * テーマレジストリを作る。
+ *
+ * **アプリで扱えるテーマの一覧**を保持し、ID からテーマを引けるようにする。
+ * 利用者が選んだ ID(localStorage など)から、実際のテーマを解決するのに使う。
+ *
+ * @param options.themes 登録するテーマ(省略時は組み込みのスキン)
+ * @param options.defaultId 既定のテーマ ID
+ * @returns レジストリ。`get` で引く
+ * @throws {@link @platform/core#AppError} コード `VALIDATION` — 同じ ID のテーマが重複している場合
+ */
 export function createThemeRegistry(options: CreateThemeRegistryOptions = {}): ThemeRegistry {
   const map = new Map<string, Theme>();
   const order: string[] = [];

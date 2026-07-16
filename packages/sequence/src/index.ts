@@ -42,7 +42,16 @@ export interface Sequencer {
   keyFor(now?: Date): string;
 }
 
-/** 期間トークン(リセット単位を表す文字列)を作る。 */
+/**
+ * 期間トークンを作る(リセット単位を表す文字列)。
+ *
+ * **「年度で連番をリセットする」を実現する**ための鍵。
+ * 同じトークンの間は連番が続き、変わると 1 に戻る。
+ *
+ * @param reset リセット単位(`never` / `yearly` / `monthly` / `daily`)
+ * @param now 基準日(テスト注入用)
+ * @returns 期間トークン(`2026` / `2026-07` など)
+ */
 export function periodToken(period: ResetPeriod, now: Date, fiscalStartMonth: number): string {
   const y = now.getFullYear();
   const m = now.getMonth() + 1;
@@ -54,7 +63,19 @@ export function periodToken(period: ResetPeriod, now: Date, fiscalStartMonth: nu
   return `FY${fiscalYear}`;
 }
 
-/** 採番器を作る。 */
+/**
+ * 採番器を作る。
+ *
+ * **請求書番号・受付番号など、飛び番のない連番**を作る。
+ * 採番の状態はストアが持つので、**複数プロセスでも重複しない**
+ * (メモリ実装を除く)。
+ *
+ * @param store 採番の状態を持つストア
+ * @param options.prefix 接頭辞(`INV-` など)
+ * @param options.reset リセット単位
+ * @param options.padding ゼロ埋めの桁数
+ * @returns 採番器(`next` で次の番号)
+ */
 export function createSequencer(store: SequenceStore, name: string, options: SequenceOptions = {}): Sequencer {
   const { prefix = "", suffix = "", padding = 0, resetPeriod = "never", separator = "-", fiscalStartMonth = 4 } = options;
 
@@ -79,7 +100,16 @@ export function createSequencer(store: SequenceStore, name: string, options: Seq
   };
 }
 
-/** メモリ実装(開発・テスト用。本番は DB/Redis のストアに差し替え)。 */
+/**
+ * 採番ストアのメモリ実装(開発・テスト用)。
+ *
+ * **複数プロセスでは番号が重複する**(プロセスごとに別のカウンタを持つため)。
+ * **本番では DB か Redis の実装に差し替えること**。請求書番号が重複すると、
+ * 会計上の問題になる。
+ *
+ * @param seed 初期値
+ * @returns ストア
+ */
 export function createMemorySequenceStore(): SequenceStore & { reset(): void } {
   const counters = new Map<string, number>();
   return {

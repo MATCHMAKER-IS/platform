@@ -4,17 +4,37 @@
  */
 import { ofType, type AnalyticsEvent } from "./event.js";
 
-/** 総ページビュー数。 */
+/**
+ * 総ページビュー数を返す。
+ *
+ * @param events イベントの配列
+ * @returns ページビューの件数
+ */
 export function pageViews(events: AnalyticsEvent[]): number {
   return ofType(events, "pageview").length;
 }
 
-/** ユニークビジター数（セッションIDのユニーク数）。 */
+/**
+ * ユニークビジター数を返す(**セッション ID のユニーク数**)。
+ *
+ * **同じ人が別の日に来れば別カウント**(セッションが変わるため)。
+ * 「何人が来たか」ではなく「何回の訪問があったか」に近い。
+ *
+ * @param events イベントの配列
+ * @returns ユニークなセッション数
+ */
 export function uniqueVisitors(events: AnalyticsEvent[]): number {
   return new Set(events.map((e) => e.sessionId)).size;
 }
 
-/** ログインユーザーのユニーク数（userId があるもの）。 */
+/**
+ * ログインユーザーのユニーク数を返す。
+ *
+ * **こちらは本当の「人数」**(userId で数えるため、別の日でも同じ人は 1)。
+ *
+ * @param events イベントの配列
+ * @returns ユニークなユーザー数
+ */
 export function uniqueUsers(events: AnalyticsEvent[]): number {
   return new Set(events.filter((e) => e.userId).map((e) => e.userId)).size;
 }
@@ -26,7 +46,13 @@ export interface PageStat {
   visitors: number;
 }
 
-/** 人気ページ上位（ビュー数の多い順、同数はパス昇順）。 */
+/**
+ * 人気ページの上位を返す。
+ *
+ * @param events イベントの配列
+ * @param limit 件数(既定 10)
+ * @returns パスとビュー数(**多い順**。同数ならパスの昇順で安定させる)
+ */
 export function topPages(events: AnalyticsEvent[], limit = 10): PageStat[] {
   const byPath = new Map<string, { views: number; sessions: Set<string> }>();
   for (const e of ofType(events, "pageview")) {
@@ -47,7 +73,12 @@ export interface ReferrerStat {
   count: number;
 }
 
-/** 参照元の内訳（多い順）。referrer 未設定は "direct"。 */
+/**
+ * 参照元の内訳を返す。
+ *
+ * @param events イベントの配列
+ * @returns 参照元と件数(多い順)。**referrer が無いものは `direct`**(直接アクセス)
+ */
 export function referrerBreakdown(events: AnalyticsEvent[], limit = 10): ReferrerStat[] {
   const byRef = new Map<string, number>();
   for (const e of ofType(events, "pageview")) {
@@ -76,7 +107,13 @@ function bucketKey(at: string, bucket: Bucket): string {
   return bucket === "day" ? at.slice(0, 10) : `${at.slice(0, 13)}:00`;
 }
 
-/** ページビューを時系列に集計（バケット昇順）。 */
+/**
+ * ページビューを時系列に集計する。
+ *
+ * @param events イベントの配列
+ * @param bucket 集計の単位(`hour` / `day` / `month`)
+ * @returns 時刻と件数(**昇順**。グラフにそのまま渡せる)
+ */
 export function timeSeries(events: AnalyticsEvent[], bucket: Bucket = "day"): TimePoint[] {
   const byBucket = new Map<string, { views: number; sessions: Set<string> }>();
   for (const e of ofType(events, "pageview")) {
@@ -91,7 +128,12 @@ export function timeSeries(events: AnalyticsEvent[], bucket: Bucket = "day"): Ti
     .sort((a, b) => (a.bucket < b.bucket ? -1 : a.bucket > b.bucket ? 1 : 0));
 }
 
-/** セッションごとのページビュー数から直帰率（1 ページのみのセッション割合）を出す。 */
+/**
+ * セッションごとのページビュー数から直帰率（1 ページのみのセッション割合）を出す。
+ *
+ * @param events イベントの配列
+ * @returns 0〜1(**1 ページだけ見て離脱したセッションの比率**)。セッションが 0 なら 0
+ */
 export function bounceRate(events: AnalyticsEvent[]): number {
   const bySession = new Map<string, number>();
   for (const e of ofType(events, "pageview")) {
@@ -114,7 +156,12 @@ export interface AnalyticsSummary {
   referrers: ReferrerStat[];
 }
 
-/** 概況をまとめて計算する。 */
+/**
+ * 概況をまとめて計算する。
+ *
+ * @param events イベントの配列
+ * @returns PV・UU・ユーザー数・直帰率・人気ページ・参照元(ダッシュボード用)
+ */
 export function summarize(events: AnalyticsEvent[], options: { topN?: number } = {}): AnalyticsSummary {
   const topN = options.topN ?? 5;
   return {

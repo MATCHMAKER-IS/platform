@@ -16,7 +16,16 @@ export interface PrintOptions {
   landscape?: boolean;
 }
 
-/** @page ルールと印刷向けユーティリティ CSS を生成する。 */
+/**
+ * 印刷用の CSS(`@page` ルールと改ページ制御)を生成する。
+ *
+ * **画面用の CSS のままでは紙に収まらない**(余白・改ページ・背景色の扱いが違う)。
+ *
+ * @param options.size 用紙(既定 A4)
+ * @param options.orientation 向き(既定 portrait)
+ * @param options.margin 余白
+ * @returns CSS 文字列
+ */
 export function printPageCss(options: PrintOptions = {}): string {
   const format = options.format ?? "A4";
   const margin = options.margin ?? "15mm";
@@ -33,14 +42,28 @@ export function printPageCss(options: PrintOptions = {}): string {
   ].join("\n");
 }
 
-/** HTML ドキュメントに印刷用 CSS を差し込む(</head> 直前、無ければ先頭に style を付与)。 */
+/**
+ * HTML に印刷用 CSS を差し込む。
+ *
+ * `</head>` の直前に入れる。**head が無い断片なら先頭**に付ける(壊さないため)。
+ *
+ * @param html 対象の HTML
+ * @param css 差し込む CSS
+ * @returns CSS を差し込んだ HTML
+ */
 export function injectPrintCss(html: string, css: string): string {
   const styleTag = `<style data-print="1">\n${css}\n</style>`;
   if (html.includes("</head>")) return html.replace("</head>", `${styleTag}</head>`);
   return `${styleTag}\n${html}`;
 }
 
-/** 帳票 HTML を印刷/PDF 向けに整える(@page + 改ページ制御を注入)。 */
+/**
+ * 帳票 HTML を印刷・PDF 向けに整える。
+ *
+ * @param html 帳票の HTML
+ * @param options 用紙・向き・余白
+ * @returns 印刷用 CSS を差し込んだ HTML
+ */
 export function wrapForPrint(html: string, options: PrintOptions = {}): string {
   return injectPrintCss(html, printPageCss(options));
 }
@@ -54,6 +77,10 @@ function extractBody(html: string): string {
 /**
  * 複数の帳票 HTML を 1 つの印刷ドキュメントに結合する(各帳票を改ページで区切る)。
  * 月次の全請求書を 1 つの PDF にまとめる、といった一括出力に使う。
+ *
+ * @param htmls 帳票 HTML の配列
+ * @param options 用紙・向き・余白
+ * @returns 結合した印刷用 HTML(**各帳票の間に改ページが入る**)
  */
 export function combineForPrint(htmls: string[], options: PrintOptions = {}): string {
   const pages = htmls
@@ -73,15 +100,33 @@ ${pages}
 import type { InvoiceDocument } from "./render.js";
 import { renderInvoiceHtml, renderQuotationHtml, renderDeliveryNoteHtml } from "./render.js";
 
-/** 請求書を印刷/PDF 用 HTML で生成する(renderInvoiceHtml + wrapForPrint)。 */
+/**
+ * 請求書を印刷・PDF 用の HTML で生成する。
+ *
+ * @param invoice 請求書
+ * @param options 用紙・向き・余白
+ * @returns 印刷用の HTML
+ */
 export function printableInvoiceHtml(doc: InvoiceDocument, options: PrintOptions = {}): string {
   return wrapForPrint(renderInvoiceHtml(doc), options);
 }
-/** 見積書を印刷/PDF 用 HTML で生成する。 */
+/**
+ * 見積書を印刷・PDF 用の HTML で生成する。
+ *
+ * @param quote 見積書
+ * @param options 用紙・向き・余白
+ * @returns 印刷用の HTML
+ */
 export function printableQuotationHtml(doc: InvoiceDocument, options: PrintOptions = {}): string {
   return wrapForPrint(renderQuotationHtml(doc), options);
 }
-/** 納品書を印刷/PDF 用 HTML で生成する。 */
+/**
+ * 納品書を印刷・PDF 用の HTML で生成する。
+ *
+ * @param delivery 納品書
+ * @param options 用紙・向き・余白
+ * @returns 印刷用の HTML
+ */
 export function printableDeliveryNoteHtml(doc: InvoiceDocument, options: PrintOptions = {}): string {
   return wrapForPrint(renderDeliveryNoteHtml(doc), options);
 }

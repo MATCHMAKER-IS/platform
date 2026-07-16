@@ -23,7 +23,12 @@ export interface CookieOptions {
   expires?: Date;
 }
 
-/** Cookie ヘッダ文字列を名前→値のオブジェクトにする。 */
+/**
+ * Cookie ヘッダを名前 → 値の辞書にする。
+ *
+ * @param header `Cookie` ヘッダの値(`a=1; b=2`)
+ * @returns 名前 → 値。**ヘッダが無ければ空**
+ */
 export function parseCookies(header: string | null | undefined): Record<string, string> {
   if (!header) return {};
   const out: Record<string, string> = {};
@@ -38,12 +43,35 @@ export function parseCookies(header: string | null | undefined): Record<string, 
   return out;
 }
 
-/** 1 件の Cookie ヘッダ文字列から特定の値を取り出す。 */
+/**
+ * Cookie ヘッダから特定の値を取り出す。
+ *
+ * @param header `Cookie` ヘッダの値
+ * @param name 取り出す名前
+ * @returns 値。**無ければ undefined**
+ */
 export function getCookie(header: string | null | undefined, name: string): string | null {
   return parseCookies(header)[name] ?? null;
 }
 
-/** Set-Cookie 文字列を生成する。 */
+/**
+ * `Set-Cookie` ヘッダの値を組み立てる。
+ *
+ * **セッション Cookie には `httpOnly` と `secure` を必ず付ける**。
+ * httpOnly が無いと JavaScript から読めてしまい、XSS でセッションを盗まれる。
+ * secure が無いと平文の HTTP で送信される。
+ *
+ * `sameSite` は既定で `lax`(CSRF を防ぎつつ、外部リンクからの遷移では送られる)。
+ *
+ * @param name Cookie 名
+ * @param value 値
+ * @param options.maxAge 有効期間(秒)
+ * @param options.httpOnly JavaScript から読めなくするか
+ * @param options.secure HTTPS のみで送るか
+ * @param options.sameSite CSRF 対策(既定 lax)
+ * @param options.path 対象パス(既定 `/`)
+ * @returns `Set-Cookie` に渡す文字列
+ */
 export function serializeCookie(name: string, value: string, options: CookieOptions = {}): string {
   const { httpOnly = true, secure = true, sameSite = "Lax", path = "/", domain, maxAge, expires } = options;
   const parts = [`${name}=${encodeURIComponent(value)}`];
@@ -57,7 +85,17 @@ export function serializeCookie(name: string, value: string, options: CookieOpti
   return parts.join("; ");
 }
 
-/** クッキーを失効させる Set-Cookie 文字列を生成する。 */
+/**
+ * Cookie を失効させる `Set-Cookie` を組み立てる(ログアウト用)。
+ *
+ * **設定時と同じ `path` / `domain` を指定すること**。違うと消えず、ログアウトしたつもりが
+ * セッションが残る。
+ *
+ * @param name Cookie 名
+ * @param options.path 対象パス(**設定時と同じ値**)
+ * @param options.domain 対象ドメイン(設定時と同じ値)
+ * @returns `Set-Cookie` に渡す文字列
+ */
 export function clearCookie(name: string, options: CookieOptions = {}): string {
   return serializeCookie(name, "", { ...options, maxAge: 0, expires: new Date(0) });
 }

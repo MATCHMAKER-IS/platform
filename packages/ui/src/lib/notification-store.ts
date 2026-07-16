@@ -20,7 +20,14 @@ export interface NotificationReducerOptions {
   max?: number;
 }
 
-/** アクションを適用して新しい通知配列を返す(常に新しい順・ID 重複排除)。 */
+/**
+ * アクションを適用して新しい通知配列を返す(常に新しい順・ID 重複排除)。
+ *
+ *
+ * @param state 現在の状態
+ * @param action 操作
+ * @returns 新しい状態(**useReducer に渡す**)
+ */
 export function notificationReducer(state: AppNotification[], action: NotificationAction, options: NotificationReducerOptions = {}): AppNotification[] {
   let next: AppNotification[];
   switch (action.type) {

@@ -49,6 +49,10 @@ export interface DisclosureReport {
 /**
  * 本人の保有個人データから開示レポートを組み立てる。
  * 各データにカテゴリ情報(利用目的・保持期間・第三者提供先)を付与して返す。
+ *
+ * @param subject 本人
+ * @param sources データの所在(テーブルごと)
+ * @returns 開示レポート(**本人に渡す形**)
  */
 export function buildDisclosureReport(input: {
   subjectId: string;
@@ -71,7 +75,15 @@ export function buildDisclosureReport(input: {
   return { subjectId: input.subjectId, generatedAt: (input.generatedAt ?? new Date()).toISOString(), holdings };
 }
 
-/** 開示レポートを可搬な JSON 文字列にする(データポータビリティ対応)。 */
+/**
+ * 開示レポートを JSON にする(**データポータビリティ対応**)。
+ *
+ * 本人から「自分のデータを全部出して」と求められたときに使う
+ * (GDPR・改正個人情報保護法)。**機械可読な形式で渡す**のが要件。
+ *
+ * @param report 開示レポート
+ * @returns 整形済みの JSON 文字列
+ */
 export function disclosureToJson(report: DisclosureReport): string {
   return JSON.stringify(report, null, 2);
 }
@@ -107,7 +119,17 @@ export interface ErasureReceipt {
   erasedFields: string[];
 }
 
-/** 削除処理の証跡を作る。 */
+/**
+ * 削除処理の証跡を作る。
+ *
+ * **「消しました」と言うだけでは足りない**。いつ・何を・どの範囲で消したかを
+ * 記録しておかないと、後から問われたときに答えられない。
+ *
+ * @param request 削除依頼
+ * @param result 削除の結果(対象と件数)
+ * @param now 現在時刻(テスト注入用)
+ * @returns 証跡
+ */
 export function buildErasureReceipt(subjectId: string, erasedFields: string[], method: ErasureMethod, erasedAt: Date = new Date()): ErasureReceipt {
   return { subjectId, erasedAt: erasedAt.toISOString(), method, erasedFields };
 }
@@ -122,6 +144,10 @@ export interface RetainableRecord {
 /**
  * 保持期間を過ぎたレコードの ID を返す(定期削除バッチ用)。
  * 個人情報は利用目的の達成後・保持期間経過後に遅滞なく消去する必要がある。
+ *
+ * @param subject 本人
+ * @param sources データの所在
+ * @returns 削除対象。**法令で保持が必要なものは除く**(会計帳簿は 7 年保存が義務。全部消すと別の違反になる)
  */
 export function recordsToErase(records: RetainableRecord[], now: number = Date.now()): string[] {
   return records.filter((r) => isRetentionExpired(r.createdAt, r.retentionDays, now)).map((r) => r.id);

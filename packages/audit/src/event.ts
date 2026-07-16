@@ -47,6 +47,11 @@ export interface DiffOptions {
  * diffChanges({ name: "A", pw: "x" }, { name: "B", pw: "y" }, { redact: ["pw"] });
  * // => [{ field: "name", before: "A", after: "B" }, { field: "pw", before: "***", after: "***" }]
  * ```
+ *
+ * @param before 変更前
+ * @param after 変更後
+ * @param options.mask マスクするフィールド(**パスワードなどを監査ログに残さない**)
+ * @returns 変わったフィールドだけの差分(**変わっていないものは含まない**)
  */
 export function diffChanges(
   before: Record<string, unknown> = {},
@@ -68,7 +73,15 @@ export function diffChanges(
   return changes;
 }
 
-/** イベントを人間可読な 1 行に要約する。 */
+/**
+ * イベントを人が読める 1 行に要約する。
+ *
+ * **監査ログは人が読むもの**(機械が読むだけなら JSON でよい)。
+ * 調査のときに一覧をざっと見て、怪しいものを見つけられる形にする。
+ *
+ * @param event 監査イベント
+ * @returns 要約(1 行)
+ */
 export function describeEvent(event: AuditEvent): string {
   const changes = diffChanges(event.before, event.after);
   const changeText = changes.length > 0 ? `(${changes.map((c) => c.field).join(", ")})` : "";
@@ -77,6 +90,14 @@ export function describeEvent(event: AuditEvent): string {
 
 /**
  * ネストしたオブジェクトを再帰的に比較し、変わった「パス」だけ返す（例 "address.city"）。
+ *
+ * **どこが変わったかを正確に記録する**ため。オブジェクト全体を before/after で
+ * 残すと、監査ログが肥大化し、差分も読めない。
+ *
+ * @param before 変更前
+ * @param after 変更後
+ * @param options.mask マスクするパス
+ * @returns 変わったパスだけの差分
  * 配列やプリミティブは JSON 比較で葉として扱う。UI での差分の詳細表示に使う。
  */
 export function deepDiffChanges(

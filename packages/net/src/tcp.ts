@@ -34,7 +34,18 @@ function attachFraming(socket: net.Socket, onMessage: (payload: Uint8Array, conn
   return conn;
 }
 
-/** フレーム付き TCP サーバを起動する。 */
+/**
+ * フレーム付きの TCP サーバを起動する。
+ *
+ * **TCP はストリームなのでメッセージの境界が無い**。長さ接頭辞でフレーム化することで、
+ * 受信側が「どこまでが 1 通か」を判断できる(素朴に `data` を読むと、
+ * 2 通が繋がって届いたり、1 通が分割されて届く)。
+ *
+ * @param options.port 待ち受けポート
+ * @param options.onMessage メッセージを受け取ったときの処理
+ * @param options.onError エラー時の処理(任意)
+ * @returns サーバ。`close` で停止する
+ */
 export function createFramedServer(
   options: { port?: number; host?: string },
   onMessage: (payload: Uint8Array, conn: FramedConnection) => void,
@@ -53,7 +64,14 @@ export function createFramedServer(
   });
 }
 
-/** フレーム付き TCP クライアントで接続する。 */
+/**
+ * フレーム付きの TCP クライアントで接続する。
+ *
+ * @param options.host 接続先
+ * @param options.port ポート
+ * @param options.onMessage メッセージを受け取ったときの処理
+ * @returns 接続。`send` で送信、`close` で切断
+ */
 export function connectFramed(
   options: { host: string; port: number },
   onMessage: (payload: Uint8Array, conn: FramedConnection) => void,

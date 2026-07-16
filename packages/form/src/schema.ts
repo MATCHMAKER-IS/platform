@@ -7,7 +7,12 @@
 import { z } from "zod";
 import type { FormField } from "./field.js";
 
-/** 1 フィールドの zod 型を作る。 */
+/**
+ * 1 つのフィールドから zod の型を作る。
+ *
+ * @param field フィールド定義
+ * @returns zod スキーマ(必須・型・最大長などを反映)
+ */
 export function buildFieldSchema(field: FormField): z.ZodTypeAny {
   let schema: z.ZodTypeAny;
   switch (field.type) {
@@ -48,7 +53,15 @@ export function buildFieldSchema(field: FormField): z.ZodTypeAny {
   return schema;
 }
 
-/** フィールド一覧から zod オブジェクトスキーマを組み立てる。 */
+/**
+ * フィールド定義から zod のオブジェクトスキーマを組み立てる。
+ *
+ * **画面の定義と検証を 1 か所にまとめる**ため。別々に書くと必ずズレる
+ * (画面では必須なのに検証が通る、など)。
+ *
+ * @param fields フィールド定義の配列
+ * @returns zod スキーマ
+ */
 export function buildFormSchema(fields: FormField[]): z.ZodObject<Record<string, z.ZodTypeAny>> {
   const shape: Record<string, z.ZodTypeAny> = {};
   for (const f of fields) shape[f.name] = buildFieldSchema(f);

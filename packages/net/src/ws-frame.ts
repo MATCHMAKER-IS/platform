@@ -10,7 +10,19 @@ export const WsOpcode = { continuation: 0x0, text: 0x1, binary: 0x2, close: 0x8,
 /** デコードされたフレーム。 */
 export interface WsFrame { fin: boolean; opcode: number; payload: Uint8Array }
 
-/** フレームをエンコードする(mask=true でクライアント→サーバ用にマスク)。 */
+/**
+ * WebSocket フレームをエンコードする。
+ *
+ * **クライアント → サーバの送信は必ずマスクする**(RFC 6455 の要求)。
+ * マスクしないとサーバに切断される。逆に**サーバ → クライアントはマスクしない**。
+ *
+ * @param opts.opcode オペコード(1=text, 2=binary, 8=close など)
+ * @param opts.payload 送るデータ
+ * @param opts.fin 最終フレームか(既定 true)
+ * @param opts.mask マスクするか(**クライアントなら true**)
+ * @param opts.maskKey マスクキー(省略時は乱数)
+ * @returns フレームのバイト列
+ */
 export function encodeWsFrame(opts: { opcode: number; payload?: Uint8Array; fin?: boolean; mask?: boolean; maskKey?: Uint8Array }): Uint8Array {
   const payload = opts.payload ?? new Uint8Array(0);
   const fin = opts.fin ?? true;
@@ -42,7 +54,13 @@ export function encodeWsFrame(opts: { opcode: number; payload?: Uint8Array; fin?
   return out;
 }
 
-/** テキストをマスク付き text フレームにする簡易版(クライアント用)。 */
+/**
+ * テキストを WebSocket の text フレームにする(クライアント用の簡易版)。
+ *
+ * @param text 送るテキスト
+ * @param mask マスクするか(**既定 true = クライアント用**)
+ * @returns フレームのバイト列
+ */
 export function encodeWsText(text: string, mask = true): Uint8Array {
   return encodeWsFrame({ opcode: WsOpcode.text, payload: new TextEncoder().encode(text), mask });
 }

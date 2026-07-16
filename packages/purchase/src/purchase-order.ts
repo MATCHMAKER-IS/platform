@@ -22,12 +22,25 @@ export interface PurchaseOrder {
   state?: "draft" | "ordered" | "cancelled";
 }
 
-/** 発注の金額を計算する(税計算は invoice に委譲)。 */
+/**
+ * 発注の金額を計算する。
+ *
+ * **税計算は `@platform/invoice` に委譲**(端数処理の方針を一元管理するため)。
+ *
+ * @param lines 明細
+ * @returns 小計・税額・合計
+ */
 export function purchaseTotals(lines: PurchaseLine[], rounding: Rounding = "floor"): InvoiceTotals {
   return invoiceTotals(lines, rounding);
 }
 
-/** 発注書を組み立てる。 */
+/**
+ * 発注書を組み立てる。
+ *
+ * @param header 発注先・日付など
+ * @param lines 明細
+ * @returns 発注書(金額は自動計算)
+ */
 export function buildPurchaseOrder(
   header: { number: string; orderDate: string; supplier: string; dueDate?: string; state?: PurchaseOrder["state"] },
   lines: PurchaseLine[],

@@ -10,7 +10,13 @@ export interface LayoutStore {
   save(layout: DashboardLayout): void | Promise<void>;
 }
 
-/** localStorage に保存するストアを作る(ブラウザ専用)。 */
+/**
+ * localStorage に保存するストアを作る(ブラウザ専用)。
+ *
+ *
+ * @param key 保存キー
+ * @returns ストア。**端末ごとの設定**(別の PC では引き継がれない)
+ */
 export function createLocalStorageLayoutStore(key: string): LayoutStore {
   return {
     load() {
@@ -49,6 +55,9 @@ export interface FetchLayoutStoreOptions {
  * });
  * const { layout, setLayout } = useDashboardLayout(DEFAULT, store);
  * ```
+ *
+ * @param options.endpoint API の URL
+ * @returns ストア。**端末をまたいで持ち回れる**
  */
 export function createFetchLayoutStore(url: string, options: FetchLayoutStoreOptions = {}): LayoutStore {
   const doFetch = options.fetch ?? (typeof fetch !== "undefined" ? fetch : undefined);

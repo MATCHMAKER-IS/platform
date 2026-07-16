@@ -55,6 +55,8 @@ export function createCsrf(config: { secret: string }): Csrf {
 /**
  * CSRF を検証し、不正なら例外を投げる(Route ハンドラで使う)。
  * @throws {@link @platform/core#AppError} `FORBIDDEN` — 検証失敗時(`@platform/http` が 403 に変換)
+ * @param token 送られてきたトークン
+ * @param expected セッションに保存したトークン
  */
 export function assertCsrf(csrf: Csrf, submitted: string | null | undefined, cookie: string | null | undefined): void {
   if (!csrf.verify(submitted, cookie)) {

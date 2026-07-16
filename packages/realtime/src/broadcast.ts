@@ -41,7 +41,16 @@ export interface BroadcastHubOptions {
   onSendError?: (connectionId: string, error: unknown) => void;
 }
 
-/** ブロードキャストハブを作る。 */
+/**
+ * ブロードキャストハブを作る。
+ *
+ * **Redis Pub/Sub を挟むので、複数サーバに分かれていても届く**
+ * (単一プロセス内のイベントエミッタでは、別サーバの購読者に届かない)。
+ *
+ * @param pubsub Redis Pub/Sub クライアント
+ * @param options.channelPrefix チャンネル名の接頭辞(**環境ごとに分ける**。開発の通知が本番に飛ばないように)
+ * @returns ハブ(`subscribe` で購読、`publish` で配信)
+ */
 export function createBroadcastHub(pubsub: RedisPubSubClient, options: BroadcastHubOptions = {}): BroadcastHub {
   const keyPrefix = options.keyPrefix ?? "ws:";
   // channel -> (connectionId -> send)

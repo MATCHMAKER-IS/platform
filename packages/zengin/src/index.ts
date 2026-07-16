@@ -42,7 +42,15 @@ export interface Consignor {
   accountNumber: string;
 }
 
-/** 半角カナへ簡易変換(全角カナ→半角、英字→大文字)。銀行が受け付ける文字に寄せる。 */
+/**
+ * 全銀フォーマット向けに文字を変換する(半角カナ・英大文字)。
+ *
+ * **全銀システムは半角カナしか受け付けない**(1973 年制定の規格が今も現役)。
+ * 全角カナや小文字が混じると、銀行のシステムで弾かれる。
+ *
+ * @param text 変換する文字列
+ * @returns 半角カナ・英大文字に変換した文字列
+ */
 export function toHankakuKana(input: string): string {
   const map: Record<string, string> = {
     "ガ":"ｶﾞ","ギ":"ｷﾞ","グ":"ｸﾞ","ゲ":"ｹﾞ","ゴ":"ｺﾞ","ザ":"ｻﾞ","ジ":"ｼﾞ","ズ":"ｽﾞ","ゼ":"ｾﾞ","ゾ":"ｿﾞ",
@@ -68,7 +76,14 @@ function padLeft(value: string | number, len: number): string {
   return s.length >= len ? s.slice(-len) : "0".repeat(len - s.length) + s;
 }
 
-/** ヘッダレコード(種別1)を作る。 */
+/**
+ * ヘッダレコード(種別 1)を作る。
+ *
+ * **1 ファイルに 1 つ**。振込依頼人の情報と、引き落とし口座を指定する。
+ *
+ * @param input 依頼人・引落口座・振込指定日
+ * @returns 120 バイトの固定長レコード
+ */
 export function buildHeader(consignor: Consignor, params: { typeCode?: string; transferDate: string }): string {
   // 1(データ区分) + 21(種別コード:総合振込) + 0(コード区分) + 委託者コード10 + 委託者名40 + 振込日4(MMDD) + 銀行4 + 支店3 + 種目1 + 口座7 ...
   return [
@@ -83,7 +98,15 @@ export function buildHeader(consignor: Consignor, params: { typeCode?: string; t
   ].join("");
 }
 
-/** データレコード(種別2)を作る。 */
+/**
+ * データレコード(種別 2)を作る。
+ *
+ * **振込 1 件につき 1 レコード**。
+ *
+ * @param input 振込先の銀行・支店・口座・金額
+ * @returns 120 バイトの固定長レコード
+ * @throws {@link @platform/core#AppError} コード `VALIDATION` — 銀行コード・支店コード・口座番号の桁数が不正な場合(**桁が違うと振込が失敗し、組戻し手数料がかかる**)
+ */
 export function buildDataRecord(r: TransferRecord): string {
   if (!Number.isInteger(r.amount) || r.amount <= 0) {
     throw new Error(`振込金額が不正です: ${r.amount}`);
@@ -99,7 +122,16 @@ export function buildDataRecord(r: TransferRecord): string {
   ].join("");
 }
 
-/** トレーラレコード(種別8)を作る。 */
+/**
+ * トレーラレコード(種別 8)を作る。
+ *
+ * **件数と合計金額を書く**。銀行側でデータレコードの実数と突合するので、
+ * 合わないとファイル全体が拒否される。
+ *
+ * @param count 振込件数
+ * @param totalAmount 合計金額
+ * @returns 120 バイトの固定長レコード
+ */
 export function buildTrailer(count: number, totalAmount: number): string {
   return ["8", padLeft(count, 6), padLeft(totalAmount, 12)].join("");
 }
@@ -119,6 +151,7 @@ export interface ZenginResult {
  * @param consignor 委託者情報
  * @param records 振込明細
  * @param transferDate 振込指定日("MMDD")
+ * @returns 全銀フォーマットのファイル内容(ヘッダ + データ + トレーラ + エンド)。**改行は CRLF**(銀行の仕様)
  */
 export function buildZenginTransfer(consignor: Consignor, records: TransferRecord[], transferDate: string): ZenginResult {
   const lines: string[] = [];

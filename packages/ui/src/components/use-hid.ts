@@ -18,7 +18,11 @@ export interface UseHidState {
   disconnect: () => void;
 }
 
-/** WebHID 接続フック(入力レポートを自動購読)。 */
+/**
+ * WebHID 接続フック(入力レポートを自動購読)。
+ *
+ * @returns 接続状態と操作。**非対応の環境では available: false**
+ */
 export function useHid(): UseHidState {
   const [connecting, setConnecting] = React.useState(false);
   const [device, setDevice] = React.useState<UseHidState["device"]>(null);

@@ -32,7 +32,13 @@ export function sanitize(dirty: string): string {
   });
 }
 
-/** プレーンテキスト化(全タグ除去)。ログや検索索引向け。 */
+/**
+ * プレーンテキスト化(全タグ除去)。ログや検索索引向け。
+ *
+ *
+ * @param html 対象の HTML
+ * @returns タグを除いた文字列。**これはサニタイズではない**(安全な HTML を作る用途には使えない)
+ */
 export function stripHtml(dirty: string): string {
   return sanitizeHtmlLib(dirty, { allowedTags: [], allowedAttributes: {} });
 }

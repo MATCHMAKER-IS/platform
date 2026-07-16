@@ -13,7 +13,15 @@ export interface SeenStore {
   has(key: string): boolean;
 }
 
-/** メモリ実装(TTL 付き)。分散では Redis 実装に差し替える。 */
+/**
+ * 重複抑制ストアのメモリ実装(TTL 付き)。
+ *
+ * **複数プロセスでは効かない**(プロセスごとに別のメモリを持つため、
+ * サーバの数だけ通知が飛ぶ)。**本番では Redis 実装に差し替えること**。
+ *
+ * @param options.ttlMs 記録の保持期間
+ * @returns ストア
+ */
 export function createMemorySeenStore(now: () => number = () => Date.now()): SeenStore {
   const seen = new Map<string, number>(); // key -> expiresAt
   return {
@@ -44,7 +52,17 @@ export interface DedupOptions {
   onSkip?: (key: string) => void;
 }
 
-/** チャネルを重複抑制でラップする。TTL 内の同一キーは送信しない。 */
+/**
+ * 通知を重複抑制でラップする。
+ *
+ * **同じ通知を何度も送らない**(リトライやイベントの重複で、
+ * 利用者に同じ通知が 5 回届くと信頼を失う)。
+ *
+ * @param channel 元のチャネル
+ * @param store 重複抑制ストア
+ * @param keyOf 通知から一意キーを作る関数
+ * @returns ラップしたチャネル
+ */
 export function withDedup(channel: NotifyChannel, options: DedupOptions): NotifyChannel {
   const keyOf = options.keyOf ?? ((m: NotifyMessage) => `${m.level ?? "info"}:${m.text}`);
   return {

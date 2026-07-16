@@ -24,7 +24,16 @@ function toSet(list: string[] | undefined): Set<string> {
   return new Set((list ?? []).map((s) => s.toLowerCase()));
 }
 
-/** アドレスがポリシーで許可されるか。ブロックが最優先、次に allowed(未指定なら許可)。 */
+/**
+ * アドレスがポリシーで許可されるかを判定する。
+ *
+ * **ブロックが最優先**(許可リストにあってもブロックされていれば送らない)。
+ * **開発環境で本番の顧客にメールを送る事故**を防ぐのが主な用途。
+ *
+ * @param email メールアドレス
+ * @param policy 許可・ブロックの設定
+ * @returns 許可されるなら true(**allowed 未指定なら許可**)
+ */
 export function isAllowedRecipient(email: string, policy: RecipientPolicy): boolean {
   const addr = normalizeEmail(email).toLowerCase();
   const domain = emailDomain(addr).toLowerCase();
@@ -41,7 +50,16 @@ export function isAllowedRecipient(email: string, policy: RecipientPolicy): bool
   return allowedEmails.has(addr) || (domain !== "" && allowedDomains.has(domain));
 }
 
-/** 宛先リストを許可/拒否に振り分ける。 */
+/**
+ * 宛先を許可・拒否に振り分ける。
+ *
+ * **拒否した分もログに残せる**ようにするため(黙って落とすと、
+ * 「送ったはずのメールが届かない」の原因が分からなくなる)。
+ *
+ * @param emails 宛先の配列
+ * @param policy ポリシー
+ * @returns 許可された宛先と拒否された宛先
+ */
 export function filterRecipients(emails: string[], policy: RecipientPolicy): { allowed: string[]; blocked: string[] } {
   const allowed: string[] = [];
   const blocked: string[] = [];
@@ -69,6 +87,10 @@ export interface ApplyPolicyOptions {
  * メッセージの宛先にポリシーを適用する。
  * redirectTo 指定時は全宛先をそのアドレスに付け替える(誤送信防止)。
  * それ以外は許可された宛先だけを残し、全滅なら message=null(送信しない)。
+ *
+ * @param message メッセージ
+ * @param policy ポリシー
+ * @returns 許可された宛先だけのメッセージ。**全員拒否なら null**(空の宛先で送ると API がエラーになる)
  */
 export function applyRecipientPolicy(
   message: MailMessage,
@@ -101,6 +123,13 @@ export function applyRecipientPolicy(
  * onBlocked で通知だけ受け取れる。ステージングでは redirectTo で検証アドレスに集約できる。
  */
 interface Sendable { send(message: MailMessage): Promise<unknown>; }
+/**
+ * 送信を宛先ポリシーでラップする。**開発環境で本番の顧客にメールを送る事故**を防ぐ。
+ *
+ * @param transport 元の送信
+ * @param policy ポリシー
+ * @returns ラップした送信
+ */
 export function withRecipientPolicy<M extends Sendable>(
   mailer: M,
   policy: RecipientPolicy,

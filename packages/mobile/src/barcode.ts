@@ -13,6 +13,7 @@ function isDigits(s: string): boolean {
 /**
  * EAN/JAN のチェックディジットを計算する(データ桁から。右から重み 3,1,3,1…)。
  * @param dataDigits チェックディジットを除いたデータ桁(EAN-13 なら 12 桁、EAN-8 なら 7 桁)。
+ * @returns チェックディジット(**最後の 1 桁**。これが合わないバーコードは誤読)
  */
 export function eanCheckDigit(dataDigits: string): number {
   let sum = 0;
@@ -24,19 +25,39 @@ export function eanCheckDigit(dataDigits: string): number {
   return (10 - (sum % 10)) % 10;
 }
 
-/** EAN-13 / JAN(13桁)として妥当か(チェックディジット検証)。 */
+/**
+ * EAN-13 / JAN として妥当かを判定する。
+ *
+ * **チェックディジットまで検証する**(桁数だけ見ると、読み取りミスを通してしまう)。
+ * バーコードは汚れや角度で誤読するので、必ず検証すること。
+ *
+ * @param code 13 桁のコード
+ * @returns 妥当なら true
+ */
 export function isValidEan13(code: string): boolean {
   const c = code.trim();
   if (!isDigits(c) || c.length !== 13) return false;
   return eanCheckDigit(c.slice(0, 12)) === c.charCodeAt(12) - 48;
 }
 
-/** JAN コードとして妥当か(日本の JAN は EAN-13。8桁の短縮 JAN も許容)。 */
+/**
+ * JAN コードとして妥当かを判定する。
+ *
+ * **日本の JAN は EAN-13 と同じ**。8 桁の短縮 JAN も許容する。
+ *
+ * @param code コード
+ * @returns 妥当なら true
+ */
 export function isValidJan(code: string): boolean {
   return isValidEan13(code) || isValidEan8(code);
 }
 
-/** EAN-8(8桁)として妥当か。 */
+/**
+ * EAN-8 として妥当かを判定する。
+ *
+ * @param code 8 桁のコード
+ * @returns 妥当なら true
+ */
 export function isValidEan8(code: string): boolean {
   const c = code.trim();
   if (!isDigits(c) || c.length !== 8) return false;
@@ -46,21 +67,41 @@ export function isValidEan8(code: string): boolean {
 /** バーコード種別の推定。 */
 export type BarcodeKind = "ean13" | "ean8" | "unknown";
 
-/** 桁数とチェックディジットから種別を推定する。 */
+/**
+ * バーコードの種別を推定する。
+ *
+ * @param code コード
+ * @returns 種別(`ean13` / `ean8` / `unknown`)
+ */
 export function detectBarcodeKind(code: string): BarcodeKind {
   if (isValidEan13(code)) return "ean13";
   if (isValidEan8(code)) return "ean8";
   return "unknown";
 }
 
-/** JAN の先頭2〜3桁(国コード)。45/49 は日本。 */
+/**
+ * JAN の国コードを返す(先頭 2〜3 桁)。
+ *
+ * **45 / 49 は日本**。
+ *
+ * @param code JAN コード
+ * @returns 国コード
+ */
 export function janCountryPrefix(code: string): string | null {
   const c = code.trim();
   if (!isDigits(c) || c.length !== 13) return null;
   return c.slice(0, 2);
 }
 
-/** 日本の事業者に割り当てられた JAN か(45 または 49 始まり)。 */
+/**
+ * 日本の事業者の JAN かを判定する。
+ *
+ * **45 または 49 始まり**。ただし**製造国とは限らない**(日本の企業が
+ * 海外で作った商品も 45/49 になる)。
+ *
+ * @param code JAN コード
+ * @returns 日本の事業者なら true
+ */
 export function isJapaneseJan(code: string): boolean {
   const p = janCountryPrefix(code);
   return p === "45" || p === "49";
@@ -76,7 +117,11 @@ export interface DetectedBarcode {
   format: string;
 }
 
-/** BarcodeDetector が使えるか。 */
+/**
+ * BarcodeDetector が使えるか。
+ *
+ * @returns 使えるなら true。**Chrome 系のみ**(非対応なら、ライブラリ(ZXing など)を使うか、手入力に切り替える)
+ */
 export function isBarcodeDetectorSupported(): boolean {
   return typeof globalThis !== "undefined" && "BarcodeDetector" in globalThis;
 }
@@ -86,6 +131,7 @@ export function isBarcodeDetectorSupported(): boolean {
  * 非対応環境では例外ではなく空配列を返す(呼び出し側でフォールバック可能)。
  * @param source ImageBitmapSource(video/canvas/img/ImageBitmap 等)
  * @param formats 対象フォーマット(既定は主要な小売バーコード + QR)
+ * @returns 検出したバーコード。**非対応の環境では空配列**(例外にしない)
  */
 export async function detectBarcodes(
   source: CanvasImageSource | Blob | ImageData,

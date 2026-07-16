@@ -52,18 +52,42 @@ export const easingExtra = {
 /** 名前でイージング関数を引く(easingExtra のキー)。 */
 export type EasingName = keyof typeof easingExtra;
 
-/** 線形補間。t=0 で a、t=1 で b。 */
+/**
+ * 線形補間する。
+ *
+ * @param a 始点(t=0)
+ * @param b 終点(t=1)
+ * @param t 進捗
+ * @returns 補間した値(**範囲外の t も許す**)
+ */
 export function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
-/** 逆補間。value が a→b のどこにあるか(0–1)。 */
+/**
+ * 逆補間する({@link lerp} の逆)。
+ *
+ * **値が範囲のどこにあるか**を 0–1 で返す。プログレスバーの計算などに使う。
+ *
+ * @param a 始点
+ * @param b 終点
+ * @param value 対象の値
+ * @returns 0–1 の位置。**a === b なら 0**(0 除算を避ける)
+ */
 export function inverseLerp(a: number, b: number, value: number): number {
   if (a === b) return 0;
   return (value - a) / (b - a);
 }
 
-/** 値をある範囲から別の範囲へ写像する。clamp=true で出力を outMin–outMax に丸める。 */
+/**
+ * 値を別の範囲へ写像する。
+ *
+ * @param value 対象の値
+ * @param inMin / inMax 入力の範囲
+ * @param outMin / outMax 出力の範囲
+ * @param clamp 出力を範囲内に丸めるか(**false だと範囲外に出る**)
+ * @returns 写像した値
+ */
 export function mapRange(value: number, inMin: number, inMax: number, outMin: number, outMax: number, clamp = false): number {
   const t = inverseLerp(inMin, inMax, value);
   const out = lerp(outMin, outMax, t);
@@ -78,6 +102,7 @@ export function mapRange(value: number, inMin: number, inMax: number, outMin: nu
  * @param count 要素数
  * @param step  1 要素あたりの遅延(ms)
  * @param options.from "start" | "end" | "center"(中央から広がる)
+ * @returns 各要素の遅延(**順に少しずつずらす**。同時に動くと機械的に見える)
  */
 export function staggerDelays(count: number, step: number, options: { from?: "start" | "end" | "center"; base?: number } = {}): number[] {
   const from = options.from ?? "start";
@@ -102,6 +127,7 @@ export interface SpringConfig { stiffness?: number; damping?: number; mass?: num
  * @param target 目標位置
  * @param config stiffness(剛性)/damping(減衰)/mass(質量)
  * @param dt 時間刻み(秒)。RAF なら概ね 1/60。
+ * @returns 次の位置と速度(**1 フレーム分進める**。requestAnimationFrame から呼ぶ)
  */
 export function stepSpring(state: SpringState, target: number, config: SpringConfig = {}, dt = 1 / 60): SpringState {
   const stiffness = config.stiffness ?? 170;
@@ -115,7 +141,18 @@ export function stepSpring(state: SpringState, target: number, config: SpringCon
   return { position, velocity };
 }
 
-/** バネが静止したとみなせるか(位置が目標近傍かつ速度が小さい)。 */
+/**
+ * バネが静止したとみなせるかを判定する。
+ *
+ * **位置だけでなく速度も見る**。目標を通過する瞬間は位置が一致するが、
+ * まだ動いている(そこで止めると不自然に見える)。
+ *
+ * @param position 現在位置
+ * @param target 目標
+ * @param velocity 速度
+ * @param options.positionThreshold / velocityThreshold 静止とみなす閾値
+ * @returns 静止していれば true
+ */
 export function isSpringSettled(state: SpringState, target: number, epsilon = 0.01): boolean {
   return Math.abs(state.position - target) < epsilon && Math.abs(state.velocity) < epsilon;
 }

@@ -17,7 +17,15 @@ export interface Paginated<T> {
   pageCount: number;
 }
 
-/** ページ番号・件数からメタ情報を計算する(純関数)。 */
+/**
+ * ページ番号・件数からメタ情報を計算する(純関数)。
+ *
+ *
+ * @param page ページ番号(1 始まり)
+ * @param perPage 1 ページの件数
+ * @param total 総件数
+ * @returns ページ数・前後の有無
+ */
 export function buildPageMeta(total: number, page: number, pageSize: number): Omit<Paginated<never>, "items"> {
   const safeSize = Math.max(1, Math.floor(pageSize));
   const safePage = Math.max(1, Math.floor(page));
@@ -47,6 +55,10 @@ export interface PaginateOptions {
  * const result = await paginate(db.user, { where: { active: true }, page: 2, pageSize: 20 });
  * // { items, total, page, pageSize, pageCount }
  * ```
+ *
+ * @param model Prisma のモデル
+ * @param options.page / perPage / where / orderBy 検索条件
+ * @returns 行とページ情報(**COUNT も実行する**ので、件数が多いと重い。無限スクロールならカーソル方式を検討)
  */
 export async function paginate<T>(delegate: CountableDelegate<T>, options: PaginateOptions = {}): Promise<Paginated<T>> {
   const { where, orderBy, page = 1, pageSize = 20 } = options;

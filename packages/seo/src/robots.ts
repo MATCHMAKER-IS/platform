@@ -23,7 +23,12 @@ export interface RobotsTxtInput {
   sitemaps?: string[];
 }
 
-/** robots.txt の文字列を生成する。 */
+/**
+ * robots.txt を生成する。
+ *
+ * @param input クローラーごとの許可・拒否と、サイトマップの URL
+ * @returns robots.txt の中身
+ */
 export function buildRobotsTxt(input: RobotsTxtInput): string {
   const blocks: string[] = [];
   for (const rule of input.rules) {
@@ -40,7 +45,14 @@ export function buildRobotsTxt(input: RobotsTxtInput): string {
   return out;
 }
 
-/** 全クローラーを許可する robots.txt(サイトマップ付き)。 */
+/**
+ * 全クローラーを許可する robots.txt を返す。
+ *
+ * **公開サイト用**。社内ツールには {@link internalRobotsTxt} を使うこと。
+ *
+ * @param sitemapUrl サイトマップの URL
+ * @returns robots.txt の中身
+ */
 export function allowAllRobotsTxt(sitemap?: string): string {
   return buildRobotsTxt({ rules: [{ userAgent: "*", allow: ["/"] }], sitemaps: sitemap ? [sitemap] : undefined });
 }

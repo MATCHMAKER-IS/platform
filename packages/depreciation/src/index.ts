@@ -39,12 +39,25 @@ export interface ScheduleRow {
 /** 備忘価額（残存簿価）。 */
 export const MEMORANDUM_VALUE = 1;
 
-/** 定額法の償却率（1 ÷ 耐用年数）。 */
+/**
+ * 定額法の償却率を返す(1 ÷ 耐用年数)。
+ *
+ * @param usefulLife 耐用年数
+ * @returns 償却率
+ */
 export function straightLineRate(usefulLifeYears: number): number {
   return usefulLifeYears > 0 ? 1 / usefulLifeYears : 0;
 }
 
-/** 定率法の既定償却率（200%定率法 = 2 ÷ 耐用年数）。 */
+/**
+ * 定率法の償却率を返す(**200% 定率法** = 2 ÷ 耐用年数)。
+ *
+ * 平成 24 年 4 月以降に取得した資産に適用される率。
+ * **取得時期で率が変わる**(それ以前は 250% 定率法)ので、古い資産には使えない。
+ *
+ * @param usefulLife 耐用年数
+ * @returns 償却率
+ */
 export function decliningBalanceRate(usefulLifeYears: number): number {
   return usefulLifeYears > 0 ? 2 / usefulLifeYears : 0;
 }
@@ -53,7 +66,16 @@ function isLastMeaningfulYear(yearIndex: number, life: number): boolean {
   return yearIndex >= life - 1;
 }
 
-/** 定額法の年次スケジュール（取得価額を耐用年数で均等償却、最終年度に1円まで）。 */
+/**
+ * 定額法の償却スケジュールを作る。
+ *
+ * **最終年度は 1 円を残す**(備忘価額)。0 にすると帳簿から消えてしまい、
+ * まだ使っている資産を管理できなくなる。
+ *
+ * @param acquisitionCost 取得価額
+ * @param usefulLife 耐用年数
+ * @returns 年次の償却額と期末簿価
+ */
 export function straightLineSchedule(cost: number, usefulLifeYears: number, startYear: number): ScheduleRow[] {
   const rows: ScheduleRow[] = [];
   if (cost <= MEMORANDUM_VALUE || usefulLifeYears <= 0) return rows;
@@ -72,7 +94,17 @@ export function straightLineSchedule(cost: number, usefulLifeYears: number, star
   return rows;
 }
 
-/** 定率法の年次スケジュール（期首簿価×償却率、残存年数の均等額を下回れば定額へ切替、1円まで）。 */
+/**
+ * 定率法の償却スケジュールを作る。
+ *
+ * **途中で定額法に切り替わる**のが要点。定率法は年々償却額が減るため、
+ * そのままでは耐用年数内に償却しきれない。**償却保証額を下回ったら定額**に切り替える
+ * (税法の規定)。最終年度は 1 円を残す。
+ *
+ * @param acquisitionCost 取得価額
+ * @param usefulLife 耐用年数
+ * @returns 年次の償却額と期末簿価
+ */
 export function decliningBalanceSchedule(cost: number, usefulLifeYears: number, startYear: number, rate?: number): ScheduleRow[] {
   const rows: ScheduleRow[] = [];
   if (cost <= MEMORANDUM_VALUE || usefulLifeYears <= 0) return rows;
@@ -93,14 +125,28 @@ export function decliningBalanceSchedule(cost: number, usefulLifeYears: number, 
   return rows;
 }
 
-/** 方法に応じて償却スケジュールを作る。 */
+/**
+ * 償却方法に応じてスケジュールを作る。
+ *
+ * @param method 方法(`straight-line` / `declining-balance`)
+ * @param acquisitionCost 取得価額
+ * @param usefulLife 耐用年数
+ * @returns 年次の償却額と期末簿価
+ */
 export function depreciationSchedule(asset: DepreciableAsset, startYear: number): ScheduleRow[] {
   return asset.method === "declining_balance"
     ? decliningBalanceSchedule(asset.cost, asset.usefulLifeYears, startYear, asset.rate)
     : straightLineSchedule(asset.cost, asset.usefulLifeYears, startYear);
 }
 
-/** スケジュールから指定年度の期末簿価を返す（取得前は取得価額、償却後は最終簿価）。 */
+/**
+ * スケジュールから指定年度の期末簿価を返す（取得前は取得価額、償却後は最終簿価）。
+ *
+ *
+ * @param schedule 償却スケジュール
+ * @param year 年度(1 始まり)
+ * @returns その年度末の簿価。**範囲外なら取得価額または 1 円**
+ */
 export function bookValueAt(schedule: ScheduleRow[], year: number, cost: number): number {
   if (schedule.length === 0) return cost;
   if (year < schedule[0]!.year) return cost;
@@ -112,12 +158,26 @@ export function bookValueAt(schedule: ScheduleRow[], year: number, cost: number)
   return book;
 }
 
-/** スケジュールから指定年度の償却額を返す（該当年度が無ければ0）。 */
+/**
+ * スケジュールから指定年度の償却額を返す（該当年度が無ければ0）。
+ *
+ *
+ * @param schedule 償却スケジュール
+ * @param year 年度(1 始まり)
+ * @returns その年度の償却額。**範囲外なら 0**
+ */
 export function depreciationInYear(schedule: ScheduleRow[], year: number): number {
   return schedule.find((r) => r.year === year)?.depreciation ?? 0;
 }
 
-/** 年間償却額の月割（円未満切り捨て）。 */
+/**
+ * 年間償却額の月割（円未満切り捨て）。
+ *
+ *
+ * @param yearlyAmount 年間の償却額
+ * @param months 事業供用月数(**期中に取得した資産は月割り**)
+ * @returns 月割りした償却額
+ */
 export function monthlyAmount(annual: number): number {
   return Math.floor(annual / 12);
 }

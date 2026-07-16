@@ -12,7 +12,15 @@ export type AccountType = "asset" | "liability" | "equity" | "revenue" | "expens
 /** 勘定科目 → 区分の対応。 */
 export type AccountTypeMap = Record<string, AccountType>;
 
-/** 既定の勘定科目区分(DEFAULT_ACCOUNTS に対応)。 */
+/**
+ * 既定の勘定科目区分を返す(DEFAULT_ACCOUNTS に対応)。
+ *
+ * 科目名 → 資産/負債/純資産/収益/費用 の対応表。
+ * **自社の科目体系が違うなら、この形で独自の表を渡す**。
+ *
+ * @param accounts 勘定科目名(既定は DEFAULT_ACCOUNTS)
+ * @returns 科目名 → 区分 の辞書
+ */
 export function defaultAccountTypes(accounts: AccountNames = DEFAULT_ACCOUNTS): AccountTypeMap {
   return {
     [accounts.receivable]: "asset",
@@ -31,7 +39,13 @@ export function defaultAccountTypes(accounts: AccountNames = DEFAULT_ACCOUNTS): 
   };
 }
 
-/** 指定年月(YYYY-MM)の仕訳だけ抽出する。 */
+/**
+ * 指定した年月の仕訳だけを抽出する。
+ *
+ * @param entries 仕訳の配列
+ * @param yearMonth 年月(`YYYY-MM`)
+ * @returns その月の仕訳だけの新しい配列
+ */
 export function filterByPeriod(entries: JournalEntry[], yearMonth: string): JournalEntry[] {
   return entries.filter((e) => e.date.slice(0, 7) === yearMonth);
 }
@@ -44,7 +58,15 @@ export interface ProfitAndLoss {
   netIncome: number;
 }
 
-/** 仕訳から損益(収益・費用・純利益)を集計する。 */
+/**
+ * 損益(収益・費用・純利益)を集計する。
+ *
+ * **収益は貸方、費用は借方**に立つので、それぞれ逆向きに集計する。
+ *
+ * @param entries 仕訳の配列
+ * @param accountTypes 科目 → 区分 の対応(既定は {@link defaultAccountTypes})
+ * @returns 収益・費用・純利益(= 収益 - 費用)
+ */
 export function profitAndLoss(entries: JournalEntry[], types: AccountTypeMap = defaultAccountTypes()): ProfitAndLoss {
   const tb = trialBalance(entries);
   let revenue = 0, expense = 0;
@@ -65,7 +87,15 @@ export interface BalanceSheet {
   equity: number;
 }
 
-/** 仕訳から資産・負債・純資産を集計する。 */
+/**
+ * 貸借対照表(資産・負債・純資産)を集計する。
+ *
+ * **資産 = 負債 + 純資産**が成り立つのが正しい状態。崩れているなら仕訳のどこかが誤っている。
+ *
+ * @param entries 仕訳の配列
+ * @param accountTypes 科目 → 区分 の対応(既定は {@link defaultAccountTypes})
+ * @returns 資産・負債・純資産の合計
+ */
 export function balanceSheet(entries: JournalEntry[], types: AccountTypeMap = defaultAccountTypes()): BalanceSheet {
   const tb = trialBalance(entries);
   let assets = 0, liabilities = 0;
@@ -85,7 +115,14 @@ export interface DepartmentBalance {
   balance: number;
 }
 
-/** 部門ごとの借方/貸方/残高を集計する(department 指定のある明細のみ)。 */
+/**
+ * 部門ごとの借方・貸方・残高を集計する。
+ *
+ * **`department` の指定がある明細だけ**が対象(全社共通費は含まれない)。
+ *
+ * @param entries 仕訳の配列
+ * @returns 部門ごとの借方合計・貸方合計・残高
+ */
 export function departmentSummary(entries: JournalEntry[]): DepartmentBalance[] {
   const map = new Map<string, { debit: number; credit: number }>();
   const order: string[] = [];
@@ -101,7 +138,16 @@ export function departmentSummary(entries: JournalEntry[]): DepartmentBalance[] 
   return order.map((department) => { const d = map.get(department)!; return { department, debit: d.debit, credit: d.credit, balance: d.debit - d.credit }; });
 }
 
-/** 部門別の損益(費用・収益を区分で集計)。 */
+/**
+ * 部門別の損益を集計する。
+ *
+ * 「どの部門が儲かっているか」を見る。**部門の指定が無い明細は集計されない**ので、
+ * 全社合計とは一致しないことがある(共通費の配賦は別途)。
+ *
+ * @param entries 仕訳の配列
+ * @param accountTypes 科目 → 区分 の対応(既定は {@link defaultAccountTypes})
+ * @returns 部門ごとの収益・費用・純利益
+ */
 export function profitAndLossByDepartment(entries: JournalEntry[], types: AccountTypeMap = defaultAccountTypes()): Record<string, ProfitAndLoss> {
   const result: Record<string, { revenue: number; expense: number }> = {};
   for (const entry of entries) {

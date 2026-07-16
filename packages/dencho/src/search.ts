@@ -40,6 +40,10 @@ function dateKey(iso: string): string {
 
 /**
  * 取引を検索する(電帳法の検索要件を満たす AND 検索・範囲指定)。
+ *
+ * @param records レコードの配列
+ * @param query 検索条件(日付・金額の範囲、取引先)
+ * @returns 条件に合うレコード(**電帳法の検索要件を満たす形**)
  */
 export function searchTransactions<T extends TransactionRecord>(records: T[], query: TransactionQuery): T[] {
   const cp = query.counterparty?.toLowerCase();
@@ -53,7 +57,17 @@ export function searchTransactions<T extends TransactionRecord>(records: T[], qu
   });
 }
 
-/** 電帳法の検索要件(3項目・範囲・組み合わせ)を満たすか自己点検する。 */
+/**
+ * 電子帳簿保存法の**検索要件**を満たすか自己点検する。
+ *
+ * 法令が求めるのは 3 つ: **取引年月日・取引金額・取引先**で検索できること、
+ * **日付と金額は範囲指定**できること、**2 つ以上の組み合わせ**で検索できること。
+ *
+ * **税務調査で問われる**ので、実装した機能が要件を満たしているかを機械的に確認する。
+ *
+ * @param capability 実装した検索機能(どの項目が検索できるか)
+ * @returns 満たしているかと、**足りない要件**
+ */
 export function meetsSearchRequirements(query: TransactionQuery): { ok: boolean; missing: string[] } {
   const missing: string[] = [];
   const hasDate = query.dateFrom !== undefined || query.dateTo !== undefined;

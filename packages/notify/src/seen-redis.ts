@@ -27,6 +27,7 @@ export interface AsyncSeenStore {
  * Redis 重複抑制ストアを作る。
  * @param client ioredis 互換クライアント(またはフェイク)
  * @param keyPrefix キー接頭辞(既定 "seen:")
+ * @returns 重複抑制ストア(**複数プロセスでも効く**。メモリ実装と違い本番で使える)
  */
 export function createRedisSeenStore(client: RedisSeenClient, keyPrefix = "seen:"): AsyncSeenStore {
   return {

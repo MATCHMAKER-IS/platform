@@ -38,7 +38,17 @@ export const convertVolume = makeConverter(VOLUME);
 
 /** 温度(非線形なので個別実装)。 */
 export type TempUnit = "C" | "F" | "K";
-/** 温度を換算する。 */
+/**
+ * 温度を換算する。
+ *
+ * **温度は他の単位と違い、0 が原点ではない**(摂氏 0 度 = 華氏 32 度)。
+ * 単純な倍率では換算できないので、専用の関数にしてある。
+ *
+ * @param value 値
+ * @param from 変換元(`C` / `F` / `K`)
+ * @param to 変換先
+ * @returns 換算した値
+ */
 export function convertTemperature(value: number, from: TempUnit, to: TempUnit): number {
   // まず摂氏へ
   const celsius = from === "C" ? value : from === "F" ? (value - 32) * (5 / 9) : value - 273.15;
@@ -47,7 +57,17 @@ export function convertTemperature(value: number, from: TempUnit, to: TempUnit):
   return celsius + 273.15;
 }
 
-/** 指定桁で丸めて換算する(表示用の簡易ヘルパー)。 */
+/**
+ * 換算して指定桁で丸める(表示用)。
+ *
+ * **計算の途中では丸めないこと**(誤差が積み重なる)。表示の直前だけに使う。
+ *
+ * @param value 値
+ * @param from 変換元の単位
+ * @param to 変換先の単位
+ * @param decimals 小数桁
+ * @returns 換算して丸めた値
+ */
 export function round(value: number, digits = 2): number {
   const f = Math.pow(10, digits);
   return Math.round((value + (value >= 0 ? 1 : -1) * 1e-12) * f) / f;

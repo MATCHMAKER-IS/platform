@@ -56,6 +56,11 @@ export interface ServerSession<T> {
  * const { setCookie } = await session.create({ userId, roles });
  * const data = await session.read(req.headers.get("cookie"));
  * ```
+ *
+ * @param config.store 保存先(Redis など)
+ * @param config.secret セッション ID の署名鍵
+ * @param config.maxAgeSec 有効期間(秒)
+ * @returns サーバ側セッション。**Cookie には ID しか入らない**ので、中身が大きくても・秘密でも扱える
  */
 export function createServerSession<T>(config: ServerSessionConfig): ServerSession<T> {
   const { store, cookieName = "sid", ttlSec = 60 * 60 * 24 * 7, keyPrefix = "sess:", cookie } = config;

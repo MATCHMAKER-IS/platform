@@ -15,7 +15,14 @@ export const DUNNING_THRESHOLDS: { level: Exclude<DunningLevel, "none">; minOver
   { level: "reminder", minOverdueDays: 1 },
 ];
 
-/** 経過日数から督促レベルを判定する。 */
+/**
+ * 経過日数から督促レベルを判定する。
+ *
+ * **段階を踏む**(いきなり法的措置を匂わせない)。取引先との関係を壊さずに回収する。
+ *
+ * @param daysOverdue 期限からの経過日数
+ * @returns レベル(`reminder` / `warning` / `final`)
+ */
 export function dunningLevel(overdueDays: number): DunningLevel {
   for (const t of DUNNING_THRESHOLDS) {
     if (overdueDays >= t.minOverdueDays) return t.level;
@@ -40,7 +47,16 @@ export interface DunningInvoice {
   amountDue: number;
 }
 
-/** 督促文面(日本語)を組み立てる。 */
+/**
+ * 督促の文面を組み立てる(日本語)。
+ *
+ * **入れ違いに配慮した文言**にする(「既にお支払い済みの場合は行き違いですのでご容赦ください」)。
+ * 実際に入れ違いは起きるので、これが無いと角が立つ。
+ *
+ * @param invoice 請求書
+ * @param level 督促レベル
+ * @returns 文面
+ */
 export function dunningMessage(invoice: DunningInvoice, level: DunningLevel): string {
   const amount = `¥${invoice.amountDue.toLocaleString("ja-JP")}`;
   const head = `${invoice.billTo} 御中`;

@@ -28,7 +28,12 @@ export interface PublishRequestStore {
   decide(id: string, status: "approved" | "rejected", decidedBy: string, note?: string): Promise<PublishRequest | undefined>;
 }
 
-/** インメモリ実装。 */
+/**
+ * 公開申請ストアのメモリ実装(開発・テスト用)。
+ *
+ * @param seed 初期データ
+ * @returns 公開申請ストア(再起動で消える)
+ */
 export function createMemoryPublishRequestStore(genId: () => string = () => `pr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, now: () => string = () => new Date().toISOString()): PublishRequestStore {
   const byId = new Map<string, PublishRequest>();
   const order: string[] = [];
@@ -93,7 +98,12 @@ function rowToRequest(row: PublishRequestRow): PublishRequest {
   return req;
 }
 
-/** Prisma 実装。 */
+/**
+ * 公開申請ストアの Prisma 実装(本番用)。
+ *
+ * @param db Prisma クライアント
+ * @returns 公開申請ストア
+ */
 export function createPrismaPublishRequestStore(db: PublishRequestStoreDb): PublishRequestStore {
   return {
     async list(options = {}) {

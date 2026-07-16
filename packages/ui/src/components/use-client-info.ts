@@ -14,6 +14,7 @@ import { getClientInfo, type ClientInfo } from "@platform/device";
  * const info = useClientInfo();
  * if (info?.device.type === "mobile") { ... }
  * ```
+ * @returns ブラウザ・OS・画面サイズ。**SSR では undefined**(サーバには画面が無い)
  */
 export function useClientInfo(): ClientInfo | null {
   const [info, setInfo] = React.useState<ClientInfo | null>(null);

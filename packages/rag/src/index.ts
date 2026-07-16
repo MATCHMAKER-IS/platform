@@ -58,6 +58,11 @@ export interface ChunkOptions {
 /**
  * 本文を段落境界を尊重してチャンク分割する。段落が長すぎる場合は maxChars で強制分割。
  * overlap 分だけ前チャンク末尾を次チャンク先頭に重ねる。
+ *
+ * @param doc 文書
+ * @param options.maxChars 1 塊の最大文字数
+ * @param options.overlap 重なり(**文脈が切れるのを防ぐ**)
+ * @returns 分割した文書
  */
 export function chunkDocument(doc: RagDocument, options: ChunkOptions = {}): RagChunk[] {
   const maxChars = options.maxChars ?? 800;
@@ -105,7 +110,16 @@ export function chunkDocument(doc: RagDocument, options: ChunkOptions = {}): Rag
   });
 }
 
-/** principal が acl を満たすか(権限継承の中核)。 */
+/**
+ * 権限を満たすかを判定する(**RAG の権限継承の中核**)。
+ *
+ * **元の文書の権限を検索結果にも引き継ぐ**のが要点。これが無いと、
+ * 「見えないはずの文書の内容が、AI の回答に出てくる」という事故になる。
+ *
+ * @param principal 利用者(ロール・部署など)
+ * @param acl 文書のアクセス制御
+ * @returns アクセスしてよいなら true
+ */
 export function canAccess(principal: Principal, acl?: AccessControl): boolean {
   if (!acl) return false; // ACL 未設定は既定で不可(明示 public を要求)
   if (acl.public) return true;
@@ -165,7 +179,13 @@ export interface RagStoreOptions {
 
 const CHUNK_STORE = Symbol("chunk");
 
-/** RAG ストアを作る。 */
+/**
+ * RAG ストアを作る。
+ *
+ * @param options.index ベクトル索引
+ * @param options.embed 埋め込みを作る関数
+ * @returns ストア(`add` で追加、`search` で検索)
+ */
 export function createRagStore(options: RagStoreOptions): RagStore {
   const overFetch = options.overFetch ?? 4;
   // チャンク本体を id で保持(backend は検索用の平坦文書のみ持つ想定のため、原本はここで保持)
@@ -224,7 +244,16 @@ export function createRagStore(options: RagStoreOptions): RagStore {
   };
 }
 
-/** 検索結果を LLM への文脈テキストに整形する(引用元付き)。 */
+/**
+ * 検索結果を LLM への文脈テキストに整形する。
+ *
+ * **引用元を必ず付ける**。AI の回答に根拠を示せないと、利用者は検証できない
+ * (そして AI は自信満々に間違える)。
+ *
+ * @param results 検索結果
+ * @param options.maxChars 最大文字数(**トークン上限に収める**)
+ * @returns 文脈テキスト(引用元つき)
+ */
 export function buildContext(hits: RagHit[], options: { maxChars?: number } = {}): string {
   const maxChars = options.maxChars ?? 4000;
   const blocks: string[] = [];
@@ -243,7 +272,15 @@ export function buildContext(hits: RagHit[], options: { maxChars?: number } = {}
 
 // ─────────────────────── VectorIndex 実装 ───────────────────────
 
-/** コサイン類似度(正規化済みでなくても動く)。 */
+/**
+ * コサイン類似度を計算する。
+ *
+ * **正規化済みでなくても動く**(内部で長さを割る)。
+ *
+ * @param a ベクトル
+ * @param b ベクトル
+ * @returns -1〜1(**1 が最も似ている**)。長さが違えば 0
+ */
 export function cosineSimilarity(a: number[], b: number[]): number {
   let dot = 0;
   let na = 0;
@@ -260,7 +297,15 @@ export function cosineSimilarity(a: number[], b: number[]): number {
   return denom === 0 ? 0 : dot / denom;
 }
 
-/** インメモリのベクトル索引(開発・テスト用。総当たりコサイン)。 */
+/**
+ * メモリのベクトル索引を作る(開発・テスト用)。
+ *
+ * **総当たりで計算する**ので、件数が増えると遅い(数千件が限界)。
+ * 本番では専用のベクトル DB(pgvector・Qdrant など)を使うこと。
+ *
+ * @param seed 初期データ
+ * @returns ベクトル索引
+ */
 export function createMemoryVectorIndex(): VectorIndex {
   const items = new Map<string, { vector: number[]; chunk: RagChunk }>();
   return {
@@ -290,6 +335,10 @@ export interface PgVectorDb {
  *   CREATE TABLE rag_vectors (id text PRIMARY KEY, chunk jsonb NOT NULL, embedding vector(N));
  * distance(<=>)は小さいほど近いので score = 1 - distance に変換する。
  * DB を注入する設計なので、この関数自体は SQL 文字列の組み立てのみ(オフラインでも構築ロジックを検証可能)。
+ *
+ * @param db Prisma クライアント
+ * @param options.table テーブル名
+ * @returns ベクトル索引。**メモリ版と違い件数が増えても実用的**
  */
 export function createPgVectorIndex(db: PgVectorDb, table = "rag_vectors"): VectorIndex {
   const toVectorLiteral = (v: number[]): string => `[${v.join(",")}]`;
@@ -318,7 +367,15 @@ export function createPgVectorIndex(db: PgVectorDb, table = "rag_vectors"): Vect
 // 抽出そのもの(pdf/xlsx の解析)は取り込み側の責務にし、ここは「テキスト+ACL → RagDocument」に集中する
 // (rag が pdf/xlsx に依存しないよう疎結合を保つ)。
 
-/** テキストを1つの RagDocument にする。 */
+/**
+ * テキストを 1 つの文書にする。
+ *
+ * **長い文書は分割すること**(この関数は分割しない)。1 つの塊が大きすぎると、
+ * 検索の精度が落ちる(関係ない部分まで文脈に入る)。
+ *
+ * @param input テキストとメタ情報
+ * @returns 文書
+ */
 export function textToDocument(input: { id: string; title: string; text: string; source?: string; acl?: AccessControl; updatedAt?: string }): RagDocument {
   return {
     id: input.id,
@@ -334,6 +391,10 @@ export function textToDocument(input: { id: string; title: string; text: string;
  * 表形式データ(Excel/CSV の行オブジェクト)を RagDocument 群にする。
  * mode="row": 1 行 = 1 ドキュメント(明細検索向け)。mode="sheet": シート全体を1ドキュメント(概要検索向け)。
  * 各行は "列名: 値" の行テキストに整形する。
+ *
+ * @param rows DB の行
+ * @param mapper 行 → 文書 の変換
+ * @returns 文書の配列
  */
 export function rowsToDocuments(
   rows: Record<string, unknown>[],
@@ -364,6 +425,10 @@ export function rowsToDocuments(
  * 実際のチャンク分割は ingest 時の chunkDocument が行うので、ここでは「大きな節」に分けるだけ。
  * separator（既定: 連続空行）で分割し、空片は捨てる。1 片が maxSectionChars を超える場合はそのまま
  * （ingest でさらに分割される）。
+ *
+ * @param text 長いテキスト
+ * @param options.maxChars 1 塊の最大文字数
+ * @returns 分割した文書(**検索の精度は塊の大きさで決まる**。大きすぎると関係ない部分まで文脈に入る)
  */
 export function splitTextToDocuments(
   text: string,

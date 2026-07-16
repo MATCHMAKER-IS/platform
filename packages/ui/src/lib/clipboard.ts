@@ -4,7 +4,14 @@
  * @packageDocumentation
  */
 
-/** テキストをクリップボードにコピーする。成功で true。 */
+/**
+ * テキストをクリップボードにコピーする。成功で true。
+ *
+ *
+ * @param text コピーする文字列
+ * @param writer 書き込みの実装(テスト注入用)
+ * @returns 成功したか。**HTTPS でないと失敗する**(Clipboard API の制約)
+ */
 export async function copyToClipboard(text: string, writer?: (t: string) => Promise<void>): Promise<boolean> {
   try {
     if (writer) {
@@ -21,7 +28,13 @@ export async function copyToClipboard(text: string, writer?: (t: string) => Prom
   }
 }
 
-/** クリップボードからテキストを読む。失敗で null。 */
+/**
+ * クリップボードからテキストを読む。失敗で null。
+ *
+ *
+ * @param reader 読み込みの実装(テスト注入用)
+ * @returns クリップボードの中身。**失敗なら null**(利用者の許可が要る)
+ */
 export async function readClipboard(reader?: () => Promise<string>): Promise<string | null> {
   try {
     if (reader) return await reader();

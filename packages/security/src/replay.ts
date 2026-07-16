@@ -31,7 +31,11 @@ export interface MemoryReplayStoreOptions {
   now?: () => number;
 }
 
-/** プロセス内メモリの ReplayStore(単一インスタンス向け)。期限切れは遅延パージ。 */
+/**
+ * プロセス内メモリの ReplayStore(単一インスタンス向け)。期限切れは遅延パージ。
+ *
+ * @returns リプレイ攻撃の検出ストア(**単一プロセスのみ**。本番では Redis 実装を)
+ */
 export function createMemoryReplayStore(options: MemoryReplayStoreOptions = {}): ReplayStore {
   const now = options.now ?? (() => Date.now());
   const store = new Map<string, number>();
@@ -71,6 +75,10 @@ export interface ReplayGuardOptions {
  * ```ts
  * const guard = createReplayGuard({}, createRedisReplayStore(redis));
  * ```
+ *
+ * @param store 検出ストア
+ * @param options.windowMs 有効期間
+ * @returns ガード(**同じ nonce の再送を弾く**。傍受した正当なリクエストの再利用を防ぐ)
  */
 export function createReplayGuard(options: ReplayGuardOptions = {}, store?: ReplayStore): ReplayGuard {
   const now = options.now ?? (() => Date.now());

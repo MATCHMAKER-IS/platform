@@ -21,7 +21,16 @@ export interface Revision {
   savedAt: string;
 }
 
-/** CmsPost からリビジョンのスナップショット部分を作る。 */
+/**
+ * 記事からリビジョン(版)のスナップショットを作る。
+ *
+ * **公開のたびに残す**ことで、「いつ・誰が・何を変えたか」を追える。
+ * 誤って消した内容を戻すこともできる。
+ *
+ * @param post 記事
+ * @param editor 編集者
+ * @returns リビジョンのスナップショット
+ */
 export function snapshotOf(post: CmsPost): Omit<Revision, "id" | "postSlug" | "version" | "savedBy" | "savedAt"> {
   const snap: Omit<Revision, "id" | "postSlug" | "version" | "savedBy" | "savedAt"> = { title: post.title, body: post.body, tags: post.tags, status: post.status };
   if (post.categoryId !== undefined) snap.categoryId = post.categoryId;
@@ -31,7 +40,14 @@ export function snapshotOf(post: CmsPost): Omit<Revision, "id" | "postSlug" | "v
   return snap;
 }
 
-/** リビジョンを復元用の入力（CmsPostInput）に変換する（下書きとして戻す）。 */
+/**
+ * リビジョンを復元用の入力に変換する。
+ *
+ * **下書きとして戻す**(いきなり公開しない)。復元した内容を確認してから公開できる。
+ *
+ * @param revision リビジョン
+ * @returns 記事の入力(status は下書き)
+ */
 export function revisionToInput(rev: Revision, slug: string): CmsPostInput {
   const input: CmsPostInput = { slug, title: rev.title, body: rev.body, tags: rev.tags, status: "draft" };
   if (rev.categoryId !== undefined) input.categoryId = rev.categoryId;
@@ -48,7 +64,12 @@ export interface RevisionStore {
   record(post: CmsPost, savedBy: string): Promise<Revision>;
 }
 
-/** インメモリ実装。 */
+/**
+ * リビジョンストアのメモリ実装(開発・テスト用)。
+ *
+ * @param seed 初期データ
+ * @returns リビジョンストア(再起動で消える)
+ */
 export function createMemoryRevisionStore(genId: () => string = () => `rev_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, now: () => string = () => new Date().toISOString()): RevisionStore {
   const byId = new Map<string, Revision>();
   const bySlug = new Map<string, Revision[]>();
@@ -123,7 +144,12 @@ function rowToRevision(row: CmsRevisionRow): Revision {
   return rev;
 }
 
-/** Prisma 実装。 */
+/**
+ * リビジョンストアの Prisma 実装(本番用)。
+ *
+ * @param db Prisma クライアント
+ * @returns リビジョンストア
+ */
 export function createPrismaRevisionStore(db: RevisionStoreDb): RevisionStore {
   return {
     async list(postSlug) {

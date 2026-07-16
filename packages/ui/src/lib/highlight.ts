@@ -9,7 +9,13 @@ export interface HighlightSegment {
   highlight: boolean;
 }
 
-/** クエリを検索語に分ける(空白区切り・重複除去・長い順)。 */
+/**
+ * クエリを検索語に分ける(空白区切り・重複除去・長い順)。
+ *
+ *
+ * @param query 検索語(空白区切り)
+ * @returns 語の配列(**空白で分ける**ので「経費 締切」で 2 語として扱う)
+ */
 export function queryTerms(query: string): string[] {
   const terms = query.trim().split(/\s+/).filter((t) => t.length > 0);
   return [...new Set(terms)].sort((a, b) => b.length - a.length);
@@ -18,6 +24,10 @@ export function queryTerms(query: string): string[] {
 /**
  * テキストを、検索語に一致する部分としない部分に分割する(大文字小文字無視)。
  * 連続一致はまとめ、非一致部分も 1 セグメントにまとめる。
+ *
+ * @param text 対象の文字列
+ * @param terms 検索語
+ * @returns `{ text, matched }` の配列(**HTML を組み立てずに返す**ので、エスケープ漏れによる XSS を避けられる)
  */
 export function highlightSegments(text: string, query: string): HighlightSegment[] {
   const terms = queryTerms(query);

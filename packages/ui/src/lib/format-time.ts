@@ -1,4 +1,10 @@
-/** 秒を mm:ss(1 時間以上は h:mm:ss)に整形する。 */
+/**
+ * 秒を mm:ss(1 時間以上は h:mm:ss)に整形する。
+ *
+ *
+ * @param seconds 秒数
+ * @returns `1:23` 形式(**時間があれば `1:02:03`**)
+ */
 export function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
   const s = Math.floor(seconds % 60);

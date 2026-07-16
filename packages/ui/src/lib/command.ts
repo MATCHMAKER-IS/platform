@@ -24,6 +24,10 @@ export interface Command {
 /**
  * コマンドがクエリに一致するスコアを返す(高いほど上位)。一致しなければ null。
  * ラベル前方一致 > ラベル部分一致 > キーワード一致。
+ *
+ * @param command コマンド
+ * @param query 検索語
+ * @returns スコア(**前方一致 > 部分一致 > 頭文字一致**)。0 なら該当なし
  */
 export function scoreCommand(command: Command, query: string): number | null {
   const q = query.trim().toLowerCase();
@@ -38,6 +42,10 @@ export function scoreCommand(command: Command, query: string): number | null {
 /**
  * クエリでコマンドを絞り込み、スコア順に返す。空クエリは元の順序で全件。
  * 無効コマンドは除外しない(コンポーネント側で見せ方を制御)。
+ *
+ * @param commands コマンドの配列
+ * @param query 検索語
+ * @returns スコア順のコマンド(**空クエリなら全件**)
  */
 export function filterCommands(commands: Command[], query: string, limit?: number): Command[] {
   const scored = commands
@@ -48,7 +56,15 @@ export function filterCommands(commands: Command[], query: string, limit?: numbe
   return limit !== undefined ? scored.slice(0, limit) : scored;
 }
 
-/** コマンドをグループごとに整理する(グループ未指定は「その他」)。順序は初出順。 */
+/**
+ * コマンドをグループごとに整理する。
+ *
+ * **順序は初出順**(定義した順に出る)。アルファベット順にすると、
+ * よく使うものが埋もれる。
+ *
+ * @param commands コマンドの配列
+ * @returns グループごとのコマンド(**グループ未指定は「その他」**)
+ */
 export function groupCommands(commands: Command[], fallbackGroup = "その他"): { group: string; commands: Command[] }[] {
   const order: string[] = [];
   const map = new Map<string, Command[]>();
@@ -63,7 +79,17 @@ export function groupCommands(commands: Command[], fallbackGroup = "その他"):
   return order.map((group) => ({ group, commands: map.get(group)! }));
 }
 
-/** キーボード移動で次の選択インデックスを計算する(循環)。 */
+/**
+ * キーボード移動の次の位置を計算する。
+ *
+ * **循環する**(末尾で下を押すと先頭に戻る)。コマンドパレットでは、
+ * 端で止まるより循環する方が速く辿り着ける。
+ *
+ * @param current 現在の位置
+ * @param total 総数
+ * @param direction 移動方向(`up` / `down`)
+ * @returns 次の位置
+ */
 export function nextIndex(current: number, total: number, direction: 1 | -1): number {
   if (total === 0) return -1;
   return (current + direction + total) % total;

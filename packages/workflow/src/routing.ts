@@ -19,6 +19,11 @@ export interface RouteRule<Ctx> {
 /**
  * コンテキスト(金額・部門など)からルート(WorkflowDefinition)を決定する。
  * 上から評価し、最初に条件を満たしたルールの steps を採用する。どれも満たさなければ例外。
+ *
+ * @param request 申請
+ * @param routes ルートの定義
+ * @returns 適用するルート
+ * @throws {@link @platform/core#AppError} コード `CONFIG` — 該当するルートが無い場合(**申請を宙ぶらりんにしない**)
  */
 export function resolveRoute<Ctx>(rules: RouteRule<Ctx>[], ctx: Ctx): WorkflowDefinition {
   for (const rule of rules) {
@@ -47,6 +52,11 @@ export interface AmountTier {
  *   { steps: [manager, director, executive] }, // 上限なし
  * ]);
  * ```
+ *
+ * @param amount 金額
+ * @param tiers 金額帯の定義
+ * @returns 承認ルート(**金額で承認者が変わる**。10 万円までは課長、それ以上は部長など)
+ * @throws {@link @platform/core#AppError} コード `CONFIG` — 該当する金額帯が無い場合
  */
 export function routeByAmount(amount: number, tiers: AmountTier[]): WorkflowDefinition {
   for (const tier of tiers) {

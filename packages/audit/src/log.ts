@@ -34,7 +34,15 @@ function canonical(event: AuditEvent): string {
   return JSON.stringify({ at: event.at, actor: event.actor, action: event.action, target: event.target, before: event.before ?? null, after: event.after ?? null, meta: event.meta ?? null });
 }
 
-/** ログにイベントを追記する(新しい配列を返す。ハッシュチェーンを更新)。 */
+/**
+ * 監査ログにイベントを追記する。
+ *
+ * **ハッシュチェーンを更新する**ので、後から途中を書き換えると検出できる。
+ *
+ * @param log 既存のログ
+ * @param event 追記するイベント
+ * @returns 追記した**新しい配列**(元は変更しない)
+ */
 export function appendEvent(log: AuditEntry[], event: AuditEvent, hashFn: HashFn = fnv1a): AuditEntry[] {
   const prev = log[log.length - 1];
   const prevHash = prev ? prev.hash : "";
@@ -43,7 +51,13 @@ export function appendEvent(log: AuditEntry[], event: AuditEvent, hashFn: HashFn
   return [...log, { ...event, seq, prevHash, hash }];
 }
 
-/** 複数イベントをまとめて追記する。 */
+/**
+ * 複数のイベントをまとめて追記する。
+ *
+ * @param log 既存のログ
+ * @param events 追記するイベント
+ * @returns 追記した新しい配列
+ */
 export function appendAll(log: AuditEntry[], events: AuditEvent[], hashFn: HashFn = fnv1a): AuditEntry[] {
   return events.reduce((acc, e) => appendEvent(acc, e, hashFn), log);
 }
@@ -55,7 +69,17 @@ export interface ChainVerification {
   brokenAt: number | null;
 }
 
-/** ハッシュチェーンを検証し、改ざん(値の書換え・削除・並べ替え)を検知する。 */
+/**
+ * ハッシュチェーンを検証する。
+ *
+ * **値の書き換え・削除・並べ替えのすべてを検知できる**
+ * (各レコードが前のハッシュを含むため、1 つ変えると以降がすべて合わなくなる)。
+ *
+ * **定期的に実行すること**。改ざんは早く見つけるほど被害が小さい。
+ *
+ * @param log 監査ログ
+ * @returns 正しければ true と、**壊れている位置**
+ */
 export function verifyChain(log: AuditEntry[], hashFn: HashFn = fnv1a): ChainVerification {
   let prevHash = "";
   for (let i = 0; i < log.length; i++) {

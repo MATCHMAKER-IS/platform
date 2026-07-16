@@ -8,7 +8,18 @@
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-/** HMAC 署名を検証する(タイミング安全比較)。 */
+/**
+ * HMAC 署名を検証する。
+ *
+ * **必ず検証すること**(しないと誰でも偽の通知を送れる)。
+ * **タイミング安全な比較**を使う(素朴な `===` だと、比較にかかる時間から
+ * 正解の桁数を推測される)。
+ *
+ * @param payload 受け取った本文(**パースする前の生の文字列**。整形すると署名が合わない)
+ * @param signature 署名ヘッダの値
+ * @param secret 共有シークレット
+ * @returns 正当なら true
+ */
 export function verifyHmacSignature(params: {
   /** リクエストの生ボディ(パース前の文字列)。 */
   payload: string;
@@ -39,7 +50,14 @@ export interface WebhookIdempotencyStore {
   reserve(eventId: string): Promise<boolean> | boolean;
 }
 
-/** メモリ実装(開発・テスト用)。 */
+/**
+ * Webhook 購読ストアのメモリ実装(開発・テスト用)。
+ *
+ * **本番では DB 実装を使うこと**(再起動で購読が消えると、通知が止まる)。
+ *
+ * @param seed 初期データ
+ * @returns ストア
+ */
 export function createMemoryWebhookStore(ttlMs = 24 * 60 * 60 * 1000, now: () => number = () => Date.now()): WebhookIdempotencyStore {
   const seen = new Map<string, number>();
   return {
@@ -98,6 +116,10 @@ export interface WebhookReceiver<E> {
  * receiver.on("payment.succeeded", async (e) => { await markPaid(e); });
  * const result = await receiver.handle(rawBody, req.headers["x-signature"]);
  * ```
+ *
+ * @param options.secret 共有シークレット
+ * @param options.onEvent イベントを受け取ったときの処理
+ * @returns 受信器。**署名を検証してから onEvent を呼ぶ**
  */
 export function createWebhookReceiver<E>(options: WebhookReceiverOptions<E>): WebhookReceiver<E> {
   const store = options.store ?? createMemoryWebhookStore();

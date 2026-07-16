@@ -42,6 +42,7 @@ export interface ReceiptPrinter {
  *   await res.value.print(bytes);
  * }
  * ```
+ * @returns 接続したプリンタ。**Web Bluetooth 経由**(Chrome 系のみ・HTTPS 必須・クリックから呼ぶ)
  */
 export async function connectReceiptPrinter(
   options: { profile?: ReceiptPrinterProfile; namePrefix?: string } = {},

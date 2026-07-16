@@ -76,7 +76,14 @@ export interface AiLogStore {
   add(entry: AiCallLog): void | Promise<void>;
 }
 
-/** インメモリのログ+集計ストア(開発・テスト用)。 */
+/**
+ * AI ログのメモリ実装(開発・テスト用)。
+ *
+ * **本番では DB 実装を使うこと**(コストの追跡は経理に関わるので、消えては困る)。
+ *
+ * @param seed 初期データ
+ * @returns ログストア
+ */
 export function createMemoryAiLogStore(): AiLogStore & {
   list(): AiCallLog[];
   totals(): { calls: number; inputTokens: number; outputTokens: number; costJpy: number; byUser: Record<string, { calls: number; costJpy: number }> };
@@ -150,7 +157,19 @@ const PREFIX_ROUTES: readonly (readonly [string, string])[] = [
   ["gemini", "google"],
 ];
 
-/** Gateway を作る。 */
+/**
+ * AI Gateway を作る。
+ *
+ * **アプリは各社の SDK を直接使わない**(ADR 0010)。ここを通すことで:
+ * - **モデルを差し替えられる**(Claude → GPT を設定だけで)
+ * - **コストを追跡できる**(全呼び出しがログに残る)
+ * - **上限を設けられる**(暴走を止める)
+ *
+ * @param options.provider プロバイダ(Anthropic / OpenAI など)
+ * @param options.logStore ログの保存先
+ * @param options.limits 呼び出しの上限(任意)
+ * @returns Gateway。`chat` で呼ぶ
+ */
 export function createAiGateway(options: AiGatewayOptions): AiGateway {
   const maxPerCall = options.limits?.maxTokensPerCall ?? 1024;
   const maxTotal = options.limits?.maxTotalTokens;
@@ -233,7 +252,15 @@ interface AnthropicResponse {
   error?: { message?: string };
 }
 
-/** Anthropic Messages API のプロバイダ。 */
+/**
+ * Anthropic(Claude)のプロバイダ。
+ *
+ * @param options.apiKey API キー(**環境変数から。コードに直書きしない**)
+ * @param options.model モデル名
+ * @param options.fetchImpl fetch の実装(テスト注入用)
+ * @returns プロバイダ
+ * @throws {@link @platform/core#AppError} コード `EXTERNAL` — API がエラーを返した場合(`chat` 実行時)
+ */
 export function createAnthropicProvider(opts: { apiKey: string; fetchImpl?: typeof fetch; baseUrl?: string; version?: string }): AiProvider {
   const doFetch = opts.fetchImpl ?? fetch;
   const base = opts.baseUrl ?? "https://api.anthropic.com";
@@ -263,7 +290,18 @@ interface OpenAiResponse {
   error?: { message?: string };
 }
 
-/** OpenAI Chat Completions API のプロバイダ(互換性の広い chat/completions を使用)。 */
+/**
+ * OpenAI のプロバイダ。
+ *
+ * **`chat/completions` を使う**(`responses` API より互換性が広く、
+ * OpenAI 互換を謳う他社サービスでもそのまま動く)。
+ *
+ * @param options.apiKey API キー
+ * @param options.model モデル名
+ * @param options.baseUrl エンドポイント(**互換サービスを使うなら変更**)
+ * @returns プロバイダ
+ * @throws {@link @platform/core#AppError} コード `EXTERNAL` — API がエラーを返した場合(`chat` 実行時)
+ */
 export function createOpenAiProvider(opts: { apiKey: string; fetchImpl?: typeof fetch; baseUrl?: string }): AiProvider {
   const doFetch = opts.fetchImpl ?? fetch;
   const base = opts.baseUrl ?? "https://api.openai.com";
@@ -300,6 +338,11 @@ interface OpenAiEmbeddingResponse {
 /**
  * OpenAI Embeddings API のプロバイダ(text-embedding-3-small 等)。
  * fetch 注入でテスト可能。空配列は API を呼ばず空を返す。
+ *
+ * @param options.apiKey API キー
+ * @param options.model モデル名(既定 text-embedding-3-small)
+ * @returns 埋め込みを作る関数(**RAG の索引に使う**)
+ * @throws {@link @platform/core#AppError} コード `EXTERNAL` — API がエラーを返した場合
  */
 export function createOpenAiEmbedder(opts: { apiKey: string; model?: string; fetchImpl?: typeof fetch; baseUrl?: string }): AiEmbedder {
   const doFetch = opts.fetchImpl ?? fetch;
@@ -325,6 +368,10 @@ export function createOpenAiEmbedder(opts: { apiKey: string; model?: string; fet
  * 決定的なハッシュベース擬似埋め込み(API 不要・開発/テスト用)。
  * 語をハッシュして固定次元のバッグ・オブ・ワーズ的ベクトルにする。意味は捉えないが、
  * 同じ語を含む文の近さは反映され、パイプラインの結線確認に使える。
+ *
+ * @param dimensions 次元数(既定 384)
+ * @returns 埋め込みを作る関数。**意味を捉えない**(ハッシュを並べるだけ)ので、
+ *   本番の検索には使えない。**API キー無しで動く**ので、開発・テスト用
  */
 export function createHashEmbedder(dim = 64): AiEmbedder {
   const hash = (token: string): number => {
@@ -406,7 +453,16 @@ export interface AiImageGateway {
   generate(req: AiImageRequest): Promise<Result<AiImageSuccess>>;
 }
 
-/** 画像生成ゲートウェイを作る(テキストの createAiGateway と同じ設計思想)。 */
+/**
+ * 画像生成の Gateway を作る。
+ *
+ * **テキストの {@link createAiGateway} と同じ設計**(差し替え可能・ログ・上限)。
+ * 画像生成は 1 枚あたりの単価が高いので、**コストの追跡がより重要**。
+ *
+ * @param options.provider 画像生成のプロバイダ
+ * @param options.logStore ログの保存先
+ * @returns Gateway。`generate` で呼ぶ
+ */
 export function createAiImageGateway(options: AiImageGatewayOptions): AiImageGateway {
   const now = options.now ?? (() => Date.now());
   const maxImages = options.maxImagesPerCall ?? 4;
@@ -453,7 +509,15 @@ interface OpenAiImageResponse {
   error?: { message?: string };
 }
 
-/** OpenAI Images API(gpt-image-1 / dall-e-3 等)のプロバイダ。fetch 注入でテスト可能。 */
+/**
+ * OpenAI Images API(gpt-image-1 / dall-e-3 等)のプロバイダ。fetch 注入でテスト可能。
+ *
+ *
+ * @param options.apiKey API キー
+ * @param options.model モデル名(既定 dall-e-3)
+ * @returns 画像生成のプロバイダ
+ * @throws {@link @platform/core#AppError} コード `EXTERNAL` — API がエラーを返した場合
+ */
 export function createOpenAiImageProvider(opts: { apiKey: string; fetchImpl?: typeof fetch; baseUrl?: string }): AiImageProvider {
   const doFetch = opts.fetchImpl ?? fetch;
   const base = opts.baseUrl ?? "https://api.openai.com";

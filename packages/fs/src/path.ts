@@ -5,32 +5,79 @@
  */
 import * as nodePath from "node:path";
 
-/** パスを結合する(`path.join`)。 */
+/**
+ * パスを結合する。
+ *
+ * @param segments 結合するパス
+ * @returns 結合したパス(`..` は畳まれる)
+ */
 export function joinPath(...parts: string[]): string { return nodePath.join(...parts); }
-/** 絶対パスへ解決する(`path.resolve`)。 */
+/**
+ * 絶対パスへ解決する。
+ *
+ * @param segments 解決するパス
+ * @returns 絶対パス(**カレントディレクトリ基準**なので、実行場所によって変わる)
+ */
 export function resolvePath(...parts: string[]): string { return nodePath.resolve(...parts); }
-/** パスを正規化する(`..` などを畳む)。 */
+/**
+ * パスを正規化する(`..` や `.` を畳む)。
+ *
+ * @param p パス
+ * @returns 正規化したパス
+ */
 export function normalizePath(p: string): string { return nodePath.normalize(p); }
-/** 親ディレクトリ。 */
+/**
+ * 親ディレクトリを返す。
+ *
+ * @param p パス
+ * @returns 親ディレクトリのパス
+ */
 export function dirname(p: string): string { return nodePath.dirname(p); }
-/** ファイル名部分(拡張子を除く場合は ext を渡す)。 */
+/**
+ * ファイル名の部分を返す。
+ *
+ * @param p パス
+ * @param ext 除きたい拡張子(渡すとその分を落とす)
+ * @returns ファイル名
+ */
 export function basename(p: string, ext?: string): string { return nodePath.basename(p, ext); }
-/** 拡張子(先頭のドット込み。無ければ "")。 */
+/**
+ * 拡張子を返す。
+ *
+ * @param p パス
+ * @returns 拡張子(**先頭のドット込み**。無ければ空文字)
+ */
 export function extname(p: string): string { return nodePath.extname(p); }
 
-/** 拡張子なしのフルパス。 */
+/**
+ * 拡張子を除いたフルパスを返す。
+ *
+ * @param p パス
+ * @returns 拡張子なしのパス
+ */
 export function withoutExt(p: string): string {
   const ext = nodePath.extname(p);
   return ext ? p.slice(0, -ext.length) : p;
 }
 
-/** ファイル名を {name, ext} に分解(ext はドット無し)。 */
+/**
+ * ファイル名を名前と拡張子に分解する。
+ *
+ * @param p パス
+ * @returns `{ name, ext }`(**ext はドット無し**。`extname` とは違うので注意)
+ */
 export function splitExt(filename: string): { name: string; ext: string } {
   const ext = nodePath.extname(filename);
   return { name: ext ? filename.slice(0, -ext.length) : filename, ext: ext.replace(/^\./, "") };
 }
 
-/** 拡張子を差し替える(newExt はドット有無どちらでも可)。 */
+/**
+ * 拡張子を差し替える。
+ *
+ * @param p パス
+ * @param newExt 新しい拡張子(**ドット有無どちらでも可**)
+ * @returns 差し替えたパス
+ */
 export function changeExt(p: string, newExt: string): string {
   const dot = newExt === "" ? "" : newExt.startsWith(".") ? newExt : `.${newExt}`;
   return withoutExt(p) + dot;
@@ -39,7 +86,18 @@ export function changeExt(p: string, newExt: string): string {
 const ILLEGAL = /[<>:"/\\|?*\u0000-\u001f]/g;
 const RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
 
-/** ファイル名を安全化する(禁止文字を置換・前後空白/ドット除去・長さ制限・予約名回避)。 */
+/**
+ * ファイル名を安全化する。
+ *
+ * **利用者が付けた名前をそのままファイル名にしない**。禁止文字(`/` `\` `:` など)、
+ * 前後の空白・ドット、Windows の予約名(`CON` `PRN` など)を処理する。
+ * これを怠ると、保存に失敗するか、**意図しない場所に書き込まれる**。
+ *
+ * @param name 元のファイル名
+ * @param options.maxLength 最大長(既定 255)
+ * @param options.replacement 禁止文字の置換先(既定 `_`)
+ * @returns 安全なファイル名
+ */
 export function sanitizeFilename(name: string, options: { replacement?: string; maxLength?: number } = {}): string {
   const replacement = options.replacement ?? "_";
   const maxLength = options.maxLength ?? 255;
@@ -54,7 +112,15 @@ export function sanitizeFilename(name: string, options: { replacement?: string; 
   return out;
 }
 
-/** 既存名と衝突しない一意なファイル名を作る(例: report.csv → report (1).csv)。 */
+/**
+ * 既存の名前と衝突しない一意なファイル名を作る。
+ *
+ * **上書きせずに保存する**ため(`report.csv` → `report (1).csv`)。
+ *
+ * @param name 希望する名前
+ * @param existing 既にある名前
+ * @returns 衝突しない名前
+ */
 export function uniqueFilename(name: string, existing: Iterable<string>): string {
   const set = new Set(existing);
   if (!set.has(name)) return name;
@@ -66,13 +132,28 @@ export function uniqueFilename(name: string, existing: Iterable<string>): string
   }
 }
 
-/** child が parent の配下(サブパス)か。パストラバーサル対策に使う。 */
+/**
+ * child が parent の配下にあるかを判定する。
+ *
+ * **パストラバーサル対策の要**。利用者が指定したパスを使う前に必ず通す。
+ * `../../etc/passwd` のような指定で、**想定外の場所を読み書きされる**のを防ぐ。
+ *
+ * @param parent 親ディレクトリ
+ * @param child 判定するパス
+ * @returns 配下なら true。**同じパスなら false**(自分自身は「配下」ではない)
+ */
 export function isSubPath(parent: string, child: string): boolean {
   const rel = nodePath.relative(nodePath.resolve(parent), nodePath.resolve(child));
   return rel !== "" && !rel.startsWith("..") && !nodePath.isAbsolute(rel);
 }
 
-/** parent から child への相対パス。 */
+/**
+ * parent から child への相対パスを返す。
+ *
+ * @param parent 基準のパス
+ * @param child 対象のパス
+ * @returns 相対パス
+ */
 export function relativePath(from: string, to: string): string { return nodePath.relative(from, to); }
 
 const MIME: Record<string, string> = {
@@ -85,7 +166,15 @@ const MIME: Record<string, string> = {
   pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 };
 
-/** 拡張子から MIME タイプを推定する(不明なら application/octet-stream)。 */
+/**
+ * 拡張子から MIME タイプを推定する。
+ *
+ * **これは推定であって検証ではない**。アップロードの検証には、
+ * 中身を見る {@link detectFileType} を使うこと(拡張子は偽装できる)。
+ *
+ * @param p パス
+ * @returns MIME タイプ。**不明なら `application/octet-stream`**
+ */
 export function guessMimeType(filename: string): string {
   return MIME[splitExt(filename).ext.toLowerCase()] ?? "application/octet-stream";
 }

@@ -43,6 +43,10 @@ export interface OrderSummary {
  * 注文サマリを組み立てる。
  * 外税: 税 = 割引後小計 × 税率、合計 = 割引後小計 + 税 + 送料。
  * 内税: 税 = 割引後小計に含まれる税、合計 = 割引後小計 + 送料。
+ *
+ * @param cart カート
+ * @param options 送料・クーポン・ポイント
+ * @returns 注文の要約(**小計 → 割引 → 送料 → 税 の順で計算**。順序を変えると金額が変わる)
  */
 export function buildOrderSummary(input: OrderSummaryInput): OrderSummary {
   const discount = Math.max(0, input.discount ?? 0);
@@ -59,17 +63,38 @@ export function buildOrderSummary(input: OrderSummaryInput): OrderSummary {
   return { subtotal: input.subtotal, discount, discountedSubtotal, shippingFee, tax, total: discountedSubtotal + tax + shippingFee };
 }
 
-/** 送料無料の閾値に達しているか。 */
+/**
+ * 送料無料の条件を満たすかを判定する。
+ *
+ * @param subtotal 小計
+ * @param threshold 無料になる金額
+ * @returns 満たしていれば true
+ */
 export function qualifiesForFreeShipping(subtotal: number, threshold: number): boolean {
   return subtotal >= threshold;
 }
 
-/** 送料を決める(閾値以上なら 0、未満なら通常送料)。 */
+/**
+ * 送料を決める。
+ *
+ * @param subtotal 小計
+ * @param options.threshold 無料になる金額
+ * @param options.fee 通常の送料
+ * @returns 送料(**条件を満たせば 0**)
+ */
 export function resolveShippingFee(subtotal: number, threshold: number, normalFee: number): number {
   return qualifiesForFreeShipping(subtotal, threshold) ? 0 : normalFee;
 }
 
-/** 送料無料まであといくらか(達していれば 0)。 */
+/**
+ * 送料無料まであといくらかを返す。
+ *
+ * **「あと 500 円で送料無料」と出す**と、購入額が上がる(実際に効果がある施策)。
+ *
+ * @param subtotal 小計
+ * @param threshold 無料になる金額
+ * @returns 不足額。**達していれば 0**
+ */
 export function amountUntilFreeShipping(subtotal: number, threshold: number): number {
   return Math.max(0, threshold - subtotal);
 }

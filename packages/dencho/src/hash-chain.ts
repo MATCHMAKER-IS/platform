@@ -9,7 +9,15 @@ import { createHash } from "node:crypto";
 /** ハッシュチェーンの起点(genesis)ハッシュ。 */
 export const GENESIS_HASH = "0".repeat(64);
 
-/** キーを再帰的にソートした決定的 JSON 文字列を作る(同じ内容なら同じ文字列)。 */
+/**
+ * 決定的な JSON 文字列を作る(**キーを再帰的にソート**)。
+ *
+ * **同じ内容なら必ず同じ文字列**になる。ハッシュの計算に使うので、
+ * キーの順序が変わるだけでハッシュが変わっては困る。
+ *
+ * @param value 対象の値
+ * @returns 決定的な JSON 文字列
+ */
 export function canonicalJson(value: unknown): string {
   return JSON.stringify(sortValue(value));
 }
@@ -37,7 +45,16 @@ export interface EvidenceRecord {
   hash: string;
 }
 
-/** レコードのハッシュを計算する(seq・日時・データ・前ハッシュを連結)。 */
+/**
+ * レコードのハッシュを計算する(**前のハッシュを含める** = ハッシュチェーン)。
+ *
+ * **電子帳簿保存法の「改ざん防止」要件**を満たすための仕組み。
+ * 途中のレコードを書き換えると、それ以降のハッシュがすべて合わなくなるので検出できる。
+ *
+ * @param record レコード(連番・日時・データ)
+ * @param prevHash 前のレコードのハッシュ(**最初は空文字**)
+ * @returns SHA-256 のハッシュ(16 進)
+ */
 export function hashEvidence(seq: number, recordedAt: string, data: unknown, prevHash: string): string {
   const payload = `${seq}\u0000${recordedAt}\u0000${canonicalJson(data)}\u0000${prevHash}`;
   return createHash("sha256").update(payload).digest("hex");
@@ -46,6 +63,7 @@ export function hashEvidence(seq: number, recordedAt: string, data: unknown, pre
 /**
  * チェーンに 1 件追加する(末尾のハッシュを引き継ぐ)。元の配列は変更しない。
  * @param chain 既存のチェーン(空なら genesis から)
+ * @returns 前のハッシュを含めた新しいレコード(**チェーンが繋がる**)
  */
 export function appendEvidence(chain: EvidenceRecord[], data: unknown, recordedAt: string): EvidenceRecord {
   const last = chain[chain.length - 1];
@@ -66,6 +84,9 @@ export interface ChainVerification {
 /**
  * チェーン全体の整合性を検証する。
  * 各レコードのハッシュ再計算・前ハッシュの連結・連番を確認し、改ざんの有無を返す。
+ *
+ * @param records レコードの配列(**連番順**であること)
+ * @returns 正しければ true と、**壊れている位置**(改ざんされたレコードの seq)
  */
 export function verifyEvidenceChain(records: EvidenceRecord[]): ChainVerification {
   let prevHash = GENESIS_HASH;

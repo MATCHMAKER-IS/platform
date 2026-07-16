@@ -20,7 +20,14 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const iso = (y: number, m: number, d: number) => `${y}-${pad(m)}-${pad(d)}`;
 const eraBase: Record<string, number> = { "令和": 2018, "平成": 1988, "昭和": 1925, R: 2018, H: 1988, S: 1925 };
 
-/** 日本語の日付文字列を ISO(YYYY-MM-DD)に変換する。西暦・和暦対応。 */
+/**
+ * 日本語の日付を ISO 形式にする(**西暦・和暦の両対応**)。
+ *
+ * 領収書には「令和8年7月15日」「2026/7/15」「26.7.15」など様々な形で書かれる。
+ *
+ * @param text 日付らしき文字列
+ * @returns `YYYY-MM-DD`。**解釈できなければ null**
+ */
 export function parseJapaneseDate(text: string): string | null {
   // 和暦(漢字): 令和6年1月5日
   let m = text.match(/(令和|平成|昭和)\s*(元|\d{1,2})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日/);
@@ -39,7 +46,15 @@ export function parseJapaneseDate(text: string): string | null {
 
 const AMOUNT_KEYWORD = /合計|総額|税込|お会計|ご請求|請求金額|お支払/;
 
-/** 合計金額を抽出する。合計系キーワード行を優先し、無ければ通貨記号付き最大額。 */
+/**
+ * 合計金額を抽出する。
+ *
+ * **「合計」「お買上げ」などのキーワード行を優先**する。無ければ通貨記号付きの最大額
+ * (レシートで最大の金額はたいてい合計だが、確実ではないので優先順位を付ける)。
+ *
+ * @param text OCR のテキスト
+ * @returns 金額。**見つからなければ null**
+ */
 export function extractAmount(text: string): number | null {
   const lines = normalizeOcrText(text).split(/\r?\n/);
   const keywordAmounts: number[] = [];
@@ -64,19 +79,39 @@ export function extractAmount(text: string): number | null {
   return null;
 }
 
-/** 適格請求書の登録番号(T+13桁)を探す。 */
+/**
+ * 適格請求書の登録番号を探す(`T` + 13 桁)。
+ *
+ * **インボイス制度で必須**。これが無い領収書は仕入税額控除を受けられない。
+ *
+ * @param text OCR のテキスト
+ * @returns 登録番号。**見つからなければ null**
+ */
 export function findRegistrationNumber(text: string): string | null {
   const m = text.match(/T\s?(\d{13})\b/);
   return m ? `T${m[1]}` : null;
 }
 
-/** 電話番号を探す。 */
+/**
+ * 電話番号を探す。
+ *
+ * @param text OCR のテキスト
+ * @returns 電話番号。**見つからなければ null**
+ */
 export function findPhone(text: string): string | null {
   const m = text.match(/(0\d{1,4}-\d{1,4}-\d{3,4})/);
   return m ? m[1]! : null;
 }
 
-/** OCR テキストから帳票フィールドをまとめて抽出する。 */
+/**
+ * OCR テキストから帳票のフィールドをまとめて抽出する。
+ *
+ * **抽出は当たらないことがある**(印字が薄い・手書き・レイアウト崩れ)。
+ * 必ず人が確認できる画面を用意すること。
+ *
+ * @param text OCR のテキスト
+ * @returns 日付・金額・登録番号・電話番号など(**取れなかった項目は undefined**)
+ */
 export function extractReceiptFields(text: string): ReceiptFields {
   const fields: ReceiptFields = {};
   const amount = extractAmount(text);
@@ -120,6 +155,9 @@ function wordConfidence(words: Wordish[] | undefined, token: string, fallback: n
 /**
  * OCR 結果(テキスト + 単語)から、フィールドごとの信頼度つきで抽出する。
  * 各値に対応する単語の信頼度を割り当てる(見つからなければ overall を使用)。
+ *
+ * @param text OCR のテキスト
+ * @returns 抽出結果と**確信度**(低いものは人の確認を促す。全部を信じさせない)
  */
 export function extractReceiptFieldsWithConfidence(
   result: { text: string; confidence?: number; words?: Wordish[] },
@@ -143,12 +181,25 @@ export interface ReceiptImportItem {
   error?: string;
 }
 
-/** OCR 結果(text)配列から一括抽出する(純関数)。 */
+/**
+ * 複数の OCR 結果から一括抽出する。
+ *
+ * @param texts OCR のテキストの配列
+ * @returns 各テキストの抽出結果
+ */
 export function extractReceiptsFromResults(results: { text: string }[]): ReceiptFields[] {
   return results.map((r) => extractReceiptFields(r.text));
 }
 
-/** OCR テキストを正規化する(全角数字/英字→半角・￥→¥・全角空白除去)。 */
+/**
+ * OCR テキストを正規化する。
+ *
+ * **OCR は全角と半角を混ぜて返す**(「￥1,234」と「¥1,234」)。
+ * 抽出の前に揃えないと、金額を取りこぼす。
+ *
+ * @param text OCR の生テキスト
+ * @returns 正規化したテキスト
+ */
 export function normalizeOcrText(text: string): string {
   return text
     .replace(/[０-９]/g, (d) => String.fromCharCode(d.charCodeAt(0) - 0xfee0))
@@ -162,7 +213,15 @@ export interface LineItem { name: string; amount: number }
 
 const SUMMARY_KEYWORDS = /合計|小計|消費税|税込|税抜|お預|おつり|釣|現金|カード|クレジット|ポイント|登録番号|TEL|電話|印紙/;
 
-/** 明細行(品名 + 金額)を抽出する。集計行は除外。 */
+/**
+ * 明細行(品名 + 金額)を抽出する。
+ *
+ * **集計行は除外する**(「小計」「合計」「消費税」を明細に混ぜない)。
+ * レシートの形式は多様なので、**常に取れるとは限らない**。
+ *
+ * @param text OCR のテキスト
+ * @returns 明細行。**取れなければ空配列**
+ */
 export function extractLineItems(text: string): LineItem[] {
   const items: LineItem[] = [];
   for (const raw of normalizeOcrText(text).split(/\r?\n/)) {
@@ -204,7 +263,14 @@ export interface InvoiceFields {
   registrationNumber?: string;
 }
 
-/** 請求書テキストからフィールドを抽出する(発行日/支払期限/小計/税/合計/登録番号)。 */
+/**
+ * 請求書からフィールドを抽出する。
+ *
+ * **適格請求書に必要な項目**(登録番号・税率別の内訳)を優先して探す。
+ *
+ * @param text OCR のテキスト
+ * @returns 発行日・支払期限・小計・税・合計・登録番号(**取れなかった項目は undefined**)
+ */
 export function extractInvoiceFields(text: string): InvoiceFields {
   const norm = normalizeOcrText(text);
   const lines = norm.split(/\r?\n/);
@@ -229,7 +295,15 @@ export function extractInvoiceFields(text: string): InvoiceFields {
 /** 税率ごとの内訳。 */
 export interface TaxRateLine { rate: number; subtotal: number; tax?: number }
 
-/** 複数税率(8%軽減 / 10%)の内訳を抽出する。「◯%対象」「消費税(◯%)」や、別行の「(内消費税 ¥…)」にも対応。 */
+/**
+ * 複数税率の内訳を抽出する(**軽減 8% と標準 10% の混在**に対応)。
+ *
+ * 「◯%対象」「消費税(◯%)」や、別行の「(内消費税 ¥…)」など、
+ * **書き方が店ごとに違う**ので複数のパターンを試す。
+ *
+ * @param text OCR のテキスト
+ * @returns 税率別の内訳。**取れなければ空配列**
+ */
 export function extractTaxBreakdown(text: string): TaxRateLine[] {
   const lines = normalizeOcrText(text).split(/\r?\n/);
   const map = new Map<number, { subtotal?: number; tax?: number }>();

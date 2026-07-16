@@ -3,7 +3,14 @@
  * @packageDocumentation
  */
 
-/** URL/パスセグメントを結合する(重複スラッシュを畳む。クエリ/ハッシュは保持)。 */
+/**
+ * URL やパスを結合する。
+ *
+ * **重複スラッシュを畳む**が、**クエリとハッシュは保持する**(`?a=1#top` が消えない)。
+ *
+ * @param segments 結合するセグメント
+ * @returns 結合した URL
+ */
 export function joinUrl(base: string, ...segments: string[]): string {
   const [head, ...rest] = [base, ...segments].filter((s) => s !== "");
   if (head === undefined) return "";
@@ -12,7 +19,12 @@ export function joinUrl(base: string, ...segments: string[]): string {
   return joined;
 }
 
-/** クエリ文字列("a=1&b=2" または "?a=1")をオブジェクトへ。 */
+/**
+ * クエリ文字列をオブジェクトにする。
+ *
+ * @param query クエリ文字列(**先頭の `?` はあってもなくてもよい**)
+ * @returns キー → 値
+ */
 export function parseQuery(qs: string): Record<string, string> {
   const out: Record<string, string> = {};
   const s = qs.replace(/^\?/, "");
@@ -27,7 +39,15 @@ export function parseQuery(qs: string): Record<string, string> {
   return out;
 }
 
-/** オブジェクトをクエリ文字列へ(undefined/null は除外・キーでソート)。 */
+/**
+ * オブジェクトをクエリ文字列にする。
+ *
+ * **`undefined` / `null` は除外**(`?a=undefined` という文字列を送らない)。
+ * **キー順にソート**するので、同じ内容なら常に同じ文字列になる。
+ *
+ * @param params キー → 値
+ * @returns クエリ文字列
+ */
 export function buildQuery(params: Record<string, string | number | boolean | null | undefined>): string {
   const parts: string[] = [];
   for (const key of Object.keys(params).sort()) {
@@ -38,7 +58,13 @@ export function buildQuery(params: Record<string, string | number | boolean | nu
   return parts.join("&");
 }
 
-/** URL にクエリを追加/マージする。 */
+/**
+ * URL にクエリを追加・マージする。
+ *
+ * @param url URL
+ * @param params 追加するパラメータ
+ * @returns 新しい URL(**既存のクエリは保持**)
+ */
 export function withQuery(url: string, params: Record<string, string | number | boolean | null | undefined>): string {
   const hashIdx = url.indexOf("#");
   const hash = hashIdx >= 0 ? url.slice(hashIdx) : "";

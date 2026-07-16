@@ -126,6 +126,9 @@ function applyOp(img: SharpInstance, op: ImageOp): SharpInstance {
  * const res = await image.normalizeUpload(buf, { maxWidth: 1600, format: "webp", quality: 82 });
  * if (res.ok) await storage.put("photos/1.webp", res.value);
  * ```
+ *
+ * @param sharpFactory sharp のインスタンス(**依存を注入する**ので、テストでモックできる)
+ * @returns 画像処理。**すべてのメソッドは Result 型を返す**(壊れた画像で例外を投げない)
  */
 export function createImageProcessor(sharp?: SharpFactory): ImageProcessor {
   async function getSharp(): Promise<SharpFactory> {

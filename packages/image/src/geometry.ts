@@ -19,6 +19,8 @@ export interface FitOptions {
 /**
  * アスペクト比を保ったまま、最大幅/高さに収まる出力寸法を計算する。
  * 「写真をアップロード時に実用サイズへ縮小」する用途の中心。
+ * @param source 元のサイズ
+ * @param target 目標のサイズ
  */
 export function fitDimensions(srcW: number, srcH: number, opts: FitOptions = {}): { width: number; height: number } {
   const { maxWidth = Infinity, maxHeight = Infinity, fit = "contain", withoutEnlargement = true } = opts;
@@ -39,7 +41,16 @@ export function fitDimensions(srcW: number, srcH: number, opts: FitOptions = {})
   return { width: Math.max(1, Math.round(srcW * scale)), height: Math.max(1, Math.round(srcH * scale)) };
 }
 
-/** 切り抜き矩形を画像範囲内に丸める。 */
+/**
+ * 切り抜き矩形を画像の範囲内に収める。
+ *
+ * **範囲外を指定すると sharp が例外を投げる**。利用者が画面でドラッグした値は
+ * 端をはみ出すことがあるので、処理の前に通す。
+ *
+ * @param rect 切り抜き矩形
+ * @param image 画像の幅・高さ
+ * @returns 範囲内に収めた矩形
+ */
 export function clampRect(
   rect: { left: number; top: number; width: number; height: number },
   imgW: number,
@@ -55,12 +66,24 @@ export function clampRect(
 /** 画像フォーマット。 */
 export type ImageFormat = "jpeg" | "png" | "webp" | "avif";
 
-/** フォーマット → MIME タイプ。 */
+/**
+ * 画像フォーマットから MIME タイプを返す。
+ *
+ * @param format フォーマット(`jpeg` / `png` / `webp` など)
+ * @returns MIME タイプ
+ */
 export function mimeForFormat(format: ImageFormat): string {
   return { jpeg: "image/jpeg", png: "image/png", webp: "image/webp", avif: "image/avif" }[format];
 }
 
-/** 拡張子(.jpg 等)→ フォーマット。 */
+/**
+ * 拡張子から画像フォーマットを判定する。
+ *
+ * **これは推定**(拡張子は偽装できる)。検証には `@platform/fs` の `detectFileType` を使う。
+ *
+ * @param ext 拡張子(`.jpg` など)
+ * @returns フォーマット。**不明なら null**
+ */
 export function formatFromExtension(nameOrExt: string): ImageFormat | null {
   const ext = nameOrExt.toLowerCase().replace(/^.*\./, "");
   if (ext === "jpg" || ext === "jpeg") return "jpeg";

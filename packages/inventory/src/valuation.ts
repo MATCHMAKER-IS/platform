@@ -18,6 +18,12 @@ export interface Valuation {
  * 移動平均法で在庫を評価する。
  * inbound: (既存金額 + 入庫数×入庫単価) / (既存数 + 入庫数) で平均単価更新。
  * outbound: その時点の平均単価で払い出す（金額 = 数量×平均単価を減算）。
+ *
+ * **仕入れ値が変動しても、在庫の評価額を一意に決められる**。
+ * 「どのロットを売ったか」を追わなくてよいのが利点(FEFO の引当とは別の話)。
+ *
+ * @param movements 入出庫の履歴(**時系列の順**であること。順序が違うと平均単価がずれる)
+ * @returns 在庫数・評価額・平均単価
  */
 export function movingAverage(movements: StockMovement[]): Valuation {
   let qty = 0;

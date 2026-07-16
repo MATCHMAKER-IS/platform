@@ -22,7 +22,13 @@ function esc(s: string): string {
 
 const RATE_LABEL: Record<number, string> = { 10: "10%", 8: "8%(軽減)", 0: "0%" };
 
-/** 請求書を A4 想定の HTML 文字列に描画する。 */
+/**
+ * 請求書を A4 想定の HTML 文字列に描画する。
+ *
+ *
+ * @param invoice 請求書
+ * @returns HTML(**A4 想定**。印刷用の CSS は `@platform/report` の wrapForPrint で足す)
+ */
 export function renderInvoiceHtml(invoice: Invoice, options: InvoiceHtmlOptions = {}): string {
   const symbol = options.currencySymbol ?? "¥";
   const rows = invoice.lines

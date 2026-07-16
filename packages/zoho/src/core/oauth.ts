@@ -7,7 +7,17 @@ import { accountsUrl, type ZohoDataCenter } from "./datacenter.js";
 /** 更新結果。 */
 export interface TokenResult { accessToken: string; apiDomain: string; expiresIn: number }
 
-/** リフレッシュトークンで access_token を更新する(fetch 注入可)。 */
+/**
+ * リフレッシュトークンでアクセストークンを更新する。
+ *
+ * **アクセストークンは 1 時間で切れる**ので、長時間の処理では更新が要る。
+ * 通常は {@link createTokenManager} が自動で行うので、直接呼ぶ場面は少ない。
+ *
+ * @param refreshToken リフレッシュトークン
+ * @param config クライアント ID・シークレット・DC
+ * @param fetchImpl fetch の実装(テスト注入用)
+ * @returns 新しいアクセストークン
+ */
 export async function refreshAccessToken(config: {
   dataCenter: ZohoDataCenter;
   clientId: string;

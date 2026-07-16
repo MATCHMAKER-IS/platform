@@ -21,7 +21,15 @@ function getBluetooth(): BluetoothLike | null {
   return (navigator as unknown as { bluetooth?: BluetoothLike }).bluetooth ?? null;
 }
 
-/** この環境で Web Bluetooth が使えるか。 */
+/**
+ * この環境で Web Bluetooth が使えるかを判定する。
+ *
+ * **対応が限られる**(Chrome 系のみ。Safari・Firefox は非対応)。
+ * **HTTPS が必須**で、**利用者の操作(クリック)から呼ばないと拒否される**。
+ * 使う前に必ず確認し、非対応なら代替手段(手入力など)を案内すること。
+ *
+ * @returns 使えるなら true
+ */
 export function isBluetoothSupported(): boolean {
   return getBluetooth() !== null;
 }
@@ -68,6 +76,11 @@ function mapBleError(e: unknown): AppError {
  *   conn.disconnect();
  * }
  * ```
+ *
+ * @param options.filters 探すデバイスの条件(**サービス UUID かデバイス名**)
+ * @param options.optionalServices 追加で使うサービス
+ * @returns 接続したデバイス
+ * @throws 利用者が選択をキャンセルした場合、または非対応の環境
  */
 export async function connectBluetooth(options: ConnectOptions): Promise<Result<BluetoothConnection>> {
   const bt = getBluetooth();
@@ -141,6 +154,9 @@ export async function connectBluetooth(options: ConnectOptions): Promise<Result<
 /**
  * 電池残量(%)を読む簡易ヘルパー(battery_service / battery_level)。
  * 事前に `optionalServices: ["battery_service"]` などで許可されている必要がある。
+ *
+ * @param device 接続済みのデバイス
+ * @returns 0〜100(%)。**Battery Service に対応していないデバイスでは失敗**
  */
 export async function readBatteryLevel(conn: BluetoothConnection): Promise<Result<number>> {
   const res = await conn.read("battery_service", "battery_level");
@@ -162,6 +178,9 @@ export interface DeviceInformation {
  *
  * @remarks Web Bluetooth は音声再生の制御はできない(音声は OS 側の従来 Bluetooth 経由)。
  * イヤホンで取得できるのは、機器が BLE GATT で公開する電池残量・機器情報などに限られる。
+ *
+ * @param device 接続済みのデバイス
+ * @returns 製造元・型番・シリアルなど。**対応していない項目は undefined**
  */
 export async function readDeviceInformation(conn: BluetoothConnection): Promise<Result<DeviceInformation>> {
   const read = async (characteristic: string): Promise<string | undefined> => {

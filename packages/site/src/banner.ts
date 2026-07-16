@@ -31,7 +31,15 @@ function pathMatches(paths: string[] | undefined, currentPath: string): boolean 
   return paths.some((p) => currentPath === p || currentPath.startsWith(p));
 }
 
-/** バナーが今表示対象か（期間 + パス + 枠）。 */
+/**
+ * バナーが今表示されるかを判定する(期間 + パス + 枠)。
+ *
+ * @param banner バナー
+ * @param context.path 現在のパス
+ * @param context.slot 表示枠
+ * @param context.now 判定する時点(テスト注入用)
+ * @returns 表示するなら true
+ */
 export function isBannerActive(banner: Banner, currentPath: string, options: { now?: Date; slot?: string } = {}): boolean {
   const t = (options.now ?? new Date()).getTime();
   if (banner.startAt && new Date(banner.startAt).getTime() > t) return false;
@@ -40,12 +48,27 @@ export function isBannerActive(banner: Banner, currentPath: string, options: { n
   return pathMatches(banner.paths, currentPath);
 }
 
-/** 表示対象のバナーを絞り込む。 */
+/**
+ * 表示対象のバナーを絞り込む。
+ *
+ * @param banners バナーの配列
+ * @param context パス・枠・時点
+ * @returns 表示対象のバナー
+ */
 export function activeBanners(banners: Banner[], currentPath: string, options: { now?: Date; slot?: string } = {}): Banner[] {
   return banners.filter((b) => isBannerActive(b, currentPath, options));
 }
 
-/** 重み付きで 1 つ選ぶ（r は 0–1・純関数）。対象が無ければ null。 */
+/**
+ * 重み付きでバナーを 1 つ選ぶ。
+ *
+ * **乱数を引数で受け取る**ので純関数(テストで結果を固定できる)。
+ * 重みは「A を 7 割、B を 3 割で出す」といった配分に使う。
+ *
+ * @param banners バナーの配列
+ * @param r 0〜1 の乱数
+ * @returns 選ばれたバナー。**対象が無ければ null**
+ */
 export function pickBanner(banners: Banner[], r: number): Banner | null {
   if (banners.length === 0) return null;
   const weights = banners.map((b) => Math.max(0, b.weight ?? 1));
@@ -59,7 +82,14 @@ export function pickBanner(banners: Banner[], r: number): Banner | null {
   return banners[banners.length - 1]!;
 }
 
-/** 対象パス・枠でフィルタしてから重み付きで 1 つ選ぶ便利関数。 */
+/**
+ * 表示対象を絞ってから重み付きで 1 つ選ぶ(実際に使うのはこちら)。
+ *
+ * @param banners バナーの配列
+ * @param context パス・枠・時点
+ * @param r 0〜1 の乱数
+ * @returns 選ばれたバナー。対象が無ければ null
+ */
 export function rotateBanner(banners: Banner[], currentPath: string, options: { now?: Date; slot?: string; random?: () => number } = {}): Banner | null {
   const active = activeBanners(banners, currentPath, options);
   return pickBanner(active, (options.random ?? Math.random)());

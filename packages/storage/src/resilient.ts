@@ -26,7 +26,14 @@ async function retry<T>(fn: () => Promise<T>, o: Required<Pick<StorageRetryOptio
   throw lastError;
 }
 
-/** Adapter をリトライでラップする(put/get/delete/exists/list に適用)。 */
+/**
+ * Adapter をリトライでラップする(put/get/delete/exists/list に適用)。
+ *
+ *
+ * @param storage 元のストレージ
+ * @param options.attempts 最大試行回数
+ * @returns ラップしたストレージ(**恒久エラーは再試行しない**)
+ */
 export function withStorageRetry(adapter: StorageAdapter, options: StorageRetryOptions = {}): StorageAdapter {
   const o = {
     retries: options.retries ?? 2,
@@ -62,6 +69,10 @@ export interface FallbackStorageOptions {
  * const adapter = createFallbackStorage([s3, localDisk], { mirrorWrites: true });
  * const storage = createStorage(adapter); // S3 障害時はローカルで継続
  * ```
+ *
+ * @param storages ストレージの配列(優先順)
+ * @returns ラップしたストレージ
+ * @throws 全部失敗した場合
  */
 export function createFallbackStorage(adapters: StorageAdapter[], options: FallbackStorageOptions = {}): StorageAdapter {
   if (adapters.length === 0) throw new Error("フォールバックには 1 つ以上の保存先が必要です");

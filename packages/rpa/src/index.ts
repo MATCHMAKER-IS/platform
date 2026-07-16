@@ -120,6 +120,8 @@ const defaultSleep = (ms: number): Promise<void> => new Promise((r) => setTimeou
  *   },
  * });
  * ```
+ * @param options.browser ブラウザの実装(**Playwright などを注入**)
+ * @param options.timeoutMs 各操作のタイムアウト
  */
 export function createRpaRunner(options: RpaRunnerOptions = {}) {
   const now = options.now ?? (() => Date.now());

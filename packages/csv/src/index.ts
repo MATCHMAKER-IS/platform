@@ -29,7 +29,13 @@ export interface ToCsvOptions {
   header?: boolean;
 }
 
-/** 1 値を CSV フィールドとしてエスケープする。 */
+/**
+ * 1 値を CSV フィールドとしてエスケープする。
+ *
+ *
+ * @param value 値
+ * @returns エスケープした文字列(**カンマ・改行・引用符を含むなら引用符で囲む**)
+ */
 export function csvEscape(value: unknown, delimiter = ","): string {
   if (value == null) return "";
   const s = value instanceof Date ? value.toISOString() : String(value);
@@ -45,6 +51,11 @@ export function csvEscape(value: unknown, delimiter = ","): string {
  * toCsv([{ name: "山田", note: "a,b" }], { columns: [{ key: "name", header: "氏名" }, { key: "note", header: "備考" }] });
  * // 氏名,備考\r\n山田,"a,b"
  * ```
+ *
+ * @param rows 行の配列
+ * @param options.columns 出力する列(**省略すると最初の行のキー**)
+ * @param options.bom BOM を付けるか(**Excel で開くなら必須**。無いと日本語が文字化けする)
+ * @returns CSV 文字列
  */
 export function toCsv(rows: Record<string, unknown>[], options: ToCsvOptions = {}): string {
   const { delimiter = ",", eol = "\r\n", bom = false, header = true } = options;
@@ -66,6 +77,8 @@ export interface ParseCsvOptions {
 /**
  * CSV 文字列を解析する(引用符・埋め込み改行・エスケープ対応)。
  * @returns header:true ならオブジェクト配列、false なら string[][]。
+ * @param text CSV 文字列
+ * @param options.header ヘッダ行があるか
  */
 export function parseCsv(text: string, options: ParseCsvOptions = {}): string[][] | Record<string, string>[] {
   const delimiter = options.delimiter ?? ",";
@@ -165,6 +178,9 @@ export type CsvLineSource = AsyncIterable<string> | Iterable<string>;
  *   await db.bulkInsert(rows);   // チャンクごとに保存
  * });
  * ```
+ *
+ * @param stream 読み込むストリーム
+ * @returns 行を 1 つずつ返す非同期イテレータ(**全部メモリに載せない**。大きなファイルでも扱える)
  */
 export async function streamCsvLines(source: CsvLineSource, options: CsvStreamOptions, onChunk: CsvChunkHandler): Promise<CsvStreamResult> {
   const delimiter = options.delimiter ?? ",";
@@ -208,6 +224,10 @@ export async function streamCsvLines(source: CsvLineSource, options: CsvStreamOp
  * CSV テキスト全体(埋め込み改行対応)をチャンクに分けて処理する。
  * テキストは一度パースするためメモリに載るが、下流処理(DB 書き込み等)をチャンク化して
  * 一括処理の負荷を平準化したいときに使う。行の生成は {@link parseCsv} に委譲。
+ *
+ * @param stream 読み込むストリーム
+ * @param options.chunkSize 1 塊の行数
+ * @returns 塊ごとに返す非同期イテレータ(**まとめて DB に入れる**のに使う)
  */
 export async function parseCsvChunks(text: string, options: CsvStreamOptions, onChunk: CsvChunkHandler): Promise<CsvStreamResult> {
   const objects = parseCsv(text, { delimiter: options.delimiter ?? ",", header: true }) as Record<string, string>[];

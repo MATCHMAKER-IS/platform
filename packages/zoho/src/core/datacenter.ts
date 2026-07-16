@@ -9,17 +9,39 @@ export type ZohoDataCenter = "com" | "eu" | "in" | "com.au" | "jp" | "ca" | "com
 /** DC 一覧。 */
 export const ZOHO_DATA_CENTERS: readonly ZohoDataCenter[] = ["com", "eu", "in", "com.au", "jp", "ca", "com.cn", "sa"];
 
-/** OAuth 用の Zoho Accounts URL(DC 固有)。 */
+/**
+ * OAuth 用の Zoho Accounts URL を返す。
+ *
+ * **Zoho はデータセンター(DC)ごとに URL が違う**(日本は `.jp`、米国は `.com`)。
+ * 間違えると認証できない。契約時の DC を確認すること。
+ *
+ * @param dc データセンター(`com` / `jp` / `eu` など)
+ * @returns Accounts の URL
+ */
 export function accountsUrl(dc: ZohoDataCenter): string {
   return `https://accounts.zoho.${dc}`;
 }
 
-/** API 呼び出し用ドメイン(DC 固有)。トークン応答の api_domain があればそちらを優先。 */
+/**
+ * API 呼び出し用のドメインを返す。
+ *
+ * **トークン応答の `api_domain` があればそちらを優先**する
+ * (Zoho 側が正しい DC を教えてくれるため、こちらの推測より確実)。
+ *
+ * @param dc データセンター
+ * @param apiDomain トークン応答の api_domain(任意)
+ * @returns API のドメイン
+ */
 export function apiDomain(dc: ZohoDataCenter): string {
   return `https://www.zohoapis.${dc}`;
 }
 
-/** api_domain 文字列から DC を推定する(不明は "com")。 */
+/**
+ * `api_domain` から DC を推定する。
+ *
+ * @param apiDomain トークン応答の api_domain
+ * @returns 推定した DC。**不明なら `com`**(最も一般的なため)
+ */
 export function detectDataCenter(apiDomainOrUrl: string): ZohoDataCenter {
   const m = apiDomainOrUrl.match(/zohoapis\.([a-z.]+)/);
   const tld = m?.[1];
@@ -29,7 +51,17 @@ export function detectDataCenter(apiDomainOrUrl: string): ZohoDataCenter {
 /** Zoho の対象サービス。 */
 export type ZohoService = "crm" | "books" | "desk" | "inventory" | "campaigns" | "projects" | "people" | "sign" | "recruit" | "workdrive" | "analytics" | "cliq" | "creator" | "bookings";
 
-/** サービス + DC からベース URL を解決する(サービスごとにドメイン/パスが異なる)。 */
+/**
+ * サービスと DC からベース URL を解決する。
+ *
+ * **サービスごとにドメインもパスも違う**(CRM は `/crm/v5`、Books は `/books/v3`)。
+ * ここで一元管理することで、呼び出し側は URL を組み立てなくてよい。
+ *
+ * @param service サービス(`crm` / `books` / `desk` など)
+ * @param dc データセンター
+ * @param apiDomain トークン応答の api_domain(任意・優先される)
+ * @returns ベース URL
+ */
 export function serviceBaseUrl(service: ZohoService, dc: ZohoDataCenter): string {
   switch (service) {
     case "crm": return `https://www.zohoapis.${dc}/crm/v8`;

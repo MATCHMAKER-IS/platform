@@ -53,7 +53,16 @@ export interface I18nOptions {
   fallbackLocale?: Locale;
 }
 
-/** 翻訳器を作る。 */
+/**
+ * 翻訳器を作る。
+ *
+ * **キーが無ければキーをそのまま返す**(空文字にすると、画面が壊れて原因も分からない)。
+ *
+ * @param options.catalog 辞書
+ * @param options.locale ロケール
+ * @param options.fallbackLocale 見つからないときのロケール
+ * @returns 翻訳器(`t` で引く)
+ */
 export function createI18n(options: I18nOptions): Translator {
   const { locale, catalogs, fallbackLocale = "en" } = options;
   const tag = LOCALE_TAG[locale];
@@ -77,7 +86,15 @@ export function createI18n(options: I18nOptions): Translator {
   };
 }
 
-/** 複数カタログを結合する(名前空間プレフィックス付与も可)。 */
+/**
+ * 複数の辞書を結合する。
+ *
+ * **ドメインごとに辞書を分けて管理**し、使うときに結合する
+ * (1 つの巨大な辞書だと、誰が何を触ってよいか分からなくなる)。
+ *
+ * @param catalogs 辞書の配列
+ * @returns 結合した辞書。**同じキーは後勝ち**
+ */
 export function mergeCatalogs(...catalogsList: Catalogs[]): Catalogs {
   const out: Catalogs = {};
   for (const cs of catalogsList) {
@@ -89,7 +106,16 @@ export function mergeCatalogs(...catalogsList: Catalogs[]): Catalogs {
 }
 
 
-/** カタログの全キーに "prefix." を付与する(ドメイン別辞書の名前空間化)。 */
+/**
+ * 辞書の全キーに接頭辞を付ける(名前空間化)。
+ *
+ * **ドメインが違えば同じ言葉でも訳が違う**(「申請」が経費と勤怠で別の英語になる)。
+ * 名前空間で分けることで衝突を防ぐ。
+ *
+ * @param catalog 辞書
+ * @param prefix 接頭辞
+ * @returns キーに接頭辞を付けた辞書
+ */
 export function namespaced(prefix: string, catalogs: Catalogs): Catalogs {
   const out: Catalogs = {};
   for (const loc of Object.keys(catalogs) as Locale[]) {
@@ -101,7 +127,16 @@ export function namespaced(prefix: string, catalogs: Catalogs): Catalogs {
   return out;
 }
 
-/** ブラウザ等の言語文字列から対応ロケールを推定する。 */
+/**
+ * 言語文字列から対応ロケールを推定する(`Accept-Language` など)。
+ *
+ * **完全一致 → 言語のみ一致 → 既定**の順で探す(`ja-JP` が無くても `ja` があれば使う)。
+ *
+ * @param input 言語文字列(`ja-JP,ja;q=0.9,en;q=0.8` など)
+ * @param supported 対応しているロケール
+ * @param fallback 見つからないときの既定
+ * @returns ロケール
+ */
 export function detectLocale(input: string | undefined, fallback: Locale = "en"): Locale {
   if (!input) return fallback;
   const lower = input.toLowerCase();

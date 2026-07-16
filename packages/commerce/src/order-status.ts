@@ -30,27 +30,60 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   refunded: "返金済み",
 };
 
-/** from → to の遷移が許されているか。 */
+/**
+ * 注文ステータスの遷移が許されるかを判定する。
+ *
+ * **順序を飛ばせない**(未払いから出荷済みへは飛べない)。飛ばせると、
+ * 決済していない注文を発送する事故が起きる。
+ *
+ * @param from 現在のステータス
+ * @param to 変えたいステータス
+ * @returns 許されるなら true
+ */
 export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
   return ORDER_TRANSITIONS[from].includes(to);
 }
 
-/** 次に遷移可能なステータス一覧。 */
+/**
+ * 次に遷移できるステータスを返す。
+ *
+ * **画面のボタンを出し分ける**のに使う。
+ *
+ * @param status 現在のステータス
+ * @returns 遷移できるステータス
+ */
 export function nextStatuses(from: OrderStatus): OrderStatus[] {
   return ORDER_TRANSITIONS[from];
 }
 
-/** 終端(これ以上遷移しない)か。 */
+/**
+ * 終端かを判定する(これ以上遷移しない)。
+ *
+ * @param status ステータス
+ * @returns 終端なら true(配達完了・キャンセル)
+ */
 export function isFinalStatus(status: OrderStatus): boolean {
   return ORDER_TRANSITIONS[status].length === 0;
 }
 
-/** キャンセル可能か。 */
+/**
+ * キャンセルできるかを判定する。
+ *
+ * **出荷後はキャンセルできない**(返品の扱いになる)。
+ *
+ * @param status ステータス
+ * @returns キャンセルできれば true
+ */
 export function isCancellable(status: OrderStatus): boolean {
   return canTransition(status, "cancelled");
 }
 
-/** 出荷済み(発送〜配達完了)か。 */
+/**
+ * 出荷済みかを判定する(発送〜配達完了)。
+ *
+ * @param status ステータス
+ * @returns 出荷済みなら true
+ */
 export function isShipped(status: OrderStatus): boolean {
   return status === "shipped" || status === "delivered";
 }

@@ -50,6 +50,7 @@ function baseUrl(env: "live" | "sandbox"): string {
  *   purchase_units: [{ amount: { currency_code: "JPY", value: "1000" } }],
  * });
  * ```
+ * @throws {@link @platform/core#AppError} コード `EXTERNAL` — API がエラーを返した場合
  */
 export function createPayPalClient(config: PayPalConfig): PayPalClient {
   const env = config.environment ?? "live";

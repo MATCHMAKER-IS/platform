@@ -20,7 +20,15 @@ export interface AttachmentLimits {
 
 export type AttachmentResult = { ok: true } | { ok: false; error: string };
 
-/** 添付の件数・サイズ・種別を検証する。 */
+/**
+ * 添付を検証する(件数・サイズ・種別)。
+ *
+ * **保存する前に必ず通す**。
+ *
+ * @param attachments 添付の配列
+ * @param limits 上限(件数・合計サイズ・許可する MIME 種別)
+ * @returns 問題の一覧(空なら妥当)
+ */
 export function validateAttachments(attachments: Attachment[], limits: AttachmentLimits = {}): AttachmentResult {
   const { maxCount, maxSizeBytes, allowedTypes } = limits;
   if (maxCount != null && attachments.length > maxCount) return { ok: false, error: `添付は最大${maxCount}件までです` };
@@ -31,7 +39,12 @@ export function validateAttachments(attachments: Attachment[], limits: Attachmen
   return { ok: true };
 }
 
-/** 画像添付だけを返す。 */
+/**
+ * 画像の添付だけを返す(サムネイル表示用)。
+ *
+ * @param attachments 添付の配列
+ * @returns 画像だけの配列
+ */
 export function imageAttachments(attachments: Attachment[]): Attachment[] {
   return attachments.filter((a) => a.type.startsWith("image/"));
 }

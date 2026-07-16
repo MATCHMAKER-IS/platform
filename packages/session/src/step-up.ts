@@ -13,6 +13,10 @@ export interface StepUpConfig {
 
 /**
  * 直近の認証時刻(authAt: epoch ms)から、重要操作に再認証が必要かを判定する。
+ *
+ * @param authAt 最後に認証した時刻(epoch ミリ秒)。**未設定なら再認証が必要**
+ * @param maxAgeMs この時間を過ぎたら再認証を求める
+ * @param now 現在時刻(テスト注入用)
  * @returns true なら再認証を要求すべき
  */
 export function stepUpRequired(authAt: number | undefined, config: StepUpConfig): boolean {
@@ -21,12 +25,29 @@ export function stepUpRequired(authAt: number | undefined, config: StepUpConfig)
   return now - authAt > config.freshnessSec * 1000;
 }
 
-/** 再認証成功後にセッションへ書き戻す認証時刻を返す。 */
+/**
+ * 再認証に成功した時刻を返す(セッションへ書き戻す用)。
+ *
+ * @param now 現在時刻(テスト注入用)
+ * @returns 認証時刻(epoch ミリ秒)
+ */
 export function markAuthenticated(now: () => number = () => Date.now()): number {
   return now();
 }
 
-/** step-up ヘルパー。セッションデータに authAt を持たせて使う。 */
+/**
+ * step-up 認証(重要操作の前の再認証)のヘルパーを作る。
+ *
+ * **ログインから時間が経っていたら、もう一度パスワードを求める**仕組み。
+ * 席を離れた隙に他人が操作する事故を防ぐ。金額の変更・権限の付与など、
+ * 取り返しのつかない操作の前に使う。
+ *
+ * セッションデータに `authAt`(最後に認証した時刻)を持たせて使う。
+ *
+ * @param options.maxAgeMs この時間を過ぎたら再認証を求める
+ * @param options.now 時刻の取得(テスト注入用)
+ * @returns ヘルパー。`needsStepUp` で判定する
+ */
 export function createStepUp(config: StepUpConfig) {
   return {
     /** 再認証が必要か。 */
@@ -52,6 +73,14 @@ export interface RememberMeConfig {
 
 /**
  * Remember-me の選択に応じてセッション有効期間(秒)を返す。
+ *
+ * **「ログイン状態を保持する」を選んだ人だけ長くする**。共用 PC で誤って選ばれると
+ * 危険なので、既定は短い方。
+ *
+ * @param remember ログイン状態を保持するか
+ * @param options.rememberSec 保持する場合の期間(既定 30 日)
+ * @param options.defaultSec 通常の期間(既定 1 日)
+ * @returns 有効期間(秒)
  * ログインフォームの「ログイン状態を保持する」チェックに使う。
  */
 export function sessionMaxAge(remember: boolean, config: RememberMeConfig): number {

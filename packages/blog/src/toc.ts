@@ -18,6 +18,15 @@ export interface TocEntry {
 /**
  * Markdown から見出しを抽出して目次を作る。
  * コードブロック内の # は無視。アンカーは重複しないよう調整。
+ *
+ * **コードブロック内の `#` を見出しと誤認しない**(シェルのコメントや Python の
+ * コメントが目次に並ぶのを防ぐ)。**同じ見出しが複数あってもアンカーは一意**にする
+ * (でないとリンクが最初の 1 つにしか飛ばない)。
+ *
+ * @param markdown Markdown の本文
+ * @param options.allowUnicode 日本語のアンカーを許すか(既定 false)
+ * @param options.maxLevel 拾う見出しの深さ(既定 3)
+ * @returns 見出しの配列(レベル・テキスト・アンカー)
  */
 export function extractHeadings(markdown: string, options?: { allowUnicode?: boolean; maxLevel?: number }): TocEntry[] {
   const maxLevel = options?.maxLevel ?? 6;

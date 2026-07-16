@@ -4,14 +4,25 @@
  */
 export interface TreeNodeLike { id: string; children?: TreeNodeLike[] }
 
-/** 展開集合に対して 1 件トグルした新しい集合を返す。 */
+/**
+ * ノードの展開を切り替える。
+ *
+ * @param expanded 展開中の ID
+ * @param id 切り替える ID
+ * @returns 更新した**新しい集合**(元は変更しない)
+ */
 export function toggleExpanded(expanded: ReadonlySet<string>, id: string): Set<string> {
   const next = new Set(expanded);
   if (next.has(id)) next.delete(id); else next.add(id);
   return next;
 }
 
-/** 全ノードの ID を集める(全展開用)。 */
+/**
+ * すべてのノード ID を集める(全展開用)。
+ *
+ * @param nodes ツリー
+ * @returns すべての ID
+ */
 export function collectAllIds(nodes: TreeNodeLike[]): string[] {
   const ids: string[] = [];
   const walk = (ns: TreeNodeLike[]) => { for (const n of ns) { ids.push(n.id); if (n.children?.length) walk(n.children); } };
@@ -19,7 +30,13 @@ export function collectAllIds(nodes: TreeNodeLike[]): string[] {
   return ids;
 }
 
-/** ID からノードを探す(深さ優先)。 */
+/**
+ * ノードを ID で探す(深さ優先)。
+ *
+ * @param nodes ツリー
+ * @param id 探す ID
+ * @returns ノード。**見つからなければ undefined**
+ */
 export function findNode<T extends TreeNodeLike>(nodes: T[], id: string): T | undefined {
   for (const n of nodes) {
     if (n.id === id) return n;
@@ -28,7 +45,16 @@ export function findNode<T extends TreeNodeLike>(nodes: T[], id: string): T | un
   return undefined;
 }
 
-/** 指定ノードへの祖先 ID パスを返す(自動展開用)。 */
+/**
+ * ノードへの祖先パスを返す(自動展開用)。
+ *
+ * **検索結果を選んだとき、その親をすべて開く**のに使う
+ * (深い階層のノードが、畳まれたまま「選択中」では意味がない)。
+ *
+ * @param nodes ツリー
+ * @param id 対象のノード
+ * @returns 祖先の ID(**根から順**)。見つからなければ空配列
+ */
 export function pathToNode(nodes: TreeNodeLike[], id: string): string[] {
   const path: string[] = [];
   const walk = (ns: TreeNodeLike[], acc: string[]): boolean => {

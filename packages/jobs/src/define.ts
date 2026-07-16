@@ -25,6 +25,10 @@ export interface JobDefinition<T> {
  * const SendWelcome = defineJob<{ userId: string }>("send-welcome");
  * await SendWelcome.enqueue(queue, { userId });   // 型安全
  * ```
+ *
+ * @param name ジョブ名
+ * @param handler 処理
+ * @returns ジョブ定義(**名前で登録するので、重複しないこと**)
  */
 export function defineJob<T>(name: string): JobDefinition<T> {
   return {

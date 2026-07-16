@@ -57,7 +57,16 @@ export interface DeliveryDecision {
   reason: "immediate" | "digest" | "quiet_hours" | "off" | "urgent";
 }
 
-/** 指定時刻が静音時間内か(日をまたぐ範囲に対応)。 */
+/**
+ * 静音時間内かを判定する。
+ *
+ * **日をまたぐ範囲に対応**(22:00–07:00)。深夜に通知を送ると、
+ * 利用者は通知そのものを切ってしまう。
+ *
+ * @param time 判定する時刻
+ * @param quietHours 静音時間の設定
+ * @returns 静音時間内なら true
+ */
 export function isQuietHour(quiet: QuietHours | undefined, now: Date): boolean {
   if (!quiet) return false;
   const h = now.getHours();
@@ -70,6 +79,11 @@ export function isQuietHour(quiet: QuietHours | undefined, now: Date): boolean {
 /**
  * イベントの配信方法を解決する。
  * 優先順位: 緊急 → off → digest → 静音時間 → 即時。
+ *
+ * @param preference 利用者の設定
+ * @param notification 通知
+ * @param now 現在時刻
+ * @returns 配信の判断(**即時 / ダイジェスト / 送らない**)
  */
 export function resolveDelivery(pref: NotificationPreference, event: NotifiableEvent, now: Date = new Date()): DeliveryDecision {
   const cat = pref.categories?.[event.category];
@@ -95,6 +109,9 @@ export interface DigestItem<E extends NotifiableEvent = NotifiableEvent> {
 /**
  * 複数イベントを一括で解決し、即時配信ぶんと、ダイジェストに回すぶんに分ける。
  * ダイジェスト送信ジョブ・通知処理の入口で使う。
+ * @param notifications 通知の配列
+ * @param preferences 利用者の設定
+ * @param now 現在時刻
  */
 export function partitionDeliveries<E extends NotifiableEvent>(
   pref: NotificationPreference,
@@ -114,7 +131,15 @@ export function partitionDeliveries<E extends NotifiableEvent>(
   return { immediate, deferred, suppressed };
 }
 
-/** ダイジェストをカテゴリ別に件数集計する(まとめ通知の本文組み立て用)。 */
+/**
+ * ダイジェストをカテゴリ別に集計する。
+ *
+ * **まとめて 1 通にする**(10 件の通知を 10 通送るより、
+ * 「新着 10 件」の 1 通の方が読まれる)。
+ *
+ * @param notifications 通知の配列
+ * @returns カテゴリと件数
+ */
 export function summarizeDigest<E extends NotifiableEvent>(items: DigestItem<E>[]): { category: string; count: number }[] {
   const counts = new Map<string, number>();
   for (const it of items) counts.set(it.event.category, (counts.get(it.event.category) ?? 0) + 1);

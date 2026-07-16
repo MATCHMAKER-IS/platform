@@ -24,7 +24,15 @@ export interface RemoveBgOptions {
   fetch?: typeof fetch;
 }
 
-/** remove.bg を使う背景除去。 */
+/**
+ * remove.bg を使う背景除去。
+ *
+ * **有料 API**(1 枚ごとに課金)。大量処理の前に料金を確認すること。
+ *
+ * @param apiKey API キー
+ * @param fetchImpl fetch の実装(テスト注入用)
+ * @returns 背景除去の実装
+ */
 export function createRemoveBgRemover(options: RemoveBgOptions): BackgroundRemover {
   const doFetch = options.fetch ?? fetch;
   const endpoint = options.endpoint ?? "https://api.remove.bg/v1.0/removebg";
@@ -56,7 +64,15 @@ export interface GenericRemoverOptions {
   fetch?: typeof fetch;
 }
 
-/** 任意の背景除去 API を FormData で呼ぶ汎用アダプタ。 */
+/**
+ * 任意の背景除去 API を呼ぶ汎用アダプタ。
+ *
+ * **サービスは差し替わる**(精度・価格で選び直す)。ここを通すことで、
+ * アプリ側のコードは変えずに済む。
+ *
+ * @param options.endpoint / apiKey / fieldName API の仕様
+ * @returns 背景除去の実装
+ */
 export function createBackgroundRemover(options: GenericRemoverOptions): BackgroundRemover {
   const doFetch = options.fetch ?? fetch;
   return {

@@ -12,7 +12,13 @@ export interface LoginFormErrors {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** メールアドレスの簡易検証。 */
+/**
+ * メールアドレスの簡易検証。
+ *
+ *
+ * @param value 判定する文字列
+ * @returns メールらしければ true(**厳密な検証ではない**。入力中の表示切替に使う)
+ */
 export function isEmailLike(value: string): boolean {
   return EMAIL_RE.test(value.trim());
 }
@@ -20,6 +26,7 @@ export function isEmailLike(value: string): boolean {
 /**
  * メールログイン入力を検証する。
  * @param options.minPasswordLength パスワードの最小文字数(既定 8)
+ * @returns 問題の一覧(**空なら送信してよい**)
  */
 export function validateEmailLogin(
   email: string,
@@ -35,7 +42,13 @@ export function validateEmailLogin(
   return errors;
 }
 
-/** エラーが無い(送信可能)か。 */
+/**
+ * エラーが無い(送信可能)か。
+ *
+ *
+ * @param form 入力内容
+ * @returns 送信できるか(**ボタンの活性を決める**)
+ */
 export function isLoginFormValid(errors: LoginFormErrors): boolean {
   return !errors.email && !errors.password;
 }

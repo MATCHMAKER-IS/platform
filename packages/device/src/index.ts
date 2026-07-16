@@ -31,6 +31,7 @@ export interface UserAgentInfo {
  * const ua = parseUserAgent(request.headers.get("user-agent") ?? "");
  * console.log(ua.browser.name, ua.os.name, ua.device.type);
  * ```
+ * @returns ブラウザ・OS・端末種別。**UA は偽装できる**ので、機能の有無は UA ではなく実際の API で判定すること
  */
 export function parseUserAgent(ua: string): UserAgentInfo {
   const r = new UAParser(ua).getResult();
@@ -57,6 +58,7 @@ export interface ClientInfo extends UserAgentInfo {
 /**
  * ブラウザで利用可能なクライアント情報を収集する。
  * @remarks ブラウザ(window あり)でのみ動作する。SSR では呼ばない。
+ * @returns クライアントの情報。**SSR では undefined**
  */
 export function getClientInfo(): ClientInfo {
   const nav = navigator as Navigator & {

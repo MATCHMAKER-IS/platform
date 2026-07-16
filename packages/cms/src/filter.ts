@@ -17,7 +17,15 @@ export interface PostFilter {
   status?: EffectiveStatus;
 }
 
-/** 条件に合う記事だけを返す（元の順序を保持）。 */
+/**
+ * 条件に合う記事だけを返す。
+ *
+ * 指定しなかった条件は無視される(AND 条件)。**元の順序を保つ**。
+ *
+ * @param posts 記事の配列
+ * @param filter 絞り込み条件(状態・タグ・カテゴリ・キーワードなど)
+ * @returns 条件に合う記事
+ */
 export function filterPosts(posts: CmsPost[], filter: PostFilter, now: Date = new Date()): CmsPost[] {
   const q = filter.query?.trim().toLowerCase();
   return posts.filter((p) => {

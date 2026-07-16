@@ -20,7 +20,15 @@ export interface StockMovement {
   unitCost?: number;
 }
 
-/** 履歴から現在庫数を計算する。 */
+/**
+ * 入出庫の履歴から現在庫を計算する。
+ *
+ * **在庫数を直接持たず、履歴から毎回計算する**(イベントソーシング)。
+ * 「なぜこの数になったのか」を後から追える。
+ *
+ * @param movements 入出庫の履歴
+ * @returns 現在庫数(**マイナスもありうる**。データの不整合を隠さない)
+ */
 export function onHand(movements: StockMovement[]): number {
   return movements.reduce((qty, m) => {
     if (m.type === "inbound") return qty + m.quantity;
@@ -37,7 +45,12 @@ export interface MovementSummary {
   onHand: number;
 }
 
-/** 履歴を集計する。 */
+/**
+ * 入出庫の履歴を集計する。
+ *
+ * @param movements 入出庫の履歴
+ * @returns 入庫合計・出庫合計・現在庫・件数
+ */
 export function summarize(movements: StockMovement[]): MovementSummary {
   let totalIn = 0, totalOut = 0, adjustments = 0;
   for (const m of movements) {
@@ -48,7 +61,17 @@ export function summarize(movements: StockMovement[]): MovementSummary {
   return { totalIn, totalOut, adjustments, onHand: totalIn - totalOut + adjustments };
 }
 
-/** 出庫が現在庫を超えないか検証して追記する(超過は失敗）。 */
+/**
+ * 入出庫を追記する。**出庫が在庫を超えないか検証する**。
+ *
+ * **在庫より多く出庫できてしまうと、帳簿と現物が合わなくなる**。
+ * 追記の時点で弾くことで、後から辻褄合わせをする手間を防ぐ。
+ *
+ * @param movements 既存の履歴
+ * @param movement 追記する入出庫
+ * @returns 追記した新しい履歴
+ * @throws {@link @platform/core#AppError} コード `VALIDATION` — 出庫が現在庫を超える場合
+ */
 export function applyMovement(movements: StockMovement[], movement: StockMovement): { ok: boolean; movements: StockMovement[] } {
   if (movement.type === "outbound" && onHand(movements) < movement.quantity) {
     return { ok: false, movements };

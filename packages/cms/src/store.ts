@@ -13,7 +13,12 @@ export interface CmsStore {
   remove(slug: string): Promise<boolean>;
 }
 
-/** インメモリ実装。 */
+/**
+ * 記事ストアのメモリ実装(開発・テスト用)。
+ *
+ * @param seed 初期データ
+ * @returns 記事ストア(再起動で消える)
+ */
 export function createMemoryCmsStore(now: () => string = () => new Date().toISOString()): CmsStore {
   const bySlug = new Map<string, CmsPost>();
   const sorted = () => [...bySlug.values()].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : a.updatedAt > b.updatedAt ? -1 : 0));
@@ -96,7 +101,12 @@ function toRowData(post: CmsPost): CmsPostRowData {
   return { slug: post.slug, title: post.title, categoryId: post.categoryId ?? null, excerpt: post.excerpt ?? null, eyecatch: post.eyecatch ?? null, body: post.body, tags: post.tags, status: post.status, publishedAt: post.publishedAt ? new Date(post.publishedAt) : null, updatedAt: new Date(post.updatedAt) };
 }
 
-/** Prisma 実装。 */
+/**
+ * 記事ストアの Prisma 実装(本番用)。
+ *
+ * @param db Prisma クライアント
+ * @returns 記事ストア
+ */
 export function createPrismaCmsStore(db: CmsStoreDb, now: () => string = () => new Date().toISOString()): CmsStore {
   return {
     async list(options = {}) {

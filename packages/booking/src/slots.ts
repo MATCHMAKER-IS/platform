@@ -21,7 +21,14 @@ export interface SlotOptions {
   stepMinutes?: number;
 }
 
-/** 1 つの営業時間帯からスロットを生成する。 */
+/**
+ * 営業時間帯からスロットを生成する。
+ *
+ * @param range 営業時間帯
+ * @param options.durationMin 1 枠の長さ
+ * @param options.intervalMin 枠の開始間隔(**duration と違う値にできる**。30 分枠を 15 分間隔で並べるなど)
+ * @returns スロットの配列
+ */
 export function slotsForRange(range: TimeRange, options: SlotOptions): Slot[] {
   const open = timeToMinutes(range.open);
   const close = timeToMinutes(range.close);
@@ -33,12 +40,25 @@ export function slotsForRange(range: TimeRange, options: SlotOptions): Slot[] {
   return slots;
 }
 
-/** 複数の営業時間帯からスロットを生成する(昼休みで分割された営業などに)。 */
+/**
+ * 複数の営業時間帯からスロットを生成する。
+ *
+ * **昼休みで分割された営業**(9:00–12:00 / 13:00–18:00)に対応する。
+ *
+ * @param ranges 営業時間帯の配列
+ * @param options 枠の長さと間隔
+ * @returns スロットの配列
+ */
 export function generateSlots(ranges: TimeRange[], options: SlotOptions): Slot[] {
   return ranges.flatMap((r) => slotsForRange(r, options));
 }
 
-/** スロットの所要時間(分)。 */
+/**
+ * スロットの所要時間を返す。
+ *
+ * @param slot スロット
+ * @returns 分数
+ */
 export function slotDuration(slot: Slot): number {
   return timeToMinutes(slot.end) - timeToMinutes(slot.start);
 }

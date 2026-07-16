@@ -39,7 +39,14 @@ function defaultTransform(data: string): string[] {
   return data.split(/\r?\n/).filter((l) => l.length > 0);
 }
 
-/** ログストリームを作成する。type は url の scheme から自動判定(ws://→ws)。 */
+/**
+ * ログストリームを作成する。type は url の scheme から自動判定(ws://→ws)。
+ *
+ *
+ * @param options.url 接続先(SSE)
+ * @param options.max 保持する件数
+ * @returns ログストリーム(**自動再接続する**)
+ */
 export function createLogStream(options: LogStreamOptions): LogStream {
   const type = options.type ?? (options.url.startsWith("ws") ? "ws" : "sse");
   const transform = options.transform ?? defaultTransform;

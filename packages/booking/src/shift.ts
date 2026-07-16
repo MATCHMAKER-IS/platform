@@ -16,14 +16,29 @@ export interface Shift {
   end: string;
 }
 
-/** スロットがいずれかのシフトに完全に収まるか。 */
+/**
+ * スロットがシフトに収まるかを判定する。
+ *
+ * **完全に収まること**が条件(担当者の勤務が 17 時までなら、
+ * 16:30 開始の 1 時間枠は取れない)。
+ *
+ * @param slot スロット
+ * @param shifts シフトの配列
+ * @returns いずれかに収まれば true
+ */
 export function isWithinShift(slot: Slot, shifts: Shift[]): boolean {
   const s = timeToMinutes(slot.start);
   const e = timeToMinutes(slot.end);
   return shifts.some((shift) => s >= timeToMinutes(shift.start) && e <= timeToMinutes(shift.end));
 }
 
-/** シフト内に収まるスロットだけを返す(そのスタッフが対応できる枠)。 */
+/**
+ * そのスタッフが対応できるスロットだけを返す。
+ *
+ * @param slots スロットの配列
+ * @param shifts シフトの配列
+ * @returns 対応できるスロット
+ */
 export function staffSlots(slots: Slot[], shifts: Shift[]): Slot[] {
   return slots.filter((slot) => isWithinShift(slot, shifts));
 }
@@ -31,6 +46,11 @@ export function staffSlots(slots: Slot[], shifts: Shift[]): Slot[] {
 /**
  * 1 スタッフの予約可能枠を返す(シフト内 かつ そのスタッフの予約と重ならない)。
  * 指名予約(キャスト 1 人)を想定し capacity は 1。
+ *
+ * @param slots スロットの配列
+ * @param shifts シフトの配列
+ * @param bookings 既存の予約
+ * @returns そのスタッフが**対応でき、かつ空いている**スロット
  */
 export function staffAvailableSlots(slots: Slot[], shifts: Shift[], staffBookings: BookingInterval[]): Slot[] {
   return staffSlots(slots, shifts).filter(
@@ -38,7 +58,12 @@ export function staffAvailableSlots(slots: Slot[], shifts: Shift[], staffBooking
   );
 }
 
-/** 勤務時間の合計(分)。 */
+/**
+ * 勤務時間の合計を返す。
+ *
+ * @param shifts シフトの配列
+ * @returns 合計の分数
+ */
 export function shiftMinutes(shifts: Shift[]): number {
   return shifts.reduce((sum, s) => sum + (timeToMinutes(s.end) - timeToMinutes(s.start)), 0);
 }
@@ -58,6 +83,10 @@ export function slotStaffing(slots: Slot[], staffShifts: Record<string, Shift[]>
 /**
  * スタッフ配置を考慮した空き枠を返す(勤務中スタッフ数 > その枠に重なる予約数)。
  * 指名なし予約で、店全体のキャパシティが時間帯ごとに変わる場合に使う。
+ * @param slots スロットの配列
+ * @param shifts 全スタッフのシフト
+ * @param bookings 既存の予約
+ * @param options.minStaff 最低必要なスタッフ数
  */
 export function availableWithStaffing(
   slots: Slot[],

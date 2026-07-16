@@ -26,6 +26,7 @@ export type Row = Record<string, string | number | boolean | Date | null>;
  * const res = await readSheet(uploadedBytes);
  * if (res.ok) for (const row of res.value) console.log(row["氏名"], row["金額"]);
  * ```
+ * @throws ファイルが壊れている・対応しない形式の場合
  */
 export async function readSheet(
   buffer: ArrayBuffer | Uint8Array,
@@ -125,6 +126,9 @@ export interface SheetInput {
  *   { name: "科目別", rows: categoryRows },
  * ]);
  * ```
+ *
+ * @param sheets シートの配列
+ * @returns xlsx のバイト列(**日付は Excel のシリアル値に変換される**)
  */
 export async function writeWorkbook(sheets: SheetInput[]): Promise<Result<Uint8Array>> {
   return tryCatch(async () => {

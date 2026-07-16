@@ -31,6 +31,9 @@ class TransactionAbort extends Error {
 /**
  * エラーが {@link abortTransaction} による明示的中止なら、その AppError を返す(そうでなければ null)。
  * リトライ系トランザクションが「中止=非再試行」を正しく扱うために使う。
+ *
+ * @param error エラー
+ * @returns 中断の理由。**中断でなければ null**
  */
 export function asTransactionAbort(error: unknown): AppError | null {
   return error instanceof TransactionAbort ? error.appError : null;
@@ -40,6 +43,8 @@ export function asTransactionAbort(error: unknown): AppError | null {
  * トランザクションを明示的に中止(ロールバック)する。以降の処理は実行されず、
  * それまでの変更は取り消される。{@link withTransaction} 内で使う。
  * @param reason 中止理由(文字列なら CONFLICT、AppError ならそのコードで返る)
+ * @returns 返らない(必ず例外を投げる)
+ * @throws トランザクションを中断する特別な例外(**ロールバックされる**)
  */
 export function abortTransaction(reason: string | AppError): never {
   throw new TransactionAbort(typeof reason === "string" ? new AppError(ErrorCode.CONFLICT, reason) : reason);
@@ -58,6 +63,10 @@ export function abortTransaction(reason: string | AppError): never {
  *   return from;                                                  // ここでコミット
  * }, { isolationLevel: "Serializable" });
  * ```
+ *
+ * @param db Prisma クライアント
+ * @param fn トランザクション内の処理
+ * @returns 処理の結果(**例外が出たらロールバック**。{@link abortTransaction} で明示的に中断できる)
  */
 export async function withTransaction<T>(
   db: PrismaClient,

@@ -30,7 +30,19 @@ export interface ZohoTokenManager {
   invalidate(): void;
 }
 
-/** 自動更新トークンマネージャを作る(同時更新は単一化)。 */
+/**
+ * トークンを自動更新するマネージャを作る。
+ *
+ * **同時に複数のリクエストが更新を始めないよう単一化する**。
+ * これが無いと、10 並列のリクエストが 10 回更新を投げ、レート制限に当たる
+ * (さらに、古いトークンで上書きし合って壊れることもある)。
+ *
+ * @param options.refreshToken リフレッシュトークン
+ * @param options.config クライアント ID・シークレット・DC
+ * @param options.onRefresh 更新時の通知(保存に使う)
+ * @returns マネージャ。`getAccessToken` で有効なトークンを得る
+ * @throws {@link @platform/core#AppError} コード `EXTERNAL` — トークンの更新に失敗した場合(`getAccessToken` 実行時)
+ */
 export function createZohoTokenManager(config: TokenManagerConfig): ZohoTokenManager {
   const buffer = config.expiryBufferMs ?? 5 * 60 * 1000;
   let accessToken = config.initialAccessToken;
@@ -68,6 +80,10 @@ export function createZohoTokenManager(config: TokenManagerConfig): ZohoTokenMan
  * トークンマネージャを使い、`Authorization: Zoho-oauthtoken` を自動付与する fetch を返す。
  * 各サービスクライアントの `fetchImpl` に渡せば、トークン更新が透過的になる。
  * 401 の場合は 1 度だけ強制更新して再試行する。
+ *
+ * @param manager トークンマネージャ
+ * @param fetchImpl fetch の実装(テスト注入用)
+ * @returns 認証ヘッダを自動で付ける fetch。**トークンの更新も自動**(呼び出し側は意識しなくてよい)
  */
 export function createAuthedFetch(manager: ZohoTokenManager, baseFetch?: typeof fetch): typeof fetch {
   const doFetch = baseFetch ?? fetch;

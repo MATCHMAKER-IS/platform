@@ -12,7 +12,13 @@ export interface LockStore {
   release(key: string): Promise<void> | void;
 }
 
-/** メモリ実装(単一プロセス・TTL 付き)。分散では Redis 実装に差し替える。 */
+/**
+ * メモリ実装(単一プロセス・TTL 付き)。分散では Redis 実装に差し替える。
+ *
+ *
+ * @param options.now 時刻の取得(テスト注入用)
+ * @returns ロックストア(**単一プロセス内のみ**。テスト用)
+ */
 export function createMemoryLockStore(now: () => number = () => Date.now()): LockStore {
   const held = new Map<string, number>(); // key -> expiresAt
   return {

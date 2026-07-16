@@ -33,7 +33,14 @@ export interface ZohoPeopleClient {
   attendanceCheckIn(params: { empId?: string; dateTime: string; checkIn: boolean }): Promise<Result<PeopleRecord>>;
 }
 
-/** Zoho People クライアントを作る。 */
+/**
+ * Zoho People(人事・勤怠)のクライアントを作る。
+ *
+ * @param config.tokenManager トークンマネージャ(**自動更新される**)
+ * @param config.dc データセンター(**契約時の DC を指定**。間違えると 404 になる)
+ * @param config.fetchImpl fetch の実装(テスト注入用)
+ * @returns People のクライアント。**すべてのメソッドは Result 型を返す**(例外を投げない)
+ */
 export function createZohoPeopleClient(config: ZohoPeopleConfig): ZohoPeopleClient {
   const api = createZohoApiClient({
     apiDomain: serviceBaseUrl("people", config.dataCenter),

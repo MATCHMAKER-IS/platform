@@ -8,7 +8,18 @@ import { fitDimensions, mimeForFormat, type FitOptions, type ImageFormat } from 
 
 type Source = Blob | HTMLImageElement | HTMLCanvasElement | ImageBitmap;
 
-/** File/Blob/URL から画像を読み込む。 */
+/**
+ * File/Blob/URL から画像を読み込む。
+ *
+ *
+ * @param src 画像の URL または Blob
+ * @returns 読み込んだ画像
+ * @throws 読み込みに失敗した場合(**壊れたファイル・CORS**)
+ *
+ * @param src 画像の URL または Blob
+ * @returns 読み込んだ画像
+ * @throws 読み込みに失敗した場合(**壊れたファイル・CORS**)
+ */
 export async function loadImage(src: Blob | string): Promise<HTMLImageElement> {
   const url = typeof src === "string" ? src : URL.createObjectURL(src);
   try {
@@ -47,7 +58,19 @@ function makeCanvas(w: number, h: number): { canvas: HTMLCanvasElement; ctx: Can
   return { canvas, ctx };
 }
 
-/** アスペクト比を保って縮小(アップロード前の実用サイズ化)。 */
+/**
+ * アスペクト比を保って縮小(アップロード前の実用サイズ化)。
+ *
+ *
+ * @param image 元の画像
+ * @param options.width / height 目標のサイズ
+ * @param options.fit 収め方(`cover` / `contain`)
+ * @returns 変換後の Blob(**ブラウザ内で完結**。サーバに送らないので機密画像も扱える)
+ *
+ * @param image 元の画像
+ * @param options 目標のサイズと収め方
+ * @returns 変換後の Blob(**ブラウザ内で完結**。サーバに送らないので機密画像も扱える)
+ */
 export async function resizeImage(source: Source, opts: FitOptions & { format?: ImageFormat; quality?: number }): Promise<Blob> {
   const { el, w, h } = await toDrawable(source);
   const { width, height } = fitDimensions(w, h, opts);
@@ -56,7 +79,18 @@ export async function resizeImage(source: Source, opts: FitOptions & { format?: 
   return canvasToBlob(canvas, opts.format ?? "webp", opts.quality ?? 0.85);
 }
 
-/** 矩形で切り抜く(トリミング)。 */
+/**
+ * 矩形で切り抜く(トリミング)。
+ *
+ *
+ * @param image 元の画像
+ * @param rect 切り抜く矩形
+ * @returns 変換後の Blob
+ *
+ * @param image 元の画像
+ * @param rect 切り抜く矩形
+ * @returns 変換後の Blob
+ */
 export async function cropImage(source: Source, rect: { left: number; top: number; width: number; height: number }, format: ImageFormat = "png", quality?: number): Promise<Blob> {
   const { el } = await toDrawable(source);
   const { canvas, ctx } = makeCanvas(rect.width, rect.height);
@@ -64,7 +98,20 @@ export async function cropImage(source: Source, rect: { left: number; top: numbe
   return canvasToBlob(canvas, format, quality);
 }
 
-/** モザイク(ピクセル化)。rect 未指定なら全体。 */
+/**
+ * モザイク(ピクセル化)。rect 未指定なら全体。
+ *
+ *
+ * @param image 元の画像
+ * @param rect モザイクをかける範囲
+ * @param blockSize ブロックの大きさ(**大きいほど粗い**)
+ * @returns 変換後の Blob。**個人情報を隠す用途では、元画像を破棄すること**(モザイクは復元されないが、元が残っていれば意味がない)
+ *
+ * @param image 元の画像
+ * @param rect モザイクをかける範囲
+ * @param blockSize ブロックの大きさ(**大きいほど粗い**)
+ * @returns 変換後の Blob。**個人情報を隠す用途では元画像を破棄すること**(モザイクは復元されないが、元が残っていれば意味がない)
+ */
 export async function pixelate(source: Source, blockSize = 12, rect?: { left: number; top: number; width: number; height: number }, format: ImageFormat = "png"): Promise<Blob> {
   const { el, w, h } = await toDrawable(source);
   const { canvas, ctx } = makeCanvas(w, h);
@@ -92,7 +139,18 @@ export interface ImageFilters {
   blur?: number;         // px
 }
 
-/** CSS フィルタを適用する。 */
+/**
+ * CSS フィルタを適用する。
+ *
+ *
+ * @param image 元の画像
+ * @param filters 明度・彩度・コントラストなど
+ * @returns 変換後の Blob
+ *
+ * @param image 元の画像
+ * @param filters 明度・彩度・コントラストなど
+ * @returns 変換後の Blob
+ */
 export async function applyFilters(source: Source, filters: ImageFilters, format: ImageFormat = "png", quality?: number): Promise<Blob> {
   const { el, w, h } = await toDrawable(source);
   const { canvas, ctx } = makeCanvas(w, h);
@@ -111,7 +169,18 @@ export async function applyFilters(source: Source, filters: ImageFilters, format
   return canvasToBlob(canvas, format, quality);
 }
 
-/** 反転(左右/上下ミラー)。 */
+/**
+ * 反転(左右/上下ミラー)。
+ *
+ *
+ * @param image 元の画像
+ * @param axis 反転する軸(`horizontal` / `vertical`)
+ * @returns 変換後の Blob
+ *
+ * @param image 元の画像
+ * @param axis 反転する軸
+ * @returns 変換後の Blob
+ */
 export async function flipImage(source: Source, opts: { horizontal?: boolean; vertical?: boolean }, format: ImageFormat = "png", quality?: number): Promise<Blob> {
   const { el, w, h } = await toDrawable(source);
   const { canvas, ctx } = makeCanvas(w, h);
@@ -121,7 +190,20 @@ export async function flipImage(source: Source, opts: { horizontal?: boolean; ve
   return canvasToBlob(canvas, format, quality);
 }
 
-/** 形式変換(jpg/png/webp)。 */
+/**
+ * 形式変換(jpg/png/webp)。
+ *
+ *
+ * @param image 元の画像
+ * @param format 変換先(`webp` / `jpeg` / `png`)
+ * @param quality 品質(0〜1)
+ * @returns 変換後の Blob。**webp は容量が小さい**が、古いブラウザでは表示できない
+ *
+ * @param image 元の画像
+ * @param format 変換先
+ * @param quality 品質(0〜1)
+ * @returns 変換後の Blob。**webp は容量が小さい**が、古いブラウザでは表示できない
+ */
 export async function convertFormat(source: Source, format: ImageFormat, quality?: number): Promise<Blob> {
   const { el, w, h } = await toDrawable(source);
   const { canvas, ctx } = makeCanvas(w, h);
@@ -130,7 +212,20 @@ export async function convertFormat(source: Source, format: ImageFormat, quality
   return canvasToBlob(canvas, format, quality);
 }
 
-/** 指定色に近い背景を透明にする(背景白抜き)。単色/近単色の背景向け。 */
+/**
+ * 指定色に近い背景を透明にする(背景白抜き)。単色/近単色の背景向け。
+ *
+ *
+ * @param image 元の画像
+ * @param color 透過にする色
+ * @param tolerance 許容差(**0 だと厳密一致**。JPEG は圧縮でわずかに色がずれるので、少し許容する)
+ * @returns 変換後の Blob
+ *
+ * @param image 元の画像
+ * @param color 透過にする色
+ * @param tolerance 許容差(**0 だと厳密一致**。JPEG は圧縮でわずかに色がずれるので少し許容する)
+ * @returns 変換後の Blob
+ */
 export async function removeBackgroundColor(source: Source, options: { color?: { r: number; g: number; b: number }; tolerance?: number } = {}, format: ImageFormat = "png"): Promise<Blob> {
   const { color = { r: 255, g: 255, b: 255 }, tolerance = 24 } = options;
   const { el, w, h } = await toDrawable(source);
@@ -147,7 +242,18 @@ export async function removeBackgroundColor(source: Source, options: { color?: {
   return canvasToBlob(canvas, format);
 }
 
-/** 円/角丸マスク。 */
+/**
+ * 円/角丸マスク。
+ *
+ *
+ * @param image 元の画像
+ * @param mask マスク画像
+ * @returns 変換後の Blob
+ *
+ * @param image 元の画像
+ * @param mask マスク画像
+ * @returns 変換後の Blob
+ */
 export async function maskImage(source: Source, shape: "circle" | "rounded", radius = 24, format: ImageFormat = "png"): Promise<Blob> {
   const { el, w, h } = await toDrawable(source);
   const { canvas, ctx } = makeCanvas(w, h);
@@ -164,7 +270,16 @@ export async function maskImage(source: Source, shape: "circle" | "rounded", rad
   return canvasToBlob(canvas, format);
 }
 
-/** Blob をダウンロードさせる。 */
+/**
+ * Blob をダウンロードさせる。
+ *
+ * **一時的な `<a>` を作ってクリックし、すぐ消す**(ブラウザにダウンロードさせる定石)。
+ * オブジェクト URL も解放する(しないとメモリリークになる)。
+ *
+ * @param blob ダウンロードさせるデータ
+ * @param filename ファイル名
+ * @returns なし
+ */
 export function downloadBlob(blob: Blob, filename: string): void {
   if (typeof document === "undefined") return;
   const url = URL.createObjectURL(blob);

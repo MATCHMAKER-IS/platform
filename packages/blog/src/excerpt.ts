@@ -4,7 +4,15 @@
  * @packageDocumentation
  */
 
-/** Markdown 記法をおおまかに除去してプレーンテキストにする(抜粋・検索用)。 */
+/**
+ * Markdown 記法を除去してプレーンテキストにする(抜粋・検索用)。
+ *
+ * **おおまかな除去**(完全なパーサではない)。抜粋や検索インデックスには十分だが、
+ * 表示用の HTML を作る用途には使わないこと。
+ *
+ * @param markdown Markdown の本文
+ * @returns プレーンテキスト
+ */
 export function stripMarkdown(markdown: string): string {
   return markdown
     .replace(/```[\s\S]*?```/g, " ")            // コードブロック
@@ -33,6 +41,10 @@ export interface ExcerptOptions {
 /**
  * 本文(Markdown 可)から抜粋を作る。記法を除去し、指定文字数で切り、語境界で丸める。
  * 元が短ければそのまま返す。
+ *
+ * @param content 本文(Markdown 可)
+ * @param maxLength 最大文字数
+ * @returns 抜粋。**語境界で丸める**(単語の途中で切らない)。元が短ければそのまま
  */
 export function excerpt(content: string, options: ExcerptOptions = {}): string {
   const maxLength = options.maxLength ?? 120;

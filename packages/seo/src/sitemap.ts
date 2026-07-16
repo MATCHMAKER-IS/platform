@@ -12,7 +12,14 @@ export interface SitemapEntry {
   priority?: number;
 }
 
-/** sitemap.xml の文字列を生成する。 */
+/**
+ * sitemap.xml を生成する。
+ *
+ * **公開しているページだけ**を入れること(下書きや管理画面を載せると漏洩する)。
+ *
+ * @param urls URL の配列(更新日・優先度・更新頻度を指定できる)
+ * @returns sitemap.xml の文字列
+ */
 export function buildSitemap(entries: SitemapEntry[]): string {
   const urls = entries
     .map((e) => {
@@ -26,7 +33,14 @@ export function buildSitemap(entries: SitemapEntry[]): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`;
 }
 
-/** sitemap インデックス（複数サイトマップをまとめる）。 */
+/**
+ * sitemap インデックスを生成する(複数のサイトマップをまとめる)。
+ *
+ * **1 ファイルに 50,000 URL / 50MB の上限**があるため、大きなサイトでは分割が必要。
+ *
+ * @param sitemaps サイトマップの URL と更新日
+ * @returns sitemap インデックスの XML
+ */
 export function buildSitemapIndex(sitemaps: { loc: string; lastmod?: string }[]): string {
   const items = sitemaps
     .map((s) => {

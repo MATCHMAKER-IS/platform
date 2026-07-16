@@ -65,7 +65,15 @@ export interface Theme {
   modes: Record<ThemeMode, ThemeTokens>;
 }
 
-/** テーマ ID の妥当性(英数字・ハイフン・アンダースコアのみ、1〜40 文字)。 */
+/**
+ * テーマ ID が妥当かを判定する。
+ *
+ * **ID は `data-skin` 属性と CSS セレクタに入る**ので、記号や空白を許すと
+ * セレクタが壊れる(または任意の CSS を注入される)。
+ *
+ * @param id 判定する ID
+ * @returns 妥当なら true(英数字・ハイフン・アンダースコアのみ、1〜40 文字)
+ */
 export function isValidThemeId(id: string): boolean {
   return /^[a-z0-9][a-z0-9_-]{0,39}$/i.test(id);
 }

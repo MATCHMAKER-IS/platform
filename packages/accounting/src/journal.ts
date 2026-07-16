@@ -27,17 +27,39 @@ export interface JournalEntry {
   lines: JournalLine[];
 }
 
-/** 借方合計。 */
+/**
+ * 借方(かりかた)の合計を求める。
+ *
+ * **借方は「資産の増加・費用の発生」**を表す(左側)。
+ *
+ * @param entry 仕訳
+ * @returns 借方明細の合計金額
+ */
 export function debitTotal(entry: JournalEntry): number {
   return entry.lines.reduce((s, l) => s + l.debit, 0);
 }
 
-/** 貸方合計。 */
+/**
+ * 貸方(かしかた)の合計を求める。
+ *
+ * **貸方は「負債・純資産の増加・収益の発生」**を表す(右側)。
+ *
+ * @param entry 仕訳
+ * @returns 貸方明細の合計金額
+ */
 export function creditTotal(entry: JournalEntry): number {
   return entry.lines.reduce((s, l) => s + l.credit, 0);
 }
 
-/** 貸借が一致しているか(複式簿記の必須条件）。 */
+/**
+ * 貸借が一致しているかを判定する。
+ *
+ * **複式簿記の必須条件**。借方と貸方が一致しない仕訳は、どこかが間違っている
+ * (金額の打ち間違い・明細の入れ忘れ)。**保存する前に必ず確認する**。
+ *
+ * @param entry 仕訳
+ * @returns 借方合計 === 貸方合計 なら true
+ */
 export function isBalanced(entry: JournalEntry): boolean {
   return debitTotal(entry) === creditTotal(entry);
 }
@@ -51,7 +73,14 @@ export interface AccountBalance {
   balance: number;
 }
 
-/** 複数仕訳から試算表(勘定科目別の借方・貸方・残高）を作る。 */
+/**
+ * 複数の仕訳から試算表を作る(勘定科目別の借方・貸方・残高)。
+ *
+ * 月次・年次の締めで「どの科目にいくら計上されたか」を一覧にする。
+ *
+ * @param entries 仕訳の配列
+ * @returns 勘定科目ごとの借方合計・貸方合計・残高
+ */
 export function trialBalance(entries: JournalEntry[]): AccountBalance[] {
   const map = new Map<string, { debit: number; credit: number }>();
   const order: string[] = [];
@@ -72,7 +101,15 @@ export function trialBalance(entries: JournalEntry[]): AccountBalance[] {
   });
 }
 
-/** 試算表が全体で貸借一致しているか。 */
+/**
+ * 試算表が全体で貸借一致しているかを判定する。
+ *
+ * **個々の仕訳が正しくても、全体でずれることがある**(取り込み漏れなど)。
+ * 締めの前にこれで確認する。
+ *
+ * @param entries 仕訳の配列
+ * @returns 全体の借方合計 === 貸方合計 なら true
+ */
 export function trialBalanceBalanced(entries: JournalEntry[]): boolean {
   const tb = trialBalance(entries);
   const debit = tb.reduce((s, a) => s + a.debit, 0);
@@ -80,7 +117,15 @@ export function trialBalanceBalanced(entries: JournalEntry[]): boolean {
   return debit === credit;
 }
 
-/** freee の振替伝票明細（entrySide + amount）へ変換する。 */
+/**
+ * freee の振替伝票明細へ変換する。
+ *
+ * freee は借方・貸方を別の配列ではなく `entrySide` で区別するため、
+ * その形に合わせる。
+ *
+ * @param entry 仕訳
+ * @returns freee API に渡せる明細の配列
+ */
 export function toFreeeDetails(entry: JournalEntry): { accountItem: string; entrySide: "debit" | "credit"; amount: number }[] {
   const details: { accountItem: string; entrySide: "debit" | "credit"; amount: number }[] = [];
   for (const line of entry.lines) {

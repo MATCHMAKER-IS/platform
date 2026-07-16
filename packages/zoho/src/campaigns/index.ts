@@ -35,7 +35,14 @@ export interface ZohoCampaignsClient {
   getRecentCampaigns(params?: { range?: number; fromIndex?: number; status?: string }): Promise<Result<CampaignsRecord>>;
 }
 
-/** Zoho Campaigns クライアントを作る。 */
+/**
+ * Zoho Campaigns(メール配信)のクライアントを作る。
+ *
+ * @param config.tokenManager トークンマネージャ(**自動更新される**)
+ * @param config.dc データセンター(**契約時の DC を指定**。間違えると 404 になる)
+ * @param config.fetchImpl fetch の実装(テスト注入用)
+ * @returns Campaigns のクライアント。**すべてのメソッドは Result 型を返す**(例外を投げない)
+ */
 export function createZohoCampaignsClient(config: ZohoCampaignsConfig): ZohoCampaignsClient {
   const api = createZohoApiClient({
     apiDomain: serviceBaseUrl("campaigns", config.dataCenter),

@@ -15,7 +15,15 @@ export interface LatencyStats {
   p99: number;
 }
 
-/** パーセンタイル（0–100）を線形補間で求める。samples は昇順でなくてよい。 */
+/**
+ * パーセンタイルを線形補間で求める。
+ *
+ * **性能は平均ではなく p95 を見る**(平均は外れ値に引きずられて実態を隠す)。
+ *
+ * @param samples 標本(**昇順でなくてよい**。内部で並べ替える)
+ * @param p 0–100
+ * @returns その位置の値。**空なら 0**
+ */
 export function percentile(samples: number[], p: number): number {
   if (samples.length === 0) return 0;
   const sorted = samples.slice().sort((a, b) => a - b);
@@ -29,7 +37,12 @@ export function percentile(samples: number[], p: number): number {
   return sorted[lo]! + (sorted[hi]! - sorted[lo]!) * frac;
 }
 
-/** レイテンシ配列（ms）から統計を計算する。 */
+/**
+ * レイテンシから統計を計算する。
+ *
+ * @param samples レイテンシ(ミリ秒)
+ * @returns 件数・最小・最大・平均・p50・p95・p99
+ */
 export function latencyStats(samples: number[]): LatencyStats {
   if (samples.length === 0) {
     return { count: 0, min: 0, max: 0, mean: 0, p50: 0, p90: 0, p95: 0, p99: 0 };

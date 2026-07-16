@@ -49,14 +49,32 @@ function startOfDay(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
-/** イベントが指定日に掛かるか(終日・複数日跨ぎ対応)。 */
+/**
+ * イベントが指定日に掛かるかを判定する。
+ *
+ * **複数日にまたがるイベントに対応**(3 日間の出張は、その 3 日すべてに掛かる)。
+ * 開始日だけで判定すると、途中の日にイベントが表示されない。
+ *
+ * @param event イベント
+ * @param date 判定する日
+ * @returns 掛かっていれば true
+ */
 export function eventIntersectsDay(event: CalendarEvent, day: Date): boolean {
   const dayStart = startOfDay(day).getTime();
   const dayEnd = dayStart + DAY_MS;
   return event.start.getTime() < dayEnd && event.end.getTime() > dayStart;
 }
 
-/** 指定日に掛かるイベントを開始順で返す(終日→開始時刻昇順)。 */
+/**
+ * 指定日のイベントを返す。
+ *
+ * **終日イベントを先に出す**(時刻のあるイベントより上に置くのが慣習。
+ * 「今日は祝日」は時刻に関係なく先に知りたい)。
+ *
+ * @param events イベントの配列
+ * @param date 対象の日
+ * @returns その日のイベント(**終日 → 開始時刻の昇順**)
+ */
 export function eventsForDay<E extends CalendarEvent>(events: E[], day: Date): E[] {
   return events
     .filter((e) => eventIntersectsDay(e, day))
@@ -71,6 +89,13 @@ export function eventsForDay<E extends CalendarEvent>(events: E[], day: Date): E
  * 時間グリッド(1日分)のイベント配置を計算する。
  * 重なるイベントを列(lane)に振り分け、各イベントの top/height(割合)と column/columns を返す。
  * 終日イベントは対象外(別枠で表示)。指定日に掛かる時間指定イベントのみ配置する。
+ *
+ * **重なるイベントを横に並べる**(Google カレンダーの日表示と同じ)。
+ * 重なりを検出して列に分け、幅と位置を計算する。
+ *
+ * @param events イベントの配列
+ * @param date 対象の日
+ * @returns 各イベントの位置(上端・高さ・列・列数)。**CSS でそのまま配置できる形**
  */
 export function layoutDayEvents<E extends CalendarEvent>(events: E[], day: Date): PositionedEvent<E>[] {
   const dayStart = startOfDay(day).getTime();
@@ -134,6 +159,14 @@ export interface MonthCell {
 /**
  * 月グリッド(週×7日)を生成する。週の開始は weekStartsOn(0=日曜, 1=月曜。既定 0)。
  * 常に前後月を含めて各週 7 日・6 週(42セル)を返すと崩れないため、必要週数だけ返す。
+ *
+ * **前後の月の日も含める**(月の初日が水曜なら、日〜火は前月の日で埋める)。
+ * これが無いとカレンダーの升目が崩れる。
+ *
+ * @param year 年
+ * @param month 月(**1〜12**)
+ * @param options.weekStartsOn 週の始まり(0=日曜・1=月曜)
+ * @returns 週ごとの日付(**必要な週数だけ**。常に 6 週返すと空行が出る)
  */
 export function buildMonthGrid(month: Date, options?: { weekStartsOn?: 0 | 1; today?: Date }): MonthCell[][] {
   const weekStartsOn = options?.weekStartsOn ?? 0;
@@ -161,7 +194,13 @@ export function buildMonthGrid(month: Date, options?: { weekStartsOn?: 0 | 1; to
   return grid;
 }
 
-/** アジェンダ(リスト)表示用: イベントを日ごとにまとめる。 */
+/**
+ * イベントを日ごとにまとめる(アジェンダ表示用)。
+ *
+ * @param events イベントの配列
+ * @param range 表示する期間
+ * @returns 日付とその日のイベント(**イベントが無い日は含まない**)
+ */
 export function groupEventsByDay<E extends CalendarEvent>(events: E[]): { date: Date; events: E[] }[] {
   const map = new Map<string, { date: Date; events: E[] }>();
   const sorted = [...events].sort((a, b) => a.start.getTime() - b.start.getTime());
@@ -181,12 +220,22 @@ export function groupEventsByDay<E extends CalendarEvent>(events: E[]): { date: 
   return [...map.values()].sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 
-/** 分を "H:MM" 表示にする(時間グリッドの軸ラベル用)。 */
+/**
+ * 分を `H:MM` 表示にする(時間グリッドの軸ラベル用)。
+ *
+ * @param minutes 0:00 からの分
+ * @returns `9:00` 形式(**時は 0 埋めしない**。軸ラベルは短い方が読みやすい)
+ */
 export function formatHourLabel(hour: number): string {
   return `${hour}:00`;
 }
 
-/** イベントの時刻範囲を "HH:MM–HH:MM" で返す。 */
+/**
+ * イベントの時刻範囲を返す。
+ *
+ * @param event イベント
+ * @returns `09:00–10:30` 形式。**終日なら空文字**(「終日」は別途ラベルで示す)
+ */
 export function formatEventTime(event: CalendarEvent): string {
   if (event.allDay) return "終日";
   const f = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
@@ -201,7 +250,15 @@ export interface TimeInterval {
   end: Date;
 }
 
-/** 区間を開始順にソートし、重なり/隣接をマージする。 */
+/**
+ * 重なる区間をまとめる。
+ *
+ * **隣接する区間もまとめる**(10:00–11:00 と 11:00–12:00 は 10:00–12:00 に)。
+ * 空き時間の計算で、1 分の隙間を「空き」と誤認しないため。
+ *
+ * @param intervals 区間の配列
+ * @returns まとめた区間(**開始順**)
+ */
 export function mergeIntervals(intervals: TimeInterval[]): TimeInterval[] {
   if (intervals.length === 0) return [];
   const sorted = [...intervals]
@@ -225,6 +282,11 @@ export function mergeIntervals(intervals: TimeInterval[]): TimeInterval[] {
 /**
  * 指定ウィンドウ内の使用中(busy)区間を、イベントからマージして返す。
  * 終日イベントはウィンドウ全体を占有する扱い(includeAllDay=false で除外可)。
+ *
+ * @param events イベントの配列
+ * @param window 対象の時間帯
+ * @param options.includeAllDay 終日イベントを含めるか(既定 true)
+ * @returns 埋まっている区間(**重なりはまとめ済み**)
  */
 export function computeBusyIntervals(
   events: CalendarEvent[],
@@ -248,6 +310,12 @@ export function computeBusyIntervals(
 /**
  * 指定ウィンドウ内の空き(free)区間を返す(busy の隙間)。
  * 会議室・個人の「空いている時間帯」表示に使う。
+ *
+ * @param events イベントの配列
+ * @param windowStart 探す時間帯の開始(**営業時間で区切る**。深夜の空きを出しても意味がない)
+ * @param windowEnd 探す時間帯の終了
+ * @param options.includeAllDay 終日イベントを埋まり扱いにするか(既定 true)
+ * @returns 空いている区間
  */
 export function computeFreeSlots(events: CalendarEvent[], windowStart: Date, windowEnd: Date, options?: { includeAllDay?: boolean }): TimeInterval[] {
   const busy = computeBusyIntervals(events, windowStart, windowEnd, options);
@@ -265,6 +333,7 @@ export function computeFreeSlots(events: CalendarEvent[], windowStart: Date, win
 /**
  * 指定の長さ(分)以上の空き枠だけを返す(予約可能スロットの抽出)。
  * @param stepMin 枠の刻み(分)。指定すると各空き区間を stepMin 間隔の候補開始に分割する。
+ * @returns 予約可能な枠。**指定の長さに満たない隙間は除く**(5 分の空きを「予約できます」と出さない)
  */
 export function findAvailableSlots(
   events: CalendarEvent[],
@@ -292,7 +361,14 @@ export function findAvailableSlots(
   return slots;
 }
 
-/** 合計使用時間(分)を返す(稼働率算出などに)。 */
+/**
+ * 合計使用時間を返す(稼働率の算出に使う)。
+ *
+ * **重なりを二重に数えない**(まとめてから合計する)。
+ *
+ * @param intervals 区間の配列
+ * @returns 合計の分数
+ */
 export function totalBusyMinutes(events: CalendarEvent[], windowStart: Date, windowEnd: Date, options?: { includeAllDay?: boolean }): number {
   return computeBusyIntervals(events, windowStart, windowEnd, options)
     .reduce((sum, b) => sum + (b.end.getTime() - b.start.getTime()) / 60_000, 0);
@@ -301,6 +377,13 @@ export function totalBusyMinutes(events: CalendarEvent[], windowStart: Date, win
 /**
  * 指定日における「今」の縦位置(0..1)を返す。現在時刻ライン描画用。
  * その日でない場合や範囲外は null。
+ *
+ * **「今」の横線を引く**のに使う(予定表で現在時刻が一目で分かる)。
+ *
+ * @param date 表示している日
+ * @param window 表示している時間帯
+ * @param now 現在時刻(テスト注入用)
+ * @returns 上端からの位置(%)。**その日でない、または時間帯の外なら null**
  */
 export function nowOffset(day: Date, now: Date = new Date()): number | null {
   if (day.getFullYear() !== now.getFullYear() || day.getMonth() !== now.getMonth() || day.getDate() !== now.getDate()) return null;
@@ -316,7 +399,13 @@ export interface CalendarResource {
   color?: string;
 }
 
-/** 指定リソースに属するイベントだけを返す(resourceId 未設定は対象外)。 */
+/**
+ * 指定したリソースのイベントだけを返す。
+ *
+ * @param events イベントの配列
+ * @param resourceId リソース(会議室・設備など)
+ * @returns そのリソースのイベント。**`resourceId` が未設定のイベントは含まない**
+ */
 export function eventsForResource<E extends CalendarEvent>(events: E[], resourceId: string): E[] {
   return events.filter((e) => e.resourceId === resourceId);
 }
@@ -324,6 +413,14 @@ export function eventsForResource<E extends CalendarEvent>(events: E[], resource
 /**
  * リソース別・指定日の時間グリッド配置をまとめて返す。
  * 各リソース列は独立に重なり列分割される。
+ *
+ * **会議室ごとに列を分ける**表示(縦軸が時刻、横軸が会議室)。
+ * 会議室 A の予定が会議室 B の列を押し出さないよう、**リソースごとに独立して**計算する。
+ *
+ * @param events イベントの配列
+ * @param resources リソース(会議室など)
+ * @param date 対象の日
+ * @returns リソースごとのレイアウト
  */
 export function layoutResourceDay<E extends CalendarEvent>(
   events: E[],

@@ -8,7 +8,15 @@
 /** JSON-LD オブジェクト(schema.org)。 */
 export type JsonLd = Record<string, unknown>;
 
-/** 記事(Article / BlogPosting)。 */
+/**
+ * 記事の構造化データ(Article / BlogPosting)を作る。
+ *
+ * 検索結果に著者・日付・画像を出すため。**間違った内容を書くとペナルティ**になるので、
+ * 画面に出していない情報を構造化データにだけ書かないこと。
+ *
+ * @param input タイトル・著者・日付・画像など
+ * @returns JSON-LD のオブジェクト
+ */
 export function articleJsonLd(input: {
   headline: string;
   description?: string;
@@ -36,7 +44,14 @@ export function articleJsonLd(input: {
   return ld;
 }
 
-/** パンくずリスト(BreadcrumbList)。 */
+/**
+ * パンくずリストの構造化データを作る。
+ *
+ * 検索結果に階層を表示させる。**画面のパンくずと一致させる**こと。
+ *
+ * @param items パンくずの項目(名前と URL)
+ * @returns JSON-LD のオブジェクト
+ */
 export function breadcrumbJsonLd(items: { name: string; url: string }[]): JsonLd {
   return {
     "@context": "https://schema.org",
@@ -50,7 +65,12 @@ export function breadcrumbJsonLd(items: { name: string; url: string }[]): JsonLd
   };
 }
 
-/** 組織(Organization)。 */
+/**
+ * 組織の構造化データを作る(会社情報・ロゴ・SNS)。
+ *
+ * @param input 名前・URL・ロゴ・SNS など
+ * @returns JSON-LD のオブジェクト
+ */
 export function organizationJsonLd(input: { name: string; url: string; logo?: string; sameAs?: string[] }): JsonLd {
   const ld: JsonLd = { "@context": "https://schema.org", "@type": "Organization", name: input.name, url: input.url };
   if (input.logo) ld.logo = input.logo;
@@ -58,7 +78,15 @@ export function organizationJsonLd(input: { name: string; url: string; logo?: st
   return ld;
 }
 
-/** サイト(WebSite)。searchUrl 指定で検索ボックス(Sitelinks Searchbox)を付与。 */
+/**
+ * サイトの構造化データを作る。
+ *
+ * `searchUrl` を指定すると、**検索結果にサイト内検索ボックス**が出ることがある
+ * (Sitelinks Searchbox)。
+ *
+ * @param input 名前・URL・検索 URL
+ * @returns JSON-LD のオブジェクト
+ */
 export function websiteJsonLd(input: { name: string; url: string; searchUrl?: string }): JsonLd {
   const ld: JsonLd = { "@context": "https://schema.org", "@type": "WebSite", name: input.name, url: input.url };
   if (input.searchUrl) {
@@ -71,7 +99,14 @@ export function websiteJsonLd(input: { name: string; url: string; searchUrl?: st
   return ld;
 }
 
-/** 商品(Product)。EC の商品ページ用。 */
+/**
+ * 商品の構造化データを作る(EC の商品ページ用)。
+ *
+ * **価格・在庫を実際と合わせる**こと(食い違うと検索結果から外される)。
+ *
+ * @param input 名前・価格・在庫・評価など
+ * @returns JSON-LD のオブジェクト
+ */
 export function productJsonLd(input: {
   name: string;
   description?: string;
@@ -100,7 +135,14 @@ export function productJsonLd(input: {
   return ld;
 }
 
-/** FAQ ページ(FAQPage)。よくある質問のリッチリザルト用。 */
+/**
+ * FAQ の構造化データを作る。
+ *
+ * **画面に表示している質問と回答だけ**を入れること(隠しコンテンツは違反)。
+ *
+ * @param items 質問と回答の配列
+ * @returns JSON-LD のオブジェクト
+ */
 export function faqJsonLd(qa: { question: string; answer: string }[]): JsonLd {
   return {
     "@context": "https://schema.org",
@@ -116,6 +158,9 @@ export function faqJsonLd(qa: { question: string; answer: string }[]): JsonLd {
 /**
  * JSON-LD を <script type="application/ld+json"> タグに変換する。
  * XSS 対策として < を \u003c にエスケープする(script 終了タグ注入の防止)。
+ *
+ * @param ld JSON-LD のオブジェクト(**配列も渡せる**)
+ * @returns script タグの HTML
  */
 export function renderJsonLd(ld: JsonLd | JsonLd[]): string {
   const json = JSON.stringify(ld).replace(/</g, "\\u003c");

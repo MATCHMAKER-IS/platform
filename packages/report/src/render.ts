@@ -60,6 +60,10 @@ function esc(s: string): string {
  * const html = renderInvoiceHtml(doc);
  * const pdf = await createPdf(renderer).fromHtml(html, { format: "A4" });
  * ```
+ *
+ * @param doc 請求書
+ * @param options.locale 表記の言語(既定 ja)
+ * @returns HTML 文字列(**CSS は含まない**。印刷するなら wrapForPrint を通す)
  */
 export function renderInvoiceHtml(doc: InvoiceDocument, options: { locale?: ReportLocale } = {}): string {
   const yen = invoiceMoney(options.locale);
@@ -162,12 +166,26 @@ export function renderInvoiceHtml(doc: InvoiceDocument, options: { locale?: Repo
 </body></html>`;
 }
 
-/** 見積書の印刷用 HTML を生成する(renderInvoiceHtml の見積書ラベル版)。 */
+/**
+ * 見積書の HTML を生成する。
+ *
+ * **請求書と同じ構造**なので、ラベル(「請求書」→「見積書」)と有効期限だけ差し替える。
+ *
+ * @param quote 見積書
+ * @returns HTML 文字列
+ */
 export function renderQuotationHtml(doc: InvoiceDocument, options: { locale?: ReportLocale } = {}): string {
   return renderInvoiceHtml({ ...doc, documentType: "quotation" }, options);
 }
 
-/** 納品書の印刷用 HTML を生成する(renderInvoiceHtml の納品書ラベル版)。 */
+/**
+ * 納品書の HTML を生成する。
+ *
+ * **請求書と同じ構造**なので、ラベルと納品日だけ差し替える。
+ *
+ * @param delivery 納品書
+ * @returns HTML 文字列
+ */
 export function renderDeliveryNoteHtml(doc: InvoiceDocument, options: { locale?: ReportLocale } = {}): string {
   return renderInvoiceHtml({ ...doc, documentType: "delivery" }, options);
 }

@@ -4,7 +4,15 @@
  * @packageDocumentation
  */
 
-/** 4byte ビッグエンディアンの長さ接頭辞を付けてフレーム化する。 */
+/**
+ * 長さ接頭辞を付けてフレーム化する(4 バイト・ビッグエンディアン)。
+ *
+ * **TCP はストリームなので、メッセージの境界が無い**。長さを先に送ることで、
+ * 受信側が「どこまでが 1 通か」を判断できる。
+ *
+ * @param payload 送るデータ
+ * @returns 長さ接頭辞付きのバイト列
+ */
 export function encodeLengthPrefixed(payload: Uint8Array): Uint8Array {
   const out = new Uint8Array(4 + payload.length);
   new DataView(out.buffer).setUint32(0, payload.length, false);
@@ -61,7 +69,15 @@ export class LineDecoder {
   flush(): string { const r = this.buf; this.buf = ""; return r; }
 }
 
-/** テキストを改行付きでエンコードする。 */
+/**
+ * テキストを改行区切りでエンコードする。
+ *
+ * **改行を含むデータには使えない**(境界が壊れる)。バイナリや任意のテキストには
+ * {@link frameMessage}(長さ接頭辞)を使う。
+ *
+ * @param text 送るテキスト
+ * @returns 改行付きのバイト列
+ */
 export function encodeLine(text: string): Uint8Array {
   return new TextEncoder().encode(text.endsWith("\n") ? text : text + "\n");
 }

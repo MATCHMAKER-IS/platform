@@ -37,7 +37,19 @@ export interface CircuitBreaker {
   reset(): void;
 }
 
-/** サーキットブレーカーを作る。 */
+/**
+ * サーキットブレーカーを作る。
+ *
+ * **外部サービスが落ちているとき、叩き続けない**ための仕組み。
+ * 失敗が続いたら「開いて」しばらく呼び出しを止め、相手の復旧を待つ。
+ * これが無いと、相手の障害が自分の障害になる(全リクエストがタイムアウト待ちで詰まる)。
+ *
+ * @param options.failureThreshold 何回続けて失敗したら開くか
+ * @param options.resetTimeoutMs 開いてから、試しに 1 回通してみるまでの時間
+ * @param options.onStateChange 状態が変わったときの通知(任意)
+ * @returns ブレーカー。`run` で処理を通す
+ * @throws {@link @platform/core#AppError} コード `EXTERNAL` — 開いている間に `run` を呼んだ場合(即座に失敗させる)
+ */
 export function createCircuitBreaker(options: CircuitBreakerOptions = {}): CircuitBreaker {
   const failureThreshold = options.failureThreshold ?? 5;
   const resetTimeoutMs = options.resetTimeoutMs ?? 30_000;

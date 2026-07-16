@@ -12,7 +12,15 @@ export const LEGAL_DAILY_MINUTES = 480;
 export const NIGHT_START_MIN = 22 * 60; // 1320
 export const NIGHT_END_MIN = 5 * 60;    // 300(翌日)
 
-/** "HH:MM" を 0:00 からの分に変換する。 */
+/**
+ * `HH:MM` を 0:00 からの分に変換する。
+ *
+ * **深夜勤務は 24 時を超える**(`26:00` = 翌 2:00)ので、Date ではなく分で扱う。
+ *
+ * @param hhmm `HH:MM` 形式
+ * @returns 0:00 からの分数
+ * @throws {@link @platform/core#AppError} コード `VALIDATION` — `HH:MM` 形式でない場合
+ */
 export function parseTimeToMinutes(hhmm: string): number {
   const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm.trim());
   if (!m) throw new Error(`不正な時刻: ${hhmm}`);
@@ -22,7 +30,15 @@ export function parseTimeToMinutes(hhmm: string): number {
   return h * 60 + min;
 }
 
-/** 2 区間の重なり(分)。 */
+/**
+ * 2 つの時間帯の重なりを分で返す。
+ *
+ * **深夜割増の計算に使う**(勤務時間と 22:00〜5:00 の重なり)。
+ *
+ * @param a 時間帯(開始・終了の分)
+ * @param b 時間帯
+ * @returns 重なりの分数。**重ならなければ 0**
+ */
 export function overlapMinutes(a1: number, a2: number, b1: number, b2: number): number {
   return Math.max(0, Math.min(a2, b2) - Math.max(a1, b1));
 }
@@ -30,6 +46,9 @@ export function overlapMinutes(a1: number, a2: number, b1: number, b2: number): 
 /**
  * 勤務区間 [startMin, endMin) のうち深夜時間帯(22:00〜翌5:00)に入る分を返す。
  * 日をまたぐ勤務にも対応(前後日ぶんの深夜窓と重ね合わせる)。
+ *
+ * @param work 勤務時間帯
+ * @returns 深夜(**22:00〜翌 5:00**)に当たる分数。労基法の深夜割増の対象
  */
 export function nightMinutes(startMin: number, endMin: number): number {
   let total = 0;
@@ -71,6 +90,10 @@ export interface DailyWorkInput {
 /**
  * 1 日の勤怠を区分ごとの時間に分ける。
  * 休憩は実労働時間から差し引く。深夜時間は勤務区間全体に対して計算する(休憩の深夜控除はしない簡易版)。
+ *
+ * @param work 勤務時間帯
+ * @param scheduled 所定労働時間
+ * @returns 所定内・時間外・深夜に分けた分数(**重複して数える**。深夜の時間外は両方に計上され、割増も加算される)
  */
 export function splitDailyWork(input: DailyWorkInput): WorkSplit {
   const brk = input.breakMinutes ?? 0;

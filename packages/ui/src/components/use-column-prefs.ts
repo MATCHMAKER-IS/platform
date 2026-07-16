@@ -6,7 +6,12 @@
 import * as React from "react";
 import { emptyColumnPrefs, type ColumnPrefs, type ColumnPrefsStore } from "../lib/column-prefs.js";
 
-/** 列設定をロード/保存するフック。 */
+/**
+ * 列設定をロード/保存するフック。
+ *
+ * @param tableId テーブルの識別子(**テーブルごとに設定を分ける**)
+ * @param options.store 保存先(省略時は localStorage)
+ */
 export function useColumnPrefs(store: ColumnPrefsStore, table: string, initial: ColumnPrefs = emptyColumnPrefs) {
   const [prefs, setPrefs] = React.useState<ColumnPrefs>(initial);
   React.useEffect(() => {

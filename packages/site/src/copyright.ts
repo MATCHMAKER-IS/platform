@@ -20,6 +20,11 @@ export interface CopyrightOptions {
 /**
  * コピーライト文字列を作る。
  * 例: "© 2020–2025 サンプル社"、開始年と現在年が同じなら "© 2025 サンプル社"。
+ *
+ * @param options.startYear 開始年
+ * @param options.owner 権利者名
+ * @param options.now 現在時刻(テスト注入用)
+ * @returns コピーライト文字列(**年は自動で更新される**。手書きだと年明けに古いままになる)
  */
 export function copyrightText(options: CopyrightOptions): string {
   const symbol = options.symbol ?? "©";

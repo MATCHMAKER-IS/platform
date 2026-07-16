@@ -30,6 +30,10 @@ export interface SagaResult {
 /**
  * ステップを順に実行する。あるステップが例外を投げたら、それ以前に成功したステップの compensate を逆順で実行する。
  * 打ち消し自体が失敗しても他の打ち消しは続行し、compensationErrors に記録する。
+ *
+ * @param steps ステップの配列
+ * @param context 各ステップに渡す文脈
+ * @returns 実行結果。**途中で失敗したら、成功済みのステップを逆順で補償する**(取り消せない副作用があるなら Saga には向かない)
  */
 export async function runSaga<C>(steps: SagaStep<C>[], ctx: C): Promise<SagaResult> {
   const done: SagaStep<C>[] = [];
@@ -57,7 +61,18 @@ export async function runSaga<C>(steps: SagaStep<C>[], ctx: C): Promise<SagaResu
   return { ok: true, completed: done.map((s) => s.name), compensated: [] };
 }
 
-/** ステップ定義を組み立てる小さなビルダー（可読性のため）。 */
+/**
+ * Saga のステップを組み立てる。
+ *
+ * **Saga パターン**: 複数のサービスにまたがる処理を、DB のトランザクションなしで
+ * 整合させる方法。各ステップに**補償処理**(取り消し)を用意し、途中で失敗したら
+ * 逆順に取り消していく。
+ *
+ * @param name ステップ名
+ * @param execute 実行する処理
+ * @param compensate **取り消す処理**(失敗時に逆順で呼ばれる)
+ * @returns ステップ定義
+ */
 export function sagaStep<C>(name: string, run: (ctx: C) => Promise<void> | void, compensate?: (ctx: C) => Promise<void> | void): SagaStep<C> {
   return compensate ? { name, run, compensate } : { name, run };
 }

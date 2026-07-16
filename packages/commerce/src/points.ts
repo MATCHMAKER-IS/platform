@@ -14,12 +14,29 @@ export interface PointTransaction {
   expiresAt?: string;
 }
 
-/** 購入額からポイントを計算する(既定 1%・端数切り捨て)。 */
+/**
+ * 購入額からポイントを計算する。
+ *
+ * **端数は切り捨て**(切り上げると、店側が損をする)。
+ *
+ * @param amount 購入額
+ * @param rate 還元率(既定 0.01 = 1%)
+ * @returns ポイント数
+ */
 export function earnPoints(purchaseAmount: number, rate = 0.01): number {
   return Math.floor(Math.max(0, purchaseAmount) * rate);
 }
 
-/** 取引履歴から現在のポイント残高を計算する(失効を考慮)。 */
+/**
+ * ポイント残高を計算する。
+ *
+ * **残高を直接持たず、履歴から計算する**(「なぜこの残高なのか」を追える)。
+ * **失効も考慮する**(期限切れのポイントは使えない)。
+ *
+ * @param transactions 取引履歴
+ * @param now 基準日(テスト注入用)
+ * @returns 現在の残高
+ */
 export function pointsBalance(transactions: PointTransaction[], now: Date = new Date()): number {
   const nowMs = now.getTime();
   let balance = 0;
@@ -44,6 +61,7 @@ export interface RedeemResult {
  * ポイントを利用する(残高を上限に、注文額も上限に)。
  * @param requested 利用したいポイント
  * @param orderAmount 注文額(これを超えるポイントは使えない)
+ * @returns 使用後の取引履歴。**残高を超えて使えない**
  */
 export function redeemPoints(balance: number, requested: number, orderAmount?: number): RedeemResult {
   const cap = orderAmount !== undefined ? Math.min(balance, orderAmount) : balance;
@@ -51,7 +69,17 @@ export function redeemPoints(balance: number, requested: number, orderAmount?: n
   return { ok: used > 0, used, remaining: balance - used };
 }
 
-/** 指定日までに失効するポイント(付与ぶんのうち利用されずに残っている分の概算)。 */
+/**
+ * まもなく失効するポイントを返す。
+ *
+ * **「もうすぐ 500 ポイント失効します」と知らせる**のに使う(黙って消すと
+ * 不信感につながる)。**概算**(先入先出で消費したと仮定)。
+ *
+ * @param transactions 取引履歴
+ * @param until この日までに失効する分
+ * @param now 基準日(テスト注入用)
+ * @returns 失効するポイント数
+ */
 export function expiringPoints(transactions: PointTransaction[], before: Date, now: Date = new Date()): number {
   const nowMs = now.getTime();
   const beforeMs = before.getTime();

@@ -3,7 +3,13 @@
  * @packageDocumentation
  */
 
-/** 例: 1536 → "1.5 KB"。 */
+/**
+ * 例: 1536 → "1.5 KB"。
+ *
+ *
+ * @param bytes バイト数
+ * @returns `1.5 MB` 形式(**1024 基準**)
+ */
 export function formatBytes(bytes: number, decimals = 1): string {
   if (!Number.isFinite(bytes) || bytes < 0) return "-";
   if (bytes === 0) return "0 B";

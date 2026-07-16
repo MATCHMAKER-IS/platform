@@ -20,7 +20,16 @@ export interface ZohoClientConfig {
   fetchImpl?: typeof fetch;
 }
 
-/** Zoho 用に構成した {@link ApiClient} を返す。認証は `Zoho-oauthtoken`。 */
+/**
+ * Zoho 用の API クライアントを作る。
+ *
+ * 認証ヘッダは `Zoho-oauthtoken`(**`Bearer` ではない**。Zoho 独自)。
+ *
+ * @param options.tokenManager トークンマネージャ(自動更新される)
+ * @param options.service サービス
+ * @param options.dc データセンター
+ * @returns API クライアント
+ */
 export function createZohoApiClient(config: ZohoClientConfig): ApiClient {
   return createApiClient({
     baseUrl: `${config.apiDomain.replace(/\/$/, "")}${config.basePath}`,
