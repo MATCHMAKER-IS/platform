@@ -877,6 +877,22 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
+  demos/workplace-ops:
+    dependencies:
+      '@platform/contract':
+        specifier: workspace:*
+        version: link:../../packages/contract
+      '@platform/faq':
+        specifier: workspace:*
+        version: link:../../packages/faq
+      '@platform/task':
+        specifier: workspace:*
+        version: link:../../packages/task
+    devDependencies:
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   packages/accounting:
     devDependencies:
       '@platform/config':
