@@ -118,22 +118,15 @@ export const featureEnv = {
 
 ## 10. アプリにテーマ(スキン)を入れる
 
-```ts
-// apps/<app>/src/lib/theme-registry.ts
-import { createThemeRegistry, builtInThemes } from "@platform/theme";
-export const themeRegistry = createThemeRegistry({ themes: builtInThemes });
-```
-
 ```tsx
 // apps/<app>/src/app/layout.tsx
 import { AppSkin, ThemeSwitcher } from "@platform/ui";
-import { themeRegistry } from "../lib/theme-registry.js";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
       <body style={{ background: "var(--color-bg)", color: "var(--color-fg)", fontFamily: "var(--font-family)" }}>
-        <AppSkin registry={themeRegistry}>
+        <AppSkin>
           <header><ThemeSwitcher /></header>
           {children}
         </AppSkin>
@@ -141,6 +134,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
+```
+
+> **レジストリをアプリ側で作って渡さないこと。** `createThemeRegistry()` の戻り値は
+> 関数の塊で、Server Component(layout.tsx)から Client Component へ props で渡すと
+> RSC のシリアライズを通れず、**`next build` で全ページが落ちる**
+> (`Functions cannot be passed directly to Client Components`)。dev では動くので気づけない。
+> `AppSkin` が client 側で組み立てるので、`lib/theme-registry.ts` は不要。
+
+組織のカスタムテーマ(DB から読むなど)を足す場合。`Theme` はプレーンデータなので
+**サーバから直接渡してよい**:
+
+```tsx
+const customThemes = await getCustomThemes();   // Theme[]
+
+<AppSkin themes={[...builtInThemes, ...customThemes]} defaultSkinId={setting.skinId} defaultMode={setting.mode}>
 ```
 
 画面の色は **CSS 変数**で書く(`var(--color-primary, #2563eb)` のようにフォールバック付き)。ハードコードするとテーマ切り替えに追従しない。

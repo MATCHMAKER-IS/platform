@@ -50,7 +50,7 @@
 - **@platform/auth** — 認証・認可の共通部品。
   - 主なexport: AuthUser, AuthenticationOptionsInput, AuthenticatorData, AuthenticatorFlags, BackupCodeRecord, BackupCodeVerifyResult, …(全72)
 - **@platform/session** — セッション・クッキー処理の共通部品。
-  - 主なexport: AttemptRecord, CookieOptions, EventTargetLike, IDLE_ACTIVITY_EVENTS, IdleTimer, IdleTimerConfig, …(全35)
+  - 主なexport: AttemptRecord, CookieOptions, IDLE_ACTIVITY_EVENTS, IdleTimer, IdleTimerConfig, LoginAuditEvent, …(全34)
 
 ## データ
 
@@ -76,9 +76,9 @@
 - **@platform/net** — ネットワークユーティリティ。URL 操作・指数バックオフ・タイムアウト・IP/CIDR 判定に加え、
   - 主なexport: BackoffOptions, FramedConnection, FramedServer, LengthPrefixedDecoder, LineDecoder, PollOptions, …(全35)
 - **@platform/mail** — メール送信の共通部品(Adapter パターン)。アプリは送信基盤を意識せず `sendMail()` を呼びます。
-  - 主なexport: ApplyPolicyOptions, AttachmentLimits, EmailAddress, EmailTemplate, HtmlEmailLayoutOptions, MailAttachment, …(全53)
+  - 主なexport: ApplyPolicyOptions, AttachmentLimits, EmailAddress, EmailTemplate, HtmlEmailLayoutOptions, MailAttachment, …(全52)
 - **@platform/sms** — SMS 送信の共通部品(Adapter パターン)。`mail` と同じ構造です。
-  - 主なexport: MemorySmsTransport, OtpSmsOptions, Sms, SmsEncoding, SmsFallbackOptions, SmsInfo, …(全21)
+  - 主なexport: OtpSmsOptions, Sms, SmsEncoding, SmsFallbackOptions, SmsInfo, SmsMessage, …(全20)
 - **@platform/notify** — チャット通知の共通部品(Adapter パターン)。業務イベントの通知に使います。
   - 主なexport: AsyncSeenStore, CategoryPreference, ChannelResult, DedupOptions, DeliveryChannel, DeliveryDecision, …(全42)
 - **@platform/os-notify** — OS ネイティブのデスクトップ通知・音を鳴らします(Windows / macOS / Linux)。

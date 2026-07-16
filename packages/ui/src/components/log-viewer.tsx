@@ -9,7 +9,8 @@ import { wrapText } from "@platform/utils";
 import { cn } from "../lib/cn";
 import { Highlight } from "./highlight";
 import {
-  parseLogLines, filterLogLines, countByLevel, bucketByTime, logLinesToText, formatRelativeTime, firstLineIndexAtOrAfter, fieldFacets, filterByFields,
+  parseLogLines, filterLogLines, countByLevel, bucketByTime, logLinesToText, formatRelativeTime, firstLineIndexAtOrAfter,
+  collectFieldKeys, fieldFacets, filterByFields,
   LOG_LEVELS, type LogLevel,
 } from "../lib/log";
 

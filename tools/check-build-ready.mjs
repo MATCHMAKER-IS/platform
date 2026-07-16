@@ -14,6 +14,7 @@
  * - E: すべての import が解決できるか(@platform/* と相対 import)
  * - F: client から node: 専用のコードを import していないか
  * - G: 構文エラー(引数リストに文が混入。過去の一括処理が壊した形)
+ * - J: server → client へ関数を持つオブジェクト(create*() の戻り値)を渡していないか
  *
  * 使い方: node tools/check-build-ready.mjs
  */
@@ -221,6 +222,55 @@ export function check() {
     const s = readFileSync(f, "utf8");
     if (s.trimStart().startsWith('"use client"') && /from\s+"node:/.test(s)) {
       issues.push(`[F] ${path.relative(ROOT, f)}: "use client" なのに node: を import`);
+    }
+  }
+
+  // ── J: server から client へ「関数を持つオブジェクト」を渡していないか ──
+  // create*() が返すレジストリ等はクロージャの塊。Server Component から Client Component へ
+  // props で渡すと RSC のシリアライズを通れず、プリレンダで全ページが落ちる:
+  //   Error: Functions cannot be passed directly to Client Components
+  // dev では動き、next build で初めて出る(実際に Amplify で /_not-found が落ちた)。
+  // 検出: create*() の戻り値に付いた名前が、"use client" の無いファイルで JSX の prop に渡されている。
+  {
+    // 1) create*() の戻り値に付いた export 名を集める(モジュール名 → 名前の集合)
+    const factories = new Map(); // 絶対パス(拡張子なし) → Set<name>
+    for (const dir of [path.join(ROOT, "packages"), path.join(ROOT, "apps"), path.join(ROOT, "demos")]) {
+      for (const f of collect(dir)) {
+        const s = readFileSync(f, "utf8");
+        const names = new Set();
+        for (const m of s.matchAll(/export\s+const\s+(\w+)\s*(?::[^=]+)?=\s*create[A-Z]\w*\s*\(/g)) names.add(m[1]);
+        if (names.size > 0) factories.set(f.replace(/\.tsx?$/, ""), names);
+      }
+    }
+    // 2) "use client" の無い .tsx が、その名前を prop に渡していないか
+    for (const dir of [path.join(ROOT, "apps"), path.join(ROOT, "demos")]) {
+      for (const f of collect(dir, [".tsx"])) {
+        const s = readFileSync(f, "utf8");
+        if (s.trimStart().startsWith('"use client"')) continue; // client 同士なら問題ない
+        const suspects = new Set();
+        // 相対 import 経由
+        for (const m of s.matchAll(/import\s*\{([^}]*)\}\s*from\s*"(\.[^"]+)"/g)) {
+          // resolveRelative は boolean を返すので、ここでは自前で解決する。
+          // factories のキーは拡張子なしの絶対パス。
+          const target = path.resolve(path.dirname(f), String(m[2])).replace(/\.(js|ts|tsx)$/, "");
+          const exported = factories.get(target) ?? factories.get(path.join(target, "index"));
+          if (!exported) continue;
+          for (const raw of (m[1] ?? "").split(",")) {
+            const name = raw.trim().replace(/^type\s+/, "").split(" as ").pop()?.trim();
+            if (name && exported.has(name)) suspects.add(name);
+          }
+        }
+        // 同一ファイル内で作っている場合
+        for (const m of s.matchAll(/^\s*const\s+(\w+)\s*(?::[^=]+)?=\s*create[A-Z]\w*\s*\(/gm)) suspects.add(m[1]);
+        for (const name of suspects) {
+          if (new RegExp(`=\\{${name}\\}`).test(s)) {
+            issues.push(
+              `[J] ${path.relative(ROOT, f)}: ${name}(create*() の戻り値)を server から client へ prop で渡している` +
+              ` — 関数は RSC 境界を越えられない。client 側で作るか、プレーンデータを渡すこと`,
+            );
+          }
+        }
+      }
     }
   }
 

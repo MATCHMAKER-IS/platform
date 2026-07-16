@@ -4,37 +4,49 @@
  * 全スキン × 2 モードの CSS を一度だけ <style> に注入し、SkinProvider で子孫に文脈を渡す。
  * prefers-color-scheme（system）に追従する明暗切り替え込み。
  *
- * これまで各アプリが個別に持っていた AppThemeProvider を基盤へ引き上げたもの。
- * アプリ側は `<AppSkin registry={themeRegistry}>...</AppSkin>` と書くだけでよい。
+ * **props はすべてプレーンデータにしてある。** Server Component(= 各アプリの layout.tsx)から
+ * そのまま使えるようにするため。ThemeRegistry のように関数を持つオブジェクトを props で
+ * 受け取る設計にすると、RSC のシリアライズを通れず `next build` のプリレンダで落ちる:
+ *
+ *   Error: Functions cannot be passed directly to Client Components
+ *
+ * dev では動き、build で初めて落ちる。レジストリは **この中(client 境界の内側)で組み立てる**。
+ * アプリ側は `<AppSkin>...</AppSkin>` と書くだけでよい。
  * @packageDocumentation
  */
 import * as React from "react";
-import { buildThemeStylesheet, type ThemeRegistry, type Theme } from "@platform/theme";
+import { buildThemeStylesheet, createThemeRegistry, builtInThemes, type Theme } from "@platform/theme";
 import { SkinProvider } from "./skin-provider";
 
 export interface AppSkinProps {
   children: React.ReactNode;
-  /** テーマレジストリ(createThemeRegistry で作る)。 */
-  registry: ThemeRegistry;
   /**
-   * レジストリに追加するテーマ(組織のカスタムテーマなど)。
-   * サーバで DB から読んだものを渡す想定。不正なテーマは黙って無視する。
+   * 適用するテーマ。省略時は組み込みスキン(builtInThemes)。
+   * 組織のカスタムテーマを足すなら `themes={[...builtInThemes, ...customThemes]}`。
+   * Theme はプレーンデータなので、DB から読んだものを **サーバから直接渡してよい**。
+   * 不正なテーマは黙って無視する(他を活かす)。
    */
-  extraThemes?: Theme[];
+  themes?: Theme[];
   /** 組織デフォルトのスキン id(サーバから渡す場合)。 */
   defaultSkinId?: string;
   /** 明暗の初期値。"system" は端末設定に追従。既定 "system"。 */
   defaultMode?: "light" | "dark" | "system";
 }
 
-export function AppSkin({ children, registry, extraThemes, defaultSkinId, defaultMode = "system" }: AppSkinProps) {
-  // 追加テーマをレジストリへ反映してから CSS を作る(順序が重要)。
-  const css = React.useMemo(() => {
-    for (const t of extraThemes ?? []) {
-      try { registry.register(t); } catch { /* 不正なテーマは無視して他を活かす */ }
+export function AppSkin({ children, themes, defaultSkinId, defaultMode = "system" }: AppSkinProps) {
+  // レジストリはここで作る。server から渡させない(渡せない)。
+  const registry = React.useMemo(() => {
+    const r = createThemeRegistry();
+    for (const t of themes ?? builtInThemes) {
+      try { r.register(t); } catch { /* 不正なテーマは無視して他を活かす */ }
     }
-    return buildThemeStylesheet(registry.list());
-  }, [registry, extraThemes]);
+    // 既定は先頭(createThemeRegistry に themes を渡したときと同じ挙動に揃える)
+    const first = r.ids()[0];
+    if (first !== undefined) r.setDefault(first);
+    return r;
+  }, [themes]);
+
+  const css = React.useMemo(() => buildThemeStylesheet(registry.list()), [registry]);
   const [mode, setMode] = React.useState<"light" | "dark">(defaultMode === "dark" ? "dark" : "light");
 
   React.useEffect(() => {

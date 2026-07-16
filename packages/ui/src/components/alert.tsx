@@ -26,7 +26,7 @@ const alertVariants = cva(
 const ICONS = { info: Info, success: CircleCheck, warning: TriangleAlert, danger: CircleX } as const;
 
 /** {@link Alert} の props。 */
-export interface AlertProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title">, VariantProps<typeof alertVariants> {
+export interface AlertProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof alertVariants> {
   /** 見出し。 */
   title?: React.ReactNode;
   /** アイコンを隠す。 */

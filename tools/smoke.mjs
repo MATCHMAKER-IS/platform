@@ -9404,12 +9404,15 @@ export const __store = () => store;
     if (l.includes("AppSkin") || l.includes("AppThemeProvider")) applied += 1;
   }
   ok("全5アプリの layout がスキン適用済み", applied === 5);
-  // 各アプリに theme-registry がある
-  let regs = 0;
+  // レジストリを server から渡していないこと。関数を持つオブジェクトは RSC 境界を越えられず、
+  // next build のプリレンダで "Functions cannot be passed directly to Client Components" になる。
+  // AppSkin が client 側でレジストリを組み立てるので、アプリ側に theme-registry.ts は不要。
+  let leaks = 0;
   for (const app of apps) {
-    try { await fsc.access(new URL(`../apps/${app}/src/lib/theme-registry.ts`, import.meta.url)); regs += 1; } catch { /* internal は別構成の可能性 */ }
+    const l = await fsc.readFile(new URL(`../apps/${app}/src/app/layout.tsx`, import.meta.url), "utf8");
+    if (l.includes("registry={")) leaks += 1;
   }
-  ok("各アプリに theme-registry(独自スキン追加点)", regs >= 4);
+  ok("layout が AppSkin に registry を渡していない(RSC 境界を越えられない)", leaks === 0);
 }
 
 // ── CI: doctor統合 + Pages公開ワークフロー ──

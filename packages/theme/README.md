@@ -63,13 +63,32 @@ applySkin(registry.resolve("soft"), "dark", document.documentElement);
 
 ## React 連携（@platform/ui）
 
-```tsx
-import { SkinProvider, SkinSelector, useSkin } from "@platform/ui";
+通常は `AppSkin` をアプリの `layout.tsx` に置くだけです。レジストリを自分で作る必要はありません：
 
-<SkinProvider registry={registry} mode={resolvedLightOrDark}>
+```tsx
+import { AppSkin, SkinSelector } from "@platform/ui";
+
+<AppSkin>
   <SkinSelector variant="grid" />
   {/* 子孫は useSkin() で現在のスキンと setSkin を取得 */}
-</SkinProvider>
+</AppSkin>
+```
+
+組織のカスタムテーマを足す場合。`Theme` はプレーンデータなので **Server Component から渡せます**：
+
+```tsx
+<AppSkin themes={[...builtInThemes, ...customThemes]} defaultSkinId="soft" />
+```
+
+> **レジストリを `layout.tsx` で作って渡さないこと。** `createThemeRegistry()` の戻り値は
+> 関数の塊で、RSC のシリアライズを通れません（`next build` で全ページが落ちます）。
+> `AppSkin` が client 側で組み立てます。
+
+低レベルの `SkinProvider` を直接使うこともできますが、**client コンポーネントの中でのみ**です：
+
+```tsx
+"use client";
+<SkinProvider registry={registry} mode={resolvedLightOrDark}>...</SkinProvider>
 ```
 
 `SkinProvider` は選択スキンを localStorage に永続化し、`<html>` に `data-skin` と CSS 変数を適用します。明暗モード（`mode`）は既存の `ThemeProvider` の `resolved` を渡してください。

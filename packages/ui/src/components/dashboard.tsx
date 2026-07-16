@@ -9,7 +9,7 @@ import { cn } from "../lib/cn";
 import { useI18n } from "./i18n-provider";
 
 /** {@link DashboardGrid} の props。 */
-export interface DashboardGridProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
+export interface DashboardGridProps extends React.HTMLAttributes<HTMLDivElement> {
   /** グリッドのカラム数(既定 12)。 */
   columns?: number;
   /** ウィジェット間の間隔(px、既定 16)。 */
@@ -30,7 +30,7 @@ export function DashboardGrid({ columns = 12, gap = 16, className, style, childr
 }
 
 /** {@link DashboardWidget} の props。 */
-export interface DashboardWidgetProps extends Omit<React.HTMLAttributes<HTMLElement>, "title"> {
+export interface DashboardWidgetProps extends React.HTMLAttributes<HTMLElement> {
   title?: React.ReactNode;
   /** 横に占めるカラム数(既定 12 = 全幅)。 */
   colSpan?: number;

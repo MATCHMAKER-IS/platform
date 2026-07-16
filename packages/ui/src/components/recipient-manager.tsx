@@ -8,7 +8,7 @@ import { Trash2, Plus } from "lucide-react";
 import { cn } from "../lib/cn";
 import { useT } from "./i18n-provider";
 import { upsertRecipient, removeRecipient, isValidEmail, recipientsToRows, recipientsFromRows, type Recipient } from "../lib/recipients";
-import { parseCsv, downloadCsv } from "@platform/csv";
+import { toCsv, parseCsv, downloadCsv } from "@platform/csv";
 import { Input } from "./input";
 import { Button } from "./button";
 import { Badge } from "./badge";

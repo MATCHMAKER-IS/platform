@@ -110,6 +110,7 @@ export function DataView<T>({
   items, renderItem, getKey, view, defaultView = "card", onViewChange,
   showToggle = true, modes, cardMinWidth, blockMinWidth, empty, toolbarStart, className,
 }: DataViewProps<T>) {
+  const t = useT();
   const [internal, setInternal] = React.useState<ViewMode>(defaultView);
   const mode = view ?? internal;
   const setMode = (m: ViewMode) => { onViewChange?.(m); if (view === undefined) setInternal(m); };

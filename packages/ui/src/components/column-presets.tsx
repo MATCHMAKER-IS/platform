@@ -24,7 +24,7 @@ export interface ColumnPresetsProps {
 }
 
 /** プリセット共有 UI。 */
-export function ColumnPresets({ presets, onApply, onSave, onDelete, className }: ColumnPresetsProps) {
+export function ColumnPresets({ presets, current, onApply, onSave, onDelete, className }: ColumnPresetsProps) {
   const t = useT();
   const { shared, personal } = splitPresets(presets);
   const [name, setName] = React.useState("");

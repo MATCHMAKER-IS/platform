@@ -99,20 +99,26 @@ git push
 **このバージョンの Amplify では `AMPLIFY_APP_ROOT` は提供されません**。
 相対パスで移動してください(`amplify.yml` は既にそうなっています)。
 
-### `Turbopack build failed with N errors` / `Module not found` が全画面で出る
+### `Module not found` が全画面で出る
 
-**このプロジェクトは webpack でビルドします**(`next build --no-turbopack`)。
-Turbopack がモノレポで root を解決できず、以下のどれを試しても失敗したためです:
+**Turbopack のせいではありません。** 基盤パッケージの `main` が、存在しない `dist` を
+指しているのが原因です(詳細は PLATFORM_SERVICES.md の「【真因】」)。
 
-| `turbopack.root` | 結果 |
-|---|---|
-| 未指定 | `Module not found` が 103 件 |
-| `__dirname`(showcase) | `We couldn't find the Next.js package (next/package.json)` |
-| `../..`(モノレポのルート) | `Module not found` が 103 件 |
+`packages/*` は **ソースを直接公開**します(`main: "./src/index.ts"`)。
+`dist` を指すとビルドしていない限り解決できません。dev では `transpilePackages` が
+ソースを読むので気づけず、**`next build` で初めて出ます**。
 
-pnpm の isolated な `node_modules` 構造と噛み合っていません。
+検査できます:
 
-もし `package.json` の build から `--no-turbopack` を外すと、また失敗します。
+```bash
+node tools/check-build-ready.mjs   # 検査 A が main / exports の実在を見る
+```
+
+> **webpack へのフォールバックは不要です。**
+> かつて `next build --no-turbopack` にしていた時期がありますが、
+> **`--no-turbopack` は Next.js に存在しないオプション**で、書いても黙って無視されます
+> (opt-out するなら `--webpack`)。当時 webpack のおかげで直ったように見えたことは
+> 一度もなく、実際の原因は上の `dist` でした。Turbopack のままで通ります。
 
 ### `Cannot find module '@platform/xxx'`
 
@@ -122,10 +128,39 @@ pnpm の isolated な `node_modules` 構造と噛み合っていません。
 node tools/check-showcase-deps.mjs
 ```
 
+### `Functions cannot be passed directly to Client Components`
+
+```
+Error occurred prerendering page "/_not-found"
+Error: Functions cannot be passed directly to Client Components
+  unless you explicitly expose it by marking it with "use server".
+  {register: function e, registerAll: ..., get: ..., ...}
+```
+
+Server Component から Client Component へ、**関数を持つオブジェクト**を props で
+渡しています。RSC のシリアライズを通れません。`/_not-found` に出るのは、そこが
+最初にプリレンダされるページだからで、**そのレイアウト配下の全ページが同じ理由で落ちます**。
+
+典型例は `createThemeRegistry()` の戻り値(メソッドの塊)を `layout.tsx` から
+`<AppSkin registry={...}>` へ渡していた形。**基盤側で修正済み**で、今は
+`<AppSkin>` と書くだけでよく、アプリに `lib/theme-registry.ts` は要りません。
+カスタムテーマを足す場合も `themes={[...builtInThemes, ...custom]}`(プレーンデータ)を渡します。
+
+同じ形を自作した場合は、**client 境界の内側でオブジェクトを作る**のが修正です。
+機械的に検査できます:
+
+```bash
+node tools/check-build-ready.mjs   # 検査 J が server → client の関数渡しを見る
+```
+
+これも dev では動き、**`next build` で初めて出ます**。
+
 ### ビルドは通るが画面が真っ白 / 500 エラー
 
 Next.js の SSR が動いていません。アプリの設定 → **プラットフォーム** が
 `Web Compute`(SSR)になっているか確認してください。`Web`(静的)だと動きません。
+
+ビルドログではなく **Hosting compute logs**(CloudWatch)にランタイムのスタックが出ます。
 
 ---
 

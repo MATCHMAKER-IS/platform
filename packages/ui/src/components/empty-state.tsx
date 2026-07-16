@@ -8,7 +8,7 @@ import { Inbox } from "lucide-react";
 import { cn } from "../lib/cn";
 
 /** {@link EmptyState} の props。 */
-export interface EmptyStateProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
+export interface EmptyStateProps extends React.HTMLAttributes<HTMLDivElement> {
   /** アイコン(既定は受信トレイ)。 */
   icon?: React.ReactNode;
   /** 見出し(例: "データがありません")。 */

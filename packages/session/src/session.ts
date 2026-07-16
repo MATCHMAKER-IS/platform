@@ -74,9 +74,7 @@ interface SessionEnvelope<T> {
  */
 export function createSession<T>(config: SessionConfig): Session<T> {
   const { secret, cookieName = "session", maxAgeSec = 60 * 60 * 24 * 7, idleTimeoutSec, cookie } = config;
-  // deriveKey は salt が必須(8 文字以上)。セッション用の固定 salt を使う
-  // (secret 自体が環境ごとに違うので、salt は定数でよい)。
-  const key = deriveKey(secret, "platform-session-v1");
+  const key = deriveKey(secret);
   const now = () => Date.now();
 
   /** 生クッキーを検証し、有効ならエンベロープを返す(絶対期限 + 無操作の両方を判定)。 */

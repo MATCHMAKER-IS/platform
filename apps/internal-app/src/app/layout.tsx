@@ -5,7 +5,7 @@ import { AppNav } from "../components/AppNav";
 import { ChatbotWidget } from "../components/ChatbotWidget";
 import { DebugBar } from "../components/DebugBar";
 import { AppSkin } from "@platform/ui";
-import { themeRegistry } from "../lib/theme-registry";
+import { builtInThemes } from "@platform/theme";
 import { getThemeSetting, getCustomThemes } from "../server/theme-setting";
 import { featureEnv } from "../server/env";
 
@@ -20,7 +20,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="ja">
       <body>
-        <AppSkin registry={themeRegistry} extraThemes={customThemes} defaultSkinId={theme.skinId} defaultMode={theme.mode}>
+        <AppSkin themes={[...builtInThemes, ...customThemes]} defaultSkinId={theme.skinId} defaultMode={theme.mode}>
           <AppNav />
           {children}
           <MailboxIndicator />

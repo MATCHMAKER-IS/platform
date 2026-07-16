@@ -4702,7 +4702,7 @@
       "name": "sortCasts",
       "kind": "function",
       "summary": "キャストを並び替える。featured は 注目→評価順、rating は評価降順、newest は入店日降順、name は名前順。 在籍中のみを対象にする。",
-      "signature": "sortCasts(casts: T[], sort: CastSort = \"featured\", _now: Date = new Date()): T[]",
+      "signature": "sortCasts(casts: T[], sort: CastSort = \"featured\", now: Date = new Date()): T[]",
       "params": [
         {
           "name": "casts",
@@ -11779,7 +11779,6 @@
       "name": "useZodForm",
       "kind": "function",
       "summary": "zod スキーマから型安全なフォームを作るフック。 react-hook-form + @hookform/resolvers/zod を配線し、値の型をスキーマから推論する。",
-      "signature": "useZodForm(schema: z.ZodType<TFieldValues>, options?: Omit<UseFormProps<TFieldValues>, \"resolver\">,): UseFormReturn<TFieldValues>",
       "params": [
         {
           "name": "schema",
@@ -21576,8 +21575,20 @@
     {
       "name": "bindActivityListeners",
       "kind": "function",
-      "summary": "",
-      "signature": "bindActivityListeners(timer: IdleTimer, target: EventTargetLike = globalThis as unknown as Window): () => void"
+      "summary": "DOM の活動イベントをタイマーに配線する(ブラウザ専用)。返り値で解除できる。",
+      "signature": "bindActivityListeners(timer: IdleTimer, target: { addEventListener: (t: string, h: () => void, o?: unknown) => void; removeEventListener: (t: …): () => void",
+      "params": [
+        {
+          "name": "timer",
+          "description": "無操作タイマー"
+        },
+        {
+          "name": "target",
+          "description": "イベントを購読する対象(既定はブラウザの window)"
+        }
+      ],
+      "returns": "購読を解除する関数。**画面を離れるときに必ず呼ぶ**(呼ばないとリークする)",
+      "example": "const timer = createIdleTimer({ timeoutMs: 15*60_000, warnBeforeMs: 60_000, onWarn, onIdle: logout });\ntimer.start();\nconst unbind = bindActivityListeners(timer);\n// クリーンアップ: unbind(); timer.stop();"
     },
     {
       "name": "clearCookie",
@@ -21741,23 +21752,6 @@
         }
       ],
       "returns": "ヘルパー。`needsStepUp` で判定する"
-    },
-    {
-      "name": "EventTargetLike",
-      "kind": "type",
-      "summary": "DOM の活動イベントをタイマーに配線する(ブラウザ専用)。返り値で解除できる。",
-      "params": [
-        {
-          "name": "timer",
-          "description": "無操作タイマー"
-        },
-        {
-          "name": "target",
-          "description": "イベントを購読する対象(既定はブラウザの window)"
-        }
-      ],
-      "returns": "購読を解除する関数。**画面を離れるときに必ず呼ぶ**(呼ばないとリークする) / /** イベントを購読できるもの(Window / Document / Element)。 **DOM の `EventTarget` をそのまま使う**。自前で構造を書くと、 `Window` の `addEventListener`(オーバーロードあり)と噛み合わない。",
-      "example": "const timer = createIdleTimer({ timeoutMs: 15*60_000, warnBeforeMs: 60_000, onWarn, onIdle: logout });\ntimer.start();\nconst unbind = bindActivityListeners(timer);\n// クリーンアップ: unbind(); timer.stop();"
     },
     {
       "name": "getCookie",

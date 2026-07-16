@@ -2,7 +2,6 @@ import * as React from "react";
 import { CopyrightNotice, AppSkin } from "@platform/ui";
 import { siteConfig, content } from "../server/content";
 import { SiteHeader } from "./site-header";
-import { themeRegistry } from "../lib/theme-registry";
 
 export const metadata = { title: siteConfig.siteName };
 
@@ -11,7 +10,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="ja">
       <body>
-        <AppSkin registry={themeRegistry}>
+        <AppSkin>
           <SiteHeader siteName={siteConfig.siteName} nav={nav} />
           {children}
           <footer className="mt-12 border-t border-neutral-200 py-6 text-center">

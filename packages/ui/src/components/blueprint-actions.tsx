@@ -48,10 +48,7 @@ export function BlueprintActions({ state, stateStyles, actions, onAction, isFina
   return (
     <div className={cn("flex flex-wrap items-center gap-3", className)}>
       <span className="text-sm text-[var(--color-muted)]">状態</span>
-      {/* tone の "info" は Badge に無いので secondary に寄せる(意味が近い) */}
-      <Badge variant={style?.tone === "info" ? "secondary" : (style?.tone ?? "default")}>
-        {style?.label ?? state}
-      </Badge>
+      <Badge tone={style?.tone ?? "default"}>{style?.label ?? state}</Badge>
 
       {!isFinal && actions.length > 0 && (
         <div className="ml-auto flex flex-wrap gap-2">
@@ -70,7 +67,7 @@ export function BlueprintActions({ state, stateStyles, actions, onAction, isFina
         </div>
       )}
 
-      {isFinal && <Badge variant="success">完了</Badge>}
+      {isFinal && <Badge tone="success">完了</Badge>}
     </div>
   );
 }

@@ -95,7 +95,7 @@ export function DataTable<T extends Record<string, unknown>>({ rows, columns, se
       </div>
 
       {result.pageCount > 1 && (
-        <SimplePagination page={result.page} totalPages={result.pageCount} onPageChange={(p: number) => setQuery((q) => ({ ...q, page: p }))} />
+        <SimplePagination page={result.page} pageCount={result.pageCount} onPageChange={(p: number) => setQuery((q) => ({ ...q, page: p }))} />
       )}
     </div>
   );

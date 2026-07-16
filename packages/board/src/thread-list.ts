@@ -2,7 +2,7 @@
  * スレッド一覧の整列・要約(純ロジック)。
  * @packageDocumentation
  */
-import { type Thread, type Post } from "./post";
+import { type Thread, type Post, rootPosts } from "./post";
 
 /** スレッドの要約(一覧表示用)。 */
 export interface ThreadSummary {
