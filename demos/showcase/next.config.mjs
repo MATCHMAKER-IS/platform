@@ -5,15 +5,22 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 export default {
-  // Turbopack にこのディレクトリが root だと教える。
+  // Turbopack の root は **モノレポのルート**にする。
   //
-  // 【なぜ必要か】
-  // モノレポでは Turbopack が pnpm-workspace.yaml を見つけて **リポジトリのルートを root と誤認**する。
-  // すると cwd(demos/showcase)と root(platform/)がずれ、**node_modules も相対 import も
-  // 解決できない**(実際に Amplify で Module not found が 103 件出た)。
-  // ローカルの dev では起きず、`next build` で初めて出る。
+  // 【なぜ showcase 自身ではダメか】
+  // pnpm は node_modules をルートに集約し、各パッケージにはシンボリックリンクだけを置く。
+  // root を demos/showcase に固定すると、**ルートの node_modules を見なくなり**、
+  // `next/package.json` すら見つからない:
+  //   「We couldn't find the Next.js package (next/package.json) from
+  //     .../demos/showcase/src/app」
+  //
+  // 【なぜ明示が要るか】
+  // 指定しないと Turbopack が root を推測し、cwd とずれて
+  // **node_modules も相対 import も解決できない**(Module not found が 103 件出た)。
+  //
+  // どちらもローカルの dev では起きず、`next build` で初めて出る。
   turbopack: {
-    root: __dirname,
+    root: path.join(__dirname, "../.."),
   },
 
   // transpilePackages は package.json の @platform/* 依存と一致させる。

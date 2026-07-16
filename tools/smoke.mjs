@@ -11113,8 +11113,10 @@ export const z = anyChain;
   // モノレポでは Turbopack が pnpm-workspace.yaml を見つけてリポジトリのルートを root と誤認し、
   // node_modules も相対 import も解決できなくなる(Amplify で Module not found が 103 件出た)。
   // ローカルの dev では起きず、next build で初めて出る。
-  ok("next.config: turbopack.root を明示(モノレポで root を誤認するとビルドが全滅する)",
-    cfg.includes("turbopack:") && cfg.includes("root: __dirname"));
+  // root を showcase 自身にすると、pnpm の node_modules(ルートに集約)が見えず
+  // 「We couldn't find the Next.js package」で落ちる。**モノレポのルート**を指すこと。
+  ok("next.config: turbopack.root はモノレポのルート(showcase 自身だと node_modules が見えない)",
+    cfg.includes("turbopack:") && cfg.includes('root: path.join(__dirname, "../..")'));
   const pkgJson = JSON.parse(await fsc.readFile(new URL("../demos/showcase/package.json", import.meta.url), "utf8"));
   const deps = Object.keys(pkgJson.dependencies).filter((k) => k.startsWith("@platform/"));
   ok(`next.config: transpilePackages が package.json の依存と一致(${deps.length}件・漏れるとビルド失敗)`,

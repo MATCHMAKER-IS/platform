@@ -108,8 +108,16 @@ git push
 
 ```js
 turbopack: {
-  root: __dirname,   // demos/showcase を root にする
+  root: path.join(__dirname, "../.."),   // モノレポのルート
 }
+```
+
+**`root: __dirname`(showcase 自身)にしてはいけません**。pnpm は `node_modules` を
+ルートに集約するので、showcase を root にすると `next/package.json` すら見つかりません:
+
+```
+We couldn't find the Next.js package (next/package.json) from
+.../demos/showcase/src/app
 ```
 
 **ローカルの `pnpm dev` では起きません**。`next build` で初めて出るので、
