@@ -8,13 +8,27 @@
 # 1. リポジトリを接続するとき「モノレポ」を選ぶ
 # 2. App root(モノレポのルートディレクトリ)に `demos/showcase` を指定
 #
-# 【重要】phase をまたいで cd が残る
-# Amplify は preBuild と build を **同じシェル**で実行する。preBuild で `cd ../..` すると
-# build もモノレポのルートで走り、ルートの `pnpm build`(= `turbo run build`)が
-# **全 107 パッケージをビルド**してしまう(実際にテストファイルの型エラーで失敗した)。
+# ────────────────────────────────────────────────
+# 【ここまでに踏んだ地雷(同じ失敗を繰り返さないために残す)】
 #
-# 対策: **絶対パスで移動する**($AMPLIFY_APP_ROOT / $AMPLIFY_MONOREPO_APP_ROOT は
-# Amplify が用意する環境変数)。サブシェルより確実。
+# 1. `cd ../.. && pnpm --filter showcase-demo build`
+#    → Next.js がモノレポのルートで動き、相対 import も node_modules も解決できず
+#      Module not found が 103 件
+#
+# 2. preBuild で `cd ../..`、build で `pnpm build`
+#    → **Amplify は preBuild と build を同じシェルで実行する**ので cd が残り、
+#      ルートの `pnpm build`(= `turbo run build`)が全 107 パッケージをビルドして失敗
+#
+# 3. `cd "$AMPLIFY_APP_ROOT"`
+#    → **環境変数が空**だった(このバージョンの Amplify では提供されない)。
+#      `cd ""` で `/` へ移動し、`No package found in this workspace`
+#
+# 【対策】
+# - install はルートで行う(workspace 全体の解決に必要)
+# - build は **リポジトリのルートからの相対パスで cd し直す**。
+#   preBuild の cd が残っている前提なので、これで確実に demos/showcase に居られる。
+# - `pwd` を出して、ログで実行場所を確認できるようにする
+# ────────────────────────────────────────────────
 version: 1
 applications:
   - appRoot: demos/showcase
@@ -25,15 +39,15 @@ applications:
             # pnpm を有効にする(Amplify の既定イメージには入っていない)
             - corepack enable
             - corepack prepare pnpm@9.15.0 --activate
-            # install はモノレポのルートで行う(workspace 全体の解決に必要)
-            - cd "$AMPLIFY_APP_ROOT" && pnpm install --frozen-lockfile
+            # ここで cd ../.. すると、build にも残る(それを前提に build を書く)
+            - cd ../.. && pnpm install --frozen-lockfile
         build:
           commands:
-            # ルートに居るので、明示的に appRoot へ移動してからビルドする
-            - cd "$AMPLIFY_APP_ROOT/$AMPLIFY_MONOREPO_APP_ROOT"
-            - pwd   # ログで実行場所を確認できるように
-            - pnpm exec next build
+            # preBuild の cd でモノレポのルートに居る。そこから appRoot へ入り直す。
+            # 1 コマンドにまとめるので、cd と build が必ずセットで効く。
+            - pwd && cd demos/showcase && pwd && pnpm exec next build
       artifacts:
+        # artifacts は appRoot からの相対(Amplify が解決する)
         baseDirectory: .next
         files:
           - "**/*"

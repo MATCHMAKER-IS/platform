@@ -11091,15 +11091,20 @@ export const z = anyChain;
   const amplify = await fsc.readFile(new URL("../amplify.yml", import.meta.url), "utf8");
   ok("amplify.yml: デモサイトを指す・corepack で pnpm 有効化・install はルート・キャッシュ",
     amplify.includes("appRoot: demos/showcase") && amplify.includes("corepack enable") &&
-    amplify.includes('cd "$AMPLIFY_APP_ROOT" && pnpm install --frozen-lockfile') &&
+    amplify.includes("cd ../.. && pnpm install --frozen-lockfile") &&
     amplify.includes("baseDirectory: .next") && amplify.includes("cache:"));
-  // Amplify は preBuild と build を同じシェルで実行するので、`cd ../..` が build に持ち越される。
-  // 相対 cd だとルートで next build が走り、Module not found が 103 件出た(実際に失敗した)。
-  // さらにルートの `pnpm build` は `turbo run build` なので全 107 パッケージをビルドしてしまう。
-  ok("amplify.yml: 絶対パスで appRoot へ移動してからビルド(相対 cd は phase をまたいで残る)",
-    amplify.includes('cd "$AMPLIFY_APP_ROOT/$AMPLIFY_MONOREPO_APP_ROOT"') &&
-    amplify.includes("pnpm exec next build") &&
+  // 踏んだ地雷 3 つ(すべて実際に失敗した):
+  //  1. `cd ../.. && pnpm --filter ... build` → Next.js がルートで動き Module not found 103 件
+  //  2. build で `pnpm build` → preBuild の cd が残り、ルートの turbo が全 107 パッケージをビルド
+  //  3. `cd "$AMPLIFY_APP_ROOT"` → 環境変数が空で `/` へ移動し No package found
+  ok("amplify.yml: build は cd と next build を 1 コマンドにまとめる(cd の持ち越しに影響されない)",
+    amplify.includes("cd demos/showcase && pwd && pnpm exec next build") &&
+    // コメント内の言及は許すが、コマンドとして使っていないこと
+    !/^\s+- .*\$AMPLIFY_APP_ROOT/m.test(amplify) &&
     !amplify.includes("- cd ../.. && pnpm --filter"));
+  ok("amplify.yml: 踏んだ地雷をコメントに残す(同じ失敗を繰り返さない)",
+    amplify.includes("Module not found") && amplify.includes("同じシェルで実行") &&
+    amplify.includes("環境変数が空"));
   ok("amplify.yml は 1 つだけ(2 つあるとどちらが読まれるか分からない)",
     await fsc.access(new URL("../demos/showcase/amplify.yml", import.meta.url)).then(() => false).catch(() => true));
 

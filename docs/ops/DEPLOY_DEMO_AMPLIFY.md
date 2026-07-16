@@ -91,6 +91,14 @@ git push
 `install` はルートで行う必要があります(workspace 全体の解決のため)が、
 **build は appRoot のまま**です。
 
+### `No package found in this workspace`
+
+`pwd` が `/` を指しています。`$AMPLIFY_APP_ROOT` などの環境変数が**空**で、
+`cd ""` によりルートへ移動してしまっています。
+
+**このバージョンの Amplify では `AMPLIFY_APP_ROOT` は提供されません**。
+相対パスで移動してください(`amplify.yml` は既にそうなっています)。
+
 ### `Cannot find module '@platform/xxx'`
 
 `transpilePackages` の漏れです。ローカルで確認できます:

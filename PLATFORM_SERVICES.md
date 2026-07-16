@@ -3316,3 +3316,32 @@ smoke に 2 つ追加:
 - **全パッケージの tsconfig がテストを exclude しているか**
 
 どちらもわざと壊して検出を確認した。
+
+---
+
+## Amplify ビルド 3 回目 — `$AMPLIFY_APP_ROOT` が空だった
+
+`pwd` の出力が **`/`** だった。`cd "$AMPLIFY_APP_ROOT"` の環境変数が空で、
+`cd ""` によりルートへ移動していた(`No package found in this workspace`)。
+
+**このバージョンの Amplify では `AMPLIFY_APP_ROOT` は提供されない**。
+
+### ログから分かったこと
+- **install は成功していた**(`Scope: all 114 workspace projects`)。
+  ログに `../..` と出ていたので、**Amplify は最初から appRoot(demos/showcase)で実行している**。
+- つまり preBuild の `cd ../..` は正しく動き、その cd が build に残るのが問題だった。
+
+### 最終的な対策
+**build で cd と next build を 1 コマンドにまとめる**:
+```yaml
+- pwd && cd demos/showcase && pwd && pnpm exec next build
+```
+preBuild の cd でルートに居る前提。そこから appRoot へ入り直すので、
+**cd の持ち越しに影響されない**。`pwd` を 2 回出して、移動前後をログで確認できるようにした。
+
+### 踏んだ地雷 3 つ(amplify.yml のコメントに残した)
+1. `cd ../.. && pnpm --filter ... build` → **Module not found 103 件**
+2. build で `pnpm build` → cd が残り、ルートの turbo が**全 107 パッケージ**をビルド
+3. `cd "$AMPLIFY_APP_ROOT"` → **環境変数が空**で `/` へ
+
+smoke で「地雷をコメントに残しているか」も検査する(次に触る人が同じ失敗をしないように)。
