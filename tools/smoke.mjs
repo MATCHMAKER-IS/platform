@@ -11091,12 +11091,15 @@ export const z = anyChain;
   const amplify = await fsc.readFile(new URL("../amplify.yml", import.meta.url), "utf8");
   ok("amplify.yml: デモサイトを指す・corepack で pnpm 有効化・install はルート・キャッシュ",
     amplify.includes("appRoot: demos/showcase") && amplify.includes("corepack enable") &&
-    amplify.includes("cd ../.. && pnpm install --frozen-lockfile") &&
+    amplify.includes('cd "$AMPLIFY_APP_ROOT" && pnpm install --frozen-lockfile') &&
     amplify.includes("baseDirectory: .next") && amplify.includes("cache:"));
-  // build を `cd ../.. && pnpm --filter` にすると Next.js がルートで動き、
-  // 相対 import も node_modules も解決できない(実際に 103 件の Module not found で失敗した)
-  ok("amplify.yml: build は appRoot のまま実行する(ルートで動かすと Module not found が 103 件出る)",
-    amplify.includes("- pnpm build") && !/build:[\s\S]{0,200}cd \.\.\/\.\. && pnpm --filter/.test(amplify));
+  // Amplify は preBuild と build を同じシェルで実行するので、`cd ../..` が build に持ち越される。
+  // 相対 cd だとルートで next build が走り、Module not found が 103 件出た(実際に失敗した)。
+  // さらにルートの `pnpm build` は `turbo run build` なので全 107 パッケージをビルドしてしまう。
+  ok("amplify.yml: 絶対パスで appRoot へ移動してからビルド(相対 cd は phase をまたいで残る)",
+    amplify.includes('cd "$AMPLIFY_APP_ROOT/$AMPLIFY_MONOREPO_APP_ROOT"') &&
+    amplify.includes("pnpm exec next build") &&
+    !amplify.includes("- cd ../.. && pnpm --filter"));
   ok("amplify.yml は 1 つだけ(2 つあるとどちらが読まれるか分からない)",
     await fsc.access(new URL("../demos/showcase/amplify.yml", import.meta.url)).then(() => false).catch(() => true));
 
@@ -11108,6 +11111,28 @@ export const z = anyChain;
     deps.every((d) => cfg.includes(`"${d}"`)));
 
   await fsc.rm(base, { recursive: true, force: true });
+}
+
+// ── ビルド設定(pnpm build が通る前提) ──
+{
+  section("ビルド設定: tsconfig がテストを除外しているか");
+  const fsc = await import("node:fs/promises");
+  const pkgDirs = (await fsc.readdir(new URL("../packages", import.meta.url), { withFileTypes: true }))
+    .filter((e) => e.isDirectory()).map((e) => e.name);
+
+  const noExclude = [];
+  for (const name of pkgDirs) {
+    try {
+      const raw = await fsc.readFile(new URL(`../packages/${name}/tsconfig.json`, import.meta.url), "utf8");
+      const cfg = JSON.parse(raw);
+      const ex = cfg.exclude ?? [];
+      if (!ex.some((p) => String(p).includes(".test."))) noExclude.push(name);
+    } catch { /* tsconfig が無いパッケージは対象外 */ }
+  }
+  // テストを include したままだと `tsc -p` がテストも型検査し、
+  // 未使用 import(TS6133)や vitest の型未解決(TS2307)でビルドが落ちる。
+  // 実際に Amplify で @platform/datetime がこれで失敗した。
+  ok(`全パッケージの tsconfig がテストを exclude(ビルド対象から外す)`, noExclude.length === 0);
 }
 console.log(`\n─────────────\n結果: ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

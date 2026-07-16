@@ -7,13 +7,14 @@
 # 【Amplify コンソール側の設定】
 # 1. リポジトリを接続するとき「モノレポ」を選ぶ
 # 2. App root(モノレポのルートディレクトリ)に `demos/showcase` を指定
-#    → 以降のコマンドは demos/showcase で実行される
 #
-# 【重要】build は demos/showcase で実行する
-# `cd ../.. && pnpm --filter showcase-demo build` にすると、Next.js が
-# **モノレポのルートで動いてしまい**、相対 import も node_modules も解決できない
-# (Turbopack が ./demos/showcase/... を基準にしてしまう)。
-# install だけルートで行い、build は appRoot のまま実行する。
+# 【重要】phase をまたいで cd が残る
+# Amplify は preBuild と build を **同じシェル**で実行する。preBuild で `cd ../..` すると
+# build もモノレポのルートで走り、ルートの `pnpm build`(= `turbo run build`)が
+# **全 107 パッケージをビルド**してしまう(実際にテストファイルの型エラーで失敗した)。
+#
+# 対策: **絶対パスで移動する**($AMPLIFY_APP_ROOT / $AMPLIFY_MONOREPO_APP_ROOT は
+# Amplify が用意する環境変数)。サブシェルより確実。
 version: 1
 applications:
   - appRoot: demos/showcase
@@ -24,12 +25,14 @@ applications:
             # pnpm を有効にする(Amplify の既定イメージには入っていない)
             - corepack enable
             - corepack prepare pnpm@9.15.0 --activate
-            # install だけはルートで(workspace 全体の解決に必要)
-            - cd ../.. && pnpm install --frozen-lockfile
+            # install はモノレポのルートで行う(workspace 全体の解決に必要)
+            - cd "$AMPLIFY_APP_ROOT" && pnpm install --frozen-lockfile
         build:
           commands:
-            # ここは demos/showcase(appRoot)のまま実行する
-            - pnpm build
+            # ルートに居るので、明示的に appRoot へ移動してからビルドする
+            - cd "$AMPLIFY_APP_ROOT/$AMPLIFY_MONOREPO_APP_ROOT"
+            - pwd   # ログで実行場所を確認できるように
+            - pnpm exec next build
       artifacts:
         baseDirectory: .next
         files:
