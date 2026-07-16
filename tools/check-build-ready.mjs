@@ -199,6 +199,23 @@ export function check() {
     }
   }
 
+  // ── I: 未使用の import(noUnusedLocals: true なのでビルドが止まる)──
+  for (const f of collect(path.join(SITE, "src"))) {
+    const src = readFileSync(f, "utf8");
+    for (const m of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*"[^"]+"/g)) {
+      const body = src.slice(m.index + m[0].length);
+      for (const raw of (m[1] ?? "").split(",")) {
+        const item = raw.trim();
+        if (!item) continue;
+        const name = item.replace(/^type\s+/, "").split(" as ").pop().trim();
+        if (!name || !/^[A-Za-z_$][\w$]*$/.test(name)) continue;
+        if (!new RegExp(`\\b${name.replace(/\$/g, "\\$")}\\b`).test(body)) {
+          issues.push(`[I] ${path.relative(ROOT, f)}: ${name} を import しているが使っていない(noUnusedLocals でビルドが止まる)`);
+        }
+      }
+    }
+  }
+
   // ── F: client が node: を使う ──
   for (const f of collect(path.join(SITE, "src"))) {
     const s = readFileSync(f, "utf8");

@@ -1,6 +1,5 @@
 "use client";
 /** DnD配置+localStorage保存のダッシュボード、ポーリング自動更新チャートのデモ。 */
-import { useState } from "react";
 import {
   DraggableDashboard, useDashboardLayout, createLocalStorageLayoutStore,
   usePolling, LineChart, StatCard, Button, Badge,

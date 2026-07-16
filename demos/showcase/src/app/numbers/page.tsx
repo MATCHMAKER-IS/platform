@@ -1,7 +1,7 @@
 "use client";
 /** 数値可視化デモ: Sparkline / Histogram / StatSummary / 外れ値 / 整形。 */
 import { Sparkline, Histogram, StatSummary, BoxPlot, Trend, Gauge, KpiCard, Scatter, TimelineChart, MetricGrid } from "@platform/ui";
-import { formatManOku, formatCompact, formatBytes, formatRange, outliers, movingAverage, trend, linearRegression, regressionBand, decompose, seriesFromRows, acf, dominantLag } from "@platform/utils";
+import { formatManOku, formatCompact, formatBytes, formatRange, outliers, movingAverage, trend, linearRegression, regressionBand, decompose, dominantLag } from "@platform/utils";
 
 const SALES = [120, 135, 128, 150, 142, 160, 155, 170, 168, 180, 175, 210];
 const SAMPLE = [12, 14, 15, 15, 16, 16, 17, 18, 18, 19, 20, 21, 22, 24, 60];

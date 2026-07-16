@@ -1,7 +1,7 @@
 "use client";
 /** SheetGrid(列リサイズ+行仮想化)と 貼り付け取り込み(TSV→行)のデモ。 */
-import { useMemo, useState, useEffect } from "react";
-import { SheetGrid, tsvToRows, ImportReview, ColumnSettings, ColumnPresets, useColumnPrefs, createColumnPrefsStore, applyColumnPrefs, validateImportRows, summarizeImport, buildImportHistory, validRows, upsertPreset, resolveInitialPrefs, Button, Textarea, Badge, type SheetColumn, type ImportField, type ColumnPreset } from "@platform/ui";
+import { useMemo, useState } from "react";
+import { SheetGrid, tsvToRows, ImportReview, ColumnSettings, ColumnPresets, useColumnPrefs, createColumnPrefsStore, applyColumnPrefs, validateImportRows, summarizeImport, buildImportHistory, upsertPreset, resolveInitialPrefs, Button, Textarea, Badge, type SheetColumn, type ImportField, type ColumnPreset } from "@platform/ui";
 
 type Row = { id: number; date: string; vendor: string; category: string; amount: number };
 const CATS = ["消耗品費", "交通費", "会議費", "図書費", "備品費"];

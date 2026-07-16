@@ -2,7 +2,7 @@
 /** 文字列ユーティリティのデモ: Highlight 検索・wrapText 折り返し・マスク・切り詰め。 */
 import { useState } from "react";
 import { Highlight, DataTable, LogViewer, List, ListItem, Input, type DataTableColumn } from "@platform/ui";
-import { truncateMiddle, maskEmail, normalizeText } from "@platform/utils";
+import { truncateMiddle, maskEmail } from "@platform/utils";
 
 type Row = { id: number; name: string; email: string };
 const ROWS: Row[] = [

@@ -3873,3 +3873,30 @@ Type error: Type '"trending-up"' is not assignable to type
 ### 型検査環境での残り: 0 件
 `useState()` の 1 件は shim の粗さによる誤検知(実物の React は引数なしを許す)。
 それを除けば **0 件**。
+
+---
+
+## 未使用 import が 8 件 — 私の修正の副作用
+
+```
+Type error: 'ExpenseRecord' is declared but its value is never read.
+```
+
+`ExpenseRecord` の型注釈を外したので、import が未使用になった。**私の修正の副作用**。
+
+調べると **8 件**あった:
+| ファイル | 未使用 |
+|---|---|
+| `expenses/page.tsx` | `ExpenseRecord` ← 今回の原因 |
+| `sheet/page.tsx` | `useEffect` / `validRows` |
+| `strings/page.tsx` | `normalizeText` |
+| `live-dashboard/page.tsx` | `useState` |
+| `numbers/page.tsx` | `seriesFromRows` / `acf` |
+| `blueprint-integration.ts` | `evaluateTransition` |
+| `cast-site.ts` | `activeCasts` / `castsByTag` |
+
+`tsconfig.base.json` が **`noUnusedLocals: true`** なので、**1 件でもビルドが止まる**。
+
+### 検査を追加
+`check-build-ready` に「**import しているが使っていない**」を追加。
+これで 1 件ずつビルドを回す必要がなくなる。

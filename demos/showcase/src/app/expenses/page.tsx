@@ -2,7 +2,7 @@
 /** 経費一覧(DataTable: 検索・ソート・ページング・CSV出力)+ 月次締めレポート。 */
 import { useMemo, useState } from "react";
 import { DataTable, SheetGrid, Button, downloadBlob, type DataTableColumn, type SheetColumn } from "@platform/ui";
-import { monthlyExpenseSummary, renderMonthlyReportHtml, monthlyReportSheets, type ExpenseRecord } from "@platform/report";
+import { monthlyExpenseSummary, renderMonthlyReportHtml, monthlyReportSheets } from "@platform/report";
 import { writeWorkbook } from "@platform/xlsx";
 
 // サンプル経費(実運用は repository.paginate で取得)

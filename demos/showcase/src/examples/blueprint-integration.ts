@@ -4,7 +4,7 @@
  * 金額ルーティング + 多段承認に委譲する。金額により承認者の段数が変わる。
  * @packageDocumentation
  */
-import { applyTransition, evaluateTransition, type Blueprint } from "@platform/blueprint";
+import { applyTransition, type Blueprint } from "@platform/blueprint";
 import { routeByAmount, startWorkflow, approve, type AmountTier, type WorkflowState, type Actor } from "@platform/workflow";
 
 /** 経費レコード(承認ワークフローの状態を内包)。 */
