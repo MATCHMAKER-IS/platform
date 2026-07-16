@@ -21744,7 +21744,7 @@
     },
     {
       "name": "EventTargetLike",
-      "kind": "interface",
+      "kind": "type",
       "summary": "DOM の活動イベントをタイマーに配線する(ブラウザ専用)。返り値で解除できる。",
       "params": [
         {
@@ -21756,7 +21756,7 @@
           "description": "イベントを購読する対象(既定はブラウザの window)"
         }
       ],
-      "returns": "購読を解除する関数。**画面を離れるときに必ず呼ぶ**(呼ばないとリークする) / /** イベントを購読できるもの(Window / Document / Element)。",
+      "returns": "購読を解除する関数。**画面を離れるときに必ず呼ぶ**(呼ばないとリークする) / /** イベントを購読できるもの(Window / Document / Element)。 **DOM の `EventTarget` をそのまま使う**。自前で構造を書くと、 `Window` の `addEventListener`(オーバーロードあり)と噛み合わない。",
       "example": "const timer = createIdleTimer({ timeoutMs: 15*60_000, warnBeforeMs: 60_000, onWarn, onIdle: logout });\ntimer.start();\nconst unbind = bindActivityListeners(timer);\n// クリーンアップ: unbind(); timer.stop();"
     },
     {

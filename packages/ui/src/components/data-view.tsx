@@ -33,6 +33,7 @@ export interface ViewToggleProps {
 
 /** 表示モードの切り替えボタン群。 */
 export function ViewToggle({ value, onChange, modes = ["card", "list", "block"], className }: ViewToggleProps) {
+  const t = useT();
   return (
     <div className={cn("inline-flex rounded-[var(--radius)] border border-[var(--color-border)] p-0.5", className)} role="tablist" aria-label={t("view.toggle")}>
       {modes.map((m) => {

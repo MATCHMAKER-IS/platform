@@ -91,11 +91,13 @@ export const IDLE_ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "scrol
  * @param target イベントを購読する対象(既定はブラウザの window)
  * @returns 購読を解除する関数。**画面を離れるときに必ず呼ぶ**(呼ばないとリークする)
  */
-/** イベントを購読できるもの(Window / Document / Element)。 */
-export interface EventTargetLike {
-  addEventListener: (type: string, handler: () => void, options?: unknown) => void;
-  removeEventListener: (type: string, handler: () => void, options?: unknown) => void;
-}
+/**
+ * イベントを購読できるもの(Window / Document / Element)。
+ *
+ * **DOM の `EventTarget` をそのまま使う**。自前で構造を書くと、
+ * `Window` の `addEventListener`(オーバーロードあり)と噛み合わない。
+ */
+export type EventTargetLike = EventTarget;
 
 export function bindActivityListeners(timer: IdleTimer, target: EventTargetLike = globalThis as unknown as Window): () => void {
   const handler = () => timer.activity();
