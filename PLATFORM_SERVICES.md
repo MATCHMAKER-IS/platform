@@ -3852,3 +3852,24 @@ type DemoPost = BlogPost & { body: string; excerpt: string };
 ### 残る型エラー
 `useState()` の 1 件のみ。**私の shim が `useState<S>(i: S)` と定義しているため**の誤検知
 (実物の React は引数なしを許す)。
+
+---
+
+## Icon の name がケバブケースだった
+
+```
+Type error: Type '"trending-up"' is not assignable to type
+'"Apple" | "Menu" | ... | "TrendingUp" | ...'. Did you mean '"TrendingUp"'?
+```
+
+`<Icon name="trending-up">` と書いていたが、**lucide-react はパスカルケース**(`"TrendingUp"`)。
+6 箇所を変換した(`trending-up` / `user-plus` / `user-minus` / `receipt` / `package`)。
+
+### 検査を追加
+**型検査でしか気づけない**(私の shim では lucide-react を any にしているため見えない)。
+`check-build-ready` に「**Icon の name がケバブケースでないか**」を追加した
+(わざと戻して検出を確認)。
+
+### 型検査環境での残り: 0 件
+`useState()` の 1 件は shim の粗さによる誤検知(実物の React は引数なしを許す)。
+それを除けば **0 件**。

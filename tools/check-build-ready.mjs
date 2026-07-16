@@ -187,6 +187,18 @@ export function check() {
     }
   }
 
+  // ── H: Icon の name はパスカルケース(lucide-react の名前)──
+  // ケバブケース("trending-up")は古い記法。lucide-react は "TrendingUp" を期待する。
+  // 型検査でしか気づけない(shim では any になるため、この検査で補う)。
+  for (const dir of [path.join(ROOT, "demos"), path.join(ROOT, "apps")]) {
+    for (const f of collect(dir, [".tsx"])) {
+      const s = readFileSync(f, "utf8");
+      for (const m of s.matchAll(/<Icon\s+name="([a-z][\w-]*)"/g)) {
+        issues.push(`[H] ${path.relative(ROOT, f)}: Icon name="${m[1]}" はケバブケース(パスカルケースにする)`);
+      }
+    }
+  }
+
   // ── F: client が node: を使う ──
   for (const f of collect(path.join(SITE, "src"))) {
     const s = readFileSync(f, "utf8");

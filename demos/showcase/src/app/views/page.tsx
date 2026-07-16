@@ -35,13 +35,13 @@ export default function Page() {
         renderItem={(p, mode) =>
           mode === "list" ? (
             <ListItem
-              leading={<Icon name="package" className="h-5 w-5 text-[var(--color-primary)]" />}
+              leading={<Icon name="Package" className="h-5 w-5 text-[var(--color-primary)]" />}
               title={p.name}
               description={p.category}
               trailing={`¥${p.price.toLocaleString()}`}
             />
           ) : mode === "block" ? (
-            <Block icon={<Icon name="package" className="h-6 w-6" />} label={p.name} onSelect={() => {}} />
+            <Block icon={<Icon name="Package" className="h-6 w-6" />} label={p.name} onSelect={() => {}} />
           ) : (
             <Card>
               <CardHeader>

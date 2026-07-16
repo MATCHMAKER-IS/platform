@@ -16,10 +16,10 @@ export default function Page() {
       <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "1rem" }}>ダッシュボード</h1>
 
       <DashboardGrid columns={12}>
-        <DashboardWidget colSpan={3} bare><StatCard label="今月売上" value="¥6,100,000" delta="+8.9% 前月比" trend="up" icon={<Icon name="trending-up" className="h-5 w-5" />} /></DashboardWidget>
-        <DashboardWidget colSpan={3} bare><StatCard label="新規顧客" value="128" delta="+12" trend="up" icon={<Icon name="user-plus" className="h-5 w-5" />} /></DashboardWidget>
-        <DashboardWidget colSpan={3} bare><StatCard label="解約率" value="2.1%" delta="-0.3pt" trend="down" icon={<Icon name="user-minus" className="h-5 w-5" />} /></DashboardWidget>
-        <DashboardWidget colSpan={3} bare><StatCard label="平均単価" value="¥4,760" delta="±0" trend="flat" icon={<Icon name="receipt" className="h-5 w-5" />} /></DashboardWidget>
+        <DashboardWidget colSpan={3} bare><StatCard label="今月売上" value="¥6,100,000" delta="+8.9% 前月比" trend="up" icon={<Icon name="TrendingUp" className="h-5 w-5" />} /></DashboardWidget>
+        <DashboardWidget colSpan={3} bare><StatCard label="新規顧客" value="128" delta="+12" trend="up" icon={<Icon name="UserPlus" className="h-5 w-5" />} /></DashboardWidget>
+        <DashboardWidget colSpan={3} bare><StatCard label="解約率" value="2.1%" delta="-0.3pt" trend="down" icon={<Icon name="UserMinus" className="h-5 w-5" />} /></DashboardWidget>
+        <DashboardWidget colSpan={3} bare><StatCard label="平均単価" value="¥4,760" delta="±0" trend="flat" icon={<Icon name="Receipt" className="h-5 w-5" />} /></DashboardWidget>
 
         <DashboardWidget colSpan={8} bare>
           <ChartCard title="月次 売上/費用(CSV・PNG出力可)" data={monthly} csvColumns={csvCols} filename="月次売上">
