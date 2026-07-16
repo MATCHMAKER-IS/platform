@@ -3818,3 +3818,37 @@ import { DataConsole } from "../../examples/data-console.js";   // ❌
 |---|---|---|
 | 1 | `deriveKey` に salt を渡す | **既存のバグ**(salt は必須引数) |
 | 2 | `fakeFetch` をキャスト | デモ用モックの型 |
+
+---
+
+## 型エラーを 5 件修正 — 残りは shim の誤検知のみ
+
+| # | 内容 | 種類 |
+|---|---|---|
+| 1 | `DemoPost` 型を定義(`body`/`excerpt` を明示) | **私が作ったコード** |
+| 2 | `deriveKey` に salt を渡す | **既存のバグ**(必須引数) |
+| 3 | `accounting-sync`: `taxCode` を追加 | **既存のバグ**(freee で必須) |
+| 4 | `loadtest-scenarios`: `durationMs` を削除 | **既存のバグ**(RequestOutcome に無い) |
+| 5 | `user-table`: `pageCount` → `totalPages` | **既存のバグ**(Pagination の props) |
+
+### 【学び】index signature を持つ型は unknown になる
+```ts
+interface BlogPost {
+  title: string;
+  [key: string]: unknown;   // ← これがあると
+}
+const p: BlogPost = ...;
+<p>{p.excerpt}</p>          // ❌ unknown(ReactNode に代入できない)
+```
+**使うフィールドを明示した型**を作る:
+```ts
+type DemoPost = BlogPost & { body: string; excerpt: string };
+```
+
+### 3〜5 は取り込んだデモの既存バグ
+26 デモを showcase に取り込んだことで、**初めて型検査が回った**。
+元は単体で `typecheck` していたはずだが、通っていなかった可能性が高い。
+
+### 残る型エラー
+`useState()` の 1 件のみ。**私の shim が `useState<S>(i: S)` と定義しているため**の誤検知
+(実物の React は引数なしを許す)。

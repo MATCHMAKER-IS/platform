@@ -40,9 +40,9 @@ export function buildHttpStep(deps: HttpDeps) {
         const headers: Record<string, string> = { ...(init?.headers as Record<string, string> | undefined) };
         if (deps.cookie) headers.cookie = deps.cookie;
         const res = await fetchImpl(`${deps.baseUrl}${path}`, { ...init, headers });
-        return { ok: res.ok, status: res.status, durationMs: now() - t0 };
+        return { ok: res.ok, status: res.status };
       } catch (e) {
-        return { ok: false, error: e instanceof Error ? e.message : String(e), durationMs: now() - t0 };
+        return { ok: false, error: e instanceof Error ? e.message : String(e) };
       }
     };
 }

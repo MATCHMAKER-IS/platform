@@ -16,7 +16,13 @@ export function createFreeeSender(
     const journal = buildManualJournal({
       companyId,
       issueDate: payload.date,
-      details: payload.details.map((d) => ({ entrySide: d.entrySide, accountItemId: d.accountItemId, amount: d.amount })),
+      details: payload.details.map((d) => ({
+        entrySide: d.entrySide,
+        accountItemId: d.accountItemId,
+        amount: d.amount,
+        // freee は税区分コードが必須。0 = 対象外(仕訳の内容に応じて変える)
+        taxCode: 0,
+      })),
     });
     return post(journal);
   };

@@ -11,7 +11,15 @@ import { readingTime } from "@platform/blog";
 const NOW = new Date("2026-07-15T00:00:00Z");
 const base = { author: "広報", createdAt: "2026-06-01T00:00:00Z", updatedAt: "2026-06-01T00:00:00Z" };
 
-const POSTS: BlogPost[] = [
+/**
+ * デモ用の記事。
+ *
+ * `BlogPost` は index signature(`[key: string]: unknown`)を持つので、
+ * `body` や `excerpt` を直接読むと `unknown` になる。使うフィールドを明示する。
+ */
+type DemoPost = BlogPost & { body: string; excerpt: string };
+
+const POSTS: DemoPost[] = [
   { id: "p1", slug: "release-v2", title: "新バージョンをリリースしました", body: "# 新機能\n\n経費精算がスマホから使えるようになりました。領収書を撮るだけで、科目を自動で推定します。\n\n## 使い方\n\nアプリを開いて「経費」→「撮影」を選んでください。", excerpt: "経費精算がスマホから使えるようになりました",
     category: "お知らせ", tags: ["リリース", "経費"], status: "published", publishedAt: "2026-07-10T00:00:00Z", ...base },
   { id: "p2", slug: "security-update", title: "セキュリティ強化のお知らせ", body: "二要素認証を必須にします。\n\n7 月末までに設定をお願いします。", excerpt: "二要素認証を必須にします",
@@ -55,7 +63,7 @@ export function SiteDemo() {
         {shown.map((p) => (
           <article key={p.id} style={{ ...card, marginBottom: 10 }}>
             <div style={{ fontSize: 11, color: "var(--color-muted)", marginBottom: 4 }}>
-              {p.publishedAt?.slice(0, 10)} ・ {p.category} ・ 約 {readingTime(String(p.body ?? "")).minutes} 分で読めます
+              {p.publishedAt?.slice(0, 10)} ・ {p.category} ・ 約 {readingTime(p.body).minutes} 分で読めます
             </div>
             <h3 style={{ fontSize: 15, margin: "0 0 6px" }}>{p.title}</h3>
             <p style={{ fontSize: 12.5, color: "var(--color-muted)", margin: "0 0 8px", lineHeight: 1.7 }}>{p.excerpt}</p>

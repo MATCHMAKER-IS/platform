@@ -92,7 +92,7 @@ export function UserTable({ users, onExport }: UserTableProps) {
             </tbody>
           </table>
 
-          <Pagination page={result.page} pageCount={result.pageCount} onPageChange={setPage} />
+          <Pagination page={result.page} totalPages={result.pageCount} onPageChange={setPage} />
         </>
       )}
     </div>
