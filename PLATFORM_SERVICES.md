@@ -3450,3 +3450,53 @@ root を showcase にすると next が見えず、ルートにすると相対 i
 ### amplify.yml も修正
 `pnpm exec next build` だと **package.json のスクリプトを経由せず**、`--no-turbopack` が
 効かない。`pnpm run build` に変えた。
+
+---
+
+## 【真因】基盤パッケージが存在しない dist を指していた
+
+7 回目のビルドで `--no-turbopack` が**存在しないオプション**だと分かり、
+そこで**基盤全体を見直した**ところ、真因が見つかった。
+
+### 何が起きていたか
+```
+@platform/ui の package.json:  "main": "./dist/index.js"
+実際:                           dist が無い(ビルドしていない)
+→ next build が @platform/ui を解決できない = Module not found
+```
+
+**107 パッケージで流儀が 3 つに割れていた**:
+| main の指す先 | 数 |
+|---|---|
+| `./dist/index.js` | **89** |
+| `./src/index.ts` | 13 |
+| (なし) | 5 |
+
+### なぜ dev では動いていたか
+Next.js の `transpilePackages` がソースを直接読むため。
+**`next build` は `main` を見に行く**ので、そこで初めて壊れる。
+
+### なぜ Turbopack の root をいじっても直らなかったか
+root は関係なかった。**`dist` が無いのだから、どこを root にしても見つからない**。
+`turbopack.root` を 3 通り試して全部失敗したのは、そもそも原因が別だったから。
+
+### 修正: ソース直指しに統一(93 パッケージ)
+```json
+"main": "./src/index.ts",
+"types": "./src/index.ts",
+"exports": { ".": "./src/index.ts" }
+```
+
+- **ビルド不要**(`transpilePackages` がソースを読む)
+- **dist の drift が起きない**
+- 既に `task` など 13 パッケージがこの方式だった(それが正しかった)
+- サブパス(`@platform/ui/icons`・`@platform/zoho/crm` など 6 パッケージ)も実体に解決
+
+### 再発防止
+smoke に 2 つ追加(わざと `dist` に戻して検出を確認):
+- **全パッケージの main がソースを指すか**(dist はビルドしないと存在しない)
+- **main / exports の指す先がすべて実在するか**
+
+### 教訓
+**エラーの表面(Turbopack)に引きずられ、6 回も遠回りした**。
+「install は通るのに import できない」なら、**package.json の main を疑う**べきだった。

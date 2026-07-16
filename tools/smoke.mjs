@@ -11113,12 +11113,8 @@ export const z = anyChain;
   // モノレポでは Turbopack が pnpm-workspace.yaml を見つけてリポジトリのルートを root と誤認し、
   // node_modules も相対 import も解決できなくなる(Amplify で Module not found が 103 件出た)。
   // ローカルの dev では起きず、next build で初めて出る。
-  // Turbopack は root の指定を 3 通り試したが、pnpm の isolated な node_modules と
-  // 噛み合わずビルドできなかった(経緯は next.config.mjs のコメント)。webpack を使う。
-  const scPkg = JSON.parse(await fsc.readFile(new URL("../demos/showcase/package.json", import.meta.url), "utf8"));
-  ok("showcase: build は webpack(Turbopack はモノレポで root を解決できない)",
-    scPkg.scripts.build === "next build --no-turbopack" &&
-    cfg.includes("Turbopack を使わない理由"));
+  ok("next.config: turbopack.root はモノレポのルート(pnpm は node_modules をルートに集約する)",
+    cfg.includes("turbopack:") && cfg.includes('root: path.join(__dirname, "../..")'));
   const pkgJson = JSON.parse(await fsc.readFile(new URL("../demos/showcase/package.json", import.meta.url), "utf8"));
   const deps = Object.keys(pkgJson.dependencies).filter((k) => k.startsWith("@platform/"));
   ok(`next.config: transpilePackages が package.json の依存と一致(${deps.length}件・漏れるとビルド失敗)`,
@@ -11147,6 +11143,47 @@ export const z = anyChain;
   // 未使用 import(TS6133)や vitest の型未解決(TS2307)でビルドが落ちる。
   // 実際に Amplify で @platform/datetime がこれで失敗した。
   ok(`全パッケージの tsconfig がテストを exclude(ビルド対象から外す)`, noExclude.length === 0);
+}
+
+// ── パッケージのエントリ(main/exports)が実在するか ──
+{
+  section("パッケージのエントリ: ソース直指しで統一されているか");
+  const fsc = await import("node:fs/promises");
+  const path = await import("node:path");
+  const root = new URL("..", import.meta.url).pathname;
+  const pkgDir = path.join(root, "packages");
+  const names = (await fsc.readdir(pkgDir, { withFileTypes: true })).filter((e) => e.isDirectory()).map((e) => e.name);
+
+  const notSrc = [];
+  const missing = [];
+  for (const name of names) {
+    const pjPath = path.join(pkgDir, name, "package.json");
+    let pj;
+    try { pj = JSON.parse(await fsc.readFile(pjPath, "utf8")); } catch { continue; }
+    const main = pj.main;
+    if (!main) continue;  // config など、ソースを持たないものは対象外
+    // dist を指していないか(dist は作らないので Module not found になる)
+    if (String(main).includes("dist")) notSrc.push(name);
+    // 実体があるか
+    const target = path.join(pkgDir, name, String(main).replace(/^\.\//, ""));
+    try { await fsc.access(target); } catch { missing.push(`${name}: ${main}`); }
+
+    // exports のサブパスも実在するか
+    const ex = pj.exports;
+    if (ex && typeof ex === "object") {
+      for (const [key, val] of Object.entries(ex)) {
+        if (typeof val !== "string") continue;
+        if (val.includes("tsconfig") || val.includes("vitest")) continue;
+        const t = path.join(pkgDir, name, val.replace(/^\.\//, ""));
+        try { await fsc.access(t); } catch { missing.push(`${name} exports["${key}"]: ${val}`); }
+      }
+    }
+  }
+
+  // dist を指すと、ビルドしない限り Module not found になる。
+  // 実際に Amplify で @platform/ui が解決できず 27 件のエラーが出た。
+  ok("全パッケージの main がソース(src)を指す(dist はビルドしないと存在しない)", notSrc.length === 0);
+  ok("main / exports の指す先がすべて実在する", missing.length === 0);
 }
 console.log(`\n─────────────\n結果: ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
