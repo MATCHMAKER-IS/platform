@@ -59,9 +59,9 @@
     "@platform/validation": "workspace:*",
     "@platform/workflow": "workspace:*",
     "@platform/xlsx": "workspace:*",
-    "next": "^16.2.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "next": "^16.2.10",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "react-hook-form": "^7.54.2",
     "zod": "^4.0.0"
   },
