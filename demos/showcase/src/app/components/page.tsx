@@ -12,7 +12,9 @@ import {
   VideoPlayer, AudioPlayer, StreamPlayer, Waveform, AudioRecorder, VideoRecorder,
 } from "@platform/ui";
 
-interface Row { id: number; name: string; dept: string; age: number }
+// interface は index signature を持たないので Record<string, unknown> に代入できない。
+// type なら構造的に満たせる(DataTable のジェネリクス制約に合う)。
+type Row = { id: number; name: string; dept: string; age: number };
 const rows: Row[] = [
   { id: 1, name: "山田太郎", dept: "営業", age: 34 },
   { id: 2, name: "鈴木花子", dept: "開発", age: 29 },
@@ -54,7 +56,7 @@ export default function Page() {
       <h1 style={{ fontSize: "1.5rem", fontWeight: 700 }}>追加コンポーネント</h1>
 
       <Section title="DataTable(ソート・ページング)">
-        <DataTable columns={columns} data={rows} pageSize={3} rowKey={(r) => r.id} />
+        <DataTable columns={columns} rows={rows} pageSize={3} />
       </Section>
 
       <Section title="Steps(ステッパー)">

@@ -6,7 +6,9 @@ import { monthlyExpenseSummary, renderMonthlyReportHtml, monthlyReportSheets, ty
 import { writeWorkbook } from "@platform/xlsx";
 
 // サンプル経費(実運用は repository.paginate で取得)
-const EXPENSES: (ExpenseRecord & { vendor: string; status: string })[] = [
+// 型注釈を付けると interface(ExpenseRecord)が index signature を持たないため、
+// DataTable の Record<string, unknown> 制約を満たせない。推論に任せる。
+const EXPENSES = [
   { amount: 842, date: "2026-01-05", vendor: "スーパー○○", category: "消耗品費", taxRate: 8, status: "承認済" },
   { amount: 1100, date: "2026-01-08", vendor: "JR東日本", category: "交通費", taxRate: 10, status: "承認済" },
   { amount: 3300, date: "2026-01-12", vendor: "文具堂", category: "消耗品費", taxRate: 10, status: "申請中" },

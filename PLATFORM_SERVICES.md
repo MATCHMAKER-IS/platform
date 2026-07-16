@@ -3771,3 +3771,28 @@ return new Response(body, { ... });
 ### 残る型エラー
 `DataTable` のジェネリクス制約(`Record<string, unknown>` に代入できない)など。
 **shim の粗さによる誤検知と混ざっている**ので、次のビルドログで本物を選り分ける。
+
+---
+
+## 型エラーを 5 件修正 — 型検査環境が効いた
+
+`/tmp` に合成した型検査環境で、**Amplify のエラーと、その先の型エラーをまとめて**見つけた。
+
+| # | 内容 | 種類 |
+|---|---|---|
+| 1 | `readingTime(...)` → `.minutes` | **私が作ったコード**(オブジェクトを返す) |
+| 2 | `DataTable`: `data` → `rows`・`interface Row` → `type Row` | **既存のバグ** |
+| 3 | `EXPENSES`: 型注釈を外す | **既存**(interface は index signature を持たない) |
+| 4 | `numbers`: 配列アクセスに `?? 0` | **既存**(`noUncheckedIndexedAccess`) |
+| 5 | `DataConsole`: `rows` を渡す | **私が作ったコード** |
+
+### 【学び】interface は Record<string, unknown> を満たさない
+```ts
+interface Row { id: number }        // ❌ DataTable<T extends Record<string, unknown>> に渡せない
+type Row = { id: number };          // ✅ 構造的に満たす
+```
+TypeScript の仕様。**interface は宣言マージできるので、index signature を持たない**と判断される。
+
+### 残る型エラー
+`register/page.tsx` の zod import など。**shim の粗さと混ざっている**ので、
+次のビルドログで本物を選り分ける。

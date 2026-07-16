@@ -15,7 +15,7 @@ export default function Page() {
       <section style={{ marginBottom: "1.5rem" }}>
         <h2 style={{ fontWeight: 700, marginBottom: ".5rem" }}>KPI カード(複合)</h2>
         <MetricGrid minWidth={200}>
-          <KpiCard label="月次売上" value={SALES[SALES.length - 1]} previous={SALES[SALES.length - 2]} series={SALES} suffix="万円" />
+          <KpiCard label="月次売上" value={SALES[SALES.length - 1] ?? 0} previous={SALES[SALES.length - 2] ?? 0} series={SALES} suffix="万円" />
           <KpiCard label="コスト" value={92} previous={100} higherIsBetter={false} suffix="万円" />
           <KpiCard label="達成率" value={88} previous={80} suffix="%" />
         </MetricGrid>
@@ -48,7 +48,7 @@ export default function Page() {
         <h2 style={{ fontWeight: 700, marginBottom: ".5rem" }}>季節性分解(period=4)</h2>
         {(() => {
           const seasonal = [10, -5, -10, 5];
-          const data = Array.from({ length: 24 }, (_, i) => 100 + 2 * i + seasonal[i % 4]);
+          const data = Array.from({ length: 24 }, (_, i) => 100 + 2 * i + (seasonal[i % 4] ?? 0));
           const d = decompose(data, 4);
           return (
             <TimelineChart
@@ -63,7 +63,7 @@ export default function Page() {
             />
           );
         })()}
-        <p style={{ fontSize: ".8rem", color: "var(--color-muted)", marginTop: ".25rem" }}>元系列=トレンド(中心化移動平均)+季節成分+残差。季節成分は +100 オフセットで表示。自己相関で推定した周期: {dominantLag(Array.from({ length: 24 }, (_, i) => 100 + 2 * i + [10, -5, -10, 5][i % 4]), 8)}</p>
+        <p style={{ fontSize: ".8rem", color: "var(--color-muted)", marginTop: ".25rem" }}>元系列=トレンド(中心化移動平均)+季節成分+残差。季節成分は +100 オフセットで表示。自己相関で推定した周期: {dominantLag(Array.from({ length: 24 }, (_, i) => 100 + 2 * i + ([10, -5, -10, 5][i % 4] ?? 0)), 8)}</p>
       </section>
 
       <section style={{ marginBottom: "1.5rem" }}>
@@ -91,9 +91,9 @@ export default function Page() {
         <h2 style={{ fontWeight: 700, marginBottom: ".5rem" }}>箱ひげ図 / 前期比 / 達成率</h2>
         <div style={{ marginBottom: ".75rem" }}><BoxPlot values={SAMPLE} width={340} height={64} /></div>
         <div style={{ display: "flex", alignItems: "center", gap: "2rem", flexWrap: "wrap" }}>
-          <div>売上 {SALES[SALES.length - 1]} <Trend current={SALES[SALES.length - 1]} previous={SALES[SALES.length - 2]} /></div>
+          <div>売上 {SALES[SALES.length - 1] ?? 0} <Trend current={SALES[SALES.length - 1] ?? 0} previous={SALES[SALES.length - 2] ?? 0} /></div>
           <div>コスト <Trend current={92} previous={100} higherIsBetter={false} /></div>
-          <Gauge value={SALES[SALES.length - 1]} target={200} />
+          <Gauge value={SALES[SALES.length - 1] ?? 0} target={200} />
           <div style={{ fontSize: ".85rem", color: "var(--color-muted)" }}>回帰の傾き: {linearRegression(SALES).slope.toFixed(2)} / トレンド: {trend(SALES).direction}</div>
         </div>
       </section>

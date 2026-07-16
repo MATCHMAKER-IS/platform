@@ -55,7 +55,7 @@ export function SiteDemo() {
         {shown.map((p) => (
           <article key={p.id} style={{ ...card, marginBottom: 10 }}>
             <div style={{ fontSize: 11, color: "var(--color-muted)", marginBottom: 4 }}>
-              {p.publishedAt?.slice(0, 10)} ・ {p.category} ・ 約 {readingTime(String(p.body ?? ""))} 分で読めます
+              {p.publishedAt?.slice(0, 10)} ・ {p.category} ・ 約 {readingTime(String(p.body ?? "")).minutes} 分で読めます
             </div>
             <h3 style={{ fontSize: 15, margin: "0 0 6px" }}>{p.title}</h3>
             <p style={{ fontSize: 12.5, color: "var(--color-muted)", margin: "0 0 8px", lineHeight: 1.7 }}>{p.excerpt}</p>
