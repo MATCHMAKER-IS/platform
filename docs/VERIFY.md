@@ -24,7 +24,7 @@ pnpm check:api        # 公開 API の破壊的変更を検出(docs/platform/api
 ```
 これらは CI の早期ゲート(`.github/workflows/ci.yml` の boundaries ジョブ)でも実行されます。
 CI 上で `pnpm install` が通る環境では、続けて下記のフル検証が走ります。
-期待結果: `1241 passed, 0 failed`。実ソース(`packages/validation/src/japan.ts` 等)を
+期待結果: `1242 passed, 0 failed`。実ソース(`packages/validation/src/japan.ts` 等)を
 直接読み込んで検証します。CI の早期ゲートにも使えます。
 
 ## 2. フル検証(レジストリのある環境)

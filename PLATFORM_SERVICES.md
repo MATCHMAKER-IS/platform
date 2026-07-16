@@ -3500,3 +3500,40 @@ smoke に 2 つ追加(わざと `dist` に戻して検出を確認):
 ### 教訓
 **エラーの表面(Turbopack)に引きずられ、6 回も遠回りした**。
 「install は通るのに import できない」なら、**package.json の main を疑う**べきだった。
+
+---
+
+## 【前進】main を src にしたら、次の層のバグが出た
+
+`main` を `dist` → `src` に統一した結果、**Turbopack が基盤のソースを読み始めた**(前進)。
+そして**既存のバグが露出**した。
+
+### 露出したバグ: index.ts の重複 export(10 件)
+```
+the name `DataTableProps` is exported multiple times
+```
+
+`@platform/ui/src/index.ts` が**同じ名前を 2 回 export** していた:
+
+| 名前 | 状況 |
+|---|---|
+| `DataTable` / `DataTableProps` | **同じファイルから 2 回**(行 80 と 178) |
+| `StatCard` / `StatCardProps` | **別実体で同名**(dashboard.tsx と stat-card.tsx) |
+| `NavItem` | **別実体で同名**(lib/nav.ts は href 必須・nav-dropdown は children を持つ) |
+| `Rect` | **別実体で同名**(crop.ts は left/top・motion-tween.ts は x/y) |
+
+**tsc は通ってしまう**(TypeScript は重複 re-export を許す)。Turbopack だけが落ちる。
+
+### 修正
+- **同じファイルからの重複** → 片方を削除
+- **別実体で同名** → 別名で出す(実体は触らない = 既存コードが壊れない)
+  - `NavItem`(nav-dropdown 版) → `NavDropdownItem`
+  - `Rect`(motion-tween 版) → `TweenRect`
+  - `StatCard`(stat-card 版) → `SimpleStatCard`
+- **`Column`** は `DataTableColumn` の別名として残す(既存コードが使っているため)
+  → api-surface で破壊的変更 0 件を確認
+
+### 再発防止
+smoke に「**index.ts に重複 export が無いか**」を追加
+(`export { ... } from "..."` の形だけを見る。型定義の中身は拾わない)。
+わざと重複を作って検出を確認した。

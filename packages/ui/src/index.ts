@@ -77,7 +77,6 @@ export {
 } from "./components/confirm-dialog.js";
 
 // データ表示
-export { DataTable, type DataTableProps, type Column } from "./components/data-table.js";
 
 // 高度な入力
 export { NumericKeypad, type NumericKeypadProps } from "./components/numpad.js";
@@ -175,7 +174,8 @@ export { createLocalStorageLocaleStore, createFetchLocaleStore, isLocale, type L
 export { useLocalePreference } from "./components/use-locale.js";
 export { collectCorrections, buildOcrFeedback, createOcrFeedbackStore, aggregateOcrFeedback, type FieldCorrection, type OcrFeedback, type OcrFeedbackStore, type FeedbackAggregate, type FieldFeedbackStat } from "./lib/ocr-feedback.js";
 export { splitByConfidence, needsReview, type ReviewField } from "./lib/field-review.js";
-export { DataTable, type DataTableProps, type DataTableColumn } from "./components/data-table.js";
+// Column は DataTableColumn の別名(既存コードが Column を使っているため残す)。
+export { DataTable, type DataTableProps, type DataTableColumn, type DataTableColumn as Column } from "./components/data-table.js";
 export { queryRows, type TableQuery, type TableResult } from "./lib/table.js";
 export { SheetGrid, type SheetGridProps, type SheetColumn } from "./components/sheet-grid.js";
 export { normalizeCellRange, inRange, rangeToTsv, stickyLeftOffsets, applyColumnResize, computeVisibleRange, computeVisibleColumns, parseTsv, tsvToRows, type CellPos, type CellRange } from "./lib/grid.js";
@@ -282,7 +282,9 @@ export { PinnedBanner, type PinnedBannerProps, type PinnedItem } from "./compone
 export { FileList, type FileListProps, type FileListItem } from "./components/file-list.js";
 export { AuditLogView, type AuditLogViewProps, type AuditLogRow, type AuditVerification } from "./components/audit-log-view.js";
 export { formatBytes } from "./lib/format-bytes.js";
-export { StatCard, type StatCardProps } from "./components/stat-card.js";
+// StatCard は dashboard.js のもの(delta / trend / format を持つ)を主とする。
+// stat-card.js のものは hint / href を持つ別物なので、別名で出す。
+export { StatCard as SimpleStatCard, type StatCardProps as SimpleStatCardProps } from "./components/stat-card.js";
 export { NotificationPreferences, type NotificationPreferencesProps, type PreferenceValue, type PrefChannel, type PrefMode } from "./components/notification-preferences.js";
 export { AuditEntryDetail, type AuditEntryDetailProps, type FieldChangeView } from "./components/audit-entry-detail.js";
 export { DashboardSettings, type DashboardSettingsProps } from "./components/dashboard-settings.js";
@@ -293,10 +295,14 @@ export { CopyrightNotice, type CopyrightNoticeProps } from "./components/copyrig
 export { SocialShare, type SocialShareProps, type ShareLink } from "./components/social-share.js";
 export { SlideGallery, type SlideGalleryProps, type GalleryImage } from "./components/slide-gallery.js";
 export { Sidebar, type SidebarProps } from "./components/sidebar.js";
-export { NavDropdown, type NavDropdownProps, type NavItem } from "./components/nav-dropdown.js";
+// NavItem は lib/nav.js のもの(href 必須)を主とする。
+// nav-dropdown のものは children を持つ別物なので、別名で出す。
+export { NavDropdown, type NavDropdownProps, type NavItem as NavDropdownItem } from "./components/nav-dropdown.js";
 export { Parallax, type ParallaxProps, Reveal, type RevealProps } from "./components/parallax.js";
 export { easing, parallaxOffset, scrollProgress, revealStyle, transitionPresets, clamp01 } from "./lib/motion.js";
 export { easingExtra, lerp, inverseLerp, mapRange, staggerDelays, stepSpring, isSpringSettled, type EasingName, type SpringState, type SpringConfig } from "./lib/motion-extra.js";
-export { allEasings, applyEasing, tweenValue, parseHexColor, toHexColor, tweenColor, buildKeyframes, buildAnimationShorthand, flipTransform, type Keyframe, type Rect, type AnyEasingName } from "./lib/motion-tween.js";
+// Rect は lib/crop.js のもの(left/top/width/height)を主とする。
+// motion-tween のものは x/y 基準の別物なので、別名で出す。
+export { allEasings, applyEasing, tweenValue, parseHexColor, toHexColor, tweenColor, buildKeyframes, buildAnimationShorthand, flipTransform, type Keyframe, type Rect as TweenRect, type AnyEasingName } from "./lib/motion-tween.js";
 export { BlockEditor, type BlockEditorProps, type EditableBlock } from "./components/block-editor.js";
 export { SortableList, type SortableListProps, moveItem } from "./components/sortable-list.js";

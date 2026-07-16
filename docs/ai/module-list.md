@@ -138,7 +138,7 @@
 ## UI・表現
 
 - **@platform/ui** — Tailwind CSS + shadcn/ui の慣習に沿った共通 UI 部品。内部は Radix(統合 `radix-ui`)/
-  - 主なexport: Accordion, AccordionContent, AccordionItem, AccordionTrigger, ActivityTimeline, ActivityTimelineProps, …(全771)
+  - 主なexport: Accordion, AccordionContent, AccordionItem, AccordionTrigger, ActivityTimeline, ActivityTimelineProps, …(全775)
 - **@platform/form** — フォーム統合(react-hook-form + zod + `@platform/ui`)。
   - 主なexport: AutocompleteField, CheckboxField, ColorField, ComboboxField, CsrfField, DateField, …(全74)
 - **@platform/report** — 帳票(請求書・見積書等)。日本の消費税計算と印刷用 HTML を提供します。

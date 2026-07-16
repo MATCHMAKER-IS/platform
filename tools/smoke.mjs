@@ -11185,5 +11185,40 @@ export const z = anyChain;
   ok("全パッケージの main がソース(src)を指す(dist はビルドしないと存在しない)", notSrc.length === 0);
   ok("main / exports の指す先がすべて実在する", missing.length === 0);
 }
+
+// ── index.ts の重複 export(Turbopack が落ちる) ──
+{
+  section("パッケージの index: 名前の重複が無いか");
+  const fsc = await import("node:fs/promises");
+  const path = await import("node:path");
+  const root = new URL("..", import.meta.url).pathname;
+  const pkgDir = path.join(root, "packages");
+  const names = (await fsc.readdir(pkgDir, { withFileTypes: true })).filter((e) => e.isDirectory()).map((e) => e.name);
+
+  const dups = [];
+  for (const name of names) {
+    let src;
+    try { src = await fsc.readFile(path.join(pkgDir, name, "src/index.ts"), "utf8"); } catch { continue; }
+    const seen = new Map();
+    for (const line of src.split("\n")) {
+      // `export { ... } from "..."` の形だけを見る(型定義の中身を拾わないため)
+      const m = /^export\s+\{([^}]*)\}\s+from\s+"/.exec(line);
+      if (!m) continue;
+      for (const raw of (m[1] ?? "").split(",")) {
+        const item = raw.trim();
+        if (!item) continue;
+        // `X as Y` なら公開名は Y
+        const publicName = item.split(" as ").pop().replace(/^type\s+/, "").trim();
+        if (!publicName || !/^[A-Za-z_$][\w$]*$/.test(publicName)) continue;
+        if (seen.has(publicName)) dups.push(`${name}: ${publicName}`);
+        else seen.set(publicName, true);
+      }
+    }
+  }
+  // 同じ名前を 2 回 export すると Turbopack が
+  // 「the name `X` is exported multiple times」で落ちる(実際に 10 件出た)。
+  // tsc は通ってしまうので、ビルドするまで気づけない。
+  ok("index.ts に重複 export が無い(Turbopack が落ちる・tsc では気づけない)", dups.length === 0);
+}
 console.log(`\n─────────────\n結果: ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
