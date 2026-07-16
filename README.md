@@ -233,4 +233,4 @@ CI で機械的に担保しています。
 
 ## どんなアプリ・デモがあるか
 
-5 つのアプリと 27 のデモの紹介は [docs/APPS_AND_DEMOS.md](docs/APPS_AND_DEMOS.md) を参照してください。
+5 つのアプリと 1 のデモの紹介は [docs/APPS_AND_DEMOS.md](docs/APPS_AND_DEMOS.md) を参照してください。

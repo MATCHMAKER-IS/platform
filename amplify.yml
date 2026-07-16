@@ -1,18 +1,34 @@
-# AWS Amplify Hosting(monorepo)用ビルド定義。⚠ 未検証: 本環境では実走不可(docs/ops/DEPLOY_AWS.md の初回チェック参照)。
-# 前提: pnpm-lock.yaml コミット済み / Amplify コンソールで App root = apps/internal-app を指定 / 環境変数は実値を設定。
+# AWS Amplify Hosting のビルド定義。
+#
+# 【何をデプロイするか】
+# 統合デモサイト(demos/showcase)。DB を持たないので、Amplify だけで完結する。
+# RDS などのバックエンドは不要。
+#
+# 【Amplify コンソール側の設定】
+# 1. リポジトリを接続するとき「モノレポ」を選ぶ
+# 2. App root(モノレポのルートディレクトリ)に `demos/showcase` を指定
+# 3. プラットフォームは自動で「Next.js SSR」(WEB_COMPUTE)になる
+#    → ならない場合は、アプリの設定で明示的に切り替える
+#
+# 【apps/internal-app をデプロイしたい場合】
+# このファイルの appRoot を変え、DATABASE_URL 等の環境変数と RDS を用意する。
+# 手順は docs/ops/DEPLOY_AWS.md を参照。
 version: 1
 applications:
-  - appRoot: apps/internal-app
+  - appRoot: demos/showcase
     frontend:
       phases:
         preBuild:
           commands:
+            # pnpm を有効にする(Amplify の既定イメージには入っていない)
             - corepack enable
+            - corepack prepare pnpm@9.15.0 --activate
+            # モノレポなのでルートから install する(workspace の解決に必要)
             - cd ../.. && pnpm install --frozen-lockfile
-            - cd ../.. && pnpm --filter @platform/db exec prisma generate --schema=../../apps/internal-app/prisma/schema.prisma
         build:
           commands:
-            - cd ../.. && pnpm --filter internal-app build
+            # ルートから filter で対象を指定する(依存パッケージもビルドされる)
+            - cd ../.. && pnpm --filter showcase-demo build
       artifacts:
         baseDirectory: .next
         files:

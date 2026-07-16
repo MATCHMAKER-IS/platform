@@ -46,7 +46,8 @@ export function measure() {
  */
 const RULES = [
   { file: "CLAUDE.md", pattern: /(\d+)\s*パッケージのカテゴリ別インデックス/, expect: (m) => m.packages, label: "CLAUDE.md のパッケージ数" },
-  { file: "demos/README.md", pattern: /\*\*コンポーネント型\*\*\s*\|\s*(\d+)/, expect: (m) => m.componentDemos, label: "demos/README.md のコンポーネント型デモ数" },
+  // 統合により demos は 1 サイトのみ(以前の「コンポーネント型 26」は showcase に取り込み済み)
+  { file: "demos/README.md", pattern: /\*\*統合デモサイト\*\*\s*\|\s*\*\*(\d+)\*\*/, expect: (m) => m.demos, label: "demos/README.md の統合デモサイト数" },
   { file: "CLAUDE.md", pattern: /個別パッケージの用途・使い方\((\d+)\/(\d+) 整備済み\)/, expect: (m) => m.readmes, label: "CLAUDE.md の README 整備数", second: (m) => m.packages },
   { file: "docs/ai/architecture.md", pattern: /基盤\((\d+)\s*個/, expect: (m) => m.packages, label: "architecture.md のパッケージ数" },
 ];

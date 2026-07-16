@@ -4,7 +4,7 @@
  *   node tools/gen-all.mjs
  *
  * 生成対象: module-list / advisor-report / api-reference / depgraph / app-map / erd /
- *           platform-report / api-surface / reference-site。
+ *           platform-report / api-surface / reference-site / example-sources。
  * 最後に check-generated で drift ゼロを確認する。
  */
 import { spawnSync } from "node:child_process";
@@ -21,6 +21,7 @@ const STEPS = [
   ["gen-depgraph.mjs"],
   ["gen-app-map.mjs"],
   ["gen-erd.mjs"],
+  ["gen-example-sources.mjs"],  // 使用例のソースを固める(実行時に読まないため)
   ["platform-report.mjs"],
 ];
 

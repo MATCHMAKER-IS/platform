@@ -3596,7 +3596,7 @@ section("payslip-html / sync-job");
   await fs30.writeFile(AX, (await fs30.readFile(new URL("../packages/accounting/src/export.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
   await fs30.writeFile(AS, (await fs30.readFile(new URL("../packages/accounting/src/sync.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`).replace(/from "\.\/export\.ts"/g, `from "${AX}"`));
   const SJ = `/tmp/pj-syncjob-${st30}.ts`;
-  await fs30.writeFile(SJ, (await fs30.readFile(new URL("../demos/accounting-sync/src/sync-job.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/cron"/g, `from "${cronPath["runner"]}"`).replace(/from "@platform\/accounting"/g, `from "${AS}"`));
+  await fs30.writeFile(SJ, (await fs30.readFile(new URL("../demos/showcase/src/examples/accounting-sync-sync-job.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/cron"/g, `from "${cronPath["runner"]}"`).replace(/from "@platform\/accounting"/g, `from "${AS}"`));
   const E = await import(AE), JOB = await import(SJ);
   const ids = { "売掛金": 100, "売上高": 200, "仮受消費税": 300, "現金預金": 400 };
   const entries = [E.salesJournal({ date: "2025-07-01", net: 100000, tax: 10000 }), E.receiptJournal({ date: "2025-07-31", amount: 110000 })];
@@ -3628,7 +3628,7 @@ section("attendance-import / payslip-batch");
   const PR = `/tmp/ab-pr-${st31}.ts`, PD = `/tmp/ab-pd-${st31}.ts`, BT = `/tmp/ab-bt-${st31}.ts`;
   await fs31.writeFile(PR, "export function buildPayslip(b, o = {}) { const allowances = o.allowances ?? []; const deductions = o.deductions ?? []; const premiums = b.overtimePremium + b.over60Premium + b.nightPremium + b.holidayPay; const grossPay = b.base + premiums + allowances.reduce((s, a) => s + a.amount, 0); const totalDeductions = deductions.reduce((s, d) => s + d.amount, 0); return { base: b.base, premiums, allowances, grossPay, deductions, totalDeductions, netPay: grossPay - totalDeductions }; } export function renderPayslipHtml(p, o = {}) { return '<html>' + (o.employeeName ?? '') + ' ' + p.grossPay + '</html>'; }");
   await fs31.writeFile(PD, "export const DEFAULT_INVOICE_PDF_OPTIONS = { format: 'A4' }; export function createPdf(renderer) { return { async fromHtml(html, options) { return renderer.render(html, options); } }; }");
-  await fs31.writeFile(BT, (await fs31.readFile(new URL("../demos/payslip-pdf/src/batch.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/payroll"/g, `from "${PR}"`).replace(/from "@platform\/pdf"/g, `from "${PD}"`));
+  await fs31.writeFile(BT, (await fs31.readFile(new URL("../demos/showcase/src/examples/payslip-pdf-batch.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/payroll"/g, `from "${PR}"`).replace(/from "@platform\/pdf"/g, `from "${PD}"`));
   const B = await import(BT);
   const enc = new TextEncoder();
   const jobs = [{ employeeId: "E001", employeeName: "山田", breakdown: { base: 250000, overtimePremium: 30000, over60Premium: 0, nightPremium: 0, holidayPay: 0 } }, { employeeId: "E002", employeeName: "佐藤", breakdown: { base: 200000, overtimePremium: 0, over60Premium: 0, nightPremium: 0, holidayPay: 0 } }];
@@ -3659,7 +3659,7 @@ section("platform-authz / notify-channels / readiness");
   const NT = `/tmp/az-nt-${st32}.ts`, ML = `/tmp/az-ml-${st32}.ts`, CH = `/tmp/az-ch-${st32}.ts`;
   await fs32.writeFile(NT, "export function createNotifier(channels) { return { async notify(message) { try { await Promise.all(channels.map((c) => c.send(message))); return { ok: true }; } catch (e) { return { ok: false, error: e }; } } }; }");
   await fs32.writeFile(ML, "export {};");
-  await fs32.writeFile(CH, (await fs32.readFile(new URL("../demos/notify-channels/src/channels.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/notify"/g, `from "${NT}"`).replace(/from "@platform\/mail"/g, `from "${ML}"`));
+  await fs32.writeFile(CH, (await fs32.readFile(new URL("../demos/showcase/src/examples/notify-channels-channels.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/notify"/g, `from "${NT}"`).replace(/from "@platform\/mail"/g, `from "${ML}"`));
   const N = await import(NT), C = await import(CH);
   const mails = []; const mailer = { sendMail: async (m) => { mails.push(m); return { ok: true }; } };
   const slacks = []; const posts = []; 
@@ -3706,9 +3706,9 @@ section("platform-authz / notify-channels / readiness");
   await fscb.writeFile(BOARD, `export * from "${ATTB}"; export * from "${POST}"; export * from "${REAC}"; export * from "${TL}";`);
   await fscb.writeFile(RTB, await rd("../packages/realtime/src/broadcast.ts"));
   await fscb.writeFile(RT, `export * from "${RTB}";`);
-  await fscb.writeFile(SESS, (await rd("../demos/chat-room/src/room-session.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`).replace(/from "@platform\/realtime"/g, `from "${RT}"`));
-  await fscb.writeFile(VIEW, (await rd("../demos/chat-room/src/view.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
-  await fscb.writeFile(BV, (await rd("../demos/board-threads/src/board-view.ts")).replace(/from "@platform\/board"/g, `from "${BOARD}"`));
+  await fscb.writeFile(SESS, (await rd("../demos/showcase/src/examples/chat-room-room-session.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`).replace(/from "@platform\/realtime"/g, `from "${RT}"`));
+  await fscb.writeFile(VIEW, (await rd("../demos/showcase/src/examples/chat-room-view.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
+  await fscb.writeFile(BV, (await rd("../demos/showcase/src/examples/board-threads-board-view.ts")).replace(/from "@platform\/board"/g, `from "${BOARD}"`));
   const CH = await import(CHAT);
   const M2 = (id, senderId, at, text = "x") => ({ id, roomId: "r1", senderId, text, at });
   const cm = CH.createMessage({ id: "m", roomId: "r", senderId: "u", text: "  hi @bob  ", at: "2025-07-01T10:00:00Z" });
@@ -9452,10 +9452,11 @@ export const __store = () => store;
   // showcase にテーマデモ + AppSkin
   const scLayout = await fsc.readFile(new URL("../demos/showcase/src/app/layout.tsx", import.meta.url), "utf8");
   const scTheme = await fsc.readFile(new URL("../demos/showcase/src/app/theme/theme-showcase.tsx", import.meta.url), "utf8");
-  ok("showcase: layout に AppSkin・テーマデモページ(11スキン/トークン/a11y)・トップに導線",
-    scLayout.includes("AppSkin") && scLayout.includes("ThemeSwitcher") &&
+  const scNav = await fsc.readFile(new URL("../demos/showcase/src/lib/nav.ts", import.meta.url), "utf8");
+  ok("showcase: layout に AppSkin+ナビ・テーマデモページ(11スキン/トークン/a11y)・ナビに導線",
+    scLayout.includes("AppSkin") && scLayout.includes("ThemeSwitcher") && scLayout.includes("DemoSidebar") &&
     scTheme.includes("builtInThemes") && scTheme.includes("checkTheme") && scTheme.includes("SkinSelector") &&
-    (await fsc.readFile(new URL("../demos/showcase/src/app/page.tsx", import.meta.url), "utf8")).includes("/theme"));
+    scNav.includes('href: "/theme"'));
   // internal-app 主要管理画面の色がCSS変数化
   const dbv = await fsc.readFile(new URL("../apps/internal-app/src/app/admin/db-viewer/db-viewer-client.tsx", import.meta.url), "utf8");
   ok("internal-app: 主要管理画面の色をCSS変数化(テーマ追従)", dbv.includes("var(--color-surface") && dbv.includes("var(--color-primary") && dbv.includes("var(--color-muted"));
@@ -9850,22 +9851,23 @@ export const z = anyChain;
   const T = await import(`${base}/catalog-tools.mts`);
 
   const demos = C.loadDemos({ root });
-  ok("loadDemos: 27デモ・説明・使用パッケージをソースの import から抽出",
-    demos.length === 27 && demos.every((d) => d.name && d.summary) &&
-    demos.find((d) => d.name === "showcase").packages.includes("theme"));
+  ok("loadDemos: 統合デモサイトの nav.ts から45デモを読む(サイトの表示と検索結果が食い違わない)",
+    demos.length === 45 && demos.every((d) => d.name && d.summary && Array.isArray(d.packages)) &&
+    demos.find((d) => d.name === "theme").packages.includes("theme") &&
+    demos.find((d) => d.name === "apps-internal").packages.includes("contract"));
   ok("searchDemos: パッケージ名/日本語/@platform付きで引ける・該当なしは空",
-    C.searchDemos(demos, "pdf").some((h) => h.name === "invoice-pdf") &&
-    C.searchDemos(demos, "請求書").length > 0 &&
+    C.searchDemos(demos, "tax").some((h) => h.name === "invoice") &&
+    C.searchDemos(demos, "経費").length > 0 &&
     C.searchDemos(demos, "@platform/csv").length > 0 &&
     C.searchDemos(demos, "zzz-none").length === 0 && C.searchDemos(demos, "  ").length === 0);
 
   const tools = T.buildCatalogTools({ root, demos });
   ok("MCPツール5種(search/describe/find_examples/explain_rules/list)",
     tools.length === 5 && tools.map((t) => t.name).join(",") === "search_platform,describe_package,find_examples,explain_rules,list_platform");
-  const fx = await tools.find((t) => t.name === "find_examples").handler({ query: "pdf" });
+  const fx = await tools.find((t) => t.name === "find_examples").handler({ query: "tax" });
   const fxErr = await tools.find((t) => t.name === "find_examples").handler({ query: "  " });
   ok("MCP find_examples: 使用例+使用パッケージ・空クエリはエラー",
-    fx.content[0].text.includes("demos/invoice-pdf") && fx.content[0].text.includes("@platform/pdf") && fxErr.isError === true);
+    fx.content[0].text.includes("invoice") && fx.content[0].text.includes("@platform/tax") && fxErr.isError === true);
   const rules = await tools.find((t) => t.name === "explain_rules").handler({});
   ok("MCP explain_rules: 規約+アーキ+検査コマンドを返す・説明に『書く前に必ず』",
     rules.content[0].text.includes("開発規約") && rules.content[0].text.includes("check-deps.mjs") &&
@@ -9918,10 +9920,12 @@ export const z = anyChain;
     guide.includes("check-ports") && guide.includes("--port") && guide.includes("process.env を直接読まない") &&
     guide.includes("チェックリスト") && guide.includes("gen:all"));
 
-  // デモの実態(起動可1/部品24)が README と一致
+  // demos は統合により 1 サイトのみ。README がその前提を説明しているか
   const demoReadme = await fsc.readFile(new URL("../demos/README.md", import.meta.url), "utf8");
-  ok("demos/README: アプリ型/コンポーネント型の区別を明記(誤解を招く『pnpm dev で動く』を修正)",
-    demoReadme.includes("アプリ型") && demoReadme.includes("コンポーネント型") && demoReadme.includes("find_examples"));
+  ok("demos/README: 1サイトに集約した理由・区分・Amplify 手順・実物は apps/ にあることを明記",
+    demoReadme.includes("1 サイトだけ") && demoReadme.includes("デプロイ対象が増える") &&
+    demoReadme.includes("基盤デモ") && demoReadme.includes("アプリデモ") &&
+    demoReadme.includes("App root") && demoReadme.includes("実物ではありません"));
 }
 
 // ── 導入ガイド(GETTING_STARTED)の記載が実態と一致するか ──
@@ -10201,7 +10205,7 @@ export const z = anyChain;
     await fsc.writeFile(`${base}/${f}.ts`, src);
   }
   await fsc.writeFile(`${base}/index.ts`, `export * from "${base}/stats.ts";\nexport * from "${base}/runner.ts";\nexport * from "${base}/scenario.ts";\n`);
-  await fsc.writeFile(`${base}/scen.ts`, (await fsc.readFile(new URL("../demos/loadtest-scenarios/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/loadtest"', `from "${base}/index.ts"`).replace(/\.js"/g, '.ts"'));
+  await fsc.writeFile(`${base}/scen.ts`, (await fsc.readFile(new URL("../demos/showcase/src/examples/loadtest-scenarios.ts", import.meta.url), "utf8")).replace('from "@platform/loadtest"', `from "${base}/index.ts"`).replace(/\.js"/g, '.ts"'));
   const S = await import(`${base}/scen.ts`);
   const L = await import(`${base}/index.ts`);
 
@@ -10975,7 +10979,7 @@ export const z = anyChain;
   for (const pkg of ["task", "faq", "contract"]) {
     await fsc.writeFile(`${base}/${pkg}.ts`, (await fsc.readFile(new URL(`../packages/${pkg}/src/${pkg}.ts`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
   }
-  let src = (await fsc.readFile(new URL("../demos/workplace-ops/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  let src = (await fsc.readFile(new URL("../demos/showcase/src/examples/workplace-ops.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
   for (const pkg of ["task", "faq", "contract"]) src = src.replace(`from "@platform/${pkg}"`, `from "${base}/${pkg}.ts"`);
   await fsc.writeFile(`${base}/wo.ts`, src);
   const W = await import(`${base}/wo.ts`);
@@ -11018,6 +11022,86 @@ export const z = anyChain;
   ok("formatTodoList: Slack/メモ用のテキスト(🔴🟡⚪ と → アクション)・空なら案内",
     W.formatTodoList(todos).includes("🔴") && W.formatTodoList(todos).includes("→") &&
     W.formatTodoList([]) === "今日やるべきことはありません。");
+
+  await fsc.rm(base, { recursive: true, force: true });
+}
+
+// ── 統合デモサイト(1サイトに集約・Amplify 向け) ──
+{
+  section("統合デモサイト");
+  const fsc = await import("node:fs/promises");
+  const osc = await import("node:os");
+  const base = `${osc.tmpdir()}/ds-${Date.now()}`;
+  await fsc.mkdir(base, { recursive: true });
+  await fsc.writeFile(`${base}/ui.ts`, `export interface NavItem { label: string; href?: string; children?: NavItem[]; external?: boolean }\n`);
+  await fsc.writeFile(`${base}/nav.ts`, (await fsc.readFile(new URL("../demos/showcase/src/lib/nav.ts", import.meta.url), "utf8"))
+    .replace(/\.js"/g, '.ts"').replace('from "@platform/ui"', `from "${base}/ui.ts"`));
+  const N = await import(`${base}/nav.ts`);
+
+  ok("nav: 区分は3つ(基盤デモ/アプリデモ/使用例)・メニュー上は分かれて見える",
+    N.SECTIONS.length === 3 &&
+    N.SECTIONS.map((s) => s.title).join(",") === "基盤デモ,アプリデモ,使用例");
+  ok("nav: 基盤デモ31・アプリデモ5・使用例9 = 45件(data-console は画面を持つので基盤デモ側)",
+    N.PLATFORM_DEMOS.length === 31 && N.APP_DEMOS.length === 5 && N.CODE_EXAMPLES.length === 9 &&
+    N.allDemos().length === 45);
+  ok("buildNavItems: 区分ごとに入れ子(1サイトだが別物として映る)",
+    N.buildNavItems().length === 3 && N.buildNavItems().every((n) => Array.isArray(n.children) && n.children.length > 0));
+
+  // 基盤デモの href が実画面と一致するか(リンク切れ防止)
+  const missing = [];
+  for (const d of N.PLATFORM_DEMOS) {
+    const p = new URL(`../demos/showcase/src/app${d.href}/page.tsx`, import.meta.url);
+    try { await fsc.access(p); } catch { missing.push(d.href); }
+  }
+  ok("nav: 基盤デモ30件すべてに実画面がある(リンク切れなし)", missing.length === 0);
+
+  // アプリデモの画面が実在するか
+  const appMissing = [];
+  for (const d of N.APP_DEMOS) {
+    const p = new URL(`../demos/showcase/src/app${d.href}/page.tsx`, import.meta.url);
+    try { await fsc.access(p); } catch { appMissing.push(d.href); }
+  }
+  ok("アプリデモ5件(社内/備品/公開サイト/CRUD/ポータル)の画面が実在", appMissing.length === 0);
+
+  // 「実物ではない」ことを画面に明示しているか(誤解を招かないため)
+  const internal = await fsc.readFile(new URL("../demos/showcase/src/app/apps/internal/internal-client.tsx", import.meta.url), "utf8");
+  ok("アプリデモ: 実物ではなくモックだと画面に明示(apps/ の実物と混同させない)",
+    internal.includes("これは <strong>デモ</strong> です") && internal.includes("apps/internal-app") &&
+    internal.includes("モックデータ") && internal.includes("DB を使いません"));
+
+  // DB に依存していないか(Amplify に単体で載る条件)
+  const srcFiles = [];
+  const walk = async (dir) => {
+    for (const e of await fsc.readdir(dir, { withFileTypes: true })) {
+      const p = `${dir}/${e.name}`;
+      if (e.isDirectory()) await walk(p);
+      else if (/\.tsx?$/.test(e.name)) srcFiles.push(p);
+    }
+  };
+  await walk(new URL("../demos/showcase/src", import.meta.url).pathname);
+  const dbDeps = [];
+  for (const f of srcFiles) {
+    const s = await fsc.readFile(f, "utf8");
+    // import 文だけを見る(説明文の `@platform/db` という表記に反応しないように)
+    if (/^\s*import[^\n]*from\s+"(@platform\/db|@prisma\/client)"/m.test(s)) dbDeps.push(f.split("/").pop());
+  }
+  ok("統合デモサイトは DB 非依存(Amplify に単体でデプロイできる)", dbDeps.length === 0);
+
+  // Amplify 設定(ルートに置く。Amplify は直下の amplify.yml しか読まない)
+  const amplify = await fsc.readFile(new URL("../amplify.yml", import.meta.url), "utf8");
+  ok("amplify.yml: デモサイトを指す・corepack で pnpm 有効化・ルートから install・キャッシュ",
+    amplify.includes("appRoot: demos/showcase") && amplify.includes("corepack enable") &&
+    amplify.includes("pnpm install --frozen-lockfile") && amplify.includes("--filter showcase-demo build") &&
+    amplify.includes("baseDirectory: .next") && amplify.includes("cache:"));
+  ok("amplify.yml は 1 つだけ(2 つあるとどちらが読まれるか分からない)",
+    await fsc.access(new URL("../demos/showcase/amplify.yml", import.meta.url)).then(() => false).catch(() => true));
+
+  // transpilePackages の漏れ(ビルドしないと気づけない)
+  const cfg = await fsc.readFile(new URL("../demos/showcase/next.config.mjs", import.meta.url), "utf8");
+  const pkgJson = JSON.parse(await fsc.readFile(new URL("../demos/showcase/package.json", import.meta.url), "utf8"));
+  const deps = Object.keys(pkgJson.dependencies).filter((k) => k.startsWith("@platform/"));
+  ok(`next.config: transpilePackages が package.json の依存と一致(${deps.length}件・漏れるとビルド失敗)`,
+    deps.every((d) => cfg.includes(`"${d}"`)));
 
   await fsc.rm(base, { recursive: true, force: true });
 }

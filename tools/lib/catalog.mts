@@ -162,32 +162,24 @@ export interface DemoEntry {
 
 /** demos/ の一覧を読む。「この機能の使用例はどこ?」に答えるため。 */
 export function loadDemos(deps: CatalogDeps): DemoEntry[] {
-  const dir = path.join(deps.root, "demos");
-  if (!existsSync(dir)) return [];
+  // 統合デモサイト(demos/showcase)の nav.ts が唯一の出典。
+  // 以前は demos/* の各フォルダを走査していたが、1 サイトに集約したため
+  // nav.ts の DemoEntry を読む(サイトの表示と検索結果が食い違わない)。
+  const navPath = path.join(deps.root, "demos/showcase/src/lib/nav.ts");
+  if (!existsSync(navPath)) return [];
+  const src = readFileSync(navPath, "utf8");
+
   const out: DemoEntry[] = [];
-  for (const name of readdirSync(dir)) {
-    const demoDir = path.join(dir, name);
-    if (!existsSync(path.join(demoDir, "README.md"))) continue;
-    const readme = readFileSync(path.join(demoDir, "README.md"), "utf8");
-    const lines = readme.split("\n").map((l) => l.trim()).filter(Boolean);
-    const summary = lines.find((l) => !l.startsWith("#")) ?? "";
-    // README とソースから @platform/* の言及を拾う
-    const packages = new Set<string>();
-    for (const m of readme.matchAll(/@platform\/([a-z0-9-]+)/g)) if (m[1]) packages.add(m[1]);
-    const walk = (d: string): void => {
-      let entries;
-      try { entries = readdirSync(d, { withFileTypes: true }); } catch { return; }
-      for (const e of entries) {
-        const p = path.join(d, e.name);
-        if (e.isDirectory()) { if (e.name !== "node_modules" && e.name !== ".next") walk(p); }
-        else if (/\.(ts|tsx|mts)$/.test(e.name)) {
-          const body = readFileSync(p, "utf8");
-          for (const m of body.matchAll(/from "@platform\/([a-z0-9-]+)"/g)) if (m[1]) packages.add(m[1]);
-        }
-      }
-    };
-    walk(path.join(demoDir, "src"));
-    out.push({ name, summary, packages: [...packages].sort() });
+  // { href: "...", title: "...", desc: "...", packages: [...] } を拾う
+  const re = /\{\s*href:\s*"([^"]+)",\s*title:\s*"([^"]+)",\s*desc:\s*"([^"]+)",\s*\n?\s*packages:\s*\[([^\]]*)\]/g;
+  for (const m of src.matchAll(re)) {
+    const href = m[1] ?? "";
+    const title = m[2] ?? "";
+    const desc = m[3] ?? "";
+    const packages = [...(m[4] ?? "").matchAll(/"([a-z0-9-]+)"/g)].map((x) => x[1] ?? "").filter(Boolean).sort();
+    // name は href の末尾(/apps/internal → apps-internal)
+    const name = href.replace(/^\//, "").replace(/\//g, "-") || "home";
+    out.push({ name, summary: `${title} — ${desc}`, packages });
   }
   return out.sort((a, b) => a.name.localeCompare(b.name));
 }

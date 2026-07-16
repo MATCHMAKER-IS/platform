@@ -1,7 +1,7 @@
 /**
  * オフライン検証ゲートの一括実行(依存インストール不要)。人も CI(boundaries)もこれ1本。
  *   node tools/preflight.mjs      (= pnpm verify:offline)
- * 内容: smoke / check-deps / api-surface(差分検査) / check-schema ×3 / check-env-example / check-doc-numbers / check-ports / check-package-shape / check-docs-links / check-docs-duplication / check-e2e-quality / check-app-rules / setup.sh 構文
+ * 内容: smoke / check-deps / api-surface(差分検査) / check-schema ×3 / check-env-example / check-doc-numbers / check-ports / check-package-shape / check-docs-links / check-docs-duplication / check-e2e-quality / check-app-rules / check-showcase-deps / setup.sh 構文
  */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -38,6 +38,7 @@ allOk = run("check-docs-links", "node", ["tools/check-docs-links.mjs"]) && allOk
 run("check-docs-duplication", "node", ["tools/check-docs-duplication.mjs"]);  // 資料の重複(警告のみ・CI は落とさない)
 allOk = run("check-e2e-quality", "node", ["tools/check-e2e-quality.mjs"]) && allOk;  // E2E の Flaky リスク(固定待ち等)
 allOk = run("check-app-rules", "node", ["tools/check-app-rules.mjs"]) && allOk;  // apps が基盤の役割を侵していないか(CLAUDE.md の規約)
+allOk = run("check-showcase-deps", "node", ["tools/check-showcase-deps.mjs"]) && allOk;  // デモサイトの依存漏れ(ビルドしないと気づけない)
 allOk = run("advisor(dup検出)", "node", ["tools/advisor.mjs", "dup"]) && allOk;
 if (existsSync("/bin/bash") || existsSync("/usr/bin/bash")) {
   allOk = run("setup.sh 構文", "bash", ["-n", "scripts/setup.sh"]) && allOk;

@@ -17,6 +17,8 @@ const checks = [
   { gen: ["tools/gen-app-map.mjs", "internal-app"], file: "docs/platform/appmap/internal-app.md" },
   { gen: ["tools/gen-app-map.mjs", "crud-template"], file: "docs/platform/appmap/crud-template.md" },
   { gen: ["tools/gen-depgraph.mjs"], file: "docs/platform/depgraph.md" },
+  // 使用例のソース(実行時に読まないよう固めたもの。古いとデモサイトの表示が実態とずれる)
+  { gen: ["tools/gen-example-sources.mjs"], file: "demos/showcase/src/lib/example-sources.generated.ts" },
 ];
 
 let ng = 0;

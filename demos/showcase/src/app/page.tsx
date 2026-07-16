@@ -1,75 +1,86 @@
 /**
- * ショーケースのトップ。どのデモがどの基盤パッケージを使うかを一覧する。
+ * 統合デモサイトのトップ。
+ *
+ * **区分ごとにまとめて見せる**(基盤デモ / アプリデモ / 使用例)。
+ * 1 サイトだが、利用者には別物として映るようにする。
  */
 import Link from "next/link";
-
-const demos = [
-  { href: "/inquiries", title: "問い合わせフォーム", desc: "入力検証→受付→確認メール→一覧→Excel出力の縦一本",
-    packages: ["validation", "ui", "http", "datetime", "mail", "xlsx"] },
-  { href: "/security", title: "暗号化と権限(RBAC)", desc: "機密データの暗号化/復号と、ロールごとの権限判定",
-    packages: ["crypto", "auth"] },
-  { href: "/ui", title: "UI コンポーネント", desc: "ボタン・入力・スライダー・コンボボックス・カルーセルなど共通部品",
-    packages: ["ui"] },
-  { href: "/register", title: "会員登録フォーム", desc: "zodスキーマ→型安全フォーム。郵便番号から住所を自動入力",
-    packages: ["form", "validation", "ui", "address"] },
-  { href: "/components", title: "追加コンポーネント", desc: "DataTable・Steps・Toast・各種ダイアログ・テンキー・リッチテキストエディタ",
-    packages: ["ui"] },
-  { href: "/views", title: "表示切替 / ページネーション", desc: "カード/リスト/ブロック表示・ページネーション・トップに戻る",
-    packages: ["ui"] },
-  { href: "/charts", title: "グラフ(チャート)", desc: "棒/積み上げ/折れ線/円/レーダー/散布/複合/ガント/ヒートマップ/ツリーマップ/ファネル",
-    packages: ["ui"] },
-  { href: "/board", title: "ダッシュボード", desc: "グリッドレイアウト・KPIカード・CSV/PNGエクスポート付きチャート",
-    packages: ["ui", "csv"] },
-  { href: "/live-dashboard", title: "ライブダッシュボード", desc: "DnD配置・レイアウト保存・ポーリング自動更新",
-    packages: ["ui", "realtime"] },
-  { href: "/ws", title: "WebSocketリアルタイム", desc: "実サーバ連携(pnpm ws:demo)・差分更新",
-    packages: ["ui", "realtime"] },
-  { href: "/files", title: "アップロード / ダウンロード", desc: "進捗付きアップロード→検証→保存→ダウンロード",
-    packages: ["upload", "storage", "ui"] },
-  { href: "/device", title: "端末・ブラウザ情報", desc: "OS・ブラウザ・画面・ネットワーク・ロケール・位置情報",
-    packages: ["device", "ui"] },
-  { href: "/bluetooth", title: "Bluetooth(BLE)", desc: "レシートプリンタ印刷・イヤホン電池/機器情報",
-    packages: ["bluetooth", "print", "ui"] },
-  { href: "/hid", title: "PC周辺機器(WebHID)", desc: "HID機器に接続して入力レポート受信",
-    packages: ["hid", "ui"] },
-  { href: "/session", title: "セッション / クッキー", desc: "封緘クッキーセッションでログイン→読み取り→ログアウト",
-    packages: ["session", "ui"] },
-  { href: "/invoice", title: "帳票(請求書)", desc: "消費税計算(税率別・内税/外税・インボイス)→ 印刷用HTML",
-    packages: ["report", "pdf"] },
-  { href: "/theme", title: "テーマ機構(スキン)", desc: "11スキンの切り替え・全トークン表示・WCAGコントラスト検査。後から拡張可",
-    packages: ["theme", "ui", "color"] },
-];
+import { SECTIONS, allDemos } from "../lib/nav.js";
 
 export default function Page() {
+  const total = allDemos().length;
+
   return (
-    <main style={{ maxWidth: 760, margin: "3rem auto", padding: "0 1rem" }}>
-      <h1 style={{ fontSize: "1.6rem", fontWeight: 700 }}>基盤ショーケース</h1>
-      <p style={{ color: "var(--color-muted)", marginTop: ".5rem" }}>
-        <code>@platform/*</code> の使い方を動く形で示すデモです。各カードから機能を試せます。
-      </p>
-      <div style={{ display: "grid", gap: "1rem", marginTop: "1.5rem" }}>
-        {demos.map((d) => (
-          <Link
-            key={d.href}
-            href={d.href}
-            style={{
-              display: "block", padding: "1.25rem", textDecoration: "none", color: "inherit",
-              border: "1px solid var(--color-border)", borderRadius: "var(--radius)",
-            }}
-          >
-            <div style={{ fontWeight: 600, fontSize: "1.1rem" }}>{d.title}</div>
-            <div style={{ color: "var(--color-muted)", marginTop: ".25rem" }}>{d.desc}</div>
-            <div style={{ marginTop: ".75rem", display: "flex", gap: ".4rem", flexWrap: "wrap" }}>
-              {d.packages.map((p) => (
-                <span key={p} style={{
-                  fontSize: ".75rem", padding: ".15rem .5rem", borderRadius: "999px",
-                  background: "#f1f5f9", color: "var(--color-muted)",
-                }}>@platform/{p}</span>
-              ))}
-            </div>
-          </Link>
-        ))}
-      </div>
-    </main>
+    <div style={{ maxWidth: 1000, margin: "0 auto", padding: "32px 24px 64px" }}>
+      <header style={{ marginBottom: 32 }}>
+        <h1 style={{ fontSize: 26, margin: "0 0 8px" }}>基盤デモ</h1>
+        <p style={{ fontSize: 14, color: "var(--color-muted)", margin: 0, lineHeight: 1.8 }}>
+          社内基盤(<code>@platform/*</code>)で何ができるかを、動く画面で見せます。
+          <br />
+          全 {total} デモ。すべて <strong>DB 不要</strong>(メモリ・モックデータ)で動きます。
+        </p>
+      </header>
+
+      {SECTIONS.map((section) => (
+        <section key={section.title} id={section.title} style={{ marginBottom: 40 }}>
+          <div style={{ marginBottom: 12, paddingBottom: 8, borderBottom: "2px solid var(--color-border)" }}>
+            <h2 style={{ fontSize: 18, margin: "0 0 4px" }}>
+              {section.title}
+              <span style={{ fontSize: 12, fontWeight: 400, color: "var(--color-muted)", marginLeft: 8 }}>
+                {section.items.length} 件
+              </span>
+            </h2>
+            <p style={{ fontSize: 12.5, color: "var(--color-muted)", margin: 0 }}>{section.description}</p>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 12 }}>
+            {section.items.map((demo) => (
+              <Link
+                key={demo.href + demo.title}
+                href={demo.href}
+                style={{
+                  display: "block",
+                  padding: 14,
+                  borderRadius: "var(--radius, 10px)",
+                  border: "1px solid var(--color-border)",
+                  background: "var(--color-surface)",
+                  textDecoration: "none",
+                  color: "var(--color-fg)",
+                }}
+              >
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{demo.title}</div>
+                <div style={{ fontSize: 12, color: "var(--color-muted)", lineHeight: 1.6, marginBottom: 8 }}>
+                  {demo.desc}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  {demo.packages.map((p) => (
+                    <span
+                      key={p}
+                      style={{
+                        fontSize: 10,
+                        padding: "2px 6px",
+                        borderRadius: 999,
+                        background: "var(--color-bg)",
+                        border: "1px solid var(--color-border)",
+                        color: "var(--color-muted)",
+                      }}
+                    >
+                      {p}
+                    </span>
+                  ))}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ))}
+
+      <footer style={{ marginTop: 48, paddingTop: 16, borderTop: "1px solid var(--color-border)", fontSize: 12, color: "var(--color-muted)", lineHeight: 1.8 }}>
+        <strong>このサイトについて</strong>
+        <br />
+        アプリデモは、実際の業務アプリ(<code>apps/</code>)の画面を<strong>モックデータで再現</strong>したものです。
+        実物は DB を使いますが、このサイトは DB を持たないため、単体でデプロイできます。
+      </footer>
+    </div>
   );
 }
