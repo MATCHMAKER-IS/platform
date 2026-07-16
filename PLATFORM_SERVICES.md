@@ -4065,3 +4065,31 @@ interface EmptyStateProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "ti
 ### 検証
 - smoke **1,243 項目 all pass**・preflight 全緑
 - **api-surface: 破壊的変更 0 件**(引数を `_now` にしても公開 API は変わらない)
+
+---
+
+## 型は export しないと「推論できない」エラーになる
+
+```
+Type error: The inferred type of 'mailMemory' cannot be named without a reference to
+'../../node_modules/@platform/mail/src/transports/memory'. This is likely not portable.
+```
+
+```ts
+export const mailMemory = createMemoryTransport();   // ❌
+```
+
+`createMemoryTransport()` は export されているが、**戻り値の `MemoryTransport` 型が
+export されていなかった**。TypeScript は型に名前を付けられず、内部パスを参照しようとする。
+
+**`main` を src にした副作用**でもある(dist なら .d.ts があるので起きにくい)。
+
+**修正**: 型も export する。
+```ts
+export { createMemoryTransport, type MemoryTransport } from "./transports/memory";
+```
+`@platform/mail` と `@platform/sms` の 2 件。
+
+### 検査で見つけた 16 件のうち 14 件は誤検知
+`index.ts` 内で直接 `export interface` していれば問題ない。
+**別ファイルから `export { createXxx }` だけしている**ものが該当した。

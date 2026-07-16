@@ -103,7 +103,7 @@ export function createMailer(options: MailerOptions): Mailer {
 }
 
 export { createSmtpTransport } from "./transports/smtp";
-export { createMemoryTransport } from "./transports/memory";
+export { createMemoryTransport, type MemoryTransport } from "./transports/memory";
 
 export * from "./email";
 export { withMailRetry, createFallbackMailTransport, type MailRetryOptions, type MailFallbackOptions } from "./resilient";

@@ -1454,6 +1454,7 @@
     "MailTransport",
     "Mailer",
     "MailerOptions",
+    "MemoryTransport",
     "PolicyApplication",
     "RecipientPolicy",
     "RenderedEmail",
@@ -2143,6 +2144,7 @@
     "visibleBlocks"
   ],
   "@platform/sms": [
+    "MemorySmsTransport",
     "OtpSmsOptions",
     "Sms",
     "SmsEncoding",
