@@ -3414,3 +3414,39 @@ turbopack: { root: path.join(__dirname, "../..") }   // モノレポのルート
 モノレポなら**ワークスペースのルート**を指す。
 
 smoke で「root がモノレポのルートか」を検査する(`__dirname` 単体だと落とす)。
+
+---
+
+## Amplify ビルド 6 回目 — Turbopack を諦め、webpack にした
+
+`turbopack.root` をモノレポのルートにしたら、**また 103 件に戻った**。
+
+### 3 通り試した結果
+| `turbopack.root` | 結果 |
+|---|---|
+| 未指定 | `Module not found` 103 件 |
+| `__dirname`(showcase) | `We couldn't find the Next.js package (next/package.json)` 1 件 |
+| `../..`(モノレポのルート) | `Module not found` 103 件 |
+
+**pnpm の isolated な node_modules 構造と、Turbopack の root 解決が噛み合っていない**。
+root を showcase にすると next が見えず、ルートにすると相対 import が見えない。
+
+### 判断: webpack を使う
+```json
+"build": "next build --no-turbopack"
+```
+
+**理由**:
+- Turbopack の root 問題が 3 通り試して解けない
+- **この環境で `next build` を検証できない**ので、試行錯誤にお時間を取らせてしまう
+- webpack は枯れており、モノレポでの実績が豊富
+- デモサイトなのでビルド時間の差は誤差
+
+**戻す条件**: Turbopack の設定が分かったら戻す。そのときは**ローカルで
+`pnpm --filter showcase-demo build` が通ることを確認してから**。
+
+経緯は `next.config.mjs` のコメントに残した(次に触る人が同じ 3 通りを試さないように)。
+
+### amplify.yml も修正
+`pnpm exec next build` だと **package.json のスクリプトを経由せず**、`--no-turbopack` が
+効かない。`pnpm run build` に変えた。

@@ -101,33 +101,18 @@ git push
 
 ### `Turbopack build failed with N errors` / `Module not found` が全画面で出る
 
-**Turbopack が root を誤認**しています。モノレポでは `pnpm-workspace.yaml` を見つけて
-**リポジトリのルートを root と判断**してしまい、`node_modules` も相対 import も解決できません。
+**このプロジェクトは webpack でビルドします**(`next build --no-turbopack`)。
+Turbopack がモノレポで root を解決できず、以下のどれを試しても失敗したためです:
 
-`next.config.mjs` に root を明示してください(既に入っています):
+| `turbopack.root` | 結果 |
+|---|---|
+| 未指定 | `Module not found` が 103 件 |
+| `__dirname`(showcase) | `We couldn't find the Next.js package (next/package.json)` |
+| `../..`(モノレポのルート) | `Module not found` が 103 件 |
 
-```js
-turbopack: {
-  root: path.join(__dirname, "../.."),   // モノレポのルート
-}
-```
+pnpm の isolated な `node_modules` 構造と噛み合っていません。
 
-**`root: __dirname`(showcase 自身)にしてはいけません**。pnpm は `node_modules` を
-ルートに集約するので、showcase を root にすると `next/package.json` すら見つかりません:
-
-```
-We couldn't find the Next.js package (next/package.json) from
-.../demos/showcase/src/app
-```
-
-**ローカルの `pnpm dev` では起きません**。`next build` で初めて出るので、
-デプロイして気づく類の問題です。
-
-これでも直らない場合は、**webpack へフォールバック**します:
-
-```json
-"build": "next build --no-turbopack"
-```
+もし `package.json` の build から `--no-turbopack` を外すと、また失敗します。
 
 ### `Cannot find module '@platform/xxx'`
 

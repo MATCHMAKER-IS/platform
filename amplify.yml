@@ -45,7 +45,9 @@ applications:
           commands:
             # preBuild の cd でモノレポのルートに居る。そこから appRoot へ入り直す。
             # 1 コマンドにまとめるので、cd と build が必ずセットで効く。
-            - pwd && cd demos/showcase && pwd && pnpm exec next build
+            # package.json の build スクリプトを使う(--no-turbopack が付いている)。
+            # `pnpm exec next build` だとスクリプトを経由せず、Turbopack で動いてしまう。
+            - pwd && cd demos/showcase && pwd && pnpm run build
       artifacts:
         # artifacts は appRoot からの相対(Amplify が解決する)
         baseDirectory: .next
