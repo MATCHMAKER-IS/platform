@@ -49,7 +49,25 @@ export function check() {
     }
   }
 
-  // 2. ソースの import が package.json にあるか
+  // 2. ルートの scripts が実在するワークスペース名を指しているか
+  //    (--filter に存在しない名前を書いても、実行するまで気づけない)
+  const rootPkg = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8"));
+  const names = new Set();
+  for (const dir of ["apps", "demos", "packages"]) {
+    const base = path.join(ROOT, dir);
+    if (!existsSync(base)) continue;
+    for (const name of readdirSync(base)) {
+      const pj = path.join(base, name, "package.json");
+      if (existsSync(pj)) names.add(JSON.parse(readFileSync(pj, "utf8")).name);
+    }
+  }
+  for (const [key, cmd] of Object.entries(rootPkg.scripts ?? {})) {
+    for (const m of String(cmd).matchAll(/--filter\s+([@\w/-]+)/g)) {
+      if (!names.has(m[1])) issues.push(`scripts.${key}: --filter ${m[1]} は実在しません`);
+    }
+  }
+
+  // 3. ソースの import が package.json にあるか
   const sources = collectSources(path.join(SITE, "src"));
   const imported = new Set();
   for (const f of sources) {

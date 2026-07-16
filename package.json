@@ -25,7 +25,7 @@
     "deps:why": "pnpm why",
     "dev": "turbo run dev",
     "dev:crud": "pnpm --filter crud-template dev",
-    "dev:demos": "pnpm --filter @demos/showcase dev",
+    "dev:demos": "pnpm --filter showcase-demo dev",
     "dev:equipment": "pnpm --filter equipment-app dev",
     "dev:internal": "pnpm --filter internal-app dev",
     "dev:portal": "pnpm --filter platform-portal dev",

@@ -1,18 +1,19 @@
 # AWS Amplify Hosting のビルド定義。
 #
 # 【何をデプロイするか】
-# 統合デモサイト(demos/showcase)。DB を持たないので、Amplify だけで完結する。
+# 統合デモサイト(demos/showcase)。DB を持たないので Amplify だけで完結する。
 # RDS などのバックエンドは不要。
 #
 # 【Amplify コンソール側の設定】
 # 1. リポジトリを接続するとき「モノレポ」を選ぶ
 # 2. App root(モノレポのルートディレクトリ)に `demos/showcase` を指定
-# 3. プラットフォームは自動で「Next.js SSR」(WEB_COMPUTE)になる
-#    → ならない場合は、アプリの設定で明示的に切り替える
+#    → 以降のコマンドは demos/showcase で実行される
 #
-# 【apps/internal-app をデプロイしたい場合】
-# このファイルの appRoot を変え、DATABASE_URL 等の環境変数と RDS を用意する。
-# 手順は docs/ops/DEPLOY_AWS.md を参照。
+# 【重要】build は demos/showcase で実行する
+# `cd ../.. && pnpm --filter showcase-demo build` にすると、Next.js が
+# **モノレポのルートで動いてしまい**、相対 import も node_modules も解決できない
+# (Turbopack が ./demos/showcase/... を基準にしてしまう)。
+# install だけルートで行い、build は appRoot のまま実行する。
 version: 1
 applications:
   - appRoot: demos/showcase
@@ -23,12 +24,12 @@ applications:
             # pnpm を有効にする(Amplify の既定イメージには入っていない)
             - corepack enable
             - corepack prepare pnpm@9.15.0 --activate
-            # モノレポなのでルートから install する(workspace の解決に必要)
+            # install だけはルートで(workspace 全体の解決に必要)
             - cd ../.. && pnpm install --frozen-lockfile
         build:
           commands:
-            # ルートから filter で対象を指定する(依存パッケージもビルドされる)
-            - cd ../.. && pnpm --filter showcase-demo build
+            # ここは demos/showcase(appRoot)のまま実行する
+            - pnpm build
       artifacts:
         baseDirectory: .next
         files:

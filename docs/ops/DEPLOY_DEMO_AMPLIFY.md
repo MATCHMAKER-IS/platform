@@ -71,6 +71,26 @@ git push
 
 モノレポのルートディレクトリが設定されていません。手順 2 を確認してください。
 
+### `Module not found: Can't resolve '...'` が大量に出る(103 件など)
+
+**build をモノレポのルートで実行している**のが原因です。`amplify.yml` の build が
+
+```yaml
+- cd ../.. && pnpm --filter showcase-demo build   # ❌ これはダメ
+```
+
+になっていると、Next.js がルートで動き、**相対 import も `node_modules` も解決できません**
+(Turbopack が `./demos/showcase/...` を基準にしてしまう)。
+
+正しくは、**appRoot のまま実行**します:
+
+```yaml
+- pnpm build   # ✅ demos/showcase で実行される
+```
+
+`install` はルートで行う必要があります(workspace 全体の解決のため)が、
+**build は appRoot のまま**です。
+
 ### `Cannot find module '@platform/xxx'`
 
 `transpilePackages` の漏れです。ローカルで確認できます:

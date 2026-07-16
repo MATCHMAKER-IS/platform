@@ -3219,3 +3219,61 @@ smoke で「1 つだけ」を検査する。
 - 環境変数は不要(DB も外部 API も使わない)
 - **失敗したときのエラー別の対処**(`pnpm: command not found` / `ERR_PNPM_NO_LOCKFILE` /
   `No Next.js version detected` / `Cannot find module '@platform/xxx'` / 画面が真っ白)
+
+---
+
+## 【発見】`pnpm dev:demos` が動かなかった
+
+lock を作る前の確認で見つけた。ルートの `package.json` に:
+
+```json
+"dev:demos": "pnpm --filter @demos/showcase dev"
+```
+
+とあったが、**実際のパッケージ名は `showcase-demo`**。`@demos/showcase` は存在しないので、
+**このコマンドは失敗する**(README に書いてあるのに動かない状態だった)。
+
+**修正**: `pnpm --filter showcase-demo dev` に。
+
+**再発防止**: `check-showcase-deps.mjs` に「**ルートの scripts が実在するワークスペース名を
+指しているか**」の検査を追加した。`--filter` に存在しない名前を書いても、**実行するまで気づけない**ため。
+
+---
+
+## Amplify ビルド失敗の原因を特定 —【私の amplify.yml の誤り】
+
+ログをいただき、**103 件の `Module not found`** から原因を特定した。
+
+### 何が起きたか
+`pnpm install` は成功していた(941 パッケージ・54.7 秒)。問題は **build の実行場所**。
+
+```yaml
+- cd ../.. && pnpm --filter showcase-demo build   # ❌ 私が書いたもの
+```
+
+これだと **Next.js がモノレポのルートで動く**。Turbopack が `./demos/showcase/...` を
+基準にしてしまい、**相対 import も `node_modules` も解決できない**。
+
+エラーの内訳がそれを裏づけていた:
+- `@platform/ui`(27 件)・`@platform/http`(6 件)など **既存部分も全滅**
+- `./theme-showcase.js`・`../../server/store.js` など、**私が触っていない相対 import も失敗**
+
+つまり「私の追加分の問題」ではなく、**全部が解決できていない** = 実行場所の問題。
+
+### 修正
+```yaml
+build:
+  commands:
+    - pnpm build   # ✅ appRoot(demos/showcase)のまま実行
+```
+
+`install` はルートで行う必要がある(workspace 全体の解決のため)が、**build は appRoot のまま**。
+
+### 再発防止
+smoke に「**build を `cd ../.. && pnpm --filter` にしていないか**」の検査を追加した
+(わざと壊して検出を確認)。手順書にもエラー例として載せた。
+
+### 教訓
+`--filter` は「そのパッケージのディレクトリで実行する」が、**Next.js のような
+ビルドツールは実行時の cwd に依存する**。モノレポで `--filter` を使うときは、
+**ツールが cwd をどう見るか**を確認する必要がある。

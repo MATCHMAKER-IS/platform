@@ -11089,10 +11089,14 @@ export const z = anyChain;
 
   // Amplify 設定(ルートに置く。Amplify は直下の amplify.yml しか読まない)
   const amplify = await fsc.readFile(new URL("../amplify.yml", import.meta.url), "utf8");
-  ok("amplify.yml: デモサイトを指す・corepack で pnpm 有効化・ルートから install・キャッシュ",
+  ok("amplify.yml: デモサイトを指す・corepack で pnpm 有効化・install はルート・キャッシュ",
     amplify.includes("appRoot: demos/showcase") && amplify.includes("corepack enable") &&
-    amplify.includes("pnpm install --frozen-lockfile") && amplify.includes("--filter showcase-demo build") &&
+    amplify.includes("cd ../.. && pnpm install --frozen-lockfile") &&
     amplify.includes("baseDirectory: .next") && amplify.includes("cache:"));
+  // build を `cd ../.. && pnpm --filter` にすると Next.js がルートで動き、
+  // 相対 import も node_modules も解決できない(実際に 103 件の Module not found で失敗した)
+  ok("amplify.yml: build は appRoot のまま実行する(ルートで動かすと Module not found が 103 件出る)",
+    amplify.includes("- pnpm build") && !/build:[\s\S]{0,200}cd \.\.\/\.\. && pnpm --filter/.test(amplify));
   ok("amplify.yml は 1 つだけ(2 つあるとどちらが読まれるか分からない)",
     await fsc.access(new URL("../demos/showcase/amplify.yml", import.meta.url)).then(() => false).catch(() => true));
 
