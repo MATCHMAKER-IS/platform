@@ -99,6 +99,28 @@ git push
 **このバージョンの Amplify では `AMPLIFY_APP_ROOT` は提供されません**。
 相対パスで移動してください(`amplify.yml` は既にそうなっています)。
 
+### `Turbopack build failed with N errors` / `Module not found` が全画面で出る
+
+**Turbopack が root を誤認**しています。モノレポでは `pnpm-workspace.yaml` を見つけて
+**リポジトリのルートを root と判断**してしまい、`node_modules` も相対 import も解決できません。
+
+`next.config.mjs` に root を明示してください(既に入っています):
+
+```js
+turbopack: {
+  root: __dirname,   // demos/showcase を root にする
+}
+```
+
+**ローカルの `pnpm dev` では起きません**。`next build` で初めて出るので、
+デプロイして気づく類の問題です。
+
+これでも直らない場合は、**webpack へフォールバック**します:
+
+```json
+"build": "next build --no-turbopack"
+```
+
 ### `Cannot find module '@platform/xxx'`
 
 `transpilePackages` の漏れです。ローカルで確認できます:
