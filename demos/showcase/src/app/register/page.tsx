@@ -65,7 +65,9 @@ export default function Page() {
   }
 
   async function lookupAddress() {
-    const zip = form.getValues("zip");
+    // getValues はスキーマ次第で unknown を返すことがあるので、明示的に文字列にする
+    const zip = String(form.getValues("zip") ?? "");
+    if (!zip) return;
     const res = await fetch(`/api/address?zip=${encodeURIComponent(zip)}`);
     const data = await res.json();
     const hit = data.results?.[0];

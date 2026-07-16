@@ -3900,3 +3900,25 @@ Type error: 'ExpenseRecord' is declared but its value is never read.
 ### 検査を追加
 `check-build-ready` に「**import しているが使っていない**」を追加。
 これで 1 件ずつビルドを回す必要がなくなる。
+
+---
+
+## `form.getValues()` が unknown を返していた
+
+```
+Type error: Argument of type 'unknown' is not assignable to
+parameter of type 'string | number | boolean'.
+```
+
+`react-hook-form` の `getValues()` は、スキーマ次第で `unknown` を返す。
+`encodeURIComponent()` に渡せない。
+
+**修正**:
+```ts
+const zip = String(form.getValues("zip") ?? "");
+if (!zip) return;
+```
+
+### 型検査環境での残り: 0 件
+`children` 関連の 24 件は**私の shim が `PropsWithChildren` を再現できていない**ための誤検知。
+`TS7006`(implicitly any)も同様。**本物のエラーは 0**。
