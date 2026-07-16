@@ -1,5 +1,5 @@
 /** ko の基盤UI文言(言語別ファイル・レビュー用に分割)。 */
-import type { Catalog } from "../index.js";
+import type { Catalog } from "../index";
 
 export const ko: Catalog = {
   "column.personalPresets": "개인 프리셋",

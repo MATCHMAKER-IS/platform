@@ -1,8 +1,8 @@
 "use client";
 /** 円グラフ / ドーナツ。 @packageDocumentation */
 import { ResponsiveContainer, PieChart as RPieChart, Pie, Cell, Tooltip, Legend } from "recharts";
-import { cn } from "../../lib/cn.js";
-import { ChartTitle, CHART_COLORS, makeFormatter } from "./chart-common.js";
+import { cn } from "../../lib/cn";
+import { ChartTitle, CHART_COLORS, makeFormatter } from "./chart-common";
 
 /** {@link PieChart} の props。 */
 export interface PieChartProps {

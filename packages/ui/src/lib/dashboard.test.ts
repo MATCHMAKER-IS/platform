@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeShares, donutSegments, achievementRate, funnelStages, relativeTime } from "./dashboard.js";
+import { computeShares, donutSegments, achievementRate, funnelStages, relativeTime } from "./dashboard";
 describe("dashboard viz logic", () => {
   it("computes shares", () => {
     const sh = computeShares([30, 50, 20]);

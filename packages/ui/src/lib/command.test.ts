@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { scoreCommand, filterCommands, groupCommands, nextIndex, type Command } from "./command.js";
+import { scoreCommand, filterCommands, groupCommands, nextIndex, type Command } from "./command";
 const cmds: Command[] = [
   { id: "1", label: "ダッシュボード", keywords: ["home"], group: "ページ" },
   { id: "2", label: "予約一覧", keywords: ["booking"], group: "ページ" },

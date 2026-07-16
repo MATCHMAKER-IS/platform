@@ -5,7 +5,7 @@
  * その結果をこの形に正規化して使う。
  * @packageDocumentation
  */
-import { type SocialPlatform } from "./platforms.js";
+import { type SocialPlatform } from "./platforms";
 
 /** 統合された 1 投稿。 */
 export interface SocialPost {

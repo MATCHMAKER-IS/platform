@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { createGoogleDriveClient } from "./drive.js";
+import { createGoogleDriveClient } from "./drive";
 function fake() {
   const calls: { url: string; method: string }[] = [];
   const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => { calls.push({ url: String(url), method: init?.method ?? "GET" }); return new Response(JSON.stringify({ id: "f1", name: "x" }), { status: 200, headers: { "content-type": "application/json" } }); });

@@ -3,8 +3,8 @@
  * @packageDocumentation
  */
 import { buildAuthorizationUrl, exchangeCodeForToken, getUserInfo, type ZohoDataCenter } from "@platform/zoho/core";
-import { signSession, type SessionPayload } from "./zoho-session.js";
-import { resolveRoles } from "./roles.js";
+import { signSession, type SessionPayload } from "./zoho-session";
+import { resolveRoles } from "./roles";
 
 /** ログイン設定(通常は環境変数から)。 */
 export interface ZohoAuthConfig {

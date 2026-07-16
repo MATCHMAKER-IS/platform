@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { requireSession, requireRole, enforceRateLimit } from "./index.js";
+import { requireSession, requireRole, enforceRateLimit } from "./index";
 import { createRateLimiter, createMemoryStore } from "@platform/ratelimit";
 
 const fakeSession = <T,>(value: T | null) => ({ read: () => value, write: () => "", destroy: () => "" });

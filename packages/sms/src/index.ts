@@ -75,9 +75,9 @@ export function createSms(options: SmsOptions): Sms {
   };
 }
 
-export { createTwilioTransport, type TwilioConfig } from "./transports/twilio.js";
-export { createMemoryTransport } from "./transports/memory.js";
+export { createTwilioTransport, type TwilioConfig } from "./transports/twilio";
+export { createMemoryTransport } from "./transports/memory";
 
-export * from "./segment.js";
-export { withSmsRetry, createFallbackSmsTransport, type SmsRetryOptions, type SmsFallbackOptions } from "./resilient.js";
-export * from "./otp-message.js";
+export * from "./segment";
+export { withSmsRetry, createFallbackSmsTransport, type SmsRetryOptions, type SmsFallbackOptions } from "./resilient";
+export * from "./otp-message";

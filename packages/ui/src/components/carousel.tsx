@@ -6,8 +6,8 @@
 import * as React from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { cn } from "../lib/cn.js";
-import { useT } from "./i18n-provider.js";
+import { cn } from "../lib/cn";
+import { useT } from "./i18n-provider";
 
 /** {@link Carousel} の props。 */
 export interface CarouselProps {

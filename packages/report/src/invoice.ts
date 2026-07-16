@@ -5,7 +5,7 @@
  * - 端数処理は「税率ごとに1回」(適格請求書=インボイス制度のルール)
  * @packageDocumentation
  */
-import { roundAmount, multiply, type RoundingMode } from "./money.js";
+import { roundAmount, multiply, type RoundingMode } from "./money";
 
 /** 明細行の入力。 */
 export interface InvoiceLineInput {

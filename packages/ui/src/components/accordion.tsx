@@ -5,7 +5,7 @@
 import * as React from "react";
 import { Accordion as Primitive } from "radix-ui";
 import { ChevronDown } from "lucide-react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** アコーディオンのルート(`type="single"` か `"multiple"`)。 */
 export const Accordion = Primitive.Root;

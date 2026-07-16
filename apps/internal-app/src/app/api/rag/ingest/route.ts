@@ -1,8 +1,8 @@
 /** RAG 文書登録(POST {title, body, acl})。管理者のみ。ACL でアクセス範囲を明示する。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { ragStore, ensureSeeded } from "../../../../server/rag-service.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { ragStore, ensureSeeded } from "../../../../server/rag-service";
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

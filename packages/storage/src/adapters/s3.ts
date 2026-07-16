@@ -12,7 +12,7 @@ import {
   ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import type { StorageAdapter, PutOptions } from "../index.js";
+import type { StorageAdapter, PutOptions } from "../index";
 
 /** S3 互換ストレージの接続設定。 */
 export interface S3StorageConfig {

@@ -1,10 +1,10 @@
 /**
  * FAQ API。検索・投票・集計は `@platform/faq` の担当。ここは HTTP の入出力だけ。
  */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { faqStore } from "../../../server/faq-repo.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { faqStore } from "../../../server/faq-repo";
 import { searchFaq, byCategory, publishedOnly, sortByHelpfulness, summarizeFaq, needsReview, vote, helpfulRate } from "@platform/faq";
 import { AppError } from "@platform/core";
 

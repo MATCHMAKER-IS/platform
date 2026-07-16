@@ -3,10 +3,10 @@
  * - GET: 現在ユーザーが所属するルームを未読数つきで返す（未読/新しい順）。
  * - POST: ルームを作成し、作成者を owner として登録する。ボディ `{ name, kind?, memberIds? }`。
  */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { chatStore, roomRepo } from "../../../../server/chat.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { chatStore, roomRepo } from "../../../../server/chat";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

@@ -2,8 +2,8 @@
  * Zoho アクセストークンの自動更新マネージャと、それを使う fetch ラッパー。
  * @packageDocumentation
  */
-import { refreshAccessToken } from "./oauth.js";
-import type { ZohoDataCenter } from "./datacenter.js";
+import { refreshAccessToken } from "./oauth";
+import type { ZohoDataCenter } from "./datacenter";
 
 /** トークンマネージャ設定。 */
 export interface TokenManagerConfig {

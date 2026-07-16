@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { appendEvidence, verifyEvidenceChain, hashEvidence, canonicalJson, GENESIS_HASH } from "./hash-chain.js";
+import { appendEvidence, verifyEvidenceChain, hashEvidence, canonicalJson, GENESIS_HASH } from "./hash-chain";
 describe("dencho hash chain (tamper evidence)", () => {
   const build = () => {
     let chain: ReturnType<typeof appendEvidence>[] = [];

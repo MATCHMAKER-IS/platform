@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeUrl, urlsEqual } from "./normalize.js";
+import { normalizeUrl, urlsEqual } from "./normalize";
 describe("url normalize", () => {
   it("normalizes host, query, trailing slash, tracking", () => {
     expect(normalizeUrl("https://EXAMPLE.com/Path")).toBe("https://example.com/Path");

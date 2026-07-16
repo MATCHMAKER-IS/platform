@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { oembedEndpoint, supportsOEmbed } from "./embed.js";
+import { oembedEndpoint, supportsOEmbed } from "./embed";
 describe("social embed", () => {
   it("builds oembed endpoints", () => {
     expect(oembedEndpoint("x", "https://x.com/y/status/123")).toBe("https://publish.twitter.com/oembed?url=https%3A%2F%2Fx.com%2Fy%2Fstatus%2F123");

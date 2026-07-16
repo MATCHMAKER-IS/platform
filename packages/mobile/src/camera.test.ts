@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cameraConstraints, isCameraSupported } from "./camera.js";
+import { cameraConstraints, isCameraSupported } from "./camera";
 describe("camera constraints", () => {
   it("builds constraints for facing/deviceId/resolution", () => {
     expect(cameraConstraints().video).toMatchObject({ facingMode: { ideal: "environment" } });

@@ -8,8 +8,8 @@
  */
 import { PrismaClient, type Prisma } from "@prisma/client";
 import { tryCatch, type Result } from "@platform/core";
-import { mapPrismaError } from "./errors.js";
-import { withTransaction } from "./transaction.js";
+import { mapPrismaError } from "./errors";
+import { withTransaction } from "./transaction";
 
 /** createMany を持つデリゲート。 */
 interface CreateManyDelegate {

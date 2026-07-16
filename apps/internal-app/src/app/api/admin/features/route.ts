@@ -1,9 +1,9 @@
 /** 管理: 機能アクセス設定。カタログ＋現在の規則取得(GET)・規則更新(POST)。管理者のみ。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { featureAccessStore, auditActions } from "../../../../server/platform-services.js";
-import { FEATURE_CATALOG, type FeatureRule } from "../../../../server/feature-access.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { featureAccessStore, auditActions } from "../../../../server/platform-services";
+import { FEATURE_CATALOG, type FeatureRule } from "../../../../server/feature-access";
 
 function admin(req: Request) {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

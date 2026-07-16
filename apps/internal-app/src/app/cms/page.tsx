@@ -1,6 +1,6 @@
 import * as React from "react";
-import { CmsNav } from "./cms-nav.js";
-import { CmsClient } from "./cms-client.js";
+import { CmsNav } from "./cms-nav";
+import { CmsClient } from "./cms-client";
 
 export const metadata = { title: "記事管理" };
 

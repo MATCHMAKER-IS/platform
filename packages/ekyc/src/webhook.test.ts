@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { createHmac } from "node:crypto";
-import { verifyEkycSignature, parseEkycWebhook } from "./webhook.js";
+import { verifyEkycSignature, parseEkycWebhook } from "./webhook";
 describe("ekyc webhook", () => {
   const secret = "whsec";
   const body = JSON.stringify({ application_id: "app_9", status: "approved" });

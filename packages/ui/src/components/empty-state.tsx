@@ -5,7 +5,7 @@
  */
 import * as React from "react";
 import { Inbox } from "lucide-react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link EmptyState} の props。 */
 export interface EmptyStateProps extends React.HTMLAttributes<HTMLDivElement> {

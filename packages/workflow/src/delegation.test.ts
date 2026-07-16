@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { activeDelegations, effectiveRoles, resolveApprovalAuthority } from "./delegation.js";
+import { activeDelegations, effectiveRoles, resolveApprovalAuthority } from "./delegation";
 const now = new Date("2025-07-25T12:00:00Z");
 const dels = [{ from: "bucho", to: "kacho", roles: ["director"], since: new Date("2025-07-20"), until: new Date("2025-07-30") }];
 describe("delegation", () => {

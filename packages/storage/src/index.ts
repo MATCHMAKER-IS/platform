@@ -116,6 +116,6 @@ export function createStorage(adapter: StorageAdapter): Storage {
   };
 }
 
-export { createLocalStorage } from "./adapters/local.js";
-export { createS3Storage, type S3StorageConfig } from "./adapters/s3.js";
-export { withStorageRetry, createFallbackStorage, type StorageRetryOptions, type FallbackStorageOptions } from "./resilient.js";
+export { createLocalStorage } from "./adapters/local";
+export { createS3Storage, type S3StorageConfig } from "./adapters/s3";
+export { withStorageRetry, createFallbackStorage, type StorageRetryOptions, type FallbackStorageOptions } from "./resilient";

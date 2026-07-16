@@ -1,9 +1,9 @@
 /** レポートプリセットの一覧(GET)・追加/削除(POST)。認証ユーザー（自分のプリセット）。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { reportPresetStore } from "../../../../server/platform-services.js";
-import { type PresetReportType } from "../../../../server/report-preset.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { reportPresetStore } from "../../../../server/platform-services";
+import { type PresetReportType } from "../../../../server/report-preset";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

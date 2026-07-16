@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createZohoWorkDriveClient } from "./index.js";
+import { createZohoWorkDriveClient } from "./index";
 describe("zoho workdrive", () => {
   it("json:api create folder", async () => {
     let body: { data?: { attributes?: Record<string, unknown> } } | undefined;

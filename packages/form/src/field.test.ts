@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { evaluateRule, isFieldVisible, visibleFields, defaultValues, stripHiddenValues } from "./field.js";
+import { evaluateRule, isFieldVisible, visibleFields, defaultValues, stripHiddenValues } from "./field";
 const fields = [
   { name: "type", label: "種別", type: "radio" as const, options: [{ value: "corp", label: "法人" }, { value: "ind", label: "個人" }] },
   { name: "company", label: "会社名", type: "text" as const, required: true, visibleWhen: { field: "type", equals: "corp" } },

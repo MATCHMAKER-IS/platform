@@ -2,7 +2,7 @@
  * SMS 通知チャネル。`@platform/sms`(相当)を NotifyChannel に適合させる。
  * @packageDocumentation
  */
-import type { NotifyChannel } from "../index.js";
+import type { NotifyChannel } from "../index";
 
 /** send が Result を返す最小の SMS 送信インターフェース。 */
 export interface SmsLike {

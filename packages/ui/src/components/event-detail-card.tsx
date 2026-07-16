@@ -5,8 +5,8 @@
  */
 import * as React from "react";
 import { Clock, MapPin, Tag, X } from "lucide-react";
-import { cn } from "../lib/cn.js";
-import { type CalendarEvent, formatEventTime } from "../lib/schedule.js";
+import { cn } from "../lib/cn";
+import { type CalendarEvent, formatEventTime } from "../lib/schedule";
 
 /** {@link EventDetailCard} の props。 */
 export interface EventDetailCardProps extends React.HTMLAttributes<HTMLDivElement> {

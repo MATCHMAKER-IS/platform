@@ -1,10 +1,10 @@
 /**
  * ピン留め API。POST でトグル（固定/解除）し、全接続へ同報。DELETE は明示解除（トグル）。
  */
-import { withApiObservability } from "../../../../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../../../../server/env.js";
-import { chatGateway } from "../../../../../../../../server/chat.js";
+import { withApiObservability } from "../../../../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../../../../server/authorize";
+import { serverEnv } from "../../../../../../../../server/env";
+import { chatGateway } from "../../../../../../../../server/chat";
 
 async function toggle(req: Request, roomId: string, messageId: string): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

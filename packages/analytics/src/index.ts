@@ -1,3 +1,3 @@
-export * from "./event.js";
-export * from "./aggregate.js";
-export * from "./browser.js";
+export * from "./event";
+export * from "./aggregate";
+export * from "./browser";

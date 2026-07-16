@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { moveCard, countByColumn } from "./kanban.js";
+import { moveCard, countByColumn } from "./kanban";
 const cols = [{ id: "todo", cards: [{ id: "c1" }, { id: "c2" }] }, { id: "doing", cards: [{ id: "c3" }] }, { id: "done", cards: [] }];
 describe("kanban logic", () => {
   it("moves cards across/within columns immutably", () => {

@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { availableMethods, isTwoFactorEnabled, verifyTwoFactor, verifyAnyTwoFactor } from "./two-factor.js";
-import { generateTotpSecret, totp } from "./totp.js";
-import { generateBackupCodes } from "./recovery-codes.js";
-import { createOtpChallenge } from "./otp.js";
+import { availableMethods, isTwoFactorEnabled, verifyTwoFactor, verifyAnyTwoFactor } from "./two-factor";
+import { generateTotpSecret, totp } from "./totp";
+import { generateBackupCodes } from "./recovery-codes";
+import { createOtpChallenge } from "./otp";
 const secret = "pepper";
 const now = new Date("2025-07-25T12:00:00Z");
 describe("two-factor orchestration", () => {

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { createRedisIdempotencyStore, type RedisIdempotencyClient } from "./idempotency-redis.js";
-import { createSqlOutboxStore, type OutboxDbClient } from "./outbox-sql.js";
-import type { OutboxMessage } from "./outbox.js";
+import { createRedisIdempotencyStore, type RedisIdempotencyClient } from "./idempotency-redis";
+import { createSqlOutboxStore, type OutboxDbClient } from "./outbox-sql";
+import type { OutboxMessage } from "./outbox";
 describe("redis idempotency", () => {
   it("reserve/complete/get/delete", async () => {
     let clk = 0; const m = new Map<string, { val: string; exp: number }>();

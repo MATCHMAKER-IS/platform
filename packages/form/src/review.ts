@@ -4,7 +4,7 @@
  * 詳細画面(レコード表示)で共通に使える。選択肢はラベルに、真偽は はい/いいえ に整形する。
  * @packageDocumentation
  */
-import { type FormField, visibleFields } from "./field.js";
+import { type FormField, visibleFields } from "./field";
 
 /** 表示項目(ラベルと整形済みの値)。 */
 export interface ReviewItem {

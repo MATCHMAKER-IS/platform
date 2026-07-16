@@ -1,6 +1,6 @@
 /** 貸出(POST {borrower})。貸出中・無効品などの業務エラーは 409。要ログイン。 */
-import { requireUser } from "../../../../../server/guard.js";
-import { equipmentStore } from "../../../../../server/services.js";
+import { requireUser } from "../../../../../server/guard";
+import { equipmentStore } from "../../../../../server/services";
 
 export async function POST(req: Request, ctx: { params: Promise<{ code: string }> }): Promise<Response> {
   if (!requireUser(req)) return Response.json({ error: "ログインが必要です" }, { status: 401 });

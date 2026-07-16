@@ -1,5 +1,5 @@
-import { ExampleView } from "../../../components/example-view.js";
-import { readExampleSource, excerptSource } from "../../../lib/example-source.js";
+import { ExampleView } from "../../../components/example-view";
+import { readExampleSource, excerptSource } from "../../../lib/example-source";
 
 export const metadata = { title: "掲示板ロジック(使用例)" };
 

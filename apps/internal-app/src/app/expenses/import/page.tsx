@@ -2,8 +2,8 @@
 /** 経費 CSV 取込フロー: 貼り付け/アップロード → ImportReview で確認・修正 → 確定。 */
 import { useState, type ChangeEvent } from "react";
 import { ImportReview, Button, StatCard } from "@platform/ui";
-import { parseExpenseCsv, toExpenses, EXPENSE_IMPORT_FIELDS } from "../../../lib/expense-import.js";
-import { summarize, type Expense } from "../../../lib/expense.js";
+import { parseExpenseCsv, toExpenses, EXPENSE_IMPORT_FIELDS } from "../../../lib/expense-import";
+import { summarize, type Expense } from "../../../lib/expense";
 
 const SAMPLE_CSV = `日付,カテゴリ,金額,備考
 2024/04/03,交通費,"1,240",客先訪問

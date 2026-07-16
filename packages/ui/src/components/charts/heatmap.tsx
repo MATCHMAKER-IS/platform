@@ -1,8 +1,8 @@
 "use client";
 /** ヒートマップ(数値の大小を色で表す格子)。 @packageDocumentation */
-import { cn } from "../../lib/cn.js";
-import { ChartTitle } from "./chart-common.js";
-import { colorScale } from "./color-scale.js";
+import { cn } from "../../lib/cn";
+import { ChartTitle } from "./chart-common";
+import { colorScale } from "./color-scale";
 
 /** {@link Heatmap} の props。 */
 export interface HeatmapProps {

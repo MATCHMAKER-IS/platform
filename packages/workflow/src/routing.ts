@@ -4,7 +4,7 @@
  * 既存の線形エンジン(startWorkflow/approve)にそのまま渡せる WorkflowDefinition を返す。
  * @packageDocumentation
  */
-import type { WorkflowDefinition, WorkflowStep } from "./index.js";
+import type { WorkflowDefinition, WorkflowStep } from "./index";
 
 /** ルート分岐の 1 ルール。上から評価し、最初に一致したものを採用する。 */
 export interface RouteRule<Ctx> {

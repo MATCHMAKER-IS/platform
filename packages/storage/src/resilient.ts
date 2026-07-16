@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { defaultShouldRetry } from "@platform/core";
-import type { StorageAdapter, PutOptions, PresignOptions } from "./index.js";
+import type { StorageAdapter, PutOptions, PresignOptions } from "./index";
 
 /** リトライ設定。 */
 export interface StorageRetryOptions {

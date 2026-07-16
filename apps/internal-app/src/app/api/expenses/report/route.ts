@@ -3,9 +3,9 @@
  * `buildMonthlyReport` のシートを `@platform/xlsx` の writeWorkbook で書き出す。
  */
 import { writeWorkbook } from "@platform/xlsx";
-import { withApiObservability } from "../../../../server/instrument.js";
-import { buildMonthlyReport } from "../../../../lib/expense-report.js";
-import { SAMPLE_EXPENSES } from "../../../../lib/sample-expenses.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { buildMonthlyReport } from "../../../../lib/expense-report";
+import { SAMPLE_EXPENSES } from "../../../../lib/sample-expenses";
 
 async function handleGet(req: Request): Promise<Response> {
   const month = new URL(req.url).searchParams.get("month") ?? "";

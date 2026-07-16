@@ -6,8 +6,8 @@
  */
 import * as React from "react";
 import { Search } from "lucide-react";
-import { cn } from "../lib/cn.js";
-import { type Command, filterCommands, groupCommands, nextIndex } from "../lib/command.js";
+import { cn } from "../lib/cn";
+import { type Command, filterCommands, groupCommands, nextIndex } from "../lib/command";
 
 /** {@link CommandPalette} の props。 */
 export interface CommandPaletteProps {

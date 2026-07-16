@@ -7,8 +7,8 @@ import {
 } from "@platform/ui";
 import { formatManOku, formatNumber, formatPercent, movingAverage } from "@platform/utils";
 import { formatWareki } from "@platform/datetime";
-import { summarize, type Expense } from "../../lib/expense.js";
-import { SAMPLE_EXPENSES } from "../../lib/sample-expenses.js";
+import { summarize, type Expense } from "../../lib/expense";
+import { SAMPLE_EXPENSES } from "../../lib/sample-expenses";
 
 const yen = (n: number) => `¥${formatNumber(n, {})}`;
 

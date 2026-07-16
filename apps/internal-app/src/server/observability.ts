@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { createTracer, createMetrics, type Span } from "@platform/observability";
-import { log } from "./services.js";
+import { log } from "./services";
 
 /** メトリクスレジストリ(/api/metrics で公開)。 */
 export const metrics = createMetrics();

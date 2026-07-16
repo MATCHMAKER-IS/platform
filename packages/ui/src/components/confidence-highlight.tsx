@@ -3,9 +3,9 @@
  * OCR 認識テキストを信頼度で色分け表示する。手書き数字の確認に便利。
  * @packageDocumentation
  */
-import { cn } from "../lib/cn.js";
-import { classifyConfidence, type ConfidenceThresholds, type ConfidenceProfile, type ConfidenceTier } from "../lib/confidence.js";
-import { useT } from "./i18n-provider.js";
+import { cn } from "../lib/cn";
+import { classifyConfidence, type ConfidenceThresholds, type ConfidenceProfile, type ConfidenceTier } from "../lib/confidence";
+import { useT } from "./i18n-provider";
 
 /** 表示する単語/文字。 */
 export interface ConfidenceToken { text: string; confidence?: number }

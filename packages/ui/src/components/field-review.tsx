@@ -5,12 +5,12 @@
  */
 import * as React from "react";
 import { AlertTriangle, Check } from "lucide-react";
-import { cn } from "../lib/cn.js";
-import { useT } from "./i18n-provider.js";
-import { needsReview, type ReviewField } from "../lib/field-review.js";
-import { Input } from "./input.js";
-import { Badge } from "./badge.js";
-import { Button } from "./button.js";
+import { cn } from "../lib/cn";
+import { useT } from "./i18n-provider";
+import { needsReview, type ReviewField } from "../lib/field-review";
+import { Input } from "./input";
+import { Badge } from "./badge";
+import { Button } from "./button";
 
 /** {@link FieldReview} の props。 */
 export interface FieldReviewProps {

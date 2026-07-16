@@ -1,7 +1,7 @@
 /** 経費取込 API(POST)。取込行を Expense に変換し、バッチ記録+監査つきで一括作成する。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { recordImportBatch } from "../../../../server/import-repo.js";
-import { toExpenses } from "../../../../lib/expense-import.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { recordImportBatch } from "../../../../server/import-repo";
+import { toExpenses } from "../../../../lib/expense-import";
 
 async function handlePOST(req: Request): Promise<Response> {
   let body: { rows?: Record<string, string>[]; errorCount?: number };

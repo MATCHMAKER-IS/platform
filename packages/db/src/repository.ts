@@ -4,8 +4,8 @@
  * @packageDocumentation
  */
 import { AppError, ErrorCode, ok, err, tryCatch, type Result } from "@platform/core";
-import { mapPrismaError } from "./errors.js";
-import { paginate, type Paginated, type PaginateOptions } from "./pagination.js";
+import { mapPrismaError } from "./errors";
+import { paginate, type Paginated, type PaginateOptions } from "./pagination";
 
 /** リポジトリが必要とする Prisma デリゲートの最小形。 */
 export interface RepositoryDelegate<T> {

@@ -3,11 +3,11 @@
  * - PATCH: 本文を編集（本人/管理者のみ）。ボディ `{ text }`。編集後を全接続へ同報。
  * - DELETE: メッセージを削除（本人/管理者のみ）。削除を全接続へ同報。
  */
-import { withApiObservability } from "../../../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../../../server/env.js";
-import { chatGateway } from "../../../../../../../server/chat.js";
-import { auditActions } from "../../../../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../../../server/authorize";
+import { serverEnv } from "../../../../../../../server/env";
+import { chatGateway } from "../../../../../../../server/chat";
+import { auditActions } from "../../../../../../../server/platform-services";
 
 function isAdmin(roles: string[]): boolean {
   return roles.includes("admin");

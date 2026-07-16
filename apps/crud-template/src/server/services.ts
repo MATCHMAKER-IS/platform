@@ -4,8 +4,8 @@
  * @packageDocumentation
  */
 import { createDb } from "@platform/db";
-import { env, usePrisma } from "./env.js";
-import { createMemoryItemStore, createPrismaItemStore, type ItemStore, type ItemStoreDb } from "./item-repo.js";
+import { env, usePrisma } from "./env";
+import { createMemoryItemStore, createPrismaItemStore, type ItemStore, type ItemStoreDb } from "./item-repo";
 
 function prismaDb(): ItemStoreDb {
   if (!env.DATABASE_URL) throw new Error("PERSISTENCE=prisma には DATABASE_URL が必要です");

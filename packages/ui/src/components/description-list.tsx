@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** 1 項目(項目名と値)。 */
 export interface DescriptionItem {

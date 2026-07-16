@@ -1,4 +1,4 @@
-import type { AttendanceRecord } from "./attendance.js";
+import type { AttendanceRecord } from "./attendance";
 
 /** デモ用の勤怠サンプル(2024-05)。 */
 export const SAMPLE_ATTENDANCE: AttendanceRecord[] = [

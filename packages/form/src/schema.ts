@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 import { z } from "zod";
-import type { FormField } from "./field.js";
+import type { FormField } from "./field";
 
 /**
  * 1 つのフィールドから zod の型を作る。

@@ -6,8 +6,8 @@
  */
 import * as React from "react";
 import { Sun, Moon, Monitor } from "lucide-react";
-import { cn } from "../lib/cn.js";
-import { type ThemePreference, type ResolvedTheme, nextThemePreference, toggleTheme, THEME_LABELS } from "../lib/theme.js";
+import { cn } from "../lib/cn";
+import { type ThemePreference, type ResolvedTheme, nextThemePreference, toggleTheme, THEME_LABELS } from "../lib/theme";
 
 /** {@link ThemeToggle} の props。 */
 export interface ThemeToggleProps {

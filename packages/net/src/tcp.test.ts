@@ -1,5 +1,5 @@
 import { describe, it, expect, afterAll } from "vitest";
-import { createFramedServer, connectFramed, type FramedServer } from "./tcp.js";
+import { createFramedServer, connectFramed, type FramedServer } from "./tcp";
 
 const enc = new TextEncoder(); const dec = new TextDecoder();
 let server: FramedServer;

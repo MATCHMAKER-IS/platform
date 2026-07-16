@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { emptySelection, toggleRow, isAllSelected, isIndeterminate, toggleAll, selectionCount, selectedKeys } from "./table.js";
+import { emptySelection, toggleRow, isAllSelected, isIndeterminate, toggleAll, selectionCount, selectedKeys } from "./table";
 describe("list selection", () => {
   it("toggles rows and all", () => {
     let sel = toggleRow(toggleRow(emptySelection(), "a"), "b");

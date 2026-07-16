@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createEkycClient, createTrustdockClient } from "./client.js";
+import { createEkycClient, createTrustdockClient } from "./client";
 describe("ekyc client", () => {
   function fakeFetch(calls: { url: string; method?: string; headers?: Record<string, string> }[]) {
     return (async (url: string | URL, init: { method?: string; headers?: Record<string, string> } = {}) => {

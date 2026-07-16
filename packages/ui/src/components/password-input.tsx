@@ -5,7 +5,7 @@
  */
 import * as React from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link PasswordInput} の props(通常の input 属性 + className)。 */
 export type PasswordInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "type">;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { matchBreakpoint, deviceSizeFromWidth, isBreakpointUp } from "./breakpoints.js";
+import { matchBreakpoint, deviceSizeFromWidth, isBreakpointUp } from "./breakpoints";
 describe("breakpoints", () => {
   it("matches breakpoint by width", () => {
     expect(matchBreakpoint(375)).toBe("xs");

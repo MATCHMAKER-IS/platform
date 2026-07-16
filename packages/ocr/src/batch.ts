@@ -3,8 +3,8 @@
  * 進捗コールバックで通知(@platform/notify と組み合わせられる)。
  * @packageDocumentation
  */
-import type { OcrEngine } from "./index.js";
-import { extractReceiptFields, type ReceiptImportItem } from "./extraction.js";
+import type { OcrEngine } from "./index";
+import { extractReceiptFields, type ReceiptImportItem } from "./extraction";
 
 /**
  * 複数の領収書画像を一括で取り込む(認識 + フィールド抽出)。

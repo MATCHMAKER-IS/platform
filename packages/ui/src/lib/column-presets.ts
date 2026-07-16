@@ -2,7 +2,7 @@
  * 列設定のプリセット(名前付き・共有可能)。個人用と共有用を扱う。
  * @packageDocumentation
  */
-import type { ColumnPrefs } from "./column-prefs.js";
+import type { ColumnPrefs } from "./column-prefs";
 
 /** 列プリセット。 */
 export interface ColumnPreset {
@@ -131,9 +131,9 @@ export function defaultPreset(list: ColumnPreset[]): ColumnPreset | undefined {
  * @returns 初期の列設定(**既定プリセット → 保存済み設定 → 素の列定義**の順で解決)
  */
 export function resolveInitialPrefs(
-  saved: import("./column-prefs.js").ColumnPrefs | null,
+  saved: import("./column-prefs").ColumnPrefs | null,
   presets: ColumnPreset[],
-): import("./column-prefs.js").ColumnPrefs {
+): import("./column-prefs").ColumnPrefs {
   if (saved && (saved.order.length > 0 || saved.hidden.length > 0)) return saved;
   const def = defaultPreset(presets);
   return def ? def.prefs : { order: [], hidden: [] };

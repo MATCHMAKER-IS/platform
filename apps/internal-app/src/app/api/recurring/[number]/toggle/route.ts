@@ -1,8 +1,8 @@
 /** 繰り返し請求: 有効/停止の切替(POST)。invoice:write。 */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { recurringStore, auditActions } from "../../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { recurringStore, auditActions } from "../../../../../server/platform-services";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ number: string }> }): Promise<Response> {
   const { number } = await ctx.params;

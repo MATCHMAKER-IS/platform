@@ -3,7 +3,7 @@
  * ストアは差し替え可能(メモリ / Redis)。
  * @packageDocumentation
  */
-export { createRateLimiter, type RateLimiter, type RateLimiterConfig } from "./limiter.js";
-export { createMemoryStore } from "./memory.js";
-export { createRedisStore } from "./redis.js";
-export type { RateLimitStore, RateLimitResult } from "./types.js";
+export { createRateLimiter, type RateLimiter, type RateLimiterConfig } from "./limiter";
+export { createMemoryStore } from "./memory";
+export { createRedisStore } from "./redis";
+export type { RateLimitStore, RateLimitResult } from "./types";

@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { defaultShouldRetry } from "@platform/core";
-import type { SmsTransport, SmsMessage } from "./index.js";
+import type { SmsTransport, SmsMessage } from "./index";
 
 type SendArg = Required<Pick<SmsMessage, "from">> & SmsMessage;
 

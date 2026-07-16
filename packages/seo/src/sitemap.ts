@@ -2,7 +2,7 @@
  * sitemap.xml の生成（純関数）。
  * @packageDocumentation
  */
-import { escapeAttr } from "./meta.js";
+import { escapeAttr } from "./meta";
 
 /** サイトマップの 1 エントリ。 */
 export interface SitemapEntry {

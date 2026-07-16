@@ -1,8 +1,8 @@
-import { withApiObservability } from "../../../../../server/instrument.js";
+import { withApiObservability } from "../../../../../server/instrument";
 import { NextResponse, type NextRequest } from "next/server";
-import { zohoAuthConfigFromEnv, handleZohoCallback } from "../../../../../server/zoho-auth.js";
-import { getLoginLimiter, clientIp } from "../../../../../server/rate-limit.js";
-import { loginAudit, auditContext } from "../../../../../server/login-audit.js";
+import { zohoAuthConfigFromEnv, handleZohoCallback } from "../../../../../server/zoho-auth";
+import { getLoginLimiter, clientIp } from "../../../../../server/rate-limit";
+import { loginAudit, auditContext } from "../../../../../server/login-audit";
 
 /** GET /api/auth/zoho/callback — コードを受け取りセッションを発行。 */
 async function handleGET(req: NextRequest) {

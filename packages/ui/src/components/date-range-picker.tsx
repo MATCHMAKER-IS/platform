@@ -5,7 +5,7 @@
  */
 import * as React from "react";
 import { startOfMonth, endOfMonth, dayOfWeek, dayNumber, isHoliday, holidayName, isSameDay, addMonths } from "@platform/datetime";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** 選択された期間。 */
 export interface PickedRange { start: Date; end: Date | null }

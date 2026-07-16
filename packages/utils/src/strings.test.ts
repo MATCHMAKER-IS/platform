@@ -7,7 +7,7 @@ import {
   ensurePrefix, ensureSuffix, removePrefix, removeSuffix,
   stripHtml, escapeHtml, unescapeHtml, mask, maskEmail,
   padStartWidth, padEndWidth, wrapText, highlight, highlightTerms, parseTemplate, randomString, nanoid,
-} from "./strings.js";
+} from "./strings";
 
 describe("truncate", () => {
   it("appends ellipsis", () => expect(truncate("abcdefg", 4)).toBe("abc…"));

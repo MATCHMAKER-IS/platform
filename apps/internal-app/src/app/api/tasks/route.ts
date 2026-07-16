@@ -2,10 +2,10 @@
  * タスク API。ロジックは `@platform/task`、保存は task-repo の担当。
  * ここは HTTP の入出力と認可だけを見る。
  */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { taskStore } from "../../../server/task-repo.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { taskStore } from "../../../server/task-repo";
 import { summarize, toKanban, sortTasks, filterTasks, transition, workloadByAssignee, type TaskStatus } from "@platform/task";
 import { AppError } from "@platform/core";
 

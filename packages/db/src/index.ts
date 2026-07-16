@@ -7,7 +7,7 @@
  *
  * @packageDocumentation
  */
-export { createDb } from "./client.js";
+export { createDb } from "./client";
 export {
   queryRaw,
   queryRawValidated,
@@ -17,21 +17,21 @@ export {
   sql,
   rawQuery,
   rawExecute,
-} from "./raw.js";
-export { recordAudit, recordAuditChange, type AuditEntry, type AuditChangeEntry } from "./audit.js";
-export { diffChanges, hasChanges, type FieldChange, type DiffOptions } from "./audit-diff.js";
-export { cachedQuery, invalidateQuery, createQueryCache, type QueryCache, type QueryCacheOptions } from "./query-cache.js";
-export { mapPrismaError, isRetryablePrismaError } from "./errors.js";
+} from "./raw";
+export { recordAudit, recordAuditChange, type AuditEntry, type AuditChangeEntry } from "./audit";
+export { diffChanges, hasChanges, type FieldChange, type DiffOptions } from "./audit-diff";
+export { cachedQuery, invalidateQuery, createQueryCache, type QueryCache, type QueryCacheOptions } from "./query-cache";
+export { mapPrismaError, isRetryablePrismaError } from "./errors";
 export {
   paginate, cursorPaginate, buildPageMeta,
   type Paginated, type CursorPage, type PaginateOptions, type CursorPaginateOptions,
-} from "./pagination.js";
-export { transactionWithRetry, checkDatabase, type RetryOptions } from "./resilience.js";
-export { createRepository, type Repository, type RepositoryOptions, type RepositoryDelegate } from "./repository.js";
-export { withTransaction, abortTransaction, type IsolationLevel, type TransactionOptions } from "./transaction.js";
-export { bulkInsert, bulkInsertReturning, bulkUpsert, insertReturning, type BulkInsertOptions } from "./bulk.js";
-export { runMigrations, type MigrateOptions } from "./migrate.js";
-export { createSeeder, type Seeder, type SeedLogger } from "./seed.js";
-export { fullTextSearch, ginIndexSql, isSafeIdentifier, buildTsVectorExpr, type FullTextSearchOptions } from "./search.js";
-export { createTenantClient, tenantWhere, tenantData, type TenantClientOptions } from "./tenant.js";
+} from "./pagination";
+export { transactionWithRetry, checkDatabase, type RetryOptions } from "./resilience";
+export { createRepository, type Repository, type RepositoryOptions, type RepositoryDelegate } from "./repository";
+export { withTransaction, abortTransaction, type IsolationLevel, type TransactionOptions } from "./transaction";
+export { bulkInsert, bulkInsertReturning, bulkUpsert, insertReturning, type BulkInsertOptions } from "./bulk";
+export { runMigrations, type MigrateOptions } from "./migrate";
+export { createSeeder, type Seeder, type SeedLogger } from "./seed";
+export { fullTextSearch, ginIndexSql, isSafeIdentifier, buildTsVectorExpr, type FullTextSearchOptions } from "./search";
+export { createTenantClient, tenantWhere, tenantData, type TenantClientOptions } from "./tenant";
 export { PrismaClient, Prisma } from "@prisma/client";

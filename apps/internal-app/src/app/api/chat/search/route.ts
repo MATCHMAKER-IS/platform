@@ -1,10 +1,10 @@
 /**
  * チャット全文検索 API（GET）。`?q=語&roomId=r1&limit=20`。
  */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { chatSearch } from "../../../../server/chat.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { chatSearch } from "../../../../server/chat";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

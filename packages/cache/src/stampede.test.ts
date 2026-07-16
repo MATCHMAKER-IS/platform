@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createCache, type CacheAdapter } from "./index.js";
+import { createCache, type CacheAdapter } from "./index";
 
 function memAdapter(): CacheAdapter {
   const m = new Map<string, string>();

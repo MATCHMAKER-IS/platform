@@ -1,9 +1,9 @@
 /** 在庫: 発注点割れから発注書ドラフトを起票(POST)。inventory:write が必要。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { inventoryStore, auditActions } from "../../../../server/platform-services.js";
-import { buildReorderPurchaseOrder } from "../../../../server/purchase-draft.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { inventoryStore, auditActions } from "../../../../server/platform-services";
+import { buildReorderPurchaseOrder } from "../../../../server/purchase-draft";
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

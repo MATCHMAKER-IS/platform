@@ -1,8 +1,8 @@
 /** 記事のリビジョン一覧(GET)。 */
-import { withApiObservability } from "../../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../../server/env.js";
-import { revisionStore } from "../../../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../../server/authorize";
+import { serverEnv } from "../../../../../../server/env";
+import { revisionStore } from "../../../../../../server/platform-services";
 
 async function handleGET(req: Request, ctx: { params: Promise<{ slug: string }> }): Promise<Response> {
   const { slug } = await ctx.params;

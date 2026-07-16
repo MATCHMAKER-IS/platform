@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { createFreeeClient } from "./index.js";
+import { createFreeeClient } from "./index";
 
 const realFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = realFetch; vi.restoreAllMocks(); });

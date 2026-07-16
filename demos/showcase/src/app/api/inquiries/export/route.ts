@@ -7,7 +7,7 @@ import { handleRoute } from "@platform/http";
 import { assertCan } from "@platform/auth";
 import { writeSheet } from "@platform/xlsx";
 import { formatJst } from "@platform/datetime";
-import { listInquiries, policy } from "../../../../server/store.js";
+import { listInquiries, policy } from "../../../../server/store";
 
 export const GET = handleRoute(async () => {
   // デモのため admin ユーザー固定。実アプリではセッションから取得する。

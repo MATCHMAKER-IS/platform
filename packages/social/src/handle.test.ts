@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeHandle, canonicalHandle, isValidHandle, displayHandle, buildProfileUrl } from "./handle.js";
+import { normalizeHandle, canonicalHandle, isValidHandle, displayHandle, buildProfileUrl } from "./handle";
 describe("social handle", () => {
   it("normalizes and validates", () => {
     expect(normalizeHandle("@yamada_taro")).toBe("yamada_taro");

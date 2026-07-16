@@ -1,9 +1,9 @@
 /** 管理: 権限マトリクス(GET)。ロール×機能の対応表。管理者のみ。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { APP_POLICY } from "../../../../server/policy.js";
-import { permissionMatrix } from "../../../../server/permission-matrix.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { APP_POLICY } from "../../../../server/policy";
+import { permissionMatrix } from "../../../../server/permission-matrix";
 
 const ROLES = ["employee", "editor", "manager", "finance", "admin"];
 

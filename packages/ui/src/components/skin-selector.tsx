@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { useSkin } from "./skin-provider.js";
+import { useSkin } from "./skin-provider";
 
 export interface SkinSelectorProps {
   /** レイアウト。"grid"(カード)または "dropdown"(セレクトボックス)。既定 "grid"。 */

@@ -1,9 +1,9 @@
 /** 勘定科目: CSV取り込み(POST)。科目・区分を一括upsert。dryRun でプレビュー。accounting:read。 */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { accountMasterStore, auditActions } from "../../../../../server/platform-services.js";
-import { parseAccountCsv } from "../../../../../server/csv-import.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { accountMasterStore, auditActions } from "../../../../../server/platform-services";
+import { parseAccountCsv } from "../../../../../server/csv-import";
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

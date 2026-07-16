@@ -1,9 +1,9 @@
 /** 通知テンプレート一覧とプレビュー(GET ?event=&locale=)。管理者の上書きを反映した解決結果で描画する。認証ユーザー。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { templateStore } from "../../../../server/platform-services.js";
-import { templateEvents, resolveTemplates, renderWithTemplates, type Locale } from "../../../../server/notification-templates.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { templateStore } from "../../../../server/platform-services";
+import { templateEvents, resolveTemplates, renderWithTemplates, type Locale } from "../../../../server/notification-templates";
 
 const SAMPLE: Record<string, Record<string, string | number>> = {
   "approval.requested": { docType: "見積書", docNumber: "Q-001", amount: 150000 },

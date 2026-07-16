@@ -1,8 +1,8 @@
 /** e-learning API。GET=学習状況、POST=レッスン完了/クイズ提出/修了証取得。ログインユーザー単位。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { getLearningState, completeLesson, submitQuiz, getCertificate } from "../../../server/elearning-service.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { getLearningState, completeLesson, submitQuiz, getCertificate } from "../../../server/elearning-service";
 
 function learnerId(req: Request): string | null {
   const u = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

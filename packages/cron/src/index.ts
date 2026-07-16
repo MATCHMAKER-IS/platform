@@ -14,8 +14,8 @@
 
 import { Cron } from "croner";
 import { AppError, ErrorCode } from "@platform/core";
-import { createGuardedJob, type JobStats, type JobResult } from "./runner.js";
-import type { LockStore } from "./lock.js";
+import { createGuardedJob, type JobStats, type JobResult } from "./runner";
+import type { LockStore } from "./lock";
 
 /** 登録する定期ジョブ。 */
 export interface CronJob {
@@ -110,7 +110,7 @@ export function createScheduler(jobs: CronJob[], onError: CronErrorHandler = () 
   };
 }
 
-export { createMemoryLockStore, type LockStore } from "./lock.js";
-export { createRedisLockStore, type RedisLockClient } from "./lock-redis.js";
-export { tryAcquireFileLock, releaseFileLock, acquireFileLock, createFileLockStore, type FileLockOptions, type AcquireFileLockOptions } from "./lock-file.js";
-export { createGuardedJob, type JobStats, type JobResult, type GuardOptions } from "./runner.js";
+export { createMemoryLockStore, type LockStore } from "./lock";
+export { createRedisLockStore, type RedisLockClient } from "./lock-redis";
+export { tryAcquireFileLock, releaseFileLock, acquireFileLock, createFileLockStore, type FileLockOptions, type AcquireFileLockOptions } from "./lock-file";
+export { createGuardedJob, type JobStats, type JobResult, type GuardOptions } from "./runner";

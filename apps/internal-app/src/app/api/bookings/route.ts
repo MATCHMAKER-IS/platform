@@ -1,8 +1,8 @@
 /** 予約(GET=空き枠/自分の予約, POST=予約, DELETE=取消)。ログインユーザーのみ。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { listResources, getSlots, listMyBookings, createBooking, cancelBooking } from "../../../server/booking-service.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { listResources, getSlots, listMyBookings, createBooking, cancelBooking } from "../../../server/booking-service";
 import { AppError, httpStatusFor, toErrorEnvelope } from "@platform/core";
 
 function me(req: Request): string | null {

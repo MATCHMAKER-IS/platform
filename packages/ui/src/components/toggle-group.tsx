@@ -4,7 +4,7 @@
  */
 import * as React from "react";
 import { ToggleGroup as Primitive } from "radix-ui";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** トグルグループのルート(`type="single"` か `"multiple"`)。 */
 export const ToggleGroup = React.forwardRef<

@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { type ChatMessage, type Attachment } from "@platform/chat";
-import { type ChatStore, type RoomUnread, toRoomUnread } from "./chat-store.js";
+import { type ChatStore, type RoomUnread, toRoomUnread } from "./chat-store";
 
 /** ChatMessageRow(Prisma 生成型の必要部分)。 */
 export interface ChatMessageRow {

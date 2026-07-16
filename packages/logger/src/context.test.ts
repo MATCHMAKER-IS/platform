@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createContextStore } from "./context.js";
+import { createContextStore } from "./context";
 
 describe("log context", () => {
   it("propagates across async, isolates nesting", async () => {

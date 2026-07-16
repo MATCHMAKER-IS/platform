@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildQuote, isExpired, quoteStatus, daysUntilExpiry, convertToInvoice } from "./quote.js";
+import { buildQuote, isExpired, quoteStatus, daysUntilExpiry, convertToInvoice } from "./quote";
 describe("quote", () => {
   const lines = [{ description: "開発", quantity: 1, unitPrice: 100000 }, { description: "書籍", quantity: 2, unitPrice: 1000, taxRate: 8 as const }];
   const q = buildQuote({ number: "QUO-0001", issueDate: "2025-07-01", validUntil: "2025-07-31", billTo: "株式会社テスト" }, lines);

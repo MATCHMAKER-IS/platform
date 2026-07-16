@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { isWithinShift, staffSlots, staffAvailableSlots, shiftMinutes, slotStaffing, availableWithStaffing } from "./shift.js";
-import { generateSlots } from "./slots.js";
+import { isWithinShift, staffSlots, staffAvailableSlots, shiftMinutes, slotStaffing, availableWithStaffing } from "./shift";
+import { generateSlots } from "./slots";
 const slots = generateSlots([{ open: "09:00", close: "18:00" }], { slotMinutes: 60 });
 describe("booking shift", () => {
   it("computes single-staff availability", () => {

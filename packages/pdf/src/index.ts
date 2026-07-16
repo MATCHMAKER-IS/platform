@@ -74,4 +74,4 @@ export function createPdf(renderer: PdfRenderer): PdfService {
  */
 export const DEFAULT_INVOICE_PDF_OPTIONS: PdfOptions = { format: "A4", margin: { top: "15mm", right: "15mm", bottom: "15mm", left: "15mm" } };
 
-export { createPlaywrightRenderer } from "./renderers/playwright.js";
+export { createPlaywrightRenderer } from "./renderers/playwright";

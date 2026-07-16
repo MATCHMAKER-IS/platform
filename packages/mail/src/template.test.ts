@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { renderEmailTemplate, wrapHtmlEmail, escapeHtml, createTemplateMailer } from "./template.js";
+import { renderEmailTemplate, wrapHtmlEmail, escapeHtml, createTemplateMailer } from "./template";
 describe("email template", () => {
   it("renders with HTML escaping on html only", () => {
     const r = renderEmailTemplate({ subject: "{{name}}様", html: "<p>{{name}}様</p>", text: "{{name}}様" }, { name: "山田<太郎>" });

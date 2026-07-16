@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildOtpSms } from "./otp-message.js";
+import { buildOtpSms } from "./otp-message";
 describe("OTP SMS message", () => {
   it("builds default and templated messages", () => {
     expect(buildOtpSms({ to: "+8190", code: "123456", appName: "社内", expiryMinutes: 5 }).body).toBe("【社内】認証コード: 123456(5分間有効)");

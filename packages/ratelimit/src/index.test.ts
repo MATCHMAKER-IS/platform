@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createRateLimiter, createMemoryStore } from "./index.js";
+import { createRateLimiter, createMemoryStore } from "./index";
 
 describe("ratelimit (memory)", () => {
   it("上限まで許可し、超過で拒否する", async () => {

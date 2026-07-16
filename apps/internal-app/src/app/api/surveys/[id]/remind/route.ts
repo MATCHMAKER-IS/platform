@@ -1,9 +1,9 @@
 /** アンケート: 未回答者へのリマインド(POST)。対象者のうち未回答の人の受信箱へ再送。manager 以上。 */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { surveyStore, userStore, appMailer, auditActions, settingsStore } from "../../../../../server/platform-services.js";
-import { audienceRecipients, pendingRespondents } from "../../../../../server/survey-repo.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { surveyStore, userStore, appMailer, auditActions, settingsStore } from "../../../../../server/platform-services";
+import { audienceRecipients, pendingRespondents } from "../../../../../server/survey-repo";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

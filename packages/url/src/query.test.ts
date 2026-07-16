@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseQuery, stringifyQuery, getParam, setParam, setParams, appendParam, removeParam, hasParam, keepParams } from "./query.js";
+import { parseQuery, stringifyQuery, getParam, setParam, setParams, appendParam, removeParam, hasParam, keepParams } from "./query";
 describe("url query", () => {
   it("parses and stringifies", () => {
     expect(parseQuery("?a=1&b=2&a=3")).toEqual({ a: ["1", "3"], b: "2" });

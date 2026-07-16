@@ -4,7 +4,7 @@
  */
 import * as React from "react";
 import { Check } from "lucide-react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link Steps} の props。 */
 export interface StepsProps {

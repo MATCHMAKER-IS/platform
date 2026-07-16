@@ -13,7 +13,7 @@
  */
 import { rawQuery, rawExecute, normalizeBigInt } from "@platform/db";
 import { toCsv, parseCsv } from "@platform/csv";
-import { db } from "./services.js";
+import { db } from "./services";
 import { type Result, ok, err, AppError, ErrorCode } from "@platform/core";
 
 /** 識別子(テーブル/カラム名)として許可する文字。英数字・アンダースコアのみ。 */

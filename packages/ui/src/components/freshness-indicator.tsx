@@ -4,8 +4,8 @@
  * ダッシュボードの「最終更新: 5分前」表示に。
  * @packageDocumentation
  */
-import { cn } from "../lib/cn.js";
-import { relativeTime } from "../lib/dashboard.js";
+import { cn } from "../lib/cn";
+import { relativeTime } from "../lib/dashboard";
 
 /** {@link FreshnessIndicator} の props。 */
 export interface FreshnessIndicatorProps {

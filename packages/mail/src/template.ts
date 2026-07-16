@@ -3,7 +3,7 @@
  * HTML 本文の差し込み値は自動でエスケープし、注入を防ぐ。標準の HTML レイアウトも提供。
  * @packageDocumentation
  */
-import type { MailMessage } from "./index.js";
+import type { MailMessage } from "./index";
 
 /** メールテンプレート。件名は必須、本文は HTML / テキストの一方または両方。 */
 export interface EmailTemplate {

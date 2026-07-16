@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isEmailLike, validateEmailLogin, isLoginFormValid } from "./login-form.js";
+import { isEmailLike, validateEmailLogin, isLoginFormValid } from "./login-form";
 describe("ui login-form validation", () => {
   it("validates email format", () => {
     expect(isEmailLike("a@x.com")).toBe(true);

@@ -1,9 +1,9 @@
 /** 見積: 一覧(GET)・作成(POST)。閲覧は quote:read、作成は quote:write。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { quoteStore, auditActions } from "../../../server/platform-services.js";
-import { type QuoteHeaderInput } from "../../../server/quote-repo.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser, requirePermission } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { quoteStore, auditActions } from "../../../server/platform-services";
+import { type QuoteHeaderInput } from "../../../server/quote-repo";
 import { type InvoiceLine } from "@platform/invoice";
 
 async function handleGET(req: Request): Promise<Response> {

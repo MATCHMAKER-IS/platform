@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createMaintenanceGate } from "./gate.js";
+import { createMaintenanceGate } from "./gate";
 const now = () => new Date("2025-07-25T12:00:00Z");
 describe("maintenance gate", () => {
   it("serves maintenance when enabled, bypasses health/static", () => {
@@ -22,7 +22,7 @@ describe("maintenance gate", () => {
   });
 });
 
-import { createAsyncMaintenanceGate, createMemoryMaintenanceStore, stateToConfig, createCachedConfig } from "./gate.js";
+import { createAsyncMaintenanceGate, createMemoryMaintenanceStore, stateToConfig, createCachedConfig } from "./gate";
 describe("maintenance gate (store/GUI toggle)", () => {
   const now = () => new Date("2025-07-25T12:00:00Z");
   it("toggles via store without restart", async () => {

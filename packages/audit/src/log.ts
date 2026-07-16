@@ -4,7 +4,7 @@
  * ハッシュ関数は注入可能(既定は依存なしの FNV-1a。運用では sha256 を渡すとよい)。
  * @packageDocumentation
  */
-import { type AuditEvent } from "./event.js";
+import { type AuditEvent } from "./event";
 
 /** ログの 1 エントリ(イベント + チェーン情報)。 */
 export interface AuditEntry extends AuditEvent {

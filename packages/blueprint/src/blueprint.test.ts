@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toStateMachine, missingRequiredFields, availableTransitions, evaluateTransition, applyTransition, isFinalState, transitionNames, type Blueprint } from "./blueprint.js";
+import { toStateMachine, missingRequiredFields, availableTransitions, evaluateTransition, applyTransition, isFinalState, transitionNames, type Blueprint } from "./blueprint";
 interface Expense extends Record<string, unknown> { state: string; amount?: number; purpose?: string; }
 const bp: Blueprint<"draft" | "submitted" | "approved" | "rejected", Expense> = {
   initial: "draft",

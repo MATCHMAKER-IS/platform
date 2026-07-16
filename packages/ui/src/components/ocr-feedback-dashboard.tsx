@@ -3,9 +3,9 @@
  * OCR フィードバックの集計ダッシュボード。フィールド別の修正率・平均信頼度を表示する。
  * @packageDocumentation
  */
-import { cn } from "../lib/cn.js";
-import { aggregateOcrFeedback, type OcrFeedback } from "../lib/ocr-feedback.js";
-import { Badge } from "./badge.js";
+import { cn } from "../lib/cn";
+import { aggregateOcrFeedback, type OcrFeedback } from "../lib/ocr-feedback";
+import { Badge } from "./badge";
 
 /** {@link OcrFeedbackDashboard} の props。 */
 export interface OcrFeedbackDashboardProps {

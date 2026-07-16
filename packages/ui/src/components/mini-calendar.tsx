@@ -7,7 +7,7 @@ import * as React from "react";
 import {
   utcDate, startOfMonth, endOfMonth, dayOfWeek, dayNumber, isHoliday, holidayName, isSameDay, addMonths,
 } from "@platform/datetime";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link MiniCalendar} の props。 */
 export interface MiniCalendarProps {

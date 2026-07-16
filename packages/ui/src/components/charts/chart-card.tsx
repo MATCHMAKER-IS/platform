@@ -6,8 +6,8 @@
 import * as React from "react";
 import { Download, Image as ImageIcon } from "lucide-react";
 import { downloadCsv, type CsvColumn } from "@platform/csv";
-import { cn } from "../../lib/cn.js";
-import { elementToPng } from "../../lib/export-image.js";
+import { cn } from "../../lib/cn";
+import { elementToPng } from "../../lib/export-image";
 
 /** {@link ChartCard} の props。 */
 export interface ChartCardProps {

@@ -7,10 +7,10 @@
  *   DELETE ?id=      → 削除
  * いずれも管理者のみ。
  */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { getCustomThemes, saveCustomTheme, deleteCustomTheme } from "../../../../../server/theme-setting.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { getCustomThemes, saveCustomTheme, deleteCustomTheme } from "../../../../../server/theme-setting";
 import { themesToJson, themesFromJson } from "@platform/theme";
 import { AppError } from "@platform/core";
 

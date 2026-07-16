@@ -1,6 +1,6 @@
 import * as React from "react";
-import { CmsNav } from "../cms-nav.js";
-import { PageClient } from "./page-client.js";
+import { CmsNav } from "../cms-nav";
+import { PageClient } from "./page-client";
 
 export const metadata = { title: "固定ページ管理" };
 

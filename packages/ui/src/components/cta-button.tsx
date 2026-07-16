@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link CtaButton} の props。 */
 export interface CtaButtonProps {

@@ -1,8 +1,8 @@
 /** 勤怠月次レポートの Excel(.xlsx)ダウンロード API。 */
-import { withApiObservability } from "../../../../server/instrument.js";
+import { withApiObservability } from "../../../../server/instrument";
 import { writeWorkbook } from "@platform/xlsx";
-import { attendanceReportSheets } from "../../../../lib/attendance-report.js";
-import { SAMPLE_ATTENDANCE } from "../../../../lib/sample-attendance.js";
+import { attendanceReportSheets } from "../../../../lib/attendance-report";
+import { SAMPLE_ATTENDANCE } from "../../../../lib/sample-attendance";
 
 async function handleGET(req: Request): Promise<Response> {
   const month = new URL(req.url).searchParams.get("month") ?? "";

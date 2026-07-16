@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { hexToRgb, rgbToHex, rgbToHsl, hslToRgb, contrastRatio, wcagLevel, lighten, darken, mix, readableTextColor } from "./index.js";
+import { hexToRgb, rgbToHex, rgbToHsl, hslToRgb, contrastRatio, wcagLevel, lighten, darken, mix, readableTextColor } from "./index";
 
 describe("color", () => {
   it("hex <-> rgb", () => { expect(hexToRgb("#3366ff")).toEqual({ r: 51, g: 102, b: 255 }); expect(hexToRgb("#36f")).toEqual({ r: 51, g: 102, b: 255 }); expect(rgbToHex({ r: 51, g: 102, b: 255 })).toBe("#3366ff"); expect(hexToRgb("xyz")).toBeNull(); });

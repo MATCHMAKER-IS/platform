@@ -7,7 +7,7 @@
  * @packageDocumentation
  */
 import { AppError, type Result } from "@platform/core";
-import { STATUS_BY_CODE } from "./status.js";
+import { STATUS_BY_CODE } from "./status";
 
 /** クライアントに返すエラーボディの形。 */
 export interface HttpErrorBody {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { levenshtein, levenshteinSimilarity, jaro, jaroWinkler, bestMatch } from "./similarity.js";
+import { levenshtein, levenshteinSimilarity, jaro, jaroWinkler, bestMatch } from "./similarity";
 
 describe("similarity", () => {
   it("levenshtein", () => { expect(levenshtein("kitten", "sitting")).toBe(3); expect(levenshtein("東京", "東今")).toBe(1); expect(levenshtein("", "abc")).toBe(3); });

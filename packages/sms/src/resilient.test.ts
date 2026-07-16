@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { withSmsRetry, createFallbackSmsTransport } from "./resilient.js";
-import type { SmsTransport } from "./index.js";
+import { withSmsRetry, createFallbackSmsTransport } from "./resilient";
+import type { SmsTransport } from "./index";
 const msg = { to: "+81", body: "x", from: "+81" };
 describe("sms resilience", () => {
   it("retry then succeed", async () => {

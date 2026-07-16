@@ -5,8 +5,8 @@
  * 付け替える(redirect)にも対応。純ロジック。
  * @packageDocumentation
  */
-import type { MailMessage } from "./index.js";
-import { normalizeEmail, emailDomain } from "./email.js";
+import type { MailMessage } from "./index";
+import { normalizeEmail, emailDomain } from "./email";
 
 /** 受信者ポリシー。allowed 系を指定するとホワイトリスト方式(未指定なら全許可)。 */
 export interface RecipientPolicy {

@@ -4,8 +4,8 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
-import { highlightSegments } from "../lib/highlight.js";
+import { cn } from "../lib/cn";
+import { highlightSegments } from "../lib/highlight";
 
 /** {@link HighlightedText} の props。 */
 export interface HighlightedTextProps {

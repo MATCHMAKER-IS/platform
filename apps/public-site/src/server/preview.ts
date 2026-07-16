@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { cmsPostToBlog, effectiveStatus, type CmsPost, type BlogView, type EffectiveStatus } from "@platform/cms";
-import { siteEnv } from "./env.js";
+import { siteEnv } from "./env";
 
 /** プレビュー結果。 */
 export interface PreviewResult {

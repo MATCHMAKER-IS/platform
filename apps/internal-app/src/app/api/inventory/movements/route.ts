@@ -1,8 +1,8 @@
 /** 在庫: 入出庫の記録(POST)。inventory:write が必要。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { inventoryStore, auditActions } from "../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { inventoryStore, auditActions } from "../../../../server/platform-services";
 import { type StockMovement } from "@platform/inventory";
 
 async function handlePOST(req: Request): Promise<Response> {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { evaluateFlag, selectVariant, createFlags, createStaticProvider } from "./index.js";
+import { evaluateFlag, selectVariant, createFlags, createStaticProvider } from "./index";
 describe("feature flags", () => {
   it("kill switch, rollout, targeting", () => {
     expect(evaluateFlag(false)).toBe(false);

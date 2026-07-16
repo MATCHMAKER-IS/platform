@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 import { renderTemplate } from "@platform/notify";
-import { pendingApprovalRole, type Expense } from "./blueprint-integration.js";
+import { pendingApprovalRole, type Expense } from "./blueprint-integration";
 
 /** 通知メッセージ(宛先ロールと本文)。 */
 export interface ApprovalNotification {

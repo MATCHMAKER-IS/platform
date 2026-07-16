@@ -4,8 +4,8 @@
  */
 import * as React from "react";
 import { Progress as Primitive } from "radix-ui";
-import { Slider } from "./slider.js";
-import { cn } from "../lib/cn.js";
+import { Slider } from "./slider";
+import { cn } from "../lib/cn";
 
 /** 進捗バー(0〜100、非操作)。 */
 export function Progress({ value = 0, className }: { value?: number; className?: string }) {

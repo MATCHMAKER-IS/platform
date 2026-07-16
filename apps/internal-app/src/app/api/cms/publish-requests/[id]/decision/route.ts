@@ -1,8 +1,8 @@
 /** 公開申請の承認/却下(POST)。承認時は対象記事を公開する。cms:publish が必要。 */
-import { withApiObservability } from "../../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../../server/env.js";
-import { cmsStore, auditActions, publishRequestStore, notificationCenter } from "../../../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../../server/authorize";
+import { serverEnv } from "../../../../../../server/env";
+import { cmsStore, auditActions, publishRequestStore, notificationCenter } from "../../../../../../server/platform-services";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
   const { id } = await ctx.params;

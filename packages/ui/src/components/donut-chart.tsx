@@ -3,8 +3,8 @@
  * ドーナツチャート(依存なし・SVG)。構成比を円で表す。凡例つき。
  * @packageDocumentation
  */
-import { cn } from "../lib/cn.js";
-import { donutSegments } from "../lib/dashboard.js";
+import { cn } from "../lib/cn";
+import { donutSegments } from "../lib/dashboard";
 
 /** ドーナツの 1 項目。 */
 export interface DonutDatum {

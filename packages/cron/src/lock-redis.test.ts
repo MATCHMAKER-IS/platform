@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createRedisLockStore, type RedisLockClient } from "./lock-redis.js";
+import { createRedisLockStore, type RedisLockClient } from "./lock-redis";
 function fakeRedis(now: () => number): RedisLockClient & { store: Map<string, { val: string; exp: number }> } {
   const store = new Map<string, { val: string; exp: number }>();
   return {

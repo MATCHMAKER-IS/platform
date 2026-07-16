@@ -2,7 +2,7 @@
  * チャットルームとメンバー(純ロジック)。未読数・最終既読・最新メッセージ。
  * @packageDocumentation
  */
-import { type ChatMessage, sortMessages } from "./message.js";
+import { type ChatMessage, sortMessages } from "./message";
 
 /** ルーム種別。 */
 export type RoomKind = "dm" | "group";

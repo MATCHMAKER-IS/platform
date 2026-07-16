@@ -11,10 +11,10 @@ import { AppError, ErrorCode, ok, err, type Result } from "@platform/core";
 import type {
   BluetoothLike, BluetoothDeviceLike, BluetoothGattServerLike,
   BluetoothCharacteristicLike, BluetoothUUID, RequestDeviceOptions,
-} from "./types.js";
+} from "./types";
 
-export * from "./parse.js";
-export type { BluetoothUUID, RequestDeviceOptions, DeviceFilter } from "./types.js";
+export * from "./parse";
+export type { BluetoothUUID, RequestDeviceOptions, DeviceFilter } from "./types";
 
 function getBluetooth(): BluetoothLike | null {
   if (typeof navigator === "undefined") return null;

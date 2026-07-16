@@ -15,7 +15,7 @@ vi.mock("../lib/expense-notify.js", () => ({
 
 describe("reliable expense notifications", () => {
   it("enqueues then relays, retries transient failures, dedups", async () => {
-    const svc = await import("./expense-notify-service.js");
+    const svc = await import("./expense-notify-service");
     const store = createMemoryOutboxStore();
     const seen = createMemorySeenStore();
     const n = svc.enqueueExpenseTransition({ title: "出張費", prev: { status: "pending" } as never, next: { status: "approved" } as never, applicantEmail: "u@x.jp", store });

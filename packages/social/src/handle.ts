@@ -3,7 +3,7 @@
  * @ の正規化、プラットフォーム別の妥当性判定、プロフィール URL の生成。
  * @packageDocumentation
  */
-import { type SocialPlatform, PLATFORMS } from "./platforms.js";
+import { type SocialPlatform, PLATFORMS } from "./platforms";
 
 /**
  * ハンドルを素の形にする(先頭の `@`・URL 断片・空白を除く)。

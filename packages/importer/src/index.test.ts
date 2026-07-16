@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateRows, runImport, rowsToObjects, type RowResult } from "./index.js";
+import { validateRows, runImport, rowsToObjects, type RowResult } from "./index";
 const validate = (raw: Record<string, string>): RowResult<{ name: string }> => raw.name ? { ok: true, value: { name: raw.name } } : { ok: false, errors: ["名前必須"] };
 describe("importer", () => {
   it("splits valid and error rows", () => {

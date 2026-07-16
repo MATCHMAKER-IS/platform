@@ -7,7 +7,7 @@
 import * as React from "react";
 import { Popover as PopoverPrimitive } from "radix-ui";
 import { HexColorPicker } from "react-colorful";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link ColorPicker} の props。 */
 export interface ColorPickerProps {

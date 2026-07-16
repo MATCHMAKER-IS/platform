@@ -1,8 +1,8 @@
 /** 公開申請: 一覧(GET)。承認権限(cms:publish)が必要。?status= で絞れる。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { publishRequestStore } from "../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { publishRequestStore } from "../../../../server/platform-services";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

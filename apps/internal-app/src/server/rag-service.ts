@@ -7,7 +7,7 @@ import { createRagStore, createMemoryVectorIndex, textToDocument, type RagDocume
 import { replaceByDictionary, buildGlossaryHint, type ReplacementRule } from "@platform/utils";
 import { createSearch, createMemorySearch } from "@platform/search";
 import { createHashEmbedder } from "@platform/ai";
-import { createDictionaryStore, type DictionaryDb, type DictionaryChange } from "./dictionary-store.js";
+import { createDictionaryStore, type DictionaryDb, type DictionaryChange } from "./dictionary-store";
 import { toCsv, parseCsv } from "@platform/csv";
 
 /** アプリ共通の RAG ストア(メモリ実装・プロセス内)。 */

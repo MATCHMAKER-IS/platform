@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { diffChanges, describeEvent } from "./event.js";
-import { appendEvent, appendAll, verifyChain, fnv1a, type AuditEntry } from "./log.js";
-import { filterByActor, filterByAction, filterByPeriod, historyOf } from "./query.js";
+import { diffChanges, describeEvent } from "./event";
+import { appendEvent, appendAll, verifyChain, fnv1a, type AuditEntry } from "./log";
+import { filterByActor, filterByAction, filterByPeriod, historyOf } from "./query";
 describe("audit", () => {
   it("diffs and describes", () => {
     expect(diffChanges({ status: "draft", amount: 5000 }, { status: "submitted", amount: 5000 })).toHaveLength(1);

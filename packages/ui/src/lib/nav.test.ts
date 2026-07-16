@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isNavActive, findActiveNav, flattenNav, hasActiveChild, filterNavByPermission, type NavItem } from "./nav.js";
+import { isNavActive, findActiveNav, flattenNav, hasActiveChild, filterNavByPermission, type NavItem } from "./nav";
 const items: NavItem[] = [
   { label: "ホーム", href: "/" },
   { label: "製品", href: "/products", children: [{ label: "製品A", href: "/products/a" }] },

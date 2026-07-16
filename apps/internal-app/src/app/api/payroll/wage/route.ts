@@ -1,9 +1,9 @@
 /** 給与設定: 一覧(GET)・登録更新(PUT)。payroll:admin(finance/admin)。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { wageStore, auditActions } from "../../../../server/platform-services.js";
-import { type WageConfig } from "../../../../server/payroll-repo.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { wageStore, auditActions } from "../../../../server/platform-services";
+import { type WageConfig } from "../../../../server/payroll-repo";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

@@ -1,8 +1,8 @@
 "use client";
 /** レーダーチャート。 @packageDocumentation */
 import { ResponsiveContainer, RadarChart as RRadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Tooltip, Legend } from "recharts";
-import { cn } from "../../lib/cn.js";
-import { ChartTitle, SeriesToggle, useSeriesVisibility, buildColorMap, type SeriesDef, type BaseChartProps } from "./chart-common.js";
+import { cn } from "../../lib/cn";
+import { ChartTitle, SeriesToggle, useSeriesVisibility, buildColorMap, type SeriesDef, type BaseChartProps } from "./chart-common";
 
 /** {@link RadarChart} の props。 */
 export interface RadarChartProps extends BaseChartProps {

@@ -5,13 +5,13 @@
  */
 import * as React from "react";
 import { Share2, Trash2, Save } from "lucide-react";
-import { cn } from "../lib/cn.js";
-import { useT } from "./i18n-provider.js";
-import { splitPresets, type ColumnPreset } from "../lib/column-presets.js";
-import type { ColumnPrefs } from "../lib/column-prefs.js";
-import { Input } from "./input.js";
-import { Button } from "./button.js";
-import { Badge } from "./badge.js";
+import { cn } from "../lib/cn";
+import { useT } from "./i18n-provider";
+import { splitPresets, type ColumnPreset } from "../lib/column-presets";
+import type { ColumnPrefs } from "../lib/column-prefs";
+import { Input } from "./input";
+import { Button } from "./button";
+import { Badge } from "./badge";
 
 /** {@link ColumnPresets} の props。 */
 export interface ColumnPresetsProps {

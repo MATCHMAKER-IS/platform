@@ -5,10 +5,10 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { FileUpload } from "./file-upload.js";
-import { Progress } from "./progress.js";
-import { useUpload } from "./use-upload.js";
-import { cn } from "../lib/cn.js";
+import { FileUpload } from "./file-upload";
+import { Progress } from "./progress";
+import { useUpload } from "./use-upload";
+import { cn } from "../lib/cn";
 
 /** {@link FileUploader} の props。 */
 export interface FileUploaderProps {

@@ -3,7 +3,7 @@
  * AuditLog テーブルを sink にして具体化する。ログイン/ログアウト/失敗/ロック等を標準スキーマで記録。
  */
 import { createLoginAudit, type LoginAuditEvent } from "@platform/session";
-import { db, log } from "./services.js";
+import { db, log } from "./services";
 
 /** AuditLog テーブルへ書き込む監査ロガー。 */
 export const loginAudit = createLoginAudit({

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildTitle, truncateDescription, robotsContent, escapeAttr, buildMeta, renderMeta, renderMetaTags } from "./meta.js";
+import { buildTitle, truncateDescription, robotsContent, escapeAttr, buildMeta, renderMeta, renderMetaTags } from "./meta";
 describe("seo meta", () => {
   it("builds title, description, robots", () => {
     expect(buildTitle("記事", "%s | サイト")).toBe("記事 | サイト");

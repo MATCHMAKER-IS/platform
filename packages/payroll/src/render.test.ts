@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { renderPayslipHtml } from "./render.js";
+import { renderPayslipHtml } from "./render";
 describe("payroll render", () => {
   const payslip = { base: 250000, premiums: 30000, allowances: [{ name: "通勤手当", amount: 15000 }], grossPay: 295000, deductions: [{ name: "健康保険料", amount: 14000 }, { name: "源泉所得税", amount: 8000 }], totalDeductions: 22000, netPay: 273000 };
   it("renders payslip html", () => {

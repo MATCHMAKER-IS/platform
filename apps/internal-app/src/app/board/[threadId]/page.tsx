@@ -1,7 +1,7 @@
 /**
  * 掲示板スレッドページ（サーバシェル）。実運用では投稿をリポジトリから取得する。
  */
-import { BoardThreadClient } from "./board-thread-client.js";
+import { BoardThreadClient } from "./board-thread-client";
 
 export const dynamic = "force-dynamic";
 

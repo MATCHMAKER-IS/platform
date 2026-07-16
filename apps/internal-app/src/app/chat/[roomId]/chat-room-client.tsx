@@ -7,7 +7,7 @@
 import * as React from "react";
 import { ChatWindow, PinnedBanner, type PinnedItem } from "@platform/ui";
 import { groupByDate, type ChatMessage } from "@platform/chat";
-import { createChatController, type ChatController } from "../chat-controller.js";
+import { createChatController, type ChatController } from "../chat-controller";
 
 /** 時刻 "HH:MM"。 */
 function hhmm(iso: string): string {

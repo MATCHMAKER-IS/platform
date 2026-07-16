@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { createLineClient } from "./index.js";
+import { createLineClient } from "./index";
 
 const realFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = realFetch; vi.restoreAllMocks(); });

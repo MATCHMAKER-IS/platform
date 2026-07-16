@@ -6,9 +6,9 @@
  */
 import { parseTraceparent } from "@platform/observability";
 import { toErrorEnvelope, httpStatusFor, AppError } from "@platform/core";
-import { tracer, metrics } from "./observability.js";
-import { logContext } from "./log-context.js";
-import { debugCollector } from "./debug-collector.js";
+import { tracer, metrics } from "./observability";
+import { logContext } from "./log-context";
+import { debugCollector } from "./debug-collector";
 
 // 第1引数は Request 互換(NextRequest 含む)。戻りは Response|Promise<Response>。
 type AnyHandler<A extends [Request, ...unknown[]]> = (...args: A) => Response | Promise<Response>;

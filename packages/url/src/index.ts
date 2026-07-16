@@ -4,8 +4,8 @@
  * 記事の URL 構造は @platform/blog(permalink)、低レベルのネットワークは @platform/net を参照。
  * @packageDocumentation
  */
-export * from "./parse.js";
-export * from "./domain.js";
-export * from "./query.js";
-export * from "./normalize.js";
-export * from "./validate.js";
+export * from "./parse";
+export * from "./domain";
+export * from "./query";
+export * from "./normalize";
+export * from "./validate";

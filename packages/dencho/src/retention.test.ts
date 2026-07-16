@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { retentionDeadline, isWithinRetention, daysUntilRetentionEnd } from "./retention.js";
+import { retentionDeadline, isWithinRetention, daysUntilRetentionEnd } from "./retention";
 describe("dencho retention", () => {
   it("computes deadline and remaining", () => {
     const start = new Date("2025-06-01T00:00:00Z");

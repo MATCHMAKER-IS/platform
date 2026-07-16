@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { robotsForVisibility, noindexRobots, xRobotsTag, internalRobotsTxt, publicRobotsTxt } from "./indexing.js";
-import { robotsContent, buildMeta } from "./meta.js";
+import { robotsForVisibility, noindexRobots, xRobotsTag, internalRobotsTxt, publicRobotsTxt } from "./indexing";
+import { robotsContent, buildMeta } from "./meta";
 describe("seo indexing / visibility", () => {
   it("maps visibility to robots (internal = noindex)", () => {
     expect(robotsContent(robotsForVisibility("internal"))).toBe("noindex, nofollow, noarchive");

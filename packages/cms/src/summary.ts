@@ -2,8 +2,8 @@
  * CMS のダッシュボード用集計（純関数）。
  * @packageDocumentation
  */
-import { type CmsPost } from "./model.js";
-import { effectiveStatus } from "./scheduling.js";
+import { type CmsPost } from "./model";
+import { effectiveStatus } from "./scheduling";
 
 /** 記事の状態別集計。 */
 export interface PostSummary {

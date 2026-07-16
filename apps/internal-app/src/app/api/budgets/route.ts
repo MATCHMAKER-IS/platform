@@ -1,10 +1,10 @@
 /** 予算実績: 予算 vs 実績(経費)(GET)・予算行の追加(POST)。budget:read / budget:write。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { budgetStore, auditActions } from "../../../server/platform-services.js";
-import { budgetVariance, actualsFromExpenses, type BudgetLine } from "../../../server/budget-repo.js";
-import { listExpenses } from "../../../server/expense-repo.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser, requirePermission } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { budgetStore, auditActions } from "../../../server/platform-services";
+import { budgetVariance, actualsFromExpenses, type BudgetLine } from "../../../server/budget-repo";
+import { listExpenses } from "../../../server/expense-repo";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

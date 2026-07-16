@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 import { errorResult, jsonResult, textResult, type McpToolDef, type McpResourceDef, type McpPromptDef } from "@platform/mcp";
-import { salesReport, reportToCsv } from "./reports.js";
+import { salesReport, reportToCsv } from "./reports";
 
 /** ツールが必要とする請求の最小形。 */
 export interface McpInvoiceLike {

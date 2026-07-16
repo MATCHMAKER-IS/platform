@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isAllowedRecipient, filterRecipients, applyRecipientPolicy, withRecipientPolicy } from "./allowlist.js";
+import { isAllowedRecipient, filterRecipients, applyRecipientPolicy, withRecipientPolicy } from "./allowlist";
 describe("recipient allowlist", () => {
   it("allows/blocks by domain and email with block priority", () => {
     expect(isAllowedRecipient("a@corp.com", { allowedDomains: ["corp.com"] })).toBe(true);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createSearch, createMemorySearch } from "./index.js";
+import { createSearch, createMemorySearch } from "./index";
 
 describe("search (memory)", () => {
   it("索引→検索でヒットする", async () => {

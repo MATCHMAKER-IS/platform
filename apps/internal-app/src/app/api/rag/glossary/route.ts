@@ -1,8 +1,8 @@
 /** 補正辞書の管理(GET一覧 / POST追加 / DELETE削除)。管理者のみ。非エンジニアが表記ゆれを登録できる。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { getReplacements, addReplacement, removeReplacement, getGlossaryTerms, addGlossaryTerm, removeGlossaryTerm, ensureDictionaryLoaded, isDictionaryPersistent, getDictionaryAudit, setDictionaryActor } from "../../../../server/rag-service.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { getReplacements, addReplacement, removeReplacement, getGlossaryTerms, addGlossaryTerm, removeGlossaryTerm, ensureDictionaryLoaded, isDictionaryPersistent, getDictionaryAudit, setDictionaryActor } from "../../../../server/rag-service";
 
 /** 管理者なら実行者メールを返す。権限なしは null。 */
 function adminUser(req: Request): string | null {

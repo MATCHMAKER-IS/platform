@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { detectLogLevel, parseLogLines, filterLogLines, countByLevel, extractTimestamp, bucketByTime, logLinesToText, formatRelativeTime, parseStructuredLog, firstLineIndexAtOrAfter, collectFieldKeys, fieldFacets, filterByFields, appendCapped } from "./log.js";
+import { detectLogLevel, parseLogLines, filterLogLines, countByLevel, extractTimestamp, bucketByTime, logLinesToText, formatRelativeTime, parseStructuredLog, firstLineIndexAtOrAfter, collectFieldKeys, fieldFacets, filterByFields, appendCapped } from "./log";
 
 describe("detectLogLevel", () => {
   it("ERROR", () => expect(detectLogLevel("2026 ERROR boom")).toBe("error"));

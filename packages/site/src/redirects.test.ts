@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveRedirect, resolveRedirectChain } from "./redirects.js";
+import { resolveRedirect, resolveRedirectChain } from "./redirects";
 const rules = [
   { from: "/old-page", to: "/new-page" },
   { from: "/blog/*", to: "/articles/:splat", status: 301 as const },

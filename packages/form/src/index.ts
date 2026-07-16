@@ -7,22 +7,22 @@
  *
  * @packageDocumentation
  */
-export { useZodForm } from "./use-zod-form.js";
-export { Form, FormField, type FormProps, type FormFieldProps, type FieldRenderProps } from "./form.js";
-export { readCsrfToken, useCsrfToken, csrfHeaders, CsrfField } from "./csrf.js";
+export { useZodForm } from "./use-zod-form";
+export { Form, FormField, type FormProps, type FormFieldProps, type FieldRenderProps } from "./form";
+export { readCsrfToken, useCsrfToken, csrfHeaders, CsrfField } from "./csrf";
 export {
   HoneypotField, isHoneypotFilled, SubmitButton,
   useUnsavedChangesWarning, applyServerErrors, useFormAutosave,
-} from "./form-helpers.js";
+} from "./form-helpers";
 export {
   TextField, PasswordField, TextareaField, SelectField, ComboboxField, CheckboxField, SwitchField,
   NumberField, DateField, TimeField, ColorField, RadioField,
   RatingField, TagsField, OtpField, AutocompleteField, VoiceField,
-} from "./fields.js";
-export * from "./field.js";
-export * from "./steps.js";
-export * from "./schema.js";
-export * from "./flow.js";
-export * from "./review.js";
-export { useSubmitFlow, type UseSubmitFlow } from "./use-submit-flow.js";
-export * from "./errors.js";
+} from "./fields";
+export * from "./field";
+export * from "./steps";
+export * from "./schema";
+export * from "./flow";
+export * from "./review";
+export { useSubmitFlow, type UseSubmitFlow } from "./use-submit-flow";
+export * from "./errors";

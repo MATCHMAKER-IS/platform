@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { attachmentFromBase64, attachmentSize, totalAttachmentSize, guessContentType, validateAttachments, inlineImage } from "./attachments.js";
+import { attachmentFromBase64, attachmentSize, totalAttachmentSize, guessContentType, validateAttachments, inlineImage } from "./attachments";
 describe("mail attachments", () => {
   it("guesses type and computes base64 size", () => {
     expect(guessContentType("a.pdf")).toBe("application/pdf");

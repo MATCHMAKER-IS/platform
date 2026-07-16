@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createIdleTimer, IDLE_ACTIVITY_EVENTS } from "./idle-timer.js";
+import { createIdleTimer, IDLE_ACTIVITY_EVENTS } from "./idle-timer";
 
 function makeSched() {
   const jobs = new Map<number, { fn: () => void; at: number }>();

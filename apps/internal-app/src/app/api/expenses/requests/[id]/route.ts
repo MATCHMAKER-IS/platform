@@ -1,13 +1,13 @@
 /** 経費申請への操作 API(POST)。承認/却下/差戻しをトランザクションで適用する。 */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { applyAction } from "../../../../../server/approval-repo.js";
-import { currentUser, userCan, AuthzError } from "../../../../../server/authorize.js";
-import { errorResponse } from "../../../../../server/api-error.js";
-import { auditActions } from "../../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { applyAction } from "../../../../../server/approval-repo";
+import { currentUser, userCan, AuthzError } from "../../../../../server/authorize";
+import { errorResponse } from "../../../../../server/api-error";
+import { auditActions } from "../../../../../server/platform-services";
 import { AppError, ErrorCode } from "@platform/core";
 import type { Actor } from "@platform/workflow";
 import { cookies } from "next/headers";
-import { serverEnv } from "../../../../../server/env.js";
+import { serverEnv } from "../../../../../server/env";
 
 const ACTIONS = ["approve", "reject", "sendback"] as const;
 type Action = (typeof ACTIONS)[number];

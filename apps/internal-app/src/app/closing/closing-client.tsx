@@ -1,7 +1,7 @@
 "use client";
 /** 月次決算。損益計算書・貸借対照表・消費税集計表を月ごとに表示。 */
 import * as React from "react";
-import { InfoTip } from "../../components/InfoTip.js";
+import { InfoTip } from "../../components/InfoTip";
 
 interface PL { revenue: number; expense: number; netIncome: number; }
 interface BS { assets: number; liabilities: number; equity: number; }

@@ -2,11 +2,11 @@
  * 管理: バックアップ復元/インポート(POST)。バンドルJSONを検証し、安全なデータセット(設定・取引先)を適用する。管理者のみ。
  * dryRun=true でプレビュー（適用せず件数のみ）。
  */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { partnerStore, settingsStore, auditActions } from "../../../../server/platform-services.js";
-import { parseBackupBundle, restorePlan, applyRestore, type Appliers } from "../../../../server/restore.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { partnerStore, settingsStore, auditActions } from "../../../../server/platform-services";
+import { parseBackupBundle, restorePlan, applyRestore, type Appliers } from "../../../../server/restore";
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

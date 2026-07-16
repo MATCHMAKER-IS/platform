@@ -2,10 +2,10 @@
  * メンバー追加 API（POST）。ルームに参加者を加える。ボディ `{ userId }`。
  * 追加できるのはそのルームのメンバーのみ（招待）。
  */
-import { withApiObservability } from "../../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../../server/env.js";
-import { roomRepo } from "../../../../../../server/chat.js";
+import { withApiObservability } from "../../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../../server/authorize";
+import { serverEnv } from "../../../../../../server/env";
+import { roomRepo } from "../../../../../../server/chat";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ roomId: string }> }): Promise<Response> {
   const { roomId } = await ctx.params;

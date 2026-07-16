@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toCsv, parseCsv, csvEscape } from "./index.js";
+import { toCsv, parseCsv, csvEscape } from "./index";
 
 describe("csv", () => {
   it("toCsv: 特殊文字をエスケープ", () => {

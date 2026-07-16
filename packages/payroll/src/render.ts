@@ -2,7 +2,7 @@
  * 給与明細の HTML 描画(純ロジック)。@platform/pdf の fromHtml に渡して PDF 化する。
  * @packageDocumentation
  */
-import { type Payslip } from "./payslip.js";
+import { type Payslip } from "./payslip";
 
 /** 描画オプション。 */
 export interface PayslipHtmlOptions {

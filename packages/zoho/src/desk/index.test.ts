@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createZohoDeskClient } from "./index.js";
+import { createZohoDeskClient } from "./index";
 
 function cap() {
   const s: { c: { url: string; method?: string; headers?: Record<string, string> } | null } = { c: null };

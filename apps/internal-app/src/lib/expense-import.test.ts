@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseExpenseCsv, toExpenses, normalizeDateStr, EXPENSE_IMPORT_FIELDS } from "./expense-import.js";
+import { parseExpenseCsv, toExpenses, normalizeDateStr, EXPENSE_IMPORT_FIELDS } from "./expense-import";
 
 const csv = `日付,カテゴリ,金額,備考
 2024/1/5,交通費,"1,200",客先訪問

@@ -4,9 +4,9 @@
  */
 import { withTransaction, recordAudit, type Result } from "@platform/db";
 import type { ImportHistoryRow } from "@platform/ui";
-import { db } from "./services.js";
-import { expenseToCreateData } from "./expense-repo.js";
-import type { Expense } from "../lib/expense.js";
+import { db } from "./services";
+import { expenseToCreateData } from "./expense-repo";
+import type { Expense } from "../lib/expense";
 
 /** ImportBatch 行(Prisma 生成型の必要部分)。 */
 export interface ImportBatchRow {

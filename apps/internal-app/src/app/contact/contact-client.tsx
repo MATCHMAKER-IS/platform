@@ -1,7 +1,7 @@
 "use client";
 /** お問い合わせフォーム。送信すると受付され、担当（受信箱）にも通知される。InfoTip でカテゴリの補足を表示。 */
 import * as React from "react";
-import { InfoTip } from "../../components/InfoTip.js";
+import { InfoTip } from "../../components/InfoTip";
 
 const CATEGORIES = ["請求・支払", "システム不具合", "アカウント", "その他"];
 

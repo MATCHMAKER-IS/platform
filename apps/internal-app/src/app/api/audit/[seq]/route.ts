@@ -1,8 +1,8 @@
 /** 監査エントリ詳細 API（GET）。before/after のフィールド差分つき。管理者のみ。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { auditLog } from "../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { auditLog } from "../../../../server/platform-services";
 
 async function handleGET(req: Request, ctx: { params: Promise<{ seq: string }> }): Promise<Response> {
   const { seq } = await ctx.params;

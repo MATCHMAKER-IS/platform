@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { expectedWorkdays, monthlyAttendance, attendanceMonths, attendanceAlerts, type LeaveRecord } from "./attendance-monthly.js";
+import { expectedWorkdays, monthlyAttendance, attendanceMonths, attendanceAlerts, type LeaveRecord } from "./attendance-monthly";
 import { isBusinessDay, utcDate, daysInMonth } from "@platform/datetime";
-import type { AttendanceRecord } from "./attendance.js";
+import type { AttendanceRecord } from "./attendance";
 
 const recs: AttendanceRecord[] = [
   { date: "2024-05-01", clockIn: "09:00", clockOut: "18:00" },

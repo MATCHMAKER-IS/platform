@@ -2,8 +2,8 @@
  * テキスト→HTML 変換・切り詰め・リンク化。すべて純関数。
  * @packageDocumentation
  */
-import { escapeHtml } from "./escape.js";
-import { nl2br } from "./whitespace.js";
+import { escapeHtml } from "./escape";
+import { nl2br } from "./whitespace";
 
 /**
  * プレーンテキストを安全な HTML にする: エスケープしてから改行を <br> に変換する。

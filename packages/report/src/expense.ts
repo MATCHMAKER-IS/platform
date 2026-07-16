@@ -3,8 +3,8 @@
  * OCR の帳票フィールド(金額・日付・登録番号)をそのまま流し込める。
  * @packageDocumentation
  */
-import { calculateInvoice } from "./invoice.js";
-import { formatYen } from "./money.js";
+import { calculateInvoice } from "./invoice";
+import { formatYen } from "./money";
 
 /** 抽出フィールドの入力(@platform/ocr の ReceiptFields と構造互換)。 */
 export interface ExtractedFields {

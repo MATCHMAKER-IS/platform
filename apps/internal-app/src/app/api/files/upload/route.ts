@@ -3,10 +3,10 @@
  * @platform/storage に保存し、fileManager に登録して一覧に反映、監査ログにも記録する。
  */
 import { handleUpload } from "@platform/upload";
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { fileStorage, fileManager, auditActions } from "../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { fileStorage, fileManager, auditActions } from "../../../../server/platform-services";
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

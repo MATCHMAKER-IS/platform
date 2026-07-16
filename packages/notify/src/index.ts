@@ -57,17 +57,17 @@ export function createNotifier(channels: NotifyChannel[]): Notifier {
   };
 }
 
-export { createSlackChannel } from "./channels/slack.js";
-export { createWebhookChannel, createDiscordChannel } from "./channels/webhook.js";
-export { renderTemplate } from "./template.js";
-export { crossedMilestones } from "./progress.js";
-export { createTeamsChannel } from "./channels/teams.js";
-export { createLineChannel } from "./channels/line.js";
+export { createSlackChannel } from "./channels/slack";
+export { createWebhookChannel, createDiscordChannel } from "./channels/webhook";
+export { renderTemplate } from "./template";
+export { crossedMilestones } from "./progress";
+export { createTeamsChannel } from "./channels/teams";
+export { createLineChannel } from "./channels/line";
 
-export { createMailChannel, type MailerLike } from "./channels/mail.js";
-export { createSmsChannel, type SmsLike } from "./channels/sms.js";
-export { notifyAllSettled, summarizeResults, type ChannelResult, type NamedChannel } from "./fanout.js";
-export { withDedup, createMemorySeenStore, type SeenStore, type DedupOptions } from "./dedup.js";
-export { withRetry, createFallbackChannel, type RetryOptions, type FallbackOptions } from "./resilient.js";
-export { createRedisSeenStore, type RedisSeenClient, type AsyncSeenStore } from "./seen-redis.js";
-export * from "./preferences.js";
+export { createMailChannel, type MailerLike } from "./channels/mail";
+export { createSmsChannel, type SmsLike } from "./channels/sms";
+export { notifyAllSettled, summarizeResults, type ChannelResult, type NamedChannel } from "./fanout";
+export { withDedup, createMemorySeenStore, type SeenStore, type DedupOptions } from "./dedup";
+export { withRetry, createFallbackChannel, type RetryOptions, type FallbackOptions } from "./resilient";
+export { createRedisSeenStore, type RedisSeenClient, type AsyncSeenStore } from "./seen-redis";
+export * from "./preferences";

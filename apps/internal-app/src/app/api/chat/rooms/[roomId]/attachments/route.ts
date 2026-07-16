@@ -2,11 +2,11 @@
  * チャット添付アップロード API（POST・multipart/form-data）。検証して storage に保存し、
  * 保存済みメタ（key/name/size/type）を返す。呼び出し側はこれを messages API の attachments に渡す。
  */
-import { withApiObservability } from "../../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../../server/env.js";
-import { chatStorage, thumbnailService } from "../../../../../../server/chat.js";
-import { fileManager } from "../../../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../../server/authorize";
+import { serverEnv } from "../../../../../../server/env";
+import { chatStorage, thumbnailService } from "../../../../../../server/chat";
+import { fileManager } from "../../../../../../server/platform-services";
 import { handleUpload } from "@platform/upload";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ roomId: string }> }): Promise<Response> {

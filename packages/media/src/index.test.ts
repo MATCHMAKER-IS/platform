@@ -21,7 +21,7 @@ vi.mock("fluent-ffmpeg", () => {
   return { default: ffmpeg };
 });
 
-import { createMediaProcessor } from "./index.js";
+import { createMediaProcessor } from "./index";
 
 describe("media", () => {
   it("probe はメタ情報を返す", async () => {

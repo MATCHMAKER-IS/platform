@@ -4,9 +4,9 @@
  * ユーザーの登録状態(どの手段が有効か)を持ち、検証を適切な実装に振り分ける。純ロジック。
  * @packageDocumentation
  */
-import { verifyTotp, type VerifyTotpOptions } from "./totp.js";
-import { verifyOtpCode, type OtpChallenge } from "./otp.js";
-import { verifyBackupCode, remainingBackupCodes, type BackupCodeRecord } from "./recovery-codes.js";
+import { verifyTotp, type VerifyTotpOptions } from "./totp";
+import { verifyOtpCode, type OtpChallenge } from "./otp";
+import { verifyBackupCode, remainingBackupCodes, type BackupCodeRecord } from "./recovery-codes";
 
 /** 2FA の手段。 */
 export type TwoFactorMethod = "totp" | "sms" | "backup";

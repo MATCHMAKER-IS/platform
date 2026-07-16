@@ -3,12 +3,12 @@
  * 取り込み履歴の一覧(DataTable)+ ロールバック操作。
  * @packageDocumentation
  */
-import { cn } from "../lib/cn.js";
-import { canRollbackWith, type ImportHistoryRow } from "../lib/import-validate.js";
-import { DataTable, type DataTableColumn } from "./data-table.js";
-import { Button } from "./button.js";
-import { Badge } from "./badge.js";
-import { useT } from "./i18n-provider.js";
+import { cn } from "../lib/cn";
+import { canRollbackWith, type ImportHistoryRow } from "../lib/import-validate";
+import { DataTable, type DataTableColumn } from "./data-table";
+import { Button } from "./button";
+import { Badge } from "./badge";
+import { useT } from "./i18n-provider";
 
 /** {@link ImportHistoryTable} の props。 */
 export interface ImportHistoryTableProps {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createZohoCrmClient } from "./index.js";
+import { createZohoCrmClient } from "./index";
 
 function capturingFetch() {
   const state: { cap: { url: string; method?: string; body?: unknown; auth?: string } | null } = { cap: null };

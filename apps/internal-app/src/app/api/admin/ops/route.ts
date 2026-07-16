@@ -5,15 +5,15 @@
  * 障害対応中に何本も叩くのは現実的でない。**1 リクエストで全体像が分かる**ようにする。
  * 管理者のみ。
  */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv, featureEnv, env } from "../../../../server/env.js";
-import { metrics } from "../../../../server/observability.js";
-import { db } from "../../../../server/services.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv, featureEnv, env } from "../../../../server/env";
+import { metrics } from "../../../../server/observability";
+import { db } from "../../../../server/services";
 import { sql, queryRaw } from "@platform/db";
-import { zohoBreakerState } from "../../../../server/zoho-client.js";
-import { webhookSubscriptionStore, auditLog } from "../../../../server/platform-services.js";
-import { buildStatusChecks, summarizeStatus } from "../../../../server/status-checks.js";
+import { zohoBreakerState } from "../../../../server/zoho-client";
+import { webhookSubscriptionStore, auditLog } from "../../../../server/platform-services";
+import { buildStatusChecks, summarizeStatus } from "../../../../server/status-checks";
 import { runHealthChecks } from "@platform/observability";
 import { maskSecrets } from "@platform/env";
 

@@ -1,8 +1,8 @@
 /** メールボックス: 内部連絡の送信(POST)。宛先の受信箱に届く（アプリ内メール）。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { appMailer } from "../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { appMailer } from "../../../../server/platform-services";
 import { isValidEmail } from "@platform/mail";
 
 async function handlePOST(req: Request): Promise<Response> {

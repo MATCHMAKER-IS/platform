@@ -206,8 +206,8 @@ export function currentStep(def: WorkflowDefinition, state: WorkflowState): Work
   return def.steps[state.currentStep] ?? null;
 }
 
-export { notificationForTransition, approverRecipients, type WorkflowNotification, type ApproverDirectory } from "./notification.js";
-export * from "./routing.js";
-export * from "./delegation.js";
-export * from "./parallel.js";
-export * from "./escalation.js";
+export { notificationForTransition, approverRecipients, type WorkflowNotification, type ApproverDirectory } from "./notification";
+export * from "./routing";
+export * from "./delegation";
+export * from "./parallel";
+export * from "./escalation";

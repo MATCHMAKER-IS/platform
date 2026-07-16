@@ -5,7 +5,7 @@
  */
 import { promises as fs } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
-import type { StorageAdapter, PutOptions } from "../index.js";
+import type { StorageAdapter, PutOptions } from "../index";
 
 /**
  * ローカルディスク Adapter を作る。

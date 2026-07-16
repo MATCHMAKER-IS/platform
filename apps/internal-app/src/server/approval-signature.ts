@@ -3,7 +3,7 @@
  * 署名は signature-repo に subjectType="approval"・subjectId=承認キー で保存される想定。
  * @packageDocumentation
  */
-import { type Signature } from "./signature-repo.js";
+import { type Signature } from "./signature-repo";
 
 /** 承認の署名対象キー（docType:docNumber）。 */
 export function approvalSubjectId(docType: string, docNumber: string): string {

@@ -1,9 +1,9 @@
 /** ダッシュボードのウィジェット表示設定 API。GET で取得、PUT で保存（ボディ `{ widgets }`）。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { dashboardPrefStore } from "../../../../server/platform-services.js";
-import { normalizeWidgets } from "../../../../server/dashboard-prefs.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { dashboardPrefStore } from "../../../../server/platform-services";
+import { normalizeWidgets } from "../../../../server/dashboard-prefs";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

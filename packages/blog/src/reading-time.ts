@@ -3,7 +3,7 @@
  * 日本語(CJK 文字)と欧文(単語)を別々に数え、合算して分を出す。
  * @packageDocumentation
  */
-import { stripMarkdown } from "./excerpt.js";
+import { stripMarkdown } from "./excerpt";
 
 /** 読了時間推定のオプション。 */
 export interface ReadingTimeOptions {

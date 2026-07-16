@@ -4,11 +4,11 @@
  * - PATCH: ボディ `{ post, body }`。編集して再索引。
  * - DELETE: ボディ `{ post }`。権限確認のうえ索引から除去。
  */
-import { withApiObservability } from "../../../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../../../server/env.js";
-import { boardService, chatSearch } from "../../../../../../../server/chat.js";
-import { auditActions } from "../../../../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../../../server/authorize";
+import { serverEnv } from "../../../../../../../server/env";
+import { boardService, chatSearch } from "../../../../../../../server/chat";
+import { auditActions } from "../../../../../../../server/platform-services";
 import type { Post } from "@platform/board";
 
 function isAdmin(roles: string[]): boolean {

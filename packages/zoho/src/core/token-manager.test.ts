@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createZohoTokenManager, createAuthedFetch } from "./token-manager.js";
+import { createZohoTokenManager, createAuthedFetch } from "./token-manager";
 
 function tokenFetch(seq: { n: number }) {
   return (async () => { seq.n++; return { ok: true, status: 200, json: async () => ({ access_token: "tok-" + seq.n, expires_in: 3600 }) }; }) as unknown as typeof fetch;

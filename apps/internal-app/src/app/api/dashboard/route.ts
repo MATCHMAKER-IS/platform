@@ -2,13 +2,13 @@
  * ダッシュボード集約 API（GET）。未読通知数・最近の通知・最近のファイル・直近の監査イベントをまとめて返す。
  * 監査は管理者のみ含める。
  */
-import { buildAlerts } from "../../../server/alerts.js";
-import { collectAlertInput } from "../../../server/alert-collect.js";
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { notificationStore, fileManager, auditLog, mailboxStore, inquiryStore, invoiceStore, inventoryStore } from "../../../server/platform-services.js";
-import { db } from "../../../server/services.js";
+import { buildAlerts } from "../../../server/alerts";
+import { collectAlertInput } from "../../../server/alert-collect";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser, requirePermission } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { notificationStore, fileManager, auditLog, mailboxStore, inquiryStore, invoiceStore, inventoryStore } from "../../../server/platform-services";
+import { db } from "../../../server/services";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

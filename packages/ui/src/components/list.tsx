@@ -4,8 +4,8 @@
  */
 import * as React from "react";
 import { ChevronRight } from "lucide-react";
-import { cn } from "../lib/cn.js";
-import { Highlight } from "./highlight.js";
+import { cn } from "../lib/cn";
+import { Highlight } from "./highlight";
 
 /** リスト枠(項目間に区切り線)。 */
 export function List({ className, ...props }: React.HTMLAttributes<HTMLUListElement>) {

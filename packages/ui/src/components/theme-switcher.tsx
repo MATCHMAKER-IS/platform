@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { useSkin } from "./skin-provider.js";
+import { useSkin } from "./skin-provider";
 
 export interface ThemeSwitcherProps {
   /** ラベルを表示するか(既定 true)。 */

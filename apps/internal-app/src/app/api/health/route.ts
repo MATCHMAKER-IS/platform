@@ -2,9 +2,9 @@
  * ヘルスチェック(liveness/readiness)。DB 等の依存を集約し 200/503 を返す。
  */
 import { runHealthChecks } from "@platform/observability";
-import { db } from "../../../server/services.js";
+import { db } from "../../../server/services";
 import { sql, queryRaw } from "@platform/db";
-import { zohoBreakerState } from "../../../server/zoho-client.js";
+import { zohoBreakerState } from "../../../server/zoho-client";
 
 export const dynamic = "force-dynamic";
 

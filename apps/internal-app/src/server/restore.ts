@@ -3,7 +3,7 @@
  * 安全なデータセット（設定・取引先など冪等な upsert）のみ適用し、それ以外はプレビュー扱いにする。純ロジック＋適用ディスパッチ。
  * @packageDocumentation
  */
-import { type BackupBundle } from "./backup.js";
+import { type BackupBundle } from "./backup";
 
 /** パース結果。 */
 export interface ParseResult {

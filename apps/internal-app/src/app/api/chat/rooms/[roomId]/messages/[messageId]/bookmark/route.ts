@@ -1,10 +1,10 @@
 /**
  * ブックマーク API（POST）。個人の保存をトグルする。
  */
-import { withApiObservability } from "../../../../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../../../../server/env.js";
-import { pinStore } from "../../../../../../../../server/chat.js";
+import { withApiObservability } from "../../../../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../../../../server/authorize";
+import { serverEnv } from "../../../../../../../../server/env";
+import { pinStore } from "../../../../../../../../server/chat";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ roomId: string; messageId: string }> }): Promise<Response> {
   const { roomId, messageId } = await ctx.params;

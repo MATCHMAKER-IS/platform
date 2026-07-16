@@ -3,7 +3,7 @@
 import { useState, type ChangeEvent } from "react";
 import { Button, Badge } from "@platform/ui";
 import { formatNumber } from "@platform/utils";
-import { submitExpense, statusLabel, availableActions, actOn, type ExpenseRequest } from "../../../lib/expense-approval.js";
+import { submitExpense, statusLabel, availableActions, actOn, type ExpenseRequest } from "../../../lib/expense-approval";
 import type { Actor } from "@platform/workflow";
 
 const yen = (n: number) => `¥${formatNumber(n, {})}`;

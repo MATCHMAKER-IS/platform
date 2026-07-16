@@ -7,7 +7,7 @@
  * @packageDocumentation
  */
 
-import { AppError } from "./error.js";
+import { AppError } from "./error";
 
 /** 成功を表す。 */
 export interface Ok<T> {

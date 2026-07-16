@@ -1,4 +1,4 @@
-import type { Expense } from "./expense.js";
+import type { Expense } from "./expense";
 
 /** デモ用の経費サンプル(実運用では Prisma から取得)。 */
 export const SAMPLE_EXPENSES: Expense[] = [

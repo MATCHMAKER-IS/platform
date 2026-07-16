@@ -1,8 +1,8 @@
 "use client";
 /** ファネルチャート(段階ごとの減少)。 @packageDocumentation */
 import { ResponsiveContainer, FunnelChart as RFunnelChart, Funnel, LabelList, Tooltip, Cell } from "recharts";
-import { cn } from "../../lib/cn.js";
-import { ChartTitle, CHART_COLORS } from "./chart-common.js";
+import { cn } from "../../lib/cn";
+import { ChartTitle, CHART_COLORS } from "./chart-common";
 
 /** {@link FunnelChart} の props。 */
 export interface FunnelChartProps {

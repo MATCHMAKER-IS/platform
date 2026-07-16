@@ -1,10 +1,10 @@
 /** 会計: 仕訳を freee 形式へ変換(GET)。実送信はせずプレビューを返す。accounting:read。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { invoiceStore, purchaseStore } from "../../../../server/platform-services.js";
-import { buildLedger, type LedgerInvoice, type LedgerPurchase } from "../../../../server/ledger.js";
-import { freeeBatch, freeeBatchSummary } from "../../../../server/freee-export.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { invoiceStore, purchaseStore } from "../../../../server/platform-services";
+import { buildLedger, type LedgerInvoice, type LedgerPurchase } from "../../../../server/ledger";
+import { freeeBatch, freeeBatchSummary } from "../../../../server/freee-export";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

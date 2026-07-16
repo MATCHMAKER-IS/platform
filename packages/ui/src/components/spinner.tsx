@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link Spinner} の props。 */
 export interface SpinnerProps extends React.SVGAttributes<SVGSVGElement> {

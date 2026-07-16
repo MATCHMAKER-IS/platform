@@ -1,9 +1,9 @@
 /** カテゴリ: 更新(PUT)・削除(DELETE)。 */
 import { validateCategoryInput, type CategoryInput } from "@platform/cms";
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { categoryStore, auditActions } from "../../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { categoryStore, auditActions } from "../../../../../server/platform-services";
 
 async function handlePUT(req: Request, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
   const { id } = await ctx.params;

@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 import { createPost, editPost, canModifyPost, extractMentions, validateAttachments, type Post, type Attachment, type AttachmentLimits } from "@platform/board";
-import { type MentionContext } from "./chat-notify.js";
+import { type MentionContext } from "./chat-notify";
 
 /** 掲示板配線の構成。 */
 export interface BoardServiceOptions {

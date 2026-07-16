@@ -3,8 +3,8 @@
  * ランプアップ（並列数を時間で徐々に増やす）にも対応。実 HTTP でもフェイクでも動く（テスト可能）。
  * @packageDocumentation
  */
-import { latencyStats, type LatencyStats } from "./stats.js";
-import { type RequestFn, type RequestOutcome } from "./runner.js";
+import { latencyStats, type LatencyStats } from "./stats";
+import { type RequestFn, type RequestOutcome } from "./runner";
 
 /** 重み付きステップ。 */
 export interface ScenarioStep {

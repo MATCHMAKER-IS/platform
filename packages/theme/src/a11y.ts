@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 import { contrastRatio, wcagLevel } from "@platform/color";
-import type { Theme, ThemeMode } from "./tokens.js";
+import type { Theme, ThemeMode } from "./tokens";
 
 /** 1 つの色ペアの検査結果。 */
 export interface ContrastCheck {

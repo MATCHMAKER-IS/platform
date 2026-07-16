@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { highlight, highlightTerms } from "@platform/utils";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link Highlight} の props。 */
 export interface HighlightProps {

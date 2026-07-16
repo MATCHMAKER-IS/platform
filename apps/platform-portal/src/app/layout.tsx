@@ -1,6 +1,6 @@
 import * as React from "react";
 import { AppSkin } from "@platform/ui";
-import { themeRegistry } from "../lib/theme-registry.js";
+import { themeRegistry } from "../lib/theme-registry";
 
 export const metadata = { title: "Platform Portal", description: "社内基盤のカタログ・ドキュメント・健康診断" };
 

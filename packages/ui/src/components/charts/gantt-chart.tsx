@@ -1,9 +1,9 @@
 "use client";
 /** ガントチャート(横棒積み上げで期間を表現)。 @packageDocumentation */
 import { ResponsiveContainer, BarChart as RBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from "recharts";
-import { cn } from "../../lib/cn.js";
-import { ChartTitle, CHART_COLORS, GRID_STROKE } from "./chart-common.js";
-import { toGanttRows, type GanttTask } from "./gantt-transform.js";
+import { cn } from "../../lib/cn";
+import { ChartTitle, CHART_COLORS, GRID_STROKE } from "./chart-common";
+import { toGanttRows, type GanttTask } from "./gantt-transform";
 
 /** {@link GanttChart} の props。 */
 export interface GanttChartProps {

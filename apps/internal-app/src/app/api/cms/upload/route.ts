@@ -3,10 +3,10 @@
  * 返り値の url は公開配信パス（本番は CDN / 静的配信の URL を組み立てる）。
  */
 import { handleUpload } from "@platform/upload";
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv, featureEnv } from "../../../../server/env.js";
-import { fileStorage, fileManager, auditActions } from "../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv, featureEnv } from "../../../../server/env";
+import { fileStorage, fileManager, auditActions } from "../../../../server/platform-services";
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

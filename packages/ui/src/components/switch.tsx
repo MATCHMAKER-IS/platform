@@ -4,7 +4,7 @@
  */
 import * as React from "react";
 import { Switch as SwitchPrimitive } from "radix-ui";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link Switch} の props。 */
 export type SwitchProps = React.ComponentPropsWithoutRef<typeof SwitchPrimitive.Root>;

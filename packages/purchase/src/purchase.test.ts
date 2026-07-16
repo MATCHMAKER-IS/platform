@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildPurchaseOrder } from "./purchase-order.js";
-import { receivingStatus, totalOutstanding, purchaseStatus, overReceivedLines } from "./receiving.js";
+import { buildPurchaseOrder } from "./purchase-order";
+import { receivingStatus, totalOutstanding, purchaseStatus, overReceivedLines } from "./receiving";
 describe("purchase", () => {
   const lines = [{ description: "部品A", quantity: 100, unitPrice: 500 }, { description: "部品B", quantity: 50, unitPrice: 200, taxRate: 8 as const }];
   const po = buildPurchaseOrder({ number: "PO-0001", orderDate: "2025-07-01", supplier: "仕入先", state: "ordered" }, lines);

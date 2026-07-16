@@ -1,8 +1,8 @@
 /** 請求: 日付つき入金の記録(POST)。入金記録に残しつつ請求の入金済み額も更新する。invoice:write。 */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { invoiceStore, receiptStore, periodLockStore, auditActions } from "../../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { invoiceStore, receiptStore, periodLockStore, auditActions } from "../../../../../server/platform-services";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ number: string }> }): Promise<Response> {
   const { number } = await ctx.params;

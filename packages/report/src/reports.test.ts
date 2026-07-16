@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { trialBalanceSheet, agingSheet, taxReportSheet, inventoryValuationSheet, combineSheets, sheetToCsv } from "./reports.js";
+import { trialBalanceSheet, agingSheet, taxReportSheet, inventoryValuationSheet, combineSheets, sheetToCsv } from "./reports";
 describe("report reports", () => {
   it("builds domain sheets", () => {
     const tb = trialBalanceSheet([{ account: "売掛金", debit: 110000, credit: 110000, balance: 0 }]);

@@ -1,7 +1,7 @@
 "use client";
 /** サインページ。対象（書類ID）に手書きサインを保存し、既存サインを一覧表示。 */
 import * as React from "react";
-import { SignaturePad } from "../../components/SignaturePad.js";
+import { SignaturePad } from "../../components/SignaturePad";
 
 interface Signature { id: string; signer: string; image: string; signedAt: string; }
 

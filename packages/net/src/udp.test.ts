@@ -1,5 +1,5 @@
 import { describe, it, expect, afterAll } from "vitest";
-import { createUdpSocket, type UdpSocket } from "./udp.js";
+import { createUdpSocket, type UdpSocket } from "./udp";
 
 const enc = new TextEncoder(); const dec = new TextDecoder();
 let a: UdpSocket, b: UdpSocket;

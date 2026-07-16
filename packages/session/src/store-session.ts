@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 import { randomToken } from "@platform/crypto";
-import { getCookie, serializeCookie, clearCookie, type CookieOptions } from "./cookie.js";
+import { getCookie, serializeCookie, clearCookie, type CookieOptions } from "./cookie";
 
 /** セッションデータの保存先(get/set/delete)。 */
 export interface SessionStore {

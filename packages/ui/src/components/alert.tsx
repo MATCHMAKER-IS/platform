@@ -6,7 +6,7 @@
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Info, CircleCheck, TriangleAlert, CircleX, X } from "lucide-react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 const alertVariants = cva(
   "relative flex gap-3 rounded-[var(--radius)] border p-4 text-sm",

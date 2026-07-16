@@ -104,4 +104,4 @@ export function createLogger(options: LoggerOptions = {}): Logger {
   );
 }
 
-export { createContextStore, type ContextStore, type LogContext } from "./context.js";
+export { createContextStore, type ContextStore, type LogContext } from "./context";

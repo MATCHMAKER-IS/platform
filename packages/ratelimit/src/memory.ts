@@ -2,7 +2,7 @@
  * メモリストア(単一インスタンス・開発向け)。
  * @packageDocumentation
  */
-import type { RateLimitStore } from "./types.js";
+import type { RateLimitStore } from "./types";
 
 /**
  * メモリのレート制限ストアを作る。

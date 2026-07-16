@@ -5,13 +5,13 @@
  * 注文番号は @platform/sequence、注文ステータスは @platform/fsm と組み合わせる。
  * @packageDocumentation
  */
-export * from "./cart.js";
-export * from "./favorites.js";
-export * from "./discount.js";
-export * from "./order-summary.js";
-export * from "./inventory.js";
-export * from "./variant.js";
-export * from "./review.js";
-export * from "./order-status.js";
-export * from "./points.js";
-export * from "./shipping.js";
+export * from "./cart";
+export * from "./favorites";
+export * from "./discount";
+export * from "./order-summary";
+export * from "./inventory";
+export * from "./variant";
+export * from "./review";
+export * from "./order-status";
+export * from "./points";
+export * from "./shipping";

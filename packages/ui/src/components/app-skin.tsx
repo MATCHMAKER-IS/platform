@@ -10,7 +10,7 @@
  */
 import * as React from "react";
 import { buildThemeStylesheet, type ThemeRegistry, type Theme } from "@platform/theme";
-import { SkinProvider } from "./skin-provider.js";
+import { SkinProvider } from "./skin-provider";
 
 export interface AppSkinProps {
   children: React.ReactNode;

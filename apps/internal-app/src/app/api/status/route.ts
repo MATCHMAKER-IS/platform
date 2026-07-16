@@ -1,10 +1,10 @@
 /** 統合ステータス(GET)。DB・外部連携・Webhook等の稼働状況を集約。認証不要（表示用の要約）。 */
 import { runHealthChecks } from "@platform/observability";
-import { db } from "../../../server/services.js";
+import { db } from "../../../server/services";
 import { sql, queryRaw } from "@platform/db";
-import { zohoBreakerState } from "../../../server/zoho-client.js";
-import { webhookSubscriptionStore } from "../../../server/platform-services.js";
-import { buildStatusChecks, summarizeStatus } from "../../../server/status-checks.js";
+import { zohoBreakerState } from "../../../server/zoho-client";
+import { webhookSubscriptionStore } from "../../../server/platform-services";
+import { buildStatusChecks, summarizeStatus } from "../../../server/status-checks";
 
 export const dynamic = "force-dynamic";
 

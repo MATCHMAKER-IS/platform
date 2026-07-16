@@ -1,9 +1,9 @@
 /** CMS 記事: 一覧(GET)・作成(POST)。編集は cms:edit、公開は cms:publish。公開権限が無い場合は公開申請を作成し下書き保存。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission, userCan } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { cmsStore, auditActions, revisionStore, publishRequestStore, notificationCenter } from "../../../../server/platform-services.js";
-import { validatePostInput, isPublishAction, effectiveStatus, type CmsPostInput, type PostStatus } from "../../../../server/cms-store.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission, userCan } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { cmsStore, auditActions, revisionStore, publishRequestStore, notificationCenter } from "../../../../server/platform-services";
+import { validatePostInput, isPublishAction, effectiveStatus, type CmsPostInput, type PostStatus } from "../../../../server/cms-store";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

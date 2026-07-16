@@ -7,7 +7,7 @@ import { useState, useCallback } from "react";
 import {
   type SubmitFlowState, type SubmitPhase,
   initialSubmitFlow, reviewData, editAgain, startSubmitting, submitFailed, submitSucceeded, resetSubmitFlow,
-} from "./flow.js";
+} from "./flow";
 
 /** useSubmitFlow の戻り値。 */
 export interface UseSubmitFlow<T> {

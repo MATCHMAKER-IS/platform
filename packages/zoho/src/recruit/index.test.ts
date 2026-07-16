@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createZohoRecruitClient } from "./index.js";
+import { createZohoRecruitClient } from "./index";
 describe("zoho recruit", () => {
   it("candidates + delete ids", async () => {
     let url = ""; let method = "";

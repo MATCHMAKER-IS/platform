@@ -5,8 +5,8 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
-import { SortableList } from "./sortable-list.js";
+import { cn } from "../lib/cn";
+import { SortableList } from "./sortable-list";
 
 /** 編集対象のブロック。 */
 export interface EditableBlock {

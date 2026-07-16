@@ -9,7 +9,7 @@
  */
 import { PrismaClient, Prisma } from "@prisma/client";
 import { AppError, ErrorCode, tryCatch, type Result } from "@platform/core";
-import { mapPrismaError } from "./errors.js";
+import { mapPrismaError } from "./errors";
 
 /**
  * SQL 識別子として安全か(英数字とアンダースコアのみ、先頭は英字/アンダースコア)。

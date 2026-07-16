@@ -4,12 +4,12 @@
  * 全文検索は @platform/search(BM25)、本文編集は @platform/ui の RichTextEditor と組み合わせる。
  * @packageDocumentation
  */
-export * from "./slug.js";
-export * from "./excerpt.js";
-export * from "./reading-time.js";
-export * from "./toc.js";
-export * from "./post.js";
-export * from "./feed.js";
-export * from "./comment.js";
-export * from "./navigation.js";
-export * from "./permalink.js";
+export * from "./slug";
+export * from "./excerpt";
+export * from "./reading-time";
+export * from "./toc";
+export * from "./post";
+export * from "./feed";
+export * from "./comment";
+export * from "./navigation";
+export * from "./permalink";

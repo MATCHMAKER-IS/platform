@@ -2,7 +2,7 @@
  * ワークフローの状態遷移から通知メッセージを作る(純関数・@platform/notify と組み合わせる)。
  * @packageDocumentation
  */
-import type { WorkflowState } from "./index.js";
+import type { WorkflowState } from "./index";
 
 /** 通知内容。 */
 export interface WorkflowNotification {

@@ -4,6 +4,6 @@
  * SNS 連携は @platform/social、予約の空き枠は @platform/booking、表示は @platform/ui と組み合わせる。
  * @packageDocumentation
  */
-export * from "./cast.js";
-export * from "./profile.js";
-export * from "./ranking.js";
+export * from "./cast";
+export * from "./profile";
+export * from "./ranking";

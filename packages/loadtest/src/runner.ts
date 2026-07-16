@@ -3,7 +3,7 @@
  * レイテンシ統計・スループット・エラー率を集計する。実 HTTP でもフェイク関数でも動く（テスト可能）。
  * @packageDocumentation
  */
-import { latencyStats, type LatencyStats } from "./stats.js";
+import { latencyStats, type LatencyStats } from "./stats";
 
 /** 1 リクエストの結果。 */
 export interface RequestOutcome {

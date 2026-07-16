@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isQuietHour, resolveDelivery, partitionDeliveries, summarizeDigest } from "./preferences.js";
+import { isQuietHour, resolveDelivery, partitionDeliveries, summarizeDigest } from "./preferences";
 const at = (h: number) => { const d = new Date("2025-07-25T00:00:00"); d.setHours(h); return d; };
 const pref = {
   categories: {

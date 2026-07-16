@@ -1,9 +1,9 @@
 /** 自分に対するフィーチャーフラグの評価結果(GET)。UIの出し分けに使う。認証ユーザー。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { flagStore } from "../../../server/platform-services.js";
-import { createAppFlags, flagContext } from "../../../server/feature-flags.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { flagStore } from "../../../server/platform-services";
+import { createAppFlags, flagContext } from "../../../server/feature-flags";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

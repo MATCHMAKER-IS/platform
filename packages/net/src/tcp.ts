@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 import * as net from "node:net";
-import { encodeLengthPrefixed, LengthPrefixedDecoder } from "./framing.js";
+import { encodeLengthPrefixed, LengthPrefixedDecoder } from "./framing";
 
 /** フレーム付き TCP 接続。 */
 export interface FramedConnection {

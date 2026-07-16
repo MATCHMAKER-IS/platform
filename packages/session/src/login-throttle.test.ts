@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createLoginThrottle, createMemoryThrottleStore } from "./login-throttle.js";
+import { createLoginThrottle, createMemoryThrottleStore } from "./login-throttle";
 describe("login throttle", () => {
   it("locks after max fails and clears on success", async () => {
     let clock = 0; const now = () => clock;

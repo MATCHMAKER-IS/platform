@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { weightedRating, globalMeanRating, rankCasts, rankByRawRating } from "./ranking.js";
+import { weightedRating, globalMeanRating, rankCasts, rankByRawRating } from "./ranking";
 describe("cast ranking", () => {
   it("computes weighted rating (bayesian)", () => {
     const mean = 4.0, m = 10;

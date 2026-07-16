@@ -4,7 +4,7 @@ import {
   myNumber, corporateNumber, amount, agreement, requiredString,
   password, passwordWithConfirm, dateRange,
   toHalfWidth, digitsToHalfWidth, computeMyNumberCheckDigit,
-} from "./index.js";
+} from "./index";
 
 describe("validate", () => {
   it("成功時は ok", () => {
@@ -92,7 +92,7 @@ describe("transforms", () => {
 import {
   alphanumeric, halfWidthKana, time, httpsUrl, creditCard, bankCode, branchCode, accountNumber,
   between, futureDate, pastDate, nonEmptyArray, fileConstraints,
-} from "./index.js";
+} from "./index";
 
 describe("追加パターン", () => {
   it("半角英数字・半角カナ", () => {

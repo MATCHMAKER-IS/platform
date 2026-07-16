@@ -1,9 +1,9 @@
 /** 固定資産: 当年の減価償却仕訳(GET)。?year=。asset:read。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { assetStore } from "../../../../server/platform-services.js";
-import { depreciationJournal, depreciationTotal } from "../../../../server/depreciation-journal.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { assetStore } from "../../../../server/platform-services";
+import { depreciationJournal, depreciationTotal } from "../../../../server/depreciation-journal";
 import { journalToRows } from "@platform/accounting";
 
 async function handleGET(req: Request): Promise<Response> {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { createTesseractOcr, createHttpOcr } from "./index.js";
+import { createTesseractOcr, createHttpOcr } from "./index";
 
 describe("createTesseractOcr", () => {
   it("結果をマッピング", async () => {

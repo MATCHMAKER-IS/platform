@@ -1,9 +1,9 @@
 /** 繰り返し請求: 課金対象を一括で請求書化(POST)。invoice:write。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { recurringStore, invoiceStore, auditActions } from "../../../../server/platform-services.js";
-import { invoiceFromPlan } from "../../../../server/recurring-repo.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { recurringStore, invoiceStore, auditActions } from "../../../../server/platform-services";
+import { invoiceFromPlan } from "../../../../server/recurring-repo";
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

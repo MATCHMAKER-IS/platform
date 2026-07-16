@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { createThread, createPost, canReply, rootPosts, repliesOf, extractMentions } from "./post.js";
-import { toggleReaction, countReactions, userReactions } from "./reaction.js";
-import { summarize, sortThreads, filterByTag, searchThreads } from "./thread-list.js";
+import { createThread, createPost, canReply, rootPosts, repliesOf, extractMentions } from "./post";
+import { toggleReaction, countReactions, userReactions } from "./reaction";
+import { summarize, sortThreads, filterByTag, searchThreads } from "./thread-list";
 
 describe("post", () => {
   it("スレッド/投稿の検証と trim", () => {

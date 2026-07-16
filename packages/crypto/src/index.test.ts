@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { deriveKey, encrypt, decrypt, hashPassword, verifyPassword, randomToken } from "./index.js";
+import { deriveKey, encrypt, decrypt, hashPassword, verifyPassword, randomToken } from "./index";
 
 describe("crypto", () => {
   const key = deriveKey("super-secret-value-for-tests", "test-salt-unique");
@@ -27,7 +27,7 @@ describe("crypto", () => {
   });
 });
 
-import { generatePassword, passwordStrength } from "./index.js";
+import { generatePassword, passwordStrength } from "./index";
 
 describe("password utilities", () => {
   it("生成: 指定長・全文字種を含む・曖昧文字を除外", () => {

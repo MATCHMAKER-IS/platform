@@ -1,9 +1,9 @@
 /** 管理: 検索インデックスの再構築(POST)。請求・取引先・監査から索引を作り直す。管理者のみ。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { invoiceStore, partnerStore, auditLog, searchIndexStore } from "../../../../server/platform-services.js";
-import { invoiceToDoc, partnerToDoc, auditToDoc, type EntityDoc } from "../../../../server/entity-search.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { invoiceStore, partnerStore, auditLog, searchIndexStore } from "../../../../server/platform-services";
+import { invoiceToDoc, partnerToDoc, auditToDoc, type EntityDoc } from "../../../../server/entity-search";
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** お知らせの重要度。 */
 export type NoticeLevel = "info" | "important" | "warning" | "success";

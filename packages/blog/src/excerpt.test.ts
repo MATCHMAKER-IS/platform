@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { stripMarkdown, excerpt } from "./excerpt.js";
+import { stripMarkdown, excerpt } from "./excerpt";
 describe("excerpt", () => {
   it("strips markdown", () => {
     const md = "# 見出し\n\nこれは**本文**です。[リンク](http://x.com)や`code`を含む。\n\n```js\nconst a=1;\n```";

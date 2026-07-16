@@ -6,12 +6,12 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
-import { useI18n } from "./i18n-provider.js";
+import { cn } from "../lib/cn";
+import { useI18n } from "./i18n-provider";
 import {
   normalizeCellRange, inRange, rangeToTsv, stickyLeftOffsets, applyColumnResize,
   computeVisibleRange, computeVisibleColumns, type CellRange,
-} from "../lib/grid.js";
+} from "../lib/grid";
 
 /** 列定義。 */
 export interface SheetColumn<T> {

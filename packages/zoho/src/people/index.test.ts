@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createZohoPeopleClient } from "./index.js";
+import { createZohoPeopleClient } from "./index";
 
 describe("zoho people", () => {
   it("form-based paths", async () => {

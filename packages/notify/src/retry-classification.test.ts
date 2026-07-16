@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { withRetry } from "./resilient.js";
+import { withRetry } from "./resilient";
 import { AppError, ErrorCode } from "@platform/core";
 describe("retry uses central classification by default", () => {
   it("does not retry permanent errors, retries transient and raw", async () => {

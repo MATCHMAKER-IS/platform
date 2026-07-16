@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { poll } from "./poll.js";
+import { poll } from "./poll";
 
 describe("poll", () => {
   it("resolves when condition met", async () => { let n = 0; const v = await poll(async () => ++n, { intervalMs: 5, until: (x) => x >= 3 }); expect(v).toBe(3); });

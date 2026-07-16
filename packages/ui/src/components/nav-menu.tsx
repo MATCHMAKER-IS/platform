@@ -5,8 +5,8 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
-import { isNavActive, hasActiveChild, type NavItem } from "../lib/nav.js";
+import { cn } from "../lib/cn";
+import { isNavActive, hasActiveChild, type NavItem } from "../lib/nav";
 
 /** {@link NavMenu} の props。 */
 export interface NavMenuProps {

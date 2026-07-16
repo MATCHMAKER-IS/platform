@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { textMessage, buttonsTemplate, confirmTemplate, carouselTemplate, withQuickReply, postbackAction, messageAction } from "./messages.js";
+import { textMessage, buttonsTemplate, confirmTemplate, carouselTemplate, withQuickReply, postbackAction, messageAction } from "./messages";
 describe("line message builders", () => {
   it("builds text and quick reply", () => {
     expect(textMessage("hi")).toEqual({ type: "text", text: "hi" });

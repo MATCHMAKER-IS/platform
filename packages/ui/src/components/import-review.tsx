@@ -6,12 +6,12 @@
  */
 import * as React from "react";
 import { AlertTriangle } from "lucide-react";
-import { cn } from "../lib/cn.js";
-import { validateImportRows, cellErrorLookup, errorRowIndices, validRows, type ImportField } from "../lib/import-validate.js";
-import { Input } from "./input.js";
-import { Button } from "./button.js";
-import { Badge } from "./badge.js";
-import { useT } from "./i18n-provider.js";
+import { cn } from "../lib/cn";
+import { validateImportRows, cellErrorLookup, errorRowIndices, validRows, type ImportField } from "../lib/import-validate";
+import { Input } from "./input";
+import { Button } from "./button";
+import { Badge } from "./badge";
+import { useT } from "./i18n-provider";
 
 /** {@link ImportReview} の props。 */
 export interface ImportReviewProps {

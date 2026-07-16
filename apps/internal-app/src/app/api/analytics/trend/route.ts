@@ -1,10 +1,10 @@
 /** 経営分析: 月次推移(売上・仕入・経費・粗利)(GET)。?from=YYYY-MM&to=YYYY-MM。dashboard:read。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { invoiceStore, purchaseStore } from "../../../../server/platform-services.js";
-import { listExpenses } from "../../../../server/expense-repo.js";
-import { monthlyTrend, monthRange, summarizeTrend, type TrendInvoice, type TrendPurchase, type TrendExpense } from "../../../../server/trend.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { invoiceStore, purchaseStore } from "../../../../server/platform-services";
+import { listExpenses } from "../../../../server/expense-repo";
+import { monthlyTrend, monthRange, summarizeTrend, type TrendInvoice, type TrendPurchase, type TrendExpense } from "../../../../server/trend";
 
 function defaultRange(): { from: string; to: string } {
   const to = new Date();

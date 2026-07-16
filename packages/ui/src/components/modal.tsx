@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter } from "./dialog.js";
+import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter } from "./dialog";
 
 /** {@link Modal} の props。 */
 export interface ModalProps {

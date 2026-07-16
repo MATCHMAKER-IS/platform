@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveRoles } from "./roles.js";
+import { resolveRoles } from "./roles";
 
 describe("roles directory", () => {
   it("maps email to roles", () => {

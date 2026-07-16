@@ -1,7 +1,7 @@
 /** 部品の初期化と配線(crud-template と同パターン)。 */
 import { createDb } from "@platform/db";
-import { env, usePrisma } from "./env.js";
-import { createMemoryEquipmentStore, createPrismaEquipmentStore, type EquipmentStore, type EquipmentStoreDb } from "./equipment-repo.js";
+import { env, usePrisma } from "./env";
+import { createMemoryEquipmentStore, createPrismaEquipmentStore, type EquipmentStore, type EquipmentStoreDb } from "./equipment-repo";
 
 function prismaDb(): EquipmentStoreDb {
   if (!env.DATABASE_URL) throw new Error("PERSISTENCE=prisma には DATABASE_URL が必要です");

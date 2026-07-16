@@ -76,7 +76,7 @@ export function createSearch<T extends SearchDocument = SearchDocument>(
   };
 }
 
-export { createMemorySearch } from "./adapters/memory.js";
-export { createMeilisearchAdapter, type MeilisearchConfig } from "./adapters/meilisearch.js";
-export { createBm25Index, type Bm25Index, type Bm25Options, type FieldBoosts } from "./bm25.js";
-export { tokenize } from "./tokenize.js";
+export { createMemorySearch } from "./adapters/memory";
+export { createMeilisearchAdapter, type MeilisearchConfig } from "./adapters/meilisearch";
+export { createBm25Index, type Bm25Index, type Bm25Options, type FieldBoosts } from "./bm25";
+export { tokenize } from "./tokenize";

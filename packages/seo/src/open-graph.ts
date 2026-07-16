@@ -3,7 +3,7 @@
  * SNS でのシェア時に表示されるタイトル・説明・画像などを設定する。
  * @packageDocumentation
  */
-import type { MetaTag } from "./meta.js";
+import type { MetaTag } from "./meta";
 
 /** Open Graph の種類。 */
 export type OgType = "website" | "article" | "profile" | "product";

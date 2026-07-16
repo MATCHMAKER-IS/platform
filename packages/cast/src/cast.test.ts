@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { activeCasts, castsByTag, castsByAllTags, tagCounts, isNewcomer, newcomers, sortCasts, featuredCasts } from "./cast.js";
+import { activeCasts, castsByTag, castsByAllTags, tagCounts, isNewcomer, newcomers, sortCasts, featuredCasts } from "./cast";
 const now = new Date("2025-07-25T00:00:00Z");
 const casts = [
   { id: "1", name: "あおい", status: "active" as const, tags: ["ダンス", "歌"], featured: true, rating: 4.8, joinedAt: "2025-01-01" },

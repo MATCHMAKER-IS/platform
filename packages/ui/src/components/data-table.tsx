@@ -6,13 +6,13 @@
  */
 import * as React from "react";
 import { ArrowUpDown } from "lucide-react";
-import { cn } from "../lib/cn.js";
-import { queryRows, type TableQuery } from "../lib/table.js";
-import { useI18n } from "./i18n-provider.js";
-import { Highlight } from "./highlight.js";
-import { Input } from "./input.js";
-import { SimplePagination } from "./pagination.js";
-import { CsvExportButton } from "./csv-export-button.js";
+import { cn } from "../lib/cn";
+import { queryRows, type TableQuery } from "../lib/table";
+import { useI18n } from "./i18n-provider";
+import { Highlight } from "./highlight";
+import { Input } from "./input";
+import { SimplePagination } from "./pagination";
+import { CsvExportButton } from "./csv-export-button";
 
 /** 列定義。 */
 export interface DataTableColumn<T> {

@@ -104,6 +104,6 @@ export function createHttpOcr(options: HttpOcrOptions): OcrEngine {
   };
 }
 
-export { extractReceiptFields, extractReceiptFieldsWithConfidence, parseJapaneseDate, extractAmount, findRegistrationNumber, findPhone, normalizeOcrText, extractLineItems, extractInvoiceFields, extractTaxBreakdown, type ReceiptFields, type ReceiptFieldsWithConfidence, type FieldWithConfidence, type LineItem, type InvoiceFields, type TaxRateLine } from "./extraction.js";
-export { recognizeReceiptsBatch } from "./batch.js";
-export { extractReceiptsFromResults, type ReceiptImportItem } from "./extraction.js";
+export { extractReceiptFields, extractReceiptFieldsWithConfidence, parseJapaneseDate, extractAmount, findRegistrationNumber, findPhone, normalizeOcrText, extractLineItems, extractInvoiceFields, extractTaxBreakdown, type ReceiptFields, type ReceiptFieldsWithConfidence, type FieldWithConfidence, type LineItem, type InvoiceFields, type TaxRateLine } from "./extraction";
+export { recognizeReceiptsBatch } from "./batch";
+export { extractReceiptsFromResults, type ReceiptImportItem } from "./extraction";

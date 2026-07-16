@@ -1,12 +1,12 @@
 /** 管理: ユーザー・権限ディレクトリ 一覧(GET)・登録更新/有効無効(POST)。管理者のみ。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { userStore, appMailer, auditActions } from "../../../../server/platform-services.js";
-import { ASSIGNABLE_ROLES } from "../../../../server/user-repo.js";
-import { KNOWN_PERMISSIONS, effectivePermissions } from "../../../../server/permission-matrix.js";
-import { APP_POLICY } from "../../../../server/policy.js";
-import { generatePassword, hashPassword } from "../../../../server/password.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { userStore, appMailer, auditActions } from "../../../../server/platform-services";
+import { ASSIGNABLE_ROLES } from "../../../../server/user-repo";
+import { KNOWN_PERMISSIONS, effectivePermissions } from "../../../../server/permission-matrix";
+import { APP_POLICY } from "../../../../server/policy";
+import { generatePassword, hashPassword } from "../../../../server/password";
 
 function requireAdmin(req: Request) {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

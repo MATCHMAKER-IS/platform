@@ -1,9 +1,9 @@
 /** お問い合わせ: 対応状況の更新(POST)。inquiry:write。 */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { inquiryStore, auditActions } from "../../../../../server/platform-services.js";
-import { normalizeStatus } from "../../../../../server/inquiry-repo.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { inquiryStore, auditActions } from "../../../../../server/platform-services";
+import { normalizeStatus } from "../../../../../server/inquiry-repo";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
   const { id } = await ctx.params;

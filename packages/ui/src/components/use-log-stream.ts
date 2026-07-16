@@ -4,8 +4,8 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { appendCapped } from "../lib/log.js";
-import { createLogStream, type LogStreamOptions } from "../lib/log-stream.js";
+import { appendCapped } from "../lib/log";
+import { createLogStream, type LogStreamOptions } from "../lib/log-stream";
 
 /**
  * ストリームを購読して行配列を返す(末尾 max 件)。

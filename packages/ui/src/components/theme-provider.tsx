@@ -9,7 +9,7 @@ import * as React from "react";
 import {
   type ThemePreference, type ResolvedTheme,
   resolveTheme, applyTheme, toggleTheme, THEME_STORAGE_KEY,
-} from "../lib/theme.js";
+} from "../lib/theme";
 
 /** useTheme が返す値。 */
 export interface ThemeContextValue {

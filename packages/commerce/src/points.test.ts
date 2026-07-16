@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { earnPoints, pointsBalance, redeemPoints, expiringPoints } from "./points.js";
+import { earnPoints, pointsBalance, redeemPoints, expiringPoints } from "./points";
 const now = new Date("2025-07-25T00:00:00Z");
 describe("points", () => {
   it("earns, balances, redeems", () => {

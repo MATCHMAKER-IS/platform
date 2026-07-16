@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { renderInvoiceHtml, renderQuotationHtml, renderDeliveryNoteHtml } from "./render.js";
+import { renderInvoiceHtml, renderQuotationHtml, renderDeliveryNoteHtml } from "./render";
 const doc = {
   invoiceNumber: "INV-001", issueDate: "2025-07-25", dueDate: "2025-08-31",
   seller: { name: "株式会社テスト" }, buyer: { name: "取引先" },

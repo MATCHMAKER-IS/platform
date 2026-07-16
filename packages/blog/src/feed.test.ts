@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildRssFeed, buildSitemap, escapeXml } from "./feed.js";
+import { buildRssFeed, buildSitemap, escapeXml } from "./feed";
 describe("feed", () => {
   it("builds RSS with escaping", () => {
     const rss = buildRssFeed({ title: "My Blog", link: "https://ex.com", description: "説明" }, [{ title: "記事<A>", link: "https://ex.com/a", description: "抜粋&要約", publishedAt: "2025-07-20T00:00:00Z" }]);

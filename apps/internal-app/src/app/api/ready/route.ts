@@ -1,7 +1,7 @@
 /** レディネスチェック API(GET)。DB・マイグレーション等を集約し 200/503 を返す(デプロイの健全性確認用)。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { checkReadiness, readinessHttpStatus } from "../../../lib/readiness.js";
-import { serverEnv } from "../../../server/env.js";
+import { withApiObservability } from "../../../server/instrument";
+import { checkReadiness, readinessHttpStatus } from "../../../lib/readiness";
+import { serverEnv } from "../../../server/env";
 
 async function handleGET(_req: Request): Promise<Response> {
   const result = await checkReadiness([

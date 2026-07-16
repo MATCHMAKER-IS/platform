@@ -6,8 +6,8 @@
  */
 import * as React from "react";
 import { Mic, MicOff } from "lucide-react";
-import { useSpeechRecognition } from "./use-speech-recognition.js";
-import { cn } from "../lib/cn.js";
+import { useSpeechRecognition } from "./use-speech-recognition";
+import { cn } from "../lib/cn";
 
 /** {@link VoiceInput} の props。 */
 export interface VoiceInputProps {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createMemoryQueue } from "./memory.js";
+import { createMemoryQueue } from "./memory";
 describe("memory queue retry", () => {
   it("retries then dead-letters", async () => {
     let tries = 0;

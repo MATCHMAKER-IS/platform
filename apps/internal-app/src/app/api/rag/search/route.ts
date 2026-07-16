@@ -1,8 +1,8 @@
 /** RAG 検索(POST {query}). ログイン中ユーザーのロールを継承して検索(権限のない文書は返らない)。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { ragStore, ensureSeeded, normalizeTranscript } from "../../../../server/rag-service.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { ragStore, ensureSeeded, normalizeTranscript } from "../../../../server/rag-service";
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

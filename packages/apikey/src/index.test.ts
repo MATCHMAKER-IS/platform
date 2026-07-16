@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generateApiKey, verifyApiKey, hasScope, hasAllScopes, authenticateApiKey } from "./index.js";
+import { generateApiKey, verifyApiKey, hasScope, hasAllScopes, authenticateApiKey } from "./index";
 describe("apikey", () => {
   it("generates and verifies", () => {
     const k = generateApiKey({ prefix: "sk_" });

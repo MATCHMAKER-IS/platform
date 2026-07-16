@@ -5,11 +5,11 @@
  */
 import * as React from "react";
 import { Video, Square } from "lucide-react";
-import { Button } from "./button.js";
-import { VideoPlayer } from "./video-player.js";
-import { useMediaRecorder } from "./use-media-recorder.js";
-import { formatTime } from "../lib/format-time.js";
-import { cn } from "../lib/cn.js";
+import { Button } from "./button";
+import { VideoPlayer } from "./video-player";
+import { useMediaRecorder } from "./use-media-recorder";
+import { formatTime } from "../lib/format-time";
+import { cn } from "../lib/cn";
 
 /** {@link VideoRecorder} の props。 */
 export interface VideoRecorderProps {

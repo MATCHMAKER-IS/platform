@@ -1,6 +1,6 @@
 import * as React from "react";
 import { AppSkin, ThemeSwitcher } from "@platform/ui";
-import { themeRegistry } from "../lib/theme-registry.js";
+import { themeRegistry } from "../lib/theme-registry";
 
 export const metadata = { title: "CRUD テンプレート" };
 

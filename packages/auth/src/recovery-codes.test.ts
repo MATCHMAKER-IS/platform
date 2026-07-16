@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generateBackupCodes, verifyBackupCode, remainingBackupCodes, normalizeBackupCode } from "./recovery-codes.js";
+import { generateBackupCodes, verifyBackupCode, remainingBackupCodes, normalizeBackupCode } from "./recovery-codes";
 const secret = "pepper";
 describe("backup / recovery codes", () => {
   it("generates readable codes without plaintext storage", () => {

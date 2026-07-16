@@ -1,13 +1,13 @@
 /** 会計: 年次決算・繰越(GET)。当期の損益を繰越利益剰余金へ振り替える。?year=&priorRetained=。accounting:read。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { invoiceStore, purchaseStore, assetStore, manualJournalStore, accountMasterStore, settingsStore } from "../../../../server/platform-services.js";
-import { buildLedger, type LedgerInvoice, type LedgerPurchase } from "../../../../server/ledger.js";
-import { depreciationJournal, DEPRECIATION_ACCOUNT_TYPES } from "../../../../server/depreciation-journal.js";
-import { yearEndClosing } from "../../../../server/year-end.js";
-import { inFiscalYear } from "../../../../server/fiscal.js";
-import { accountTypeMap } from "../../../../server/account-master-repo.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { invoiceStore, purchaseStore, assetStore, manualJournalStore, accountMasterStore, settingsStore } from "../../../../server/platform-services";
+import { buildLedger, type LedgerInvoice, type LedgerPurchase } from "../../../../server/ledger";
+import { depreciationJournal, DEPRECIATION_ACCOUNT_TYPES } from "../../../../server/depreciation-journal";
+import { yearEndClosing } from "../../../../server/year-end";
+import { inFiscalYear } from "../../../../server/fiscal";
+import { accountTypeMap } from "../../../../server/account-master-repo";
 import { journalToRows } from "@platform/accounting";
 
 async function handleGET(req: Request): Promise<Response> {

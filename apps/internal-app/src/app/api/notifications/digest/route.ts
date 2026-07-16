@@ -1,9 +1,9 @@
 /** 自分のダイジェスト頻度の取得(GET)・設定(PUT)。認証ユーザー。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { digestSettingStore } from "../../../../server/platform-services.js";
-import { type DigestFrequency } from "../../../../server/digest.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { digestSettingStore } from "../../../../server/platform-services";
+import { type DigestFrequency } from "../../../../server/digest";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

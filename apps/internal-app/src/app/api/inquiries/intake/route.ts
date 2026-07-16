@@ -1,8 +1,8 @@
 /** お問い合わせ: 匿名インテーク(POST)。公開サイトのフォームから受け付ける。X-Intake-Token で保護。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { inquiryStore } from "../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { inquiryStore } from "../../../../server/platform-services";
 import { isValidEmail } from "@platform/mail";
-import { featureEnv } from "../../../../server/env.js";
+import { featureEnv } from "../../../../server/env";
 
 async function handlePOST(req: Request): Promise<Response> {
   const token = featureEnv.INQUIRY_INTAKE_TOKEN;

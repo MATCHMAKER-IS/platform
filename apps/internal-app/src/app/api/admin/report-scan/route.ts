@@ -2,13 +2,13 @@
  * レポート配信スキャン(POST)。期限が来たレポートを生成し宛先へメール＋受信箱で配信。cron 等から定期実行。
  * X-Cron-Token(env CRON_TOKEN)一致、または管理者。
  */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv, featureEnv } from "../../../../server/env.js";
-import { reportScheduleStore, invoiceStore, inventoryStore, appMailer, notificationStore, userStore, deliveryLogStore, settingsStore } from "../../../../server/platform-services.js";
-import { dueReports, buildReportMessage, resolveRecipients, type ReportType } from "../../../../server/report-schedule.js";
-import { salesReport, receivablesReport, inventoryReport, type Report } from "../../../../server/reports.js";
-import { makeDeliveryEntry } from "../../../../server/delivery-log.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv, featureEnv } from "../../../../server/env";
+import { reportScheduleStore, invoiceStore, inventoryStore, appMailer, notificationStore, userStore, deliveryLogStore, settingsStore } from "../../../../server/platform-services";
+import { dueReports, buildReportMessage, resolveRecipients, type ReportType } from "../../../../server/report-schedule";
+import { salesReport, receivablesReport, inventoryReport, type Report } from "../../../../server/reports";
+import { makeDeliveryEntry } from "../../../../server/delivery-log";
 
 async function authorized(req: Request): Promise<boolean> {
   const token = featureEnv.CRON_TOKEN;

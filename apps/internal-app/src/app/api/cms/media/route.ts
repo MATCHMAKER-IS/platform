@@ -1,8 +1,8 @@
 /** メディアライブラリ: アップロード済み画像の一覧(GET)。CMS の keyPrefix "cms" を対象。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv, featureEnv } from "../../../../server/env.js";
-import { fileManager } from "../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv, featureEnv } from "../../../../server/env";
+import { fileManager } from "../../../../server/platform-services";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

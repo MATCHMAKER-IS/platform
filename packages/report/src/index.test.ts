@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calculateInvoice, renderInvoiceHtml, formatYen } from "./index.js";
+import { calculateInvoice, renderInvoiceHtml, formatYen } from "./index";
 
 describe("calculateInvoice", () => {
   it("外税・複数税率", () => {

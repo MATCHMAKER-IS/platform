@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseEnv, z } from "./index.js";
+import { parseEnv, z } from "./index";
 import { AppError } from "@platform/core";
 
 const schema = z.object({

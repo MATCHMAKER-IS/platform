@@ -2,11 +2,11 @@
  * ダイジェスト配信スキャン(POST)。頻度が来た利用者へ未読通知のまとめをメール送信。cron 等から定期実行。
  * X-Cron-Token(env CRON_TOKEN)一致、または管理者。
  */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv, featureEnv } from "../../../../server/env.js";
-import { digestSettingStore, notificationStore, appMailer, settingsStore } from "../../../../server/platform-services.js";
-import { isDigestDue, buildDigestSummary, type DigestItem } from "../../../../server/digest.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv, featureEnv } from "../../../../server/env";
+import { digestSettingStore, notificationStore, appMailer, settingsStore } from "../../../../server/platform-services";
+import { isDigestDue, buildDigestSummary, type DigestItem } from "../../../../server/digest";
 
 async function authorized(req: Request): Promise<boolean> {
   const token = featureEnv.CRON_TOKEN;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { stateToRow, rowToState } from "./approval-repo.js";
+import { stateToRow, rowToState } from "./approval-repo";
 import type { WorkflowState } from "@platform/workflow";
 
 const state: WorkflowState = { status: "pending", currentStep: 1, history: [{ step: "課長承認", action: "approve", actor: "m1", at: "2024-05-01T00:00:00Z" }] };

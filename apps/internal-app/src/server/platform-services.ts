@@ -1,43 +1,43 @@
-import { createMemoryDeliveryLogStore, createPrismaDeliveryLogStore, type DeliveryLogStore, type DeliveryLogStoreDb } from "./delivery-log.js";
-import { createMemoryReportPresetStore, createPrismaReportPresetStore, type ReportPresetStore, type ReportPresetStoreDb } from "./report-preset.js";
-import { createMemoryReportScheduleStore, createPrismaReportScheduleStore, type ReportScheduleStore, type ReportScheduleStoreDb } from "./report-schedule.js";
-import { createMemoryExportScheduleStore, createPrismaExportScheduleStore, createMemoryExportRunStore, createPrismaExportRunStore, type ExportScheduleStore, type ExportScheduleStoreDb, type ExportRunStore, type ExportRunStoreDb } from "./export-schedule.js";
-import { createMemoryTemplateStore, createPrismaTemplateStore, type TemplateStore, type TemplateStoreDb } from "./notification-templates.js";
-import { createMemorySearchIndexStore, createPrismaSearchIndexStore, type SearchIndexStore, type SearchIndexStoreDb } from "./search-index.js";
-import { createMemoryDigestSettingStore, createPrismaDigestSettingStore, type DigestSettingStore, type DigestSettingStoreDb } from "./digest.js";
-import { serverEnv, useChatPrisma } from "./env.js";
-import { createMemoryFlagStore, createPrismaFlagStore, type FlagStore, type FlagStoreDb } from "./feature-flags.js";
-import { createMemorySecretRecordStore, createPrismaSecretRecordStore, createAppSecretStore, type SecretRecordStore, type SecretRecordStoreDb } from "./secret-store.js";
-import { createMemoryServiceAccountStore, createPrismaServiceAccountStore, type ServiceAccountStore, type ServiceAccountStoreDb } from "./service-account-repo.js";
-import { createMemoryWebhookSubscriptionStore, createPrismaWebhookSubscriptionStore, type WebhookSubscriptionStore, type WebhookSubscriptionStoreDb } from "./outbound-webhook.js";
-import { createMemoryFeatureAccessStore, createPrismaFeatureAccessStore, type FeatureAccessStore, type FeatureAccessStoreDb } from "./feature-access.js";
-import { createMemorySignatureStore, createPrismaSignatureStore, type SignatureStore, type SignatureStoreDb } from "./signature-repo.js";
-import { createMemoryReviewStore, createPrismaReviewStore, type ReviewStore, type ReviewStoreDb } from "./review-repo.js";
+import { createMemoryDeliveryLogStore, createPrismaDeliveryLogStore, type DeliveryLogStore, type DeliveryLogStoreDb } from "./delivery-log";
+import { createMemoryReportPresetStore, createPrismaReportPresetStore, type ReportPresetStore, type ReportPresetStoreDb } from "./report-preset";
+import { createMemoryReportScheduleStore, createPrismaReportScheduleStore, type ReportScheduleStore, type ReportScheduleStoreDb } from "./report-schedule";
+import { createMemoryExportScheduleStore, createPrismaExportScheduleStore, createMemoryExportRunStore, createPrismaExportRunStore, type ExportScheduleStore, type ExportScheduleStoreDb, type ExportRunStore, type ExportRunStoreDb } from "./export-schedule";
+import { createMemoryTemplateStore, createPrismaTemplateStore, type TemplateStore, type TemplateStoreDb } from "./notification-templates";
+import { createMemorySearchIndexStore, createPrismaSearchIndexStore, type SearchIndexStore, type SearchIndexStoreDb } from "./search-index";
+import { createMemoryDigestSettingStore, createPrismaDigestSettingStore, type DigestSettingStore, type DigestSettingStoreDb } from "./digest";
+import { serverEnv, useChatPrisma } from "./env";
+import { createMemoryFlagStore, createPrismaFlagStore, type FlagStore, type FlagStoreDb } from "./feature-flags";
+import { createMemorySecretRecordStore, createPrismaSecretRecordStore, createAppSecretStore, type SecretRecordStore, type SecretRecordStoreDb } from "./secret-store";
+import { createMemoryServiceAccountStore, createPrismaServiceAccountStore, type ServiceAccountStore, type ServiceAccountStoreDb } from "./service-account-repo";
+import { createMemoryWebhookSubscriptionStore, createPrismaWebhookSubscriptionStore, type WebhookSubscriptionStore, type WebhookSubscriptionStoreDb } from "./outbound-webhook";
+import { createMemoryFeatureAccessStore, createPrismaFeatureAccessStore, type FeatureAccessStore, type FeatureAccessStoreDb } from "./feature-access";
+import { createMemorySignatureStore, createPrismaSignatureStore, type SignatureStore, type SignatureStoreDb } from "./signature-repo";
+import { createMemoryReviewStore, createPrismaReviewStore, type ReviewStore, type ReviewStoreDb } from "./review-repo";
 import { createMemorySeenStore } from "@platform/notify";
-import { createMemorySurveyStore, createPrismaSurveyStore, type SurveyStore, type SurveyStoreDb } from "./survey-repo.js";
-import { createMemorySettingsStore, createPrismaSettingsStore, type SettingsStore, type SettingsStoreDb } from "./settings-repo.js";
-import { createMemoryUserStore, createPrismaUserStore, type UserStore, type UserStoreDb, type User } from "./user-repo.js";
-import { createMemoryInquiryStore, createPrismaInquiryStore, type InquiryStore, type InquiryStoreDb } from "./inquiry-repo.js";
-import { createMemoryAccountMasterStore, createPrismaAccountMasterStore, type AccountMasterStore, type AccountMasterStoreDb } from "./account-master-repo.js";
+import { createMemorySurveyStore, createPrismaSurveyStore, type SurveyStore, type SurveyStoreDb } from "./survey-repo";
+import { createMemorySettingsStore, createPrismaSettingsStore, type SettingsStore, type SettingsStoreDb } from "./settings-repo";
+import { createMemoryUserStore, createPrismaUserStore, type UserStore, type UserStoreDb, type User } from "./user-repo";
+import { createMemoryInquiryStore, createPrismaInquiryStore, type InquiryStore, type InquiryStoreDb } from "./inquiry-repo";
+import { createMemoryAccountMasterStore, createPrismaAccountMasterStore, type AccountMasterStore, type AccountMasterStoreDb } from "./account-master-repo";
 import { createMailer } from "@platform/mail";
-import { createMemoryManualJournalStore, createPrismaManualJournalStore, type ManualJournalStore, type ManualJournalStoreDb } from "./manual-journal-repo.js";
-import { createMemoryMailboxStore, createPrismaMailboxStore, createMailboxTransport, type MailboxStore, type MailboxStoreDb } from "./mailbox-repo.js";
-import { createMemoryPeriodLockStore, createPrismaPeriodLockStore, type PeriodLockStore, type PeriodLockStoreDb } from "./period-lock-repo.js";
-import { createMemoryDocApprovalStore, createPrismaDocApprovalStore, type DocApprovalStore, type DocApprovalStoreDb } from "./doc-approval-repo.js";
-import { createMemoryReceiptStore, createPrismaReceiptStore, type ReceiptStore, type ReceiptStoreDb } from "./receipt-repo.js";
-import { createMemoryPartnerStore, createPrismaPartnerStore, type PartnerStore, type PartnerStoreDb } from "./partner-repo.js";
-import { createMemoryBudgetStore, createPrismaBudgetStore, type BudgetStore, type BudgetStoreDb } from "./budget-repo.js";
-import { createMemoryAssetStore, createPrismaAssetStore, type AssetStore, type AssetStoreDb } from "./asset-repo.js";
-import { createMemoryFeePaymentStore, createPrismaFeePaymentStore, type FeePaymentStore, type FeePaymentStoreDb } from "./withholding-repo.js";
-import { createMemoryPurchasePaymentStore, createPrismaPurchasePaymentStore, type PurchasePaymentStore, type PurchasePaymentStoreDb } from "./payables-repo.js";
-import { createMemoryAttendanceApprovalStore, createPrismaAttendanceApprovalStore, type AttendanceApprovalStore, type AttendanceApprovalStoreDb } from "./attendance-approval-repo.js";
-import { createMemoryWageStore, createPrismaWageStore, type WageStore, type WageStoreDb } from "./payroll-repo.js";
-import { createMemoryAttendanceStore, createPrismaAttendanceStore, type AttendanceStore, type AttendanceStoreDb } from "./attendance-repo.js";
-import { createMemoryRecurringStore, createPrismaRecurringStore, type RecurringStore, type RecurringStoreDb } from "./recurring-repo.js";
-import { createMemoryPurchaseStore, createPrismaPurchaseStore, type PurchaseStore, type PurchaseStoreDb } from "./purchase-repo.js";
-import { createMemoryQuoteStore, createPrismaQuoteStore, type QuoteStore, type QuoteStoreDb } from "./quote-repo.js";
-import { createMemoryInvoiceStore, createPrismaInvoiceStore, type InvoiceStore, type InvoiceStoreDb } from "./invoice-repo.js";
-import { createMemoryInventoryStore, createPrismaInventoryStore, type InventoryStore, type InventoryStoreDb } from "./inventory-repo.js";
+import { createMemoryManualJournalStore, createPrismaManualJournalStore, type ManualJournalStore, type ManualJournalStoreDb } from "./manual-journal-repo";
+import { createMemoryMailboxStore, createPrismaMailboxStore, createMailboxTransport, type MailboxStore, type MailboxStoreDb } from "./mailbox-repo";
+import { createMemoryPeriodLockStore, createPrismaPeriodLockStore, type PeriodLockStore, type PeriodLockStoreDb } from "./period-lock-repo";
+import { createMemoryDocApprovalStore, createPrismaDocApprovalStore, type DocApprovalStore, type DocApprovalStoreDb } from "./doc-approval-repo";
+import { createMemoryReceiptStore, createPrismaReceiptStore, type ReceiptStore, type ReceiptStoreDb } from "./receipt-repo";
+import { createMemoryPartnerStore, createPrismaPartnerStore, type PartnerStore, type PartnerStoreDb } from "./partner-repo";
+import { createMemoryBudgetStore, createPrismaBudgetStore, type BudgetStore, type BudgetStoreDb } from "./budget-repo";
+import { createMemoryAssetStore, createPrismaAssetStore, type AssetStore, type AssetStoreDb } from "./asset-repo";
+import { createMemoryFeePaymentStore, createPrismaFeePaymentStore, type FeePaymentStore, type FeePaymentStoreDb } from "./withholding-repo";
+import { createMemoryPurchasePaymentStore, createPrismaPurchasePaymentStore, type PurchasePaymentStore, type PurchasePaymentStoreDb } from "./payables-repo";
+import { createMemoryAttendanceApprovalStore, createPrismaAttendanceApprovalStore, type AttendanceApprovalStore, type AttendanceApprovalStoreDb } from "./attendance-approval-repo";
+import { createMemoryWageStore, createPrismaWageStore, type WageStore, type WageStoreDb } from "./payroll-repo";
+import { createMemoryAttendanceStore, createPrismaAttendanceStore, type AttendanceStore, type AttendanceStoreDb } from "./attendance-repo";
+import { createMemoryRecurringStore, createPrismaRecurringStore, type RecurringStore, type RecurringStoreDb } from "./recurring-repo";
+import { createMemoryPurchaseStore, createPrismaPurchaseStore, type PurchaseStore, type PurchaseStoreDb } from "./purchase-repo";
+import { createMemoryQuoteStore, createPrismaQuoteStore, type QuoteStore, type QuoteStoreDb } from "./quote-repo";
+import { createMemoryInvoiceStore, createPrismaInvoiceStore, type InvoiceStore, type InvoiceStoreDb } from "./invoice-repo";
+import { createMemoryInventoryStore, createPrismaInventoryStore, type InventoryStore, type InventoryStoreDb } from "./inventory-repo";
 /**
  * 通知センター・ファイル管理・監査ログの配線（シングルトン）。
  * 既定インメモリ、`CHAT_PERSISTENCE=prisma` で通知/ファイルは Prisma 実装に切り替わる。
@@ -51,7 +51,7 @@ import {
   type NotificationStore,
   type NotificationCenter,
   type NotificationStoreDb,
-} from "./notification-center.js";
+} from "./notification-center";
 import {
   createMemoryFileRegistry,
   createPrismaFileRegistry,
@@ -59,15 +59,15 @@ import {
   type FileRegistry,
   type FileManager,
   type FileRegistryDb,
-} from "./file-manager.js";
-import { createMemoryAuditStore, createPrismaAuditStore, createAuditLog, type AuditLog, type AuditStoreDb } from "./audit-log.js";
-import { createAuditActions, type AuditActions } from "./audit-actions.js";
-import { createMemoryPreferenceStore, createPrismaPreferenceStore, type PreferenceStore, type PreferenceStoreDb } from "./notification-prefs.js";
-import { createMemoryAnalyticsStore, createPrismaAnalyticsStore, createAnalytics, type Analytics, type AnalyticsStoreDb } from "./analytics-store.js";
-import { createMemoryDashboardPrefStore, createPrismaDashboardPrefStore, type DashboardPrefStore, type DashboardPrefStoreDb } from "./dashboard-prefs.js";
-import { createMemoryCmsStore, createPrismaCmsStore, type CmsStore, type CmsStoreDb } from "./cms-store.js";
+} from "./file-manager";
+import { createMemoryAuditStore, createPrismaAuditStore, createAuditLog, type AuditLog, type AuditStoreDb } from "./audit-log";
+import { createAuditActions, type AuditActions } from "./audit-actions";
+import { createMemoryPreferenceStore, createPrismaPreferenceStore, type PreferenceStore, type PreferenceStoreDb } from "./notification-prefs";
+import { createMemoryAnalyticsStore, createPrismaAnalyticsStore, createAnalytics, type Analytics, type AnalyticsStoreDb } from "./analytics-store";
+import { createMemoryDashboardPrefStore, createPrismaDashboardPrefStore, type DashboardPrefStore, type DashboardPrefStoreDb } from "./dashboard-prefs";
+import { createMemoryCmsStore, createPrismaCmsStore, type CmsStore, type CmsStoreDb } from "./cms-store";
 import { createMemoryPageStore, createPrismaPageStore, createMemoryAnnouncementStore, createPrismaAnnouncementStore, createMemoryCategoryStore, createPrismaCategoryStore, createMemoryRevisionStore, createPrismaRevisionStore, createMemoryPublishRequestStore, createPrismaPublishRequestStore, type PageStore, type PageStoreDb, type AnnouncementStore, type AnnouncementStoreDb, type CategoryStore, type CategoryStoreDb, type RevisionStore, type RevisionStoreDb, type PublishRequestStore, type PublishRequestStoreDb } from "@platform/cms";
-import { db } from "./services.js";
+import { db } from "./services";
 
 const usePrisma = useChatPrisma;
 let idSeq = 0;

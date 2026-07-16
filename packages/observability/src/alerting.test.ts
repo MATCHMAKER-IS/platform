@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createAlertManager, errorRateAbove, gaugeAtLeast } from "./alerting.js";
+import { createAlertManager, errorRateAbove, gaugeAtLeast } from "./alerting";
 const view = (o: Partial<{ counters: Record<string, number>; gauges: Record<string, number> }> = {}) => ({ counters: o.counters ?? {}, gauges: o.gauges ?? {}, histograms: {} });
 describe("alerting", () => {
   it("fires, stays firing, recovers", () => {

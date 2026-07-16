@@ -3,7 +3,7 @@
  * navigator.sendBeacon があれば優先し、無ければ fetch(keepalive) にフォールバックする。
  * @packageDocumentation
  */
-import { type AnalyticsEventType } from "./event.js";
+import { type AnalyticsEventType } from "./event";
 
 /** ビーコンで送るペイロード。 */
 export interface BeaconPayload {

@@ -2,8 +2,8 @@
  * 帳票 HTML の生成(印刷可能・A4)。`@platform/pdf` の `fromHtml` に渡して PDF 化する。
  * @packageDocumentation
  */
-import { calculateInvoice, type InvoiceLineInput, type InvoiceCalcOptions } from "./invoice.js";
-import { formatYen } from "./money.js";
+import { calculateInvoice, type InvoiceLineInput, type InvoiceCalcOptions } from "./invoice";
+import { formatYen } from "./money";
 
 /** 対応ロケール。 */
 export type ReportLocale = "ja" | "en" | "zh" | "ko";

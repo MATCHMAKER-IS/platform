@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { parseCsv } from "@platform/csv";
-import { hhmmToMinutes, workedMinutes } from "./attendance.js";
+import { hhmmToMinutes, workedMinutes } from "./attendance";
 
 /** 取込後の勤怠レコード。 */
 export interface ImportedAttendance {

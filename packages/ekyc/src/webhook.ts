@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { normalizeEkycStatus, type EkycStatus } from "./status.js";
+import { normalizeEkycStatus, type EkycStatus } from "./status";
 
 /**
  * Webhook 署名を検証する。

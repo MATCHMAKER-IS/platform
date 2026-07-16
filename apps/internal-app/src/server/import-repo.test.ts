@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toImportHistoryRow } from "./import-repo.js";
+import { toImportHistoryRow } from "./import-repo";
 
 describe("import history mapping", () => {
   it("success row", () => { const r = toImportHistoryRow({ id: "b1", source: "CSV", userId: "u1", total: 5, inserted: 5, errorCount: 0, status: "success", createdAt: new Date("2024-05-01T02:00:00Z") }); expect(r.importId).toBe("b1"); expect(r.status).toBe("success"); expect(r.importedAt).toBe("2024-05-01T02:00:00.000Z"); });

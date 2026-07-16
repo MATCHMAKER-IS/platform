@@ -2,7 +2,7 @@
  * ダッシュボード用の月次トレンド。請求を発行月で集計し、売上と売掛残高の推移を出す。基盤 trend.ts の monthRange を再利用。
  * @packageDocumentation
  */
-import { monthRange } from "./trend.js";
+import { monthRange } from "./trend";
 
 /** トレンド算出に使う請求の最小形。 */
 export interface TrendInvoiceLike {

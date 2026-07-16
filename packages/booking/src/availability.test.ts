@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { intervalsOverlap, countOverlapping, isSlotAvailable, availableSlots, remainingCapacity, hasConflict } from "./availability.js";
-import { generateSlots } from "./slots.js";
+import { intervalsOverlap, countOverlapping, isSlotAvailable, availableSlots, remainingCapacity, hasConflict } from "./availability";
+import { generateSlots } from "./slots";
 const daySlots = generateSlots([{ open: "09:00", close: "12:00" }], { slotMinutes: 60 });
 const bookings = [{ start: "09:00", end: "10:00" }, { start: "10:30", end: "11:30" }];
 describe("booking availability", () => {

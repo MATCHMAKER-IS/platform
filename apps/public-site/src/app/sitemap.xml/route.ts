@@ -1,6 +1,6 @@
 /** sitemap.xml。全公開ページを列挙する。 */
 import { buildSitemap, type SitemapEntry } from "@platform/seo";
-import { content, siteConfig } from "../../server/content.js";
+import { content, siteConfig } from "../../server/content";
 
 export async function GET(): Promise<Response> {
   const pages = await content.pages();

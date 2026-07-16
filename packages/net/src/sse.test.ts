@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatSseEvent, SseDecoder } from "./sse.js";
+import { formatSseEvent, SseDecoder } from "./sse";
 
 describe("sse", () => {
   it("format", () => { expect(formatSseEvent({ event: "u", data: "hi", id: "1" })).toBe("id: 1\nevent: u\ndata: hi\n\n"); expect(formatSseEvent({ data: "a\nb" })).toBe("data: a\ndata: b\n\n"); });

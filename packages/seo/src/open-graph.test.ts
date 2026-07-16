@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildOpenGraphTags, buildTwitterCardTags } from "./open-graph.js";
+import { buildOpenGraphTags, buildTwitterCardTags } from "./open-graph";
 describe("seo open graph / twitter", () => {
   it("builds og tags with article extension", () => {
     const og = buildOpenGraphTags({ title: "記事", type: "article", image: "https://ex.com/i.png", article: { publishedTime: "2025-07-25T00:00:00Z", tags: ["a", "b"] } });

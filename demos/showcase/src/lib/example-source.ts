@@ -8,7 +8,7 @@
  *
  * @packageDocumentation
  */
-import { EXAMPLE_SOURCES } from "./example-sources.generated.js";
+import { EXAMPLE_SOURCES } from "./example-sources.generated";
 
 /**
  * 使用例のソースを取り出す。

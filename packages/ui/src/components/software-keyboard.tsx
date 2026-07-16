@@ -7,7 +7,7 @@
 import * as React from "react";
 import Keyboard from "react-simple-keyboard";
 import "react-simple-keyboard/build/css/index.css";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link SoftwareKeyboard} の props。 */
 export interface SoftwareKeyboardProps {

@@ -220,7 +220,7 @@ export async function fetchAllPages<T>(
   return { ok: true, value: all };
 }
 
-export * from "./token.js";
-export * from "./webhook.js";
-export * from "./hr.js";
-export * from "./builders.js";
+export * from "./token";
+export * from "./webhook";
+export * from "./hr";
+export * from "./builders";

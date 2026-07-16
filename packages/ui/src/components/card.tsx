@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** カード枠。 */
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

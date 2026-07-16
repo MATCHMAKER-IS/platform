@@ -1,12 +1,12 @@
 /** 請求書: 一覧(GET)・作成(POST)。閲覧は invoice:read、作成は invoice:write。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { invoiceStore, partnerStore, periodLockStore, auditActions, settingsStore } from "../../../server/platform-services.js";
-import { applyDefaultTaxRate } from "../../../server/tax-default.js";
-import { emitEvent } from "../../../server/webhook-emit.js";
-import { searchIndexStore } from "../../../server/platform-services.js";
-import { invoiceToDoc } from "../../../server/entity-search.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser, requirePermission } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { invoiceStore, partnerStore, periodLockStore, auditActions, settingsStore } from "../../../server/platform-services";
+import { applyDefaultTaxRate } from "../../../server/tax-default";
+import { emitEvent } from "../../../server/webhook-emit";
+import { searchIndexStore } from "../../../server/platform-services";
+import { invoiceToDoc } from "../../../server/entity-search";
 import { type InvoiceHeader, type InvoiceLine } from "@platform/invoice";
 
 async function handleGET(req: Request): Promise<Response> {

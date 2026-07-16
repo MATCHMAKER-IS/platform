@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sortBy, partition, keyBy, zip, range, difference, intersection, compact } from "./array.js";
+import { sortBy, partition, keyBy, zip, range, difference, intersection, compact } from "./array";
 describe("array utils", () => {
   it("sortBy stable", () => {
     expect(sortBy([{ n: 3 }, { n: 1 }, { n: 2 }], (x) => x.n).map((x) => x.n)).toEqual([1, 2, 3]);

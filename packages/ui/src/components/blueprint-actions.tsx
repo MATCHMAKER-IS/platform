@@ -5,9 +5,9 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
-import { Badge } from "./badge.js";
-import { Button } from "./button.js";
+import { cn } from "../lib/cn";
+import { Badge } from "./badge";
+import { Button } from "./button";
 
 /** 実行可能なアクション(遷移)。 */
 export interface BlueprintAction {

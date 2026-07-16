@@ -3,7 +3,7 @@
  * クイックリプライを手書き JSON なしで組み立てる。生成物はそのまま push/reply に渡せる。
  * @packageDocumentation
  */
-import type { LineMessage } from "./index.js";
+import type { LineMessage } from "./index";
 
 /**
  * テキストメッセージを作る。

@@ -7,8 +7,8 @@
  */
 import * as React from "react";
 import { Upload, X } from "lucide-react";
-import { cn } from "../lib/cn.js";
-import { useT } from "./i18n-provider.js";
+import { cn } from "../lib/cn";
+import { useT } from "./i18n-provider";
 
 /** {@link FileUpload} の props。 */
 export interface FileUploadProps {

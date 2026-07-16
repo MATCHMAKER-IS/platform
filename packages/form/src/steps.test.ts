@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { stepVisibleFields, stepProgress, nextStep, prevStep, isStepFilled } from "./steps.js";
+import { stepVisibleFields, stepProgress, nextStep, prevStep, isStepFilled } from "./steps";
 const fields = [
   { name: "name", label: "氏名", type: "text" as const, required: true },
   { name: "type", label: "種別", type: "radio" as const, options: [{ value: "corp", label: "法人" }] },

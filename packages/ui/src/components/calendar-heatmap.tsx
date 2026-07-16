@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { dayNumber, dayOfWeek, startOfWeek, formatDate } from "@platform/datetime";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link CalendarHeatmap} の props。 */
 export interface CalendarHeatmapProps {

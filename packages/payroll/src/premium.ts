@@ -5,7 +5,7 @@
  * ⚠️ 割増率は法定の最低基準。就業規則でこれ以上に定める場合は rates で上書きする。
  * @packageDocumentation
  */
-import type { WorkSplit } from "./worktime.js";
+import type { WorkSplit } from "./worktime";
 
 /** 割増率(法定最低基準)。 */
 export interface PremiumRates {

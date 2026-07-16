@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildPermalink, joinUrl, postUrl, matchPermalink, PERMALINK_PRESETS } from "./permalink.js";
+import { buildPermalink, joinUrl, postUrl, matchPermalink, PERMALINK_PRESETS } from "./permalink";
 const post = { slug: "hello-world", id: "123", category: "技術ブログ", publishedAt: "2025-07-25T10:00:00Z" };
 describe("permalink", () => {
   it("builds paths from patterns", () => {

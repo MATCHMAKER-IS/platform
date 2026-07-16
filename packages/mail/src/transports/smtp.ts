@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import nodemailer from "nodemailer";
-import type { MailTransport } from "../index.js";
+import type { MailTransport } from "../index";
 
 /** SMTP 接続設定。 */
 export interface SmtpConfig {

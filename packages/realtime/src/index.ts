@@ -160,4 +160,4 @@ export function createReconnectingWebSocket<T = unknown>(url: string, options: R
     pending() { return sendQueue.length; },
   };
 }
-export { createBroadcastHub, type BroadcastHub, type RedisPubSubClient, type BroadcastHubOptions, type SendFn } from "./broadcast.js";
+export { createBroadcastHub, type BroadcastHub, type RedisPubSubClient, type BroadcastHubOptions, type SendFn } from "./broadcast";

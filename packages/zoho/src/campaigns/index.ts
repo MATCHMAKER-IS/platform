@@ -4,8 +4,8 @@
  * @packageDocumentation
  */
 import type { Result } from "@platform/core";
-import { createZohoApiClient } from "../core/client.js";
-import { serviceBaseUrl, type ZohoDataCenter } from "../core/datacenter.js";
+import { createZohoApiClient } from "../core/client";
+import { serviceBaseUrl, type ZohoDataCenter } from "../core/datacenter";
 
 /** Campaigns レスポンス(緩め)。 */
 export type CampaignsRecord = Record<string, unknown>;

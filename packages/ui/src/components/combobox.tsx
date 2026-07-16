@@ -8,8 +8,8 @@ import * as React from "react";
 import { Popover as PopoverPrimitive } from "radix-ui";
 import { Command } from "cmdk";
 import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "../lib/cn.js";
-import { useT } from "./i18n-provider.js";
+import { cn } from "../lib/cn";
+import { useT } from "./i18n-provider";
 
 /** 選択肢。 */
 export interface ComboboxOption {

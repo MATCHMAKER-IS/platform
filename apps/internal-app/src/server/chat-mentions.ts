@@ -4,8 +4,8 @@
  * @packageDocumentation
  */
 import { unreadMentionsOf, sortMessages, type ChatMessage } from "@platform/chat";
-import { type ChatStore } from "./chat-store.js";
-import { type RoomRepository } from "./chat-rooms.js";
+import { type ChatStore } from "./chat-store";
+import { type RoomRepository } from "./chat-rooms";
 
 /** メンション 1 件（一覧表示用）。 */
 export interface MentionItem {

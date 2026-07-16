@@ -1,8 +1,8 @@
 /** 管理: フィーチャーフラグ定義の取得(GET)・更新(POST)。管理者のみ。キルスイッチ/割合/バリアントを設定。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { flagStore, auditActions } from "../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { flagStore, auditActions } from "../../../../server/platform-services";
 import { type FlagDefinitions } from "@platform/flags";
 
 function admin(req: Request) {

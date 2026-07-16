@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createI18n, detectLocale, mergeCatalogs } from "./index.js";
+import { createI18n, detectLocale, mergeCatalogs } from "./index";
 
 const i18n = createI18n({
   locale: "ja",

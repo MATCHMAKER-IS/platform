@@ -4,7 +4,7 @@
  * 例: パターン "/blog/:year/:month/:slug" + 記事 → "/blog/2025/07/hello"。
  * @packageDocumentation
  */
-import { slugify } from "./slug.js";
+import { slugify } from "./slug";
 
 /** パーマリンク生成に使う記事フィールド。 */
 export interface PermalinkPost {

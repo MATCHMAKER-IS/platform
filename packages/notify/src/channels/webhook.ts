@@ -2,7 +2,7 @@
  * 汎用 Webhook チャネル。任意の URL へ JSON を POST する。
  * @packageDocumentation
  */
-import type { NotifyChannel, NotifyMessage } from "../index.js";
+import type { NotifyChannel, NotifyMessage } from "../index";
 
 /**
  * 汎用 Webhook チャネルを作る。

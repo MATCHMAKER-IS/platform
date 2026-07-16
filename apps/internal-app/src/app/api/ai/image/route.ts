@@ -1,8 +1,8 @@
 /** 画像生成/編集(POST {prompt, image?})。AI Image Gateway 経由。要ログイン。コストはログに計上。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { aiImageGateway, aiImageIsMock } from "../../../../server/ai-gateway.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { aiImageGateway, aiImageIsMock } from "../../../../server/ai-gateway";
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

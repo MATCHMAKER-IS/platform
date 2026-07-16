@@ -1,9 +1,9 @@
 /** 在庫: 状況一覧(GET)・商品登録(POST)。閲覧は inventory:read、更新は inventory:write。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { inventoryStore, auditActions } from "../../../server/platform-services.js";
-import { type Product } from "../../../server/inventory-repo.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser, requirePermission } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { inventoryStore, auditActions } from "../../../server/platform-services";
+import { type Product } from "../../../server/inventory-repo";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

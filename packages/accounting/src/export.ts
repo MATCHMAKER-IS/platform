@@ -3,7 +3,7 @@
  * CSV 文字列化は @platform/csv、freee 送信は @platform/freee の buildManualJournal に渡す。
  * @packageDocumentation
  */
-import { type JournalEntry } from "./journal.js";
+import { type JournalEntry } from "./journal";
 
 /** CSV 1 行(仕訳明細を平坦化)。 */
 export interface JournalRow {

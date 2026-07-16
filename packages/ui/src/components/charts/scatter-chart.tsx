@@ -1,8 +1,8 @@
 "use client";
 /** 散布図。 @packageDocumentation */
 import { ResponsiveContainer, ScatterChart as RScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, Legend } from "recharts";
-import { cn } from "../../lib/cn.js";
-import { ChartTitle, SeriesToggle, useSeriesVisibility, CHART_COLORS, makeFormatter, GRID_STROKE, type BaseChartProps } from "./chart-common.js";
+import { cn } from "../../lib/cn";
+import { ChartTitle, SeriesToggle, useSeriesVisibility, CHART_COLORS, makeFormatter, GRID_STROKE, type BaseChartProps } from "./chart-common";
 
 /** 散布図の系列(点群)。 */
 export interface ScatterSeries {

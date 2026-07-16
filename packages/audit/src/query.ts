@@ -2,7 +2,7 @@
  * 監査ログの検索・絞り込み(純ロジック)。
  * @packageDocumentation
  */
-import { type AuditEntry } from "./log.js";
+import { type AuditEntry } from "./log";
 
 /**
  * 操作者で絞り込む。

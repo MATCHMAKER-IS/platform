@@ -4,7 +4,7 @@
  * 実際の取得(fetch)と表示はアプリ側。埋め込みには各社の埋め込みスクリプト読み込みが必要。
  * @packageDocumentation
  */
-import { type SocialPlatform } from "./platforms.js";
+import { type SocialPlatform } from "./platforms";
 
 /** oEmbed エンドポイントのベース。 */
 const OEMBED_ENDPOINTS: Record<SocialPlatform, string | null> = {

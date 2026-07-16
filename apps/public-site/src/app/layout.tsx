@@ -1,8 +1,8 @@
 import * as React from "react";
 import { CopyrightNotice, AppSkin } from "@platform/ui";
-import { siteConfig, content } from "../server/content.js";
-import { SiteHeader } from "./site-header.js";
-import { themeRegistry } from "../lib/theme-registry.js";
+import { siteConfig, content } from "../server/content";
+import { SiteHeader } from "./site-header";
+import { themeRegistry } from "../lib/theme-registry";
 
 export const metadata = { title: siteConfig.siteName };
 

@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** シェアリンク（@platform/social の shareLinks の出力形）。 */
 export interface ShareLink {

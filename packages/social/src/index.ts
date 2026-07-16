@@ -5,10 +5,10 @@
  * URL の一般処理は @platform/url、API 取得の土台は @platform/integrations を参照。
  * @packageDocumentation
  */
-export * from "./platforms.js";
-export * from "./handle.js";
-export * from "./parse.js";
-export * from "./embed.js";
-export * from "./accounts.js";
-export * from "./feed.js";
-export * from "./share.js";
+export * from "./platforms";
+export * from "./handle";
+export * from "./parse";
+export * from "./embed";
+export * from "./accounts";
+export * from "./feed";
+export * from "./share";

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { withDedup, createMemorySeenStore } from "./dedup.js";
-import { withRetry, createFallbackChannel } from "./resilient.js";
-import type { NotifyChannel } from "./index.js";
+import { withDedup, createMemorySeenStore } from "./dedup";
+import { withRetry, createFallbackChannel } from "./resilient";
+import type { NotifyChannel } from "./index";
 
 describe("notify resilience", () => {
   it("dedup suppresses duplicates within TTL", async () => {

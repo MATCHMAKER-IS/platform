@@ -2,9 +2,9 @@
  * チャット受信 API（GET・Server-Sent Events）。ルームを購読し、届いたメッセージを
  * `data: {json}\n\n` 形式で送り続ける。切断時は購読解除。長時間接続のため観測ラッパは付けない。
  */
-import { currentUser, requirePermission } from "../../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../../server/env.js";
-import { chatGateway, presence } from "../../../../../../server/chat.js";
+import { currentUser, requirePermission } from "../../../../../../server/authorize";
+import { serverEnv } from "../../../../../../server/env";
+import { chatGateway, presence } from "../../../../../../server/chat";
 
 export const dynamic = "force-dynamic";
 

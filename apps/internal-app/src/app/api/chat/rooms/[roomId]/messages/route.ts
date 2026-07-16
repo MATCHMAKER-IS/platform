@@ -1,10 +1,10 @@
 /**
  * チャット送信 API（POST）。認可 → 検証 → 全接続へ同報（メンションは通知）。
  */
-import { withApiObservability } from "../../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../../server/env.js";
-import { chatGateway } from "../../../../../../server/chat.js";
+import { withApiObservability } from "../../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../../server/authorize";
+import { serverEnv } from "../../../../../../server/env";
+import { chatGateway } from "../../../../../../server/chat";
 import type { Attachment } from "@platform/chat";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ roomId: string }> }): Promise<Response> {

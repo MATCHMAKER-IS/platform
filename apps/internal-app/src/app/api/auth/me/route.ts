@@ -1,7 +1,7 @@
-import { withApiObservability } from "../../../../server/instrument.js";
+import { withApiObservability } from "../../../../server/instrument";
 import { NextResponse, type NextRequest } from "next/server";
-import { currentUser, userFeatures } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
+import { currentUser, userFeatures } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
 
 /** GET /api/auth/me — ログインユーザー + ロール + 機能フラグ。 */
 function handleGET(req: NextRequest) {

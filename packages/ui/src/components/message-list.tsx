@@ -5,8 +5,8 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
-import { MessageBubble } from "./message-bubble.js";
+import { cn } from "../lib/cn";
+import { MessageBubble } from "./message-bubble";
 
 /** 表示用メッセージ。 */
 export interface DisplayMessage {

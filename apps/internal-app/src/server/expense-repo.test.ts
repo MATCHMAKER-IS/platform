@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { prismaExpenseToExpense, expenseToCreateData } from "./expense-repo.js";
+import { prismaExpenseToExpense, expenseToCreateData } from "./expense-repo";
 
 describe("expense repo mapping", () => {
   it("prisma -> expense", () => {

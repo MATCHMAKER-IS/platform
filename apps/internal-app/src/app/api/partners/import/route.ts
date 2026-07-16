@@ -1,9 +1,9 @@
 /** 取引先: CSV取り込み(POST)。CSVを解析して取引先マスタへ一括upsert。partner:write。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { partnerStore, auditActions } from "../../../../server/platform-services.js";
-import { parsePartnerCsv } from "../../../../server/csv-import.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { partnerStore, auditActions } from "../../../../server/platform-services";
+import { parsePartnerCsv } from "../../../../server/csv-import";
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

@@ -1,9 +1,9 @@
 /** アンケート: 集計結果(GET)。manager 以上。 */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { surveyStore } from "../../../../../server/platform-services.js";
-import { aggregateSurvey } from "../../../../../server/survey-repo.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { surveyStore } from "../../../../../server/platform-services";
+import { aggregateSurvey } from "../../../../../server/survey-repo";
 
 async function handleGET(req: Request, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

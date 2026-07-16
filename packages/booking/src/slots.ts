@@ -3,7 +3,7 @@
  * 営業時間帯から一定間隔のスロット(予約枠)を作る。所要時間・刻み幅を指定できる。
  * @packageDocumentation
  */
-import { type TimeRange, timeToMinutes, minutesToTime } from "./hours.js";
+import { type TimeRange, timeToMinutes, minutesToTime } from "./hours";
 
 /** 予約スロット。 */
 export interface Slot {

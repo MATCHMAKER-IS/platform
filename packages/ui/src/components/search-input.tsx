@@ -4,7 +4,7 @@
  */
 import * as React from "react";
 import { Search, X } from "lucide-react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link SearchInput} の props。 */
 export interface SearchInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange"> {

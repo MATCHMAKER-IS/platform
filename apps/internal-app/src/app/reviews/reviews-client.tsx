@@ -1,7 +1,7 @@
 "use client";
 /** 口コミページ。対象（社内ツール等）を選び、その口コミ一覧・投稿を表示。 */
 import * as React from "react";
-import { ReviewSection } from "../../components/ReviewSection.js";
+import { ReviewSection } from "../../components/ReviewSection";
 
 const SUBJECTS = [
   { type: "tool", id: "slack", label: "Slack" },

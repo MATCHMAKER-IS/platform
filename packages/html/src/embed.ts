@@ -3,7 +3,7 @@
  * embedHtml は「信頼済みの生 HTML」をそのまま通す用途（管理者が入力する計測タグ向け）。
  * @packageDocumentation
  */
-import { escapeHtml } from "./escape.js";
+import { escapeHtml } from "./escape";
 
 /**
  * 属性値をエスケープする。

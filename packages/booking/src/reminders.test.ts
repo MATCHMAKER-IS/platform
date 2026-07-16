@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { reminderSchedule, reminderKey, dueReminders, reminderTiming, reminderMessage } from "./reminders.js";
+import { reminderSchedule, reminderKey, dueReminders, reminderTiming, reminderMessage } from "./reminders";
 const bookingAt = "2025-07-26T18:00:00Z";
 describe("booking reminders", () => {
   it("schedules and finds due", () => {

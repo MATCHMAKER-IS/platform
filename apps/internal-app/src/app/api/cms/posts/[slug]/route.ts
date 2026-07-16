@@ -1,9 +1,9 @@
 /** CMS 記事: 取得(GET)・更新(PUT)・削除(DELETE)。 */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { currentUser, requirePermission, userCan } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { cmsStore, auditActions, revisionStore, publishRequestStore, notificationCenter } from "../../../../../server/platform-services.js";
-import { validatePostInput, isPublishAction, type CmsPostInput } from "../../../../../server/cms-store.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { currentUser, requirePermission, userCan } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { cmsStore, auditActions, revisionStore, publishRequestStore, notificationCenter } from "../../../../../server/platform-services";
+import { validatePostInput, isPublishAction, type CmsPostInput } from "../../../../../server/cms-store";
 
 async function handleGET(req: Request, ctx: { params: Promise<{ slug: string }> }): Promise<Response> {
   const { slug } = await ctx.params;

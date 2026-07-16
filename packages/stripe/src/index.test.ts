@@ -12,7 +12,7 @@ vi.mock("stripe", () => ({
   },
 }));
 
-import { createStripeClient } from "./index.js";
+import { createStripeClient } from "./index";
 
 describe("stripe", () => {
   it("createPaymentIntent は Result を返す", async () => {

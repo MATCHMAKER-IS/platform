@@ -3,10 +3,10 @@
  * - POST: イベント記録（`{ type, path, sessionId, userId?, referrer?, name? }`）。認証不要（計測ビーコン）。
  * - GET: 概況＋時系列（`?from=&to=&bucket=day|hour`）。管理者のみ。
  */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { analytics } from "../../../server/platform-services.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser, requirePermission } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { analytics } from "../../../server/platform-services";
 
 interface TrackBody {
   type?: "pageview" | "click" | "custom";

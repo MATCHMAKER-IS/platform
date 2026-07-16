@@ -15,14 +15,14 @@ vi.mock("./observability.js", () => {
 
 describe("withApiObservability", () => {
   it("passes response through and counts requests", async () => {
-    const { withApiObservability } = await import("./instrument.js");
+    const { withApiObservability } = await import("./instrument");
     const wrapped = withApiObservability("/api/x", async () => new Response("ok", { status: 200 }));
     const res = await wrapped(new Request("https://h/api/x", { method: "GET" }));
     expect(res.status).toBe(200);
     expect(await res.text()).toBe("ok");
   });
   it("re-throws handler errors", async () => {
-    const { withApiObservability } = await import("./instrument.js");
+    const { withApiObservability } = await import("./instrument");
     const wrapped = withApiObservability("/api/e", async () => { throw new Error("boom"); });
     await expect(wrapped(new Request("https://h/api/e", { method: "POST" }))).rejects.toThrow("boom");
   });

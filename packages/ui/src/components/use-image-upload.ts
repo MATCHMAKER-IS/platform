@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { resizeImage } from "../lib/image.js";
+import { resizeImage } from "../lib/image";
 import type { FitOptions, ImageFormat } from "@platform/image/geometry";
 
 /** {@link useImageUpload} のオプション。 */

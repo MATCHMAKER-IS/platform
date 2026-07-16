@@ -3,10 +3,10 @@
  * - GET: 一覧（`?prefix=&limit=`）。
  * - DELETE: 実体と登録を削除（ボディ `{ key }`）。
  */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { fileManager, auditActions } from "../../../server/platform-services.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser, requirePermission } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { fileManager, auditActions } from "../../../server/platform-services";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

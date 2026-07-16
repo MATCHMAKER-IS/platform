@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { createGoogleSheetsClient } from "./index.js";
+import { createGoogleSheetsClient } from "./index";
 
 const realFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = realFetch; vi.restoreAllMocks(); });
@@ -17,7 +17,7 @@ describe("google sheets", () => {
   });
 });
 
-import { createGoogleMapsClient } from "./index.js";
+import { createGoogleMapsClient } from "./index";
 
 describe("google maps", () => {
   it("geocode は address と key を付けて呼ぶ", async () => {

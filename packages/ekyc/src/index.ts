@@ -4,6 +4,6 @@
  * 判定そのものはベンダーが行い、基盤は API 呼び出しと結果の正規化を担う。
  * @packageDocumentation
  */
-export * from "./client.js";
-export * from "./status.js";
-export * from "./webhook.js";
+export * from "./client";
+export * from "./status";
+export * from "./webhook";

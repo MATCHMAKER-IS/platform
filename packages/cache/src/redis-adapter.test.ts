@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createRedisCache, type RedisCacheClient } from "./adapters/redis.js";
+import { createRedisCache, type RedisCacheClient } from "./adapters/redis";
 describe("redis cache adapter", () => {
   it("get/set with EX, delete via injected client", async () => {
     const store = new Map<string, string>(); let lastArgs: (string | number)[] = [];

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readSheet, writeSheet } from "./index.js";
+import { readSheet, writeSheet } from "./index";
 
 describe("xlsx", () => {
   it("書き出した内容を読み戻せる(往復)", async () => {

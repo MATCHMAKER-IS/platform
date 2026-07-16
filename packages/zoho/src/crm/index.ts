@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import type { Result } from "@platform/core";
-import { createZohoApiClient, type ZohoClientConfig } from "../core/client.js";
+import { createZohoApiClient, type ZohoClientConfig } from "../core/client";
 
 /** CRM レコード(緩め）。 */
 export type CrmRecord = Record<string, unknown>;

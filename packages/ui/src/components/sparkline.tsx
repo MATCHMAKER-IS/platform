@@ -3,7 +3,7 @@
  * スパークライン(依存なし・SVG)。小さな折れ線で傾向を表示する。
  * @packageDocumentation
  */
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link Sparkline} の props。 */
 export interface SparklineProps {

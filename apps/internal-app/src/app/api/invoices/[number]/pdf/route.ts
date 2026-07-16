@@ -1,9 +1,9 @@
 /** 請求書: PDF 出力(GET)。レンダラ設定時は PDF、未設定時はブラウザ印刷用の HTML を返す。invoice:read。 */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { invoiceStore, settingsStore } from "../../../../../server/platform-services.js";
-import { getPdfService, wrapForPrint, DEFAULT_INVOICE_PDF_OPTIONS } from "../../../../../server/pdf-service.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { invoiceStore, settingsStore } from "../../../../../server/platform-services";
+import { getPdfService, wrapForPrint, DEFAULT_INVOICE_PDF_OPTIONS } from "../../../../../server/pdf-service";
 import { renderInvoiceHtml } from "@platform/invoice";
 
 async function handleGET(req: Request, ctx: { params: Promise<{ number: string }> }): Promise<Response> {

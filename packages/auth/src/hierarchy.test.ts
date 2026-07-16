@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { can } from "./rbac.js";
-import { resolveHierarchy, canAny, canAll, canScoped, filterAuthorized, featureFlags } from "./hierarchy.js";
+import { can } from "./rbac";
+import { resolveHierarchy, canAny, canAll, canScoped, filterAuthorized, featureFlags } from "./hierarchy";
 
 const policy = resolveHierarchy({
   employee: { permissions: ["expense:read:own", "expense:create"] },

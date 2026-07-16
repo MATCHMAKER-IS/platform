@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { createOtlpExporter } from "./otlp.js";
-import type { Span } from "./trace.js";
+import { createOtlpExporter } from "./otlp";
+import type { Span } from "./trace";
 const span = (id: string): Span => ({ traceId: id, spanId: "s" + id, name: "GET /x", startTime: 1000, endTime: 1050, durationMs: 50, attributes: {}, status: "ok" });
 describe("otlp exporter", () => {
   it("batches and flushes at maxBatchSize", async () => {

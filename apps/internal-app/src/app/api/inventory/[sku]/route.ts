@@ -1,8 +1,8 @@
 /** 在庫: 商品詳細(GET)。台帳・倉庫別在庫・期限管理を返す。inventory:read が必要。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { inventoryStore } from "../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { inventoryStore } from "../../../../server/platform-services";
 
 async function handleGET(req: Request, ctx: { params: Promise<{ sku: string }> }): Promise<Response> {
   const { sku } = await ctx.params;

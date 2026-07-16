@@ -8,9 +8,9 @@
  * @packageDocumentation
  */
 import { AppError, ErrorCode, ok, err, type Result } from "@platform/core";
-import type { HidLike, HidDeviceLike, HidFilter } from "./types.js";
+import type { HidLike, HidDeviceLike, HidFilter } from "./types";
 
-export type { HidFilter } from "./types.js";
+export type { HidFilter } from "./types";
 
 function getHid(): HidLike | null {
   if (typeof navigator === "undefined") return null;

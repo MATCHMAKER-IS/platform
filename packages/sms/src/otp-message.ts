@@ -3,7 +3,7 @@
  * ここは「送る文面」を作るだけ(sms は auth に依存しない)。
  * @packageDocumentation
  */
-import type { SmsMessage } from "./index.js";
+import type { SmsMessage } from "./index";
 
 /** {@link buildOtpSms} のオプション。 */
 export interface OtpSmsOptions {

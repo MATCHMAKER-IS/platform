@@ -3,7 +3,7 @@
  * かな判定・法人番号・マイナンバー・全角半角変換は既存の `./japan.js` / `./transforms.js` を参照。
  * @packageDocumentation
  */
-import { toHalfWidth } from "./transforms.js";
+import { toHalfWidth } from "./transforms";
 
 /**
  * 郵便番号(7桁 or "123-4567")として妥当か。

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { orientationFromDimensions, simplifyOrientationType } from "./orientation.js";
+import { orientationFromDimensions, simplifyOrientationType } from "./orientation";
 describe("orientation", () => {
   it("derives from dimensions and type", () => {
     expect(orientationFromDimensions(1024, 768)).toBe("landscape");

@@ -7,7 +7,7 @@ import {
   startWorkflow, approve, reject, sendBack, currentStep,
   type WorkflowDefinition, type WorkflowState, type Actor,
 } from "@platform/workflow";
-import type { Expense } from "./expense.js";
+import type { Expense } from "./expense";
 
 /** 経費申請の承認フロー(2 段階)。 */
 export const EXPENSE_WORKFLOW: WorkflowDefinition = {

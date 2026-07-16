@@ -117,5 +117,5 @@ export function createCache(adapter: CacheAdapter, now: () => number = () => Dat
   return api;
 }
 
-export { createMemoryCache } from "./adapters/memory.js";
-export { createRedisCache, type RedisCacheConfig, type RedisCacheClient } from "./adapters/redis.js";
+export { createMemoryCache } from "./adapters/memory";
+export { createRedisCache, type RedisCacheConfig, type RedisCacheClient } from "./adapters/redis";

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { workedMinutes, overtimeMinutes, hhmmToMinutes, formatWorked, summarizeAttendance, type AttendanceRecord } from "./attendance.js";
+import { workedMinutes, overtimeMinutes, hhmmToMinutes, formatWorked, summarizeAttendance, type AttendanceRecord } from "./attendance";
 
 describe("attendance", () => {
   it("worked/overtime", () => {

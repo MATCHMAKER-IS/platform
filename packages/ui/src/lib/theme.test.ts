@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveTheme, nextThemePreference, toggleTheme, applyTheme, THEME_LABELS, themeInitScript, THEME_STORAGE_KEY } from "./theme.js";
+import { resolveTheme, nextThemePreference, toggleTheme, applyTheme, THEME_LABELS, themeInitScript, THEME_STORAGE_KEY } from "./theme";
 describe("ui theme lib", () => {
   it("resolves and cycles theme", () => {
     expect(resolveTheme("system", true)).toBe("dark");

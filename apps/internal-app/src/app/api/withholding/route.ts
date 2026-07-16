@@ -1,9 +1,9 @@
 /** 源泉徴収: 支払調書サマリーと明細(GET)・報酬支払の記録(POST)。withholding:read / withholding:write。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { feePaymentStore, auditActions } from "../../../server/platform-services.js";
-import { type FeePayment } from "../../../server/withholding-repo.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser, requirePermission } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { feePaymentStore, auditActions } from "../../../server/platform-services";
+import { type FeePayment } from "../../../server/withholding-repo";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

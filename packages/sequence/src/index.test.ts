@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createSequencer, createMemorySequenceStore } from "./index.js";
+import { createSequencer, createMemorySequenceStore } from "./index";
 describe("sequence", () => {
   it("pads and prefixes", async () => {
     const s = createSequencer(createMemorySequenceStore(), "inv", { prefix: "INV-", padding: 6 });

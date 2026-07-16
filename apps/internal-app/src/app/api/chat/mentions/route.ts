@@ -2,10 +2,10 @@
  * 未読メンション API（GET）。`?handle=` で対象ハンドル（省略時はメールのローカル部）。
  * count と一覧（新しい順）を返す。
  */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { mentionInbox } from "../../../../server/chat.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { mentionInbox } from "../../../../server/chat";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

@@ -4,8 +4,8 @@
  * @packageDocumentation
  */
 import { AppError, ErrorCode } from "@platform/core";
-import type { Theme } from "./tokens.js";
-import { isValidThemeId } from "./tokens.js";
+import type { Theme } from "./tokens";
+import { isValidThemeId } from "./tokens";
 
 export interface ThemeRegistry {
   /** テーマを登録する(同 id は上書き)。id が不正なら VALIDATION エラー。 */

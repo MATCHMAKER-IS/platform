@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 import Redis from "ioredis";
-import type { RateLimitStore } from "./types.js";
+import type { RateLimitStore } from "./types";
 
 /** INCR + 初回のみ EXPIRE をアトミックに行う Lua。戻り値は現在カウント。 */
 const INCR_EXPIRE_LUA = `

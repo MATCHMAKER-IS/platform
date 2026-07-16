@@ -1,6 +1,6 @@
 /** ルート用ガード。import された時点で初期ユーザーを播種し、requireUser で認可する。 */
-import { seedUsers, sessionFromRequest, type SessionPayload } from "./auth.js";
-import { serverEnv } from "./env.js";
+import { seedUsers, sessionFromRequest, type SessionPayload } from "./auth";
+import { serverEnv } from "./env";
 
 seedUsers(serverEnv.ADMIN_PASSWORD);
 

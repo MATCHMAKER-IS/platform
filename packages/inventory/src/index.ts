@@ -3,8 +3,8 @@
  * 発注入荷(@platform/purchase）や売上出荷を入出庫として記録し、現在庫・補充要否・在庫金額を求める。
  * @packageDocumentation
  */
-export * from "./movements.js";
-export * from "./reorder.js";
-export * from "./valuation.js";
-export * from "./warehouse.js";
-export * from "./lot.js";
+export * from "./movements";
+export * from "./reorder";
+export * from "./valuation";
+export * from "./warehouse";
+export * from "./lot";

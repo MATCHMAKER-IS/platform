@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { emptyColumnPrefs, type ColumnPrefs, type ColumnPrefsStore } from "../lib/column-prefs.js";
+import { emptyColumnPrefs, type ColumnPrefs, type ColumnPrefsStore } from "../lib/column-prefs";
 
 /**
  * 列設定をロード/保存するフック。

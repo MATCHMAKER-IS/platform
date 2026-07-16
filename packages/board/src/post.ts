@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 
-import { type Attachment } from "./attachment.js";
+import { type Attachment } from "./attachment";
 
 /** 投稿(スレッドの本文 or 返信)。 */
 export interface Post {

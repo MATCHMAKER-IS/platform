@@ -7,9 +7,9 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
-import { SocialLoginGroup, LoginDivider } from "./social-login-group.js";
-import { type SocialProvider } from "./social-login-button.js";
+import { cn } from "../lib/cn";
+import { SocialLoginGroup, LoginDivider } from "./social-login-group";
+import { type SocialProvider } from "./social-login-button";
 
 /** {@link LoginCard} の props。 */
 export interface LoginCardProps {

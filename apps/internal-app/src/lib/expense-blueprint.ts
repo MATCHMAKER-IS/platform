@@ -69,7 +69,7 @@ export function approveExpense(expense: ExpenseRecord, actor: Actor): { ok: bool
   return { ok: true, expense: next, errors: [] };
 }
 
-import { record, type AuditEntry } from "./audit.js";
+import { record, type AuditEntry } from "./audit";
 
 /** 提出 + 監査記録。 */
 export function auditedSubmit(log: AuditEntry[], expense: ExpenseRecord, actor: string): { result: ReturnType<typeof submitExpense>; log: AuditEntry[] } {

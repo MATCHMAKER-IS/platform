@@ -59,7 +59,7 @@ export async function recordAudit(
   };
 }
 
-import { diffChanges, hasChanges, type DiffOptions } from "./audit-diff.js";
+import { diffChanges, hasChanges, type DiffOptions } from "./audit-diff";
 
 /** {@link recordAuditChange} の入力。 */
 export interface AuditChangeEntry extends DiffOptions {

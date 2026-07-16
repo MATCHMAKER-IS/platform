@@ -102,12 +102,12 @@ export function createMailer(options: MailerOptions): Mailer {
   };
 }
 
-export { createSmtpTransport } from "./transports/smtp.js";
-export { createMemoryTransport } from "./transports/memory.js";
+export { createSmtpTransport } from "./transports/smtp";
+export { createMemoryTransport } from "./transports/memory";
 
-export * from "./email.js";
-export { withMailRetry, createFallbackMailTransport, type MailRetryOptions, type MailFallbackOptions } from "./resilient.js";
-export * from "./template.js";
-export * from "./allowlist.js";
-export * from "./attachments.js";
-export * from "./unsubscribe.js";
+export * from "./email";
+export { withMailRetry, createFallbackMailTransport, type MailRetryOptions, type MailFallbackOptions } from "./resilient";
+export * from "./template";
+export * from "./allowlist";
+export * from "./attachments";
+export * from "./unsubscribe";

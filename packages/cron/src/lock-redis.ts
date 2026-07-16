@@ -3,7 +3,7 @@
  * 取得は SET NX PX(アトミック)、解放は所有者トークン照合(Lua)で「自分のロックだけ」を消す。
  * @packageDocumentation
  */
-import type { LockStore } from "./lock.js";
+import type { LockStore } from "./lock";
 
 /** ioredis 互換の最小インターフェース(テスト差し替え用)。 */
 export interface RedisLockClient {

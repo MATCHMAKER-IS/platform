@@ -2,8 +2,8 @@ import * as React from "react";
 import type { Metadata } from "next";
 import { nl2br, linkify } from "@platform/html";
 import { Eyecatch } from "@platform/ui";
-import { getPreviewPost, isValidPreviewToken } from "../../../server/preview.js";
-import { cmsPostsForPreview } from "../../../server/content.js";
+import { getPreviewPost, isValidPreviewToken } from "../../../server/preview";
+import { cmsPostsForPreview } from "../../../server/content";
 
 export const metadata: Metadata = { title: "プレビュー", robots: { index: false } };
 

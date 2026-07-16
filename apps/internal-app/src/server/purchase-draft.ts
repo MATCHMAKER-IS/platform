@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { buildPurchaseOrder, type PurchaseOrder, type PurchaseLine } from "@platform/purchase";
-import { type StockStatus } from "./inventory-repo.js";
+import { type StockStatus } from "./inventory-repo";
 
 /** 発注ドラフト起票のオプション。 */
 export interface ReorderDraftOptions {

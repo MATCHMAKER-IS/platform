@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { clamp } from "@platform/utils";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link Gauge} の props。 */
 export interface GaugeProps {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { relayOutbox, createMemoryOutboxStore } from "./outbox.js";
+import { relayOutbox, createMemoryOutboxStore } from "./outbox";
 describe("outbox", () => {
   it("dispatches, retries with backoff, exhausts", async () => {
     let clk = 0; const store = createMemoryOutboxStore(() => clk);

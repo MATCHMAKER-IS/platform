@@ -4,8 +4,8 @@
  * キャストや席が複数あれば capacity を上げる。
  * @packageDocumentation
  */
-import { type Slot } from "./slots.js";
-import { timeToMinutes } from "./hours.js";
+import { type Slot } from "./slots";
+import { timeToMinutes } from "./hours";
 
 /** 既存予約(時間帯)。 */
 export interface BookingInterval {

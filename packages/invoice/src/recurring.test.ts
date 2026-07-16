@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { billingDateAt, nextBillingDate, billingDatesBetween, dueForBilling } from "./recurring.js";
-import { dunningLevel, dunningMessage, shouldSendDunning } from "./dunning.js";
+import { billingDateAt, nextBillingDate, billingDatesBetween, dueForBilling } from "./recurring";
+import { dunningLevel, dunningMessage, shouldSendDunning } from "./dunning";
 describe("invoice recurring", () => {
   it("computes billing dates (month-end clamp)", () => {
     expect(billingDateAt({ interval: "monthly", startDate: "2025-01-31" }, 1)).toBe("2025-02-28");

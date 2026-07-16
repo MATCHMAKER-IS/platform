@@ -2,11 +2,11 @@
  * アンケート: 締切間近の未回答者へ自動リマインド(POST)。cron 等から定期実行。
  * X-Cron-Token(env CRON_TOKEN)一致、または管理者で実行可。既定は締切3日以内の公開中を対象。
  */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv, featureEnv } from "../../../../server/env.js";
-import { surveyStore, userStore, appMailer, alertSeenStore, auditActions, settingsStore } from "../../../../server/platform-services.js";
-import { surveysDueForReminder, audienceRecipients, pendingRespondents } from "../../../../server/survey-repo.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv, featureEnv } from "../../../../server/env";
+import { surveyStore, userStore, appMailer, alertSeenStore, auditActions, settingsStore } from "../../../../server/platform-services";
+import { surveysDueForReminder, audienceRecipients, pendingRespondents } from "../../../../server/survey-repo";
 
 const DAYS_BEFORE = 3;
 const TTL_MS = 20 * 60 * 60 * 1000; // 同一アンケートは20時間再送しない

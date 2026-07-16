@@ -1,9 +1,9 @@
 /**
  * プレゼンス API（GET）。ルームのオンライン/入力中ユーザーを返す。
  */
-import { currentUser, requirePermission } from "../../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../../server/env.js";
-import { presence } from "../../../../../../server/chat.js";
+import { currentUser, requirePermission } from "../../../../../../server/authorize";
+import { serverEnv } from "../../../../../../server/env";
+import { presence } from "../../../../../../server/chat";
 
 export const dynamic = "force-dynamic";
 

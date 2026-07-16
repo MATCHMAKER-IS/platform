@@ -152,5 +152,5 @@ export function anonymizeRecord<T extends Record<string, unknown>>(record: T, fi
 export function isRetentionExpired(createdAt: number, retentionDays: number, now: number = Date.now()): boolean {
   return now - createdAt > retentionDays * 24 * 60 * 60 * 1000;
 }
-export * from "./identity-mask.js";
-export * from "./subject-rights.js";
+export * from "./identity-mask";
+export * from "./subject-rights";

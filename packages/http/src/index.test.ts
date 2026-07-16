@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toHttpError, resultToResponse } from "./index.js";
+import { toHttpError, resultToResponse } from "./index";
 import { AppError, ErrorCode, ok, err } from "@platform/core";
 
 describe("toHttpError", () => {

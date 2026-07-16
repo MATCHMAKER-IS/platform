@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { taxAmount, grossFromNet, netFromGross, summarizeTax, isValidInvoiceNumber, isValidCorporateNumber } from "./index.js";
+import { taxAmount, grossFromNet, netFromGross, summarizeTax, isValidInvoiceNumber, isValidCorporateNumber } from "./index";
 function genCorp(body12: string): string { let sum = 0; for (let i = 0; i < 12; i++) { sum += Number(body12[11 - i]) * (i % 2 === 0 ? 1 : 2); } return String(9 - (sum % 9)) + body12; }
 describe("tax", () => {
   it("computes tax and gross/net", () => {

@@ -11,7 +11,7 @@ vi.mock("croner", () => ({
   },
 }));
 
-import { createScheduler } from "./index.js";
+import { createScheduler } from "./index";
 
 describe("cron", () => {
   it("ジョブ名を登録できる", () => {

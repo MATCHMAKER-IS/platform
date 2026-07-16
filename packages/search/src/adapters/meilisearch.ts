@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { MeiliSearch } from "meilisearch";
-import type { SearchAdapter, SearchDocument, SearchHit } from "../index.js";
+import type { SearchAdapter, SearchDocument, SearchHit } from "../index";
 
 /** Meilisearch 接続設定。 */
 export interface MeilisearchConfig {

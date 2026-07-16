@@ -1,6 +1,6 @@
 import * as React from "react";
 import { SlideGallery } from "@platform/ui";
-import { type RenderedBlock } from "../server/site-content.js";
+import { type RenderedBlock } from "../server/site-content";
 
 /** 描画モデルの配列を React 要素にする。text は安全な HTML（エスケープ済み）を挿入。 */
 export function BlockRenderer({ blocks }: { blocks: RenderedBlock[] }) {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isValidDriversLicenseNumber, isValidJapanPassportNumber, isValidResidenceCardNumber, validateIdentityDocument, normalizeDocumentNumber } from "./identity.js";
+import { isValidDriversLicenseNumber, isValidJapanPassportNumber, isValidResidenceCardNumber, validateIdentityDocument, normalizeDocumentNumber } from "./identity";
 describe("identity document validation", () => {
   it("validates by format", () => {
     expect(isValidDriversLicenseNumber("123456789012")).toBe(true);

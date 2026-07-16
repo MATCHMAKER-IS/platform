@@ -4,8 +4,8 @@
  */
 import * as React from "react";
 import { ChevronRight } from "lucide-react";
-import { cn } from "../lib/cn.js";
-import { useT } from "./i18n-provider.js";
+import { cn } from "../lib/cn";
+import { useT } from "./i18n-provider";
 
 /** パンくず 1 項目。 */
 export interface BreadcrumbItem {

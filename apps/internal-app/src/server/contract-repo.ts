@@ -9,8 +9,8 @@
  */
 import { randomUUID } from "node:crypto";
 import type { Contract, RenewalType, ContractStatus } from "@platform/contract";
-import { db } from "./services.js";
-import { featureEnv } from "./env.js";
+import { db } from "./services";
+import { featureEnv } from "./env";
 
 /** 保存先。 */
 export interface ContractStore {

@@ -4,8 +4,8 @@
  * @packageDocumentation
  */
 import { paginate, type Paginated } from "@platform/db";
-import { db } from "./services.js";
-import type { Expense } from "../lib/expense.js";
+import { db } from "./services";
+import type { Expense } from "../lib/expense";
 
 /** Prisma の Expense 行(生成型の必要部分)。 */
 export interface PrismaExpenseRow {

@@ -5,7 +5,7 @@
  * マスク・暗号化・匿名化の下位部品(index.ts / identity-mask.ts)の上に構築。
  * @packageDocumentation
  */
-import { anonymizeRecord, isRetentionExpired } from "./index.js";
+import { anonymizeRecord, isRetentionExpired } from "./index";
 
 /** 保有個人データのカテゴリ(利用目的・保持・第三者提供)。 */
 export interface PersonalDataCategory {

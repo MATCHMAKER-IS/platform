@@ -5,8 +5,8 @@
  */
 import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { cn } from "../lib/cn.js";
-import { useT } from "./i18n-provider.js";
+import { cn } from "../lib/cn";
+import { useT } from "./i18n-provider";
 
 /** {@link Pagination} の props。 */
 export interface PaginationProps {

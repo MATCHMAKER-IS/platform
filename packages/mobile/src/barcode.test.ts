@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { eanCheckDigit, isValidEan13, isValidEan8, isValidJan, detectBarcodeKind, janCountryPrefix, isJapaneseJan, isBarcodeDetectorSupported } from "./barcode.js";
+import { eanCheckDigit, isValidEan13, isValidEan8, isValidJan, detectBarcodeKind, janCountryPrefix, isJapaneseJan, isBarcodeDetectorSupported } from "./barcode";
 describe("barcode JAN/EAN", () => {
   it("computes check digits and validates", () => {
     expect(eanCheckDigit("490177701868")).toBe(6);

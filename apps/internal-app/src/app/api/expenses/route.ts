@@ -1,6 +1,6 @@
 /** 経費一覧 API(GET)。ページネーションで新しい順に返す。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { listExpenses } from "../../../server/expense-repo.js";
+import { withApiObservability } from "../../../server/instrument";
+import { listExpenses } from "../../../server/expense-repo";
 
 async function handleGET(req: Request): Promise<Response> {
   const url = new URL(req.url);

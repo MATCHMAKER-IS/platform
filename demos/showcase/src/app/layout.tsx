@@ -1,7 +1,7 @@
 import "@platform/ui/tokens.css";
 import { Toaster, AppSkin, ThemeSwitcher } from "@platform/ui";
-import { themeRegistry } from "../lib/theme-registry.js";
-import { DemoSidebar } from "../components/demo-sidebar.js";
+import { themeRegistry } from "../lib/theme-registry";
+import { DemoSidebar } from "../components/demo-sidebar";
 
 export const metadata = {
   title: "基盤デモ",

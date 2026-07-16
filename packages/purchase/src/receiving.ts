@@ -3,7 +3,7 @@
  * 発注明細に対する入荷実績を突き合わせ、未入荷数量(発注残)や入荷状態を求める。
  * @packageDocumentation
  */
-import { type PurchaseLine } from "./purchase-order.js";
+import { type PurchaseLine } from "./purchase-order";
 
 /** 入荷実績(明細行インデックスごとの数量)。 */
 export interface Receipt {

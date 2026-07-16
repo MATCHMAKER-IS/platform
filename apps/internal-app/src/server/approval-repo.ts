@@ -4,11 +4,11 @@
  * @packageDocumentation
  */
 import { withTransaction, type Result } from "@platform/db";
-import { db } from "./services.js";
-import { EXPENSE_WORKFLOW, actOn, type ExpenseRequest } from "../lib/expense-approval.js";
+import { db } from "./services";
+import { EXPENSE_WORKFLOW, actOn, type ExpenseRequest } from "../lib/expense-approval";
 import { startWorkflow, type WorkflowState, type Actor } from "@platform/workflow";
-import { enqueueExpenseTransition } from "./expense-notify-service.js";
-import type { Expense } from "../lib/expense.js";
+import { enqueueExpenseTransition } from "./expense-notify-service";
+import type { Expense } from "../lib/expense";
 
 /** ExpenseRequest 行(Prisma 生成型の必要部分)。 */
 export interface ExpenseRequestRow {

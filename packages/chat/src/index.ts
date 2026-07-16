@@ -3,8 +3,8 @@
  * リアルタイム配信は `@platform/realtime` と組み合わせて使う。
  * @packageDocumentation
  */
-export * from "./attachment.js";
-export * from "./message.js";
-export * from "./reaction.js";
-export * from "./pin.js";
-export * from "./room.js";
+export * from "./attachment";
+export * from "./message";
+export * from "./reaction";
+export * from "./pin";
+export * from "./room";

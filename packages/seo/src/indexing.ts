@@ -8,8 +8,8 @@
  * ページ単位の付け忘れを避けるため、(1)(2) をミドルウェア/設定で一括適用するのが望ましい。
  * @packageDocumentation
  */
-import { type RobotsDirective, robotsContent } from "./meta.js";
-import { buildRobotsTxt } from "./robots.js";
+import { type RobotsDirective, robotsContent } from "./meta";
+import { buildRobotsTxt } from "./robots";
 
 /** サイトの公開区分。internal=社内(検索避け), public=一般公開(SEO 対象)。 */
 export type SiteVisibility = "public" | "internal";

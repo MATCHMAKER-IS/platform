@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { unreadCount, sortNotifications, markRead, markAllRead, groupByDate } from "./notifications.js";
+import { unreadCount, sortNotifications, markRead, markAllRead, groupByDate } from "./notifications";
 const now = new Date("2025-07-25T12:00:00Z");
 const list = [
   { id: "1", title: "A", createdAt: "2025-07-25T09:00:00Z" },

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createFreeeTokenManager, createFreeeAuthedFetch } from "./token.js";
+import { createFreeeTokenManager, createFreeeAuthedFetch } from "./token";
 describe("freee token manager", () => {
   it("refreshes, caches, and dedupes", async () => {
     let clock = 0, count = 0;

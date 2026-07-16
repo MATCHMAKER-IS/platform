@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveRoute, routeByAmount } from "./routing.js";
+import { resolveRoute, routeByAmount } from "./routing";
 const mgr = { name: "課長", approverRole: "manager" };
 const dir = { name: "部長", approverRole: "director" };
 const exe = { name: "役員", approverRole: "executive" };

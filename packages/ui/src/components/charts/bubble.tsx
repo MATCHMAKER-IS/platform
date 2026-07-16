@@ -1,8 +1,8 @@
 "use client";
 /** バブルチャート(散布図 + 大きさ z)。 @packageDocumentation */
 import { ResponsiveContainer, ScatterChart as RScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, Legend } from "recharts";
-import { cn } from "../../lib/cn.js";
-import { ChartTitle, SeriesToggle, useSeriesVisibility, CHART_COLORS, GRID_STROKE } from "./chart-common.js";
+import { cn } from "../../lib/cn";
+import { ChartTitle, SeriesToggle, useSeriesVisibility, CHART_COLORS, GRID_STROKE } from "./chart-common";
 
 /** バブルの系列。 */
 export interface BubbleSeries {

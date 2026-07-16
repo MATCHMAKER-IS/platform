@@ -1,7 +1,7 @@
 "use client";
 /** 承認へのサイン。承認（docType/docNumber）に手書き署名を付与し、既存署名と状況を表示する。 */
 import * as React from "react";
-import { SignaturePad } from "./SignaturePad.js";
+import { SignaturePad } from "./SignaturePad";
 
 interface Sig { id: string; signer: string; image: string; signedAt: string; }
 

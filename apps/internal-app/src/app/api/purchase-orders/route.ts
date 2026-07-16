@@ -1,9 +1,9 @@
 /** 発注: 一覧(GET)・発注点割れからの起票保存(POST)。閲覧は purchase:read、作成は purchase:write。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { purchaseStore, inventoryStore, auditActions, partnerStore } from "../../../server/platform-services.js";
-import { buildReorderPurchaseOrder, reorderSkus } from "../../../server/purchase-draft.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser, requirePermission } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { purchaseStore, inventoryStore, auditActions, partnerStore } from "../../../server/platform-services";
+import { buildReorderPurchaseOrder, reorderSkus } from "../../../server/purchase-draft";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

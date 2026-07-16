@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { withMailRetry, createFallbackMailTransport } from "./resilient.js";
-import type { MailTransport } from "./index.js";
+import { withMailRetry, createFallbackMailTransport } from "./resilient";
+import type { MailTransport } from "./index";
 const msg = { to: "a@x.jp", subject: "s", from: "f@x.jp" };
 describe("mail resilience", () => {
   it("retry with shouldRetry", async () => {

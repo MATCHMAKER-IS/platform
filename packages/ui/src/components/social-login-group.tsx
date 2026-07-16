@@ -4,8 +4,8 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
-import { SocialLoginButton, type SocialProvider } from "./social-login-button.js";
+import { cn } from "../lib/cn";
+import { SocialLoginButton, type SocialProvider } from "./social-login-button";
 
 /** {@link SocialLoginGroup} の props。 */
 export interface SocialLoginGroupProps {

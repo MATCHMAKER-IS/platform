@@ -1,10 +1,10 @@
 /**
  * ルームのピン留め一覧 API（GET）。新しい順。
  */
-import { withApiObservability } from "../../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../../server/env.js";
-import { pinStore } from "../../../../../../server/chat.js";
+import { withApiObservability } from "../../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../../server/authorize";
+import { serverEnv } from "../../../../../../server/env";
+import { pinStore } from "../../../../../../server/chat";
 
 async function handleGET(req: Request, ctx: { params: Promise<{ roomId: string }> }): Promise<Response> {
   const { roomId } = await ctx.params;

@@ -1,7 +1,7 @@
 /** 備品: 一覧(GET ?includeInactive=1)・登録(POST)。要ログイン。 */
-import { requireUser } from "../../../server/guard.js";
-import { equipmentStore } from "../../../server/services.js";
-import { validateEquipmentInput } from "../../../server/equipment-repo.js";
+import { requireUser } from "../../../server/guard";
+import { equipmentStore } from "../../../server/services";
+import { validateEquipmentInput } from "../../../server/equipment-repo";
 
 export async function GET(req: Request): Promise<Response> {
   const user = requireUser(req);

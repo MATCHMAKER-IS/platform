@@ -1,8 +1,8 @@
 /** RPA デモ実行(POST・管理者)+監査イベント取得(GET)。ランナーの直列化/リトライ/冪等/監査を体感する。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { runDemoPointSync, getRecentRpaEvents } from "../../../../server/rpa-service.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { runDemoPointSync, getRecentRpaEvents } from "../../../../server/rpa-service";
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

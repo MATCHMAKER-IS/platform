@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pMapLimit, pTimeout, TimeoutError } from "./async.js";
+import { pMapLimit, pTimeout, TimeoutError } from "./async";
 describe("async utils", () => {
   it("pMapLimit preserves order and limits concurrency", async () => {
     let cur = 0, max = 0;

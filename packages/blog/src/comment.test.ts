@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildCommentTree, approvedComments, sortComments, countComments, pendingCount } from "./comment.js";
+import { buildCommentTree, approvedComments, sortComments, countComments, pendingCount } from "./comment";
 const comments = [
   { id: "1", author: "A", body: "最初", createdAt: "2025-07-20T10:00:00Z", status: "approved" as const },
   { id: "2", parentId: "1", author: "B", body: "返信", createdAt: "2025-07-20T11:00:00Z", status: "approved" as const },

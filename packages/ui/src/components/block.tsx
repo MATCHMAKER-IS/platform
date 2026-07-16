@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link BlockGrid} の props。 */
 export interface BlockGridProps extends React.HTMLAttributes<HTMLDivElement> {

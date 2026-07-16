@@ -97,8 +97,8 @@ ${pages}
 }
 
 // ─────────────── 各帳票の印刷用ショートカット ───────────────
-import type { InvoiceDocument } from "./render.js";
-import { renderInvoiceHtml, renderQuotationHtml, renderDeliveryNoteHtml } from "./render.js";
+import type { InvoiceDocument } from "./render";
+import { renderInvoiceHtml, renderQuotationHtml, renderDeliveryNoteHtml } from "./render";
 
 /**
  * 請求書を印刷・PDF 用の HTML で生成する。

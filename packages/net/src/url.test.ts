@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { joinUrl, parseQuery, buildQuery, withQuery } from "./url.js";
+import { joinUrl, parseQuery, buildQuery, withQuery } from "./url";
 
 describe("url", () => {
   it("joinUrl", () => expect(joinUrl("https://x.jp/", "/v1/", "/u")).toBe("https://x.jp/v1/u"));

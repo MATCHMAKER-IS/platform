@@ -1,5 +1,5 @@
-import { ThemeGalleryClient } from "./theme-gallery-client.js";
-import { getCustomThemes } from "../../../server/theme-setting.js";
+import { ThemeGalleryClient } from "./theme-gallery-client";
+import { getCustomThemes } from "../../../server/theme-setting";
 
 export const metadata = { title: "テーマギャラリー" };
 

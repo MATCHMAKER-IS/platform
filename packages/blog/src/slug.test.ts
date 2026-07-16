@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { slugify, ensureSlug, uniqueSlug } from "./slug.js";
+import { slugify, ensureSlug, uniqueSlug } from "./slug";
 describe("slug", () => {
   it("slugifies ascii and unicode", () => {
     expect(slugify("Hello World! My First Post")).toBe("hello-world-my-first-post");

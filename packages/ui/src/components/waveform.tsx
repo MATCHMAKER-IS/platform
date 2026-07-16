@@ -6,7 +6,7 @@
 import * as React from "react";
 import WaveSurfer from "wavesurfer.js";
 import { Play, Pause } from "lucide-react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link Waveform} の props。 */
 export interface WaveformProps {

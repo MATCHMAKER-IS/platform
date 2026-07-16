@@ -4,10 +4,10 @@
  * @packageDocumentation
  */
 import { parseCsv } from "@platform/csv";
-import { normalizeKinds, type Partner } from "./partner-repo.js";
+import { normalizeKinds, type Partner } from "./partner-repo";
 import { type JournalEntry, type JournalLine, type AccountType } from "@platform/accounting";
-import { type Product } from "./inventory-repo.js";
-import { type AccountDef } from "./account-master-repo.js";
+import { type Product } from "./inventory-repo";
+import { type AccountDef } from "./account-master-repo";
 
 /** 取り込み結果（成功行と行番号つきエラー）。 */
 export interface ImportResult<T> {

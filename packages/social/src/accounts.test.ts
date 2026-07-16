@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { makeAccount, accountFromUrl, accountsFromUrls, accountLinks, accountsByPlatform, dedupeAccounts } from "./accounts.js";
+import { makeAccount, accountFromUrl, accountsFromUrls, accountLinks, accountsByPlatform, dedupeAccounts } from "./accounts";
 describe("social accounts", () => {
   it("makes accounts from handles and urls", () => {
     expect(makeAccount("x", "@yamada")).toMatchObject({ handle: "yamada", url: "https://x.com/yamada" });

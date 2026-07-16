@@ -1,9 +1,9 @@
 /** 管理: 秘密情報の一覧(GET・名前のみ)・登録/ローテーション(POST)。管理者のみ。値は暗号化保存し、応答に平文は返さない。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { secretRecordStore, appSecretStore, auditActions } from "../../../../server/platform-services.js";
-import { putSecret } from "../../../../server/secret-store.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { secretRecordStore, appSecretStore, auditActions } from "../../../../server/platform-services";
+import { putSecret } from "../../../../server/secret-store";
 
 function admin(req: Request) {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

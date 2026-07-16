@@ -4,9 +4,9 @@
  * 複数スタッフのシフトから、スロットごとの受入可能人数(動的キャパシティ)も計算する。
  * @packageDocumentation
  */
-import { type Slot } from "./slots.js";
-import { timeToMinutes } from "./hours.js";
-import { type BookingInterval, intervalsOverlap } from "./availability.js";
+import { type Slot } from "./slots";
+import { timeToMinutes } from "./hours";
+import { type BookingInterval, intervalsOverlap } from "./availability";
 
 /** 勤務時間帯(シフト)。 */
 export interface Shift {

@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { defaultShouldRetry } from "@platform/core";
-import type { MailTransport, MailMessage } from "./index.js";
+import type { MailTransport, MailMessage } from "./index";
 
 type SendArg = Required<Pick<MailMessage, "from">> & MailMessage;
 

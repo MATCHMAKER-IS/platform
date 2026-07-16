@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link HamburgerButton} の props。 */
 export interface HamburgerButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {

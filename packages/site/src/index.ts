@@ -5,9 +5,9 @@
  * 多言語は @platform/i18n と組み合わせる。
  * @packageDocumentation
  */
-export * from "./blocks.js";
-export * from "./navigation.js";
-export * from "./redirects.js";
-export * from "./announcement.js";
-export * from "./banner.js";
-export * from "./copyright.js";
+export * from "./blocks";
+export * from "./navigation";
+export * from "./redirects";
+export * from "./announcement";
+export * from "./banner";
+export * from "./copyright";

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { definePolicy, can, permissionsOf, assertCan, resolveIssuer } from "./index.js";
+import { definePolicy, can, permissionsOf, assertCan, resolveIssuer } from "./index";
 import { AppError } from "@platform/core";
 
 const policy = definePolicy({

@@ -1,5 +1,5 @@
 /** ja の基盤UI文言(言語別ファイル・レビュー用に分割)。 */
-import type { Catalog } from "../index.js";
+import type { Catalog } from "../index";
 
 export const ja: Catalog = {
   "column.personalPresets": "個人プリセット",

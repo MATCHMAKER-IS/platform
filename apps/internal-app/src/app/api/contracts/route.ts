@@ -1,10 +1,10 @@
 /**
  * 契約 API。期限判定・アラート・更新は `@platform/contract` の担当。
  */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { contractStore } from "../../../server/contract-repo.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { contractStore } from "../../../server/contract-repo";
 import { contractAlerts, summarizeContracts, daysUntilEnd, noticeDeadline, canGiveNotice, renew } from "@platform/contract";
 import { AppError } from "@platform/core";
 

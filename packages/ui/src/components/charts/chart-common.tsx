@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../../lib/cn.js";
+import { cn } from "../../lib/cn";
 
 /** 既定のカラーパレット(トークンのティール基調)。 */
 export const CHART_COLORS = ["#0d9488", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#10b981", "#ec4899", "#64748b", "#eab308", "#06b6d4"];

@@ -3,7 +3,7 @@
  * base64 からの生成、合計サイズ・件数・種別の検証を提供する。純ロジック。
  * @packageDocumentation
  */
-import type { MailAttachment } from "./index.js";
+import type { MailAttachment } from "./index";
 
 /** 拡張子 → MIME タイプの簡易対応表。 */
 const MIME_BY_EXT: Record<string, string> = {

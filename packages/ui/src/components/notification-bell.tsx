@@ -6,8 +6,8 @@
  */
 import * as React from "react";
 import { Bell } from "lucide-react";
-import { cn } from "../lib/cn.js";
-import { type AppNotification, unreadCount, groupByDate } from "../lib/notifications.js";
+import { cn } from "../lib/cn";
+import { type AppNotification, unreadCount, groupByDate } from "../lib/notifications";
 
 /** {@link NotificationBell} の props。 */
 export interface NotificationBellProps {

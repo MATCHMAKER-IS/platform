@@ -2,8 +2,8 @@
  * CMS 記事を公開サイト向けのブログビューに変換する（純関数）。
  * @packageDocumentation
  */
-import { type CmsPost } from "./model.js";
-import { livePosts } from "./scheduling.js";
+import { type CmsPost } from "./model";
+import { livePosts } from "./scheduling";
 
 /** 公開サイト向けのブログ記事ビュー。 */
 export interface BlogView {

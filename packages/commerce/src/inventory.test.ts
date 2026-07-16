@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { stock, inStock, isOutOfStock, reserveStock, releaseStock, commitStock, canFulfill } from "./inventory.js";
+import { stock, inStock, isOutOfStock, reserveStock, releaseStock, commitStock, canFulfill } from "./inventory";
 describe("inventory", () => {
   it("checks and reserves stock", () => {
     const lv = stock(10);

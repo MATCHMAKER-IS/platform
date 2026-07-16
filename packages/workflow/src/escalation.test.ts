@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pendingSince, evaluateSla, escalationTarget, findStalledApprovals } from "./escalation.js";
+import { pendingSince, evaluateSla, escalationTarget, findStalledApprovals } from "./escalation";
 const pending = (h: { step: string; action: string; actor: string; at: string }[] = []) => ({ status: "pending" as const, currentStep: 0, history: h });
 const start = new Date("2025-07-25T09:00:00Z");
 const policy = { remindAfterMin: 60, reminderIntervalMin: 60, escalateAfterMin: 240 };

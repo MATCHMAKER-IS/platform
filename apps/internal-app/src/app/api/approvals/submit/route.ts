@@ -1,9 +1,9 @@
 /** 伝票承認: 発注・請求を金額別ルートで申請(POST)。docType に応じ purchase:write / invoice:write。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { docApprovalStore, auditActions } from "../../../../server/platform-services.js";
-import { type DocType } from "../../../../server/doc-approval-repo.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { docApprovalStore, auditActions } from "../../../../server/platform-services";
+import { type DocType } from "../../../../server/doc-approval-repo";
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

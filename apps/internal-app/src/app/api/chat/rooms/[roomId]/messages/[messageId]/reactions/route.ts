@@ -2,10 +2,10 @@
  * リアクション API（POST）。メッセージにリアクションをトグルし、最新カウントを全接続へ同報する。
  * ボディ `{ kind }`。
  */
-import { withApiObservability } from "../../../../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../../../../server/env.js";
-import { chatGateway } from "../../../../../../../../server/chat.js";
+import { withApiObservability } from "../../../../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../../../../server/authorize";
+import { serverEnv } from "../../../../../../../../server/env";
+import { chatGateway } from "../../../../../../../../server/chat";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ roomId: string; messageId: string }> }): Promise<Response> {
   const { roomId, messageId } = await ctx.params;

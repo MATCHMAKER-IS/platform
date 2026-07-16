@@ -1,9 +1,9 @@
 /** 取引先: 一覧(GET・?kind=で絞込)・登録更新(POST)。partner:read / partner:write。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { partnerStore, auditActions } from "../../../server/platform-services.js";
-import { normalizeKinds, type Partner, type PartnerKind } from "../../../server/partner-repo.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser, requirePermission } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { partnerStore, auditActions } from "../../../server/platform-services";
+import { normalizeKinds, type Partner, type PartnerKind } from "../../../server/partner-repo";
 
 const KINDS: PartnerKind[] = ["customer", "supplier", "payee"];
 

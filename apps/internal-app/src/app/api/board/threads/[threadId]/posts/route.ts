@@ -2,10 +2,10 @@
  * 掲示板の投稿 API（POST）。認可 → 検証（createPost）→ メンションがあれば通知。
  * ボディ `{ body, replyTo?, attachments? }`。検証 NG は 400、成功は 201。
  */
-import { withApiObservability } from "../../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../../server/env.js";
-import { boardService } from "../../../../../../server/chat.js";
+import { withApiObservability } from "../../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../../server/authorize";
+import { serverEnv } from "../../../../../../server/env";
+import { boardService } from "../../../../../../server/chat";
 import type { Attachment } from "@platform/board";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ threadId: string }> }): Promise<Response> {

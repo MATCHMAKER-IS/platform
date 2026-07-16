@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { canTransition, transition, isOverdue, daysUntilDue, summarize, sortTasks, filterTasks, toKanban, workloadByAssignee, type Task } from "./task.js";
+import { canTransition, transition, isOverdue, daysUntilDue, summarize, sortTasks, filterTasks, toKanban, workloadByAssignee, type Task } from "./task";
 
 const mk = (o: Partial<Task> & { id: string }): Task => ({
   title: "x", status: "todo", priority: "normal", createdAt: "2026-07-01T00:00:00Z", updatedAt: "2026-07-01T00:00:00Z", ...o,

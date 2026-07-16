@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizePhone, phoneType, isValidJpPhone, toE164, fromE164, formatJpPhone, maskPhone } from "./index.js";
+import { normalizePhone, phoneType, isValidJpPhone, toE164, fromE164, formatJpPhone, maskPhone } from "./index";
 
 describe("jp phone", () => {
   it("normalize", () => { expect(normalizePhone("090-1234-5678")).toBe("09012345678"); expect(normalizePhone("＋８１ ９０ １２３４ ５６７８")).toBe("09012345678"); });

@@ -2,7 +2,7 @@
  * 定期ジョブの実行ラッパー。ジッタ・オーバーラップ防止・分散ロック・実行統計を付与する。
  * @packageDocumentation
  */
-import type { LockStore } from "./lock.js";
+import type { LockStore } from "./lock";
 
 /** ジョブ実行の統計。 */
 export interface JobStats {

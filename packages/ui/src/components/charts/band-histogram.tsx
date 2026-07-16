@@ -1,9 +1,9 @@
 "use client";
 /** 帯グラフ(100%積み上げ)とヒストグラム。 @packageDocumentation */
 import { ResponsiveContainer, ComposedChart, Bar, BarChart as RBarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
-import { cn } from "../../lib/cn.js";
-import { ChartTitle, buildColorMap, GRID_STROKE, type SeriesDef } from "./chart-common.js";
-import { toPercentStacked, histogramBins } from "./chart-math.js";
+import { cn } from "../../lib/cn";
+import { ChartTitle, buildColorMap, GRID_STROKE, type SeriesDef } from "./chart-common";
+import { toPercentStacked, histogramBins } from "./chart-math";
 
 /** {@link BandChart} の props。 */
 export interface BandChartProps {

@@ -3,8 +3,8 @@
  * 目標達成バー。実績と目標を比較し、達成率とターゲットマーカーを表示する。
  * @packageDocumentation
  */
-import { cn } from "../lib/cn.js";
-import { achievementRate } from "../lib/dashboard.js";
+import { cn } from "../lib/cn";
+import { achievementRate } from "../lib/dashboard";
 
 /** {@link GoalProgress} の props。 */
 export interface GoalProgressProps {

@@ -5,7 +5,7 @@
  */
 import * as React from "react";
 import { Delete } from "lucide-react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link NumericKeypad} の props。 */
 export interface NumericKeypadProps {

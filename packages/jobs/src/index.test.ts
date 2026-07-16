@@ -9,7 +9,7 @@ vi.mock("bullmq", () => ({
   Worker: class {},
 }));
 
-import { createQueue } from "./index.js";
+import { createQueue } from "./index";
 
 describe("jobs", () => {
   it("add はジョブを投入して ok を返す", async () => {

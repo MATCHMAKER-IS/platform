@@ -1,9 +1,9 @@
 /** 勤怠: 当月の勤務表(GET)・打刻記録(POST)。本人の勤怠を対象(attendance:read/write)。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { attendanceStore, attendanceApprovalStore, auditActions } from "../../../server/platform-services.js";
-import { type AttendanceEntry } from "../../../server/attendance-repo.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser, requirePermission } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { attendanceStore, attendanceApprovalStore, auditActions } from "../../../server/platform-services";
+import { type AttendanceEntry } from "../../../server/attendance-repo";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

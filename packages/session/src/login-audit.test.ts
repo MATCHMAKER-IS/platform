@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createLoginAudit, summarizeLoginEvent } from "./login-audit.js";
+import { createLoginAudit, summarizeLoginEvent } from "./login-audit";
 describe("login audit", () => {
   it("records standardized events", async () => {
     const events: unknown[] = [];

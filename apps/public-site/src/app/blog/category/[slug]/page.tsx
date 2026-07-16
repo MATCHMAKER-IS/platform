@@ -1,9 +1,9 @@
 import * as React from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { content, siteConfig } from "../../../../server/content.js";
-import { SiteSidebar } from "../../../site-sidebar.js";
-import { BeaconClient } from "../../../beacon-client.js";
+import { content, siteConfig } from "../../../../server/content";
+import { SiteSidebar } from "../../../site-sidebar";
+import { BeaconClient } from "../../../beacon-client";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;

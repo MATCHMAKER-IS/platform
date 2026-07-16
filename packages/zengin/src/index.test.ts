@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildZenginTransfer, toHankakuKana, buildDataRecord } from "./index.js";
+import { buildZenginTransfer, toHankakuKana, buildDataRecord } from "./index";
 const consignor = { code: "1234567890", name: "テスト", bankCode: "0001", branchCode: "001", accountType: "1" as const, accountNumber: "1234567" };
 const records = [{ bankCode: "0005", branchCode: "100", accountType: "1" as const, accountNumber: "7654321", recipientName: "ヤマダタロウ", amount: 150000 }];
 describe("zengin", () => {

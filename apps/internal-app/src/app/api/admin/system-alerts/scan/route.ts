@@ -7,9 +7,9 @@
  * 例: 5 分ごとに実行
  *   curl -H "x-cron-token: $CRON_TOKEN" https://本番URL/api/admin/system-alerts/scan
  */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { featureEnv } from "../../../../../server/env.js";
-import { evaluateAndNotify, activeSystemAlerts } from "../../../../../server/system-alerts.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { featureEnv } from "../../../../../server/env";
+import { evaluateAndNotify, activeSystemAlerts } from "../../../../../server/system-alerts";
 
 async function handlePOST(req: Request): Promise<Response> {
   const token = featureEnv.CRON_TOKEN;

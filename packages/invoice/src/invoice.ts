@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { summarizeTax, type Rounding, type TaxSummary, type TaxLine } from "@platform/tax";
-import { type InvoiceLine, lineNet, lineTaxRate } from "./line.js";
+import { type InvoiceLine, lineNet, lineTaxRate } from "./line";
 
 /** 請求書の集計結果。 */
 export interface InvoiceTotals {

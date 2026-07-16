@@ -2,12 +2,12 @@
  * エクスポート実行スキャン(POST)。期限が来たスケジュールのエクスポートを実行し履歴に記録。cron 等から定期実行。
  * X-Cron-Token(env CRON_TOKEN)一致、または管理者。
  */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { exportScheduleStore, exportRunStore, invoiceStore, partnerStore, auditLog, userStore, settingsStore } from "../../../../server/platform-services.js";
-import { dueSchedules, type ExportType } from "../../../../server/export-schedule.js";
-import { buildBackup } from "../../../../server/backup.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { exportScheduleStore, exportRunStore, invoiceStore, partnerStore, auditLog, userStore, settingsStore } from "../../../../server/platform-services";
+import { dueSchedules, type ExportType } from "../../../../server/export-schedule";
+import { buildBackup } from "../../../../server/backup";
 
 async function authorized(req: Request): Promise<boolean> {
   const token = featureEnv.CRON_TOKEN;

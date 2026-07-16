@@ -1,6 +1,6 @@
 /** ログイン(POST {email,password})。成功で HttpOnly セッションクッキーを発行。初期ユーザー: admin@example.com(env ADMIN_PASSWORD)。 */
-import { login, signSession, SESSION_MAX_AGE } from "../../../../server/auth.js";
-import { serverEnv } from "../../../../server/env.js";
+import { login, signSession, SESSION_MAX_AGE } from "../../../../server/auth";
+import { serverEnv } from "../../../../server/env";
 import "../../../../server/guard.js"; // 初期ユーザー播種
 
 export async function POST(req: Request): Promise<Response> {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { createBulkhead } from "./bulkhead.js";
-import { AppError } from "./error.js";
+import { createBulkhead } from "./bulkhead";
+import { AppError } from "./error";
 const defer = () => { let r!: () => void; const p = new Promise<void>((res) => (r = res)); return { p, resolve: r }; };
 describe("bulkhead", () => {
   it("limits concurrency and queues", async () => {

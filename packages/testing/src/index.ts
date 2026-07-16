@@ -7,6 +7,6 @@
  *
  * @packageDocumentation
  */
-export { testId, fakeAuthUser, fakeSession, fixedDate } from "./factories.js";
-export { runCacheContract } from "./contracts/cache.js";
-export { runStorageContract } from "./contracts/storage.js";
+export { testId, fakeAuthUser, fakeSession, fixedDate } from "./factories";
+export { runCacheContract } from "./contracts/cache";
+export { runStorageContract } from "./contracts/storage";

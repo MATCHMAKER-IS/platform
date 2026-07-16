@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { publishedOnly, searchFaq, byCategory, sortByHelpfulness, helpfulRate, needsReview, vote, summarizeFaq, type FaqItem } from "./faq.js";
+import { publishedOnly, searchFaq, byCategory, sortByHelpfulness, helpfulRate, needsReview, vote, summarizeFaq, type FaqItem } from "./faq";
 
 const mk = (o: Partial<FaqItem> & { id: string }): FaqItem => ({
   question: "q", answer: "a", category: "経費", keywords: [], status: "published",

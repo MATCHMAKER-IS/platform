@@ -2,7 +2,7 @@
  * メモリ Adapter(TTL 付き)。単一インスタンス・開発向け。
  * @packageDocumentation
  */
-import type { CacheAdapter } from "../index.js";
+import type { CacheAdapter } from "../index";
 
 /**
  * メモリキャッシュ Adapter を作る。

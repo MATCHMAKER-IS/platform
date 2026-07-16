@@ -1,9 +1,9 @@
 /** 会計: 手動仕訳(決算整理)のCSV取込(POST)。貸借一致した仕訳のみ登録。accounting:read（財務）。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { manualJournalStore, auditActions } from "../../../../server/platform-services.js";
-import { parseJournalCsv } from "../../../../server/csv-import.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { manualJournalStore, auditActions } from "../../../../server/platform-services";
+import { parseJournalCsv } from "../../../../server/csv-import";
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

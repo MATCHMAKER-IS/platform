@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { convertLength, convertWeight, convertArea, convertVolume, convertTemperature, round } from "./index.js";
+import { convertLength, convertWeight, convertArea, convertVolume, convertTemperature, round } from "./index";
 
 const near = (a: number, b: number, eps = 1e-6) => Math.abs(a - b) < eps;
 

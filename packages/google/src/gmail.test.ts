@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildRawEmail } from "./gmail.js";
+import { buildRawEmail } from "./gmail";
 describe("gmail", () => {
   it("builds RFC822 with MIME-encoded subject", () => {
     const raw = buildRawEmail({ to: "a@x.com", subject: "テスト", text: "本文", cc: ["b@x.com"] });

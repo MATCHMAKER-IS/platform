@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildMonthlyReport, availableMonths, toExpenseRecords } from "./expense-report.js";
-import type { Expense } from "./expense.js";
+import { buildMonthlyReport, availableMonths, toExpenseRecords } from "./expense-report";
+import type { Expense } from "./expense";
 
 const exp: Expense[] = [
   { id: "1", date: "2024-04-03", category: "交通費", amount: 1240 },

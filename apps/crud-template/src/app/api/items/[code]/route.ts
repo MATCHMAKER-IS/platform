@@ -1,6 +1,6 @@
 /** 品目: 更新(PUT・name/note)・無効化/有効化(DELETE=無効化、PATCH {active} も可)。物理削除はしない(ソフトデリート)。 */
-import { itemStore } from "../../../../server/services.js";
-import { validateItemInput } from "../../../../server/item-repo.js";
+import { itemStore } from "../../../../server/services";
+import { validateItemInput } from "../../../../server/item-repo";
 
 export async function PUT(req: Request, ctx: { params: Promise<{ code: string }> }): Promise<Response> {
   const { code } = await ctx.params;

@@ -3,8 +3,8 @@
  * 内訳バー(構成比を 1 本の横棒で表す)。省スペースで割合を示す。
  * @packageDocumentation
  */
-import { cn } from "../lib/cn.js";
-import { computeShares } from "../lib/dashboard.js";
+import { cn } from "../lib/cn";
+import { computeShares } from "../lib/dashboard";
 
 const PALETTE = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2"];
 

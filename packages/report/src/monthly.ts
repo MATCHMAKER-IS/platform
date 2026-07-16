@@ -2,11 +2,11 @@
  * 月次締めレポート。経費記録を月で集計し、科目別・税率別の内訳と印刷用 HTML を生成する。
  * @packageDocumentation
  */
-import { expenseTaxBreakdown, type ExpenseRecord } from "./expense.js";
-import { formatYen } from "./money.js";
+import { expenseTaxBreakdown, type ExpenseRecord } from "./expense";
+import { formatYen } from "./money";
 
 /** 対応ロケール。 */
-import type { ReportLocale } from "./render.js";
+import type { ReportLocale } from "./render";
 export type { ReportLocale };
 const LOCALE_TAG: Record<ReportLocale, string> = { ja: "ja-JP", en: "en-US", zh: "zh-CN", ko: "ko-KR" };
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createLifecycle } from "./lifecycle.js";
+import { createLifecycle } from "./lifecycle";
 describe("lifecycle", () => {
   it("runs hooks in reverse, survives failures, dedupes", async () => {
     const order: string[] = [];

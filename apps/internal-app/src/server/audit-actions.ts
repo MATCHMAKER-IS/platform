@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { type AuditEvent, type AuditEntry } from "@platform/audit";
-import { type AuditLog } from "./audit-log.js";
+import { type AuditLog } from "./audit-log";
 
 /** 監査アクション記録。 */
 export interface AuditActions {

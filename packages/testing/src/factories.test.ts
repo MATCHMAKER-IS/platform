@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { testId, fakeAuthUser, fakeSession, fixedDate } from "./factories.js";
+import { testId, fakeAuthUser, fakeSession, fixedDate } from "./factories";
 
 describe("factories", () => {
   it("testId は毎回異なる", () => {

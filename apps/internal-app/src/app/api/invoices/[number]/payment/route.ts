@@ -1,8 +1,8 @@
 /** 請求書: 入金記録(POST)。invoice:write が必要。 */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { invoiceStore, auditActions } from "../../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { invoiceStore, auditActions } from "../../../../../server/platform-services";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ number: string }> }): Promise<Response> {
   const { number } = await ctx.params;

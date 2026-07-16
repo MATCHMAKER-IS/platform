@@ -3,8 +3,8 @@
  * 実際の描画は呼び出し側(RAF/CSS)に委ね、ここでは「値の計算」と「文字列生成」に徹する。
  * @packageDocumentation
  */
-import { easing } from "./motion.js";
-import { easingExtra, lerp, type EasingName } from "./motion-extra.js";
+import { easing } from "./motion";
+import { easingExtra, lerp, type EasingName } from "./motion-extra";
 
 /** motion.ts と motion-extra.ts の全イージングを名前で引ける統合テーブル。 */
 export const allEasings = { ...easing, ...easingExtra };

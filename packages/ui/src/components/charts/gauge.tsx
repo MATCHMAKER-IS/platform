@@ -1,8 +1,8 @@
 "use client";
 /** ゲージ(半円)と進捗リング(円)。SVGで自作。 @packageDocumentation */
-import { cn } from "../../lib/cn.js";
+import { cn } from "../../lib/cn";
 import type { ReactNode } from "react";
-import { arcPath, ringDashOffset } from "./chart-math.js";
+import { arcPath, ringDashOffset } from "./chart-math";
 
 /** {@link ProgressRing} の props。 */
 export interface ProgressRingProps {

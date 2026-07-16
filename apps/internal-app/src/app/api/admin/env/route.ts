@@ -3,9 +3,9 @@
  * 秘密値は必ずマスクし、値そのものは決して返さない(設定の有無だけ分かる)。管理者のみ。
  * DB のシステム設定は /api/admin/settings、こちらは起動時に読んだ環境変数。
  */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv, featureEnv, env } from "../../../../server/env.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv, featureEnv, env } from "../../../../server/env";
 import { maskSecrets, isSecretName } from "@platform/env";
 
 /** 設定 1 件の表示用データ。 */

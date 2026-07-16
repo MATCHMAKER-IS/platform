@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildPayslip } from "./payslip.js";
-import { calcPay } from "./premium.js";
+import { buildPayslip } from "./payslip";
+import { calcPay } from "./premium";
 describe("payslip", () => {
   it("assembles gross, deductions, net", () => {
     const bd = calcPay({ hourlyWage: 1000, totalMinutes: 600, overtimeMinutes: 120, nightMinutes: 0, holidayMinutes: 0 });

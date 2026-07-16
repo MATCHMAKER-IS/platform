@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createBroadcastHub, type RedisPubSubClient } from "./broadcast.js";
+import { createBroadcastHub, type RedisPubSubClient } from "./broadcast";
 function makeBus() {
   const handlers = new Map<string, Set<(m: string) => void>>();
   return {

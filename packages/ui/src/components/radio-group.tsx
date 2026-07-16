@@ -4,7 +4,7 @@
  */
 import * as React from "react";
 import { RadioGroup as Primitive } from "radix-ui";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** ラジオグループのルート。 */
 export const RadioGroup = React.forwardRef<

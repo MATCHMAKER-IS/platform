@@ -6,8 +6,8 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
-import { useT } from "./i18n-provider.js";
+import { cn } from "../lib/cn";
+import { useT } from "./i18n-provider";
 
 /** {@link PasswordStrengthMeter} の props。 */
 export interface PasswordStrengthMeterProps {

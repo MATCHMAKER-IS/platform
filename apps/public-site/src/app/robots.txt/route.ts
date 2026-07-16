@@ -1,6 +1,6 @@
 /** robots.txt。公開サイトなのでクロール許可＋sitemap を提示。 */
 import { buildRobotsTxt } from "@platform/seo";
-import { siteConfig } from "../../server/content.js";
+import { siteConfig } from "../../server/content";
 
 export function GET(): Response {
   const body = buildRobotsTxt({

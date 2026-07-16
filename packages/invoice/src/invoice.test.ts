@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { lineNet, lineTaxRate } from "./line.js";
-import { invoiceTotals, buildInvoice } from "./invoice.js";
-import { formatInvoiceNumber, parseInvoiceSequence } from "./numbering.js";
-import { dueDateFrom, endOfNextMonth, paymentStatus, balanceDue, daysUntilDue } from "./payment.js";
+import { lineNet, lineTaxRate } from "./line";
+import { invoiceTotals, buildInvoice } from "./invoice";
+import { formatInvoiceNumber, parseInvoiceSequence } from "./numbering";
+import { dueDateFrom, endOfNextMonth, paymentStatus, balanceDue, daysUntilDue } from "./payment";
 describe("invoice", () => {
   it("computes lines and totals (qualified invoice per-rate tax)", () => {
     expect(lineNet({ description: "A", quantity: 3, unitPrice: 1000 })).toBe(3000);
@@ -33,8 +33,8 @@ describe("invoice", () => {
   });
 });
 
-import { applyPayment, reconcile, outstandingTotal, agingBuckets } from "./reconcile.js";
-import { renderInvoiceHtml } from "./html.js";
+import { applyPayment, reconcile, outstandingTotal, agingBuckets } from "./reconcile";
+import { renderInvoiceHtml } from "./html";
 describe("invoice reconcile & html", () => {
   const invs = [
     { number: "INV-001", dueDate: "2025-05-31", total: 10000, paidAmount: 0 },

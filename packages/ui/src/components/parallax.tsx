@@ -6,8 +6,8 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
-import { parallaxOffset, revealStyle, transitionPresets } from "../lib/motion.js";
+import { cn } from "../lib/cn";
+import { parallaxOffset, revealStyle, transitionPresets } from "../lib/motion";
 
 /** {@link Parallax} の props。 */
 export interface ParallaxProps {

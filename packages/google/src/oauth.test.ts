@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { buildGoogleAuthUrl, createGoogleTokenManager, getGoogleUserInfo } from "./oauth.js";
+import { buildGoogleAuthUrl, createGoogleTokenManager, getGoogleUserInfo } from "./oauth";
 describe("google oauth", () => {
   it("builds auth url", () => {
     const url = buildGoogleAuthUrl({ clientId: "cid", redirectUri: "https://app/cb", scopes: ["openid", "email"], state: "s", forceConsent: true });

@@ -5,8 +5,8 @@
  */
 import * as React from "react";
 import { Copy, Check } from "lucide-react";
-import { cn } from "../lib/cn.js";
-import { copyToClipboard, readClipboard } from "../lib/clipboard.js";
+import { cn } from "../lib/cn";
+import { copyToClipboard, readClipboard } from "../lib/clipboard";
 
 /** クリップボードにコピーするフック。[コピー済みか, コピー実行] を返す。 */
 export function useCopyToClipboard(resetMs = 2000): [boolean, (text: string) => Promise<void>] {

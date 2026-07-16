@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isValidIpv4, ipToLong, longToIp, ipInCidr, isPrivateIp, parseCidr } from "./ip.js";
+import { isValidIpv4, ipToLong, longToIp, ipInCidr, isPrivateIp, parseCidr } from "./ip";
 
 describe("ip/cidr", () => {
   it("valid", () => { expect(isValidIpv4("192.168.1.1")).toBe(true); expect(isValidIpv4("256.1.1.1")).toBe(false); });

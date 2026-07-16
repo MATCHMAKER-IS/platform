@@ -26959,7 +26959,7 @@
       "name": "resolveInitialPrefs",
       "kind": "function",
       "summary": "初期表示の列設定を決める。優先度: ユーザー保存 > 既定プリセット > 空。",
-      "signature": "resolveInitialPrefs(saved: import(\"./column-prefs.js\").ColumnPrefs | null, presets: ColumnPreset[],): import(\"./column-prefs.js\").ColumnPrefs",
+      "signature": "resolveInitialPrefs(saved: import(\"./column-prefs\").ColumnPrefs | null, presets: ColumnPreset[],): import(\"./column-prefs\").ColumnPrefs",
       "params": [
         {
           "name": "saved",

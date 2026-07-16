@@ -1,9 +1,9 @@
 /** CMS ダッシュボード集計(GET)。記事の状態別件数・ページ/お知らせ/カテゴリ数・最近の更新。 */
 import { summarizePosts, recentPosts } from "@platform/cms";
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { cmsStore, pageStore, announcementStore, categoryStore } from "../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { cmsStore, pageStore, announcementStore, categoryStore } from "../../../../server/platform-services";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

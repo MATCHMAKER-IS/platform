@@ -2,10 +2,10 @@
  * 外部向けAPI(v1): 請求一覧。Authorization: Bearer <APIキー> で認証し、scope "invoice:read" を要求。
  * セッションではなくサービスアカウントで認証する例。
  */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { serviceAccountStore, invoiceStore } from "../../../../server/platform-services.js";
-import { authenticateKey, bearerToken } from "../../../../server/service-account-repo.js";
-import { getApiKeyLimiter } from "../../../../server/rate-limit.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { serviceAccountStore, invoiceStore } from "../../../../server/platform-services";
+import { authenticateKey, bearerToken } from "../../../../server/service-account-repo";
+import { getApiKeyLimiter } from "../../../../server/rate-limit";
 
 async function handleGET(req: Request): Promise<Response> {
   const token = bearerToken(req.headers.get("authorization"));

@@ -1,4 +1,4 @@
-import { featureEnv } from "./server/env.js";
+import { featureEnv } from "./server/env";
 /**
  * Next.js の instrumentation フック。プロセス起動時に一度だけ実行される。
  * ここでエラー追跡(Sentry 等)を初期化する。
@@ -17,8 +17,8 @@ export async function register(): Promise<void> {
   // Edge や複数ワーカーでの二重起動を避けるため runtime を確認する。
   if (process.env.NEXT_RUNTIME === "nodejs" && !featureEnv.DISABLE_NOTIFY_RELAY) {
     const { createLifecycle, installProcessGuards } = await import("@platform/core");
-    const { createNotifyScheduler } = await import("./server/notify-scheduler.js");
-    const { db, log } = await import("./server/services.js");
+    const { createNotifyScheduler } = await import("./server/notify-scheduler");
+    const { db, log } = await import("./server/services");
 
     const scheduler = createNotifyScheduler();
     scheduler.start();

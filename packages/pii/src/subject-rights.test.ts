@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildDisclosureReport, disclosureToJson, erasePersonalData, buildErasureReceipt, recordsToErase } from "./subject-rights.js";
+import { buildDisclosureReport, disclosureToJson, erasePersonalData, buildErasureReceipt, recordsToErase } from "./subject-rights";
 const categories = [
   { id: "member", name: "会員基本情報", purpose: "サービス提供", legalBasis: "契約", retentionDays: 1825, thirdParties: ["配送業者A"] },
   { id: "mkt", name: "販促情報", purpose: "ご案内", legalBasis: "同意" },

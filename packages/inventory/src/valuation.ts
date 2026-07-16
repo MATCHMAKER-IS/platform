@@ -2,7 +2,7 @@
  * 在庫評価(移動平均法。純ロジック)。入庫のたびに平均単価を更新し、在庫金額を算出する。
  * @packageDocumentation
  */
-import { type StockMovement } from "./movements.js";
+import { type StockMovement } from "./movements";
 
 /** 評価結果。 */
 export interface Valuation {

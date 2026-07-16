@@ -9,7 +9,7 @@
  * @packageDocumentation
  */
 import { createDebugCollector } from "@platform/debug";
-import { featureEnv } from "./env.js";
+import { featureEnv } from "./env";
 
 export const debugCollector = createDebugCollector({
   enabled: featureEnv.DEBUG_TOOL,

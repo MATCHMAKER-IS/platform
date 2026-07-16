@@ -4,7 +4,7 @@
  */
 import * as React from "react";
 import { Avatar as Primitive } from "radix-ui";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** アバターのルート(円形)。 */
 export const Avatar = React.forwardRef<

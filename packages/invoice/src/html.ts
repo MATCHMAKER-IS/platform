@@ -2,7 +2,7 @@
  * 請求書の HTML 描画(純ロジック)。@platform/pdf の fromHtml に渡して PDF 化する。
  * @packageDocumentation
  */
-import { type Invoice } from "./invoice.js";
+import { type Invoice } from "./invoice";
 
 /** 描画オプション。 */
 export interface InvoiceHtmlOptions {

@@ -4,8 +4,8 @@
  * @packageDocumentation
  */
 import { type Notifier, renderTemplate } from "@platform/notify";
-import { type ChatStore } from "./chat-store.js";
-import { type RoomRepository } from "./chat-rooms.js";
+import { type ChatStore } from "./chat-store";
+import { type RoomRepository } from "./chat-rooms";
 
 /** ダイジェストの構成。 */
 export interface UnreadDigestOptions {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeEkycStatus, isEkycFinal, isEkycApproved } from "./status.js";
+import { normalizeEkycStatus, isEkycFinal, isEkycApproved } from "./status";
 describe("ekyc status", () => {
   it("normalizes vendor vocab", () => {
     expect(normalizeEkycStatus("Approved")).toBe("approved");

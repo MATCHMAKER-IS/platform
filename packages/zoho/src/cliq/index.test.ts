@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createZohoCliqClient } from "./index.js";
+import { createZohoCliqClient } from "./index";
 describe("zoho cliq", () => {
   it("post to channel + bot", async () => {
     let cap: { url: string; body?: { text?: string } } | null = null;

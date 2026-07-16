@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { findVariant, variantInStock, availableValues, priceRange, isAllSoldOut } from "./variant.js";
+import { findVariant, variantInStock, availableValues, priceRange, isAllSoldOut } from "./variant";
 const variants = [
   { sku: "S-赤", options: { サイズ: "S", 色: "赤" }, price: 1000, stock: 5 },
   { sku: "M-赤", options: { サイズ: "M", 色: "赤" }, price: 1000, stock: 0 },

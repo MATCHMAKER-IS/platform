@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { runWithContext, getContext, getRequestId, setContextValue, bindLogger } from "./index.js";
+import { runWithContext, getContext, getRequestId, setContextValue, bindLogger } from "./index";
 
 describe("context", () => {
   it("コンテキスト内で requestId を採番・参照できる", () => {

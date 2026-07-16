@@ -8,14 +8,14 @@
  * @packageDocumentation
  */
 import { AppError, ErrorCode, tryCatch, type Result } from "@platform/core";
-import type { FitMode, ImageFormat } from "./geometry.js";
-import { buildWatermarkComposite, type WatermarkOptions } from "./watermark.js";
-import { mapWithConcurrency } from "./batch.js";
+import type { FitMode, ImageFormat } from "./geometry";
+import { buildWatermarkComposite, type WatermarkOptions } from "./watermark";
+import { mapWithConcurrency } from "./batch";
 
-export * from "./geometry.js";
-export { mapWithConcurrency, runBatch } from "./batch.js";
-export { createRemoveBgRemover, createBackgroundRemover, type BackgroundRemover, type RemoveBgOptions, type GenericRemoverOptions } from "./background-removal.js";
-export { watermarkTextSvg, gravityToSharp, buildWatermarkComposite, type Gravity, type WatermarkOptions, type WatermarkTextOptions } from "./watermark.js";
+export * from "./geometry";
+export { mapWithConcurrency, runBatch } from "./batch";
+export { createRemoveBgRemover, createBackgroundRemover, type BackgroundRemover, type RemoveBgOptions, type GenericRemoverOptions } from "./background-removal";
+export { watermarkTextSvg, gravityToSharp, buildWatermarkComposite, type Gravity, type WatermarkOptions, type WatermarkTextOptions } from "./watermark";
 
 /** sharp インスタンス(利用する範囲の最小型)。 */
 export interface SharpInstance {

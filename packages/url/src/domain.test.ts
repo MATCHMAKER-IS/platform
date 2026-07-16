@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getRegistrableDomain, getSubdomain, getTld, stripWww, isSameDomain, isSameHost, getHostname } from "./domain.js";
+import { getRegistrableDomain, getSubdomain, getTld, stripWww, isSameDomain, isSameHost, getHostname } from "./domain";
 describe("url domain", () => {
   it("extracts registrable domain (eTLD+1)", () => {
     expect(getRegistrableDomain("www.example.com")).toBe("example.com");

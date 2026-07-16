@@ -1,13 +1,13 @@
 /** 会計: 年次推移(GET)。直近 N 年度の損益を並べ前年比を付ける。?years=（既定3）。accounting:read。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { invoiceStore, purchaseStore, assetStore, manualJournalStore, accountMasterStore } from "../../../../server/platform-services.js";
-import { buildLedger, type LedgerInvoice, type LedgerPurchase } from "../../../../server/ledger.js";
-import { depreciationJournal, DEPRECIATION_ACCOUNT_TYPES } from "../../../../server/depreciation-journal.js";
-import { financialStatements } from "../../../../server/financials.js";
-import { accountTypeMap } from "../../../../server/account-master-repo.js";
-import { yearlyTrend, trendRange, trendTotals, type YearPnl } from "../../../../server/yearly-trend.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { invoiceStore, purchaseStore, assetStore, manualJournalStore, accountMasterStore } from "../../../../server/platform-services";
+import { buildLedger, type LedgerInvoice, type LedgerPurchase } from "../../../../server/ledger";
+import { depreciationJournal, DEPRECIATION_ACCOUNT_TYPES } from "../../../../server/depreciation-journal";
+import { financialStatements } from "../../../../server/financials";
+import { accountTypeMap } from "../../../../server/account-master-repo";
+import { yearlyTrend, trendRange, trendTotals, type YearPnl } from "../../../../server/yearly-trend";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

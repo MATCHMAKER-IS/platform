@@ -1,8 +1,8 @@
 /** AI 利用状況(GET)。累計コスト・トークン・利用者別・直近ログ。管理者のみ。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { aiLogStore, aiIsMock } from "../../../../server/ai-gateway.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { aiLogStore, aiIsMock } from "../../../../server/ai-gateway";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

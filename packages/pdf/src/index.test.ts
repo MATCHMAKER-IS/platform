@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { createPdf, type PdfRenderer } from "./index.js";
+import { createPdf, type PdfRenderer } from "./index";
 
 function stubRenderer(over: Partial<PdfRenderer> = {}): PdfRenderer {
   return {

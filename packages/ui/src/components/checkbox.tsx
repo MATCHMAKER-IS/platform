@@ -5,7 +5,7 @@
 import * as React from "react";
 import { Checkbox as CheckboxPrimitive } from "radix-ui";
 import { Check } from "lucide-react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link Checkbox} の props。 */
 export type CheckboxProps = React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>;

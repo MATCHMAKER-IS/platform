@@ -1,8 +1,8 @@
 "use client";
 /** サンキー図(フロー図)。 @packageDocumentation */
 import { ResponsiveContainer, Sankey as RSankey, Tooltip } from "recharts";
-import { cn } from "../../lib/cn.js";
-import { ChartTitle } from "./chart-common.js";
+import { cn } from "../../lib/cn";
+import { ChartTitle } from "./chart-common";
 
 /** {@link SankeyChart} の props。 */
 export interface SankeyChartProps {

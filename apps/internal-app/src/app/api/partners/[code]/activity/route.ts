@@ -1,9 +1,9 @@
 /** 取引先: 活動集約（請求・発注・報酬の名寄せ）(GET)。partner:read。 */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { partnerStore, invoiceStore, purchaseStore, feePaymentStore } from "../../../../../server/platform-services.js";
-import { partnerActivity, type LinkInvoice, type LinkOrder, type LinkFeePayment } from "../../../../../server/partner-link.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { partnerStore, invoiceStore, purchaseStore, feePaymentStore } from "../../../../../server/platform-services";
+import { partnerActivity, type LinkInvoice, type LinkOrder, type LinkFeePayment } from "../../../../../server/partner-link";
 
 async function handleGET(req: Request, ctx: { params: Promise<{ code: string }> }): Promise<Response> {
   const { code } = await ctx.params;

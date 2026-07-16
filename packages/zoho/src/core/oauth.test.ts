@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { refreshAccessToken } from "./oauth.js";
-import { accountsUrl, apiDomain, detectDataCenter } from "./datacenter.js";
+import { refreshAccessToken } from "./oauth";
+import { accountsUrl, apiDomain, detectDataCenter } from "./datacenter";
 
 describe("zoho core", () => {
   it("datacenter", () => { expect(accountsUrl("jp")).toBe("https://accounts.zoho.jp"); expect(apiDomain("eu")).toBe("https://www.zohoapis.eu"); expect(detectDataCenter("https://www.zohoapis.com.au")).toBe("com.au"); expect(detectDataCenter("bogus")).toBe("com"); });

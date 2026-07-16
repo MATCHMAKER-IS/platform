@@ -3,7 +3,7 @@
  * registry.register() で独自テーマを追加して差し替える。
  * @packageDocumentation
  */
-import type { Theme } from "./tokens.js";
+import type { Theme } from "./tokens";
 
 /** 標準・中庸(青系・きっちりした業務向け)。 */
 export const defaultTheme: Theme = {

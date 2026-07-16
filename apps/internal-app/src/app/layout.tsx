@@ -1,13 +1,13 @@
 /** ルートレイアウト。 */
-import { IdleLogout } from "../components/IdleLogout.js";
-import { MailboxIndicator } from "../components/MailboxIndicator.js";
-import { AppNav } from "../components/AppNav.js";
-import { ChatbotWidget } from "../components/ChatbotWidget.js";
-import { DebugBar } from "../components/DebugBar.js";
+import { IdleLogout } from "../components/IdleLogout";
+import { MailboxIndicator } from "../components/MailboxIndicator";
+import { AppNav } from "../components/AppNav";
+import { ChatbotWidget } from "../components/ChatbotWidget";
+import { DebugBar } from "../components/DebugBar";
 import { AppSkin } from "@platform/ui";
-import { themeRegistry } from "../lib/theme-registry.js";
-import { getThemeSetting, getCustomThemes } from "../server/theme-setting.js";
-import { featureEnv } from "../server/env.js";
+import { themeRegistry } from "../lib/theme-registry";
+import { getThemeSetting, getCustomThemes } from "../server/theme-setting";
+import { featureEnv } from "../server/env";
 
 // 社内ツールは検索エンジンにインデックスさせない(公開サイトのみ SEO を適用する方針)
 export const metadata = { title: "社内アプリ", robots: { index: false, follow: false, nocache: true } };

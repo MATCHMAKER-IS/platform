@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { createAddressLookup, createZipcloudAdapter, normalizeZipcode } from "./index.js";
+import { createAddressLookup, createZipcloudAdapter, normalizeZipcode } from "./index";
 
 const realFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = realFetch; vi.restoreAllMocks(); });

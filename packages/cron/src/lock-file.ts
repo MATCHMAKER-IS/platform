@@ -9,7 +9,7 @@
  */
 import { openSync, writeSync, closeSync, readFileSync, unlinkSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import type { LockStore } from "./lock.js";
+import type { LockStore } from "./lock";
 
 interface Holder {
   pid: number;

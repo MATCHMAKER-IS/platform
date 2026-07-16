@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { createMemoryLockStore } from "./lock.js";
-import { createGuardedJob } from "./runner.js";
+import { createMemoryLockStore } from "./lock";
+import { createGuardedJob } from "./runner";
 
 describe("cron reliability", () => {
   it("distributed lock prevents concurrent runs", async () => {

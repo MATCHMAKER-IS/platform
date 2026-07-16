@@ -5,7 +5,7 @@
  */
 import { parseCsv } from "@platform/csv";
 import { parseNumber } from "@platform/utils";
-import type { Expense } from "./expense.js";
+import type { Expense } from "./expense";
 
 /** 取込フィールド定義(ImportReview / validateImportRows 用)。 */
 export const EXPENSE_IMPORT_FIELDS = [

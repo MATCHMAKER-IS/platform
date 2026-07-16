@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { lotBalances, expiringSoon, expiredLots, allocateFEFO, type LotMovement } from "./lot.js";
-import { onHandByWarehouse, totalOnHand, transfer, warehouseOnHand, type WarehouseMovement } from "./warehouse.js";
+import { lotBalances, expiringSoon, expiredLots, allocateFEFO, type LotMovement } from "./lot";
+import { onHandByWarehouse, totalOnHand, transfer, warehouseOnHand, type WarehouseMovement } from "./warehouse";
 describe("inventory lot", () => {
   const lots: LotMovement[] = [
     { lotId: "L1", type: "inbound", quantity: 100, at: "2025-07-01", expiry: "2025-08-31" },

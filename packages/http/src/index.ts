@@ -3,10 +3,10 @@
  * AppError → HTTP ステータス変換と、Route Handler / Result のレスポンス化。
  * @packageDocumentation
  */
-export { STATUS_BY_CODE } from "./status.js";
+export { STATUS_BY_CODE } from "./status";
 export {
   toHttpError,
   handleRoute,
   resultToResponse,
   type HttpErrorBody,
-} from "./handler.js";
+} from "./handler";

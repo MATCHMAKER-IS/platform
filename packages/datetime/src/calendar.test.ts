@@ -7,7 +7,7 @@ import {
   rangeContains, rangesOverlap, rangeIntersection, rangeDays, eachDayOfRange, splitRangeByMonth, clampDate,
   toWareki, formatWareki, formatRelativeDay,
   addMinutes, roundToNearestMinutes, floorToMinutes, ceilToMinutes, formatDuration, parseDuration, businessMinutesBetween,
-} from "./calendar.js";
+} from "./calendar";
 
 const D = (s: string) => new Date(s + "T00:00:00Z");
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createApiClient } from "./index.js";
+import { createApiClient } from "./index";
 
 describe("multipart", () => {
   it("builds FormData and drops content-type", async () => {

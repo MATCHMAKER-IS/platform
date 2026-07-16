@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { Metadata } from "next";
-import { content } from "../../../../server/content.js";
-import { BeaconClient } from "../../../beacon-client.js";
+import { content } from "../../../../server/content";
+import { BeaconClient } from "../../../beacon-client";
 
 export async function generateMetadata({ params }: { params: Promise<{ tag: string }> }): Promise<Metadata> {
   const { tag } = await params;

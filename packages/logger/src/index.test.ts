@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createLogger, DEFAULT_REDACT_PATHS } from "./index.js";
+import { createLogger, DEFAULT_REDACT_PATHS } from "./index";
 
 describe("createLogger", () => {
   it("Logger インターフェースを返す", () => {

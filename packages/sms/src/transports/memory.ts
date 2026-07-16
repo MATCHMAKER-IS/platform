@@ -2,7 +2,7 @@
  * メモリ SMS Transport。実際には送らず送信内容を配列に記録する。
  * @packageDocumentation
  */
-import type { SmsMessage, SmsTransport } from "../index.js";
+import type { SmsMessage, SmsTransport } from "../index";
 
 /** 記録機能付きのメモリ Transport。 */
 export interface MemorySmsTransport extends SmsTransport {

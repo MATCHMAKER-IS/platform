@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createLogStream } from "./log-stream.js";
+import { createLogStream } from "./log-stream";
 
 class FakeWs {
   handlers: Record<string, (ev: { data?: unknown }) => void> = {};

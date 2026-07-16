@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createMemoryIdempotencyStore, withIdempotency, IdempotencyConflictError } from "./idempotency.js";
+import { createMemoryIdempotencyStore, withIdempotency, IdempotencyConflictError } from "./idempotency";
 describe("idempotency", () => {
   it("runs once, caches, releases on error, conflicts in-flight", async () => {
     const store = createMemoryIdempotencyStore(); let n = 0;

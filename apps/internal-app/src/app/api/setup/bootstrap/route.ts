@@ -2,10 +2,10 @@
  * 初回セットアップ(POST)。最初の管理者作成＋初期設定投入。
  * 既に管理者が存在する場合は 409（乗っ取り防止）。認証不要（管理者不在時のみ有効）。
  */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { userStore, settingsStore, auditActions } from "../../../../server/platform-services.js";
-import { hashPassword } from "../../../../server/password.js";
-import { canBootstrapAdmin, defaultSeedPlan } from "../../../../server/setup.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { userStore, settingsStore, auditActions } from "../../../../server/platform-services";
+import { hashPassword } from "../../../../server/password";
+import { canBootstrapAdmin, defaultSeedPlan } from "../../../../server/setup";
 
 async function handlePOST(req: Request): Promise<Response> {
   const users = await userStore.list();

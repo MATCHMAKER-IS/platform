@@ -3,7 +3,7 @@
  * reserve は SET NX(アトミック予約)、complete/get は JSON の読み書き。
  * @packageDocumentation
  */
-import type { IdempotencyRecord } from "./idempotency.js";
+import type { IdempotencyRecord } from "./idempotency";
 
 /** ioredis 互換の最小インターフェース。 */
 export interface RedisIdempotencyClient {

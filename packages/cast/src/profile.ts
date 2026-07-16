@@ -4,7 +4,7 @@
  * SNS は @platform/social の SocialAccount、空き枠は @platform/booking と組み合わせて使う。
  * @packageDocumentation
  */
-import { type Cast } from "./cast.js";
+import { type Cast } from "./cast";
 
 /** プロフィールの 1 項目(ラベルと値)。 */
 export interface ProfileItem {

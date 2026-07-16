@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createStepUp, sessionMaxAge } from "./step-up.js";
+import { createStepUp, sessionMaxAge } from "./step-up";
 describe("step-up + remember-me", () => {
   it("requires re-auth when stale", () => {
     let clock = 0; const step = createStepUp({ freshnessSec: 300, now: () => clock });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveZone, shippingFeeForRegion, weightBasedFee, totalWeight } from "./shipping.js";
+import { resolveZone, shippingFeeForRegion, weightBasedFee, totalWeight } from "./shipping";
 const zones = [
   { name: "本州", regions: ["東京都", "大阪府"], fee: 550, freeThreshold: 5000 },
   { name: "北海道・沖縄", regions: ["北海道"], fee: 1100, freeThreshold: 10000 },

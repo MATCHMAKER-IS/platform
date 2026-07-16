@@ -10,6 +10,6 @@
 export {
   printHtml, printElement, printPage, pageCss,
   type PageOptions, type PrintOptions, type PrintElementOptions,
-} from "./browser.js";
-export { createReceipt, type ReceiptBuilder, type Align } from "./escpos.js";
-export { connectReceiptPrinter, RECEIPT_PROFILES, type ReceiptPrinter, type ReceiptPrinterProfile } from "./receipt-bluetooth.js";
+} from "./browser";
+export { createReceipt, type ReceiptBuilder, type Align } from "./escpos";
+export { connectReceiptPrinter, RECEIPT_PROFILES, type ReceiptPrinter, type ReceiptPrinterProfile } from "./receipt-bluetooth";

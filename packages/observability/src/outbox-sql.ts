@@ -20,7 +20,7 @@
  * ```
  * @packageDocumentation
  */
-import type { OutboxMessage, OutboxStore } from "./outbox.js";
+import type { OutboxMessage, OutboxStore } from "./outbox";
 
 /** DB アクセスの最小インターフェース(アプリが Prisma 等で実装)。 */
 export interface OutboxDbClient {

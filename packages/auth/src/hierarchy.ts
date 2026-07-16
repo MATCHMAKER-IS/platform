@@ -3,7 +3,7 @@
  * 既存の {@link can}/{@link Policy} と互換(継承は平坦な Policy に解決される)。
  * @packageDocumentation
  */
-import { can, type Permission, type Policy, type Role } from "./rbac.js";
+import { can, type Permission, type Policy, type Role } from "./rbac";
 
 /** 1 ロールの定義(継承元 + 直接付与する権限)。 */
 export interface RoleDefinition {

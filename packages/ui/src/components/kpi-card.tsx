@@ -4,9 +4,9 @@
  * @packageDocumentation
  */
 import { formatNumber } from "@platform/utils";
-import { cn } from "../lib/cn.js";
-import { Sparkline } from "./sparkline.js";
-import { Trend } from "./trend.js";
+import { cn } from "../lib/cn";
+import { Sparkline } from "./sparkline";
+import { Trend } from "./trend";
 
 /** {@link KpiCard} の props。 */
 export interface KpiCardProps {

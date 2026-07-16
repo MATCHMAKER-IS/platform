@@ -1,7 +1,7 @@
 /**
  * チャットルームページ（サーバシェル）。実運用ではセッションから meId、ルーム名を解決する。
  */
-import { ChatRoomClient } from "./chat-room-client.js";
+import { ChatRoomClient } from "./chat-room-client";
 
 export const dynamic = "force-dynamic";
 

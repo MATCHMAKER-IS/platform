@@ -4,9 +4,9 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
-import { MessageList, type MessageGroup } from "./message-list.js";
-import { MessageComposer } from "./message-composer.js";
+import { cn } from "../lib/cn";
+import { MessageList, type MessageGroup } from "./message-list";
+import { MessageComposer } from "./message-composer";
 
 /** {@link ChatWindow} の props。 */
 export interface ChatWindowProps {

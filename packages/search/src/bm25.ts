@@ -3,7 +3,7 @@
  * 語単位のスコアリング・複数語・フィールド重みに対応。メモリ検索の中核に使う。
  * @packageDocumentation
  */
-import { tokenize } from "./tokenize.js";
+import { tokenize } from "./tokenize";
 
 /** フィールド重み(未指定は 1.0)。id は対象外。 */
 export type FieldBoosts = Record<string, number>;

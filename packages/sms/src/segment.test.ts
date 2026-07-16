@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { smsEncoding, smsLength, smsSegments, smsInfo } from "./segment.js";
+import { smsEncoding, smsLength, smsSegments, smsInfo } from "./segment";
 
 describe("sms segment", () => {
   it("encoding", () => { expect(smsEncoding("Hello")).toBe("GSM-7"); expect(smsEncoding("こんにちは")).toBe("UCS-2"); });

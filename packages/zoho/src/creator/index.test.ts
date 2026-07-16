@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createZohoCreatorClient } from "./index.js";
+import { createZohoCreatorClient } from "./index";
 describe("zoho creator", () => {
   it("report/form paths", async () => {
     let url = ""; let method = "";

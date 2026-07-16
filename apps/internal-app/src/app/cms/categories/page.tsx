@@ -1,6 +1,6 @@
 import * as React from "react";
-import { CmsNav } from "../cms-nav.js";
-import { CategoryClient } from "./category-client.js";
+import { CmsNav } from "../cms-nav";
+import { CategoryClient } from "./category-client";
 
 export const metadata = { title: "カテゴリ・タグ管理" };
 

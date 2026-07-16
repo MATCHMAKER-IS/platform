@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createLineClient, lineRecipientType, isValidLineRecipient } from "./index.js";
+import { createLineClient, lineRecipientType, isValidLineRecipient } from "./index";
 
 describe("line client", () => {
   it("recipient type", () => { expect(lineRecipientType("U" + "a".repeat(32))).toBe("user"); expect(lineRecipientType("C" + "1".repeat(32))).toBe("group"); expect(isValidLineRecipient("x")).toBe(false); });

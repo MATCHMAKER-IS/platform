@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { copyToClipboard, readClipboard } from "./clipboard.js";
+import { copyToClipboard, readClipboard } from "./clipboard";
 describe("ui clipboard", () => {
   it("copies via injected writer", async () => {
     let wrote: string | null = null;

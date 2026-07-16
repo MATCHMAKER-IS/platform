@@ -5,7 +5,7 @@
  * 1 サイトだが、利用者には別物として映るようにする。
  */
 import Link from "next/link";
-import { SECTIONS, allDemos } from "../lib/nav.js";
+import { SECTIONS, allDemos } from "../lib/nav";
 
 export default function Page() {
   const total = allDemos().length;

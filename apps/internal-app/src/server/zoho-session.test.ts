@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { signSession, verifySession } from "./zoho-session.js";
+import { signSession, verifySession } from "./zoho-session";
 
 describe("zoho session", () => {
   it("sign/verify round-trip + tamper", () => {

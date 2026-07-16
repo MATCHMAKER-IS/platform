@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createZohoAnalyticsClient } from "./index.js";
+import { createZohoAnalyticsClient } from "./index";
 describe("zoho analytics", () => {
   it("ORGID header + CONFIG export", async () => {
     let url = ""; let headers: Record<string, string> = {};

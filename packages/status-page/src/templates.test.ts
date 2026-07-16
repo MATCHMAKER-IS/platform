@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { renderMaintenancePage, renderErrorPage, renderNotFoundPage, renderStatusPage } from "./templates.js";
+import { renderMaintenancePage, renderErrorPage, renderNotFoundPage, renderStatusPage } from "./templates";
 describe("status page templates", () => {
   it("renders self-contained maintenance HTML", () => {
     const h = renderMaintenancePage({ estimatedRecovery: "22:00" });

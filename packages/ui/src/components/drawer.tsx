@@ -6,7 +6,7 @@
 import * as React from "react";
 import { Dialog as Primitive } from "radix-ui";
 import { X } from "lucide-react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** ドロワーのルート。 */
 export const Drawer = Primitive.Root;

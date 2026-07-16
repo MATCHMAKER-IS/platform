@@ -5,8 +5,8 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
-import { ScrollArea } from "./scroll-area.js";
+import { cn } from "../lib/cn";
+import { ScrollArea } from "./scroll-area";
 
 /** {@link TermsAcceptance} の props。 */
 export interface TermsAcceptanceProps {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { createHmac } from "node:crypto";
-import { verifyLineSignature, parseLineWebhook, parsePostbackData, eventSourceId } from "./webhook.js";
+import { verifyLineSignature, parseLineWebhook, parsePostbackData, eventSourceId } from "./webhook";
 const secret = "s";
 const sign = (b: string) => createHmac("sha256", secret).update(b).digest("base64");
 describe("line webhook", () => {

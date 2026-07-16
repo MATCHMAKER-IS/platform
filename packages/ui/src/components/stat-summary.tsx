@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { mean, median, stddev, quartiles, outliers, min as fnMin, max as fnMax, formatNumber } from "@platform/utils";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link StatSummary} の props。 */
 export interface StatSummaryProps {

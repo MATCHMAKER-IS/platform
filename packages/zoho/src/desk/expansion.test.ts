@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createZohoDeskClient } from "./index.js";
+import { createZohoDeskClient } from "./index";
 describe("zoho desk expansion", () => {
   it("search + sendReply + threads", async () => {
     let cap: { url: string; method?: string } | null = null;

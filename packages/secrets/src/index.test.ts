@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createSecretStore, createEnvProvider, createChainProvider, createFetchProvider } from "./index.js";
+import { createSecretStore, createEnvProvider, createChainProvider, createFetchProvider } from "./index";
 describe("secrets", () => {
   it("caches with TTL, require throws, chain falls back", async () => {
     let clk = 0; let fetches = 0;

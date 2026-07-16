@@ -5,7 +5,7 @@
  * (源泉徴収の計算は @platform/tax の withholdingTax を利用可)。
  * @packageDocumentation
  */
-import type { PayBreakdown } from "./premium.js";
+import type { PayBreakdown } from "./premium";
 
 /** 手当・控除の項目。 */
 export interface PayslipItem {

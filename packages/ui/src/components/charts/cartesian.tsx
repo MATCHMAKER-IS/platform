@@ -7,11 +7,11 @@ import * as React from "react";
 import {
   ResponsiveContainer, ComposedChart, Bar, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ReferenceLine, Brush,
 } from "recharts";
-import { cn } from "../../lib/cn.js";
+import { cn } from "../../lib/cn";
 import {
   ChartTitle, SeriesToggle, useSeriesVisibility, buildColorMap, makeFormatter,
   GRID_STROKE, type SeriesDef, type BaseChartProps,
-} from "./chart-common.js";
+} from "./chart-common";
 
 /** 直交系グラフの共通 props。 */
 export interface CartesianChartProps extends BaseChartProps {

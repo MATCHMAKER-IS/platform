@@ -1,7 +1,7 @@
 import { createCache, createMemoryCache } from "@platform/cache";
 import { createStorage, createLocalStorage } from "@platform/storage";
-import { runCacheContract } from "./contracts/cache.js";
-import { runStorageContract } from "./contracts/storage.js";
+import { runCacheContract } from "./contracts/cache";
+import { runStorageContract } from "./contracts/storage";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";

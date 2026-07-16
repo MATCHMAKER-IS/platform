@@ -2,8 +2,8 @@
  * 勤怠の月次 Excel シート生成(純)。`@platform/xlsx` の writeWorkbook に渡せる形にする。
  * @packageDocumentation
  */
-import { workedMinutes, overtimeMinutes, formatWorked, type AttendanceRecord } from "./attendance.js";
-import { monthlyAttendance, type MonthlyAttendance } from "./attendance-monthly.js";
+import { workedMinutes, overtimeMinutes, formatWorked, type AttendanceRecord } from "./attendance";
+import { monthlyAttendance, type MonthlyAttendance } from "./attendance-monthly";
 
 /** xlsx シート(SheetInput 互換: rows 値は string|number)。 */
 export interface ReportSheet { name: string; rows: Record<string, string | number>[]; freezeHeader: boolean }

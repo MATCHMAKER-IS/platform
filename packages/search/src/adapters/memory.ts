@@ -3,8 +3,8 @@
  * 外部エンジン無しで実用的な全文検索を提供(小〜中規模データ・テスト・オフライン向け)。
  * @packageDocumentation
  */
-import type { SearchAdapter, SearchDocument, SearchHit } from "../index.js";
-import { createBm25Index, type Bm25Options } from "../bm25.js";
+import type { SearchAdapter, SearchDocument, SearchHit } from "../index";
+import { createBm25Index, type Bm25Options } from "../bm25";
 
 /**
  * メモリ検索 Adapter を作る。

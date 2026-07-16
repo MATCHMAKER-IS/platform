@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { canTransition, nextStatuses, isFinalStatus, isCancellable, isShipped, ORDER_STATUS_LABELS } from "./order-status.js";
+import { canTransition, nextStatuses, isFinalStatus, isCancellable, isShipped, ORDER_STATUS_LABELS } from "./order-status";
 describe("order status", () => {
   it("validates transitions", () => {
     expect(canTransition("pending", "paid")).toBe(true);

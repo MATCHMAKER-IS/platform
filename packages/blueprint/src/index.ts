@@ -3,4 +3,4 @@
  * Zoho CRM のブループリントに相当。素の状態遷移は @platform/fsm に委譲する。
  * @packageDocumentation
  */
-export * from "./blueprint.js";
+export * from "./blueprint";

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { debounce, memoize, once, pipe, compose } from "./function.js";
+import { debounce, memoize, once, pipe, compose } from "./function";
 describe("function utils", () => {
   it("debounce collapses calls", async () => {
     let n = 0; const d = debounce(() => n++, 20);

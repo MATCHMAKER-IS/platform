@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { notificationReducer } from "./notification-store.js";
-import { unreadCount } from "./notifications.js";
+import { notificationReducer } from "./notification-store";
+import { unreadCount } from "./notifications";
 describe("ui notification-store", () => {
   it("applies actions immutably", () => {
     let st = [{ id: "1", title: "A", createdAt: "2025-07-25T09:00:00Z" }, { id: "2", title: "B", createdAt: "2025-07-25T11:00:00Z", read: true }];

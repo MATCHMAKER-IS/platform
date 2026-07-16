@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseText, parseUint8, parseUint16, toBytes, encodeText, isBluetoothSupported, GATT } from "./index.js";
+import { parseText, parseUint8, parseUint16, toBytes, encodeText, isBluetoothSupported, GATT } from "./index";
 
 const dv = (bytes: number[]) => new DataView(new Uint8Array(bytes).buffer);
 

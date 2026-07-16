@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { createHmac } from "node:crypto";
-import { verifyFreeeSignature, parseFreeeWebhook } from "./webhook.js";
+import { verifyFreeeSignature, parseFreeeWebhook } from "./webhook";
 const secret = "s";
 const sign = (b: string) => createHmac("sha256", secret).update(b).digest("hex");
 describe("freee webhook", () => {

@@ -1,6 +1,6 @@
 import * as React from "react";
 import type { Metadata } from "next";
-import { content } from "../../server/content.js";
+import { content } from "../../server/content";
 
 export const metadata: Metadata = { title: "検索結果", robots: { index: false } };
 

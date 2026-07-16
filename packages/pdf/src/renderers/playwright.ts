@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { chromium, type Browser } from "playwright";
-import type { PdfRenderer, PdfOptions } from "../index.js";
+import type { PdfRenderer, PdfOptions } from "../index";
 
 /**
  * Playwright レンダラを作る。1 ブラウザを使い回す。

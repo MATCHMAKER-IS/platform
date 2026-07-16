@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { classifyConnection, shouldSaveData } from "./network.js";
+import { classifyConnection, shouldSaveData } from "./network";
 describe("network classification", () => {
   it("classifies by effectiveType/downlink/online", () => {
     expect(classifyConnection({ online: false })).toBe("offline");

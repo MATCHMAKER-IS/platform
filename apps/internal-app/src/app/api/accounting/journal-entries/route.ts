@@ -1,8 +1,8 @@
 /** 会計: 手動仕訳の一覧(GET)。?year=。accounting:read。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { manualJournalStore } from "../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { manualJournalStore } from "../../../../server/platform-services";
 import { journalToRows } from "@platform/accounting";
 
 async function handleGET(req: Request): Promise<Response> {

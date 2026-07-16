@@ -7,7 +7,7 @@
 import { createZohoTokenManager, createAuthedFetch, type ZohoDataCenter } from "@platform/zoho/core";
 import { createCircuitBreaker, CircuitOpenError } from "@platform/observability";
 import { createBulkhead } from "@platform/core";
-import { tracer, metrics } from "./observability.js";
+import { tracer, metrics } from "./observability";
 
 /** Zoho 連携の設定(通常は環境変数から)。 */
 export interface ZohoClientConfig {

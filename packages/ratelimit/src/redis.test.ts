@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createRedisStore, type RedisLike } from "./redis.js";
+import { createRedisStore, type RedisLike } from "./redis";
 describe("redis rate-limit store", () => {
   it("INCR + first-time EXPIRE atomically via eval", async () => {
     const store = new Map<string, { count: number; exp: number | null }>();

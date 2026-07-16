@@ -4,8 +4,8 @@ import { xRobotsTag } from "@platform/seo";
 import {
   createAsyncMaintenanceGate, createCachedConfig, stateToConfig, renderMaintenancePage,
 } from "@platform/status-page";
-import { createDbMaintenanceStore } from "./server/maintenance-store.js";
-import { featureEnv } from "./server/env.js";
+import { createDbMaintenanceStore } from "./server/maintenance-store";
+import { featureEnv } from "./server/env";
 
 /**
  * メンテナンス切り替えゲート。

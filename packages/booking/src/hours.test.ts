@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { timeToMinutes, minutesToTime, weekdayOf, resolveDayHours, isBusinessDay, isOpenAt } from "./hours.js";
+import { timeToMinutes, minutesToTime, weekdayOf, resolveDayHours, isBusinessDay, isOpenAt } from "./hours";
 const weekly = { 1: [{ open: "09:00", close: "12:00" }, { open: "13:00", close: "18:00" }], 0: [] };
 describe("booking hours", () => {
   it("converts time and resolves day hours", () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createReconnectingWebSocket, type WebSocketLike } from "./index.js";
+import { createReconnectingWebSocket, type WebSocketLike } from "./index";
 class FakeWS implements WebSocketLike {
   sent: string[] = []; onopen: ((e?: unknown) => void) | null = null; onclose: ((e?: unknown) => void) | null = null; onerror: ((e?: unknown) => void) | null = null; onmessage: ((e: { data: unknown }) => void) | null = null;
   static instances: FakeWS[] = [];

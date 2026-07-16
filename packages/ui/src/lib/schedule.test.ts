@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { eventsForDay, layoutDayEvents, buildMonthGrid, groupEventsByDay, formatEventTime } from "./schedule.js";
+import { eventsForDay, layoutDayEvents, buildMonthGrid, groupEventsByDay, formatEventTime } from "./schedule";
 const ev = (id: string, s: string, e: string, x: Record<string, unknown> = {}) => ({ id, start: new Date(s), end: new Date(e), title: id, ...x });
 const day = new Date(2025, 6, 25);
 describe("schedule layout", () => {
@@ -26,7 +26,7 @@ describe("schedule layout", () => {
   });
 });
 
-import { computeFreeSlots, findAvailableSlots, mergeIntervals, totalBusyMinutes } from "./schedule.js";
+import { computeFreeSlots, findAvailableSlots, mergeIntervals, totalBusyMinutes } from "./schedule";
 describe("free/busy", () => {
   const win0 = new Date("2025-07-25T09:00"), win1 = new Date("2025-07-25T18:00");
   const events = [ev("a", "2025-07-25T10:00", "2025-07-25T11:00"), ev("b", "2025-07-25T13:00", "2025-07-25T14:00")];
@@ -43,7 +43,7 @@ describe("free/busy", () => {
   });
 });
 
-import { eventsForResource, layoutResourceDay } from "./schedule.js";
+import { eventsForResource, layoutResourceDay } from "./schedule";
 describe("resource view", () => {
   const resEvents = [ev("a", "2025-07-25T10:00", "2025-07-25T11:00", { resourceId: "roomA" }), ev("b", "2025-07-25T10:30", "2025-07-25T11:30", { resourceId: "roomA" }), ev("c", "2025-07-25T13:00", "2025-07-25T14:00", { resourceId: "roomB" })];
   const resources = [{ id: "roomA", label: "A" }, { id: "roomB", label: "B" }, { id: "roomC", label: "C" }];

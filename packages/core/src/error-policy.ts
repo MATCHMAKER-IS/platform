@@ -4,7 +4,7 @@
  * 判定ロジックの散在(各所の shouldRetry / status 直書き)を解消する。
  * @packageDocumentation
  */
-import { AppError, ErrorCode } from "./error.js";
+import { AppError, ErrorCode } from "./error";
 
 /** 各 ErrorCode のポリシー。 */
 export interface ErrorPolicy {

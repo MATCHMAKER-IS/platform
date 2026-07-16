@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { maskEmail, maskPhone, blindIndex, createFieldCipher, anonymizeRecord, isRetentionExpired } from "./index.js";
+import { maskEmail, maskPhone, blindIndex, createFieldCipher, anonymizeRecord, isRetentionExpired } from "./index";
 describe("pii", () => {
   it("masks", () => {
     expect(maskEmail("taro@example.co.jp")).toBe("t***@example.co.jp");

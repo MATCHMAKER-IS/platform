@@ -4,8 +4,8 @@
  */
 import { PrismaClient, type Prisma } from "@prisma/client";
 import { tryCatch, type Result } from "@platform/core";
-import { mapPrismaError, isRetryablePrismaError } from "./errors.js";
-import { asTransactionAbort, type TransactionOptions } from "./transaction.js";
+import { mapPrismaError, isRetryablePrismaError } from "./errors";
+import { asTransactionAbort, type TransactionOptions } from "./transaction";
 
 /** {@link transactionWithRetry} のオプション。 */
 export interface RetryOptions extends TransactionOptions {

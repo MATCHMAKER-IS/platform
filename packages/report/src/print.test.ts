@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { printPageCss, injectPrintCss, wrapForPrint, combineForPrint, printableInvoiceHtml, printableQuotationHtml } from "./print.js";
+import { printPageCss, injectPrintCss, wrapForPrint, combineForPrint, printableInvoiceHtml, printableQuotationHtml } from "./print";
 const doc = { invoiceNumber: "INV-001", issueDate: "2025-07-25", seller: { name: "自社" }, buyer: { name: "取引先" }, lines: [{ description: "作業", quantity: 1, unitPrice: 10000, taxRate: 10 }] };
 describe("report print/PDF helpers", () => {
   it("builds @page css and injects", () => {

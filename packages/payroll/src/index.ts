@@ -4,7 +4,7 @@
  * 基盤は計算の部品のみを提供し、就業規則・料率などの方針はアプリ側で与える。
  * @packageDocumentation
  */
-export * from "./worktime.js";
-export * from "./premium.js";
-export * from "./payslip.js";
-export * from "./render.js";
+export * from "./worktime";
+export * from "./premium";
+export * from "./payslip";
+export * from "./render";

@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { defaultShouldRetry } from "@platform/core";
-import type { NotifyChannel, NotifyMessage } from "./index.js";
+import type { NotifyChannel, NotifyMessage } from "./index";
 
 /** リトライ設定。 */
 export interface RetryOptions {

@@ -2,7 +2,7 @@
  * アクセスイベントの集計（純関数）。ページビュー・ユニークビジター・人気ページ・時系列など。
  * @packageDocumentation
  */
-import { ofType, type AnalyticsEvent } from "./event.js";
+import { ofType, type AnalyticsEvent } from "./event";
 
 /**
  * 総ページビュー数を返す。

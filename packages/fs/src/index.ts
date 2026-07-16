@@ -2,7 +2,7 @@
  * `@platform/fs` — ファイル/フォルダ操作とパスユーティリティ。
  * @packageDocumentation
  */
-export * from "./path.js";
-export * from "./operations.js";
+export * from "./path";
+export * from "./operations";
 
-export * from "./magic.js";
+export * from "./magic";

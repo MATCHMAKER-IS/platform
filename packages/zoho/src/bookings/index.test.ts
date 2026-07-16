@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createZohoBookingsClient } from "./index.js";
+import { createZohoBookingsClient } from "./index";
 describe("zoho bookings", () => {
   it("availability + book", async () => {
     let cap: { url: string; body?: { customer_details?: string } } | null = null;

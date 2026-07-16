@@ -1,11 +1,11 @@
 /** 会計: 勘定元帳(GET)。試算表からのドリルダウン用。?account=&year=。accounting:read。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { invoiceStore, purchaseStore, assetStore, manualJournalStore } from "../../../../server/platform-services.js";
-import { buildLedger, type LedgerInvoice, type LedgerPurchase } from "../../../../server/ledger.js";
-import { depreciationJournal } from "../../../../server/depreciation-journal.js";
-import { accountLedger } from "../../../../server/account-ledger.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { invoiceStore, purchaseStore, assetStore, manualJournalStore } from "../../../../server/platform-services";
+import { buildLedger, type LedgerInvoice, type LedgerPurchase } from "../../../../server/ledger";
+import { depreciationJournal } from "../../../../server/depreciation-journal";
+import { accountLedger } from "../../../../server/account-ledger";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

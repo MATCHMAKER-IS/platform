@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pageCss, createReceipt } from "./index.js";
+import { pageCss, createReceipt } from "./index";
 
 describe("pageCss", () => {
   it("size/margin を反映", () => {

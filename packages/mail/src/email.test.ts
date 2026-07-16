@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isValidEmail, normalizeEmail, emailDomain, isSameDomain, parseAddress, formatAddress, parseEmailList, dedupeEmails } from "./email.js";
+import { isValidEmail, normalizeEmail, emailDomain, isSameDomain, parseAddress, formatAddress, parseEmailList, dedupeEmails } from "./email";
 
 describe("email utils", () => {
   it("validation", () => { expect(isValidEmail("a.b+t@ex.co.jp")).toBe(true); expect(isValidEmail("bad@")).toBe(false); });

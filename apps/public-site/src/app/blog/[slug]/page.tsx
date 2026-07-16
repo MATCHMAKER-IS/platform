@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import { shareLinks } from "@platform/social";
 import { nl2br, linkify } from "@platform/html";
 import { Eyecatch, SocialShare } from "@platform/ui";
-import { content, siteConfig } from "../../../server/content.js";
-import { BeaconClient } from "../../beacon-client.js";
+import { content, siteConfig } from "../../../server/content";
+import { BeaconClient } from "../../beacon-client";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;

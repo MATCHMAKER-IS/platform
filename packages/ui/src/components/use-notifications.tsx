@@ -5,8 +5,8 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { type AppNotification, unreadCount } from "../lib/notifications.js";
-import { notificationReducer, type NotificationAction } from "../lib/notification-store.js";
+import { type AppNotification, unreadCount } from "../lib/notifications";
+import { notificationReducer, type NotificationAction } from "../lib/notification-store";
 
 /** {@link useNotifications} のオプション。 */
 export interface UseNotificationsOptions {

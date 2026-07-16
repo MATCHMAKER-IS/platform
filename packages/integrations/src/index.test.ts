@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { createApiClient } from "./index.js";
+import { createApiClient } from "./index";
 
 const realFetch = globalThis.fetch;
 afterEach(() => {

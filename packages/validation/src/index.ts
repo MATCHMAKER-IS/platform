@@ -41,7 +41,7 @@ export {
   zipCodeJp, phoneJp, mobileJp, katakana, hiragana, prefecture,
   myNumber, corporateNumber, positiveInt, amount, percentage, uuid, agreement, dateString,
   alphanumeric, halfWidthKana, time, httpsUrl, creditCard, bankCode, branchCode, accountNumber,
-} from "./schemas.js";
+} from "./schemas";
 
 // 日本固有ヘルパー・定数
 export {
@@ -49,19 +49,19 @@ export {
   isValidMyNumber, isValidCorporateNumber,
   computeMyNumberCheckDigit, computeCorporateCheckDigit,
   isHalfWidthKana, isValidCreditCard,
-} from "./japan.js";
+} from "./japan";
 
 // 正規化
-export { toHalfWidth, digitsToHalfWidth, normalizeSpace } from "./transforms.js";
+export { toHalfWidth, digitsToHalfWidth, normalizeSpace } from "./transforms";
 
 // フォームパターン
 export {
   password, passwordWithConfirm, dateRange,
   between, futureDate, pastDate, nonEmptyArray, fileConstraints,
   type PasswordOptions, type FileConstraintOptions,
-} from "./patterns.js";
+} from "./patterns";
 
 export { z };
 
-export * from "./jp.js";
-export * from "./identity.js";
+export * from "./jp";
+export * from "./identity";

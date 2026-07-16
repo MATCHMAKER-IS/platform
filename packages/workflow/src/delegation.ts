@@ -3,7 +3,7 @@
  * ロールベースの既存エンジンに対し、「実効ロール(自分のロール + 委任されたロール)」を算出する。
  * @packageDocumentation
  */
-import type { Actor, WorkflowStep } from "./index.js";
+import type { Actor, WorkflowStep } from "./index";
 
 /** 委任 1 件(from が to に権限を委任)。 */
 export interface Delegation {

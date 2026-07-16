@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseUserAgent } from "./index.js";
+import { parseUserAgent } from "./index";
 
 describe("parseUserAgent", () => {
   it("iPhone Safari を判定", () => {

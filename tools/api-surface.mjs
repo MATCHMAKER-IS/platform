@@ -32,7 +32,7 @@ function extractExports(src) {
   return [...names].sort();
 }
 
-/** index.ts の `export * from "./x.js"` を辿って集約。 */
+/** index.ts の `export * from "./x"` を辿って集約(拡張子なし・.js 付きの両対応)。 */
 function collectPackageSurface(pkgDir) {
   const indexPath = join(pkgDir, "src/index.ts");
   if (!existsSync(indexPath)) return null;
@@ -44,8 +44,14 @@ function collectPackageSurface(pkgDir) {
     const src = readFileSync(filePath, "utf8");
     for (const n of extractExports(src)) names.add(n);
     for (const m of src.matchAll(/export\s+\*\s+from\s+["']([^"']+)["']/g)) {
-      const rel = m[1].replace(/\.js$/, ".ts");
-      if (rel.startsWith(".")) walk(join(pkgDir, "src", rel));
+      if (!m[1].startsWith(".")) continue;
+      // 拡張子は付いていないのが既定(moduleResolution: Bundler)。
+      // 古いコードが .js を付けている場合にも備える。
+      const stem = m[1].replace(/\.js$/, "");
+      for (const cand of [`${stem}.ts`, `${stem}.tsx`, `${stem}/index.ts`]) {
+        const p = join(pkgDir, "src", cand);
+        if (existsSync(p)) { walk(p); break; }
+      }
     }
   }
   walk(indexPath);

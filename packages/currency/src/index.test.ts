@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { currencyMeta, roundMoney, money, formatMoney, convert, addMoney, sumMoney, totalInBaseCurrency } from "./index.js";
+import { currencyMeta, roundMoney, money, formatMoney, convert, addMoney, sumMoney, totalInBaseCurrency } from "./index";
 
 describe("currency", () => {
   it("meta + round", () => { expect(currencyMeta("JPY").decimals).toBe(0); expect(roundMoney(1234.56, "JPY")).toBe(1235); expect(roundMoney(1.005, "USD")).toBe(1.01); expect(roundMoney(2.5, "JPY", "bankers")).toBe(2); });

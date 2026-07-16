@@ -1,4 +1,4 @@
-import { DataConsole } from "../../examples/data-console.js";
+import { DataConsole } from "../../examples/data-console";
 export const metadata = { title: "データ管理画面" };
 export default function Page() {
   return (

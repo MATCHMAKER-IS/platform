@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { submitOvertime, statusLabel, availableActions, actOn, overtimeWorkflow } from "./overtime-approval.js";
+import { submitOvertime, statusLabel, availableActions, actOn, overtimeWorkflow } from "./overtime-approval";
 import type { Actor } from "@platform/workflow";
 
 const mgr: Actor = { id: "m1", roles: ["manager"] };

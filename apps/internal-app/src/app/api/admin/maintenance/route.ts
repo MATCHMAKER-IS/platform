@@ -5,13 +5,13 @@
  * 変更は監査ログに残す。設定は DB に永続化され、middleware が TTL キャッシュ越しに反映する。
  */
 import { NextResponse, type NextRequest } from "next/server";
-import { withApiObservability } from "../../../../server/instrument.js";
-import { errorResponse } from "../../../../server/api-error.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { createDbMaintenanceStore } from "../../../../server/maintenance-store.js";
-import { db } from "../../../../server/services.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { errorResponse } from "../../../../server/api-error";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { createDbMaintenanceStore } from "../../../../server/maintenance-store";
+import { db } from "../../../../server/services";
 import type { MaintenanceState } from "@platform/status-page";
-import { serverEnv } from "../../../../server/env.js";
+import { serverEnv } from "../../../../server/env";
 
 const store = createDbMaintenanceStore();
 const sessionSecret = () => serverEnv.SESSION_SECRET;

@@ -1,12 +1,12 @@
 /** 運用アラート: アラートを自分の通知センターへ配信(POST)。dashboard:read。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { notificationCenter, auditActions } from "../../../../server/platform-services.js";
-import { buildAlerts } from "../../../../server/alerts.js";
-import { appMailer } from "../../../../server/platform-services.js";
-import { alertsEmail } from "../../../../server/alert-mail.js";
-import { collectAlertInput } from "../../../../server/alert-collect.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { notificationCenter, auditActions } from "../../../../server/platform-services";
+import { buildAlerts } from "../../../../server/alerts";
+import { appMailer } from "../../../../server/platform-services";
+import { alertsEmail } from "../../../../server/alert-mail";
+import { collectAlertInput } from "../../../../server/alert-collect";
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

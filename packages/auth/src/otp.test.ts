@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generateOtpCode, hashOtpCode, createOtpChallenge, verifyOtpCode, canResendOtp, resendWaitSeconds } from "./otp.js";
+import { generateOtpCode, hashOtpCode, createOtpChallenge, verifyOtpCode, canResendOtp, resendWaitSeconds } from "./otp";
 const secret = "pepper";
 const now = new Date("2025-07-25T12:00:00Z");
 describe("OTP auth", () => {

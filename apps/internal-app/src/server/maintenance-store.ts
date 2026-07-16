@@ -4,7 +4,7 @@
  * 管理画面 API から書き換え、middleware が(TTL キャッシュ越しに)読む。
  */
 import type { MaintenanceState, MaintenanceStore } from "@platform/status-page";
-import { db } from "./services.js";
+import { db } from "./services";
 
 const KEY = "maintenance";
 const DEFAULT_STATE: MaintenanceState = { enabled: false };

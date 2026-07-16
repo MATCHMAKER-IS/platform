@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { fitDimensions, clampRect, mimeForFormat, formatFromExtension } from "./index.js";
+import { fitDimensions, clampRect, mimeForFormat, formatFromExtension } from "./index";
 
 describe("fitDimensions", () => {
   it("contain: 4000x3000 → max2000 = 2000x1500", () => {

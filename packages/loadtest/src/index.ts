@@ -1,3 +1,3 @@
-export * from "./stats.js";
-export * from "./runner.js";
-export * from "./scenario.js";
+export * from "./stats";
+export * from "./runner";
+export * from "./scenario";

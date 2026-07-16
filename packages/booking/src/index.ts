@@ -5,10 +5,10 @@
  * schedule-calendar / resource-schedule、ステータス遷移は @platform/fsm と組み合わせる。
  * @packageDocumentation
  */
-export * from "./hours.js";
-export * from "./slots.js";
-export * from "./availability.js";
-export * from "./rules.js";
-export * from "./status.js";
-export * from "./reminders.js";
-export * from "./shift.js";
+export * from "./hours";
+export * from "./slots";
+export * from "./availability";
+export * from "./rules";
+export * from "./status";
+export * from "./reminders";
+export * from "./shift";

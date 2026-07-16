@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { joinPath, withoutExt, splitExt, changeExt, sanitizeFilename, uniqueFilename, isSubPath, guessMimeType } from "./path.js";
+import { joinPath, withoutExt, splitExt, changeExt, sanitizeFilename, uniqueFilename, isSubPath, guessMimeType } from "./path";
 
 describe("path utils", () => {
   it("join/withoutExt/splitExt", () => { expect(joinPath("a", "b.txt")).toBe("a/b.txt"); expect(withoutExt("a/r.tar.gz")).toBe("a/r.tar"); expect(splitExt("r.csv")).toEqual({ name: "r", ext: "csv" }); });

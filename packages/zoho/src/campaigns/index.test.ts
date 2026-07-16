@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createZohoCampaignsClient } from "./index.js";
+import { createZohoCampaignsClient } from "./index";
 
 describe("zoho campaigns", () => {
   it("resfmt=JSON + listkey", async () => {

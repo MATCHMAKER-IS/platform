@@ -3,12 +3,12 @@
  * 異常を検出し、重複を抑制した上で、受信箱＋Slack＋Webhook へ通知する。
  * X-Cron-Token(env CRON_TOKEN)一致、または管理者セッションで実行可。
  */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { currentUser } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { auditLog, userStore, appMailer, settingsStore, alertSeenStore, auditActions } from "../../../../../server/platform-services.js";
-import { detectAnomalies, anomalyDigest, type AuditEvent } from "../../../../../server/audit-anomaly.js";
-import { buildAlertChannels, notifyNewAnomalies } from "../../../../../server/alert-notify.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { currentUser } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { auditLog, userStore, appMailer, settingsStore, alertSeenStore, auditActions } from "../../../../../server/platform-services";
+import { detectAnomalies, anomalyDigest, type AuditEvent } from "../../../../../server/audit-anomaly";
+import { buildAlertChannels, notifyNewAnomalies } from "../../../../../server/alert-notify";
 import { createNotifier, type NotifyChannel, type NotifyMessage } from "@platform/notify";
 
 /** 抑制の時間窓（既定 6 時間）。 */

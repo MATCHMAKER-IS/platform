@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 import { AppError, ErrorCode, httpStatusFor, toErrorEnvelope } from "@platform/core";
-import { logContext } from "./log-context.js";
+import { logContext } from "./log-context";
 
 /** エラーを標準エンベロープ + 正しいステータスの Response にする。 */
 export function errorResponse(error: unknown): Response {

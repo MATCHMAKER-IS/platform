@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createSms, createMemoryTransport } from "./index.js";
+import { createSms, createMemoryTransport } from "./index";
 
 describe("sms", () => {
   it("既定 from を補い、Transport に送る", async () => {

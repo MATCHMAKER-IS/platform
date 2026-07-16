@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { tokenize } from "./tokenize.js";
-import { createBm25Index } from "./bm25.js";
+import { tokenize } from "./tokenize";
+import { createBm25Index } from "./bm25";
 describe("bm25 search", () => {
   it("tokenizes ascii and cjk bigrams", () => {
     expect(tokenize("Hello World")).toEqual(["hello", "world"]);

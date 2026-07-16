@@ -1,6 +1,6 @@
 import * as React from "react";
-import { CmsNav } from "../cms-nav.js";
-import { MediaClient } from "./media-client.js";
+import { CmsNav } from "../cms-nav";
+import { MediaClient } from "./media-client";
 
 export const metadata = { title: "メディアライブラリ" };
 

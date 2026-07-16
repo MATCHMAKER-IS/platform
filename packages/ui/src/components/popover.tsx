@@ -4,7 +4,7 @@
  */
 import * as React from "react";
 import { Popover as Primitive } from "radix-ui";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** ポップオーバーのルート。 */
 export const Popover = Primitive.Root;

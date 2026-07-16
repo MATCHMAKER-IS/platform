@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { onHand, summarize, applyMovement, type StockMovement } from "./movements.js";
-import { reorderPoint, needsReorder, reorderQuantity } from "./reorder.js";
-import { movingAverage } from "./valuation.js";
+import { onHand, summarize, applyMovement, type StockMovement } from "./movements";
+import { reorderPoint, needsReorder, reorderQuantity } from "./reorder";
+import { movingAverage } from "./valuation";
 describe("inventory movements", () => {
   const mv: StockMovement[] = [
     { type: "inbound", quantity: 100, at: "2025-07-01", unitCost: 500 },

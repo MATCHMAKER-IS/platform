@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { startWorkflow, approve, reject, type WorkflowState, type WorkflowStatus, type WorkflowEvent, type Actor } from "@platform/workflow";
-import { routeForAmount } from "./approval-flow.js";
+import { routeForAmount } from "./approval-flow";
 
 /** 承認対象の伝票種別。 */
 export type DocType = "purchase" | "invoice";

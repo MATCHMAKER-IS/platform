@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatFieldValue, reviewItems, describeRecord } from "./review.js";
+import { formatFieldValue, reviewItems, describeRecord } from "./review";
 const fields = [
   { name: "name", label: "氏名", type: "text" as const },
   { name: "type", label: "種別", type: "radio" as const, options: [{ value: "corp", label: "法人" }, { value: "ind", label: "個人" }] },

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildAuthorizationUrl, exchangeCodeForToken, getUserInfo } from "./login.js";
+import { buildAuthorizationUrl, exchangeCodeForToken, getUserInfo } from "./login";
 
 describe("zoho login", () => {
   it("authorization url", () => {

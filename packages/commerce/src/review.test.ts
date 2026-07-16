@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { averageRating, ratingDistribution, ratingSummary } from "./review.js";
+import { averageRating, ratingDistribution, ratingSummary } from "./review";
 describe("review", () => {
   it("aggregates ratings", () => {
     const r = [5, 5, 5, 4, 4, 3, 1];

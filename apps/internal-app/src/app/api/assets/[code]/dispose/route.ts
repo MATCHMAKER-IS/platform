@@ -1,9 +1,9 @@
 /** 固定資産: 除却・売却(POST)。資産に処分を記録し、除却損・売却損益の仕訳を返す。asset:write。 */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { assetStore, auditActions } from "../../../../../server/platform-services.js";
-import { disposalJournal } from "../../../../../server/disposal-journal.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { assetStore, auditActions } from "../../../../../server/platform-services";
+import { disposalJournal } from "../../../../../server/disposal-journal";
 import { journalToRows } from "@platform/accounting";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ code: string }> }): Promise<Response> {

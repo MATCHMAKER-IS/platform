@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { createFreeeHrClient } from "./hr.js";
+import { createFreeeHrClient } from "./hr";
 function fakeFetch() {
   const calls: { url: string; method: string; body?: unknown }[] = [];
   const fetchImpl = vi.fn(async (url: string, init?: RequestInit) => {

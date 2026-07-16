@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { generateKeyPairSync, sign, createHash, randomBytes } from "node:crypto";
-import { toBase64Url, fromBase64Url, generateWebAuthnChallenge, webAuthnRegistrationOptions, webAuthnAuthenticationOptions, verifyClientData, parseAuthenticatorData, verifyRpIdHash, isSignCountValid, verifyAssertionSignature } from "./webauthn.js";
+import { toBase64Url, fromBase64Url, generateWebAuthnChallenge, webAuthnRegistrationOptions, webAuthnAuthenticationOptions, verifyClientData, parseAuthenticatorData, verifyRpIdHash, isSignCountValid, verifyAssertionSignature } from "./webauthn";
 describe("webauthn / passkey", () => {
   it("round-trips base64url and builds options", () => {
     const b = new Uint8Array([1, 2, 250, 255]);

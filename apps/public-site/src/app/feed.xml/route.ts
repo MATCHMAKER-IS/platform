@@ -1,6 +1,6 @@
 /** RSS 2.0 フィード。最新記事を配信する。 */
 import { buildRssFeed, type FeedItem } from "@platform/seo";
-import { content, siteConfig } from "../../server/content.js";
+import { content, siteConfig } from "../../server/content";
 
 export async function GET(): Promise<Response> {
   const posts = await content.posts();

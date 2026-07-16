@@ -2,7 +2,7 @@
  * Microsoft Teams Incoming Webhook チャネル。
  * @packageDocumentation
  */
-import type { NotifyChannel } from "../index.js";
+import type { NotifyChannel } from "../index";
 
 /**
  * Teams チャネルを作る。

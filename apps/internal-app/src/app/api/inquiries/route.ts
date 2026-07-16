@@ -1,8 +1,8 @@
 /** お問い合わせ: 送信(POST・要ログイン)・一覧(GET・inquiry:read)。送信時は管理者の受信箱にも届く。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { inquiryStore, appMailer } from "../../../server/platform-services.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser, requirePermission } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { inquiryStore, appMailer } from "../../../server/platform-services";
 import { isValidEmail } from "@platform/mail";
 
 const INQUIRY_MAILBOX = "support@example.com";

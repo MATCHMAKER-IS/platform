@@ -1,7 +1,7 @@
 /** 公開: 可視の口コミと集計を返す(GET ?subjectType=&subjectId=)。認証不要（公開サイト掲載用）。非表示は返さない。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { reviewStore } from "../../../../server/platform-services.js";
-import { summarizeReviews } from "../../../../server/review-repo.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { reviewStore } from "../../../../server/platform-services";
+import { summarizeReviews } from "../../../../server/review-repo";
 
 async function handleGET(req: Request): Promise<Response> {
   const q = new URL(req.url).searchParams;

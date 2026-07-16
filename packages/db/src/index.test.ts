@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { z } from "zod";
-import { queryRaw, queryRawValidated, executeRaw, transaction, normalizeBigInt, sql } from "./index.js";
-import { recordAudit } from "./index.js";
+import { queryRaw, queryRawValidated, executeRaw, transaction, normalizeBigInt, sql } from "./index";
+import { recordAudit } from "./index";
 import type { PrismaClient } from "@prisma/client";
 
 function mockDb(over: Partial<PrismaClient>): PrismaClient {

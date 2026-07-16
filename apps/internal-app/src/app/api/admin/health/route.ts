@@ -1,9 +1,9 @@
 /** 管理: システムヘルス(GET)。主要データ件数とチェック結果。管理者のみ。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { userStore, partnerStore, invoiceStore, inquiryStore, auditLog } from "../../../../server/platform-services.js";
-import { healthReport, type HealthCheck } from "../../../../server/health-summary.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { userStore, partnerStore, invoiceStore, inquiryStore, auditLog } from "../../../../server/platform-services";
+import { healthReport, type HealthCheck } from "../../../../server/health-summary";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

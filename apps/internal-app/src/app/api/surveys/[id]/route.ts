@@ -1,8 +1,8 @@
 /** アンケート: 個別取得(GET)。認証ユーザー。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { surveyStore } from "../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { surveyStore } from "../../../../server/platform-services";
 
 async function handleGET(req: Request, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

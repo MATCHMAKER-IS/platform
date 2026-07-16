@@ -2,11 +2,11 @@ import * as React from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { breadcrumbFromMenu } from "@platform/site";
-import { content, siteConfig } from "../../server/content.js";
-import { renderPage } from "../../server/site-content.js";
-import { pageMeta } from "../../server/seo.js";
-import { BlockRenderer } from "../block-renderer.js";
-import { BeaconClient } from "../beacon-client.js";
+import { content, siteConfig } from "../../server/content";
+import { renderPage } from "../../server/site-content";
+import { pageMeta } from "../../server/seo";
+import { BlockRenderer } from "../block-renderer";
+import { BeaconClient } from "../beacon-client";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;

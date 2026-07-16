@@ -1,11 +1,11 @@
 /** 資金繰り: 営業キャッシュフローの月次(GET)。入金(収入)と支払・経費・報酬(支出)から算出。?from=&to=&opening=。accounting:read。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { receiptStore, purchasePaymentStore, feePaymentStore } from "../../../server/platform-services.js";
-import { listExpenses } from "../../../server/expense-repo.js";
-import { monthlyCashFlow, summarizeCashFlow, type CashMovement } from "../../../server/cashflow.js";
-import { monthRange } from "../../../server/trend.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser, requirePermission } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { receiptStore, purchasePaymentStore, feePaymentStore } from "../../../server/platform-services";
+import { listExpenses } from "../../../server/expense-repo";
+import { monthlyCashFlow, summarizeCashFlow, type CashMovement } from "../../../server/cashflow";
+import { monthRange } from "../../../server/trend";
 
 function defaultRange(): { from: string; to: string } {
   const to = new Date();

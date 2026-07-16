@@ -1,9 +1,9 @@
 /** 見積: 状態遷移(POST)。quote:write が必要。 */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { quoteStore, auditActions } from "../../../../../server/platform-services.js";
-import { type QuoteState } from "../../../../../server/quote-repo.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { quoteStore, auditActions } from "../../../../../server/platform-services";
+import { type QuoteState } from "../../../../../server/quote-repo";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ number: string }> }): Promise<Response> {
   const { number } = await ctx.params;

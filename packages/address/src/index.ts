@@ -68,4 +68,4 @@ export function createAddressLookup(adapter: AddressAdapter): AddressLookup {
   };
 }
 
-export { createZipcloudAdapter } from "./adapters/zipcloud.js";
+export { createZipcloudAdapter } from "./adapters/zipcloud";

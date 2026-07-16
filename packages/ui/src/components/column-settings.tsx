@@ -6,10 +6,10 @@
  */
 import * as React from "react";
 import { ChevronUp, ChevronDown, Eye, EyeOff } from "lucide-react";
-import { cn } from "../lib/cn.js";
-import { useT } from "./i18n-provider.js";
-import { applyColumnPrefs, toggleColumnHidden, moveColumn, type ColumnPrefs } from "../lib/column-prefs.js";
-import { Button } from "./button.js";
+import { cn } from "../lib/cn";
+import { useT } from "./i18n-provider";
+import { applyColumnPrefs, toggleColumnHidden, moveColumn, type ColumnPrefs } from "../lib/column-prefs";
+import { Button } from "./button";
 
 /** {@link ColumnSettings} の props。 */
 export interface ColumnSettingsProps {

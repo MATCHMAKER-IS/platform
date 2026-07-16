@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { AppError, ErrorCode, ok, err, tryCatch } from "./index.js";
+import { AppError, ErrorCode, ok, err, tryCatch } from "./index";
 
 describe("AppError", () => {
   it("保持したコードとメッセージを返す", () => {

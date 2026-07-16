@@ -2,11 +2,11 @@
  * 運用アラートの入力収集。売掛・買掛・在庫・勤怠承認・請求の現況を集めて AlertInput を作る。
  * @packageDocumentation
  */
-import { invoiceStore, purchaseStore, purchasePaymentStore, inventoryStore, attendanceApprovalStore } from "./platform-services.js";
-import { receivablesSummary, type ReceivableInvoice } from "./receivables.js";
-import { payablesSummary, type PayableOrder } from "./payables-repo.js";
-import { overdueFromAging } from "./dashboard-kpi.js";
-import { type AlertInput } from "./alerts.js";
+import { invoiceStore, purchaseStore, purchasePaymentStore, inventoryStore, attendanceApprovalStore } from "./platform-services";
+import { receivablesSummary, type ReceivableInvoice } from "./receivables";
+import { payablesSummary, type PayableOrder } from "./payables-repo";
+import { overdueFromAging } from "./dashboard-kpi";
+import { type AlertInput } from "./alerts";
 
 /** 各ストアから現況を集めてアラート入力を作る。 */
 export async function collectAlertInput(): Promise<AlertInput> {

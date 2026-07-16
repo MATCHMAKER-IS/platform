@@ -9,12 +9,12 @@
  */
 export {
   parseCookies, getCookie, serializeCookie, clearCookie, type CookieOptions,
-} from "./cookie.js";
-export { createSession, type Session, type SessionConfig } from "./session.js";
+} from "./cookie";
+export { createSession, type Session, type SessionConfig } from "./session";
 export {
   createServerSession, type ServerSession, type ServerSessionConfig, type SessionStore,
-} from "./store-session.js";
-export * from "./idle-timer.js";
-export * from "./login-throttle.js";
-export * from "./step-up.js";
-export * from "./login-audit.js";
+} from "./store-session";
+export * from "./idle-timer";
+export * from "./login-throttle";
+export * from "./step-up";
+export * from "./login-audit";

@@ -3,8 +3,8 @@
  * @packageDocumentation
  */
 import { can, canScoped, featureFlags, type Policy } from "@platform/auth";
-import { verifySession, type SessionPayload } from "./zoho-session.js";
-import { APP_POLICY, APP_FEATURES } from "./policy.js";
+import { verifySession, type SessionPayload } from "./zoho-session";
+import { APP_POLICY, APP_FEATURES } from "./policy";
 
 /** クッキーから現在のユーザーを取り出す。未ログインは null。 */
 export function currentUser(cookieValue: string | undefined, secret: string): SessionPayload | null {

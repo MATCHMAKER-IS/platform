@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** ギャラリー画像。 */
 export interface GalleryImage {

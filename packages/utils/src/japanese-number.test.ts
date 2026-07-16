@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toKanjiNumber, toDaijiAmount } from "./japanese-number.js";
+import { toKanjiNumber, toDaijiAmount } from "./japanese-number";
 
 describe("japanese number", () => {
   it("kanji", () => { expect(toKanjiNumber(12345)).toBe("一万二千三百四十五"); expect(toKanjiNumber(10)).toBe("十"); expect(toKanjiNumber(100010000)).toBe("一億一万"); expect(toKanjiNumber(0)).toBe("〇"); expect(toKanjiNumber(-42)).toBe("マイナス四十二"); });

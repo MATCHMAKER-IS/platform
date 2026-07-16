@@ -1,5 +1,5 @@
 /** 基盤カタログ(パッケージ/カテゴリ/ADR/ヘルス)を返す。ビルド時ではなくリクエスト時にリポジトリを読む。 */
-import { buildCatalog } from "../../../server/catalog.js";
+import { buildCatalog } from "../../../server/catalog";
 
 export const dynamic = "force-dynamic";
 

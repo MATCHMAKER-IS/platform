@@ -4,7 +4,7 @@
  */
 import * as React from "react";
 import { Separator as Primitive } from "radix-ui";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link Separator} の props。 */
 export type SeparatorProps = React.ComponentPropsWithoutRef<typeof Primitive.Root>;

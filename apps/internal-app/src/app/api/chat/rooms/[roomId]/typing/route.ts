@@ -1,9 +1,9 @@
 /**
  * 入力中通知 API（POST）。プレゼンスに記録し、ルームの他接続へ入力中を同報する。
  */
-import { currentUser, requirePermission } from "../../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../../server/env.js";
-import { presence, chatGateway } from "../../../../../../server/chat.js";
+import { currentUser, requirePermission } from "../../../../../../server/authorize";
+import { serverEnv } from "../../../../../../server/env";
+import { presence, chatGateway } from "../../../../../../server/chat";
 
 export const dynamic = "force-dynamic";
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createZohoProjectsClient } from "./index.js";
+import { createZohoProjectsClient } from "./index";
 
 describe("zoho projects", () => {
   it("portal-scoped paths", async () => {

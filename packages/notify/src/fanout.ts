@@ -3,7 +3,7 @@
  * これは 1 つ失敗しても他チャネルへ送り、各結果を返す)。
  * @packageDocumentation
  */
-import type { NotifyChannel, NotifyMessage } from "./index.js";
+import type { NotifyChannel, NotifyMessage } from "./index";
 
 /** 1 チャネルの送信結果。 */
 export interface ChannelResult { name: string; ok: boolean; error?: string }

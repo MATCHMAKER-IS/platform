@@ -2,7 +2,7 @@
  * Slack Incoming Webhook チャネル。
  * @packageDocumentation
  */
-import type { NotifyChannel } from "../index.js";
+import type { NotifyChannel } from "../index";
 
 /**
  * Slack チャネルを作る。

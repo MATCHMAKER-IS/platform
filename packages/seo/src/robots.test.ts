@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildRobotsTxt, allowAllRobotsTxt } from "./robots.js";
+import { buildRobotsTxt, allowAllRobotsTxt } from "./robots";
 describe("seo robots", () => {
   it("builds robots.txt", () => {
     const rt = buildRobotsTxt({ rules: [{ userAgent: "*", disallow: ["/admin"], allow: ["/"] }, { userAgent: "Googlebot", crawlDelay: 1 }], sitemaps: ["https://ex.com/sitemap.xml"] });

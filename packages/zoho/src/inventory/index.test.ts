@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createZohoInventoryClient } from "./index.js";
+import { createZohoInventoryClient } from "./index";
 
 describe("zoho inventory", () => {
   it("organization_id on requests", async () => {

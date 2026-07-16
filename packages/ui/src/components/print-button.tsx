@@ -6,7 +6,7 @@
 import * as React from "react";
 import { Printer } from "lucide-react";
 import { printHtml, printElement, printPage, type PrintOptions } from "@platform/print";
-import { Button, type ButtonProps } from "./button.js";
+import { Button, type ButtonProps } from "./button";
 
 /** {@link PrintButton} の props。 */
 export interface PrintButtonProps extends Omit<ButtonProps, "onClick"> {

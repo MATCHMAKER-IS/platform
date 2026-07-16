@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildManualJournal } from "./builders.js";
+import { buildManualJournal } from "./builders";
 describe("freee manual journal builder", () => {
   it("builds balanced journal", () => {
     const mj = buildManualJournal({ companyId: 1, issueDate: "2025-07-11", details: [

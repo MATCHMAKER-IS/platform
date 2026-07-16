@@ -4,7 +4,7 @@
  */
 import * as React from "react";
 import { Slider as SliderPrimitive } from "radix-ui";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link Slider} の props。 */
 export type SliderProps = React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root>;

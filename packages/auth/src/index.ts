@@ -15,19 +15,19 @@ export {
   type Permission,
   type Role,
   type Policy,
-} from "./rbac.js";
-export { assertCan, type AuthUser, type Session } from "./session.js";
+} from "./rbac";
+export { assertCan, type AuthUser, type Session } from "./session";
 export {
   resolveIssuer,
   type OidcProviderConfig,
   type OidcProviderKind,
-} from "./oidc.js";
+} from "./oidc";
 export {
   resolveHierarchy, canAny, canAll, canScoped, filterAuthorized, featureFlags,
   type RoleDefinition, type RoleHierarchy,
-} from "./hierarchy.js";
-export * from "./otp.js";
-export * from "./totp.js";
-export * from "./recovery-codes.js";
-export * from "./two-factor.js";
-export * from "./webauthn.js";
+} from "./hierarchy";
+export * from "./otp";
+export * from "./totp";
+export * from "./recovery-codes";
+export * from "./two-factor";
+export * from "./webauthn";

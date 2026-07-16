@@ -1,10 +1,10 @@
 /** 承認の署名: 状況取得(GET)・署名保存(POST)。承認に紐づく手書きサインを扱う。認証ユーザー。 */
-import { withApiObservability } from "../../../../../../server/instrument.js";
-import { currentUser } from "../../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../../server/env.js";
-import { signatureStore, settingsStore, auditActions } from "../../../../../../server/platform-services.js";
-import { isValidSignatureImage } from "../../../../../../server/signature-repo.js";
-import { approvalSubjectId, approvalSignatureStatus, canFinalizeApproval, signatureRequiredByAmount } from "../../../../../../server/approval-signature.js";
+import { withApiObservability } from "../../../../../../server/instrument";
+import { currentUser } from "../../../../../../server/authorize";
+import { serverEnv } from "../../../../../../server/env";
+import { signatureStore, settingsStore, auditActions } from "../../../../../../server/platform-services";
+import { isValidSignatureImage } from "../../../../../../server/signature-repo";
+import { approvalSubjectId, approvalSignatureStatus, canFinalizeApproval, signatureRequiredByAmount } from "../../../../../../server/approval-signature";
 
 async function handleGET(req: Request, ctx: { params: Promise<{ docType: string; docNumber: string }> }): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

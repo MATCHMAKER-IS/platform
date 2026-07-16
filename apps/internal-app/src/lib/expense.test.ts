@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { summarize, monthKey, quarterKey, totalByCategory, outlierExpenses, type Expense } from "./expense.js";
+import { summarize, monthKey, quarterKey, totalByCategory, outlierExpenses, type Expense } from "./expense";
 
 const data: Expense[] = [
   { id: "1", date: "2024-01-05", category: "交通費", amount: 1200 },

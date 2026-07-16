@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** 配信チャネル。 */
 export type PrefChannel = "email" | "inApp" | "slack" | "line" | "sms" | "push";

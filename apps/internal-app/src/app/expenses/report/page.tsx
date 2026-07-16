@@ -3,8 +3,8 @@
 import { useMemo, useState, type ChangeEvent } from "react";
 import { Button } from "@platform/ui";
 import { formatNumber } from "@platform/utils";
-import { buildMonthlyReport, availableMonths } from "../../../lib/expense-report.js";
-import { SAMPLE_EXPENSES } from "../../../lib/sample-expenses.js";
+import { buildMonthlyReport, availableMonths } from "../../../lib/expense-report";
+import { SAMPLE_EXPENSES } from "../../../lib/sample-expenses";
 import type { ReportLocale } from "@platform/report";
 
 const yen = (n: number) => `¥${formatNumber(n, {})}`;

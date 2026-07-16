@@ -1,7 +1,7 @@
 /** 経費申請の作成 API(POST)。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { createRequest } from "../../../../server/approval-repo.js";
-import { auditActions } from "../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { createRequest } from "../../../../server/approval-repo";
+import { auditActions } from "../../../../server/platform-services";
 
 async function handlePOST(req: Request): Promise<Response> {
   let body: { applicant?: string; expenseId?: string };

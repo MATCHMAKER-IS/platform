@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { can, transition, availableEvents, isFinal, run, createStateMachine, type StateMachineDefinition } from "./index.js";
+import { can, transition, availableEvents, isFinal, run, createStateMachine, type StateMachineDefinition } from "./index";
 
 type S = "pending" | "packed" | "shipped" | "delivered" | "cancelled";
 type E = "pack" | "ship" | "deliver" | "cancel";

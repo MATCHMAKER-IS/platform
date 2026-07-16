@@ -6,13 +6,13 @@
  */
 import * as React from "react";
 import { wrapText } from "@platform/utils";
-import { cn } from "../lib/cn.js";
-import { Highlight } from "./highlight.js";
+import { cn } from "../lib/cn";
+import { Highlight } from "./highlight";
 import {
   parseLogLines, filterLogLines, countByLevel, bucketByTime, logLinesToText, formatRelativeTime, firstLineIndexAtOrAfter,
   collectFieldKeys, fieldFacets, filterByFields,
   LOG_LEVELS, type LogLevel,
-} from "../lib/log.js";
+} from "../lib/log";
 
 /** {@link LogViewer} の props。 */
 export interface LogViewerProps {

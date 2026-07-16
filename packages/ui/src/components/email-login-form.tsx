@@ -5,8 +5,8 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
-import { validateEmailLogin, isLoginFormValid, type LoginFormErrors } from "../lib/login-form.js";
+import { cn } from "../lib/cn";
+import { validateEmailLogin, isLoginFormValid, type LoginFormErrors } from "../lib/login-form";
 
 /** 送信される値。 */
 export interface EmailLoginValues {

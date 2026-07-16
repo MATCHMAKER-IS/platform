@@ -5,11 +5,11 @@
  */
 import * as React from "react";
 import { Play, Pause, Volume2, VolumeX } from "lucide-react";
-import { Seekbar } from "./progress.js";
-import { Slider } from "./slider.js";
-import { useMediaElement } from "./use-media.js";
-import { formatTime } from "../lib/format-time.js";
-import { cn } from "../lib/cn.js";
+import { Seekbar } from "./progress";
+import { Slider } from "./slider";
+import { useMediaElement } from "./use-media";
+import { formatTime } from "../lib/format-time";
+import { cn } from "../lib/cn";
 
 /** {@link AudioPlayer} の props。 */
 export interface AudioPlayerProps {

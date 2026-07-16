@@ -1,9 +1,9 @@
 "use client";
 /** ウォーターフォール(増減の滝グラフ)。 @packageDocumentation */
 import { ResponsiveContainer, ComposedChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
-import { cn } from "../../lib/cn.js";
-import { ChartTitle } from "./chart-common.js";
-import { toWaterfall, type WaterfallItem } from "./chart-math.js";
+import { cn } from "../../lib/cn";
+import { ChartTitle } from "./chart-common";
+import { toWaterfall, type WaterfallItem } from "./chart-math";
 
 /** {@link WaterfallChart} の props。 */
 export interface WaterfallChartProps {

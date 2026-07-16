@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeDiscount, applyDiscount, isCouponApplicable } from "./discount.js";
+import { computeDiscount, applyDiscount, isCouponApplicable } from "./discount";
 describe("discount", () => {
   it("computes percentage/fixed with caps and thresholds", () => {
     expect(computeDiscount({ code: "X", type: "percentage", value: 10 }, 3000)).toBe(300);

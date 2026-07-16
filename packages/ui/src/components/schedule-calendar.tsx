@@ -7,11 +7,11 @@
  */
 import * as React from "react";
 import { addMonths, addDays, isHoliday as isHolidayRaw, holidayName as holidayNameRaw } from "@platform/datetime";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 import {
   type CalendarEvent, buildMonthGrid, eventsForDay, layoutDayEvents, groupEventsByDay, formatEventTime, nowOffset,
-} from "../lib/schedule.js";
-import { CalendarLegend, type CalendarCategory } from "./calendar-legend.js";
+} from "../lib/schedule";
+import { CalendarLegend, type CalendarCategory } from "./calendar-legend";
 
 /** カレンダーのビュー種別。 */
 export type CalendarView = "month" | "week" | "day" | "agenda";

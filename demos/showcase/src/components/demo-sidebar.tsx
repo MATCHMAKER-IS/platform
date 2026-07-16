@@ -9,7 +9,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { SECTIONS } from "../lib/nav.js";
+import { SECTIONS } from "../lib/nav";
 
 export function DemoSidebar() {
   const pathname = usePathname() ?? "/";

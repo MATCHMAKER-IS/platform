@@ -2,8 +2,8 @@
  * 記事の検索・絞り込み（純関数）。CMS 一覧の検索窓・フィルタで使う。
  * @packageDocumentation
  */
-import { type CmsPost } from "./model.js";
-import { effectiveStatus, type EffectiveStatus } from "./scheduling.js";
+import { type CmsPost } from "./model";
+import { effectiveStatus, type EffectiveStatus } from "./scheduling";
 
 /** 絞り込み条件。 */
 export interface PostFilter {

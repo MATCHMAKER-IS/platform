@@ -3,9 +3,9 @@
  *
  * **サーバでソースを読み、実行結果も出す**(コードだけだと、何が起きるか分からない)。
  */
-import { ExampleView, OutputText } from "../../../components/example-view.js";
-import { readExampleSource, excerptSource } from "../../../lib/example-source.js";
-import { buildTodoList, formatTodoList, morningSummary } from "../../../examples/workplace-ops.js";
+import { ExampleView, OutputText } from "../../../components/example-view";
+import { readExampleSource, excerptSource } from "../../../lib/example-source";
+import { buildTodoList, formatTodoList, morningSummary } from "../../../examples/workplace-ops";
 import type { Task } from "@platform/task";
 import type { Contract } from "@platform/contract";
 import type { FaqItem } from "@platform/faq";

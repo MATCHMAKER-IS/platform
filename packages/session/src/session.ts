@@ -6,7 +6,7 @@
  * @packageDocumentation
  */
 import { deriveKey, encrypt, decrypt } from "@platform/crypto";
-import { getCookie, serializeCookie, clearCookie, type CookieOptions } from "./cookie.js";
+import { getCookie, serializeCookie, clearCookie, type CookieOptions } from "./cookie";
 
 /** {@link createSession} の設定。 */
 export interface SessionConfig {

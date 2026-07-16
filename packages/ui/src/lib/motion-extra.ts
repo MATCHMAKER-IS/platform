@@ -7,7 +7,7 @@
  * こちらは quart 以降と高次のイージング + ユーティリティ)。
  * @packageDocumentation
  */
-import { clamp01 } from "./motion.js";
+import { clamp01 } from "./motion";
 
 const c1 = 1.70158;
 const c2 = c1 * 1.525;

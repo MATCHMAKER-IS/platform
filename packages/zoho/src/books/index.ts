@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import type { Result } from "@platform/core";
-import { createZohoApiClient, type ZohoClientConfig } from "../core/client.js";
+import { createZohoApiClient, type ZohoClientConfig } from "../core/client";
 
 /** Books リソース(緩め)。 */
 export type BooksRecord = Record<string, unknown>;

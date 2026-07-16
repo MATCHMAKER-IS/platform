@@ -1,4 +1,4 @@
 import * as React from "react";
-import { AnalyticsClient } from "./analytics-client.js";
+import { AnalyticsClient } from "./analytics-client";
 export const metadata = { title: "経営分析" };
 export default function AnalyticsPage() { return <AnalyticsClient />; }

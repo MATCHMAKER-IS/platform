@@ -6,12 +6,12 @@
  */
 import * as React from "react";
 import { Play, Pause, Volume2, VolumeX, Maximize } from "lucide-react";
-import { Seekbar } from "./progress.js";
-import { Slider } from "./slider.js";
-import { useMediaElement } from "./use-media.js";
-import { formatTime } from "../lib/format-time.js";
-import { cn } from "../lib/cn.js";
-import { useT } from "./i18n-provider.js";
+import { Seekbar } from "./progress";
+import { Slider } from "./slider";
+import { useMediaElement } from "./use-media";
+import { formatTime } from "../lib/format-time";
+import { cn } from "../lib/cn";
+import { useT } from "./i18n-provider";
 
 /** {@link VideoPlayer} の props。 */
 export interface VideoPlayerProps {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { canTransition, nextStatuses, isFinalStatus, isActiveBooking, BOOKING_STATUS_LABELS } from "./status.js";
+import { canTransition, nextStatuses, isFinalStatus, isActiveBooking, BOOKING_STATUS_LABELS } from "./status";
 describe("booking status", () => {
   it("manages lifecycle", () => {
     expect(canTransition("requested", "confirmed")).toBe(true);

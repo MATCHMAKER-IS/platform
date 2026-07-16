@@ -3,8 +3,8 @@
  * ファネル。段階ごとの数と遷移率・離脱を縦に表示する(申込→審査→承認など)。
  * @packageDocumentation
  */
-import { cn } from "../lib/cn.js";
-import { funnelStages } from "../lib/dashboard.js";
+import { cn } from "../lib/cn";
+import { funnelStages } from "../lib/dashboard";
 
 /** ファネルの 1 段。 */
 export interface FunnelStep {

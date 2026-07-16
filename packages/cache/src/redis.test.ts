@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createRedisCache, type RedisLike } from "./adapters/redis.js";
+import { createRedisCache, type RedisLike } from "./adapters/redis";
 describe("redis cache adapter", () => {
   it("get/set/delete with TTL via injected client", async () => {
     const store = new Map<string, string>(); const ttls = new Map<string, number>();

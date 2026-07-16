@@ -6,11 +6,11 @@
  */
 import * as React from "react";
 import { LayoutGrid, List as ListIcon, LayoutDashboard } from "lucide-react";
-import { cn } from "../lib/cn.js";
-import { useT } from "./i18n-provider.js";
-import { CardGrid } from "./card.js";
-import { List } from "./list.js";
-import { BlockGrid } from "./block.js";
+import { cn } from "../lib/cn";
+import { useT } from "./i18n-provider";
+import { CardGrid } from "./card";
+import { List } from "./list";
+import { BlockGrid } from "./block";
 
 /** 表示モード。 */
 export type ViewMode = "card" | "list" | "block";

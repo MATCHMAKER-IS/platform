@@ -1,5 +1,5 @@
 /** サンプルの公開サイトコンテンツ（本番は CMS/DB に置き換え）。 */
-import { createMemorySiteContent, type BlogPost } from "./site-content.js";
+import { createMemorySiteContent, type BlogPost } from "./site-content";
 import { type Page, type MenuItem, type Announcement, type Banner } from "@platform/site";
 import { type Category } from "@platform/board";
 import { liveBlogViews, livePageViews, type CmsPost, type ManagedPage } from "@platform/cms";

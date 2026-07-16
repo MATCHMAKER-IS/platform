@@ -4,7 +4,7 @@
  * ベイズ平均(IMDb 方式)で補正する。口コミ(レビュー)集計は @platform/commerce の ratingSummary と併用可。
  * @packageDocumentation
  */
-import { type Cast, activeCasts } from "./cast.js";
+import { type Cast, activeCasts } from "./cast";
 
 /** ランキング対象のキャスト(評価・件数を持つ)。 */
 export interface RankedCast extends Cast {

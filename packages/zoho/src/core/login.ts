@@ -3,7 +3,7 @@
  * 社内アプリの「Zoho でログイン」に使う。
  * @packageDocumentation
  */
-import { accountsUrl, type ZohoDataCenter } from "./datacenter.js";
+import { accountsUrl, type ZohoDataCenter } from "./datacenter";
 
 /** 認可 URL 生成の入力。 */
 export interface AuthorizationUrlInput {

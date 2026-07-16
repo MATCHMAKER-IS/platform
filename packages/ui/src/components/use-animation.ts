@@ -5,8 +5,8 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { tweenValue, type AnyEasingName } from "../lib/motion-tween.js";
-import { stepSpring, isSpringSettled, type SpringConfig } from "../lib/motion-extra.js";
+import { tweenValue, type AnyEasingName } from "../lib/motion-tween";
+import { stepSpring, isSpringSettled, type SpringConfig } from "../lib/motion-extra";
 
 /** {@link useTween} のオプション。 */
 export interface UseTweenOptions {

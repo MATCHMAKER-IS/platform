@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createMemorySeenStore } from "./dedup.js";
+import { createMemorySeenStore } from "./dedup";
 describe("seen store has()", () => {
   it("peeks without recording", () => {
     let clk = 0; const s = createMemorySeenStore(() => clk);

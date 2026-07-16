@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { histogram, type HistogramOptions } from "@platform/utils";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link Histogram} の props。 */
 export interface HistogramProps {

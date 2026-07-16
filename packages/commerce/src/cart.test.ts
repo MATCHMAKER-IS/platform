@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { emptyCart, addToCart, setQuantity, decrementQuantity, removeFromCart, findCartItem, cartSubtotal, cartItemCount, cartUniqueCount, lineTotal, mergeCarts } from "./cart.js";
+import { emptyCart, addToCart, setQuantity, decrementQuantity, removeFromCart, findCartItem, cartSubtotal, cartItemCount, cartUniqueCount, lineTotal, mergeCarts } from "./cart";
 describe("cart", () => {
   it("adds, updates, removes", () => {
     let c = addToCart(addToCart(emptyCart(), { productId: "A", name: "A", unitPrice: 1000 }), { productId: "B", name: "B", unitPrice: 500, quantity: 2 });

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createStorage, createLocalStorage } from "./index.js";
+import { createStorage, createLocalStorage } from "./index";
 
 describe("storage (local adapter)", () => {
   let root: string;

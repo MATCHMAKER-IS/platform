@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { postKey, mergeSocialFeed, filterByPlatform, groupByPlatform, latestPerPlatform, newPosts, recentPosts } from "./feed.js";
+import { postKey, mergeSocialFeed, filterByPlatform, groupByPlatform, latestPerPlatform, newPosts, recentPosts } from "./feed";
 const posts = [
   { platform: "x" as const, id: "1", url: "u1", createdAt: "2025-07-20T10:00:00Z" },
   { platform: "tiktok" as const, id: "10", url: "u10", createdAt: "2025-07-25T10:00:00Z" },

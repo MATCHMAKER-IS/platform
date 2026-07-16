@@ -5,8 +5,8 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
-import { isNavActive, type NavItem } from "../lib/nav.js";
+import { cn } from "../lib/cn";
+import { isNavActive, type NavItem } from "../lib/nav";
 
 /** {@link AppHeader} の props。 */
 export interface AppHeaderProps extends React.HTMLAttributes<HTMLElement> {

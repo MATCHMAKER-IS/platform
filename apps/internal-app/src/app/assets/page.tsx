@@ -1,4 +1,4 @@
 import * as React from "react";
-import { AssetsClient } from "./assets-client.js";
+import { AssetsClient } from "./assets-client";
 export const metadata = { title: "固定資産" };
 export default function AssetsPage() { return <AssetsClient />; }

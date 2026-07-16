@@ -4,14 +4,14 @@
  * @packageDocumentation
  */
 import { createLogger } from "@platform/logger";
-import { logContext } from "./log-context.js";
+import { logContext } from "./log-context";
 import { createDb } from "@platform/db";
 import { summarizeSql } from "@platform/debug";
-import { debugCollector } from "./debug-collector.js";
+import { debugCollector } from "./debug-collector";
 import { createMailer, createSmtpTransport, withMailRetry } from "@platform/mail";
 import { createMemoryOutboxStore } from "@platform/observability";
 import { createMemorySeenStore } from "@platform/notify";
-import { env, featureEnv } from "./env.js";
+import { env, featureEnv } from "./env";
 
 export const log = createLogger({ level: env.LOG_LEVEL, base: { service: "internal-app" }, contextProvider: logContext.provider });
 
@@ -55,6 +55,6 @@ export const notifySeen = createMemorySeenStore();
 
 // 辞書(RAG 検索・文字起こしの表記統一)を DB 永続化する。
 // db の glossaryReplacement / glossaryTerm デリゲートを注入(Prisma スキーマに対応モデルあり)。
-import { configureDictionaryDb } from "./rag-service.js";
-import type { DictionaryDb } from "./dictionary-store.js";
+import { configureDictionaryDb } from "./rag-service";
+import type { DictionaryDb } from "./dictionary-store";
 configureDictionaryDb(db as unknown as DictionaryDb);

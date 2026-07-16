@@ -4,7 +4,7 @@
  * 可視性の確保(取引年月日・金額・取引先での検索)、保存期間の管理を提供する。
  * @packageDocumentation
  */
-export * from "./hash-chain.js";
-export * from "./search.js";
-export * from "./timestamp.js";
-export * from "./retention.js";
+export * from "./hash-chain";
+export * from "./search";
+export * from "./timestamp";
+export * from "./retention";

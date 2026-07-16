@@ -3,7 +3,7 @@
  * 売上(請求)・仕入(発注)・入金などを、勘定科目つきの複式仕訳に変換する。
  * @packageDocumentation
  */
-import { type JournalEntry, type JournalLine } from "./journal.js";
+import { type JournalEntry, type JournalLine } from "./journal";
 
 /** 勘定科目名(既定。会社ごとに差し替え可）。 */
 export interface AccountNames {

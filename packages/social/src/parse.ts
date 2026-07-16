@@ -4,8 +4,8 @@
  * キャストが自分のプロフィール/投稿リンクを貼るだけで連携情報を取り出せる。
  * @packageDocumentation
  */
-import { type SocialPlatform, platformFromHostname } from "./platforms.js";
-import { normalizeHandle } from "./handle.js";
+import { type SocialPlatform, platformFromHostname } from "./platforms";
+import { normalizeHandle } from "./handle";
 
 /** 解析結果の種別。 */
 export type SocialUrlType = "profile" | "post";

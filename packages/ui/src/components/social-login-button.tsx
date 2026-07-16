@@ -6,7 +6,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** 対応プロバイダ。 */
 export type SocialProvider = "google" | "zoho" | "microsoft" | "github" | "apple" | "line";

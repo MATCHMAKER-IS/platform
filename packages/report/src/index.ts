@@ -7,16 +7,16 @@
  *
  * @packageDocumentation
  */
-export { roundAmount, formatYen, multiply, type RoundingMode } from "./money.js";
+export { roundAmount, formatYen, multiply, type RoundingMode } from "./money";
 export {
   calculateInvoice,
   type InvoiceLineInput, type InvoiceCalcOptions, type InvoiceLine,
   type TaxBreakdown, type InvoiceCalculation,
-} from "./invoice.js";
-export { renderInvoiceHtml, renderQuotationHtml, renderDeliveryNoteHtml, type InvoiceDocument, type Party } from "./render.js";
+} from "./invoice";
+export { renderInvoiceHtml, renderQuotationHtml, renderDeliveryNoteHtml, type InvoiceDocument, type Party } from "./render";
 
-export { expenseFromReceiptFields, expenseTaxBreakdown, renderExpenseHtml, expenseToRow, type ExpenseRecord, type ExtractedFields, type ExpenseRow } from "./expense.js";
+export { expenseFromReceiptFields, expenseTaxBreakdown, renderExpenseHtml, expenseToRow, type ExpenseRecord, type ExtractedFields, type ExpenseRow } from "./expense";
 
-export { monthlyExpenseSummary, renderMonthlyReportHtml, monthlyReportSheets, type MonthlySummary, type ReportLocale } from "./monthly.js";
-export * from "./print.js";
-export * from "./reports.js";
+export { monthlyExpenseSummary, renderMonthlyReportHtml, monthlyReportSheets, type MonthlySummary, type ReportLocale } from "./monthly";
+export * from "./print";
+export * from "./reports";

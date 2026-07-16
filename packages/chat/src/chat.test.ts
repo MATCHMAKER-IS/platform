@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { createMessage, editMessage, sortMessages, groupByDate, extractMentions, mentionsOf, repliesTo } from "./message.js";
-import { createRoom, lastMessage, unreadCount, markRead, firstUnread, sortRoomsByActivity } from "./room.js";
+import { createMessage, editMessage, sortMessages, groupByDate, extractMentions, mentionsOf, repliesTo } from "./message";
+import { createRoom, lastMessage, unreadCount, markRead, firstUnread, sortRoomsByActivity } from "./room";
 
 const M = (id: string, senderId: string, at: string, text = "x") => ({ id, roomId: "r1", senderId, text, at });
 

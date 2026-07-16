@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isAnnouncementActive, activeAnnouncements, topAnnouncement } from "./announcement.js";
+import { isAnnouncementActive, activeAnnouncements, topAnnouncement } from "./announcement";
 const now = new Date("2025-07-25T12:00:00Z");
 const anns = [
   { id: "1", message: "通常", level: "info" as const },

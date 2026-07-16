@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { backoffDelay, withTimeout, retry } from "./backoff.js";
+import { backoffDelay, withTimeout, retry } from "./backoff";
 
 describe("backoff/retry", () => {
   it("exponential + cap", () => { expect(backoffDelay(0, { baseMs: 100 })).toBe(100); expect(backoffDelay(3, { baseMs: 100 })).toBe(800); expect(backoffDelay(10, { baseMs: 100, maxMs: 1000 })).toBe(1000); });

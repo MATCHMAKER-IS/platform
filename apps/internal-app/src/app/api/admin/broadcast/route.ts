@@ -1,9 +1,9 @@
 /** 管理: 全体周知の配信(POST)。有効な全利用者の受信箱へ一斉送信。管理者のみ。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { userStore, appMailer, auditActions } from "../../../../server/platform-services.js";
-import { activeRecipients } from "../../../../server/broadcast.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { userStore, appMailer, auditActions } from "../../../../server/platform-services";
+import { activeRecipients } from "../../../../server/broadcast";
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

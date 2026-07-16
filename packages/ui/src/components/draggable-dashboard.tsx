@@ -6,10 +6,10 @@
  */
 import * as React from "react";
 import { GripVertical } from "lucide-react";
-import { cn } from "../lib/cn.js";
-import { useT } from "./i18n-provider.js";
-import { reorder, setColSpan, type DashboardLayout } from "../lib/layout.js";
-import type { LayoutStore } from "../lib/layout-store.js";
+import { cn } from "../lib/cn";
+import { useT } from "./i18n-provider";
+import { reorder, setColSpan, type DashboardLayout } from "../lib/layout";
+import type { LayoutStore } from "../lib/layout-store";
 
 /** レイアウト状態を管理し、ストアに永続化するフック。 */
 export function useDashboardLayout(defaultLayout: DashboardLayout, store?: LayoutStore) {

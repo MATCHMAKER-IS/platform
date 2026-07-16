@@ -10,7 +10,7 @@ import {
   Input, PasswordInput, Textarea, Select, Checkbox, Switch, Combobox,
   type SelectOption, type ComboboxOption,
 } from "@platform/ui";
-import { FormField, type FormFieldProps } from "./form.js";
+import { FormField, type FormFieldProps } from "./form";
 
 /** フィールド共通の props(FormField のうち children を除く)。 */
 type BaseFieldProps = Omit<FormFieldProps, "children">;

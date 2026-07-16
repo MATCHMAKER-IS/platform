@@ -3,9 +3,9 @@
  * 貼り付けられた URL 群からアカウント一覧を作り、正規化・重複排除・リンク生成を行う。
  * @packageDocumentation
  */
-import { type SocialPlatform, ALL_PLATFORMS } from "./platforms.js";
-import { normalizeHandle, canonicalHandle, isValidHandle, buildProfileUrl, displayHandle } from "./handle.js";
-import { parseSocialUrl } from "./parse.js";
+import { type SocialPlatform, ALL_PLATFORMS } from "./platforms";
+import { normalizeHandle, canonicalHandle, isValidHandle, buildProfileUrl, displayHandle } from "./handle";
+import { parseSocialUrl } from "./parse";
 
 /** 1 アカウント。 */
 export interface SocialAccount {

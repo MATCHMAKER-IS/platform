@@ -1,12 +1,12 @@
 /** 会計: 月次決算(損益計算書・貸借対照表・消費税集計)(GET)。?month=YYYY-MM で対象月を絞る。accounting:read。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { invoiceStore, purchaseStore, assetStore, manualJournalStore, accountMasterStore } from "../../../../server/platform-services.js";
-import { buildLedger, type LedgerInvoice, type LedgerPurchase } from "../../../../server/ledger.js";
-import { financialStatements, aggregateRates, consumptionTax, type TaxByRate } from "../../../../server/financials.js";
-import { depreciationJournal, DEPRECIATION_ACCOUNT_TYPES } from "../../../../server/depreciation-journal.js";
-import { accountTypeMap } from "../../../../server/account-master-repo.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { invoiceStore, purchaseStore, assetStore, manualJournalStore, accountMasterStore } from "../../../../server/platform-services";
+import { buildLedger, type LedgerInvoice, type LedgerPurchase } from "../../../../server/ledger";
+import { financialStatements, aggregateRates, consumptionTax, type TaxByRate } from "../../../../server/financials";
+import { depreciationJournal, DEPRECIATION_ACCOUNT_TYPES } from "../../../../server/depreciation-journal";
+import { accountTypeMap } from "../../../../server/account-master-repo";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 import { createAiGateway, createAnthropicProvider, createMemoryAiLogStore, createAiImageGateway, createOpenAiImageProvider, type AiProvider, type AiImageProvider, type AiGateway, type AiImageGateway } from "@platform/ai";
-import { featureEnv } from "./env.js";
+import { featureEnv } from "./env";
 
 const apiKey = featureEnv.ANTHROPIC_API_KEY || undefined;
 

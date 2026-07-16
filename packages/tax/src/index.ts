@@ -196,4 +196,4 @@ export function isValidCorporateNumber(corporateNumber: string): boolean {
 export function normalizeInvoiceNumber(input: string): string {
   return input.replace(/[Ｔ]/g, "T").replace(/[０-９]/g, (c) => String(c.charCodeAt(0) - 0xff10)).replace(/\s/g, "").toUpperCase();
 }
-export * from "./withholding.js";
+export * from "./withholding";

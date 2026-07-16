@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { createMailChannel } from "./channels/mail.js";
-import { notifyAllSettled, summarizeResults } from "./fanout.js";
+import { createMailChannel } from "./channels/mail";
+import { notifyAllSettled, summarizeResults } from "./fanout";
 
 describe("notify fanout", () => {
   it("per-channel results + summary", async () => {

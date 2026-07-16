@@ -1,9 +1,9 @@
 /** 管理: レポート配信スケジュールの一覧(GET)・追加/有効切替/削除(POST)。管理者のみ。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { reportScheduleStore } from "../../../../server/platform-services.js";
-import { type ReportType, type ReportFrequency } from "../../../../server/report-schedule.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { reportScheduleStore } from "../../../../server/platform-services";
+import { type ReportType, type ReportFrequency } from "../../../../server/report-schedule";
 
 function admin(req: Request) {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

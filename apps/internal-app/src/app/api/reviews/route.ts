@@ -1,9 +1,9 @@
 /** 口コミ: 一覧+集計(GET ?subjectType=&subjectId=)・投稿(POST)。認証ユーザー。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { reviewStore, auditActions } from "../../../server/platform-services.js";
-import { summarizeReviews } from "../../../server/review-repo.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { reviewStore, auditActions } from "../../../server/platform-services";
+import { summarizeReviews } from "../../../server/review-repo";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

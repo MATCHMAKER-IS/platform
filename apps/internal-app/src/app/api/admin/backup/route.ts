@@ -1,10 +1,10 @@
 /** 管理: 統合バックアップ(GET)。主要データを1つのJSONバンドルで返す。管理者のみ。PIIは表示制御に従いマスク。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { invoiceStore, partnerStore, userStore, settingsStore, auditLog, auditActions } from "../../../../server/platform-services.js";
-import { buildBackup, backupFilename, type Dataset } from "../../../../server/backup.js";
-import { maskUserRecord } from "../../../../server/pii-view.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { invoiceStore, partnerStore, userStore, settingsStore, auditLog, auditActions } from "../../../../server/platform-services";
+import { buildBackup, backupFilename, type Dataset } from "../../../../server/backup";
+import { maskUserRecord } from "../../../../server/pii-view";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

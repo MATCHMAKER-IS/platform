@@ -1,8 +1,8 @@
 /** チャットボット: ヘルプ応答(POST)。質問に最も一致するトピックを関連リンクつきで返す。要ログイン。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { answer } from "../../../server/chatbot.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { answer } from "../../../server/chatbot";
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

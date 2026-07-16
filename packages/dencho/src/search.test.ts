@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { searchTransactions, meetsSearchRequirements } from "./search.js";
+import { searchTransactions, meetsSearchRequirements } from "./search";
 const txns = [
   { id: "1", transactionDate: "2025-07-01", amount: 11000, counterparty: "山田商事" },
   { id: "2", transactionDate: "2025-07-15", amount: 55000, counterparty: "鈴木工業" },

@@ -59,4 +59,4 @@ export {
   assertSecretStrength,
   type EnvVarInfo,
   type SecretIssue,
-} from "./describe.js";
+} from "./describe";

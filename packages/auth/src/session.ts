@@ -7,7 +7,7 @@
  */
 
 import { AppError, ErrorCode } from "@platform/core";
-import { can, type Permission, type Policy, type Role } from "./rbac.js";
+import { can, type Permission, type Policy, type Role } from "./rbac";
 
 /** 認証済みユーザー。 */
 export interface AuthUser {

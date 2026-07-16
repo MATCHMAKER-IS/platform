@@ -1,5 +1,5 @@
 /** 公開サイト: お問い合わせ受付(POST)。社内アプリのインテークAPIへ転送して受信一覧に集約する。 */
-import { siteEnv } from "../../../server/env.js";
+import { siteEnv } from "../../../server/env";
 async function handlePOST(req: Request): Promise<Response> {
   const body = (await req.json()) as { name?: string; email?: string; category?: string; subject?: string; message?: string };
   if (!body.name || !body.email || !body.subject || !body.message) return Response.json({ error: "必須項目を入力してください。" }, { status: 400 });

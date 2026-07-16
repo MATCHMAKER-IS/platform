@@ -1,12 +1,12 @@
-import { maskAuditRow } from "../../../server/pii-view.js";
+import { maskAuditRow } from "../../../server/pii-view";
 /**
  * 監査ログ検索 API（GET）。`?actor=&action=&target=&from=&to=&limit=`。
  * 一覧＋チェーン検証結果を返す。監査閲覧は管理者のみ。
  */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser, userCan, requirePermission } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { auditLog } from "../../../server/platform-services.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser, userCan, requirePermission } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { auditLog } from "../../../server/platform-services";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

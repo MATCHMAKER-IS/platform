@@ -9,9 +9,9 @@
  * @packageDocumentation
  */
 import { createAlertManager, errorRateAbove, avgLatencyAbove, type Alert, type MetricsView } from "@platform/observability";
-import { metrics } from "./observability.js";
-import { log, mailer } from "./services.js";
-import { featureEnv } from "./env.js";
+import { metrics } from "./observability";
+import { log, mailer } from "./services";
+import { featureEnv } from "./env";
 
 /**
  * ルール。**しきい値は ADR 0012(性能基準)に合わせている**。

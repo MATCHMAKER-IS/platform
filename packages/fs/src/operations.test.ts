@@ -1,7 +1,7 @@
 import { describe, it, expect, afterAll } from "vitest";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ensureDir, writeText, readText, writeJson, readJson, writeFileAtomic, remove, emptyDir, copyDir, move, walk, dirSize, pathExists, listDir } from "./index.js";
+import { ensureDir, writeText, readText, writeJson, readJson, writeFileAtomic, remove, emptyDir, copyDir, move, walk, dirSize, pathExists, listDir } from "./index";
 
 const root = join(tmpdir(), `fs-test-${Date.now()}`);
 afterAll(() => remove(root));

@@ -5,10 +5,10 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 import {
   type CalendarEvent, type CalendarResource, layoutResourceDay, nowOffset, formatEventTime,
-} from "../lib/schedule.js";
+} from "../lib/schedule";
 
 /** {@link ResourceSchedule} の props。 */
 export interface ResourceScheduleProps extends React.HTMLAttributes<HTMLDivElement> {

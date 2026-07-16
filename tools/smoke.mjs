@@ -243,7 +243,7 @@ section("realtime / dashboard layout");
 {
   const { backoffDelay, createPoller } = await (async () => {
     const fs = await import("node:fs/promises");
-    const src = (await fs.readFile(new URL("../packages/realtime/src/index.ts", import.meta.url), "utf8")).replace(/export \{[^}]*\} from "\.\/broadcast\.js";\n?/g, "");
+    const src = (await fs.readFile(new URL("../packages/realtime/src/index.ts", import.meta.url), "utf8")).replace(/export \{[^}]*\} from "\.\/broadcast";\n?/g, "");
     const f = `/tmp/rt-idx-a-${Date.now()}.ts`; await fs.writeFile(f, src);
     const m = await import(f); await fs.rm(f); return m;
   })();
@@ -867,7 +867,7 @@ section("app: approval notification");
   // notification.ts は type import のみなので直読み可能なコピーで検証
   const fs = await import("node:fs/promises");
   const src = (await fs.readFile(new URL("../packages/workflow/src/notification.ts", import.meta.url), "utf8"))
-    .replace('import type { WorkflowState } from "./index.js";', "");
+    .replace('import type { WorkflowState } from "./index";', "");
   const tmp = "/tmp/notif-smoke-" + Date.now() + ".ts";
   await fs.writeFile(tmp, src);
   const W = await import(tmp);
@@ -977,7 +977,7 @@ section("phone intl type / line client");
   await fs.writeFile(core, `export const ErrorCode={EXTERNAL:"EXTERNAL",INTERNAL:"INTERNAL"};export class AppError extends Error{constructor(c,m,o){super(m);this.code=c;this.details=o?.details;}}export function ok(v){return{ok:true,value:v};}export function err(e){return{ok:false,error:e};}export async function tryCatch(fn){try{return{ok:true,value:await fn()};}catch(e){return{ok:false,error:e};}}`);
   let ig = (await fs.readFile(new URL("../packages/integrations/src/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`);
   const igp = "/tmp/smoke-line-ig-" + Date.now() + ".ts"; await fs.writeFile(igp, ig);
-  let ln = (await fs.readFile(new URL("../packages/line/src/index.ts", import.meta.url), "utf8")).replace('import { createApiClient } from "@platform/integrations";', `import { createApiClient } from "${igp}";`).replace(/from "@platform\/core"/g, `from "${core}"`).replace(/export \* from "\.\/messages\.js";\n?/g, "").replace(/export \* from "\.\/webhook\.js";\n?/g, "");
+  let ln = (await fs.readFile(new URL("../packages/line/src/index.ts", import.meta.url), "utf8")).replace('import { createApiClient } from "@platform/integrations";', `import { createApiClient } from "${igp}";`).replace(/from "@platform\/core"/g, `from "${core}"`).replace(/export \* from "\.\/messages";\n?/g, "").replace(/export \* from "\.\/webhook";\n?/g, "");
   const lnp = "/tmp/smoke-line-ln-" + Date.now() + ".ts"; await fs.writeFile(lnp, ln);
   const L = await import(lnp);
   let cap = null;
@@ -1006,7 +1006,7 @@ section("net utilities + sockets");
   // 実TCP(framing import を .ts に書換えて動的import)
   const fs = await import("node:fs/promises");
   await fs.copyFile(new URL("../packages/net/src/framing.ts", import.meta.url), "/tmp/smoke-framing.ts");
-  let tcp = (await fs.readFile(new URL("../packages/net/src/tcp.ts", import.meta.url), "utf8")).replace('from "./framing.js"', 'from "/tmp/smoke-framing.ts"');
+  let tcp = (await fs.readFile(new URL("../packages/net/src/tcp.ts", import.meta.url), "utf8")).replace('from "./framing"', 'from "/tmp/smoke-framing.ts"');
   const tp = "/tmp/smoke-tcp-" + Date.now() + ".ts"; await fs.writeFile(tp, tcp);
   const T = await import(tp);
   const srv = await T.createFramedServer({ host: "127.0.0.1" }, (payload, conn) => conn.send(enc.encode("echo:" + dec.decode(payload))));
@@ -1079,9 +1079,9 @@ section("zoho crm / books");
   const igp = "/tmp/zoho-ig-" + stamp + ".ts"; await fs.writeFile(igp, ig);
   let cl = (await fs.readFile(new URL("../packages/zoho/src/core/client.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${igp}"`);
   const clp = "/tmp/zoho-client-" + stamp + ".ts"; await fs.writeFile(clp, cl);
-  let crm = (await fs.readFile(new URL("../packages/zoho/src/crm/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`).replace('from "../core/client.js"', `from "${clp}"`);
+  let crm = (await fs.readFile(new URL("../packages/zoho/src/crm/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`).replace('from "../core/client"', `from "${clp}"`);
   const crmp = "/tmp/zoho-crm-" + stamp + ".ts"; await fs.writeFile(crmp, crm);
-  let bk = (await fs.readFile(new URL("../packages/zoho/src/books/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`).replace('from "../core/client.js"', `from "${clp}"`);
+  let bk = (await fs.readFile(new URL("../packages/zoho/src/books/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`).replace('from "../core/client"', `from "${clp}"`);
   const bkp = "/tmp/zoho-books-" + stamp + ".ts"; await fs.writeFile(bkp, bk);
   const CRM = await import(crmp), BK = await import(bkp);
   let cap = null;
@@ -1110,7 +1110,7 @@ section("zoho desk/inventory/campaigns/projects/people");
   let cl = (await fs.readFile(new URL("../packages/zoho/src/core/client.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${igp}"`);
   const clp = "/tmp/zsvc-client-" + stamp + ".ts"; await fs.writeFile(clp, cl);
   const load = async (svc) => {
-    let t = (await fs.readFile(new URL(`../packages/zoho/src/${svc}/index.ts`, import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`).replace('from "../core/client.js"', `from "${clp}"`).replace('from "../core/datacenter.js"', `from "${dcp}"`);
+    let t = (await fs.readFile(new URL(`../packages/zoho/src/${svc}/index.ts`, import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`).replace('from "../core/client"', `from "${clp}"`).replace('from "../core/datacenter"', `from "${dcp}"`);
     const f = `/tmp/zsvc-${svc}-${stamp}.ts`; await fs.writeFile(f, t); return import(f);
   };
   const D = await load("desk"), I = await load("inventory"), C = await load("campaigns"), P = await load("projects"), PE = await load("people");
@@ -1142,7 +1142,7 @@ section("zoho sign/recruit/workdrive/analytics");
   const dcp = "/tmp/zw2-dc-" + stamp + ".ts"; await fs.writeFile(dcp, await fs.readFile(new URL("../packages/zoho/src/core/datacenter.ts", import.meta.url), "utf8"));
   let cl = (await fs.readFile(new URL("../packages/zoho/src/core/client.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${igp}"`);
   const clp = "/tmp/zw2-client-" + stamp + ".ts"; await fs.writeFile(clp, cl);
-  const load = async (svc) => { let t = (await fs.readFile(new URL(`../packages/zoho/src/${svc}/index.ts`, import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`).replace('from "../core/client.js"', `from "${clp}"`).replace('from "../core/datacenter.js"', `from "${dcp}"`); const f = `/tmp/zw2-${svc}-${stamp}.ts`; await fs.writeFile(f, t); return import(f); };
+  const load = async (svc) => { let t = (await fs.readFile(new URL(`../packages/zoho/src/${svc}/index.ts`, import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`).replace('from "../core/client"', `from "${clp}"`).replace('from "../core/datacenter"', `from "${dcp}"`); const f = `/tmp/zw2-${svc}-${stamp}.ts`; await fs.writeFile(f, t); return import(f); };
   const S = await load("sign"), R = await load("recruit"), W = await load("workdrive"), A = await load("analytics");
   let cap = null;
   const fake = async (url, init) => { cap = { url, init: { ...init, bodyJson: init.body ? JSON.parse(init.body) : undefined } }; return { ok: true, status: 200, headers: { get: () => "application/json" }, json: async () => ({ data: [] }), text: async () => "" }; };
@@ -1170,7 +1170,7 @@ section("zoho cliq/creator/bookings + desk拡張");
   const dcp = "/tmp/zv3-dc-" + stamp + ".ts"; await fs.writeFile(dcp, await fs.readFile(new URL("../packages/zoho/src/core/datacenter.ts", import.meta.url), "utf8"));
   let cl = (await fs.readFile(new URL("../packages/zoho/src/core/client.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${igp}"`);
   const clp = "/tmp/zv3-client-" + stamp + ".ts"; await fs.writeFile(clp, cl);
-  const load = async (svc) => { let t = (await fs.readFile(new URL(`../packages/zoho/src/${svc}/index.ts`, import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`).replace('from "../core/client.js"', `from "${clp}"`).replace('from "../core/datacenter.js"', `from "${dcp}"`); const f = `/tmp/zv3-${svc}-${stamp}.ts`; await fs.writeFile(f, t); return import(f); };
+  const load = async (svc) => { let t = (await fs.readFile(new URL(`../packages/zoho/src/${svc}/index.ts`, import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`).replace('from "../core/client"', `from "${clp}"`).replace('from "../core/datacenter"', `from "${dcp}"`); const f = `/tmp/zv3-${svc}-${stamp}.ts`; await fs.writeFile(f, t); return import(f); };
   const CL = await load("cliq"), CR = await load("creator"), BK = await load("bookings"), D = await load("desk");
   let cap = null;
   const fake = async (url, init) => { cap = { url, init: { ...init, bodyJson: init.body ? JSON.parse(init.body) : undefined } }; return { ok: true, status: 200, headers: { get: () => "application/json" }, json: async () => ({}), text: async () => "" }; };
@@ -1203,9 +1203,9 @@ section("multipart / token-refresh / zoho-login");
   ok("multipart FormData + content-type除去", cap.init.body instanceof FormData && !("content-type" in cap.init.headers) && cap.init.body.get("name") === "doc");
   // token manager + login
   const dcp = "/tmp/mtl-dc-" + stamp + ".ts"; await fs.writeFile(dcp, await fs.readFile(new URL("../packages/zoho/src/core/datacenter.ts", import.meta.url), "utf8"));
-  let oa = (await fs.readFile(new URL("../packages/zoho/src/core/oauth.ts", import.meta.url), "utf8")).replace('from "./datacenter.js"', `from "${dcp}"`);
+  let oa = (await fs.readFile(new URL("../packages/zoho/src/core/oauth.ts", import.meta.url), "utf8")).replace('from "./datacenter"', `from "${dcp}"`);
   const oap = "/tmp/mtl-oa-" + stamp + ".ts"; await fs.writeFile(oap, oa);
-  let tmSrc = (await fs.readFile(new URL("../packages/zoho/src/core/token-manager.ts", import.meta.url), "utf8")).replace('from "./oauth.js"', `from "${oap}"`).replace('from "./datacenter.js"', `from "${dcp}"`);
+  let tmSrc = (await fs.readFile(new URL("../packages/zoho/src/core/token-manager.ts", import.meta.url), "utf8")).replace('from "./oauth"', `from "${oap}"`).replace('from "./datacenter"', `from "${dcp}"`);
   const tmp = "/tmp/mtl-tm-" + stamp + ".ts"; await fs.writeFile(tmp, tmSrc);
   const TM = await import(tmp);
   let refreshN = 0;
@@ -1213,7 +1213,7 @@ section("multipart / token-refresh / zoho-login");
   const tm = TM.createZohoTokenManager({ dataCenter: "jp", clientId: "c", clientSecret: "s", refreshToken: "r", fetchImpl: tokFetch });
   const a1 = await tm.getAccessToken(); const a2 = await tm.getAccessToken();
   ok("トークン自動更新+キャッシュ", a1 === "t1" && a2 === "t1" && refreshN === 1);
-  let login = (await fs.readFile(new URL("../packages/zoho/src/core/login.ts", import.meta.url), "utf8")).replace('from "./datacenter.js"', `from "${dcp}"`);
+  let login = (await fs.readFile(new URL("../packages/zoho/src/core/login.ts", import.meta.url), "utf8")).replace('from "./datacenter"', `from "${dcp}"`);
   const lp = "/tmp/mtl-login-" + stamp + ".ts"; await fs.writeFile(lp, login);
   const L = await import(lp);
   ok("Zoho認可URL生成", L.buildAuthorizationUrl({ dataCenter: "jp", clientId: "A", redirectUri: "https://app/cb", scope: ["email"], state: "s" }).startsWith("https://accounts.zoho.jp/oauth/v2/auth?"));
@@ -1231,7 +1231,7 @@ section("rbac / authorization");
   const fs = await import("node:fs/promises");
   const stamp = Date.now();
   await fs.writeFile(`/tmp/rb-rbac-${stamp}.ts`, await fs.readFile(new URL("../packages/auth/src/rbac.ts", import.meta.url), "utf8"));
-  let h = (await fs.readFile(new URL("../packages/auth/src/hierarchy.ts", import.meta.url), "utf8")).replace('from "./rbac.js"', `from "/tmp/rb-rbac-${stamp}.ts"`);
+  let h = (await fs.readFile(new URL("../packages/auth/src/hierarchy.ts", import.meta.url), "utf8")).replace('from "./rbac"', `from "/tmp/rb-rbac-${stamp}.ts"`);
   await fs.writeFile(`/tmp/rb-h-${stamp}.ts`, h);
   const R = await import(`/tmp/rb-rbac-${stamp}.ts`);
   const H = await import(`/tmp/rb-h-${stamp}.ts`);
@@ -1335,14 +1335,14 @@ section("resilient zoho fetch");
   const tf = await w("trace", trace), mf = await w("metrics", metrics), cbf = await w("cb", cb);
   const obsidx = await w("obsidx", `export * from "${tf}";\nexport * from "${mf}";\nexport * from "${cbf}";\n`);
   const dc = await w("dc", await fs.readFile(new URL("../packages/zoho/src/core/datacenter.ts", import.meta.url), "utf8"));
-  let oaSrc = (await fs.readFile(new URL("../packages/zoho/src/core/oauth.ts", import.meta.url), "utf8")).replace('from "./datacenter.js"', `from "${dc}"`);
+  let oaSrc = (await fs.readFile(new URL("../packages/zoho/src/core/oauth.ts", import.meta.url), "utf8")).replace('from "./datacenter"', `from "${dc}"`);
   const oa = await w("oa", oaSrc);
-  let tmSrc = (await fs.readFile(new URL("../packages/zoho/src/core/token-manager.ts", import.meta.url), "utf8")).replace('from "./oauth.js"', `from "${oa}"`).replace('from "./datacenter.js"', `from "${dc}"`);
+  let tmSrc = (await fs.readFile(new URL("../packages/zoho/src/core/token-manager.ts", import.meta.url), "utf8")).replace('from "./oauth"', `from "${oa}"`).replace('from "./datacenter"', `from "${dc}"`);
   const tm = await w("tm", tmSrc);
   const zcore = await w("zcore", `export * from "${dc}";\nexport * from "${tm}";\n`);
   const obs = await w("obs", `import { createTracer, createMetrics } from "${obsidx}";\nexport const metrics = createMetrics();\nexport const tracer = createTracer(() => {});\n`);
   const zcore2 = await w("zcore2", 'class AppError extends Error { constructor(c,m,o){ super(m); this.code=c; this.details=o?.details; } } export function createBulkhead(opts){ let running=0; const q=[]; const max=opts.maxConcurrent; async function acq(){ if(running<max){running++;return;} return new Promise((res)=>q.push(res)); } function rel(){ const n=q.shift(); if(n){ n(); } else running--; } return { async run(fn){ await acq(); try{ return await fn(); } finally{ rel(); } }, active:()=>running, queued:()=>q.length }; }');
-  let zcSrc = (await fs.readFile(new URL("../apps/internal-app/src/server/zoho-client.ts", import.meta.url), "utf8")).replace('from "@platform/zoho/core"', `from "${zcore}"`).replace('from "@platform/observability"', `from "${obsidx}"`).replace('from "./observability.js"', `from "${obs}"`).replace('from "@platform/core"', `from "${zcore2}"`);
+  let zcSrc = (await fs.readFile(new URL("../apps/internal-app/src/server/zoho-client.ts", import.meta.url), "utf8")).replace('from "@platform/zoho/core"', `from "${zcore}"`).replace('from "@platform/observability"', `from "${obsidx}"`).replace('from "./observability"', `from "${obs}"`).replace('from "@platform/core"', `from "${zcore2}"`);
   const zc = await w("zc", zcSrc);
   const ZC = await import(zc);
   const orig = globalThis.fetch;
@@ -1414,7 +1414,7 @@ section("api instrumentation (all shapes)");
   // Platform Debugger の収集器(開発時のみ有効)。ここでは無効相当のスタブで差し替える
   const dbgc = `/tmp/inst2-dbg-${stamp}.ts`;
   await fs.writeFile(dbgc, `export const debugCollector={enabled:false,start(){},record(){},finish(){},list:()=>[],get:()=>undefined,clear(){},summarize:()=>({})};`);
-  let ins = (await fs.readFile(new URL("../apps/internal-app/src/server/instrument.ts", import.meta.url), "utf8")).replace('from "@platform/observability"', `from "${obs}"`).replace('from "./observability.js"', `from "${obs}"`).replace('from "./log-context.js"', `from "${lc}"`).replace('from "@platform/core"', `from "${coreShim}"`).replace('from "./debug-collector.js"', `from "${dbgc}"`);
+  let ins = (await fs.readFile(new URL("../apps/internal-app/src/server/instrument.ts", import.meta.url), "utf8")).replace('from "@platform/observability"', `from "${obs}"`).replace('from "./observability"', `from "${obs}"`).replace('from "./log-context"', `from "${lc}"`).replace('from "@platform/core"', `from "${coreShim}"`).replace('from "./debug-collector"', `from "${dbgc}"`);
   const insp = `/tmp/inst2-${stamp}.ts`; await fs.writeFile(insp, ins);
   const I = await import(insp);
   const { metrics } = await import(obs);
@@ -1517,7 +1517,7 @@ section("search bm25 / redis / ws queue");
   const stamp = Date.now();
   const tok = `/tmp/bm-tok-${stamp}.ts`;
   await fs.writeFile(tok, await fs.readFile(new URL("../packages/search/src/tokenize.ts", import.meta.url), "utf8"));
-  let bm = (await fs.readFile(new URL("../packages/search/src/bm25.ts", import.meta.url), "utf8")).replace('from "./tokenize.js"', `from "${tok}"`);
+  let bm = (await fs.readFile(new URL("../packages/search/src/bm25.ts", import.meta.url), "utf8")).replace('from "./tokenize"', `from "${tok}"`);
   const bmf = `/tmp/bm-${stamp}.ts`; await fs.writeFile(bmf, bm);
   const { createBm25Index } = await import(bmf);
   const idx = createBm25Index();
@@ -1529,7 +1529,7 @@ section("search bm25 / redis / ws queue");
   // ratelimit redis(フェイク)
   let redisSrc = (await fs.readFile(new URL("../packages/ratelimit/src/redis.ts", import.meta.url), "utf8")).replace('import Redis from "ioredis";\n', "").replace('typeof urlOrClient === "string" ? (new Redis(urlOrClient) as unknown as RedisLike) : urlOrClient', "urlOrClient as RedisLike");
   const ttypes = `/tmp/rl-types-${stamp}.ts`; await fs.writeFile(ttypes, "export interface RateLimitStore { increment(key: string, windowSeconds: number): Promise<number> }");
-  redisSrc = redisSrc.replace('from "./types.js"', `from "${ttypes}"`);
+  redisSrc = redisSrc.replace('from "./types"', `from "${ttypes}"`);
   const rf = `/tmp/rl-${stamp}.ts`; await fs.writeFile(rf, redisSrc);
   const { createRedisStore } = await import(rf);
   const store = new Map(); let clock = 0;
@@ -1541,7 +1541,7 @@ section("search bm25 / redis / ws queue");
   // realtime send queue
   const rt = await (async () => {
     const fsx = await import("node:fs/promises");
-    const src = (await fsx.readFile(new URL("../packages/realtime/src/index.ts", import.meta.url), "utf8")).replace(/export \{[^}]*\} from "\.\/broadcast\.js";\n?/g, "");
+    const src = (await fsx.readFile(new URL("../packages/realtime/src/index.ts", import.meta.url), "utf8")).replace(/export \{[^}]*\} from "\.\/broadcast";\n?/g, "");
     const f = `/tmp/rt-idx-b-${Date.now()}.ts`; await fsx.writeFile(f, src);
     const m = await import(f); await fsx.rm(f); return m;
   })();
@@ -1562,7 +1562,7 @@ section("cache redis / db retry / jobs retry");
   // cache redis(注入)
   let cr = (await fs.readFile(new URL("../packages/cache/src/adapters/redis.ts", import.meta.url), "utf8")).split("\n").filter((ln) => !ln.includes('import Redis from')).join("\n").replace(/const client: RedisLike = isConfig[\s\S]*?: configOrClient;/, "const client = configOrClient as RedisLike;");
   const ci = `/tmp/cr-idx-${stamp}.ts`; await fs.writeFile(ci, "export interface CacheAdapter { get(key: string): Promise<string | null>; set(key: string, value: string, ttlSeconds?: number): Promise<void>; delete(key: string): Promise<void>; }");
-  cr = cr.replace('from "../index.js"', `from "${ci}"`);
+  cr = cr.replace('from "../index"', `from "${ci}"`);
   const crf = `/tmp/cr-${stamp}.ts`; await fs.writeFile(crf, cr);
   const { createRedisCache } = await import(crf);
   const store = new Map(); const ttls = new Map();
@@ -1575,7 +1575,7 @@ section("cache redis / db retry / jobs retry");
   // jobs memory retry
   const ji = `/tmp/jb-idx-${stamp}.ts`; await fs.writeFile(ji, "export interface TypedQueue<T> { add(name: string, data: T, o?: unknown): Promise<unknown>; close(): Promise<void>; }");
   const jc = `/tmp/jb-core-${stamp}.ts`; await fs.writeFile(jc, "export {};");
-  let jm = (await fs.readFile(new URL("../packages/jobs/src/memory.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${jc}"`).replace('from "./index.js"', `from "${ji}"`);
+  let jm = (await fs.readFile(new URL("../packages/jobs/src/memory.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${jc}"`).replace('from "./index"', `from "${ji}"`);
   const jmf = `/tmp/jb-${stamp}.ts`; await fs.writeFile(jmf, jm);
   const { createMemoryQueue } = await import(jmf);
   let tries = 0;
@@ -1598,7 +1598,7 @@ section("cache redis / db tx-retry / jobs");
   const w = async (name, src) => { const f = `/tmp/dd-${name}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
   // cache redis(注入)
   const cidx = await w("cidx", "export interface CacheAdapter { get(key: string): Promise<string | null>; set(key: string, value: string, ttlSeconds?: number): Promise<void>; delete(key: string): Promise<void>; }");
-  let credis = (await fs.readFile(new URL("../packages/cache/src/adapters/redis.ts", import.meta.url), "utf8")).replace('import Redis from "ioredis";\n', "").replace('from "../index.js"', `from "${cidx}"`);
+  let credis = (await fs.readFile(new URL("../packages/cache/src/adapters/redis.ts", import.meta.url), "utf8")).replace('import Redis from "ioredis";\n', "").replace('from "../index"', `from "${cidx}"`);
   const credisf = await w("credis", credis);
   const { createRedisCache } = await import(credisf);
   const store = new Map(); let exArgs = null;
@@ -1612,9 +1612,9 @@ section("cache redis / db tx-retry / jobs");
   const core = await w("core", `export const ErrorCode={CONFLICT:"CONFLICT",DATABASE:"DATABASE",INTERNAL:"INTERNAL"};export class AppError extends Error{constructor(c,m,o){super(m);this.code=c;this.cause=o?.cause;}static from(e,c){return new AppError(c,String(e));}}export async function tryCatch(fn){try{return{ok:true,value:await fn()};}catch(e){return{ok:false,error:e instanceof AppError?e:new AppError("INTERNAL",String(e),{cause:e})};}}`);
   const prisma = await w("prisma", "export class PrismaClient {}");
   const errs = await w("errs", `import { AppError, ErrorCode } from "${core}";export function mapPrismaError(e){return new AppError(ErrorCode.DATABASE,"db",{cause:e});}export function isRetryablePrismaError(e){return /40001|40P01|deadlock|serialization|P2034/i.test(e?.message??"");}`);
-  let tx = (await fs.readFile(new URL("../packages/db/src/transaction.ts", import.meta.url), "utf8")).replace('from "@prisma/client"', `from "${prisma}"`).replace('from "@platform/core"', `from "${core}"`).replace('from "./errors.js"', `from "${errs}"`);
+  let tx = (await fs.readFile(new URL("../packages/db/src/transaction.ts", import.meta.url), "utf8")).replace('from "@prisma/client"', `from "${prisma}"`).replace('from "@platform/core"', `from "${core}"`).replace('from "./errors"', `from "${errs}"`);
   const txf = await w("tx", tx);
-  let res = (await fs.readFile(new URL("../packages/db/src/resilience.ts", import.meta.url), "utf8")).replace('from "@prisma/client"', `from "${prisma}"`).replace('from "@platform/core"', `from "${core}"`).replace('from "./errors.js"', `from "${errs}"`).replace('from "./transaction.js"', `from "${txf}"`);
+  let res = (await fs.readFile(new URL("../packages/db/src/resilience.ts", import.meta.url), "utf8")).replace('from "@prisma/client"', `from "${prisma}"`).replace('from "@platform/core"', `from "${core}"`).replace('from "./errors"', `from "${errs}"`).replace('from "./transaction"', `from "${txf}"`);
   const resf = await w("res", res);
   const { transactionWithRetry } = await import(resf);
   const { abortTransaction } = await import(txf);
@@ -1633,7 +1633,7 @@ section("cache redis / db tx-retry / jobs");
   const bull = await w("bull", "export class Queue{constructor(){}async add(){}async close(){}}export class Worker{constructor(){}}");
   const mem = await w("mem", `export function createMemoryQueue(){return {};}`);
   const def = await w("def", `export function defineJob(n){return {name:n};}`);
-  let jidx = (await fs.readFile(new URL("../packages/jobs/src/index.ts", import.meta.url), "utf8")).replace('from "bullmq"', `from "${bull}"`).replace('from "@platform/core"', `from "${jcore}"`).replace('from "./memory.js"', `from "${mem}"`).replace('from "./define.js"', `from "${def}"`);
+  let jidx = (await fs.readFile(new URL("../packages/jobs/src/index.ts", import.meta.url), "utf8")).replace('from "bullmq"', `from "${bull}"`).replace('from "@platform/core"', `from "${jcore}"`).replace('from "./memory"', `from "${mem}"`).replace('from "./define"', `from "${def}"`);
   const jidxf = await w("jidx", jidx);
   const { connectionFromUrl, createQueue } = await import(jidxf);
   ok("jobs: URL パース", connectionFromUrl("redis://:pw@h:6380").password === "pw" && connectionFromUrl("redis://h").port === 6379);
@@ -1651,13 +1651,13 @@ section("reliable expense notifications");
   const outbox = await w("outbox", await fs.readFile(new URL("../packages/observability/src/outbox.ts", import.meta.url), "utf8"));
   const obsidx = await w("obsidx", `export * from "${outbox}";`);
   const nidx = await w("nidx", 'export interface NotifyMessage { text: string } export interface NotifyChannel { send(m: NotifyMessage): Promise<void> }');
-  let dedup = (await fs.readFile(new URL("../packages/notify/src/dedup.ts", import.meta.url), "utf8")).replace('from "./index.js"', `from "${nidx}"`);
+  let dedup = (await fs.readFile(new URL("../packages/notify/src/dedup.ts", import.meta.url), "utf8")).replace('from "./index"', `from "${nidx}"`);
   const dedupf = await w("dedup", dedup);
   const notifyidx = await w("notifyidx", `export * from "${nidx}";\nexport * from "${dedupf}";`);
   const wf = await w("wf", "export {}");
   const enmail = await w("enmail", 'export function buildTransitionMails(i){ return (i.applicantEmail && i.next.status==="approved") ? [{ to:[i.applicantEmail], subject:"承認", text:i.title }] : []; }');
   const svcstore = await w("svcstore", `import { createMemoryOutboxStore } from "${obsidx}";\nimport { createMemorySeenStore } from "${notifyidx}";\nexport const notifyOutbox=createMemoryOutboxStore();\nexport const notifySeen=createMemorySeenStore();\nexport const log={info(){},warn(){}};\nexport let beh=async()=>{};\nexport const mailer={ async sendMail(){ try{ await beh(); return {ok:true,value:undefined}; }catch(e){ return {ok:false,error:{message:e.message}}; } } };\nexport function setBeh(f){ beh=f; }`);
-  let svc = (await fs.readFile(new URL("../apps/internal-app/src/server/expense-notify-service.ts", import.meta.url), "utf8")).replace('from "@platform/workflow"', `from "${wf}"`).replace('from "@platform/observability"', `from "${obsidx}"`).replace('from "@platform/notify"', `from "${notifyidx}"`).replace('from "../lib/expense-notify.js"', `from "${enmail}"`).replace('from "./services.js"', `from "${svcstore}"`);
+  let svc = (await fs.readFile(new URL("../apps/internal-app/src/server/expense-notify-service.ts", import.meta.url), "utf8")).replace('from "@platform/workflow"', `from "${wf}"`).replace('from "@platform/observability"', `from "${obsidx}"`).replace('from "@platform/notify"', `from "${notifyidx}"`).replace('from "../lib/expense-notify"', `from "${enmail}"`).replace('from "./services"', `from "${svcstore}"`);
   const svcf = await w("svc", svc);
   const S = await import(svcf);
   const { notifyOutbox, setBeh } = await import(svcstore);
@@ -1678,15 +1678,15 @@ section("notify relay scheduler");
   const stamp = Date.now();
   const w = async (n, src) => { const f = `/tmp/nsc-${n}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
   const lock = await w("lock", (await fs.readFile(new URL("../packages/cron/src/lock.ts", import.meta.url), "utf8")));
-  const runner = await w("runner", (await fs.readFile(new URL("../packages/cron/src/runner.ts", import.meta.url), "utf8")).replace('from "./lock.js"', `from "${lock}"`));
+  const runner = await w("runner", (await fs.readFile(new URL("../packages/cron/src/runner.ts", import.meta.url), "utf8")).replace('from "./lock"', `from "${lock}"`));
   const core = await w("core", 'export const ErrorCode={INTERNAL:"INTERNAL"};export class AppError extends Error{constructor(c,m){super(m);this.code=c;}static from(e,c){return new AppError(c,e instanceof Error?e.message:String(e));}}');
   const croner = await w("croner", "export const REG=[];export class Cron{constructor(_s,_o,fn){this.fn=fn;REG.push(this);}stop(){}}");
-  let idx = (await fs.readFile(new URL("../packages/cron/src/index.ts", import.meta.url), "utf8")).replaceAll('from "croner"', `from "${croner}"`).replaceAll('from "@platform/core"', `from "${core}"`).replaceAll('from "./runner.js"', `from "${runner}"`).replaceAll('from "./lock.js"', `from "${lock}"`).replace(/export \{ createRedisLockStore[^\n]*\n/, "").replace(/export \{ tryAcquireFileLock[^\n]*\n/, "");
+  let idx = (await fs.readFile(new URL("../packages/cron/src/index.ts", import.meta.url), "utf8")).replaceAll('from "croner"', `from "${croner}"`).replaceAll('from "@platform/core"', `from "${core}"`).replaceAll('from "./runner"', `from "${runner}"`).replaceAll('from "./lock"', `from "${lock}"`).replace(/export \{ createRedisLockStore[^\n]*\n/, "").replace(/export \{ tryAcquireFileLock[^\n]*\n/, "");
   const cidx = await w("cidx", idx);
   const obs = await w("obs", 'export const metrics={counters:{},incrementCounter(n,v,l){const k=n+JSON.stringify(l||{});this.counters[k]=(this.counters[k]||0)+v;},observeHistogram(){}};');
   const svc = await w("svc", 'export const log={info(){},warn(){},error(){}};');
   const esvc = await w("esvc", 'export let calls=0;export async function relayExpenseNotifications(){ calls++; return {sent:1,failed:0,exhausted:0}; }');
-  let ns = (await fs.readFile(new URL("../apps/internal-app/src/server/notify-scheduler.ts", import.meta.url), "utf8")).replace('from "@platform/cron"', `from "${cidx}"`).replace('from "./expense-notify-service.js"', `from "${esvc}"`).replace('from "./observability.js"', `from "${obs}"`).replace('from "./services.js"', `from "${svc}"`);
+  let ns = (await fs.readFile(new URL("../apps/internal-app/src/server/notify-scheduler.ts", import.meta.url), "utf8")).replace('from "@platform/cron"', `from "${cidx}"`).replace('from "./expense-notify-service"', `from "${esvc}"`).replace('from "./observability"', `from "${obs}"`).replace('from "./services"', `from "${svc}"`);
   const nsf = await w("ns", ns);
   const { createNotifyScheduler } = await import(nsf);
   const { REG } = await import(croner);
@@ -1720,7 +1720,7 @@ section("production stores / lifecycle / secrets");
 
   // Redis lock
   const lockif = await w("lockif", "export interface LockStore { acquire(k: string, t: number): Promise<boolean>|boolean; release(k: string): Promise<void>|void }");
-  const lockredis = await w("lockredis", (await fs.readFile(new URL("../packages/cron/src/lock-redis.ts", import.meta.url), "utf8")).replace('from "./lock.js"', `from "${lockif}"`));
+  const lockredis = await w("lockredis", (await fs.readFile(new URL("../packages/cron/src/lock-redis.ts", import.meta.url), "utf8")).replace('from "./lock"', `from "${lockif}"`));
   const { createRedisLockStore } = await import(lockredis);
   const r1 = mkRedis();
   const la = createRedisLockStore(r1), lb = createRedisLockStore(r1);
@@ -1728,14 +1728,14 @@ section("production stores / lifecycle / secrets");
 
   // Redis seen
   const seenif = await w("seenif", "export interface SeenStore { markSeen(k: string, t: number): boolean; has(k: string): boolean }");
-  const seenredis = await w("seenredis", (await fs.readFile(new URL("../packages/notify/src/seen-redis.ts", import.meta.url), "utf8")).replace('from "./dedup.js"', `from "${seenif}"`));
+  const seenredis = await w("seenredis", (await fs.readFile(new URL("../packages/notify/src/seen-redis.ts", import.meta.url), "utf8")).replace('from "./dedup"', `from "${seenif}"`));
   const { createRedisSeenStore } = await import(seenredis);
   const seen = createRedisSeenStore(mkRedis());
   ok("Redis seen dedup", (await seen.markSeen("m", 1000)) === false && (await seen.markSeen("m", 1000)) === true);
 
   // Redis idempotency
   const idemif = await w("idemif", 'export interface IdempotencyRecord { status: "in_progress"|"completed"|"failed"; result?: unknown; createdAt: number }');
-  const idemredis = await w("idemredis", (await fs.readFile(new URL("../packages/observability/src/idempotency-redis.ts", import.meta.url), "utf8")).replace('from "./idempotency.js"', `from "${idemif}"`));
+  const idemredis = await w("idemredis", (await fs.readFile(new URL("../packages/observability/src/idempotency-redis.ts", import.meta.url), "utf8")).replace('from "./idempotency"', `from "${idemif}"`));
   const { createRedisIdempotencyStore } = await import(idemredis);
   const idem = createRedisIdempotencyStore(mkRedis(), 5000);
   const reserved = (await idem.reserve("op", { status: "in_progress", createdAt: 0 })) === null;
@@ -1743,7 +1743,7 @@ section("production stores / lifecycle / secrets");
 
   // SQL outbox
   const obif = await w("obif", 'export interface OutboxMessage { id: string; topic: string; payload: unknown; status: "pending"|"sent"|"failed"; attempts: number; createdAt: number; nextAttemptAt?: number } export interface OutboxStore { fetchPending(l: number, n: number): unknown; markSent(id: string): unknown; markFailed(id: string, e: string, a: number, n?: number): unknown }');
-  const obsql = await w("obsql", (await fs.readFile(new URL("../packages/observability/src/outbox-sql.ts", import.meta.url), "utf8")).replace('from "./outbox.js"', `from "${obif}"`));
+  const obsql = await w("obsql", (await fs.readFile(new URL("../packages/observability/src/outbox-sql.ts", import.meta.url), "utf8")).replace('from "./outbox"', `from "${obif}"`));
   const { createSqlOutboxStore } = await import(obsql);
   const rows = [];
   const client = { insert: async (m) => rows.push({ ...m }), selectPending: async () => rows.filter((r) => r.status === "pending"), updateSent: async (id) => { const r = rows.find((x) => x.id === id); if (r) r.status = "sent"; }, updateFailed: async () => {} };
@@ -1781,7 +1781,7 @@ section("otlp exporter / alerting");
   const tr = `/tmp/oa-trace-${stamp}.ts`;
   await fs.writeFile(tr, 'export interface Span { traceId: string; spanId: string; parentSpanId?: string; name: string; startTime: number; endTime?: number; durationMs?: number; attributes: Record<string, unknown>; status: "ok"|"error"; error?: string } export type SpanExporter = (span: Span) => void;');
   const otlp = `/tmp/oa-otlp-${stamp}.ts`;
-  await fs.writeFile(otlp, (await fs.readFile(new URL("../packages/observability/src/otlp.ts", import.meta.url), "utf8")).replace('from "./trace.js"', `from "${tr}"`));
+  await fs.writeFile(otlp, (await fs.readFile(new URL("../packages/observability/src/otlp.ts", import.meta.url), "utf8")).replace('from "./trace"', `from "${tr}"`));
   const { createOtlpExporter } = await import(otlp);
   const posts = [];
   const exp = createOtlpExporter({ endpoint: "http://c/v1/traces", serviceName: "internal-app", maxBatchSize: 2, fetchImpl: async (_u, i) => { posts.push(JSON.parse(i.body)); return { ok: true, status: 200 }; }, scheduler: () => 1, clearScheduler: () => {} });
@@ -1815,7 +1815,7 @@ section("feature flags / pii");
   ok("flag 未定義は false(安全側)", (await flags.isEnabled("a")) === true && (await flags.isEnabled("missing")) === false);
 
   const { readFile: _rfPii } = await import("node:fs/promises");
-  const _piiSrc = (await _rfPii(new URL("../packages/pii/src/index.ts", import.meta.url), "utf8")).replace(/export \* from "\.\/(identity-mask|subject-rights)\.js";\n?/g, "");
+  const _piiSrc = (await _rfPii(new URL("../packages/pii/src/index.ts", import.meta.url), "utf8")).replace(/export \* from "\.\/(identity-mask|subject-rights)";\n?/g, "");
   const _piiF = `/tmp/pii-index-${Date.now()}.ts`; await (await import("node:fs/promises")).writeFile(_piiF, _piiSrc);
   const P = await import(_piiF);
   ok("pii マスキング", P.maskEmail("taro@example.co.jp") === "t***@example.co.jp" && P.maskPhone("090-1234-5678") === "*******5678");
@@ -1856,14 +1856,14 @@ section("error policy / bulkhead / process guards");
   const stamp = Date.now();
   const w = async (n, src) => { const f = `/tmp/ec-${n}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
   const err = await w("err", 'export const ErrorCode={VALIDATION:"VALIDATION",NOT_FOUND:"NOT_FOUND",UNAUTHORIZED:"UNAUTHORIZED",FORBIDDEN:"FORBIDDEN",RATE_LIMITED:"RATE_LIMITED",CONFLICT:"CONFLICT",EXTERNAL:"EXTERNAL",DATABASE:"DATABASE",CONFIG:"CONFIG",INTERNAL:"INTERNAL"};export class AppError extends Error{constructor(c,m,o){super(m);this.code=c;this.details=o?.details;}}');
-  const ep = await w("ep", (await fs.readFile(new URL("../packages/core/src/error-policy.ts", import.meta.url), "utf8")).replace('from "./error.js"', `from "${err}"`));
+  const ep = await w("ep", (await fs.readFile(new URL("../packages/core/src/error-policy.ts", import.meta.url), "utf8")).replace('from "./error"', `from "${err}"`));
   const { httpStatusFor, isRetryable, toErrorEnvelope } = await import(ep);
   const { AppError, ErrorCode } = await import(err);
   ok("HTTP ステータス中央化(409/429/500)", httpStatusFor(new AppError(ErrorCode.CONFLICT, "x")) === 409 && httpStatusFor(new AppError(ErrorCode.RATE_LIMITED, "x")) === 429 && httpStatusFor(new Error("r")) === 500);
   ok("再試行分類(EXTERNAL可/VALIDATION不可/未分類不可)", isRetryable(new AppError(ErrorCode.EXTERNAL, "x")) === true && isRetryable(new AppError(ErrorCode.VALIDATION, "x")) === false && isRetryable(new Error("x")) === false);
   ok("エラーエンベロープ(traceId + 内部秘匿)", toErrorEnvelope(new AppError(ErrorCode.NOT_FOUND, "x", { details: { id: 1 } }), "t1").error.traceId === "t1" && toErrorEnvelope(new Error("secret")).error.code === "UNKNOWN");
 
-  const bh = await w("bh", (await fs.readFile(new URL("../packages/core/src/bulkhead.ts", import.meta.url), "utf8")).replace('from "./error.js"', `from "${err}"`));
+  const bh = await w("bh", (await fs.readFile(new URL("../packages/core/src/bulkhead.ts", import.meta.url), "utf8")).replace('from "./error"', `from "${err}"`));
   const { createBulkhead } = await import(bh);
   const defer = () => { let r; const p = new Promise((res) => { r = res; }); return { p, resolve: r }; };
   const b = createBulkhead({ maxConcurrent: 2 });
@@ -1881,7 +1881,7 @@ section("error policy / bulkhead / process guards");
   // リトライ層の分類統一(notify withRetry の既定 = defaultShouldRetry)
   const nidx2 = await w("nidx2", "export {}");
   const ncore = await w("ncore", 'export function defaultShouldRetry(e){ return !(e && e.__perm); }');
-  let nres = (await fs.readFile(new URL("../packages/notify/src/resilient.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${ncore}"`).replace('from "./index.js"', `from "${nidx2}"`);
+  let nres = (await fs.readFile(new URL("../packages/notify/src/resilient.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${ncore}"`).replace('from "./index"', `from "${nidx2}"`);
   const nresf = await w("nresf", nres);
   const { withRetry } = await import(nresf);
   let perm = 0; const permErr = Object.assign(new Error("v"), { __perm: true });
@@ -1915,7 +1915,7 @@ section("error control: policy / bulkhead / guard / envelope");
   const errmod = await w("err", 'export const ErrorCode = { VALIDATION:"VALIDATION", NOT_FOUND:"NOT_FOUND", UNAUTHORIZED:"UNAUTHORIZED", FORBIDDEN:"FORBIDDEN", RATE_LIMITED:"RATE_LIMITED", CONFLICT:"CONFLICT", EXTERNAL:"EXTERNAL", DATABASE:"DATABASE", CONFIG:"CONFIG", INTERNAL:"INTERNAL" }; export class AppError extends Error { constructor(c, m, o) { super(m); this.code = c; this.details = o?.details; } }');
 
   // error-policy
-  const ep = await w("ep", (await fs.readFile(new URL("../packages/core/src/error-policy.ts", import.meta.url), "utf8")).replace('from "./error.js"', `from "${errmod}"`));
+  const ep = await w("ep", (await fs.readFile(new URL("../packages/core/src/error-policy.ts", import.meta.url), "utf8")).replace('from "./error"', `from "${errmod}"`));
   const { httpStatusFor, isRetryable, toErrorEnvelope } = await import(ep);
   const { AppError, ErrorCode } = await import(errmod);
   ok("エラー分類: status/retryable 中央化", httpStatusFor(new AppError(ErrorCode.CONFLICT, "x")) === 409 && isRetryable(new AppError(ErrorCode.DATABASE, "x")) === true && isRetryable(new AppError(ErrorCode.VALIDATION, "x")) === false);
@@ -1923,7 +1923,7 @@ section("error control: policy / bulkhead / guard / envelope");
   ok("エンベロープは内部詳細を漏らさない", env.error.code === "UNKNOWN" && !JSON.stringify(env).includes("secret"));
 
   // bulkhead
-  const bh = await w("bh", (await fs.readFile(new URL("../packages/core/src/bulkhead.ts", import.meta.url), "utf8")).replace('from "./error.js"', `from "${errmod}"`));
+  const bh = await w("bh", (await fs.readFile(new URL("../packages/core/src/bulkhead.ts", import.meta.url), "utf8")).replace('from "./error"', `from "${errmod}"`));
   const { createBulkhead } = await import(bh);
   const defer = () => { let r; const p = new Promise((res) => (r = res)); return { p, resolve: r }; };
   const b = createBulkhead({ maxConcurrent: 2 });
@@ -1958,7 +1958,7 @@ section("error control: policy / bulkhead / guard / envelope");
 section("tax / importer / sequence");
 {
   const { readFile: _rfTax } = await import("node:fs/promises");
-  const _taxSrc = (await _rfTax(new URL("../packages/tax/src/index.ts", import.meta.url), "utf8")).replace(/export \* from "\.\/withholding\.js";\n?/g, "");
+  const _taxSrc = (await _rfTax(new URL("../packages/tax/src/index.ts", import.meta.url), "utf8")).replace(/export \* from "\.\/withholding";\n?/g, "");
   const _taxF = `/tmp/tax-index-${Date.now()}.ts`; await (await import("node:fs/promises")).writeFile(_taxF, _taxSrc);
   const T = await import(_taxF);
   ok("消費税 税込/税抜(誤差なし)", T.grossFromNet(1000, 10) === 1100 && T.netFromGross(1100, 10) === 1000);
@@ -2057,7 +2057,7 @@ section("line: builders / webhook / client");
   // messages(index の型のみ依存 → LineMessage は type import なので shim 不要)
   const msgShim = `/tmp/line-idx-${stamp}.ts`;
   await fs.writeFile(msgShim, "export interface LineMessage { type: string; [k: string]: unknown }");
-  const msgSrc = (await fs.readFile(new URL("../packages/line/src/messages.ts", import.meta.url), "utf8")).replace('from "./index.js"', `from "${msgShim}"`);
+  const msgSrc = (await fs.readFile(new URL("../packages/line/src/messages.ts", import.meta.url), "utf8")).replace('from "./index"', `from "${msgShim}"`);
   const msgF = `/tmp/line-msg-${stamp}.ts`; await fs.writeFile(msgF, msgSrc);
   const M = await import(msgF);
   ok("LINE ビルダー(buttons/confirm/quickReply)", M.buttonsTemplate({ altText: "a", text: "t", actions: [M.postbackAction("承認", "d")] }).template.type === "buttons" && M.withQuickReply(M.textMessage("x"), [M.messageAction("y", "y")]).quickReply.items.length === 1 && M.confirmTemplate("a", "t", M.messageAction("y", "y"), M.messageAction("n", "n")).template.actions.length === 2);
@@ -2075,7 +2075,7 @@ section("line: builders / webhook / client");
   const intF = `/tmp/line-int-${stamp}.ts`;
   await fs.writeFile(intF, "export function createApiClient(){ const c=[]; globalThis.__lc=c; const r=async(m,p,o)=>{ c.push({m,p,body:o?.body}); return {ok:true,value:{richMenuId:'rm1'}}; }; return { get:(p)=>r('GET',p), post:(p,o)=>r('POST',p,o), put:(p,o)=>r('PUT',p,o), delete:(p,o)=>r('DELETE',p,o), patch:(p,o)=>r('PATCH',p,o) }; }");
   const emptyF = `/tmp/line-empty-${stamp}.ts`; await fs.writeFile(emptyF, "export {};");
-  const idxSrc = (await fs.readFile(new URL("../packages/line/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${intF}"`).replace('from "@platform/core"', `from "${coreF}"`).replace('from "./messages.js"', `from "${emptyF}"`).replace('from "./webhook.js"', `from "${emptyF}"`);
+  const idxSrc = (await fs.readFile(new URL("../packages/line/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${intF}"`).replace('from "@platform/core"', `from "${coreF}"`).replace('from "./messages"', `from "${emptyF}"`).replace('from "./webhook"', `from "${emptyF}"`);
   const idxF = `/tmp/line-index-${stamp}.ts`; await fs.writeFile(idxF, idxSrc);
   const L = await import(idxF);
   const client = L.createLineClient({ channelAccessToken: "t" });
@@ -2125,7 +2125,7 @@ section("freee: token / receipts / journal");
   const intF = `/tmp/fr-int-${stamp}.ts`;
   await fs.writeFile(intF, "export function createApiClient(){ const c=[]; globalThis.__fr=c; const r=async(m,p,o)=>{ c.push({m,p,query:o?.query,body:o?.body,multipart:o?.multipart}); return {ok:true,value:{id:1}}; }; return { get:(p,o)=>r('GET',p,o), post:(p,o)=>r('POST',p,o), put:(p,o)=>r('PUT',p,o), delete:(p,o)=>r('DELETE',p,o), patch:(p,o)=>r('PATCH',p,o) }; }");
   const emptyF = `/tmp/fr-empty-${stamp}.ts`; await fs.writeFile(emptyF, "export {};");
-  const idxSrc = (await fs.readFile(new URL("../packages/freee/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${intF}"`).replace(/from "@platform\/core"/g, `from "${coreF}"`).replace('from "./token.js"', `from "${emptyF}"`).replace('from "./builders.js"', `from "${emptyF}"`).replace('from "./webhook.js"', `from "${emptyF}"`).replace('from "./hr.js"', `from "${emptyF}"`);
+  const idxSrc = (await fs.readFile(new URL("../packages/freee/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${intF}"`).replace(/from "@platform\/core"/g, `from "${coreF}"`).replace('from "./token"', `from "${emptyF}"`).replace('from "./builders"', `from "${emptyF}"`).replace('from "./webhook"', `from "${emptyF}"`).replace('from "./hr"', `from "${emptyF}"`);
   const idxF = `/tmp/fr-index-${stamp}.ts`; await fs.writeFile(idxF, idxSrc);
   const F = await import(idxF);
   const client = F.createFreeeClient({ accessToken: "t" });
@@ -2164,7 +2164,7 @@ section("freee: HR / approval / webhook");
 
   // 承認ワークフロー(会計 index)
   const emptyF = await w("empty", "export {}");
-  const idxSrc = (await fs.readFile(new URL("../packages/freee/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${intF}"`).replace(/from "@platform\/core"/g, `from "${coreF}"`).replace('from "./token.js"', `from "${emptyF}"`).replace('from "./builders.js"', `from "${emptyF}"`).replace('from "./webhook.js"', `from "${emptyF}"`).replace('from "./hr.js"', `from "${emptyF}"`);
+  const idxSrc = (await fs.readFile(new URL("../packages/freee/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${intF}"`).replace(/from "@platform\/core"/g, `from "${coreF}"`).replace('from "./token"', `from "${emptyF}"`).replace('from "./builders"', `from "${emptyF}"`).replace('from "./webhook"', `from "${emptyF}"`).replace('from "./hr"', `from "${emptyF}"`);
   const idxF = await w("idx", idxSrc);
   const F = await import(idxF);
   const freee = F.createFreeeClient({ accessToken: "t" });
@@ -2224,7 +2224,7 @@ section("google: oauth / gmail / drive / calendar");
 
   // Calendar 拡張(index を integrations shim で)
   const emptyF = await w("empty", "export {}");
-  const idxSrc = (await fs.readFile(new URL("../packages/google/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${intF}"`).replace('from "@platform/core"', `from "${coreF}"`).replace('from "./oauth.js"', `from "${emptyF}"`).replace('from "./gmail.js"', `from "${emptyF}"`).replace('from "./drive.js"', `from "${emptyF}"`);
+  const idxSrc = (await fs.readFile(new URL("../packages/google/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${intF}"`).replace('from "@platform/core"', `from "${coreF}"`).replace('from "./oauth"', `from "${emptyF}"`).replace('from "./gmail"', `from "${emptyF}"`).replace('from "./drive"', `from "${emptyF}"`);
   const I = await import(await w("idx", idxSrc));
   const cal = I.createGoogleCalendarClient({ accessToken: "t" });
   await cal.createEvent("primary", { summary: "会議" }, { sendUpdates: "all" });
@@ -2279,7 +2279,7 @@ section("session: idle timeout / idle timer / login throttle");
   await fs.writeFile(cryptoF, "export function deriveKey(s){return s} export function encrypt(t){return Buffer.from(t,'utf8').toString('base64')} export function decrypt(x){return Buffer.from(x,'base64').toString('utf8')}");
   const cookieF = `/tmp/sess-cookie-${stamp}.ts`;
   await fs.writeFile(cookieF, "export function getCookie(h,n){ if(!h) return undefined; for(const p of h.split(';')){ const [k,v]=p.trim().split('='); if(k===n) return v; } return undefined } export function serializeCookie(n,v,o){ return `${n}=${v}; Max-Age=${o?.maxAge??0}` } export function clearCookie(n){ return `${n}=; Max-Age=0` }");
-  const sessSrc = (await fs.readFile(new URL("../packages/session/src/session.ts", import.meta.url), "utf8")).replace('from "@platform/crypto"', `from "${cryptoF}"`).replace('from "./cookie.js"', `from "${cookieF}"`);
+  const sessSrc = (await fs.readFile(new URL("../packages/session/src/session.ts", import.meta.url), "utf8")).replace('from "@platform/crypto"', `from "${cryptoF}"`).replace('from "./cookie"', `from "${cookieF}"`);
   const sessF = `/tmp/sess-session-${stamp}.ts`; await fs.writeFile(sessF, sessSrc);
   const S = await import(sessF);
   const idle = S.createSession({ secret: "y".repeat(32), maxAgeSec: 3600, idleTimeoutSec: 0.05 });
@@ -2316,7 +2316,7 @@ section("session: idle timeout / idle timer / login throttle");
   // store session: 再生成 + 全端末ログアウト(crypto/cookie shim)
   const stCrypto = `/tmp/sess-stcrypto-${stamp}.ts`;
   await fs.writeFile(stCrypto, "let n=0; export function randomToken(){ return 'tok'+(++n) }");
-  const stStoreSrc = (await fs.readFile(new URL("../packages/session/src/store-session.ts", import.meta.url), "utf8")).replace('from "@platform/crypto"', `from "${stCrypto}"`).replace('from "./cookie.js"', `from "${cookieF}"`);
+  const stStoreSrc = (await fs.readFile(new URL("../packages/session/src/store-session.ts", import.meta.url), "utf8")).replace('from "@platform/crypto"', `from "${stCrypto}"`).replace('from "./cookie"', `from "${cookieF}"`);
   const stStoreF = `/tmp/sess-store-${stamp}.ts`; await fs.writeFile(stStoreF, stStoreSrc);
   const SS = await import(stStoreF);
   const map = new Map();
@@ -2369,7 +2369,7 @@ section("ekyc: status / webhook / client");
   ok("ekyc 確定/承認判定", S.isEkycFinal("approved") && !S.isEkycFinal("in_review") && S.isEkycApproved("approved"));
 
   // webhook(status.ts を .ts 参照に差し替えて読み込み)
-  const whSrc = (await fs.readFile(new URL("../packages/ekyc/src/webhook.ts", import.meta.url), "utf8")).replace('from "./status.js"', `from ${JSON.stringify(new URL("../packages/ekyc/src/status.ts", import.meta.url).href)}`);
+  const whSrc = (await fs.readFile(new URL("../packages/ekyc/src/webhook.ts", import.meta.url), "utf8")).replace('from "./status"', `from ${JSON.stringify(new URL("../packages/ekyc/src/status.ts", import.meta.url).href)}`);
   const whF = `/tmp/ekyc-wh-${stamp}.ts`; await fs.writeFile(whF, whSrc);
   const W = await import(whF);
   const { createHmac } = await import("node:crypto");
@@ -2426,7 +2426,7 @@ section("ekyc: client / webhook / status");
   await td.getApplication("x");
   ok("ekyc TRUSTDOCK プリセット baseUrl", calls[2].url.includes("sandbox.api.trustdock.io"));
   // webhook(status.ts を .ts 参照に)
-  const whSrc = (await fs.readFile(new URL("../packages/ekyc/src/webhook.ts", import.meta.url), "utf8")).replace('from "./status.js"', `from ${JSON.stringify(new URL("../packages/ekyc/src/status.ts", import.meta.url).href)}`);
+  const whSrc = (await fs.readFile(new URL("../packages/ekyc/src/webhook.ts", import.meta.url), "utf8")).replace('from "./status"', `from ${JSON.stringify(new URL("../packages/ekyc/src/status.ts", import.meta.url).href)}`);
   const whF = `/tmp/ekyc-wh-${stamp2}.ts`; await fs.writeFile(whF, whSrc);
   const W = await import(whF);
   const secret = "whsec"; const body = JSON.stringify({ application_id: "app_9", status: "approved" });
@@ -2525,7 +2525,7 @@ section("withholding / business documents");
   const stamp = Date.now();
   const files = {};
   for (const f of ["render", "invoice", "money"]) {
-    const src = (await fs.readFile(new URL(`../packages/report/src/${f}.ts`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+    const src = (await fs.readFile(new URL(`../packages/report/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
     files[f] = `/tmp/rep-${f}-${stamp}.ts`;
     await fs.writeFile(files[f], src.replace(/from "\.\/(invoice|money)\.ts"/g, (m, n) => `from "/tmp/rep-${n}-${stamp}.ts"`));
   }
@@ -2566,9 +2566,9 @@ section("mail: template / allowlist");
   ok("template mailer: 件名生成+レイアウト包み+from", sent[0].subject === "田中" && sent[0].html.startsWith("<!doctype html>") && sent[0].from === "no@reply.jp");
 
   // allowlist は ./email.js を import → fs read + .js→.ts shim
-  const emailSrc = (await fs.readFile(new URL("../packages/mail/src/email.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const emailSrc = (await fs.readFile(new URL("../packages/mail/src/email.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const emailF = `/tmp/mail-email-${stamp}.ts`; await fs.writeFile(emailF, emailSrc);
-  const alSrc = (await fs.readFile(new URL("../packages/mail/src/allowlist.ts", import.meta.url), "utf8")).replace(/from "\.\/email\.js"/g, `from "${emailF}"`).replace(/\.js"/g, '.ts"').replace(`from "${emailF.replace(/\.ts"$/, '.ts')}"`, `from "${emailF}"`);
+  const alSrc = (await fs.readFile(new URL("../packages/mail/src/allowlist.ts", import.meta.url), "utf8")).replace(/from "\.\/email"/g, `from "${emailF}"`).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(`from "${emailF.replace(/\.ts"$/, '.ts')}"`, `from "${emailF}"`);
   const alF = `/tmp/mail-al-${stamp}.ts`; await fs.writeFile(alF, alSrc);
   const A = await import(alF);
   ok("allowlist: ドメイン許可/拒否/大小無視/ブロック優先", A.isAllowedRecipient("a@corp.com", { allowedDomains: ["corp.com"] }) === true && A.isAllowedRecipient("a@gmail.com", { allowedDomains: ["corp.com"] }) === false && A.isAllowedRecipient("A@CORP.COM", { allowedDomains: ["corp.com"] }) === true && A.isAllowedRecipient("x@corp.com", { allowedDomains: ["corp.com"], blockedEmails: ["x@corp.com"] }) === false);
@@ -2627,7 +2627,7 @@ section("two-factor / webauthn");
   const stamp2 = Date.now();
   const tfFiles = {};
   for (const f of ["two-factor", "totp", "otp", "recovery-codes"]) {
-    const src = (await fs2.readFile(new URL(`../packages/auth/src/${f}.ts`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+    const src = (await fs2.readFile(new URL(`../packages/auth/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
     tfFiles[f] = `/tmp/2fa-${f}-${stamp2}.ts`;
     await fs2.writeFile(tfFiles[f], src.replace(/from "\.\/(two-factor|totp|otp|recovery-codes)\.ts"/g, (m, n) => `from "/tmp/2fa-${n}-${stamp2}.ts"`));
   }
@@ -2724,7 +2724,7 @@ section("report: print / pdf-prep");
   const st3 = Date.now();
   const files = {};
   for (const f of ["print", "render", "invoice", "money"]) {
-    const src = (await fs3.readFile(new URL(`../packages/report/src/${f}.ts`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+    const src = (await fs3.readFile(new URL(`../packages/report/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
     files[f] = `/tmp/rprint-${f}-${st3}.ts`;
     await fs3.writeFile(files[f], src.replace(/from "\.\/(render|invoice|money)\.ts"/g, (m, n) => `from "/tmp/rprint-${n}-${st3}.ts"`));
   }
@@ -2746,7 +2746,7 @@ section("form: dynamic fields / steps");
   const st4 = Date.now();
   const files = {};
   for (const f of ["field", "steps"]) {
-    const src = (await fs4.readFile(new URL(`../packages/form/src/${f}.ts`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+    const src = (await fs4.readFile(new URL(`../packages/form/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
     files[f] = `/tmp/form-${f}-${st4}.ts`;
     await fs4.writeFile(files[f], src.replace(/from "\.\/field\.ts"/g, `from "/tmp/form-field-${st4}.ts"`));
   }
@@ -2772,7 +2772,7 @@ section("pii: subject rights (disclosure / erasure)");
   const st5 = Date.now();
   const files = {};
   for (const f of ["subject-rights", "index", "identity-mask"]) {
-    const src = (await fs5.readFile(new URL(`../packages/pii/src/${f}.ts`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+    const src = (await fs5.readFile(new URL(`../packages/pii/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
     files[f] = `/tmp/pii-${f}-${st5}.ts`;
     await fs5.writeFile(files[f], src.replace(/from "\.\/(index|identity-mask|subject-rights)\.ts"/g, (m, n) => `from "/tmp/pii-${n}-${st5}.ts"`));
   }
@@ -2801,8 +2801,8 @@ section("screens: submit-flow / review / list-selection");
   ok("フロー 入力→確認→完了(データ保持/戻る/失敗/完了/index)", f.phase === "confirm" && f.data.name === "山田" && back.phase === "input" && back.data.name === "山田" && failed.phase === "confirm" && failed.error === "err" && done.phase === "complete" && FL.phaseIndex("confirm") === 1);
 
   const fs6 = await import("node:fs/promises"); const st6 = Date.now();
-  const rvSrc = (await fs6.readFile(new URL("../packages/form/src/review.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/field\.ts"/g, `from "/tmp/scr-field-${st6}.ts"`);
-  const fldSrc = (await fs6.readFile(new URL("../packages/form/src/field.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rvSrc = (await fs6.readFile(new URL("../packages/form/src/review.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/field\.ts"/g, `from "/tmp/scr-field-${st6}.ts"`);
+  const fldSrc = (await fs6.readFile(new URL("../packages/form/src/field.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   await fs6.writeFile(`/tmp/scr-field-${st6}.ts`, fldSrc); await fs6.writeFile(`/tmp/scr-review-${st6}.ts`, rvSrc);
   const R = await import(`/tmp/scr-review-${st6}.ts`);
   const fields = [{ name: "name", label: "氏名", type: "text" }, { name: "type", label: "種別", type: "radio", options: [{ value: "corp", label: "法人" }, { value: "ind", label: "個人" }] }, { name: "company", label: "会社名", type: "text", visibleWhen: { field: "type", equals: "corp" } }, { name: "agree", label: "同意", type: "checkbox" }];
@@ -2869,7 +2869,7 @@ section("blog: slug / excerpt / reading-time / toc / post / feed");
   const fs8 = await import("node:fs/promises"); const st8 = Date.now();
   const files = {};
   for (const f of ["slug", "excerpt", "reading-time", "toc"]) {
-    const src = (await fs8.readFile(new URL(`../packages/blog/src/${f}.ts`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/(slug|excerpt)\.ts"/g, (m, n) => `from "/tmp/blog-${n}-${st8}.ts"`);
+    const src = (await fs8.readFile(new URL(`../packages/blog/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/(slug|excerpt)\.ts"/g, (m, n) => `from "/tmp/blog-${n}-${st8}.ts"`);
     files[f] = `/tmp/blog-${f}-${st8}.ts`;
     await fs8.writeFile(files[f], src);
   }
@@ -2904,9 +2904,9 @@ section("blog: slug / excerpt / reading-time / toc / post / feed");
 section("seo: meta / open-graph / json-ld / robots");
 {
   const fs9 = await import("node:fs/promises"); const st9 = Date.now();
-  const metaSrc = (await fs9.readFile(new URL("../packages/seo/src/meta.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const metaSrc = (await fs9.readFile(new URL("../packages/seo/src/meta.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   await fs9.writeFile(`/tmp/seo-meta-${st9}.ts`, metaSrc);
-  const ogSrc = (await fs9.readFile(new URL("../packages/seo/src/open-graph.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/meta\.ts"/g, `from "/tmp/seo-meta-${st9}.ts"`);
+  const ogSrc = (await fs9.readFile(new URL("../packages/seo/src/open-graph.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/meta\.ts"/g, `from "/tmp/seo-meta-${st9}.ts"`);
   await fs9.writeFile(`/tmp/seo-og-${st9}.ts`, ogSrc);
   const M = await import(`/tmp/seo-meta-${st9}.ts`);
   const O = await import(`/tmp/seo-og-${st9}.ts`);
@@ -2954,8 +2954,8 @@ section("blog+: comment / navigation");
   const tree = CM.buildCommentTree(comments);
   ok("comment(ツリー/返信/承認済み/並替/総数/承認待ち)", tree.length === 2 && tree[0].replies.length === 2 && CM.approvedComments(comments).length === 3 && CM.sortComments(comments, "newest")[0].id === "3" && CM.countComments(tree) === 4 && CM.pendingCount(comments) === 1);
   const fs10 = await import("node:fs/promises"); const st10 = Date.now();
-  const navSrc = (await fs10.readFile(new URL("../packages/blog/src/navigation.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/post\.ts"/g, `from "/tmp/blognav-post-${st10}.ts"`);
-  const postSrc = (await fs10.readFile(new URL("../packages/blog/src/post.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const navSrc = (await fs10.readFile(new URL("../packages/blog/src/navigation.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/post\.ts"/g, `from "/tmp/blognav-post-${st10}.ts"`);
+  const postSrc = (await fs10.readFile(new URL("../packages/blog/src/post.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   await fs10.writeFile(`/tmp/blognav-post-${st10}.ts`, postSrc); await fs10.writeFile(`/tmp/blognav-nav-${st10}.ts`, navSrc);
   const N = await import(`/tmp/blognav-nav-${st10}.ts`);
   const posts = [{ id: "1", slug: "a", title: "A", status: "published", publishedAt: "2025-07-20T00:00:00Z", series: "入門", seriesOrder: 1 }, { id: "2", slug: "b", title: "B", status: "published", publishedAt: "2025-07-22T00:00:00Z", series: "入門", seriesOrder: 2 }, { id: "3", slug: "c", title: "C", status: "published", publishedAt: "2025-07-24T00:00:00Z", series: "入門", seriesOrder: 3 }];
@@ -2988,7 +2988,7 @@ section("seo: visibility (internal noindex / public index)");
   const fs11 = await import("node:fs/promises"); const st11 = Date.now();
   const files = {};
   for (const f of ["meta", "robots", "indexing"]) {
-    const src = (await fs11.readFile(new URL(`../packages/seo/src/${f}.ts`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/(meta|robots)\.ts"/g, (m, n) => `from "/tmp/seovis-${n}-${st11}.ts"`);
+    const src = (await fs11.readFile(new URL(`../packages/seo/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/(meta|robots)\.ts"/g, (m, n) => `from "/tmp/seovis-${n}-${st11}.ts"`);
     files[f] = `/tmp/seovis-${f}-${st11}.ts`;
     await fs11.writeFile(files[f], src);
   }
@@ -3004,8 +3004,8 @@ section("seo: visibility (internal noindex / public index)");
 section("blog: permalink (URL structure)");
 {
   const fs12 = await import("node:fs/promises"); const st12 = Date.now();
-  const plSrc = (await fs12.readFile(new URL("../packages/blog/src/permalink.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/slug\.ts"/g, `from "/tmp/pl-slug-${st12}.ts"`);
-  const slugSrc = (await fs12.readFile(new URL("../packages/blog/src/slug.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const plSrc = (await fs12.readFile(new URL("../packages/blog/src/permalink.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/slug\.ts"/g, `from "/tmp/pl-slug-${st12}.ts"`);
+  const slugSrc = (await fs12.readFile(new URL("../packages/blog/src/slug.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   await fs12.writeFile(`/tmp/pl-slug-${st12}.ts`, slugSrc); await fs12.writeFile(`/tmp/pl-perma-${st12}.ts`, plSrc);
   const P = await import(`/tmp/pl-perma-${st12}.ts`);
   const post = { slug: "hello-world", id: "123", category: "技術ブログ", publishedAt: "2025-07-25T10:00:00Z" };
@@ -3039,7 +3039,7 @@ section("social: handle / parse / embed / accounts");
   const paths = {};
   for (const n of names) paths[n] = `/tmp/soc-${n}-${st13}.ts`;
   for (const n of names) {
-    let src = (await fs13.readFile(new URL(`../packages/social/src/${n}.ts`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+    let src = (await fs13.readFile(new URL(`../packages/social/src/${n}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
     for (const dep of names) src = src.replace(new RegExp(`from "\\./${dep}\\.ts"`, "g"), `from "${paths[dep]}"`);
     await fs13.writeFile(paths[n], src);
   }
@@ -3067,7 +3067,7 @@ section("booking: hours / slots / availability / rules / status");
   const paths = {};
   for (const n of names) paths[n] = `/tmp/bk-${n}-${st14}.ts`;
   for (const n of names) {
-    let src = (await fs14.readFile(new URL(`../packages/booking/src/${n}.ts`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+    let src = (await fs14.readFile(new URL(`../packages/booking/src/${n}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
     for (const dep of names) src = src.replace(new RegExp(`from "\\./${dep}\\.ts"`, "g"), `from "${paths[dep]}"`);
     await fs14.writeFile(paths[n], src);
   }
@@ -3098,16 +3098,16 @@ section("booking-reminders / social-feed / cast");
   const sched = R.reminderSchedule(bookingAt, [{ beforeMinutes: 1440, channel: "email" }, { beforeMinutes: 60, channel: "sms" }]);
   ok("reminders(発火時刻/due/送信済除外/grace/timing/本文)", sched[0].fireAt === "2025-07-25T18:00:00.000Z" && sched[1].fireAt === "2025-07-26T17:00:00.000Z" && R.dueReminders("bk1", sched, new Date("2025-07-25T18:30:00Z")).length === 1 && R.dueReminders("bk1", sched, new Date("2025-07-25T18:30:00Z"), { sentKeys: ["bk1:email:1440"] }).length === 0 && R.dueReminders("bk1", sched, new Date("2025-07-26T17:30:00Z"), { graceMinutes: 60 }).length === 1 && R.reminderTiming(1440) === "day_before" && R.reminderMessage({ customerName: "山田", bookingAt, beforeMinutes: 1440 }).includes("明日"));
   // social feed(platforms 依存 → shim)
-  const feedSrc = (await fs15.readFile(new URL("../packages/social/src/feed.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/platforms\.ts"/g, `from "/tmp/sf-plat-${st15}.ts"`);
-  const platSrc = (await fs15.readFile(new URL("../packages/social/src/platforms.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const feedSrc = (await fs15.readFile(new URL("../packages/social/src/feed.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/platforms\.ts"/g, `from "/tmp/sf-plat-${st15}.ts"`);
+  const platSrc = (await fs15.readFile(new URL("../packages/social/src/platforms.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   await fs15.writeFile(`/tmp/sf-plat-${st15}.ts`, platSrc); await fs15.writeFile(`/tmp/sf-feed-${st15}.ts`, feedSrc);
   const F = await import(`/tmp/sf-feed-${st15}.ts`);
   const posts = [{ platform: "x", id: "1", url: "u1", createdAt: "2025-07-20T10:00:00Z" }, { platform: "tiktok", id: "10", url: "u10", createdAt: "2025-07-25T10:00:00Z" }, { platform: "x", id: "2", url: "u2", createdAt: "2025-07-24T10:00:00Z" }, { platform: "x", id: "1", url: "dup", createdAt: "2025-07-20T10:00:00Z" }, { platform: "instagram", id: "100", url: "u100", createdAt: "2025-07-22T10:00:00Z" }];
   ok("social-feed(重複排除+新しい順/最新1件/新着/直近N)", F.mergeSocialFeed(posts).length === 4 && F.mergeSocialFeed(posts)[0].id === "10" && F.latestPerPlatform(posts).length === 3 && F.newPosts(posts, ["x:1", "x:2"]).some((p) => p.id === "1") === false && F.recentPosts(posts, 2).map((p) => p.id).join(",") === "10,2");
   await fs15.rm(`/tmp/sf-plat-${st15}.ts`); await fs15.rm(`/tmp/sf-feed-${st15}.ts`);
   // cast(profile が cast 依存 → shim)
-  const castSrc = (await fs15.readFile(new URL("../packages/cast/src/cast.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
-  const profSrc = (await fs15.readFile(new URL("../packages/cast/src/profile.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/cast\.ts"/g, `from "/tmp/cast-c-${st15}.ts"`);
+  const castSrc = (await fs15.readFile(new URL("../packages/cast/src/cast.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
+  const profSrc = (await fs15.readFile(new URL("../packages/cast/src/profile.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/cast\.ts"/g, `from "/tmp/cast-c-${st15}.ts"`);
   await fs15.writeFile(`/tmp/cast-c-${st15}.ts`, castSrc); await fs15.writeFile(`/tmp/cast-p-${st15}.ts`, profSrc);
   const C = await import(`/tmp/cast-c-${st15}.ts`);
   const P = await import(`/tmp/cast-p-${st15}.ts`);
@@ -3129,7 +3129,7 @@ section("booking-shift / cast-ranking");
   const bp = {};
   for (const n of bn) bp[n] = `/tmp/bks-${n}-${st16}.ts`;
   for (const n of bn) {
-    let src = (await fs16.readFile(new URL(`../packages/booking/src/${n}.ts`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+    let src = (await fs16.readFile(new URL(`../packages/booking/src/${n}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
     for (const dep of bn) src = src.replace(new RegExp(`from "\\./${dep}\\.ts"`, "g"), `from "${bp[dep]}"`);
     await fs16.writeFile(bp[n], src);
   }
@@ -3142,8 +3142,8 @@ section("booking-shift / cast-ranking");
   ok("booking-shift(シフト内枠/指名空き/勤務人数/配置空き)", SH.staffSlots(slots, [{ start: "10:00", end: "14:00" }]).map((x) => x.start).join(",") === "10:00,11:00,12:00,13:00" && SH.staffAvailableSlots(slots, [{ start: "10:00", end: "14:00" }], [{ start: "11:00", end: "12:00" }]).map((x) => x.start).join(",") === "10:00,12:00,13:00" && staffing.find((x) => x.slot.start === "12:00").staffCount === 2 && staffing.find((x) => x.slot.start === "09:00").staffCount === 1 && avail.some((x) => x.slot.start === "12:00") === false && avail.find((x) => x.slot.start === "13:00").remaining === 2);
   for (const n of bn) await fs16.rm(bp[n]);
   // cast ranking(cast 依存 → shim)
-  const rankSrc = (await fs16.readFile(new URL("../packages/cast/src/ranking.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/cast\.ts"/g, `from "/tmp/rk-cast-${st16}.ts"`);
-  const castSrc = (await fs16.readFile(new URL("../packages/cast/src/cast.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rankSrc = (await fs16.readFile(new URL("../packages/cast/src/ranking.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/cast\.ts"/g, `from "/tmp/rk-cast-${st16}.ts"`);
+  const castSrc = (await fs16.readFile(new URL("../packages/cast/src/cast.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   await fs16.writeFile(`/tmp/rk-cast-${st16}.ts`, castSrc); await fs16.writeFile(`/tmp/rk-rank-${st16}.ts`, rankSrc);
   const RK = await import(`/tmp/rk-rank-${st16}.ts`);
   const casts = [{ id: "1", name: "あおい", status: "active", rating: 5.0, reviewCount: 2 }, { id: "2", name: "かえで", status: "active", rating: 4.7, reviewCount: 150 }, { id: "3", name: "みなと", status: "active", rating: 4.9, reviewCount: 80 }, { id: "4", name: "さくら", status: "hidden", rating: 5.0, reviewCount: 200 }];
@@ -3212,8 +3212,8 @@ section("ui: command-palette / notification-store");
   const cmds = [{ id: "1", label: "ダッシュボード", keywords: ["home"], group: "ページ" }, { id: "2", label: "予約一覧", keywords: ["booking"], group: "ページ" }, { id: "3", label: "新規予約を作成", keywords: ["add"], group: "操作" }, { id: "4", label: "設定", group: "ページ" }];
   ok("command(スコア前方3/部分2/KW1/不一致null/空全件/絞込/スコア順/グループ/循環)", C.scoreCommand(cmds[0], "ダッシュ") === 3 && C.scoreCommand(cmds[2], "予約") === 2 && C.scoreCommand(cmds[1], "booking") === 1 && C.scoreCommand(cmds[3], "予約") === null && C.filterCommands(cmds, "").map((c) => c.id).join(",") === "1,2,3,4" && C.filterCommands(cmds, "予約").map((c) => c.id).sort().join(",") === "2,3" && C.filterCommands([{ id: "a", label: "予約作成" }, { id: "b", label: "新規予約" }], "予約")[0].id === "a" && C.groupCommands(cmds).map((x) => x.group).join(",") === "ページ,操作" && C.nextIndex(0, 3, -1) === 2 && C.nextIndex(0, 0, 1) === -1);
   const fs17 = await import("node:fs/promises"); const st17 = Date.now();
-  const storeSrc = (await fs17.readFile(new URL("../packages/ui/src/lib/notification-store.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/notifications\.ts"/g, `from "/tmp/nstore-notif-${st17}.ts"`);
-  const notifSrc = (await fs17.readFile(new URL("../packages/ui/src/lib/notifications.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const storeSrc = (await fs17.readFile(new URL("../packages/ui/src/lib/notification-store.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/notifications\.ts"/g, `from "/tmp/nstore-notif-${st17}.ts"`);
+  const notifSrc = (await fs17.readFile(new URL("../packages/ui/src/lib/notifications.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   await fs17.writeFile(`/tmp/nstore-notif-${st17}.ts`, notifSrc); await fs17.writeFile(`/tmp/nstore-store-${st17}.ts`, storeSrc);
   const S = await import(`/tmp/nstore-store-${st17}.ts`);
   let stt = [{ id: "1", title: "A", createdAt: "2025-07-25T09:00:00Z" }, { id: "2", title: "B", createdAt: "2025-07-25T11:00:00Z", read: true }];
@@ -3283,11 +3283,11 @@ section("ui: filterNavByPermission (RBAC)");
 section("invoice (billing)");
 {
   const fs18 = await import("node:fs/promises"); const st18 = Date.now();
-  const taxIdx = (await fs18.readFile(new URL("../packages/tax/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/withholding\.ts"/g, `from "/tmp/inv-tax-wh-${st18}.ts"`);
-  let wh = "export {};"; try { wh = (await fs18.readFile(new URL("../packages/tax/src/withholding.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'); } catch {}
+  const taxIdx = (await fs18.readFile(new URL("../packages/tax/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/withholding\.ts"/g, `from "/tmp/inv-tax-wh-${st18}.ts"`);
+  let wh = "export {};"; try { wh = (await fs18.readFile(new URL("../packages/tax/src/withholding.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'); } catch {}
   await fs18.writeFile(`/tmp/inv-tax-wh-${st18}.ts`, wh);
   await fs18.writeFile(`/tmp/inv-tax-${st18}.ts`, taxIdx);
-  const rd = async (name) => (await fs18.readFile(new URL(`../packages/invoice/src/${name}.ts`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/tax"/g, `from "/tmp/inv-tax-${st18}.ts"`).replace(/from "\.\/line\.ts"/g, `from "/tmp/inv-line-${st18}.ts"`).replace(/from "\.\/invoice\.ts"/g, `from "/tmp/inv-invoice-${st18}.ts"`);
+  const rd = async (name) => (await fs18.readFile(new URL(`../packages/invoice/src/${name}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/tax"/g, `from "/tmp/inv-tax-${st18}.ts"`).replace(/from "\.\/line\.ts"/g, `from "/tmp/inv-line-${st18}.ts"`).replace(/from "\.\/invoice\.ts"/g, `from "/tmp/inv-invoice-${st18}.ts"`);
   for (const n of ["line", "invoice", "numbering", "payment"]) await fs18.writeFile(`/tmp/inv-${n}-${st18}.ts`, await rd(n));
   const L = await import(`/tmp/inv-line-${st18}.ts`);
   const I = await import(`/tmp/inv-invoice-${st18}.ts`);
@@ -3305,12 +3305,12 @@ section("invoice-reconcile / quote");
 {
   const fs19 = await import("node:fs/promises"); const st19 = Date.now();
   const T = `/tmp/rq-tax-${st19}.ts`, TW = `/tmp/rq-taxwh-${st19}.ts`;
-  const taxIdx = (await fs19.readFile(new URL("../packages/tax/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/withholding\.ts"/g, `from "${TW}"`);
-  let wh = "export {};"; try { wh = (await fs19.readFile(new URL("../packages/tax/src/withholding.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'); } catch {}
+  const taxIdx = (await fs19.readFile(new URL("../packages/tax/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/withholding\.ts"/g, `from "${TW}"`);
+  let wh = "export {};"; try { wh = (await fs19.readFile(new URL("../packages/tax/src/withholding.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'); } catch {}
   await fs19.writeFile(TW, wh); await fs19.writeFile(T, taxIdx);
   const invPaths = {}; for (const n of ["line", "invoice", "numbering", "payment", "reconcile"]) invPaths[n] = `/tmp/rq-inv-${n}-${st19}.ts`;
   for (const n of ["line", "invoice", "numbering", "payment", "reconcile"]) {
-    let src = (await fs19.readFile(new URL(`../packages/invoice/src/${n}.ts`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/tax"/g, `from "${T}"`);
+    let src = (await fs19.readFile(new URL(`../packages/invoice/src/${n}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/tax"/g, `from "${T}"`);
     for (const d of ["line", "invoice", "numbering", "payment"]) src = src.replace(new RegExp(`from "\\./${d}\\.ts"`, "g"), `from "${invPaths[d]}"`);
     await fs19.writeFile(invPaths[n], src);
   }
@@ -3321,7 +3321,7 @@ section("invoice-reconcile / quote");
   const r1 = R.applyPayment(invs, 15000);
   const aging = R.agingBuckets(invs, new Date("2025-07-15"));
   ok("invoice-reconcile(FIFO消込/過入金unapplied/繰越/年齢表)", r1.invoices.find((i) => i.number === "INV-001").paidAmount === 10000 && r1.invoices.find((i) => i.number === "INV-002").paidAmount === 5000 && R.applyPayment(invs, 40000).unapplied === 5000 && R.outstandingTotal(invs) === 35000 && aging.current === 5000 && aging.d1_30 === 20000 && aging.d31_60 === 10000);
-  const quoteSrc = (await fs19.readFile(new URL("../packages/quote/src/quote.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/invoice"/g, `from "${barrel}"`);
+  const quoteSrc = (await fs19.readFile(new URL("../packages/quote/src/quote.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/invoice"/g, `from "${barrel}"`);
   const QP = `/tmp/rq-quote-${st19}.ts`; await fs19.writeFile(QP, quoteSrc);
   const Q = await import(QP);
   const q = Q.buildQuote({ number: "QUO-0001", issueDate: "2025-07-01", validUntil: "2025-07-31", billTo: "株式会社テスト" }, [{ description: "開発", quantity: 1, unitPrice: 100000 }, { description: "書籍", quantity: 2, unitPrice: 1000, taxRate: 8 }]);
@@ -3337,30 +3337,30 @@ section("invoice-recurring / dunning / purchase");
   const fs20 = await import("node:fs/promises"); const st20 = Date.now();
   // datetime calendar
   const CAL = `/tmp/rp-cal-${st20}.ts`;
-  await fs20.writeFile(CAL, (await fs20.readFile(new URL("../packages/datetime/src/calendar.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+  await fs20.writeFile(CAL, (await fs20.readFile(new URL("../packages/datetime/src/calendar.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const RECP = `/tmp/rp-recurring-${st20}.ts`;
-  await fs20.writeFile(RECP, (await fs20.readFile(new URL("../packages/invoice/src/recurring.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/datetime"/g, `from "${CAL}"`));
+  await fs20.writeFile(RECP, (await fs20.readFile(new URL("../packages/invoice/src/recurring.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/datetime"/g, `from "${CAL}"`));
   const DUNP = `/tmp/rp-dunning-${st20}.ts`;
-  await fs20.writeFile(DUNP, (await fs20.readFile(new URL("../packages/invoice/src/dunning.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+  await fs20.writeFile(DUNP, (await fs20.readFile(new URL("../packages/invoice/src/dunning.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const R = await import(RECP), D = await import(DUNP);
   const q = { interval: "quarterly", startDate: "2025-01-15", endDate: "2025-12-31" };
   ok("recurring(月末クランプ/四半期/範囲/終了null/督促段階/文面/送付判定)", R.billingDateAt({ interval: "monthly", startDate: "2025-01-31" }, 1) === "2025-02-28" && R.billingDateAt(q, 2) === "2025-07-15" && JSON.stringify(R.billingDatesBetween(q, "2025-01-01", "2025-12-31")) === JSON.stringify(["2025-01-15", "2025-04-15", "2025-07-15", "2025-10-15"]) && R.nextBillingDate({ interval: "monthly", startDate: "2025-01-01", endDate: "2025-03-31" }, "2025-05-01") === null && D.dunningLevel(5) === "reminder" && D.dunningLevel(90) === "final" && D.dunningMessage({ number: "INV-001", billTo: "株式会社テスト", dueDate: "2025-06-30", amountDue: 110000 }, "first").includes("INV-001") && D.shouldSendDunning(20, ["first"]).send === false);
 
   // purchase → invoice → tax
   const TX = `/tmp/rp-tax-${st20}.ts`, TXW = `/tmp/rp-taxwh-${st20}.ts`;
-  await fs20.writeFile(TXW, (await (async()=>{ try { return (await fs20.readFile(new URL("../packages/tax/src/withholding.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'); } catch { return "export {};"; } })()));
-  await fs20.writeFile(TX, (await fs20.readFile(new URL("../packages/tax/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/withholding\.ts"/g, `from "${TXW}"`));
+  await fs20.writeFile(TXW, (await (async()=>{ try { return (await fs20.readFile(new URL("../packages/tax/src/withholding.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'); } catch { return "export {};"; } })()));
+  await fs20.writeFile(TX, (await fs20.readFile(new URL("../packages/tax/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/withholding\.ts"/g, `from "${TXW}"`));
   const ip = {}; for (const n of ["line", "invoice", "numbering", "payment"]) ip[n] = `/tmp/rp-inv-${n}-${st20}.ts`;
   for (const n of ["line", "invoice", "numbering", "payment"]) {
-    let src = (await fs20.readFile(new URL(`../packages/invoice/src/${n}.ts`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/tax"/g, `from "${TX}"`);
+    let src = (await fs20.readFile(new URL(`../packages/invoice/src/${n}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/tax"/g, `from "${TX}"`);
     for (const d of ["line", "invoice", "numbering", "payment"]) src = src.replace(new RegExp(`from "\\./${d}\\.ts"`, "g"), `from "${ip[d]}"`);
     await fs20.writeFile(ip[n], src);
   }
   const IB = `/tmp/rp-inv-barrel-${st20}.ts`;
   await fs20.writeFile(IB, ["line","invoice","numbering","payment"].map((n) => `export * from "${ip[n]}";`).join("\n"));
   const POP = `/tmp/rp-po-${st20}.ts`, RCP = `/tmp/rp-recv-${st20}.ts`;
-  await fs20.writeFile(POP, (await fs20.readFile(new URL("../packages/purchase/src/purchase-order.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/invoice"/g, `from "${IB}"`));
-  await fs20.writeFile(RCP, (await fs20.readFile(new URL("../packages/purchase/src/receiving.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/purchase-order\.ts"/g, `from "${POP}"`));
+  await fs20.writeFile(POP, (await fs20.readFile(new URL("../packages/purchase/src/purchase-order.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/invoice"/g, `from "${IB}"`));
+  await fs20.writeFile(RCP, (await fs20.readFile(new URL("../packages/purchase/src/receiving.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/purchase-order\.ts"/g, `from "${POP}"`));
   const PO = await import(POP), RC = await import(RCP);
   const lines = [{ description: "部品A", quantity: 100, unitPrice: 500 }, { description: "部品B", quantity: 50, unitPrice: 200, taxRate: 8 }];
   const po = PO.buildPurchaseOrder({ number: "PO-0001", orderDate: "2025-07-01", supplier: "仕入先", state: "ordered" }, lines);
@@ -3375,9 +3375,9 @@ section("inventory");
 {
   const fs21 = await import("node:fs/promises"); const st21 = Date.now();
   const MP = `/tmp/inv-mv-${st21}.ts`, RP = `/tmp/inv-ro-${st21}.ts`, VP = `/tmp/inv-val-${st21}.ts`;
-  await fs21.writeFile(MP, (await fs21.readFile(new URL("../packages/inventory/src/movements.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fs21.writeFile(RP, (await fs21.readFile(new URL("../packages/inventory/src/reorder.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fs21.writeFile(VP, (await fs21.readFile(new URL("../packages/inventory/src/valuation.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/movements\.ts"/g, `from "${MP}"`));
+  await fs21.writeFile(MP, (await fs21.readFile(new URL("../packages/inventory/src/movements.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fs21.writeFile(RP, (await fs21.readFile(new URL("../packages/inventory/src/reorder.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fs21.writeFile(VP, (await fs21.readFile(new URL("../packages/inventory/src/valuation.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/movements\.ts"/g, `from "${MP}"`));
   const M = await import(MP), R = await import(RP), V = await import(VP);
   const mv = [{ type: "inbound", quantity: 100, at: "a", unitCost: 500 }, { type: "outbound", quantity: 30, at: "b" }, { type: "inbound", quantity: 50, at: "c", unitCost: 600 }, { type: "adjustment", quantity: -5, at: "d" }];
   const policy = { safetyStock: 20, dailyDemand: 5, leadTimeDays: 7 };
@@ -3391,8 +3391,8 @@ section("accounting / inventory-lot-warehouse");
 {
   const fs22 = await import("node:fs/promises"); const st22 = Date.now();
   const AJ = `/tmp/ac-j-${st22}.ts`, AE = `/tmp/ac-e-${st22}.ts`;
-  await fs22.writeFile(AJ, (await fs22.readFile(new URL("../packages/accounting/src/journal.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fs22.writeFile(AE, (await fs22.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
+  await fs22.writeFile(AJ, (await fs22.readFile(new URL("../packages/accounting/src/journal.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fs22.writeFile(AE, (await fs22.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
   const J = await import(AJ), E = await import(AE);
   const sales = E.salesJournal({ date: "2025-07-01", net: 100000, tax: 10000 });
   const purchase = E.purchaseJournal({ date: "2025-07-02", net: 60000, tax: 6000 });
@@ -3400,9 +3400,9 @@ section("accounting / inventory-lot-warehouse");
   ok("accounting(売上仕訳貸借一致/仕入66000/試算表売掛0/freee3明細)", sales.lines[0].debit === 110000 && J.isBalanced(sales) && purchase.lines[2].credit === 66000 && J.isBalanced(purchase) && tb.find((a) => a.account === "売掛金").balance === 0 && J.trialBalanceBalanced([sales]) && J.toFreeeDetails(sales).length === 3);
 
   const MV = `/tmp/il-mv-${st22}.ts`, LT = `/tmp/il-lot-${st22}.ts`, WH = `/tmp/il-wh-${st22}.ts`;
-  await fs22.writeFile(MV, (await fs22.readFile(new URL("../packages/inventory/src/movements.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fs22.writeFile(LT, (await fs22.readFile(new URL("../packages/inventory/src/lot.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fs22.writeFile(WH, (await fs22.readFile(new URL("../packages/inventory/src/warehouse.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/movements\.ts"/g, `from "${MV}"`));
+  await fs22.writeFile(MV, (await fs22.readFile(new URL("../packages/inventory/src/movements.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fs22.writeFile(LT, (await fs22.readFile(new URL("../packages/inventory/src/lot.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fs22.writeFile(WH, (await fs22.readFile(new URL("../packages/inventory/src/warehouse.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/movements\.ts"/g, `from "${MV}"`));
   const L = await import(LT), W = await import(WH);
   const lots = [{ lotId: "L1", type: "inbound", quantity: 100, at: "2025-07-01", expiry: "2025-08-31" }, { lotId: "L2", type: "inbound", quantity: 50, at: "2025-07-02", expiry: "2025-07-20" }, { lotId: "L1", type: "outbound", quantity: 30, at: "2025-07-05" }, { lotId: "L3", type: "inbound", quantity: 80, at: "2025-07-03" }];
   const alloc = L.allocateFEFO(lots, 100);
@@ -3417,10 +3417,10 @@ section("accounting-closing / tax-report");
 {
   const fs23 = await import("node:fs/promises"); const st23 = Date.now();
   const AJ = `/tmp/cl-j-${st23}.ts`, AE = `/tmp/cl-e-${st23}.ts`, AC = `/tmp/cl-c-${st23}.ts`, AT = `/tmp/cl-t-${st23}.ts`;
-  await fs23.writeFile(AJ, (await fs23.readFile(new URL("../packages/accounting/src/journal.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fs23.writeFile(AE, (await fs23.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
-  await fs23.writeFile(AC, (await fs23.readFile(new URL("../packages/accounting/src/closing.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`).replace(/from "\.\/entries\.ts"/g, `from "${AE}"`));
-  await fs23.writeFile(AT, (await fs23.readFile(new URL("../packages/accounting/src/tax-report.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+  await fs23.writeFile(AJ, (await fs23.readFile(new URL("../packages/accounting/src/journal.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fs23.writeFile(AE, (await fs23.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
+  await fs23.writeFile(AC, (await fs23.readFile(new URL("../packages/accounting/src/closing.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`).replace(/from "\.\/entries\.ts"/g, `from "${AE}"`));
+  await fs23.writeFile(AT, (await fs23.readFile(new URL("../packages/accounting/src/tax-report.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const E = await import(AE), C = await import(AC), T = await import(AT);
   const entries = [E.salesJournal({ date: "2025-07-05", net: 100000, tax: 10000 }), E.purchaseJournal({ date: "2025-07-10", net: 60000, tax: 6000 }), E.salesJournal({ date: "2025-08-03", net: 50000, tax: 5000 })];
   const jul = C.filterByPeriod(entries, "2025-07");
@@ -3435,9 +3435,9 @@ section("accounting-export");
 {
   const fs24 = await import("node:fs/promises"); const st24 = Date.now();
   const AJ = `/tmp/ex-j-${st24}.ts`, AE = `/tmp/ex-e-${st24}.ts`, AX = `/tmp/ex-x-${st24}.ts`;
-  await fs24.writeFile(AJ, (await fs24.readFile(new URL("../packages/accounting/src/journal.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fs24.writeFile(AE, (await fs24.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
-  await fs24.writeFile(AX, (await fs24.readFile(new URL("../packages/accounting/src/export.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
+  await fs24.writeFile(AJ, (await fs24.readFile(new URL("../packages/accounting/src/journal.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fs24.writeFile(AE, (await fs24.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
+  await fs24.writeFile(AX, (await fs24.readFile(new URL("../packages/accounting/src/export.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
   const E = await import(AE), X = await import(AX);
   const entries = [E.salesJournal({ date: "2025-07-01", net: 100000, tax: 10000 }), E.receiptJournal({ date: "2025-07-31", amount: 110000 })];
   const rows = X.journalToRows(entries);
@@ -3452,8 +3452,8 @@ section("blueprint / expense-journal");
 {
   const fs25 = await import("node:fs/promises"); const st25 = Date.now();
   const FSM = `/tmp/bp-fsm-${st25}.ts`, BP = `/tmp/bp-bp-${st25}.ts`;
-  await fs25.writeFile(FSM, (await fs25.readFile(new URL("../packages/fsm/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fs25.writeFile(BP, (await fs25.readFile(new URL("../packages/blueprint/src/blueprint.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/fsm"/g, `from "${FSM}"`));
+  await fs25.writeFile(FSM, (await fs25.readFile(new URL("../packages/fsm/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fs25.writeFile(BP, (await fs25.readFile(new URL("../packages/blueprint/src/blueprint.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/fsm"/g, `from "${FSM}"`));
   const B = await import(BP);
   const bp = { initial: "draft", states: ["draft", "submitted", "approved", "rejected"], final: ["approved", "rejected"], transitions: [{ from: "draft", to: "submitted", name: "提出", requiredFields: ["amount", "purpose"], actions: ["notifyApprover"] }, { from: "submitted", to: "approved", name: "承認", condition: (r) => r.amount <= 100000, actions: ["createJournal"], allowedRoles: ["manager"] }, { from: "submitted", to: "rejected", name: "却下", allowedRoles: ["manager"] }] };
   const good = B.evaluateTransition(bp, "draft", "提出", { amount: 5000, purpose: "x" });
@@ -3462,8 +3462,8 @@ section("blueprint / expense-journal");
 
   // 経費 → 仕訳の自動起票
   const AJ = `/tmp/ej-j-${st25}.ts`, AE = `/tmp/ej-e-${st25}.ts`;
-  await fs25.writeFile(AJ, (await fs25.readFile(new URL("../packages/accounting/src/journal.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fs25.writeFile(AE, (await fs25.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
+  await fs25.writeFile(AJ, (await fs25.readFile(new URL("../packages/accounting/src/journal.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fs25.writeFile(AE, (await fs25.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
   const J = await import(AJ), E = await import(AE);
   const e1 = E.expenseJournal({ date: "2025-07-10", net: 10000, tax: 1000, account: "旅費交通費" });
   ok("expense-journal(経費10000/仮払税1000/未払金11000貸借一致/現金払い/税0は2明細/仮払金)", e1.lines[0].account === "旅費交通費" && e1.lines[0].debit === 10000 && e1.lines[2].account === "未払金" && e1.lines[2].credit === 11000 && J.isBalanced(e1) && E.expenseJournal({ date: "x", net: 5000, tax: 500, payment: "cash" }).lines[2].account === "現金預金" && E.expenseJournal({ date: "x", net: 3000, tax: 0 }).lines.length === 2 && E.expenseJournal({ date: "x", net: 1000, tax: 0, payment: "advance" }).lines[1].account === "仮払金");
@@ -3475,13 +3475,13 @@ section("blueprint-workflow integration");
 {
   const fs26 = await import("node:fs/promises"); const st26 = Date.now();
   const FSM = `/tmp/iw-fsm-${st26}.ts`, BP = `/tmp/iw-bp-${st26}.ts`, CORE = `/tmp/iw-core-${st26}.ts`;
-  await fs26.writeFile(FSM, (await fs26.readFile(new URL("../packages/fsm/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fs26.writeFile(BP, (await fs26.readFile(new URL("../packages/blueprint/src/blueprint.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/fsm"/g, `from "${FSM}"`));
+  await fs26.writeFile(FSM, (await fs26.readFile(new URL("../packages/fsm/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fs26.writeFile(BP, (await fs26.readFile(new URL("../packages/blueprint/src/blueprint.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/fsm"/g, `from "${FSM}"`));
   await fs26.writeFile(CORE, `export const ok=(value)=>({ok:true,value});export const err=(error)=>({ok:false,error});export class AppError extends Error{constructor(code,message){super(message);this.code=code;}static from(e){return e instanceof AppError?e:new AppError("INTERNAL",e?.message??String(e));}}export const ErrorCode={VALIDATION:"VALIDATION",INTERNAL:"INTERNAL",NOT_FOUND:"NOT_FOUND",FORBIDDEN:"FORBIDDEN"};`);
   const wfFiles = (await fs26.readdir(new URL("../packages/workflow/src/", import.meta.url))).filter((f) => f.endsWith(".ts") && !f.includes(".test."));
   const wfPath = {}; for (const f of wfFiles) wfPath[f.replace(".ts", "")] = `/tmp/iw-wf-${f.replace(".ts", "")}-${st26}.ts`;
   for (const f of wfFiles) {
-    let src = (await fs26.readFile(new URL(`../packages/workflow/src/${f}`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/core"/g, `from "${CORE}"`);
+    let src = (await fs26.readFile(new URL(`../packages/workflow/src/${f}`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/core"/g, `from "${CORE}"`);
     for (const dep of Object.keys(wfPath)) src = src.replace(new RegExp(`from "\\./${dep}\\.ts"`, "g"), `from "${wfPath[dep]}"`);
     await fs26.writeFile(wfPath[f.replace(".ts", "")], src);
   }
@@ -3506,9 +3506,9 @@ section("audit / report-integration");
 {
   const fs27 = await import("node:fs/promises"); const st27 = Date.now();
   const AEV = `/tmp/au-ev-${st27}.ts`, ALG = `/tmp/au-lg-${st27}.ts`, AQ = `/tmp/au-q-${st27}.ts`;
-  await fs27.writeFile(AEV, (await fs27.readFile(new URL("../packages/audit/src/event.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fs27.writeFile(ALG, (await fs27.readFile(new URL("../packages/audit/src/log.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/event\.ts"/g, `from "${AEV}"`));
-  await fs27.writeFile(AQ, (await fs27.readFile(new URL("../packages/audit/src/query.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/log\.ts"/g, `from "${ALG}"`));
+  await fs27.writeFile(AEV, (await fs27.readFile(new URL("../packages/audit/src/event.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fs27.writeFile(ALG, (await fs27.readFile(new URL("../packages/audit/src/log.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/event\.ts"/g, `from "${AEV}"`));
+  await fs27.writeFile(AQ, (await fs27.readFile(new URL("../packages/audit/src/query.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/log\.ts"/g, `from "${ALG}"`));
   const L = await import(ALG), Q = await import(AQ), EV = await import(AEV);
   let log = [];
   log = L.appendEvent(log, { at: "2025-07-01T10:00:00Z", actor: "u1", action: "expense.create", target: "expense:1" });
@@ -3518,7 +3518,7 @@ section("audit / report-integration");
   ok("audit(連鎖prevHash/正常valid/書換え検知brokenAt1/削除検知/並替検知/actor絞込/action前方一致/差分)", log[1].prevHash === log[0].hash && L.verifyChain(log).valid === true && L.verifyChain(tampered).valid === false && L.verifyChain(tampered).brokenAt === 1 && L.verifyChain([log[0], log[2]]).valid === false && L.verifyChain([log[0], log[2], log[1]]).valid === false && Q.filterByActor(log, "u1").length === 2 && Q.filterByAction(log, "expense").length === 3 && EV.diffChanges({ a: 1 }, { a: 2 }).length === 1);
 
   const RP = `/tmp/rep-${st27}.ts`;
-  await fs27.writeFile(RP, (await fs27.readFile(new URL("../packages/report/src/reports.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+  await fs27.writeFile(RP, (await fs27.readFile(new URL("../packages/report/src/reports.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const R = await import(RP);
   const tb = R.trialBalanceSheet([{ account: "売掛金", debit: 110000, credit: 110000, balance: 0 }, { account: "売上高", debit: 0, credit: 100000, balance: -100000 }]);
   const tax = R.taxReportSheet({ byRate: [{ rate: 10, salesNet: 100000, outputTax: 10000, purchaseNet: 60000, inputTax: 6000 }, { rate: 8, salesNet: 20000, outputTax: 1600, purchaseNet: 0, inputTax: 0 }], outputTax: 11600, inputTax: 6000, netPayable: 5600 });
@@ -3531,9 +3531,9 @@ section("audit-wired expense trail");
 {
   const fs28 = await import("node:fs/promises"); const st28 = Date.now();
   const AEV = `/tmp/aw-ev-${st28}.ts`, ALG = `/tmp/aw-lg-${st28}.ts`, AQ = `/tmp/aw-q-${st28}.ts`;
-  await fs28.writeFile(AEV, (await fs28.readFile(new URL("../packages/audit/src/event.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fs28.writeFile(ALG, (await fs28.readFile(new URL("../packages/audit/src/log.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/event\.ts"/g, `from "${AEV}"`));
-  await fs28.writeFile(AQ, (await fs28.readFile(new URL("../packages/audit/src/query.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/log\.ts"/g, `from "${ALG}"`));
+  await fs28.writeFile(AEV, (await fs28.readFile(new URL("../packages/audit/src/event.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fs28.writeFile(ALG, (await fs28.readFile(new URL("../packages/audit/src/log.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/event\.ts"/g, `from "${AEV}"`));
+  await fs28.writeFile(AQ, (await fs28.readFile(new URL("../packages/audit/src/query.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/log\.ts"/g, `from "${ALG}"`));
   const L = await import(ALG), Q = await import(AQ);
   const record = (log, input) => L.appendEvent(log, { at: new Date().toISOString(), ...input });
   let log = [];
@@ -3551,11 +3551,11 @@ section("accounting-payroll / department / sync");
 {
   const fs29 = await import("node:fs/promises"); const st29 = Date.now();
   const AJ = `/tmp/ps-j-${st29}.ts`, AE = `/tmp/ps-e-${st29}.ts`, AC = `/tmp/ps-c-${st29}.ts`, AX = `/tmp/ps-x-${st29}.ts`, AS = `/tmp/ps-s-${st29}.ts`;
-  await fs29.writeFile(AJ, (await fs29.readFile(new URL("../packages/accounting/src/journal.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fs29.writeFile(AE, (await fs29.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
-  await fs29.writeFile(AC, (await fs29.readFile(new URL("../packages/accounting/src/closing.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`).replace(/from "\.\/entries\.ts"/g, `from "${AE}"`));
-  await fs29.writeFile(AX, (await fs29.readFile(new URL("../packages/accounting/src/export.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
-  await fs29.writeFile(AS, (await fs29.readFile(new URL("../packages/accounting/src/sync.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`).replace(/from "\.\/export\.ts"/g, `from "${AX}"`));
+  await fs29.writeFile(AJ, (await fs29.readFile(new URL("../packages/accounting/src/journal.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fs29.writeFile(AE, (await fs29.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
+  await fs29.writeFile(AC, (await fs29.readFile(new URL("../packages/accounting/src/closing.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`).replace(/from "\.\/entries\.ts"/g, `from "${AE}"`));
+  await fs29.writeFile(AX, (await fs29.readFile(new URL("../packages/accounting/src/export.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
+  await fs29.writeFile(AS, (await fs29.readFile(new URL("../packages/accounting/src/sync.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`).replace(/from "\.\/export\.ts"/g, `from "${AX}"`));
   const J = await import(AJ), E = await import(AE), C = await import(AC), S = await import(AS);
   const pay = E.payrollJournal({ date: "2025-07-25", gross: 300000, withholdingTax: 10000, socialInsurance: 45000 });
   const entriesDep = [{ date: "2025-07-01", description: "売上", lines: [{ account: "売上高", debit: 0, credit: 100000, department: "営業部" }] }, { date: "2025-07-02", description: "経費", lines: [{ account: "旅費交通費", debit: 20000, credit: 0, department: "営業部" }] }];
@@ -3575,7 +3575,7 @@ section("payslip-html / sync-job");
   // 給与明細HTML(payslip 型 shim)
   const PS = `/tmp/pj-ps-${st30}.ts`, RN = `/tmp/pj-rn-${st30}.ts`;
   await fs30.writeFile(PS, "export interface PayslipItem { name: string; amount: number; } export interface Payslip { base: number; premiums: number; allowances: PayslipItem[]; grossPay: number; deductions: PayslipItem[]; totalDeductions: number; netPay: number; }");
-  await fs30.writeFile(RN, (await fs30.readFile(new URL("../packages/payroll/src/render.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/payslip\.ts"/g, `from "${PS}"`));
+  await fs30.writeFile(RN, (await fs30.readFile(new URL("../packages/payroll/src/render.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/payslip\.ts"/g, `from "${PS}"`));
   const R = await import(RN);
   const payslip = { base: 250000, premiums: 30000, allowances: [{ name: "通勤手当", amount: 15000 }], grossPay: 295000, deductions: [{ name: "健康保険料", amount: 14000 }], totalDeductions: 14000, netPay: 281000 };
   const html = R.renderPayslipHtml(payslip, { employeeName: "山田太郎", period: "2025年7月分" });
@@ -3586,17 +3586,17 @@ section("payslip-html / sync-job");
   const CORE = `/tmp/pj-core-${st30}.ts`;
   await fs30.writeFile(CORE, `export const ok=(value)=>({ok:true,value});export const err=(error)=>({ok:false,error});export class AppError extends Error{constructor(code,message){super(message);this.code=code;}static from(e){return e instanceof AppError?e:new AppError("INTERNAL",e?.message??String(e));}}export const ErrorCode={VALIDATION:"VALIDATION",INTERNAL:"INTERNAL"};`);
   for (const f of cronFiles) {
-    let src = (await fs30.readFile(new URL(`../packages/cron/src/${f}`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/core"/g, `from "${CORE}"`);
+    let src = (await fs30.readFile(new URL(`../packages/cron/src/${f}`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/core"/g, `from "${CORE}"`);
     for (const dep of Object.keys(cronPath)) src = src.replace(new RegExp(`from "\\./${dep}\\.ts"`, "g"), `from "${cronPath[dep]}"`);
     await fs30.writeFile(cronPath[f.replace(".ts", "")], src);
   }
   const AJ = `/tmp/pj-j-${st30}.ts`, AE = `/tmp/pj-e-${st30}.ts`, AX = `/tmp/pj-x-${st30}.ts`, AS = `/tmp/pj-s-${st30}.ts`;
-  await fs30.writeFile(AJ, (await fs30.readFile(new URL("../packages/accounting/src/journal.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fs30.writeFile(AE, (await fs30.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
-  await fs30.writeFile(AX, (await fs30.readFile(new URL("../packages/accounting/src/export.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
-  await fs30.writeFile(AS, (await fs30.readFile(new URL("../packages/accounting/src/sync.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`).replace(/from "\.\/export\.ts"/g, `from "${AX}"`));
+  await fs30.writeFile(AJ, (await fs30.readFile(new URL("../packages/accounting/src/journal.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fs30.writeFile(AE, (await fs30.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
+  await fs30.writeFile(AX, (await fs30.readFile(new URL("../packages/accounting/src/export.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
+  await fs30.writeFile(AS, (await fs30.readFile(new URL("../packages/accounting/src/sync.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`).replace(/from "\.\/export\.ts"/g, `from "${AX}"`));
   const SJ = `/tmp/pj-syncjob-${st30}.ts`;
-  await fs30.writeFile(SJ, (await fs30.readFile(new URL("../demos/showcase/src/examples/accounting-sync-sync-job.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/cron"/g, `from "${cronPath["runner"]}"`).replace(/from "@platform\/accounting"/g, `from "${AS}"`));
+  await fs30.writeFile(SJ, (await fs30.readFile(new URL("../demos/showcase/src/examples/accounting-sync-sync-job.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/cron"/g, `from "${cronPath["runner"]}"`).replace(/from "@platform\/accounting"/g, `from "${AS}"`));
   const E = await import(AE), JOB = await import(SJ);
   const ids = { "売掛金": 100, "売上高": 200, "仮受消費税": 300, "現金預金": 400 };
   const entries = [E.salesJournal({ date: "2025-07-01", net: 100000, tax: 10000 }), E.receiptJournal({ date: "2025-07-31", amount: 110000 })];
@@ -3613,9 +3613,9 @@ section("attendance-import / payslip-batch");
 {
   const fs31 = await import("node:fs/promises"); const st31 = Date.now();
   const CSV = `/tmp/ab-csv-${st31}.ts`, ATT = `/tmp/ab-att-${st31}.ts`, IMP = `/tmp/ab-imp-${st31}.ts`;
-  await fs31.writeFile(CSV, (await fs31.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+  await fs31.writeFile(CSV, (await fs31.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fs31.writeFile(ATT, "export function hhmmToMinutes(hhmm) { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; } export function workedMinutes(inMin, outMin, breakMin = 0) { return Math.max(0, outMin - inMin - breakMin); }");
-  await fs31.writeFile(IMP, (await fs31.readFile(new URL("../apps/internal-app/src/lib/attendance-import.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/csv"/g, `from "${CSV}"`).replace(/from "\.\/attendance\.ts"/g, `from "${ATT}"`));
+  await fs31.writeFile(IMP, (await fs31.readFile(new URL("../apps/internal-app/src/lib/attendance-import.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/csv"/g, `from "${CSV}"`).replace(/from "\.\/attendance\.ts"/g, `from "${ATT}"`));
   const I = await import(IMP);
   const goodCsv = "社員番号,日付,出勤,退勤,休憩\nE001,2025-07-01,09:00,18:00,60\nE001,2025-07-02,09:00,17:30,60\nE002,2025-07-01,10:00,19:00,45";
   const r = I.parseAttendanceCsv(goodCsv);
@@ -3628,7 +3628,7 @@ section("attendance-import / payslip-batch");
   const PR = `/tmp/ab-pr-${st31}.ts`, PD = `/tmp/ab-pd-${st31}.ts`, BT = `/tmp/ab-bt-${st31}.ts`;
   await fs31.writeFile(PR, "export function buildPayslip(b, o = {}) { const allowances = o.allowances ?? []; const deductions = o.deductions ?? []; const premiums = b.overtimePremium + b.over60Premium + b.nightPremium + b.holidayPay; const grossPay = b.base + premiums + allowances.reduce((s, a) => s + a.amount, 0); const totalDeductions = deductions.reduce((s, d) => s + d.amount, 0); return { base: b.base, premiums, allowances, grossPay, deductions, totalDeductions, netPay: grossPay - totalDeductions }; } export function renderPayslipHtml(p, o = {}) { return '<html>' + (o.employeeName ?? '') + ' ' + p.grossPay + '</html>'; }");
   await fs31.writeFile(PD, "export const DEFAULT_INVOICE_PDF_OPTIONS = { format: 'A4' }; export function createPdf(renderer) { return { async fromHtml(html, options) { return renderer.render(html, options); } }; }");
-  await fs31.writeFile(BT, (await fs31.readFile(new URL("../demos/showcase/src/examples/payslip-pdf-batch.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/payroll"/g, `from "${PR}"`).replace(/from "@platform\/pdf"/g, `from "${PD}"`));
+  await fs31.writeFile(BT, (await fs31.readFile(new URL("../demos/showcase/src/examples/payslip-pdf-batch.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/payroll"/g, `from "${PR}"`).replace(/from "@platform\/pdf"/g, `from "${PD}"`));
   const B = await import(BT);
   const enc = new TextEncoder();
   const jobs = [{ employeeId: "E001", employeeName: "山田", breakdown: { base: 250000, overtimePremium: 30000, over60Premium: 0, nightPremium: 0, holidayPay: 0 } }, { employeeId: "E002", employeeName: "佐藤", breakdown: { base: 200000, overtimePremium: 0, over60Premium: 0, nightPremium: 0, holidayPay: 0 } }];
@@ -3646,11 +3646,11 @@ section("platform-authz / notify-channels / readiness");
   const fs32 = await import("node:fs/promises"); const st32 = Date.now();
   // authz: 実 auth rbac+hierarchy + 実 ui nav
   const RB = `/tmp/az-rb-${st32}.ts`, HI = `/tmp/az-hi-${st32}.ts`, AU = `/tmp/az-au-${st32}.ts`, NV = `/tmp/az-nv-${st32}.ts`, AZ = `/tmp/az-az-${st32}.ts`;
-  await fs32.writeFile(RB, (await fs32.readFile(new URL("../packages/auth/src/rbac.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fs32.writeFile(HI, (await fs32.readFile(new URL("../packages/auth/src/hierarchy.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "\.\/rbac\.ts"/g, `from "${RB}"`));
+  await fs32.writeFile(RB, (await fs32.readFile(new URL("../packages/auth/src/rbac.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fs32.writeFile(HI, (await fs32.readFile(new URL("../packages/auth/src/hierarchy.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/rbac\.ts"/g, `from "${RB}"`));
   await fs32.writeFile(AU, `export * from "${RB}"; export * from "${HI}";`);
-  await fs32.writeFile(NV, (await fs32.readFile(new URL("../packages/ui/src/lib/nav.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fs32.writeFile(AZ, (await fs32.readFile(new URL("../apps/internal-app/src/lib/platform-authz.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/auth"/g, `from "${AU}"`).replace(/from "@platform\/ui"/g, `from "${NV}"`));
+  await fs32.writeFile(NV, (await fs32.readFile(new URL("../packages/ui/src/lib/nav.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fs32.writeFile(AZ, (await fs32.readFile(new URL("../apps/internal-app/src/lib/platform-authz.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/auth"/g, `from "${AU}"`).replace(/from "@platform\/ui"/g, `from "${NV}"`));
   const A = await import(AZ);
   const salesNav = A.navForRoles(["sales"]).map((n) => n.href);
   ok("platform-authz(sales見積OK会計NG/accountant会計OK/admin全許可/兼務/nav画面制御)", A.userCan(["sales"], "quote:create") === true && A.userCan(["sales"], "accounting:post") === false && A.userCan(["accountant"], "accounting:post") === true && A.userCan(["warehouse"], "invoice:issue") === false && A.userCan(["admin"], "anything:x") === true && A.userCan(["sales", "accountant"], "accounting:post") === true && salesNav.includes("/orders") && !salesNav.includes("/accounting") && A.navForRoles(["admin"]).length === 9);
@@ -3659,7 +3659,7 @@ section("platform-authz / notify-channels / readiness");
   const NT = `/tmp/az-nt-${st32}.ts`, ML = `/tmp/az-ml-${st32}.ts`, CH = `/tmp/az-ch-${st32}.ts`;
   await fs32.writeFile(NT, "export function createNotifier(channels) { return { async notify(message) { try { await Promise.all(channels.map((c) => c.send(message))); return { ok: true }; } catch (e) { return { ok: false, error: e }; } } }; }");
   await fs32.writeFile(ML, "export {};");
-  await fs32.writeFile(CH, (await fs32.readFile(new URL("../demos/showcase/src/examples/notify-channels-channels.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace(/from "@platform\/notify"/g, `from "${NT}"`).replace(/from "@platform\/mail"/g, `from "${ML}"`));
+  await fs32.writeFile(CH, (await fs32.readFile(new URL("../demos/showcase/src/examples/notify-channels-channels.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/notify"/g, `from "${NT}"`).replace(/from "@platform\/mail"/g, `from "${ML}"`));
   const N = await import(NT), C = await import(CH);
   const mails = []; const mailer = { sendMail: async (m) => { mails.push(m); return { ok: true }; } };
   const slacks = []; const posts = []; 
@@ -3672,7 +3672,7 @@ section("platform-authz / notify-channels / readiness");
 
   // readiness
   const RD = `/tmp/az-rd-${st32}.ts`;
-  await fs32.writeFile(RD, (await fs32.readFile(new URL("../apps/internal-app/src/lib/readiness.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+  await fs32.writeFile(RD, (await fs32.readFile(new URL("../apps/internal-app/src/lib/readiness.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const R = await import(RD);
   const allOk = await R.checkReadiness([{ name: "db", probe: async () => ({ ok: true }) }, { name: "mig", probe: async () => ({ ok: true }) }]);
   const dbDown = await R.checkReadiness([{ name: "db", probe: async () => ({ ok: false, detail: "refused" }) }]);
@@ -3690,7 +3690,7 @@ section("platform-authz / notify-channels / readiness");
   const oscb = await import("node:os");
   const dcb = oscb.tmpdir();
   const stcb = Date.now();
-  const rd = async (rel) => (await fscb.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rd = async (rel) => (await fscb.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const ATTC = `${dcb}/cb-attc-${stcb}.ts`, MSG = `${dcb}/cb-msg-${stcb}.ts`, ROOM = `${dcb}/cb-room-${stcb}.ts`, CHAT = `${dcb}/cb-chat-${stcb}.ts`;
   const ATTB = `${dcb}/cb-attb-${stcb}.ts`, POST = `${dcb}/cb-post-${stcb}.ts`, REAC = `${dcb}/cb-reac-${stcb}.ts`, TL = `${dcb}/cb-tl-${stcb}.ts`, BOARD = `${dcb}/cb-board-${stcb}.ts`;
   const RT = `${dcb}/cb-rt-${stcb}.ts`, RTB = `${dcb}/cb-rtb-${stcb}.ts`;
@@ -3795,7 +3795,7 @@ section("platform-authz / notify-channels / readiness");
   const osg = await import("node:os");
   const dg = osg.tmpdir();
   const stg = Date.now();
-  const rdg = async (rel) => (await fsg.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdg = async (rel) => (await fsg.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const ATC = `${dg}/g-attc-${stg}.ts`, MSG2 = `${dg}/g-msg-${stg}.ts`, ROOM2 = `${dg}/g-room-${stg}.ts`, CHAT2 = `${dg}/g-chat-${stg}.ts`;
   const ATB = `${dg}/g-attb-${stg}.ts`, POST2 = `${dg}/g-post-${stg}.ts`;
   const RTB2 = `${dg}/g-rtb-${stg}.ts`, RT2 = `${dg}/g-rt-${stg}.ts`, NTPL = `${dg}/g-ntpl-${stg}.ts`, NT2 = `${dg}/g-nt-${stg}.ts`;
@@ -3873,7 +3873,7 @@ section("platform-authz / notify-channels / readiness");
   const oss = await import("node:os");
   const ds = oss.tmpdir();
   const sts = Date.now();
-  const rds = async (rel) => (await fss.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rds = async (rel) => (await fss.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const AC = `${ds}/s-attc-${sts}.ts`, MSG = `${ds}/s-msg-${sts}.ts`, ROOM = `${ds}/s-room-${sts}.ts`, CHAT = `${ds}/s-chat-${sts}.ts`;
   const AB = `${ds}/s-attb-${sts}.ts`, POST = `${ds}/s-post-${sts}.ts`, REAC = `${ds}/s-reac-${sts}.ts`, TL = `${ds}/s-tl-${sts}.ts`, BOARD = `${ds}/s-board-${sts}.ts`;
   const NTPL = `${ds}/s-ntpl-${sts}.ts`, NT = `${ds}/s-nt-${sts}.ts`;
@@ -3968,7 +3968,7 @@ section("platform-authz / notify-channels / readiness");
   const osp = await import("node:os");
   const dp = osp.tmpdir();
   const stp = Date.now();
-  const rdp = async (rel) => (await fsp.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdp = async (rel) => (await fsp.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const AC = `${dp}/p-attc-${stp}.ts`, MSG = `${dp}/p-msg-${stp}.ts`, ROOM = `${dp}/p-room-${stp}.ts`, CHAT = `${dp}/p-chat-${stp}.ts`;
   const STORE = `${dp}/p-store-${stp}.ts`, PSTORE = `${dp}/p-pstore-${stp}.ts`, RREPO = `${dp}/p-rrepo-${stp}.ts`, PRES = `${dp}/p-pres-${stp}.ts`;
   const RTB = `${dp}/p-rtb-${stp}.ts`, RT = `${dp}/p-rt-${stp}.ts`, GW = `${dp}/p-gw-${stp}.ts`, CTRL = `${dp}/p-ctrl-${stp}.ts`;
@@ -4083,7 +4083,7 @@ section("platform-authz / notify-channels / readiness");
   const osx = await import("node:os");
   const dx = osx.tmpdir();
   const stx = Date.now();
-  const rdx = async (rel) => (await fsx.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdx = async (rel) => (await fsx.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const AC = `${dx}/x-attc-${stx}.ts`, MSG = `${dx}/x-msg-${stx}.ts`, ROOM = `${dx}/x-room-${stx}.ts`, CHAT = `${dx}/x-chat-${stx}.ts`;
   const AB = `${dx}/x-attb-${stx}.ts`, POST = `${dx}/x-post-${stx}.ts`, BOARD = `${dx}/x-board-${stx}.ts`;
   const CORE = `${dx}/x-core-${stx}.ts`, TOK = `${dx}/x-tok-${stx}.ts`, BM = `${dx}/x-bm-${stx}.ts`, MEM = `${dx}/x-mem-${stx}.ts`, MEI = `${dx}/x-mei-${stx}.ts`, SEARCH = `${dx}/x-search-${stx}.ts`;
@@ -4195,7 +4195,7 @@ section("platform-authz / notify-channels / readiness");
   const osr = await import("node:os");
   const dr = osr.tmpdir();
   const str = Date.now();
-  const rdr = async (rel) => (await fsr.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdr = async (rel) => (await fsr.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const AC = `${dr}/rr-attc-${str}.ts`, RX = `${dr}/rr-rx-${str}.ts`, MSG = `${dr}/rr-msg-${str}.ts`, ROOM = `${dr}/rr-room-${str}.ts`, CHAT = `${dr}/rr-chat-${str}.ts`;
   const GEO = `${dr}/rr-geo-${str}.ts`, IMG = `${dr}/rr-img-${str}.ts`, HL = `${dr}/rr-hl-${str}.ts`;
   const RTB = `${dr}/rr-rtb-${str}.ts`, RT = `${dr}/rr-rt-${str}.ts`, GW = `${dr}/rr-gw-${str}.ts`, CTRL = `${dr}/rr-ctrl-${str}.ts`;
@@ -4278,7 +4278,7 @@ section("platform-authz / notify-channels / readiness");
   const osp = await import("node:os");
   const dp = osp.tmpdir();
   const stp = Date.now();
-  const rdp = async (rel) => (await fsp.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdp = async (rel) => (await fsp.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const AC = `${dp}/pb-attc-${stp}.ts`, RX = `${dp}/pb-rx-${stp}.ts`, PIN = `${dp}/pb-pin-${stp}.ts`, MSG = `${dp}/pb-msg-${stp}.ts`, ROOM = `${dp}/pb-room-${stp}.ts`, CHAT = `${dp}/pb-chat-${stp}.ts`;
   const STORE = `${dp}/pb-store-${stp}.ts`, RREPO = `${dp}/pb-rrepo-${stp}.ts`, PINS = `${dp}/pb-pins-${stp}.ts`, MENT = `${dp}/pb-ment-${stp}.ts`, REAC = `${dp}/pb-reac-${stp}.ts`;
   const RTB = `${dp}/pb-rtb-${stp}.ts`, RT = `${dp}/pb-rt-${stp}.ts`, GW = `${dp}/pb-gw-${stp}.ts`, CTRL = `${dp}/pb-ctrl-${stp}.ts`;
@@ -4383,7 +4383,7 @@ section("platform-authz / notify-channels / readiness");
   const opp = await import("node:os");
   const dpp = opp.tmpdir();
   const spp = Date.now();
-  const rpp = async (rel) => (await fpp.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rpp = async (rel) => (await fpp.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const AC = `${dpp}/pz-attc-${spp}.ts`, RX = `${dpp}/pz-rx-${spp}.ts`, PIN = `${dpp}/pz-pin-${spp}.ts`, MSG = `${dpp}/pz-msg-${spp}.ts`, ROOM = `${dpp}/pz-room-${spp}.ts`, CHAT = `${dpp}/pz-chat-${spp}.ts`, PINS = `${dpp}/pz-pins-${spp}.ts`;
   await fpp.writeFile(AC, await rpp("../packages/chat/src/attachment.ts"));
   await fpp.writeFile(RX, await rpp("../packages/chat/src/reaction.ts"));
@@ -4439,7 +4439,7 @@ section("platform-authz / notify-channels / readiness");
   const osn = await import("node:os");
   const dn = osn.tmpdir();
   const stn = Date.now();
-  const rdn = async (rel) => (await fsn.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdn = async (rel) => (await fsn.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const NC = `${dn}/pf-nc-${stn}.ts`, FM = `${dn}/pf-fm-${stn}.ts`, AL = `${dn}/pf-al-${stn}.ts`, STG = `${dn}/pf-stg-${stn}.ts`;
   const AEV = `${dn}/pf-aev-${stn}.ts`, ALOG = `${dn}/pf-alog-${stn}.ts`, AQ = `${dn}/pf-aq-${stn}.ts`, AUD = `${dn}/pf-aud-${stn}.ts`;
   await fsn.writeFile(NC, await rdn("../apps/internal-app/src/server/notification-center.ts"));
@@ -4542,7 +4542,7 @@ section("platform-authz / notify-channels / readiness");
   const osz = await import("node:os");
   const dz = osz.tmpdir();
   const stz = Date.now();
-  const rdz = async (rel) => (await fsz.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdz = async (rel) => (await fsz.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const PREF = `${dz}/wz-pref-${stz}.ts`, NT = `${dz}/wz-nt-${stz}.ts`, NP = `${dz}/wz-np-${stz}.ts`;
   const AEV = `${dz}/wz-aev-${stz}.ts`, ALOG = `${dz}/wz-alog-${stz}.ts`, AQ = `${dz}/wz-aq-${stz}.ts`, AUD = `${dz}/wz-aud-${stz}.ts`, AL = `${dz}/wz-al-${stz}.ts`, AA = `${dz}/wz-aa-${stz}.ts`;
   await fsz.writeFile(PREF, await rdz("../packages/notify/src/preferences.ts"));
@@ -4618,7 +4618,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const stc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const AEV = `${dc}/cv-aev-${stc}.ts`, ALOG = `${dc}/cv-alog-${stc}.ts`, AQ = `${dc}/cv-aq-${stc}.ts`, AUD = `${dc}/cv-aud-${stc}.ts`, CSV = `${dc}/cv-csv-${stc}.ts`, AL = `${dc}/cv-al-${stc}.ts`;
   for (const [f, src] of [[AEV, "event"], [ALOG, "log"], [AQ, "query"]]) await fsc.writeFile(f, await rdc(`../packages/audit/src/${src}.ts`));
   let alog = await fsc.readFile(ALOG, "utf8"); alog = alog.replace(new RegExp('from "./event.ts"', "g"), `from "${AEV}"`); await fsc.writeFile(ALOG, alog);
@@ -4651,7 +4651,7 @@ section("platform-authz / notify-channels / readiness");
   const osp = await import("node:os");
   const dp = osp.tmpdir();
   const stp = Date.now();
-  const rdp = async (rel) => (await fsp.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdp = async (rel) => (await fsp.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const AEV = `${dp}/pz2-aev-${stp}.ts`, ALOG = `${dp}/pz2-alog-${stp}.ts`, AQ = `${dp}/pz2-aq-${stp}.ts`, AUD = `${dp}/pz2-aud-${stp}.ts`, CSV = `${dp}/pz2-csv-${stp}.ts`, AL = `${dp}/pz2-al-${stp}.ts`, AA = `${dp}/pz2-aa-${stp}.ts`;
   for (const [f, src] of [[AEV, "event"], [ALOG, "log"], [AQ, "query"]]) await fsp.writeFile(f, await rdp(`../packages/audit/src/${src}.ts`));
   let alog = await fsp.readFile(ALOG, "utf8"); alog = alog.replace(new RegExp('from "./event.ts"', "g"), `from "${AEV}"`); await fsp.writeFile(ALOG, alog);
@@ -4720,7 +4720,7 @@ section("platform-authz / notify-channels / readiness");
   const ost = await import("node:os");
   const dt = ost.tmpdir();
   const stt = Date.now();
-  const rdt = async (rel) => (await fst.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdt = async (rel) => (await fst.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   // analytics package
   const AEV = `${dt}/an-ev-${stt}.ts`, AAG = `${dt}/an-ag-${stt}.ts`, ANA = `${dt}/an-a-${stt}.ts`, AST = `${dt}/an-st-${stt}.ts`;
@@ -4816,7 +4816,7 @@ section("platform-authz / notify-channels / readiness");
   const osh = await import("node:os");
   const dh = osh.tmpdir();
   const sth = Date.now();
-  const rdh = async (rel) => (await fsh.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdh = async (rel) => (await fsh.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   // @platform/html
   const HE = `${dh}/h-e-${sth}.ts`, HW = `${dh}/h-w-${sth}.ts`, HF = `${dh}/h-f-${sth}.ts`, HT = `${dh}/h-t-${sth}.ts`;
@@ -4900,7 +4900,7 @@ section("platform-authz / notify-channels / readiness");
   const osp = await import("node:os");
   const dp = osp.tmpdir();
   const sp = Date.now();
-  const rdp = async (rel) => (await fsp.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdp = async (rel) => (await fsp.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   // @platform/html バレル
   const HE = `${dp}/ps-he-${sp}.ts`, HW = `${dp}/ps-hw-${sp}.ts`, HF = `${dp}/ps-hf-${sp}.ts`, HT = `${dp}/ps-ht-${sp}.ts`;
@@ -4980,7 +4980,7 @@ section("platform-authz / notify-channels / readiness");
   const osx = await import("node:os");
   const dx = osx.tmpdir();
   const sx = Date.now();
-  const rdx = async (rel) => (await fsx.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdx = async (rel) => (await fsx.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   // seo sitemap/favicon (escapeAttr from meta)
   const SMETA = `${dx}/x-smeta-${sx}.ts`, SSM = `${dx}/x-ssm-${sx}.ts`, SFV = `${dx}/x-sfv-${sx}.ts`;
@@ -5071,7 +5071,7 @@ section("platform-authz / notify-channels / readiness");
   const osb = await import("node:os");
   const db = osb.tmpdir();
   const sb = Date.now();
-  const rdb = async (rel) => (await fsb.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdb = async (rel) => (await fsb.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   // html バレル
   const HE = `${db}/pb-he-${sb}.ts`, HW = `${db}/pb-hw-${sb}.ts`, HF = `${db}/pb-hf-${sb}.ts`, HT = `${db}/pb-ht-${sb}.ts`, HB = `${db}/pb-hb-${sb}.ts`;
@@ -5145,7 +5145,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   const BLG = `${dc}/x2-blg-${sc}.ts`, FEED = `${dc}/x2-feed-${sc}.ts`;
   await fsc.writeFile(BLG, await rdc("../packages/board/src/blog.ts"));
@@ -5227,7 +5227,7 @@ section("platform-authz / notify-channels / readiness");
   const ose = await import("node:os");
   const de = ose.tmpdir();
   const se = Date.now();
-  const rde = async (rel) => (await fse.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rde = async (rel) => (await fse.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   // @platform/cms バレル
   const cmsSrcs = ["model", "scheduling", "adapter", "store"];
@@ -5310,7 +5310,7 @@ section("platform-authz / notify-channels / readiness");
   const osp2 = await import("node:os");
   const dp2 = osp2.tmpdir();
   const sp2 = Date.now();
-  const rdp2 = async (rel) => (await fsp2.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdp2 = async (rel) => (await fsp2.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   // @platform/site は型のみ使用 → 空スタブ
   const SITE = `${dp2}/z-site-${sp2}.ts`;
@@ -5381,7 +5381,7 @@ section("platform-authz / notify-channels / readiness");
   const osc2 = await import("node:os");
   const dc2 = osc2.tmpdir();
   const sc2 = Date.now();
-  const rdc2 = async (rel) => (await fsc2.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc2 = async (rel) => (await fsc2.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   const BOARD = `${dc2}/y-board-${sc2}.ts`, SITE = `${dc2}/y-site-${sc2}.ts`;
   await fsc2.writeFile(BOARD, "export {};");
@@ -5446,7 +5446,7 @@ section("platform-authz / notify-channels / readiness");
   const osd = await import("node:os");
   const dd = osd.tmpdir();
   const sd = Date.now();
-  const rdd = async (rel) => (await fsd.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdd = async (rel) => (await fsd.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   const SITE = `${dd}/w-site-${sd}.ts`;
   await fsd.writeFile(SITE, "export {};");
@@ -5492,7 +5492,7 @@ section("platform-authz / notify-channels / readiness");
   const osg = await import("node:os");
   const dg = osg.tmpdir();
   const sg = Date.now();
-  const rdg = async (rel) => (await fsg.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdg = async (rel) => (await fsg.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   // filterPosts(@platform/cms: model + scheduling + filter)
   const SITE = `${dg}/v-site-${sg}.ts`;
@@ -5546,7 +5546,7 @@ section("platform-authz / notify-channels / readiness");
   const osr = await import("node:os");
   const dr = osr.tmpdir();
   const sr = Date.now();
-  const rdr = async (rel) => (await fsr.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdr = async (rel) => (await fsr.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   const SITE = `${dr}/u-site-${sr}.ts`;
   await fsr.writeFile(SITE, "export {};");
@@ -5616,7 +5616,7 @@ section("platform-authz / notify-channels / readiness");
   const osd = await import("node:os");
   const dd = osd.tmpdir();
   const sd = Date.now();
-  const rdd = async (rel) => (await fsd.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdd = async (rel) => (await fsd.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   // 記事差分(@platform/cms diff)
   const DF = `${dd}/w-diff-${sd}.ts`;
@@ -5685,7 +5685,7 @@ section("platform-authz / notify-channels / readiness");
   const osb = await import("node:os");
   const db_ = osb.tmpdir();
   const sb = Date.now();
-  const rdb = async (rel) => (await fsb.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdb = async (rel) => (await fsb.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   // tax → invoice → purchase 合成
   const TW = `${db_}/z-taxw-${sb}.ts`, TI = `${db_}/z-taxi-${sb}.ts`, TX = `${db_}/z-tax-${sb}.ts`;
@@ -5781,7 +5781,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/y-${name}-${sc}.ts`;
 
   // tax
@@ -5886,7 +5886,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z-${name}-${sc}.ts`;
 
   // datetime = calendar.ts のみ(index.ts は date-fns 依存のため使わない)
@@ -6002,7 +6002,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/w-${name}-${sc}.ts`;
 
   // core = error + result
@@ -6104,7 +6104,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/v-${name}-${sc}.ts`;
 
   // tax
@@ -6181,7 +6181,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/u-${name}-${sc}.ts`;
 
   // accounting(journal+entries+closing+tax-report)
@@ -6241,7 +6241,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/t-${name}-${sc}.ts`;
 
   // depreciation(外部依存なし)
@@ -6320,7 +6320,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/s-${name}-${sc}.ts`;
 
   // depreciation + asset-repo
@@ -6389,7 +6389,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/r-${name}-${sc}.ts`;
 
   const AJ = W("accj"), AB = W("acc");
@@ -6462,7 +6462,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/q-${name}-${sc}.ts`;
 
   // core + mail
@@ -6533,7 +6533,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/p-${name}-${sc}.ts`;
 
   // core + workflow
@@ -6632,7 +6632,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/n-${name}-${sc}.ts`;
 
   const CE = W("cerr"), CR = W("cres"), CB = W("core");
@@ -6713,7 +6713,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/o-${name}-${sc}.ts`;
 
   const CE = W("cerr"), CR = W("cres"), CB = W("core"), ML = W("mail");
@@ -6800,7 +6800,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/l-${name}-${sc}.ts`;
 
   const AJ = W("accj"), AE = W("acce"), ACl = W("accc"), ATR = W("acctr"), AB = W("acc");
@@ -6873,7 +6873,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const CBr = `${dc}/l-bot-${sc}.ts`, Ur = `${dc}/l-user-${sc}.ts`;
   await fsc.writeFile(CBr, await rdc("../apps/internal-app/src/server/chatbot.ts"));
   await fsc.writeFile(Ur, await rdc("../apps/internal-app/src/server/user-repo.ts"));
@@ -6918,7 +6918,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/k-${name}-${sc}.ts`;
   const RB = W("rbac"), HI = W("hier"), AU = W("auth");
   await fsc.writeFile(RB, await rdc("../packages/auth/src/rbac.ts"));
@@ -6969,7 +6969,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/i-${name}-${sc}.ts`;
 
   const CE = W("cerr"), CR = W("cres"), CB = W("core"), ML = W("mail");
@@ -7034,7 +7034,7 @@ section("platform-authz / notify-channels / readiness");
   const dc = osc.tmpdir();
   const sc = Date.now();
   const FISr = `${dc}/h-fis-${sc}.ts`;
-  await fsc.writeFile(FISr, (await fsc.readFile(new URL("../apps/internal-app/src/server/fiscal.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+  await fsc.writeFile(FISr, (await fsc.readFile(new URL("../apps/internal-app/src/server/fiscal.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const F = await import(FISr);
   ok("fiscal(3月決算: 2025-04→FY2025 / 2026-03→FY2025 / 2025-03→FY2024)", F.fiscalYearOf("2025-04-01", 3) === 2025 && F.fiscalYearOf("2026-03-31", 3) === 2025 && F.fiscalYearOf("2025-03-31", 3) === 2024);
   ok("fiscal(12月決算=暦年 / 6月決算: 7月〜翌6月)", F.fiscalYearOf("2025-01-01", 12) === 2025 && F.fiscalYearOf("2025-12-31", 12) === 2025 && F.fiscalYearOf("2025-07-01", 6) === 2025 && F.fiscalYearOf("2025-06-30", 6) === 2024);
@@ -7050,7 +7050,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const AAr = `${dc}/g-aa-${sc}.ts`, TDr = `${dc}/g-td-${sc}.ts`;
   await fsc.writeFile(AAr, await rdc("../apps/internal-app/src/server/audit-anomaly.ts"));
   await fsc.writeFile(TDr, await rdc("../apps/internal-app/src/server/tax-default.ts"));
@@ -7088,7 +7088,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/f-${name}-${sc}.ts`;
 
   // アンケート(自己完結)
@@ -7150,7 +7150,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/e-${name}-${sc}.ts`;
 
   // csv + commerce/review 合成
@@ -7205,7 +7205,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/d-${name}-${sc}.ts`;
   const COMr = W("commerce"), SVr = W("survey"), RVr = W("review"), SGr = W("sig"), ASr = W("apsig");
   await fsc.writeFile(COMr, await rdc("../packages/commerce/src/review.ts"));
@@ -7243,7 +7243,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/c-${name}-${sc}.ts`;
   const FAr = W("fa"), SVr = W("sv"), SGr = W("sg"), ASr = W("as"), STr = W("st");
   await fsc.writeFile(FAr, await rdc("../apps/internal-app/src/server/feature-access.ts"));
@@ -7282,7 +7282,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/b-${name}-${sc}.ts`;
   const FAr = W("fa"), UAr = W("ua"), OWr = W("ow");
   await fsc.writeFile(FAr, await rdc("../apps/internal-app/src/server/feature-access.ts"));
@@ -7324,7 +7324,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/a-${name}-${sc}.ts`;
   const SGr = W("saga"), AKr = W("apikey"), PIr = W("pii"), SAr = W("sa"), PVr = W("pv");
   await fsc.writeFile(SGr, await rdc("../packages/saga/src/index.ts"));
@@ -7369,7 +7369,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z9-${name}-${sc}.ts`;
   // core + deps
   const CE = W("ce"), CR = W("cr"), CB = W("core");
@@ -7431,7 +7431,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const sc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z8-${name}-${sc}.ts`;
   const OBp = W("obs"), ARm = W("ar"), SCm = W("sc"), SUm = W("su");
   await fsc.writeFile(OBp, await rdc("../packages/observability/src/health.ts"));
@@ -7468,7 +7468,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const scc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z7-${name}-${scc}.ts`;
   // core + search
   const CE = W("ce"), CR = W("cr"), CB = W("core");
@@ -7515,7 +7515,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const scc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z6-${name}-${scc}.ts`;
   // core + search
   const CE = W("ce"), CR = W("cr"), CB = W("core");
@@ -7567,7 +7567,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const scc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z5-${name}-${scc}.ts`;
   // csv-import: stub外部import(parseCsv/型のみ)
   const CSVm = W("csv");
@@ -7610,7 +7610,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const scc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z4-${name}-${scc}.ts`;
   const NTm = W("nt"), ESm = W("es"), RPm = W("rp");
   await fsc.writeFile(NTm, await rdc("../apps/internal-app/src/server/notification-templates.ts"));
@@ -7658,7 +7658,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const scc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z3-${name}-${scc}.ts`;
   const TRm = W("tr"), RSm = W("rs"), DTm = W("dt");
   await fsc.writeFile(TRm, await rdc("../apps/internal-app/src/server/trend.ts"));
@@ -7697,7 +7697,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const scc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z2-${name}-${scc}.ts`;
   const TRm = W("tr"), RPm = W("rp"), RSm = W("rs"), DTm = W("dt");
   await fsc.writeFile(TRm, await rdc("../apps/internal-app/src/server/trend.ts"));
@@ -7733,7 +7733,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const scc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z1-${name}-${scc}.ts`;
   const TRm = W("tr"), DTm = W("dt"), RPm = W("rp"), DLm = W("dl");
   await fsc.writeFile(TRm, await rdc("../apps/internal-app/src/server/trend.ts"));
@@ -7776,7 +7776,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const scc = Date.now();
-  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z0-${name}-${scc}.ts`;
   const RPm = W("rp"), ESm = W("es"), DLm = W("dl"), PPm = W("pp");
   await fsc.writeFile(RPm, await rdc("../apps/internal-app/src/server/reports.ts"));
@@ -7806,7 +7806,7 @@ section("platform-authz / notify-channels / readiness");
   const dc = osc.tmpdir();
   const scc = Date.now();
   const IRp = `${dc}/w0-item-repo-${scc}.ts`;
-  await fsc.writeFile(IRp, (await fsc.readFile(new URL("../apps/crud-template/src/server/item-repo.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+  await fsc.writeFile(IRp, (await fsc.readFile(new URL("../apps/crud-template/src/server/item-repo.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const IR = await import(IRp);
 
   const v1 = IR.validateItemInput({ code: "item-001", name: "ボールペン", note: " 黒 " });
@@ -7836,9 +7836,9 @@ section("platform-authz / notify-channels / readiness");
   const mcpx = `${dc}/w1-mcpx-${scc}.ts`;
   const repp = `${dc}/w1-rep-${scc}.ts`;
   const toolp = `${dc}/w1-tools-${scc}.ts`;
-  await fsc.writeFile(mcpx, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(repp, (await fsc.readFile(new URL("../apps/internal-app/src/server/reports.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  let tsrc = (await fsc.readFile(new URL("../apps/internal-app/src/server/mcp-tools.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  await fsc.writeFile(mcpx, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(repp, (await fsc.readFile(new URL("../apps/internal-app/src/server/reports.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  let tsrc = (await fsc.readFile(new URL("../apps/internal-app/src/server/mcp-tools.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   tsrc = tsrc.replace('from "@platform/mcp"', `from "${mcpx}"`).replace('from "./reports.ts"', `from "${repp}"`);
   await fsc.writeFile(toolp, tsrc);
   const M = await import(mcpx);
@@ -7890,8 +7890,8 @@ section("platform-authz / notify-channels / readiness");
   const scc = Date.now();
   const ap = `${dc}/w2-auth-${scc}.ts`;
   const rp = `${dc}/w2-repo-${scc}.ts`;
-  await fsc.writeFile(ap, (await fsc.readFile(new URL("../apps/equipment-app/src/server/auth.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(rp, (await fsc.readFile(new URL("../apps/equipment-app/src/server/equipment-repo.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+  await fsc.writeFile(ap, (await fsc.readFile(new URL("../apps/equipment-app/src/server/auth.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(rp, (await fsc.readFile(new URL("../apps/equipment-app/src/server/equipment-repo.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const A = await import(ap);
   const R = await import(rp);
 
@@ -7939,10 +7939,10 @@ section("platform-authz / notify-channels / readiness");
   const crp = `${dc}/w3-core-result-${scc}.ts`;
   const cop = `${dc}/w3-core-${scc}.ts`;
   const aip = `${dc}/w3-ai-${scc}.ts`;
-  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${cep}"`));
+  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
   await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
   const AI = await import(aip);
 
   const A = { id: "anthropic", models: ["claude"], chat: async (r) => ({ text: `A:${r.maxTokens}`, usage: { inputTokens: 100, outputTokens: 50 } }) };
@@ -7990,9 +7990,9 @@ section("platform-authz / notify-channels / readiness");
   const mcpx = `${dc}/w4-mcpx-${scc}.ts`;
   const repp = `${dc}/w4-rep-${scc}.ts`;
   const toolp = `${dc}/w4-tools-${scc}.ts`;
-  await fsc.writeFile(mcpx, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(repp, (await fsc.readFile(new URL("../apps/internal-app/src/server/reports.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  let tsrc = (await fsc.readFile(new URL("../apps/internal-app/src/server/mcp-tools.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  await fsc.writeFile(mcpx, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(repp, (await fsc.readFile(new URL("../apps/internal-app/src/server/reports.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  let tsrc = (await fsc.readFile(new URL("../apps/internal-app/src/server/mcp-tools.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   tsrc = tsrc.replace('from "@platform/mcp"', `from "${mcpx}"`).replace('from "./reports.ts"', `from "${repp}"`);
   await fsc.writeFile(toolp, tsrc);
   const M = await import(mcpx);
@@ -8044,10 +8044,10 @@ section("platform-authz / notify-channels / readiness");
   const crp = `${dc}/w5-cr-${scc}.ts`;
   const cop = `${dc}/w5-co-${scc}.ts`;
   const ragp = `${dc}/w5-rag-${scc}.ts`;
-  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${cep}"`));
+  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
   await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(ragp, (await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  await fsc.writeFile(ragp, (await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
   const R = await import(ragp);
 
   const chunks = R.chunkDocument({ id: "D1", title: "就業規則", body: `総則\n\n${"あ".repeat(2000)}`, source: "wiki", acl: { roles: ["hr"] } }, { maxChars: 800, overlap: 100 });
@@ -8093,14 +8093,14 @@ section("platform-authz / notify-channels / readiness");
   const cop = `${dc}/w6-co-${scc}.ts`;
   const aip = `${dc}/w6-ai-${scc}.ts`;
   const gwp = `${dc}/w6-gw-${scc}.ts`;
-  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${cep}"`));
+  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
   await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
   // ai-gateway が読む featureEnv(env.ts)はテスト用スタブに差し替える
   const gwenv = `${dc}/w6-gwenv-${scc}.ts`;
   await fsc.writeFile(gwenv, `export const featureEnv = { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? "", OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "" };\n`);
-  await fsc.writeFile(gwp, (await fsc.readFile(new URL("../apps/internal-app/src/server/ai-gateway.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/ai"', `from "${aip}"`).replace(/from "\.\/env\.ts"/g, `from "${gwenv}"`));
+  await fsc.writeFile(gwp, (await fsc.readFile(new URL("../apps/internal-app/src/server/ai-gateway.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/ai"', `from "${aip}"`).replace(/from "\.\/env\.ts"/g, `from "${gwenv}"`));
   const before = process.env.ANTHROPIC_API_KEY;
   process.env.ANTHROPIC_API_KEY = "";
   const G = await import(gwp);
@@ -8125,11 +8125,11 @@ section("platform-authz / notify-channels / readiness");
   const cop = `${dc}/w7-co-${scc}.ts`;
   const aip = `${dc}/w7-ai-${scc}.ts`;
   const ragp = `${dc}/w7-rag-${scc}.ts`;
-  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${cep}"`));
+  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
   await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${cop}"`));
-  await fsc.writeFile(ragp, (await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  await fsc.writeFile(ragp, (await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
   const AI = await import(aip);
   const R = await import(ragp);
 
@@ -8187,7 +8187,7 @@ section("platform-authz / notify-channels / readiness");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
   const csvp = `${dc}/w9-csv-${Date.now()}.ts`;
-  await fsc.writeFile(csvp, (await fsc.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+  await fsc.writeFile(csvp, (await fsc.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const C = await import(csvp);
 
   const lines = ["id,name,dept", "1,山田,営業", "2,佐藤,開発", "3,鈴木,営業", "4,田中,人事"];
@@ -8218,9 +8218,9 @@ section("platform-authz / notify-channels / readiness");
   const sc = Date.now();
   const base = `${dc}/wA-${sc}`;
   await fsc.mkdir(`${base}/search/adapters`, { recursive: true });
-  const mapCore = (t) => t.replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`);
-  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
+  const mapCore = (t) => t.replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`);
+  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
   await fsc.writeFile(`${base}/search/tokenize.ts`, mapCore(await fsc.readFile(new URL("../packages/search/src/tokenize.ts", import.meta.url), "utf8")));
   await fsc.writeFile(`${base}/search/bm25.ts`, mapCore(await fsc.readFile(new URL("../packages/search/src/bm25.ts", import.meta.url), "utf8")));
@@ -8228,13 +8228,13 @@ section("platform-authz / notify-channels / readiness");
   await fsc.writeFile(`${base}/search/index.ts`, mapCore(await fsc.readFile(new URL("../packages/search/src/index.ts", import.meta.url), "utf8")).split("\n").filter((l) => !l.includes("meilisearch")).join("\n"));
   await fsc.writeFile(`${base}/ai.ts`, mapCore(await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")));
   await fsc.writeFile(`${base}/rag.ts`, mapCore(await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")));
-  await fsc.writeFile(`${base}/utils-strings.ts`, (await fsc.readFile(new URL("../packages/utils/src/strings.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+  await fsc.writeFile(`${base}/utils-strings.ts`, (await fsc.readFile(new URL("../packages/utils/src/strings.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fsc.writeFile(`${base}/utils.ts`, `export * from "${base}/utils-strings.ts";\n`);
   // rag-service が import する dictionary-store も合成(utils を参照)
-  await fsc.writeFile(`${base}/dictionary-store.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/dictionary-store.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/utils"', `from "${base}/utils.ts"`));
+  await fsc.writeFile(`${base}/dictionary-store.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/dictionary-store.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/utils"', `from "${base}/utils.ts"`));
   // rag-service が import する csv も合成(core を参照)
-  await fsc.writeFile(`${base}/csv.ts`, (await fsc.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
-  let svc = (await fsc.readFile(new URL("../apps/internal-app/src/server/rag-service.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  await fsc.writeFile(`${base}/csv.ts`, (await fsc.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  let svc = (await fsc.readFile(new URL("../apps/internal-app/src/server/rag-service.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   svc = svc.replace('from "@platform/rag"', `from "${base}/rag.ts"`).replace('from "@platform/search"', `from "${base}/search/index.ts"`).replace('from "@platform/ai"', `from "${base}/ai.ts"`).replace('from "@platform/utils"', `from "${base}/utils.ts"`).replace('from "@platform/csv"', `from "${base}/csv.ts"`);
   await fsc.writeFile(`${base}/rag-service.ts`, svc);
   const S = await import(`${base}/rag-service.ts`);
@@ -8259,7 +8259,7 @@ section("platform-authz / notify-channels / readiness");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const mp = `${osc.tmpdir()}/wB-mcp-${Date.now()}.ts`;
-  await fsc.writeFile(mp, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+  await fsc.writeFile(mp, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const M = await import(mp);
 
   const tools = [{ name: "echo", description: "d", inputSchema: { type: "object" }, handler: (a) => M.textResult(`e:${a.m}`), scopes: ["read"] }];
@@ -8298,10 +8298,10 @@ section("platform-authz / notify-channels / readiness");
   const crp = `${dc}/wC-cr-${sc}.ts`;
   const cop = `${dc}/wC-co-${sc}.ts`;
   const ragp = `${dc}/wC-rag-${sc}.ts`;
-  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${cep}"`));
+  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
   await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(ragp, (await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  await fsc.writeFile(ragp, (await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
   const R = await import(ragp);
 
   const d = R.textToDocument({ id: "T1", title: "規程", text: "本文", source: "wiki", acl: { roles: ["hr"] } });
@@ -8350,10 +8350,10 @@ section("platform-authz / notify-channels / readiness");
   const crp = `${dc}/wE-cr-${sc}.ts`;
   const cop = `${dc}/wE-co-${sc}.ts`;
   const aip = `${dc}/wE-ai-${sc}.ts`;
-  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${cep}"`));
+  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
   await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
   const AI = await import(aip);
 
   const store = AI.createMemoryAiLogStore();
@@ -8411,8 +8411,8 @@ section("platform-authz / notify-channels / readiness");
   const sc = Date.now();
   const lockp = `${dcc}/wG-lock-${sc}.ts`;
   const lfp = `${dcc}/wG-lockfile-${sc}.ts`;
-  await (await import("node:fs/promises")).writeFile(lockp, (await (await import("node:fs/promises")).readFile(new URL("../packages/cron/src/lock.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await (await import("node:fs/promises")).writeFile(lfp, (await (await import("node:fs/promises")).readFile(new URL("../packages/cron/src/lock-file.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./lock.ts"', `from "${lockp}"`));
+  await (await import("node:fs/promises")).writeFile(lockp, (await (await import("node:fs/promises")).readFile(new URL("../packages/cron/src/lock.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await (await import("node:fs/promises")).writeFile(lfp, (await (await import("node:fs/promises")).readFile(new URL("../packages/cron/src/lock-file.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./lock.ts"', `from "${lockp}"`));
   const L = await import(lfp);
   const dir = fsc.mkdtempSync(dcc + "/wG-flock-");
   const lf = dir + "/t.lock";
@@ -8485,14 +8485,14 @@ section("platform-authz / notify-channels / readiness");
   const cop = `${dc}/wI-co-${sc}.ts`;
   const aip = `${dc}/wI-ai-${sc}.ts`;
   const gwp = `${dc}/wI-gw-${sc}.ts`;
-  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${cep}"`));
+  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
   await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
   // ai-gateway が読む featureEnv(env.ts)はテスト用スタブに差し替える
   const gwenv = `${dc}/wI-gwenv-${sc}.ts`;
   await fsc.writeFile(gwenv, `export const featureEnv = { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? "", OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "" };\n`);
-  await fsc.writeFile(gwp, (await fsc.readFile(new URL("../apps/internal-app/src/server/ai-gateway.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/ai"', `from "${aip}"`).replace(/from "\.\/env\.ts"/g, `from "${gwenv}"`));
+  await fsc.writeFile(gwp, (await fsc.readFile(new URL("../apps/internal-app/src/server/ai-gateway.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/ai"', `from "${aip}"`).replace(/from "\.\/env\.ts"/g, `from "${gwenv}"`));
   const before = process.env.OPENAI_API_KEY;
   process.env.OPENAI_API_KEY = "";
   const G = await import(gwp);
@@ -8515,10 +8515,10 @@ section("platform-authz / notify-channels / readiness");
   const crp = `${dc}/wJ-cr-${sc}.ts`;
   const cop = `${dc}/wJ-co-${sc}.ts`;
   const rpap = `${dc}/wJ-rpa-${sc}.ts`;
-  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${cep}"`));
+  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
   await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(rpap, (await fsc.readFile(new URL("../packages/rpa/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  await fsc.writeFile(rpap, (await fsc.readFile(new URL("../packages/rpa/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
   const R = await import(rpap);
 
   // 基本 + 監査
@@ -8572,7 +8572,7 @@ section("platform-authz / notify-channels / readiness");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const rp = `${osc.tmpdir()}/wK-replay-${Date.now()}.ts`;
-  await fsc.writeFile(rp, (await fsc.readFile(new URL("../packages/security/src/replay.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+  await fsc.writeFile(rp, (await fsc.readFile(new URL("../packages/security/src/replay.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const R = await import(rp);
 
   let clock = 1_000_000;
@@ -8608,15 +8608,15 @@ section("platform-authz / notify-channels / readiness");
   const clockp = `${dc}/wL-clock-${sc}.ts`;
   const cronp = `${dc}/wL-cron-${sc}.ts`;
   const svcp = `${dc}/wL-svc-${sc}.ts`;
-  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${cep}"`));
+  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
   await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(rpap, (await fsc.readFile(new URL("../packages/rpa/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${cop}"`));
-  await fsc.writeFile(clockp, (await fsc.readFile(new URL("../packages/cron/src/lock.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+  await fsc.writeFile(rpap, (await fsc.readFile(new URL("../packages/rpa/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  await fsc.writeFile(clockp, (await fsc.readFile(new URL("../packages/cron/src/lock.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fsc.writeFile(cronp, `export { createMemoryLockStore } from "${clockp}";\n`);
   const onp = `${dc}/wL-on-${sc}.ts`;
-  await fsc.writeFile(onp, (await fsc.readFile(new URL("../packages/os-notify/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${cop}"`));
-  await fsc.writeFile(svcp, (await fsc.readFile(new URL("../apps/internal-app/src/server/rpa-service.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/rpa"', `from "${rpap}"`).replace('from "@platform/cron"', `from "${cronp}"`).replace('from "@platform/os-notify"', `from "${onp}"`));
+  await fsc.writeFile(onp, (await fsc.readFile(new URL("../packages/os-notify/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  await fsc.writeFile(svcp, (await fsc.readFile(new URL("../apps/internal-app/src/server/rpa-service.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/rpa"', `from "${rpap}"`).replace('from "@platform/cron"', `from "${cronp}"`).replace('from "@platform/os-notify"', `from "${onp}"`));
   const S = await import(svcp);
 
   const r1 = await S.runDemoPointSync({ steps: 3 });
@@ -8664,7 +8664,7 @@ section("platform-authz / notify-channels / readiness");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const sp = `${osc.tmpdir()}/wK-strings-${Date.now()}.ts`;
-  await fsc.writeFile(sp, (await fsc.readFile(new URL("../packages/utils/src/strings.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+  await fsc.writeFile(sp, (await fsc.readFile(new URL("../packages/utils/src/strings.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const S = await import(sp);
 
   ok("replaceByDictionary: 単純置換・長いfrom優先・複数ルール・空from無視",
@@ -8706,9 +8706,9 @@ section("platform-authz / notify-channels / readiness");
   const sc = Date.now();
   const base = `${dc}/wN-${sc}`;
   await fsc.mkdir(`${base}/search/adapters`, { recursive: true });
-  const mapCore = (t) => t.replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`);
-  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
+  const mapCore = (t) => t.replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`);
+  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
   await fsc.writeFile(`${base}/search/tokenize.ts`, mapCore(await fsc.readFile(new URL("../packages/search/src/tokenize.ts", import.meta.url), "utf8")));
   await fsc.writeFile(`${base}/search/bm25.ts`, mapCore(await fsc.readFile(new URL("../packages/search/src/bm25.ts", import.meta.url), "utf8")));
@@ -8716,13 +8716,13 @@ section("platform-authz / notify-channels / readiness");
   await fsc.writeFile(`${base}/search/index.ts`, mapCore(await fsc.readFile(new URL("../packages/search/src/index.ts", import.meta.url), "utf8")).split("\n").filter((l) => !l.includes("meilisearch")).join("\n"));
   await fsc.writeFile(`${base}/ai.ts`, mapCore(await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")));
   await fsc.writeFile(`${base}/rag.ts`, mapCore(await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")));
-  await fsc.writeFile(`${base}/utils-strings.ts`, (await fsc.readFile(new URL("../packages/utils/src/strings.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+  await fsc.writeFile(`${base}/utils-strings.ts`, (await fsc.readFile(new URL("../packages/utils/src/strings.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fsc.writeFile(`${base}/utils.ts`, `export * from "${base}/utils-strings.ts";\n`);
   // rag-service が import する dictionary-store も合成(utils を参照)
-  await fsc.writeFile(`${base}/dictionary-store.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/dictionary-store.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/utils"', `from "${base}/utils.ts"`));
+  await fsc.writeFile(`${base}/dictionary-store.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/dictionary-store.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/utils"', `from "${base}/utils.ts"`));
   // rag-service が import する csv も合成(core を参照)
-  await fsc.writeFile(`${base}/csv.ts`, (await fsc.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
-  let svc = (await fsc.readFile(new URL("../apps/internal-app/src/server/rag-service.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  await fsc.writeFile(`${base}/csv.ts`, (await fsc.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  let svc = (await fsc.readFile(new URL("../apps/internal-app/src/server/rag-service.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   svc = svc.replace('from "@platform/rag"', `from "${base}/rag.ts"`).replace('from "@platform/search"', `from "${base}/search/index.ts"`).replace('from "@platform/ai"', `from "${base}/ai.ts"`).replace('from "@platform/utils"', `from "${base}/utils.ts"`).replace('from "@platform/csv"', `from "${base}/csv.ts"`);
   await fsc.writeFile(`${base}/rag-service.ts`, svc);
   const S = await import(`${base}/rag-service.ts`);
@@ -8763,10 +8763,10 @@ section("platform-authz / notify-channels / readiness");
   const crp = `${dc}/wO-cr-${sc}.ts`;
   const cop = `${dc}/wO-co-${sc}.ts`;
   const osp = `${dc}/wO-os-${sc}.ts`;
-  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${cep}"`));
+  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
   await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(osp, (await fsc.readFile(new URL("../packages/os-notify/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  await fsc.writeFile(osp, (await fsc.readFile(new URL("../packages/os-notify/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
   const O = await import(osp);
 
   const win = O.buildNotifyCommand("win32", { title: "完了", message: "終了" });
@@ -8810,8 +8810,8 @@ section("platform-authz / notify-channels / readiness");
   const dbp = `${dc}/wP-db-${sc}.ts`;
   const svcp = `${dc}/wP-svc-${sc}.ts`;
   const vp = `${dc}/wP-v-${sc}.ts`;
-  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${cep}"`));
+  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
   await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
   await fsc.writeFile(dbp, `export function normalizeBigInt(v){return typeof v==="bigint"?Number(v):v;}
 export let _calls=[];
@@ -8823,8 +8823,8 @@ export async function rawQuery(_db,sql,params=[]){_calls.push({type:"query",sql,
 export async function rawExecute(_db,sql,params=[]){_calls.push({type:"exec",sql,params});return {ok:true,value:1};}`);
   await fsc.writeFile(svcp, `export const db={};`);
   const csvp = `${dc}/wP-csv-${sc}.ts`;
-  await fsc.writeFile(csvp, (await fsc.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${cop}"`));
-  let v = (await fsc.readFile(new URL("../apps/internal-app/src/server/db-viewer.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  await fsc.writeFile(csvp, (await fsc.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  let v = (await fsc.readFile(new URL("../apps/internal-app/src/server/db-viewer.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   v = v.replace('from "@platform/db"', `from "${dbp}"`).replace('from "@platform/csv"', `from "${csvp}"`).replace('from "./services.ts"', `from "${svcp}"`).replace('from "@platform/core"', `from "${cop}"`);
   await fsc.writeFile(vp, v);
   const V = await import(vp);
@@ -8890,9 +8890,9 @@ export async function rawExecute(_db,sql,params=[]){_calls.push({type:"exec",sql
   const mp = `${dc}/wQ-m-${sc}.ts`;
   const ep = `${dc}/wQ-e-${sc}.ts`;
   const tp = `${dc}/wQ-t-${sc}.ts`;
-  await fsc.writeFile(mp, (await fsc.readFile(new URL("../packages/ui/src/lib/motion.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(ep, (await fsc.readFile(new URL("../packages/ui/src/lib/motion-extra.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('./motion.ts', mp));
-  await fsc.writeFile(tp, (await fsc.readFile(new URL("../packages/ui/src/lib/motion-tween.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('./motion-extra.ts', ep).replace('./motion.ts', mp));
+  await fsc.writeFile(mp, (await fsc.readFile(new URL("../packages/ui/src/lib/motion.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(ep, (await fsc.readFile(new URL("../packages/ui/src/lib/motion-extra.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('./motion.ts', mp));
+  await fsc.writeFile(tp, (await fsc.readFile(new URL("../packages/ui/src/lib/motion-tween.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('./motion-extra.ts', ep).replace('./motion.ts', mp));
   const E = await import(ep);
   const T = await import(tp);
   const near = (a, b, eps = 1e-6) => Math.abs(a - b) < eps;
@@ -8970,10 +8970,10 @@ export async function rawExecute(_db,sql,params=[]){_calls.push({type:"exec",sql
   const crp = `${dc}/wR-cr-${sc}.ts`;
   const cop = `${dc}/wR-co-${sc}.ts`;
   const elp = `${dc}/wR-el-${sc}.ts`;
-  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${cep}"`));
+  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
   await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(elp, (await fsc.readFile(new URL("../packages/elearning/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  await fsc.writeFile(elp, (await fsc.readFile(new URL("../packages/elearning/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
   const E = await import(elp);
 
   const course = { id: "c1", title: "セキュリティ", modules: [
@@ -9016,11 +9016,11 @@ export async function rawExecute(_db,sql,params=[]){_calls.push({type:"exec",sql
   const cop = `${dc}/wS-co-${sc}.ts`;
   const elp = `${dc}/wS-el-${sc}.ts`;
   const svcp = `${dc}/wS-svc-${sc}.ts`;
-  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${cep}"`));
+  await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
   await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(elp, (await fsc.readFile(new URL("../packages/elearning/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${cop}"`));
-  await fsc.writeFile(svcp, (await fsc.readFile(new URL("../apps/internal-app/src/server/elearning-service.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/elearning"', `from "${elp}"`));
+  await fsc.writeFile(elp, (await fsc.readFile(new URL("../packages/elearning/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  await fsc.writeFile(svcp, (await fsc.readFile(new URL("../apps/internal-app/src/server/elearning-service.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/elearning"', `from "${elp}"`));
   const S = await import(svcp);
 
   const s0 = S.getLearningState("wS-u1");
@@ -9048,7 +9048,7 @@ export async function rawExecute(_db,sql,params=[]){_calls.push({type:"exec",sql
   const base = `${osc.tmpdir()}/dstore-${Date.now()}`;
   await fsc.mkdir(base, { recursive: true });
   await fsc.writeFile(`${base}/utils.ts`, "export interface ReplacementRule { from: string; to: string; }\n");
-  await fsc.writeFile(`${base}/ds.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/dictionary-store.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/utils"', `from "${base}/utils.ts"`));
+  await fsc.writeFile(`${base}/ds.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/dictionary-store.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/utils"', `from "${base}/utils.ts"`));
   const { createDictionaryStore } = await import(`${base}/ds.ts`);
 
   // メモリのみ
@@ -9100,12 +9100,12 @@ export async function rawExecute(_db,sql,params=[]){_calls.push({type:"exec",sql
   const osc = await import("node:os");
   const base = `${osc.tmpdir()}/theme-${Date.now()}`;
   await fsc.mkdir(base, { recursive: true });
-  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
+  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  await fsc.writeFile(`${base}/color.ts`, (await fsc.readFile(new URL("../packages/color/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fsc.writeFile(`${base}/color.ts`, (await fsc.readFile(new URL("../packages/color/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
   for (const f of ["tokens", "css", "registry", "themes", "a11y", "derive", "serialize", "index"]) {
-    await fsc.writeFile(`${base}/${f}.ts`, (await fsc.readFile(new URL(`../packages/theme/src/${f}.ts`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`).replace('from "@platform/color"', `from "${base}/color.ts"`));
+    await fsc.writeFile(`${base}/${f}.ts`, (await fsc.readFile(new URL(`../packages/theme/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`).replace('from "@platform/color"', `from "${base}/color.ts"`));
   }
   const T = await import(`${base}/index.ts`);
 
@@ -9206,12 +9206,12 @@ export async function rawExecute(_db,sql,params=[]){_calls.push({type:"exec",sql
   const base = `${osc.tmpdir()}/gcsv-${Date.now()}`;
   await fsc.mkdir(`${base}/search/adapters`, { recursive: true });
   const mapCore = async (rel, extra) => {
-    let t = (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`);
+    let t = (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`);
     if (extra) t = extra(t);
     return t;
   };
-  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
+  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
   await fsc.writeFile(`${base}/search/tokenize.ts`, await mapCore("../packages/search/src/tokenize.ts"));
   await fsc.writeFile(`${base}/search/bm25.ts`, await mapCore("../packages/search/src/bm25.ts"));
@@ -9219,11 +9219,11 @@ export async function rawExecute(_db,sql,params=[]){_calls.push({type:"exec",sql
   await fsc.writeFile(`${base}/search/index.ts`, await mapCore("../packages/search/src/index.ts", (t) => t.split("\n").filter((l) => !l.includes("meilisearch")).join("\n")));
   await fsc.writeFile(`${base}/ai.ts`, await mapCore("../packages/ai/src/index.ts"));
   await fsc.writeFile(`${base}/rag.ts`, await mapCore("../packages/rag/src/index.ts"));
-  await fsc.writeFile(`${base}/utils-strings.ts`, (await fsc.readFile(new URL("../packages/utils/src/strings.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+  await fsc.writeFile(`${base}/utils-strings.ts`, (await fsc.readFile(new URL("../packages/utils/src/strings.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fsc.writeFile(`${base}/utils.ts`, `export * from "${base}/utils-strings.ts";\n`);
   await fsc.writeFile(`${base}/csv.ts`, await mapCore("../packages/csv/src/index.ts"));
-  await fsc.writeFile(`${base}/dictionary-store.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/dictionary-store.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/utils"', `from "${base}/utils.ts"`));
-  let svc = (await fsc.readFile(new URL("../apps/internal-app/src/server/rag-service.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  await fsc.writeFile(`${base}/dictionary-store.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/dictionary-store.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/utils"', `from "${base}/utils.ts"`));
+  let svc = (await fsc.readFile(new URL("../apps/internal-app/src/server/rag-service.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   svc = svc.replace('from "@platform/rag"', `from "${base}/rag.ts"`).replace('from "@platform/search"', `from "${base}/search/index.ts"`).replace('from "@platform/ai"', `from "${base}/ai.ts"`).replace('from "@platform/utils"', `from "${base}/utils.ts"`).replace('from "@platform/csv"', `from "${base}/csv.ts"`);
   await fsc.writeFile(`${base}/rag-service.ts`, svc);
   const S = await import(`${base}/rag-service.ts`);
@@ -9278,14 +9278,14 @@ export const db = { systemSetting: {
 export const __store = () => store;
 `);
   // 実 core / color / theme を合成(validateTheme・deriveTheme を本物で使う)
-  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
+  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  await fsc.writeFile(`${base}/color.ts`, (await fsc.readFile(new URL("../packages/color/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fsc.writeFile(`${base}/color.ts`, (await fsc.readFile(new URL("../packages/color/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
   for (const f of ["tokens", "css", "registry", "themes", "a11y", "derive", "serialize", "index"]) {
-    await fsc.writeFile(`${base}/${f}.ts`, (await fsc.readFile(new URL(`../packages/theme/src/${f}.ts`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`).replace('from "@platform/color"', `from "${base}/color.ts"`));
+    await fsc.writeFile(`${base}/${f}.ts`, (await fsc.readFile(new URL(`../packages/theme/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`).replace('from "@platform/color"', `from "${base}/color.ts"`));
   }
-  await fsc.writeFile(`${base}/theme-setting.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/theme-setting.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/theme"', `from "${base}/index.ts"`).replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fsc.writeFile(`${base}/theme-setting.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/theme-setting.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/theme"', `from "${base}/index.ts"`).replace('from "@platform/core"', `from "${base}/core.ts"`));
   const S = await import(`${base}/theme-setting.ts`);
   const TH = await import(`${base}/index.ts`);
 
@@ -9474,8 +9474,8 @@ export const __store = () => store;
   const osc = await import("node:os");
   const base = `${osc.tmpdir()}/env-${Date.now()}`;
   await fsc.mkdir(base, { recursive: true });
-  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
+  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
   // zod は devDeps 未インストールのため、_def 構造を模したスタブで検証する
   await fsc.writeFile(`${base}/zod.ts`, `
@@ -9497,7 +9497,7 @@ function mk(typeName, extra) {
   return self;
 }
 `);
-  let describeSrc = (await fsc.readFile(new URL("../packages/env/src/describe.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  let describeSrc = (await fsc.readFile(new URL("../packages/env/src/describe.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   describeSrc = describeSrc.replace('from "@platform/core"', `from "${base}/core.ts"`).replace('from "zod"', `from "${base}/zod.ts"`);
   await fsc.writeFile(`${base}/describe.ts`, describeSrc);
   const E = await import(`${base}/describe.ts`);
@@ -9555,10 +9555,10 @@ function mk(typeName, extra) {
   const osc = await import("node:os");
   const base = `${osc.tmpdir()}/senv-${Date.now()}`;
   await fsc.mkdir(base, { recursive: true });
-  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
+  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  let dsrc = (await fsc.readFile(new URL("../packages/env/src/describe.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  let dsrc = (await fsc.readFile(new URL("../packages/env/src/describe.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   dsrc = dsrc.replace('import { z } from "zod";\n', "").replace('from "@platform/core"', `from "${base}/core.ts"`);
   dsrc = dsrc.replace(/z\.Zod\w+(<[^>]*>)?/g, "any").replace(/z\.ZodRawShape/g, "any");
   await fsc.writeFile(`${base}/describe.ts`, dsrc);
@@ -9569,7 +9569,7 @@ export function parseEnv(_schema, source = process.env) { return source; }
 const anyChain = new Proxy(function () {}, { get: (_t, p) => (p === "shape" ? {} : anyChain), apply: () => anyChain });
 export const z = anyChain;
 `);
-  await fsc.writeFile(`${base}/app-env.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/env.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/env"', `from "${base}/env.ts"`));
+  await fsc.writeFile(`${base}/app-env.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/env.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/env"', `from "${base}/env.ts"`));
 
   const saved = { NODE_ENV: process.env.NODE_ENV, SESSION_SECRET: process.env.SESSION_SECRET, SECRET_MASTER_KEY: process.env.SECRET_MASTER_KEY, DATABASE_URL: process.env.DATABASE_URL };
   process.env.NODE_ENV = "development";
@@ -9714,10 +9714,10 @@ export const z = anyChain;
   // カタログ(検索ロジック)
   const base = `${osc.tmpdir()}/cat-${Date.now()}`;
   await fsc.mkdir(base, { recursive: true });
-  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
+  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  await fsc.writeFile(`${base}/mcp.ts`, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fsc.writeFile(`${base}/mcp.ts`, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
   await fsc.writeFile(`${base}/catalog.mts`, (await fsc.readFile(new URL("./lib/catalog.mts", import.meta.url), "utf8")).replace(/\.mjs"/g, '.mts"'));
   await fsc.writeFile(`${base}/catalog-tools.mts`, (await fsc.readFile(new URL("./lib/catalog-tools.mts", import.meta.url), "utf8")).replace('from "@platform/mcp"', `from "${base}/mcp.ts"`).replace('from "./catalog.mjs"', `from "${base}/catalog.mts"`));
   const C = await import(`${base}/catalog.mts`);
@@ -9781,10 +9781,10 @@ export const z = anyChain;
   const osc = await import("node:os");
   const base = `${osc.tmpdir()}/sec-${Date.now()}`;
   await fsc.mkdir(base, { recursive: true });
-  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
+  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  let dsrc = (await fsc.readFile(new URL("../packages/env/src/describe.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  let dsrc = (await fsc.readFile(new URL("../packages/env/src/describe.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   dsrc = dsrc.replace('import { z } from "zod";\n', "").replace('from "@platform/core"', `from "${base}/core.ts"`);
   dsrc = dsrc.replace(/z\.Zod\w+(<[^>]*>)?/g, "any").replace(/z\.ZodRawShape/g, "any");
   await fsc.writeFile(`${base}/describe.ts`, dsrc);
@@ -9841,10 +9841,10 @@ export const z = anyChain;
   // デモ検索 + 設計ルール(MCP)
   const base = `${osc.tmpdir()}/dm-${Date.now()}`;
   await fsc.mkdir(base, { recursive: true });
-  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
+  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  await fsc.writeFile(`${base}/mcp.ts`, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fsc.writeFile(`${base}/mcp.ts`, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
   await fsc.writeFile(`${base}/catalog.mts`, (await fsc.readFile(new URL("./lib/catalog.mts", import.meta.url), "utf8")).replace(/\.mjs"/g, '.mts"'));
   await fsc.writeFile(`${base}/catalog-tools.mts`, (await fsc.readFile(new URL("./lib/catalog-tools.mts", import.meta.url), "utf8")).replace('from "@platform/mcp"', `from "${base}/mcp.ts"`).replace('from "./catalog.mjs"', `from "${base}/catalog.mts"`));
   const C = await import(`${base}/catalog.mts`);
@@ -10129,7 +10129,7 @@ export const z = anyChain;
   const base = `${osc.tmpdir()}/lt-${Date.now()}`;
   await fsc.mkdir(base, { recursive: true });
   for (const f of ["stats", "runner", "scenario", "index"]) {
-    await fsc.writeFile(`${base}/${f}.ts`, (await fsc.readFile(new URL(`../packages/loadtest/src/${f}.ts`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+    await fsc.writeFile(`${base}/${f}.ts`, (await fsc.readFile(new URL(`../packages/loadtest/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   }
   const L = await import(`${base}/index.ts`);
 
@@ -10200,12 +10200,12 @@ export const z = anyChain;
   const base = `${osc.tmpdir()}/lsc-${Date.now()}`;
   await fsc.mkdir(base, { recursive: true });
   for (const f of ["stats", "runner", "scenario"]) {
-    let src = (await fsc.readFile(new URL(`../packages/loadtest/src/${f}.ts`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+    let src = (await fsc.readFile(new URL(`../packages/loadtest/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
     src = src.replace('from "./stats.ts"', `from "${base}/stats.ts"`).replace('from "./runner.ts"', `from "${base}/runner.ts"`);
     await fsc.writeFile(`${base}/${f}.ts`, src);
   }
   await fsc.writeFile(`${base}/index.ts`, `export * from "${base}/stats.ts";\nexport * from "${base}/runner.ts";\nexport * from "${base}/scenario.ts";\n`);
-  await fsc.writeFile(`${base}/scen.ts`, (await fsc.readFile(new URL("../demos/showcase/src/examples/loadtest-scenarios.ts", import.meta.url), "utf8")).replace('from "@platform/loadtest"', `from "${base}/index.ts"`).replace(/\.js"/g, '.ts"'));
+  await fsc.writeFile(`${base}/scen.ts`, (await fsc.readFile(new URL("../demos/showcase/src/examples/loadtest-scenarios.ts", import.meta.url), "utf8")).replace('from "@platform/loadtest"', `from "${base}/index.ts"`).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const S = await import(`${base}/scen.ts`);
   const L = await import(`${base}/index.ts`);
 
@@ -10305,7 +10305,7 @@ export const z = anyChain;
   const osc = await import("node:os");
   const base = `${osc.tmpdir()}/pdbg-${Date.now()}`;
   await fsc.mkdir(base, { recursive: true });
-  await fsc.writeFile(`${base}/debug.ts`, (await fsc.readFile(new URL("../packages/debug/src/debug.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+  await fsc.writeFile(`${base}/debug.ts`, (await fsc.readFile(new URL("../packages/debug/src/debug.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const D = await import(`${base}/debug.ts`);
 
   let t = 1000;
@@ -10384,7 +10384,7 @@ export const z = anyChain;
   const osc = await import("node:os");
   const base = `${osc.tmpdir()}/alrt-${Date.now()}`;
   await fsc.mkdir(base, { recursive: true });
-  await fsc.writeFile(`${base}/alerting.ts`, (await fsc.readFile(new URL("../packages/observability/src/alerting.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
+  await fsc.writeFile(`${base}/alerting.ts`, (await fsc.readFile(new URL("../packages/observability/src/alerting.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const A = await import(`${base}/alerting.ts`);
 
   const rules = [{
@@ -10438,10 +10438,10 @@ export const z = anyChain;
   const osc = await import("node:os");
   const base = `${osc.tmpdir()}/task-${Date.now()}`;
   await fsc.mkdir(base, { recursive: true });
-  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
+  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  await fsc.writeFile(`${base}/task.ts`, (await fsc.readFile(new URL("../packages/task/src/task.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fsc.writeFile(`${base}/task.ts`, (await fsc.readFile(new URL("../packages/task/src/task.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
   const T = await import(`${base}/task.ts`);
 
   const mk = (o) => ({ id: "t", title: "x", status: "todo", priority: "normal", createdAt: "2026-07-01T00:00:00Z", updatedAt: "2026-07-01T00:00:00Z", ...o });
@@ -10540,14 +10540,14 @@ export const z = anyChain;
   const osc = await import("node:os");
   const base = `${osc.tmpdir()}/tui-${Date.now()}`;
   await fsc.mkdir(base, { recursive: true });
-  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
+  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  await fsc.writeFile(`${base}/task.ts`, (await fsc.readFile(new URL("../packages/task/src/task.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fsc.writeFile(`${base}/task.ts`, (await fsc.readFile(new URL("../packages/task/src/task.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
   // services(db)と env は差し替える(DB 接続を張らない)
   await fsc.writeFile(`${base}/services.ts`, `export const db = {};`);
   await fsc.writeFile(`${base}/env.ts`, `export const featureEnv = { TASK_PERSISTENCE: "" };`);
-  await fsc.writeFile(`${base}/task-repo.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/task-repo.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/task"', `from "${base}/task.ts"`).replace('from "./services.ts"', `from "${base}/services.ts"`).replace('from "./env.ts"', `from "${base}/env.ts"`));
+  await fsc.writeFile(`${base}/task-repo.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/task-repo.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/task"', `from "${base}/task.ts"`).replace('from "./services.ts"', `from "${base}/services.ts"`).replace('from "./env.ts"', `from "${base}/env.ts"`));
   const R = await import(`${base}/task-repo.ts`);
   const T = await import(`${base}/task.ts`);
 
@@ -10742,10 +10742,10 @@ export const z = anyChain;
   const osc = await import("node:os");
   const base = `${osc.tmpdir()}/faq-${Date.now()}`;
   await fsc.mkdir(base, { recursive: true });
-  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
+  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  await fsc.writeFile(`${base}/faq.ts`, (await fsc.readFile(new URL("../packages/faq/src/faq.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fsc.writeFile(`${base}/faq.ts`, (await fsc.readFile(new URL("../packages/faq/src/faq.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
   const F = await import(`${base}/faq.ts`);
 
   const mk = (o) => ({ id: "f", question: "q", answer: "a", category: "経費", keywords: [], status: "published",
@@ -10792,10 +10792,10 @@ export const z = anyChain;
   const osc = await import("node:os");
   const base = `${osc.tmpdir()}/ctr-${Date.now()}`;
   await fsc.mkdir(base, { recursive: true });
-  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
+  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  await fsc.writeFile(`${base}/contract.ts`, (await fsc.readFile(new URL("../packages/contract/src/contract.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fsc.writeFile(`${base}/contract.ts`, (await fsc.readFile(new URL("../packages/contract/src/contract.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
   const C = await import(`${base}/contract.ts`);
 
   const mk = (o) => ({ id: "c", title: "契約", partner: "A社", status: "active", startDate: "2026-01-01", endDate: "2026-12-31",
@@ -10857,13 +10857,13 @@ export const z = anyChain;
   const osc = await import("node:os");
   const base = `${osc.tmpdir()}/fui-${Date.now()}`;
   await fsc.mkdir(base, { recursive: true });
-  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
+  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  await fsc.writeFile(`${base}/faq.ts`, (await fsc.readFile(new URL("../packages/faq/src/faq.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fsc.writeFile(`${base}/faq.ts`, (await fsc.readFile(new URL("../packages/faq/src/faq.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
   await fsc.writeFile(`${base}/services.ts`, `export const db = {};`);
   await fsc.writeFile(`${base}/env.ts`, `export const featureEnv = { FAQ_PERSISTENCE: "" };`);
-  await fsc.writeFile(`${base}/faq-repo.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/faq-repo.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/faq"', `from "${base}/faq.ts"`).replace('from "./services.ts"', `from "${base}/services.ts"`).replace('from "./env.ts"', `from "${base}/env.ts"`));
+  await fsc.writeFile(`${base}/faq-repo.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/faq-repo.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/faq"', `from "${base}/faq.ts"`).replace('from "./services.ts"', `from "${base}/services.ts"`).replace('from "./env.ts"', `from "${base}/env.ts"`));
   const R = await import(`${base}/faq-repo.ts`);
   const F = await import(`${base}/faq.ts`);
 
@@ -10915,13 +10915,13 @@ export const z = anyChain;
   const osc = await import("node:os");
   const base = `${osc.tmpdir()}/cui-${Date.now()}`;
   await fsc.mkdir(base, { recursive: true });
-  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
+  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  await fsc.writeFile(`${base}/contract.ts`, (await fsc.readFile(new URL("../packages/contract/src/contract.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fsc.writeFile(`${base}/contract.ts`, (await fsc.readFile(new URL("../packages/contract/src/contract.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
   await fsc.writeFile(`${base}/services.ts`, `export const db = {};`);
   await fsc.writeFile(`${base}/env.ts`, `export const featureEnv = { CONTRACT_PERSISTENCE: "" };`);
-  await fsc.writeFile(`${base}/contract-repo.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/contract-repo.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/contract"', `from "${base}/contract.ts"`).replace('from "./services.ts"', `from "${base}/services.ts"`).replace('from "./env.ts"', `from "${base}/env.ts"`));
+  await fsc.writeFile(`${base}/contract-repo.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/contract-repo.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/contract"', `from "${base}/contract.ts"`).replace('from "./services.ts"', `from "${base}/services.ts"`).replace('from "./env.ts"', `from "${base}/env.ts"`));
   const R = await import(`${base}/contract-repo.ts`);
   const C = await import(`${base}/contract.ts`);
 
@@ -10973,13 +10973,13 @@ export const z = anyChain;
   const osc = await import("node:os");
   const base = `${osc.tmpdir()}/wo-${Date.now()}`;
   await fsc.mkdir(base, { recursive: true });
-  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
+  await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
   for (const pkg of ["task", "faq", "contract"]) {
-    await fsc.writeFile(`${base}/${pkg}.ts`, (await fsc.readFile(new URL(`../packages/${pkg}/src/${pkg}.ts`, import.meta.url), "utf8")).replace(/\.js"/g, '.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+    await fsc.writeFile(`${base}/${pkg}.ts`, (await fsc.readFile(new URL(`../packages/${pkg}/src/${pkg}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
   }
-  let src = (await fsc.readFile(new URL("../demos/showcase/src/examples/workplace-ops.ts", import.meta.url), "utf8")).replace(/\.js"/g, '.ts"');
+  let src = (await fsc.readFile(new URL("../demos/showcase/src/examples/workplace-ops.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   for (const pkg of ["task", "faq", "contract"]) src = src.replace(`from "@platform/${pkg}"`, `from "${base}/${pkg}.ts"`);
   await fsc.writeFile(`${base}/wo.ts`, src);
   const W = await import(`${base}/wo.ts`);
@@ -11035,7 +11035,7 @@ export const z = anyChain;
   await fsc.mkdir(base, { recursive: true });
   await fsc.writeFile(`${base}/ui.ts`, `export interface NavItem { label: string; href?: string; children?: NavItem[]; external?: boolean }\n`);
   await fsc.writeFile(`${base}/nav.ts`, (await fsc.readFile(new URL("../demos/showcase/src/lib/nav.ts", import.meta.url), "utf8"))
-    .replace(/\.js"/g, '.ts"').replace('from "@platform/ui"', `from "${base}/ui.ts"`));
+    .replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/ui"', `from "${base}/ui.ts"`));
   const N = await import(`${base}/nav.ts`);
 
   ok("nav: 区分は3つ(基盤デモ/アプリデモ/使用例)・メニュー上は分かれて見える",

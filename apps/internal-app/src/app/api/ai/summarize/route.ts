@@ -1,8 +1,8 @@
 /** 文書要約(POST {text, style?})。AI Gateway 経由。要ログイン。実行はコスト/ログに計上される。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { aiGateway, aiIsMock } from "../../../../server/ai-gateway.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { aiGateway, aiIsMock } from "../../../../server/ai-gateway";
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

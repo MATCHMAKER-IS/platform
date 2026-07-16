@@ -2,10 +2,10 @@
  * 既読設定 API（POST）。現在のルームの既読位置（lastReadAt）を保存する。
  * ボディ省略時は現在時刻。ルーム一覧の未読数はこの位置を基準に算出される。
  */
-import { withApiObservability } from "../../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../../server/env.js";
-import { chatStore } from "../../../../../../server/chat.js";
+import { withApiObservability } from "../../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../../server/authorize";
+import { serverEnv } from "../../../../../../server/env";
+import { chatStore } from "../../../../../../server/chat";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ roomId: string }> }): Promise<Response> {
   const { roomId } = await ctx.params;

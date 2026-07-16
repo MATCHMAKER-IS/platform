@@ -1,10 +1,10 @@
 /** タグ操作: 一覧(GET・記事から集計)・リネーム/統合/削除(POST・全記事を一括更新)。 */
 import { allTags } from "@platform/board";
 import { renameTagInPosts, mergeTagsInPosts, removeTagFromPosts } from "@platform/cms";
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { cmsStore, auditActions } from "../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { cmsStore, auditActions } from "../../../../server/platform-services";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

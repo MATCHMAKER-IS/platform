@@ -3,7 +3,7 @@
  * 当年の償却額を「借）減価償却費 / 貸）減価償却累計額」で計上し、決算（P&L・B/S）へ反映する。
  * @packageDocumentation
  */
-import { viewOf, type FixedAsset } from "./asset-repo.js";
+import { viewOf, type FixedAsset } from "./asset-repo";
 import { type JournalEntry } from "@platform/accounting";
 
 /** 減価償却費 = 費用、減価償却累計額 = 資産のマイナス（貸方残の評価勘定）。 */

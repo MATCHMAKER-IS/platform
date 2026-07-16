@@ -8,7 +8,7 @@ vi.mock("./observability.js", () => {
 
 describe("resilient zoho fetch", () => {
   it("opens circuit after repeated failures then blocks", async () => {
-    const { createResilientZohoFetch, zohoBreakerState } = await import("./zoho-client.js");
+    const { createResilientZohoFetch, zohoBreakerState } = await import("./zoho-client");
     // token 取得と API を制御
     const orig = globalThis.fetch;
     globalThis.fetch = (async (url: string | URL | Request) => {

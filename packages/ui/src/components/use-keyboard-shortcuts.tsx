@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { parseShortcut, matchShortcut, isSequence, parseSequence, sequenceMatches, type KeyChord } from "../lib/shortcut.js";
+import { parseShortcut, matchShortcut, isSequence, parseSequence, sequenceMatches, type KeyChord } from "../lib/shortcut";
 
 /** ショートカット定義。 */
 export interface ShortcutBinding {

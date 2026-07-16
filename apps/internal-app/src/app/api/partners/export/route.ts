@@ -1,9 +1,9 @@
 /** 取引先: CSV書き出し(GET)。全取引先をCSVでダウンロード。partner:read。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { partnerStore } from "../../../../server/platform-services.js";
-import { partnersCsv } from "../../../../server/partner-export.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { partnerStore } from "../../../../server/platform-services";
+import { partnersCsv } from "../../../../server/partner-export";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

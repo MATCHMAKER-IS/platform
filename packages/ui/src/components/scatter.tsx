@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { linearRegressionXY, correlation } from "@platform/utils";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** 散布図の点。 */
 export interface ScatterPoint { x: number; y: number }

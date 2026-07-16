@@ -1,4 +1,4 @@
-import { FaqClient } from "./faq-client.js";
+import { FaqClient } from "./faq-client";
 export const metadata = { title: "FAQ" };
 export default function Page() {
   return <FaqClient />;

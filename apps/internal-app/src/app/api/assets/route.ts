@@ -1,9 +1,9 @@
 /** 固定資産: 台帳一覧＋サマリー(GET)・資産の登録(POST)。asset:read / asset:write。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { assetStore, auditActions } from "../../../server/platform-services.js";
-import { viewOf, summarize, type FixedAsset } from "../../../server/asset-repo.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser, requirePermission } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { assetStore, auditActions } from "../../../server/platform-services";
+import { viewOf, summarize, type FixedAsset } from "../../../server/asset-repo";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

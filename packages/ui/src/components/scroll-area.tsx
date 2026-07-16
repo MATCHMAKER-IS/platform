@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link ScrollArea} の props。 */
 export interface ScrollAreaProps extends React.HTMLAttributes<HTMLDivElement> {

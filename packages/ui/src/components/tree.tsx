@@ -6,7 +6,7 @@
  */
 import * as React from "react";
 import { ChevronRight } from "lucide-react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** ツリーの 1 ノード。 */
 export interface TreeNode {

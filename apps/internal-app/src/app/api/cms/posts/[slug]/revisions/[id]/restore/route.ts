@@ -1,8 +1,8 @@
 /** リビジョンから記事を復元(POST)。下書きとして書き戻す。編集権限が必要。 */
-import { withApiObservability } from "../../../../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../../../../server/env.js";
-import { cmsStore, auditActions, revisionStore } from "../../../../../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../../../../server/authorize";
+import { serverEnv } from "../../../../../../../../server/env";
+import { cmsStore, auditActions, revisionStore } from "../../../../../../../../server/platform-services";
 import { revisionToInput } from "@platform/cms";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ slug: string; id: string }> }): Promise<Response> {

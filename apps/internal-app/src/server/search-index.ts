@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { createSearch, createMemorySearch, type SearchHit } from "@platform/search";
-import { type EntityDoc } from "./entity-search.js";
+import { type EntityDoc } from "./entity-search";
 
 /** 検索インデックスストア。 */
 export interface SearchIndexStore {

@@ -1,8 +1,8 @@
 /** 組織デフォルトのテーマ設定(GET=取得 / POST=保存)。保存は管理者のみ。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { getThemeSetting, setThemeSetting, getThemeHistory } from "../../../../server/theme-setting.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { getThemeSetting, setThemeSetting, getThemeHistory } from "../../../../server/theme-setting";
 
 async function handleGET(req: Request): Promise<Response> {
   // ?history=1 で変更履歴(誰がいつ何を変えたか)

@@ -1,9 +1,9 @@
 /** 管理: 監査アラート。異常検知(GET)と、管理者受信箱への通知配信(POST)。管理者のみ。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { auditLog, userStore, appMailer, auditActions } from "../../../../server/platform-services.js";
-import { detectAnomalies, anomalyDigest, type AuditEvent } from "../../../../server/audit-anomaly.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { auditLog, userStore, appMailer, auditActions } from "../../../../server/platform-services";
+import { detectAnomalies, anomalyDigest, type AuditEvent } from "../../../../server/audit-anomaly";
 
 function admin(req: Request) {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

@@ -4,7 +4,7 @@
  */
 import { deriveKey, encrypt, decrypt } from "@platform/crypto";
 import { can } from "@platform/auth";
-import { policy } from "../../server/store.js";
+import { policy } from "../../server/store";
 
 export default function Page() {
   // --- 暗号化デモ ---

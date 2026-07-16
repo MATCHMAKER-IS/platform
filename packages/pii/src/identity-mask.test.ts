@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { maskMyNumber, maskIdentityNumber } from "./identity-mask.js";
+import { maskMyNumber, maskIdentityNumber } from "./identity-mask";
 describe("identity masking", () => {
   it("masks my number fully by default (number-act safe)", () => {
     expect(maskMyNumber("123456789018")).toBe("************");

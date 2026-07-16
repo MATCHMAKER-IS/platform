@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { runHealthChecks } from "./health.js";
+import { runHealthChecks } from "./health";
 describe("health", () => {
   it("aggregates up/down", async () => {
     const r = await runHealthChecks({ a: async () => true, b: async () => { throw new Error("x"); } });

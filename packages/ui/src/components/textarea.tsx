@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link Textarea} の props。 */
 export type TextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement>;

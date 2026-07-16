@@ -1,9 +1,9 @@
 /** アンケート: 公開状態の変更(POST)。manager 以上。 */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { audienceRecipients } from "../../../../../server/survey-repo.js";
-import { currentUser, requirePermission } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { surveyStore, userStore, appMailer, auditActions, settingsStore } from "../../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { audienceRecipients } from "../../../../../server/survey-repo";
+import { currentUser, requirePermission } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { surveyStore, userStore, appMailer, auditActions, settingsStore } from "../../../../../server/platform-services";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

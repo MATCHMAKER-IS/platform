@@ -104,19 +104,21 @@ export function check() {
   for (const name of readdirSync(pkgsDir)) {
     const idx = path.join(pkgsDir, name, "src/index.ts");
     if (!existsSync(idx)) continue;
+    // **複数行にまたがる export ブロック**も拾う(1 行前提だと見逃す。
+    // 実際に charts の Gauge / Histogram を見逃してビルドが落ちた)
     const seen = new Map();
-    idx && readFileSync(idx, "utf8").split("\n").forEach((line, i) => {
-      const m = /^export\s+\{([^}]*)\}\s+from\s+"/.exec(line);
-      if (!m) return;
+    const body = readFileSync(idx, "utf8");
+    for (const m of body.matchAll(/export\s*\{([^}]*)\}\s*from\s*"([^"]+)"/gs)) {
+      const line = body.slice(0, m.index).split("\n").length;
       for (const raw of (m[1] ?? "").split(",")) {
         const item = raw.trim();
         if (!item) continue;
         const pub = item.split(" as ").pop().replace(/^type\s+/, "").trim();
         if (!pub || !/^[A-Za-z_$][\w$]*$/.test(pub)) continue;
-        if (seen.has(pub)) issues.push(`[B] ${name}/src/index.ts: ${pub} が重複(行 ${seen.get(pub)} と ${i + 1})`);
-        else seen.set(pub, i + 1);
+        if (seen.has(pub)) issues.push(`[B] ${name}/src/index.ts: ${pub} が重複(行 ${seen.get(pub)} と ${line})`);
+        else seen.set(pub, line);
       }
-    });
+    }
   }
 
   // ── C/D: use client ──

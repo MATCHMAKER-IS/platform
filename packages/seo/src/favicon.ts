@@ -2,7 +2,7 @@
  * ファビコン・アイコン関連の link タグ生成（純関数）。
  * @packageDocumentation
  */
-import { escapeAttr } from "./meta.js";
+import { escapeAttr } from "./meta";
 
 /** ファビコン設定。 */
 export interface FaviconConfig {

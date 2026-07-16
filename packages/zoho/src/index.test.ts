@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { createZohoCrmClient } from "./index.js";
+import { createZohoCrmClient } from "./index";
 
 const realFetch = globalThis.fetch;
 afterEach(() => { globalThis.fetch = realFetch; vi.restoreAllMocks(); });

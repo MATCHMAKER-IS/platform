@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { transactionWithRetry } from "./resilience.js";
-import { abortTransaction } from "./transaction.js";
+import { transactionWithRetry } from "./resilience";
+import { abortTransaction } from "./transaction";
 import type { PrismaClient } from "@prisma/client";
 function makeDb(behavior: (fn: (tx: unknown) => Promise<unknown>, n: number) => Promise<unknown>) {
   let calls = 0; let lastOpts: { isolationLevel?: unknown; timeout?: unknown; maxWait?: unknown } = {};

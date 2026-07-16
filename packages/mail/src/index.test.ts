@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createMailer, createMemoryTransport } from "./index.js";
+import { createMailer, createMemoryTransport } from "./index";
 
 describe("mail", () => {
   it("既定 from を補い、Transport に送る", async () => {

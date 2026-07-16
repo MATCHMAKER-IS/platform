@@ -4,7 +4,7 @@
  * 依存ゼロを保つため fetch を注入する。SpanExporter として createTracer に渡せる。
  * @packageDocumentation
  */
-import type { Span, SpanExporter } from "./trace.js";
+import type { Span, SpanExporter } from "./trace";
 
 /** {@link createOtlpExporter} のオプション。 */
 export interface OtlpExporterOptions {

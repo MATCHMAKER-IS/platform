@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link AppShell} の props。 */
 export interface AppShellProps extends React.HTMLAttributes<HTMLDivElement> {

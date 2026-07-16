@@ -7,7 +7,7 @@
  */
 import { PrismaClient, type Prisma } from "@prisma/client";
 import { AppError, ErrorCode, tryCatch, type Result } from "@platform/core";
-import { mapPrismaError } from "./errors.js";
+import { mapPrismaError } from "./errors";
 
 /** トランザクション分離レベル。 */
 export type IsolationLevel = "ReadUncommitted" | "ReadCommitted" | "RepeatableRead" | "Serializable";

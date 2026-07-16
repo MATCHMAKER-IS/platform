@@ -4,11 +4,11 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
-import { rectFromPoints, displayToNaturalRect, type Rect } from "../lib/crop.js";
-import { cropImage } from "../lib/image.js";
+import { cn } from "../lib/cn";
+import { rectFromPoints, displayToNaturalRect, type Rect } from "../lib/crop";
+import { cropImage } from "../lib/image";
 import type { ImageFormat } from "@platform/image/geometry";
-import { Button } from "./button.js";
+import { Button } from "./button";
 
 /** {@link ImageCropper} の props。 */
 export interface ImageCropperProps {

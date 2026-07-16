@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 import { toCsv } from "@platform/csv";
-import { type Partner, type PartnerKind } from "./partner-repo.js";
+import { type Partner, type PartnerKind } from "./partner-repo";
 
 const KIND_LABEL: Record<PartnerKind, string> = { customer: "customer", supplier: "supplier", payee: "payee" };
 

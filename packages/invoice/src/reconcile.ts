@@ -3,7 +3,7 @@
  * 入金を古い請求書から順に充当し(消込)、未収残高の繰越や年齢別集計を行う。
  * @packageDocumentation
  */
-import { balanceDue } from "./payment.js";
+import { balanceDue } from "./payment";
 
 /** 消込対象の未収請求書。 */
 export interface OpenInvoice {

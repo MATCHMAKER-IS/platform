@@ -1,8 +1,8 @@
 /** 辞書の CSV 入出力(GET=エクスポート / POST=インポート)。管理者のみ。 */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { exportReplacementsCsv, exportTermsCsv, importReplacementsCsv, importTermsCsv, setDictionaryActor } from "../../../../../server/rag-service.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { exportReplacementsCsv, exportTermsCsv, importReplacementsCsv, importTermsCsv, setDictionaryActor } from "../../../../../server/rag-service";
 
 function adminUser(req: Request): string | null {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

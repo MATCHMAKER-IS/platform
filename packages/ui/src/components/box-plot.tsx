@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { quartiles, outlierBounds, outliers, min as fnMin, max as fnMax } from "@platform/utils";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link BoxPlot} の props。 */
 export interface BoxPlotProps {

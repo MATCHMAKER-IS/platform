@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { handleUpload, serveDownload } from "./index.js";
+import { handleUpload, serveDownload } from "./index";
 import { createStorage, createLocalStorage } from "@platform/storage";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";

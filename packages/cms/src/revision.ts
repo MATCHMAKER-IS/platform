@@ -2,7 +2,7 @@
  * 記事の変更履歴（リビジョン）。保存のたびにスナップショットを積み、前の版に戻せる。
  * @packageDocumentation
  */
-import { type CmsPost, type CmsPostInput } from "./model.js";
+import { type CmsPost, type CmsPostInput } from "./model";
 
 /** 記事の 1 版。 */
 export interface Revision {

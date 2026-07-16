@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { encodeLengthPrefixed, LengthPrefixedDecoder, LineDecoder, encodeLine } from "./framing.js";
+import { encodeLengthPrefixed, LengthPrefixedDecoder, LineDecoder, encodeLine } from "./framing";
 
 const enc = new TextEncoder(); const dec = new TextDecoder();
 

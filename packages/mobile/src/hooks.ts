@@ -5,9 +5,9 @@
  * @packageDocumentation
  */
 import { useState, useEffect } from "react";
-import { matchBreakpoint, deviceSizeFromWidth, type Breakpoints, type DeviceSize } from "./breakpoints.js";
-import { classifyConnection, type ConnectionQuality } from "./network.js";
-import { orientationFromDimensions, type Orientation } from "./orientation.js";
+import { matchBreakpoint, deviceSizeFromWidth, type Breakpoints, type DeviceSize } from "./breakpoints";
+import { classifyConnection, type ConnectionQuality } from "./network";
+import { orientationFromDimensions, type Orientation } from "./orientation";
 
 /**
  * メディアクエリの一致を購読する。

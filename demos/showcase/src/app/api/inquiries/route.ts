@@ -8,7 +8,7 @@
 import { handleRoute } from "@platform/http";
 import { validate, z, email } from "@platform/validation";
 import { formatJst } from "@platform/datetime";
-import { listInquiries, addInquiry, mailer } from "../../../server/store.js";
+import { listInquiries, addInquiry, mailer } from "../../../server/store";
 
 const InquirySchema = z.object({
   name: z.string().min(1, "氏名は必須です"),

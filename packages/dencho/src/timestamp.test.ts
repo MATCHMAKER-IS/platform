@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createTimestampToken, verifyTimestampToken, sha256Hex } from "./timestamp.js";
+import { createTimestampToken, verifyTimestampToken, sha256Hex } from "./timestamp";
 describe("dencho timestamp", () => {
   it("signs and verifies", () => {
     const secret = "tsa";

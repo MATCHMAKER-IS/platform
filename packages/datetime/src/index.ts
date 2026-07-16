@@ -48,4 +48,4 @@ export function endOfDayJst(date: Date): Date {
   return fromZonedTime(endOfDay(zoned), JST);
 }
 
-export * from "./calendar.js";
+export * from "./calendar";

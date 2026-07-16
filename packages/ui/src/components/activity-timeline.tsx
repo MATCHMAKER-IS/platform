@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** タイムラインの状態(色分け)。 */
 export type TimelineStatus = "default" | "success" | "warning" | "danger" | "muted";

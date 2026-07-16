@@ -3,7 +3,7 @@
  * markSeen は SET NX PX(アトミック)で「初回だけ成功」を利用する。
  * @packageDocumentation
  */
-import type { SeenStore } from "./dedup.js";
+import type { SeenStore } from "./dedup";
 
 /** ioredis 互換の最小インターフェース(テスト差し替え用)。同期/非同期どちらも可。 */
 export interface RedisSeenClient {

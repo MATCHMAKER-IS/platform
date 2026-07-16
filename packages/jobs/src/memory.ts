@@ -6,7 +6,7 @@
  * @packageDocumentation
  */
 import type { Result } from "@platform/core";
-import type { TypedQueue } from "./index.js";
+import type { TypedQueue } from "./index";
 
 /** 失敗ジョブ(デッドレター)の記録。 */
 export interface FailedJob<T> { name: string; data: T; attempts: number; error: string }

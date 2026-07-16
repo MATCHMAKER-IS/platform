@@ -2,7 +2,7 @@
  * メール通知チャネル。`@platform/mail` の Mailer(相当)を NotifyChannel に適合させる。
  * @packageDocumentation
  */
-import type { NotifyChannel, NotifyMessage } from "../index.js";
+import type { NotifyChannel, NotifyMessage } from "../index";
 
 /** send が Result を返す最小のメール送信インターフェース。 */
 export interface MailerLike {

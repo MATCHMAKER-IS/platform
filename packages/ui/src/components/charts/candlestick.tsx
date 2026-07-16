@@ -1,9 +1,9 @@
 "use client";
 /** ローソク足チャート(OHLC)。 @packageDocumentation */
 import { ResponsiveContainer, ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
-import { cn } from "../../lib/cn.js";
-import { ChartTitle } from "./chart-common.js";
-import { candleGeometry, type Candle } from "./chart-math.js";
+import { cn } from "../../lib/cn";
+import { ChartTitle } from "./chart-common";
+import { candleGeometry, type Candle } from "./chart-math";
 
 /** ローソク足の 1 本。 */
 export interface Candlestick extends Candle { label: string }

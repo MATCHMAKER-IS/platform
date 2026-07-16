@@ -5,7 +5,7 @@
  */
 import * as React from "react";
 import type { Locale } from "@platform/i18n";
-import type { LocaleStore } from "../lib/locale-store.js";
+import type { LocaleStore } from "../lib/locale-store";
 
 /**
  * ロケール設定フック。

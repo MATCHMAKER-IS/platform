@@ -2,7 +2,7 @@
  * Prometheus 形式のメトリクス公開。スクレイプ対象。
  * 実運用では内部ネットワーク限定やトークン保護を推奨。
  */
-import { metrics } from "../../../server/observability.js";
+import { metrics } from "../../../server/observability";
 
 export const dynamic = "force-dynamic";
 

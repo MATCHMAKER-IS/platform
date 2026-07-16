@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isBlockVisible, visibleBlocks, blocksByType, findBlock, reorderBlocks, moveBlockUp, moveBlockDown } from "./blocks.js";
+import { isBlockVisible, visibleBlocks, blocksByType, findBlock, reorderBlocks, moveBlockUp, moveBlockDown } from "./blocks";
 const now = new Date("2025-07-25T12:00:00Z");
 const page = { slug: "home", title: "T", blocks: [
   { id: "h", type: "hero" as const, data: {} },

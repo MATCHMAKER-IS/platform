@@ -1,7 +1,7 @@
 "use client";
 /** 承認インボックス。発注・請求の承認待ちを一覧し、段ごとに承認/却下する。 */
 import * as React from "react";
-import { ApprovalSignaturePanel } from "../../components/ApprovalSignaturePanel.js";
+import { ApprovalSignaturePanel } from "../../components/ApprovalSignaturePanel";
 
 interface Event { step: string; action: string; actor: string; at: string; }
 interface Approval { docType: string; docNumber: string; amount: number; status: string; currentStep: number; totalSteps: number; submittedAt: string; history: Event[]; }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createZohoSignClient } from "./index.js";
+import { createZohoSignClient } from "./index";
 describe("zoho sign", () => {
   it("data=JSON page_context + auth", async () => {
     let url = ""; let auth = "";

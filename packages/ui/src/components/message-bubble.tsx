@@ -5,7 +5,7 @@
  */
 import * as React from "react";
 import { linkify } from "@platform/html";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link MessageBubble} の props。 */
 export interface MessageBubbleProps {

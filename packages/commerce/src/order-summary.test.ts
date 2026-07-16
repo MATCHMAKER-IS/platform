@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildOrderSummary, qualifiesForFreeShipping, resolveShippingFee, amountUntilFreeShipping } from "./order-summary.js";
+import { buildOrderSummary, qualifiesForFreeShipping, resolveShippingFee, amountUntilFreeShipping } from "./order-summary";
 describe("order summary", () => {
   it("computes exclusive/inclusive tax and totals", () => {
     expect(buildOrderSummary({ subtotal: 3000, taxRate: 10 })).toMatchObject({ tax: 300, total: 3300 });

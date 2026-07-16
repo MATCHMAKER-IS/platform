@@ -1,9 +1,9 @@
 /** 繰り返し請求: 一覧(GET)・プラン作成(POST)。invoice:read / invoice:write。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { recurringStore, auditActions } from "../../../server/platform-services.js";
-import { type RecurringPlanInput } from "../../../server/recurring-repo.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser, requirePermission } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { recurringStore, auditActions } from "../../../server/platform-services";
+import { type RecurringPlanInput } from "../../../server/recurring-repo";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

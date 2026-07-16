@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isValidE164, parseE164, detectCountry, toE164International } from "./international.js";
+import { isValidE164, parseE164, detectCountry, toE164International } from "./international";
 
 describe("international phone", () => {
   it("validate", () => { expect(isValidE164("+819012345678")).toBe(true); expect(isValidE164("09012345678")).toBe(false); });
@@ -9,7 +9,7 @@ describe("international phone", () => {
   it("build", () => expect(toE164International("81", "090-1234-5678")).toBe("+819012345678"));
 });
 
-import { internationalPhoneType } from "./international.js";
+import { internationalPhoneType } from "./international";
 describe("international phone type", () => {
   it("mobile/landline/fixed_or_mobile", () => {
     expect(internationalPhoneType("+819012345678")).toBe("mobile");

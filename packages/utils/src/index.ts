@@ -137,13 +137,13 @@ export async function retry<T>(fn: () => Promise<T>, options: RetryOptions = {})
   throw AppError.from(lastError);
 }
 
-export * from "./strings.js";
-export * from "./numbers.js";
+export * from "./strings";
+export * from "./numbers";
 
-export * from "./similarity.js";
+export * from "./similarity";
 
-export * from "./japanese-number.js";
-export * from "./function.js";
-export * from "./object.js";
-export * from "./array.js";
-export * from "./async.js";
+export * from "./japanese-number";
+export * from "./function";
+export * from "./object";
+export * from "./array";
+export * from "./async";

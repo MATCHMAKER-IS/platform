@@ -4,10 +4,10 @@
  * @packageDocumentation
  */
 import type { ReactNode } from "react";
-import { cn } from "../lib/cn.js";
-import { useT } from "./i18n-provider.js";
-import { Badge } from "./badge.js";
-import type { RowDiff } from "../lib/diff.js";
+import { cn } from "../lib/cn";
+import { useT } from "./i18n-provider";
+import { Badge } from "./badge";
+import type { RowDiff } from "../lib/diff";
 
 /** {@link DiffPreview} の props。 */
 export interface DiffPreviewProps<T extends Record<string, unknown>> {

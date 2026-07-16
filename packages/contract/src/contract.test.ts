@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isInEffect, daysUntilEnd, noticeDeadline, canGiveNotice, contractAlerts, renew, summarizeContracts, type Contract } from "./contract.js";
+import { isInEffect, daysUntilEnd, noticeDeadline, canGiveNotice, contractAlerts, renew, summarizeContracts, type Contract } from "./contract";
 
 const mk = (o: Partial<Contract> & { id: string }): Contract => ({
   title: "契約", partner: "A社", status: "active", startDate: "2026-01-01", endDate: "2026-12-31",

@@ -3,7 +3,7 @@
  * ステップごとのフィールド割り当て・進捗・遷移可否を扱う。条件付き表示と組み合わせられる。
  * @packageDocumentation
  */
-import { type FormField, visibleFields } from "./field.js";
+import { type FormField, visibleFields } from "./field";
 
 /** フォームの 1 ステップ。 */
 export interface FormStep {

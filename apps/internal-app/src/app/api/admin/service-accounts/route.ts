@@ -1,8 +1,8 @@
 /** 管理: サービスアカウント(APIキー)の一覧(GET)・発行/失効(POST)。管理者のみ。平文キーは発行時のみ返す。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { serviceAccountStore, auditActions } from "../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { serviceAccountStore, auditActions } from "../../../../server/platform-services";
 
 function admin(req: Request) {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

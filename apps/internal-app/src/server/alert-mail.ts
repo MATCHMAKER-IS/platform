@@ -2,7 +2,7 @@
  * 運用アラートのメール整形。アラート一覧を 1 通のメール（件名・本文）に組み立てる。純粋な組み立てのみ。
  * @packageDocumentation
  */
-import { type Alert } from "./alerts.js";
+import { type Alert } from "./alerts";
 import { type MailMessage } from "@platform/mail";
 
 /** アラート一覧を宛先向けのメールに整形する。 */

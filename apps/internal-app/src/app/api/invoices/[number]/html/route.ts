@@ -1,8 +1,8 @@
 /** 請求書: 適格請求書レイアウトの HTML(GET)。invoice:read が必要。 */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { invoiceStore, settingsStore } from "../../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { invoiceStore, settingsStore } from "../../../../../server/platform-services";
 import { renderInvoiceHtml } from "@platform/invoice";
 
 async function handleGET(req: Request, ctx: { params: Promise<{ number: string }> }): Promise<Response> {

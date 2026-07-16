@@ -7,7 +7,7 @@ import {
   monthlyExpenseSummary, renderMonthlyReportHtml, monthlyReportSheets,
   type MonthlySummary, type ReportLocale, type ExpenseRecord,
 } from "@platform/report";
-import type { Expense } from "./expense.js";
+import type { Expense } from "./expense";
 
 /** アプリの Expense を経費記録(税込・既定税率10%)に変換する。 */
 export function toExpenseRecords(expenses: readonly Expense[], taxRate = 10): ExpenseRecord[] {

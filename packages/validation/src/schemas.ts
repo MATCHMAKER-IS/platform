@@ -4,8 +4,8 @@
  * @packageDocumentation
  */
 import { z } from "zod";
-import { digitsToHalfWidth } from "./transforms.js";
-import { PREFECTURES, isKatakana, isHiragana, isValidMyNumber, isValidCorporateNumber, isValidCreditCard } from "./japan.js";
+import { digitsToHalfWidth } from "./transforms";
+import { PREFECTURES, isKatakana, isHiragana, isValidMyNumber, isValidCorporateNumber, isValidCreditCard } from "./japan";
 
 // ---- 文字列 ----
 

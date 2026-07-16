@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseUrl, isAbsoluteUrl, buildUrl, getOrigin, getPath } from "./parse.js";
+import { parseUrl, isAbsoluteUrl, buildUrl, getOrigin, getPath } from "./parse";
 describe("url parse", () => {
   it("parses and builds", () => {
     const p = parseUrl("https://www.example.com:8080/blog/a?x=1&y=2#top")!;

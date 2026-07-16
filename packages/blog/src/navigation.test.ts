@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { adjacentPosts, seriesPosts, seriesNavigation } from "./navigation.js";
+import { adjacentPosts, seriesPosts, seriesNavigation } from "./navigation";
 const posts = [
   { id: "1", slug: "a", title: "A", status: "published" as const, publishedAt: "2025-07-20T00:00:00Z", series: "入門", seriesOrder: 1 },
   { id: "2", slug: "b", title: "B", status: "published" as const, publishedAt: "2025-07-22T00:00:00Z", series: "入門", seriesOrder: 2 },

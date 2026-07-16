@@ -5,7 +5,7 @@
  */
 import * as React from "react";
 import { DropdownMenu as Primitive } from "radix-ui";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** メニューのルート。 */
 export const DropdownMenu = Primitive.Root;

@@ -1,8 +1,8 @@
-import { withApiObservability } from "../../../../../server/instrument.js";
+import { withApiObservability } from "../../../../../server/instrument";
 import { NextResponse, type NextRequest } from "next/server";
 import { randomBytes } from "node:crypto";
-import { zohoAuthConfigFromEnv, getLoginUrl } from "../../../../../server/zoho-auth.js";
-import { getLoginLimiter, clientIp } from "../../../../../server/rate-limit.js";
+import { zohoAuthConfigFromEnv, getLoginUrl } from "../../../../../server/zoho-auth";
+import { getLoginLimiter, clientIp } from "../../../../../server/rate-limit";
 
 /** GET /api/auth/zoho/login — Zoho 認可画面へリダイレクト(IP レート制限つき)。 */
 async function handleGET(req: NextRequest) {

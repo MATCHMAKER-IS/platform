@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 
-import { type Attachment } from "./attachment.js";
+import { type Attachment } from "./attachment";
 
 /** チャットメッセージ。 */
 export interface ChatMessage {

@@ -1,6 +1,6 @@
 import * as React from "react";
-import { CmsNav } from "../cms-nav.js";
-import { AnnouncementClient } from "./announcement-client.js";
+import { CmsNav } from "../cms-nav";
+import { AnnouncementClient } from "./announcement-client";
 
 export const metadata = { title: "お知らせ管理" };
 

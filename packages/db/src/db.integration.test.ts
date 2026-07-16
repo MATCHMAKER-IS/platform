@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "testcontainers";
-import { createDb, executeRaw, queryRawValidated, sql } from "./index.js";
+import { createDb, executeRaw, queryRawValidated, sql } from "./index";
 import { z } from "zod";
 import type { PrismaClient } from "@prisma/client";
 

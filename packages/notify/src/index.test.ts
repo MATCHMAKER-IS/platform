@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { createNotifier, createSlackChannel } from "./index.js";
+import { createNotifier, createSlackChannel } from "./index";
 
 const realFetch = globalThis.fetch;
 afterEach(() => {

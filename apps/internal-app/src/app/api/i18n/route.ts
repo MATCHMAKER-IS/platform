@@ -1,6 +1,6 @@
 /** i18n: 指定ロケールの文言を返す(GET)。?locale=ja|en|zh|ko。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { appCatalogs } from "../../../server/i18n.js";
+import { withApiObservability } from "../../../server/instrument";
+import { appCatalogs } from "../../../server/i18n";
 import { LOCALES, LOCALE_LABELS, type Locale } from "@platform/i18n";
 
 async function handleGET(req: Request): Promise<Response> {

@@ -4,8 +4,8 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
-import { formatBytes } from "../lib/format-bytes.js";
+import { cn } from "../lib/cn";
+import { formatBytes } from "../lib/format-bytes";
 
 /** 一覧に出すファイル項目。 */
 export interface FileListItem {

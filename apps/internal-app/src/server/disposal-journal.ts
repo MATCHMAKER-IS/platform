@@ -3,7 +3,7 @@
  * 除却は「減価償却累計額・固定資産除却損 / 固定資産」、売却は現金と売却損益を計上する。集計は @platform/depreciation に委譲。
  * @packageDocumentation
  */
-import { scheduleFor, type FixedAsset } from "./asset-repo.js";
+import { scheduleFor, type FixedAsset } from "./asset-repo";
 import { bookValueAt } from "@platform/depreciation";
 import { type JournalEntry, type JournalLine } from "@platform/accounting";
 

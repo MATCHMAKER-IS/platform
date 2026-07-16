@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pick, omit, deepClone, deepEqual, deepMerge, isEmpty } from "./object.js";
+import { pick, omit, deepClone, deepEqual, deepMerge, isEmpty } from "./object";
 describe("object utils", () => {
   it("pick/omit", () => {
     expect(pick({ a: 1, b: 2, c: 3 }, ["a", "c"])).toEqual({ a: 1, c: 3 });

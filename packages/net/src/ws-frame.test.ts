@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { encodeWsFrame, encodeWsText, WsFrameDecoder, WsOpcode } from "./ws-frame.js";
+import { encodeWsFrame, encodeWsText, WsFrameDecoder, WsOpcode } from "./ws-frame";
 
 const enc = new TextEncoder(); const dec = new TextDecoder();
 

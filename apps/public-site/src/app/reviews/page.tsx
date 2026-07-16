@@ -1,6 +1,6 @@
 import * as React from "react";
-import { ReviewWidget } from "../../components/ReviewWidget.js";
-import { siteEnv } from "../../server/env.js";
+import { ReviewWidget } from "../../components/ReviewWidget";
+import { siteEnv } from "../../server/env";
 export const metadata = { title: "お客様の声" };
 /** 公開: お客様の声（社内アプリの公開レビューAPIを参照）。apiBase は env INTERNAL_API_BASE。 */
 export default function PublicReviewsPage() {

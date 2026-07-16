@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { connectionFromUrl, createQueue, type QueueLike } from "./index.js";
-import { createMemoryQueue } from "./memory.js";
+import { connectionFromUrl, createQueue, type QueueLike } from "./index";
+import { createMemoryQueue } from "./memory";
 describe("jobs", () => {
   it("parses redis url", () => {
     expect(connectionFromUrl("redis://:pw@h:6380")).toMatchObject({ host: "h", port: 6380, password: "pw" });

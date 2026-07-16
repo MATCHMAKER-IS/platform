@@ -2,7 +2,7 @@
  * CMS ストア（記事 CRUD）。memory / prisma。
  * @packageDocumentation
  */
-import { toPost, type CmsPost, type CmsPostInput, type PostStatus } from "./model.js";
+import { toPost, type CmsPost, type CmsPostInput, type PostStatus } from "./model";
 
 /** CMS ストア。 */
 export interface CmsStore {

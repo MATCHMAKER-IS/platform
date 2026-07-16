@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { backoffDelay, createPoller, createReconnectingWebSocket, type WebSocketLike } from "./index.js";
+import { backoffDelay, createPoller, createReconnectingWebSocket, type WebSocketLike } from "./index";
 
 describe("backoffDelay", () => {
   it("指数増加・上限", () => {

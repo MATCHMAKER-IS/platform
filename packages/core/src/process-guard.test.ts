@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { installProcessGuards } from "./process-guard.js";
+import { installProcessGuards } from "./process-guard";
 describe("process guard", () => {
   it("logs rejections, exits on uncaught after onFatal", async () => {
     const handlers: Record<string, (...a: unknown[]) => void> = {};

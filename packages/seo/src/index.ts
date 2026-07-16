@@ -5,11 +5,11 @@
  * サイトマップ・RSS は @platform/blog、スラッグは @platform/blog を利用。
  * @packageDocumentation
  */
-export * from "./meta.js";
-export * from "./open-graph.js";
-export * from "./json-ld.js";
-export * from "./robots.js";
-export * from "./indexing.js";
-export * from "./sitemap.js";
-export * from "./favicon.js";
-export * from "./feed.js";
+export * from "./meta";
+export * from "./open-graph";
+export * from "./json-ld";
+export * from "./robots";
+export * from "./indexing";
+export * from "./sitemap";
+export * from "./favicon";
+export * from "./feed";

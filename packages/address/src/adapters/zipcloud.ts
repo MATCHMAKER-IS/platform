@@ -5,7 +5,7 @@
  */
 import { createApiClient } from "@platform/integrations";
 import { AppError, ErrorCode, type Result } from "@platform/core";
-import type { AddressAdapter, AddressResult } from "../index.js";
+import type { AddressAdapter, AddressResult } from "../index";
 
 interface ZipcloudResult {
   zipcode: string;

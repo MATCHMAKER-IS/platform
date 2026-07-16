@@ -2,8 +2,8 @@
  * 品目: 一覧(GET ?includeInactive=1)・登録(POST)。
  * 認可を足す場合: internal-app の authorize.ts を移植し、冒頭で currentUser → requirePermission を呼ぶ(docs/ai/patterns.md 参照)。
  */
-import { itemStore } from "../../../server/services.js";
-import { validateItemInput } from "../../../server/item-repo.js";
+import { itemStore } from "../../../server/services";
+import { validateItemInput } from "../../../server/item-repo";
 
 export async function GET(req: Request): Promise<Response> {
   const includeInactive = new URL(req.url).searchParams.get("includeInactive") === "1";

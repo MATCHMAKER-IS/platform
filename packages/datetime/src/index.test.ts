@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatJst, startOfDayJst, endOfDayJst, JST } from "./index.js";
+import { formatJst, startOfDayJst, endOfDayJst, JST } from "./index";
 
 describe("datetime (JST)", () => {
   it("UTC を JST(+9)で整形する", () => {

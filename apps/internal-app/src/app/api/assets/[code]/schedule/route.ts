@@ -1,9 +1,9 @@
 /** 固定資産: 減価償却スケジュール(GET)。asset:read。 */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { assetStore } from "../../../../../server/platform-services.js";
-import { scheduleFor } from "../../../../../server/asset-repo.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { assetStore } from "../../../../../server/platform-services";
+import { scheduleFor } from "../../../../../server/asset-repo";
 
 async function handleGET(req: Request, ctx: { params: Promise<{ code: string }> }): Promise<Response> {
   const { code } = await ctx.params;

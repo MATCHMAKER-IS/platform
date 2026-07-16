@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { httpStatusFor, isRetryable, toErrorEnvelope } from "./error-policy.js";
-import { AppError, ErrorCode } from "./error.js";
+import { httpStatusFor, isRetryable, toErrorEnvelope } from "./error-policy";
+import { AppError, ErrorCode } from "./error";
 describe("error policy", () => {
   it("maps status and retryability centrally", () => {
     expect(httpStatusFor(new AppError(ErrorCode.CONFLICT, "x"))).toBe(409);

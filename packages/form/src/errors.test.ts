@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { issuesToFieldErrors, fieldError, hasNoErrors, formError } from "./errors.js";
+import { issuesToFieldErrors, fieldError, hasNoErrors, formError } from "./errors";
 describe("form errors", () => {
   it("maps issues to field errors", () => {
     const issues = [

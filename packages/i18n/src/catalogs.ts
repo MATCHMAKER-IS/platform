@@ -3,10 +3,10 @@
  * アプリ固有文言はアプリ側で mergeCatalogs / namespaced する。
  * @packageDocumentation
  */
-import type { Catalogs } from "./index.js";
-import { ja } from "./catalogs/ja.js";
-import { en } from "./catalogs/en.js";
-import { zh } from "./catalogs/zh.js";
-import { ko } from "./catalogs/ko.js";
+import type { Catalogs } from "./index";
+import { ja } from "./catalogs/ja";
+import { en } from "./catalogs/en";
+import { zh } from "./catalogs/zh";
+import { ko } from "./catalogs/ko";
 
 export const uiCatalogs: Catalogs = { ja, en, zh, ko };

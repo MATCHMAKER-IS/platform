@@ -1,9 +1,9 @@
 /** 管理: 通知テンプレートの取得(GET・既定+上書きの解決結果と生の上書き)・更新(POST)。管理者のみ。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { templateStore, auditActions } from "../../../../server/platform-services.js";
-import { resolveTemplates, type TemplateOverrides } from "../../../../server/notification-templates.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { templateStore, auditActions } from "../../../../server/platform-services";
+import { resolveTemplates, type TemplateOverrides } from "../../../../server/notification-templates";
 
 function admin(req: Request) {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

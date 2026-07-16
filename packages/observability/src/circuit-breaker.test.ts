@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createCircuitBreaker, CircuitOpenError } from "./circuit-breaker.js";
+import { createCircuitBreaker, CircuitOpenError } from "./circuit-breaker";
 describe("circuit breaker", () => {
   it("opens after threshold, half-opens, closes", async () => {
     let clk = 0; const b = createCircuitBreaker({ failureThreshold: 2, resetTimeoutMs: 100, successThreshold: 1, now: () => clk });

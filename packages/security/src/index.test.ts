@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { securityHeaders, sanitize, stripHtml } from "./index.js";
+import { securityHeaders, sanitize, stripHtml } from "./index";
 
 describe("security headers", () => {
   it("主要ヘッダを含む", () => {
@@ -32,7 +32,7 @@ describe("sanitize", () => {
   });
 });
 
-import { createCsrf } from "./index.js";
+import { createCsrf } from "./index";
 
 describe("csrf", () => {
   const csrf = createCsrf({ secret: "test-secret-value" });

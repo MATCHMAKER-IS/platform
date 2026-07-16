@@ -1,8 +1,8 @@
 /** 勤怠: 申請の承認/却下(POST)。attendance:approve(manager/admin)。 */
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { currentUser, requirePermission, userCan } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { attendanceApprovalStore, auditActions } from "../../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { currentUser, requirePermission, userCan } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { attendanceApprovalStore, auditActions } from "../../../../../server/platform-services";
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

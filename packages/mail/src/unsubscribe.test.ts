@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createUnsubscribeToken, verifyUnsubscribeToken, unsubscribeUrl, listUnsubscribeHeaders, removeSuppressed, isSuppressed } from "./unsubscribe.js";
+import { createUnsubscribeToken, verifyUnsubscribeToken, unsubscribeUrl, listUnsubscribeHeaders, removeSuppressed, isSuppressed } from "./unsubscribe";
 const secret = "s3cret";
 describe("mail unsubscribe", () => {
   it("signs and verifies tokens", () => {

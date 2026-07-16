@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { chunk, groupBy, uniqueBy, safeJsonParse, retry, sleep } from "./index.js";
+import { chunk, groupBy, uniqueBy, safeJsonParse, retry, sleep } from "./index";
 
 describe("utils", () => {
   it("chunk は分割する", () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readingTime } from "./reading-time.js";
+import { readingTime } from "./reading-time";
 describe("reading time", () => {
   it("estimates cjk and words", () => {
     expect(readingTime("あ".repeat(1000)).minutes).toBe(2);

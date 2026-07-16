@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { notificationForTransition, approverRecipients, type ApproverDirectory, type WorkflowState } from "@platform/workflow";
-import { EXPENSE_WORKFLOW } from "./expense-approval.js";
+import { EXPENSE_WORKFLOW } from "./expense-approval";
 
 /** 組み立てられたメール(送信は呼び出し側)。 */
 export interface BuiltMail { to: string[]; subject: string; text: string }

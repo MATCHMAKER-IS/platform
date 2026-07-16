@@ -2,7 +2,7 @@
 /** CSV エクスポートボタン。データを CSV でダウンロードする(@platform/csv)。 @packageDocumentation */
 import { Download } from "lucide-react";
 import { downloadCsv, type CsvColumn } from "@platform/csv";
-import { Button, type ButtonProps } from "./button.js";
+import { Button, type ButtonProps } from "./button";
 
 /** {@link CsvExportButton} の props。 */
 export interface CsvExportButtonProps extends Omit<ButtonProps, "onClick"> {

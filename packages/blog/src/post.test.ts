@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isPublished, publishedPosts, postsByTag, postsByCategory, tagCounts, relatedPosts } from "./post.js";
+import { isPublished, publishedPosts, postsByTag, postsByCategory, tagCounts, relatedPosts } from "./post";
 const now = new Date("2025-07-25T12:00:00Z");
 const posts = [
   { id: "1", slug: "a", title: "A", status: "published" as const, publishedAt: "2025-07-20T00:00:00Z", tags: ["tech", "react"] },

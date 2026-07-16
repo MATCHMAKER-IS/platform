@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 import Redis from "ioredis";
-import type { CacheAdapter } from "../index.js";
+import type { CacheAdapter } from "../index";
 
 /** Redis 接続設定。 */
 export interface RedisCacheConfig {

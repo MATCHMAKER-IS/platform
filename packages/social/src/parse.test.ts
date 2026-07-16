@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseSocialUrl, isSocialUrl } from "./parse.js";
+import { parseSocialUrl, isSocialUrl } from "./parse";
 describe("social parse", () => {
   it("parses profiles", () => {
     expect(parseSocialUrl("https://x.com/yamada_taro")).toMatchObject({ platform: "x", type: "profile", handle: "yamada_taro" });

@@ -122,5 +122,5 @@ export function isValidLineRecipient(id: string): boolean {
   return lineRecipientType(id) !== "unknown";
 }
 
-export * from "./messages.js";
-export * from "./webhook.js";
+export * from "./messages";
+export * from "./webhook";

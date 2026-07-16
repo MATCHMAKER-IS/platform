@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseTimeToMinutes, nightMinutes, splitDailyWork } from "./worktime.js";
+import { parseTimeToMinutes, nightMinutes, splitDailyWork } from "./worktime";
 const t = parseTimeToMinutes;
 describe("worktime split", () => {
   it("parses time and night window", () => {

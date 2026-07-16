@@ -4,8 +4,8 @@
  * **本番では 404 を返す**(featureEnv.DEBUG_TOOL は NODE_ENV=production で強制的に false)。
  * 認証も不要にしている(開発環境限定のため)。本番で開くことは構造上できない。
  */
-import { featureEnv } from "../../../server/env.js";
-import { debugCollector } from "../../../server/debug-collector.js";
+import { featureEnv } from "../../../server/env";
+import { debugCollector } from "../../../server/debug-collector";
 import { findIssues } from "@platform/debug";
 
 export const dynamic = "force-dynamic";

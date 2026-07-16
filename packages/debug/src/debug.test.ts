@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createDebugCollector, summarizeSql, findIssues } from "./debug.js";
+import { createDebugCollector, summarizeSql, findIssues } from "./debug";
 
 describe("createDebugCollector", () => {
   const fixedNow = () => {

@@ -3,8 +3,8 @@
  * 勘定科目の区分(資産/負債/純資産/収益/費用)に基づく。
  * @packageDocumentation
  */
-import { type JournalEntry, trialBalance } from "./journal.js";
-import { DEFAULT_ACCOUNTS, type AccountNames } from "./entries.js";
+import { type JournalEntry, trialBalance } from "./journal";
+import { DEFAULT_ACCOUNTS, type AccountNames } from "./entries";
 
 /** 勘定科目の区分。 */
 export type AccountType = "asset" | "liability" | "equity" | "revenue" | "expense";

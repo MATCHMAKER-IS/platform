@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { startWorkflow, approve, reject, currentStep , sendBack} from "./index.js";
+import { startWorkflow, approve, reject, currentStep , sendBack} from "./index";
 
 const def = {
   steps: [

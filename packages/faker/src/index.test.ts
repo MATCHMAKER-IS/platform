@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { setSeed, japaneseName, email, phoneNumber, zipCode, seedMany } from "./index.js";
+import { setSeed, japaneseName, email, phoneNumber, zipCode, seedMany } from "./index";
 
 describe("faker", () => {
   it("シード固定で再現可能", () => {

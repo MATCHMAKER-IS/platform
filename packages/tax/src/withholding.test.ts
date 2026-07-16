@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { withholdingTax, withholdingTaxFlat, applyWithholding } from "./withholding.js";
+import { withholdingTax, withholdingTaxFlat, applyWithholding } from "./withholding";
 describe("withholding tax", () => {
   it("computes standard rate with 1M threshold (floored)", () => {
     expect(withholdingTax(100_000)).toBe(10_210);

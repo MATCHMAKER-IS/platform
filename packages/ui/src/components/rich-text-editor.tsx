@@ -11,8 +11,8 @@ import StarterKit from "@tiptap/starter-kit";
 import TextStyle from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
 import { Bold, Strikethrough } from "lucide-react";
-import { cn } from "../lib/cn.js";
-import { useT } from "./i18n-provider.js";
+import { cn } from "../lib/cn";
+import { useT } from "./i18n-provider";
 
 /** textStyle に fontSize 属性を足す最小拡張(TipTap 標準にサイズ変更が無いため)。 */
 const FontSize = Extension.create({

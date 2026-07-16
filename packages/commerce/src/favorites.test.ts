@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { emptyFavorites, addFavorite, toggleFavorite, isFavorite, favoriteCount, pushRecentlyViewed } from "./favorites.js";
+import { emptyFavorites, addFavorite, toggleFavorite, isFavorite, favoriteCount, pushRecentlyViewed } from "./favorites";
 describe("favorites", () => {
   it("toggles membership", () => {
     let f = toggleFavorite(addFavorite(emptyFavorites(), "A"), "B");

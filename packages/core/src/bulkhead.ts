@@ -3,7 +3,7 @@
  * 依存ごとに並行実行の上限を設け、超過分はキュー待機 or 即時拒否(バックプレッシャ)する。
  * @packageDocumentation
  */
-import { AppError, ErrorCode } from "./error.js";
+import { AppError, ErrorCode } from "./error";
 
 /** {@link createBulkhead} のオプション。 */
 export interface BulkheadOptions {

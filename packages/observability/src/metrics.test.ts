@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createMetrics } from "./metrics.js";
+import { createMetrics } from "./metrics";
 describe("metrics", () => {
   it("counter/gauge/histogram + prometheus", () => {
     const m = createMetrics([10, 100]);

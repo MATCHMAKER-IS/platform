@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { startParallel, recordParallelApproval, isParallelComplete, remainingApprovers } from "./parallel.js";
+import { startParallel, recordParallelApproval, isParallelComplete, remainingApprovers } from "./parallel";
 describe("parallel approval", () => {
   const step = { name: "合議", approverRoles: ["legal", "finance", "hr"], mode: "all" as const };
   it("completes when all roles approve", () => {

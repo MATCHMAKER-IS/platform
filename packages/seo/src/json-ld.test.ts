@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { articleJsonLd, breadcrumbJsonLd, organizationJsonLd, websiteJsonLd, productJsonLd, faqJsonLd, renderJsonLd } from "./json-ld.js";
+import { articleJsonLd, breadcrumbJsonLd, organizationJsonLd, websiteJsonLd, productJsonLd, faqJsonLd, renderJsonLd } from "./json-ld";
 describe("seo json-ld", () => {
   it("builds article/breadcrumb/website/product/faq", () => {
     const art = articleJsonLd({ headline: "記事", authorName: "著者", publisherName: "S", publisherLogo: "https://ex.com/l.png", url: "https://ex.com/a" });

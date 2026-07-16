@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   parseCookies, serializeCookie, clearCookie, createSession, createServerSession, type SessionStore,
-} from "./index.js";
+} from "./index";
 
 describe("cookie", () => {
   it("パース", () => {

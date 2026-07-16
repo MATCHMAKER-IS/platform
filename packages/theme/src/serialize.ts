@@ -4,8 +4,8 @@
  * @packageDocumentation
  */
 import { AppError, ErrorCode } from "@platform/core";
-import type { Theme, ThemeTokens } from "./tokens.js";
-import { isValidThemeId } from "./tokens.js";
+import type { Theme, ThemeTokens } from "./tokens";
+import { isValidThemeId } from "./tokens";
 
 /** ThemeTokens の必須キー。 */
 const TOKEN_KEYS: (keyof ThemeTokens)[] = ["bg", "fg", "muted", "surface", "border", "primary", "primaryFg", "accent", "success", "warning", "danger"];

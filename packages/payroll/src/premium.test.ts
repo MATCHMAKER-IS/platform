@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calcPay, aggregateMonthly } from "./premium.js";
+import { calcPay, aggregateMonthly } from "./premium";
 const w = 1000;
 describe("premium pay (labor standards)", () => {
   it("applies compound premium rates", () => {

@@ -1,7 +1,7 @@
 /** 備品: 更新(PUT)・有効/無効(PATCH {active})。要ログイン。 */
-import { requireUser } from "../../../../server/guard.js";
-import { equipmentStore } from "../../../../server/services.js";
-import { validateEquipmentInput } from "../../../../server/equipment-repo.js";
+import { requireUser } from "../../../../server/guard";
+import { equipmentStore } from "../../../../server/services";
+import { validateEquipmentInput } from "../../../../server/equipment-repo";
 
 export async function PUT(req: Request, ctx: { params: Promise<{ code: string }> }): Promise<Response> {
   if (!requireUser(req)) return Response.json({ error: "ログインが必要です" }, { status: 401 });

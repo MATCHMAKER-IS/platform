@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractHeadings } from "./toc.js";
+import { extractHeadings } from "./toc";
 const doc = "# タイトル\n\n## セクションA\n本文\n\n## セクションB\n\n### 詳細\n\n```\n# コード\n```\n\n## セクションA";
 describe("toc", () => {
   it("extracts headings with unique anchors", () => {

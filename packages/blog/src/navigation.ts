@@ -3,7 +3,7 @@
  * 公開日順での前後記事、連載(シリーズ)内の順序と前後、目次的な一覧を提供する。
  * @packageDocumentation
  */
-import { type BlogPost, publishedPosts } from "./post.js";
+import { type BlogPost, publishedPosts } from "./post";
 
 /** 前後の記事。 */
 export interface AdjacentPosts<T> {

@@ -3,7 +3,7 @@
  * Markdown の見出しを抽出し、アンカー用スラッグ付きの階層リストにする。
  * @packageDocumentation
  */
-import { slugify } from "./slug.js";
+import { slugify } from "./slug";
 
 /** 目次の 1 項目。 */
 export interface TocEntry {

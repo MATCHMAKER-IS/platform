@@ -5,7 +5,7 @@
  */
 import * as React from "react";
 import { X } from "lucide-react";
-import { cn } from "../lib/cn.js";
+import { cn } from "../lib/cn";
 
 /** {@link TagInput} の props。 */
 export interface TagInputProps {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { createCache, createMemoryCache } from "./index.js";
+import { createCache, createMemoryCache } from "./index";
 
 describe("cache (memory)", () => {
   it("set→get で値が戻る", async () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toggleExpanded, collectAllIds, findNode, pathToNode } from "./tree.js";
+import { toggleExpanded, collectAllIds, findNode, pathToNode } from "./tree";
 const nodes = [{ id: "a", children: [{ id: "a1" }, { id: "a2", children: [{ id: "a2x" }] }] }, { id: "b" }];
 describe("tree logic", () => {
   it("toggles expansion immutably", () => {

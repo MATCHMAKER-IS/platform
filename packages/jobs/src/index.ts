@@ -113,5 +113,5 @@ export function createWorker<T>(
   return new Worker(queueName, processor, { connection: connectionFromUrl(connection.url) });
 }
 
-export { createMemoryQueue, type MemoryQueue, type MemoryQueueOptions, type FailedJob } from "./memory.js";
-export { defineJob, type JobDefinition } from "./define.js";
+export { createMemoryQueue, type MemoryQueue, type MemoryQueueOptions, type FailedJob } from "./memory";
+export { defineJob, type JobDefinition } from "./define";

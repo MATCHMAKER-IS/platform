@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createRedisSeenStore, type RedisSeenClient } from "./seen-redis.js";
+import { createRedisSeenStore, type RedisSeenClient } from "./seen-redis";
 describe("redis seen", () => {
   it("markSeen dedups, has peeks", async () => {
     let clk = 0; const m = new Map<string, { exp: number }>();

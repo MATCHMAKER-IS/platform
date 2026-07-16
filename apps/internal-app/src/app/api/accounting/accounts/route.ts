@@ -1,9 +1,9 @@
 /** 会計: 勘定科目マスタ 一覧(GET)・登録更新/削除(POST)。accounting:read（財務）。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { accountMasterStore, auditActions } from "../../../../server/platform-services.js";
-import { normalizeType } from "../../../../server/account-master-repo.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { accountMasterStore, auditActions } from "../../../../server/platform-services";
+import { normalizeType } from "../../../../server/account-master-repo";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

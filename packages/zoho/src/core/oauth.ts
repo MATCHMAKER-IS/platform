@@ -2,7 +2,7 @@
  * Zoho OAuth: リフレッシュトークンからアクセストークンを更新する。
  * @packageDocumentation
  */
-import { accountsUrl, type ZohoDataCenter } from "./datacenter.js";
+import { accountsUrl, type ZohoDataCenter } from "./datacenter";
 
 /** 更新結果。 */
 export interface TokenResult { accessToken: string; apiDomain: string; expiresIn: number }

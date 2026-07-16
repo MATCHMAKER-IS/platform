@@ -78,7 +78,7 @@ export function useWebSocket<T = unknown>(url: string, options: { enabled?: bool
   return { lastMessage, status, send };
 }
 
-import { appendCapped } from "../lib/live-buffer.js";
+import { appendCapped } from "../lib/live-buffer";
 
 /**
  * ライブ系列フック。直近 max 件だけを保持し、push で 1 点追加する。

@@ -4,8 +4,8 @@
  * 重複送信の防止・失敗の収集・未登録科目の事前チェックを行う。freee/マネーフォワード双方に適用可。
  * @packageDocumentation
  */
-import { type JournalEntry } from "./journal.js";
-import { journalToFreeeDetails, type FreeeJournalDetail } from "./export.js";
+import { type JournalEntry } from "./journal";
+import { journalToFreeeDetails, type FreeeJournalDetail } from "./export";
 
 /** 送信 1 件分のペイロード。 */
 export interface SyncPayload {

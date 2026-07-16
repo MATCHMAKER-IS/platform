@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseShortcut, matchShortcut, formatShortcut, isSequence, parseSequence, sequenceMatches } from "./shortcut.js";
+import { parseShortcut, matchShortcut, formatShortcut, isSequence, parseSequence, sequenceMatches } from "./shortcut";
 describe("ui shortcut", () => {
   it("parses and matches (mod = meta on mac, ctrl on win)", () => {
     const k = parseShortcut("mod+k");

@@ -2,7 +2,7 @@
  * LINE 通知チャネル。`@platform/line`(相当)を NotifyChannel に適合させる。
  * @packageDocumentation
  */
-import type { NotifyChannel } from "../index.js";
+import type { NotifyChannel } from "../index";
 
 /** push が Result を返す最小の LINE クライアントインターフェース。 */
 export interface LineLike {

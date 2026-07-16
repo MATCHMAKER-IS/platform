@@ -2,7 +2,7 @@
  * レイアウト保存アダプタ。localStorage 実装と、DB 用の非同期ストアインターフェイス。
  * @packageDocumentation
  */
-import type { DashboardLayout } from "./layout.js";
+import type { DashboardLayout } from "./layout";
 
 /** レイアウトの保存先。load/save のみ(同期・非同期どちらも可)。 */
 export interface LayoutStore {

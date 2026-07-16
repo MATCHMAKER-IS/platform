@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { isBalanced, debitTotal, trialBalance, trialBalanceBalanced, toFreeeDetails } from "./journal.js";
-import { salesJournal, purchaseJournal, receiptJournal, DEFAULT_ACCOUNTS } from "./entries.js";
+import { isBalanced, debitTotal, trialBalance, trialBalanceBalanced, toFreeeDetails } from "./journal";
+import { salesJournal, purchaseJournal, receiptJournal, DEFAULT_ACCOUNTS } from "./entries";
 describe("accounting", () => {
   it("builds balanced journals", () => {
     const sales = salesJournal({ date: "2025-07-01", net: 100000, tax: 10000 });
@@ -21,8 +21,8 @@ describe("accounting", () => {
   });
 });
 
-import { filterByPeriod, profitAndLoss, balanceSheet } from "./closing.js";
-import { consumptionTaxSummary } from "./tax-report.js";
+import { filterByPeriod, profitAndLoss, balanceSheet } from "./closing";
+import { consumptionTaxSummary } from "./tax-report";
 describe("accounting closing & tax-report", () => {
   const entries = [
     salesJournal({ date: "2025-07-05", net: 100000, tax: 10000 }),
@@ -48,7 +48,7 @@ describe("accounting closing & tax-report", () => {
   });
 });
 
-import { journalToRows, journalToFreeeDetails } from "./export.js";
+import { journalToRows, journalToFreeeDetails } from "./export";
 describe("accounting export", () => {
   it("flattens to CSV rows and freee details", () => {
     const entries = [salesJournal({ date: "2025-07-01", net: 100000, tax: 10000 }), receiptJournal({ date: "2025-07-31", amount: 110000 })];
@@ -64,9 +64,9 @@ describe("accounting export", () => {
   });
 });
 
-import { payrollJournal } from "./entries.js";
-import { departmentSummary, profitAndLossByDepartment } from "./closing.js";
-import { prepareBatch, entryKey, syncJournals, summarizeSync } from "./sync.js";
+import { payrollJournal } from "./entries";
+import { departmentSummary, profitAndLossByDepartment } from "./closing";
+import { prepareBatch, entryKey, syncJournals, summarizeSync } from "./sync";
 describe("accounting payroll & department", () => {
   it("payroll journal balanced", () => {
     const pay = payrollJournal({ date: "2025-07-25", gross: 300000, withholdingTax: 10000, socialInsurance: 45000 });

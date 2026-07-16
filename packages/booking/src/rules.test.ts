@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isWithinBookingWindow, canCancel, validatePartySize, RULE_MESSAGES } from "./rules.js";
+import { isWithinBookingWindow, canCancel, validatePartySize, RULE_MESSAGES } from "./rules";
 const now = new Date("2025-07-25T12:00:00Z");
 describe("booking rules", () => {
   it("validates window, cancel, party size", () => {

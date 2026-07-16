@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 import twilio from "twilio";
-import type { SmsTransport } from "../index.js";
+import type { SmsTransport } from "../index";
 
 /** Twilio 接続設定。 */
 export interface TwilioConfig {

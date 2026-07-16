@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { initialSubmitFlow, reviewData, editAgain, startSubmitting, submitFailed, submitSucceeded, resetSubmitFlow, phaseIndex } from "./flow.js";
+import { initialSubmitFlow, reviewData, editAgain, startSubmitting, submitFailed, submitSucceeded, resetSubmitFlow, phaseIndex } from "./flow";
 describe("input→confirm→complete flow", () => {
   it("transitions through phases holding data", () => {
     let s = initialSubmitFlow<{ name: string }>();

@@ -1,9 +1,9 @@
 /** 管理: エクスポートスケジュールの一覧(GET)・追加/有効切替/削除(POST)と実行履歴。管理者のみ。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { exportScheduleStore, exportRunStore } from "../../../../server/platform-services.js";
-import { type ExportType, type ExportFrequency } from "../../../../server/export-schedule.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { exportScheduleStore, exportRunStore } from "../../../../server/platform-services";
+import { type ExportType, type ExportFrequency } from "../../../../server/export-schedule";
 
 function admin(req: Request) {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

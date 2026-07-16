@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { submitExpense, statusLabel, availableActions, actOn, type ExpenseRequest } from "./expense-approval.js";
+import { submitExpense, statusLabel, availableActions, actOn, type ExpenseRequest } from "./expense-approval";
 import type { Actor } from "@platform/workflow";
 
 const exp = { id: "e1", date: "2024-04-30", category: "外注費", amount: 180000 };

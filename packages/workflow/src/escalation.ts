@@ -4,7 +4,7 @@
  * 定期実行(cron)から回して、滞留中の申請を洗い出す用途を想定。純ロジック(副作用なし)。
  * @packageDocumentation
  */
-import type { WorkflowDefinition, WorkflowState, WorkflowStep } from "./index.js";
+import type { WorkflowDefinition, WorkflowState, WorkflowStep } from "./index";
 
 /** SLA ポリシー(分単位)。 */
 export interface SlaPolicy {

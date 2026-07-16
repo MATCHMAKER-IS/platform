@@ -2,11 +2,11 @@
  * 管理: 監査アーカイブ(GET ?before=ISO)。指定日以前の監査エントリを整合性チェックサム付きでダウンロード。管理者のみ。
  * 監査はハッシュチェーンのため破壊的削除は行わず、長期保管用のエクスポートを提供する。
  */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { auditLog, auditActions } from "../../../../server/platform-services.js";
-import { buildAuditArchive, auditArchiveFilename, type AuditRowLike } from "../../../../server/audit-archive.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { auditLog, auditActions } from "../../../../server/platform-services";
+import { buildAuditArchive, auditArchiveFilename, type AuditRowLike } from "../../../../server/audit-archive";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

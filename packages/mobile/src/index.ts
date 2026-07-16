@@ -4,10 +4,10 @@
  * 共有・触覚・クリップボード等のブラウザ操作ラッパー(feature detection つき)。
  * @packageDocumentation
  */
-export * from "./breakpoints.js";
-export * from "./network.js";
-export * from "./orientation.js";
-export * from "./hooks.js";
-export * from "./actions.js";
-export * from "./barcode.js";
-export * from "./camera.js";
+export * from "./breakpoints";
+export * from "./network";
+export * from "./orientation";
+export * from "./hooks";
+export * from "./actions";
+export * from "./barcode";
+export * from "./camera";

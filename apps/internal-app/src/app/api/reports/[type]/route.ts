@@ -1,9 +1,9 @@
 /** レポート生成(GET ?format=csv|html)。売上/売掛/在庫レポートをCSVまたは印刷用HTMLで出力。accounting:read または inventory:read。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, userCan } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { invoiceStore, inventoryStore } from "../../../../server/platform-services.js";
-import { salesReport, receivablesReport, inventoryReport, reportToCsv, reportToHtml, reportToSheet, filterInvoices, filterLabel, type Report, type ReportFilter } from "../../../../server/reports.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, userCan } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { invoiceStore, inventoryStore } from "../../../../server/platform-services";
+import { salesReport, receivablesReport, inventoryReport, reportToCsv, reportToHtml, reportToSheet, filterInvoices, filterLabel, type Report, type ReportFilter } from "../../../../server/reports";
 import { writeWorkbook } from "@platform/xlsx";
 
 async function handleGET(req: Request, ctx: { params: Promise<{ type: string }> }): Promise<Response> {

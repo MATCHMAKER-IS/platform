@@ -5,10 +5,10 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { cn } from "../lib/cn.js";
-import { useT } from "./i18n-provider.js";
-import { SheetGrid, type SheetColumn } from "./sheet-grid.js";
-import { Badge } from "./badge.js";
+import { cn } from "../lib/cn";
+import { useT } from "./i18n-provider";
+import { SheetGrid, type SheetColumn } from "./sheet-grid";
+import { Badge } from "./badge";
 
 /** {@link ImportHistoryDetail} の props。 */
 export interface ImportHistoryDetailProps<T extends Record<string, unknown>> {

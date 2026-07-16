@@ -3,7 +3,7 @@
  * キー単位で TTL 内の再送をスキップする。
  * @packageDocumentation
  */
-import type { NotifyChannel, NotifyMessage } from "./index.js";
+import type { NotifyChannel, NotifyMessage } from "./index";
 
 /** 既送信キーの記録ストア。 */
 export interface SeenStore {

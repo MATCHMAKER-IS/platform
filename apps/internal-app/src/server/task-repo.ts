@@ -9,8 +9,8 @@
  */
 import { randomUUID } from "node:crypto";
 import type { Task, TaskStatus, TaskPriority } from "@platform/task";
-import { db } from "./services.js";
-import { featureEnv } from "./env.js";
+import { db } from "./services";
+import { featureEnv } from "./env";
 
 /** 保存先。 */
 export interface TaskStore {

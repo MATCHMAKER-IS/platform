@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isValidUrl, isHttpUrl, isSafeUrl, isSameOrigin, isExternalUrl } from "./validate.js";
+import { isValidUrl, isHttpUrl, isSafeUrl, isSameOrigin, isExternalUrl } from "./validate";
 describe("url validate", () => {
   it("validates and checks safety", () => {
     expect(isValidUrl("https://ex.com")).toBe(true);

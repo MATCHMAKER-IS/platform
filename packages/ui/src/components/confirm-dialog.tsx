@@ -7,9 +7,9 @@
 import * as React from "react";
 import { AlertDialog as Primitive } from "radix-ui";
 import { AlertTriangle } from "lucide-react";
-import { cn } from "../lib/cn.js";
-import { useT } from "./i18n-provider.js";
-import { buttonVariants } from "./button.js";
+import { cn } from "../lib/cn";
+import { useT } from "./i18n-provider";
+import { buttonVariants } from "./button";
 
 const overlay = "fixed inset-0 z-50 bg-black/40";
 const content =

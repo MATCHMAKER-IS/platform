@@ -1,9 +1,9 @@
 /** 固定ページ: 取得(GET)・更新(PUT)・削除(DELETE)。 */
 import { validatePageInput, type PageInput } from "@platform/cms";
-import { withApiObservability } from "../../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../../server/authorize.js";
-import { serverEnv } from "../../../../../server/env.js";
-import { pageStore, auditActions } from "../../../../../server/platform-services.js";
+import { withApiObservability } from "../../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../../server/authorize";
+import { serverEnv } from "../../../../../server/env";
+import { pageStore, auditActions } from "../../../../../server/platform-services";
 
 async function handleGET(req: Request, ctx: { params: Promise<{ slug: string }> }): Promise<Response> {
   const { slug } = await ctx.params;

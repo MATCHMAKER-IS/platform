@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildTransitionMails } from "./expense-notify.js";
+import { buildTransitionMails } from "./expense-notify";
 import type { WorkflowState, ApproverDirectory } from "@platform/workflow";
 
 const dir: ApproverDirectory = { manager: [{ email: "manager@x.jp" }], director: [{ email: "director@x.jp" }] };

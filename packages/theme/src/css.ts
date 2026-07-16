@@ -2,7 +2,7 @@
  * テーマ(スキン)を CSS 変数へ変換し、要素に適用するロジック(React 非依存)。
  * @packageDocumentation
  */
-import type { Theme, ThemeMode, ThemeTokens, ThemeShape } from "./tokens.js";
+import type { Theme, ThemeMode, ThemeTokens, ThemeShape } from "./tokens";
 
 /** トークン名 → CSS 変数名。bg → --color-bg のように展開。 */
 const COLOR_VARS: Record<keyof ThemeTokens, string> = {

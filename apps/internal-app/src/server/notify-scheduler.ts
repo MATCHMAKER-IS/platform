@@ -5,9 +5,9 @@
  * @packageDocumentation
  */
 import { createScheduler, createMemoryLockStore, type Scheduler } from "@platform/cron";
-import { relayExpenseNotifications } from "./expense-notify-service.js";
-import { metrics } from "./observability.js";
-import { log } from "./services.js";
+import { relayExpenseNotifications } from "./expense-notify-service";
+import { metrics } from "./observability";
+import { log } from "./services";
 
 /** 通知リレーのスケジューラを作る(まだ start はしない)。 */
 export function createNotifyScheduler(): Scheduler {

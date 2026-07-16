@@ -8,7 +8,7 @@ import {
   movingAverage, cumulativeSum, histogram, quartiles, formatRange, outliers, outlierBounds, withoutOutliers,
   linearRegression, linearRegressionXY, predict, trend, correlation, covariance, regressionInterval, regressionBand,
   decompose, pluckNumbers, seriesFromRows, autocorrelation, acf, dominantLag,
-} from "./numbers.js";
+} from "./numbers";
 
 describe("range/interp", () => {
   it("clamp", () => { expect(clamp(15, 0, 10)).toBe(10); expect(clamp(-3, 0, 10)).toBe(0); });

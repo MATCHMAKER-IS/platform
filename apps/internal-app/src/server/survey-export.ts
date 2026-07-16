@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 import { toCsv } from "@platform/csv";
-import { type Survey, type SurveyResult } from "./survey-repo.js";
+import { type Survey, type SurveyResult } from "./survey-repo";
 
 /** 集計結果を CSV（BOM 付き・日本語見出し）にする。設問・選択肢/指標・値の3列。 */
 export function surveyResultsCsv(survey: Survey, result: SurveyResult): string {

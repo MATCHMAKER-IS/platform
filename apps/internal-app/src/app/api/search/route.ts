@@ -1,10 +1,10 @@
 /** 横断全文検索(GET ?q=)。請求・取引先・監査(管理者のみ)を全文検索。認証ユーザー。 */
-import { withApiObservability } from "../../../server/instrument.js";
-import { currentUser, userCan } from "../../../server/authorize.js";
-import { serverEnv } from "../../../server/env.js";
-import { searchIndexStore } from "../../../server/platform-services.js";
-import { toSearchResults } from "../../../server/entity-search.js";
-import { searchIndexed } from "../../../server/search-index.js";
+import { withApiObservability } from "../../../server/instrument";
+import { currentUser, userCan } from "../../../server/authorize";
+import { serverEnv } from "../../../server/env";
+import { searchIndexStore } from "../../../server/platform-services";
+import { toSearchResults } from "../../../server/entity-search";
+import { searchIndexed } from "../../../server/search-index";
 
 async function handleGET(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

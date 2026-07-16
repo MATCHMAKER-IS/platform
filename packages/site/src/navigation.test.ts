@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isActive, activeTrail, breadcrumbFromMenu, flattenMenu } from "./navigation.js";
+import { isActive, activeTrail, breadcrumbFromMenu, flattenMenu } from "./navigation";
 const menu = [
   { label: "ホーム", href: "/" },
   { label: "製品", href: "/products", children: [{ label: "製品A", href: "/products/a" }, { label: "製品B", href: "/products/b" }] },
@@ -16,7 +16,7 @@ describe("navigation", () => {
   });
 });
 
-import { breadcrumbFromPath } from "./navigation.js";
+import { breadcrumbFromPath } from "./navigation";
 describe("breadcrumbFromPath", () => {
   it("builds breadcrumbs from a path", () => {
     expect(breadcrumbFromPath("/products/a")).toEqual([{ label: "ホーム", href: "/" }, { label: "Products", href: "/products" }, { label: "A", href: "/products/a" }]);

@@ -2,7 +2,7 @@
  * 複数倉庫の在庫(純ロジック)。倉庫別の在庫、倉庫間移動を扱う。
  * @packageDocumentation
  */
-import { type StockMovement, onHand } from "./movements.js";
+import { type StockMovement, onHand } from "./movements";
 
 /** 倉庫を持つ入出庫。 */
 export interface WarehouseMovement extends StockMovement {

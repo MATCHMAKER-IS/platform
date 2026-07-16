@@ -7,8 +7,8 @@
 import type { ApproverDirectory, WorkflowState } from "@platform/workflow";
 import { relayOutbox, type OutboxStore } from "@platform/observability";
 import { type SeenStore, type NotifyChannel } from "@platform/notify";
-import { buildTransitionMails } from "../lib/expense-notify.js";
-import { mailer, log, notifyOutbox, notifySeen } from "./services.js";
+import { buildTransitionMails } from "../lib/expense-notify";
+import { mailer, log, notifyOutbox, notifySeen } from "./services";
 
 /** 承認者ディレクトリ(実運用では DB や設定から取得)。 */
 export const APPROVER_DIRECTORY: ApproverDirectory = {

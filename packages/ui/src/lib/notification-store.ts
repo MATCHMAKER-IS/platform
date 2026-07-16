@@ -4,7 +4,7 @@
  * useNotifications フックや任意の状態管理から使う。
  * @packageDocumentation
  */
-import { type AppNotification, sortNotifications, markRead, markAllRead, unreadCount } from "./notifications.js";
+import { type AppNotification, sortNotifications, markRead, markAllRead, unreadCount } from "./notifications";
 
 /** 通知ストアのアクション。 */
 export type NotificationAction =

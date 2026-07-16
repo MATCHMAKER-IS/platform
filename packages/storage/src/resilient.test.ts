@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { withStorageRetry, createFallbackStorage } from "./resilient.js";
-import type { StorageAdapter } from "./index.js";
+import { withStorageRetry, createFallbackStorage } from "./resilient";
+import type { StorageAdapter } from "./index";
 
 function mk(name: string, fail: { putFail?: boolean; getFail?: boolean } = {}): StorageAdapter & { store: Map<string, Uint8Array> } {
   const store = new Map<string, Uint8Array>();

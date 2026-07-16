@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 import { AppError, ErrorCode } from "@platform/core";
-import { db } from "./services.js";
+import { db } from "./services";
 import { builtInThemes, parseTheme, validateTheme, type Theme } from "@platform/theme";
 
 const KEY = "theme-default";

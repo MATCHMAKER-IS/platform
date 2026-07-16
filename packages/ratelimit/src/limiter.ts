@@ -3,7 +3,7 @@
  * @packageDocumentation
  */
 import { AppError, ErrorCode, tryCatch, type Result } from "@platform/core";
-import type { RateLimitStore, RateLimitResult } from "./types.js";
+import type { RateLimitStore, RateLimitResult } from "./types";
 
 /** {@link createRateLimiter} の設定。 */
 export interface RateLimiterConfig {

@@ -1,8 +1,8 @@
 /** DB Viewer API(管理者専用)。テーブル一覧・スキーマ・データ・SQL実行・行操作。 */
-import { withApiObservability } from "../../../../server/instrument.js";
-import { currentUser, requirePermission } from "../../../../server/authorize.js";
-import { serverEnv } from "../../../../server/env.js";
-import { listTables, describeTable, selectRows, insertRow, updateRows, deleteRows, runSql, createTable, dropTable, addColumn, dropColumn, exportTableCsv, importTableCsv, type ColumnDef } from "../../../../server/db-viewer.js";
+import { withApiObservability } from "../../../../server/instrument";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
+import { listTables, describeTable, selectRows, insertRow, updateRows, deleteRows, runSql, createTable, dropTable, addColumn, dropColumn, exportTableCsv, importTableCsv, type ColumnDef } from "../../../../server/db-viewer";
 
 function requireAdmin(req: Request): boolean {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);

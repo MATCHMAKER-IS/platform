@@ -3,7 +3,7 @@
  * status=published でも publishedAt が未来なら「予約」。過去/現在なら「公開中」。
  * @packageDocumentation
  */
-import { type CmsPost } from "./model.js";
+import { type CmsPost } from "./model";
 
 /** 実効ステータス。 */
 export type EffectiveStatus = "draft" | "scheduled" | "published";

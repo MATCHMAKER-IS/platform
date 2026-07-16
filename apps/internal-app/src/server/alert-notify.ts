@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { createSlackChannel, createWebhookChannel, type NotifyChannel, type NotifyMessage, type Notifier, type SeenStore } from "@platform/notify";
-import { type Anomaly } from "./audit-anomaly.js";
+import { type Anomaly } from "./audit-anomaly";
 
 /** 異常の重複判定キー（種別＋対象者）。 */
 export function anomalyKey(a: Anomaly): string {

@@ -3,7 +3,7 @@
  * テストやローカルデバッグで送信内容を検証するのに使う。
  * @packageDocumentation
  */
-import type { MailMessage, MailTransport } from "../index.js";
+import type { MailMessage, MailTransport } from "../index";
 
 /** 記録機能付きのメモリ Transport。 */
 export interface MemoryTransport extends MailTransport {

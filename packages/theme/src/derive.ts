@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { darken, lighten, mix, readableTextColor } from "@platform/color";
-import type { Theme, ThemeShape } from "./tokens.js";
+import type { Theme, ThemeShape } from "./tokens";
 
 /** deriveTheme に渡す最小限の入力。 */
 export interface ThemeSeed {
