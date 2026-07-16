@@ -4093,3 +4093,27 @@ export { createMemoryTransport, type MemoryTransport } from "./transports/memory
 ### 検査で見つけた 16 件のうち 14 件は誤検知
 `index.ts` 内で直接 `export interface` していれば問題ない。
 **別ファイルから `export { createXxx }` だけしている**ものが該当した。
+
+---
+
+## 基盤側の型エラーを 6 件修正
+
+Amplify のログ(`node_modules` があるので正確)から、基盤側の型エラーを潰した。
+
+| # | ファイル | 内容 |
+|---|---|---|
+| 1 | `form/use-zod-form.ts` | **zod 4 で `z.input<S>` が unknown に推論される** → ジェネリクスを `FieldValues` 基準に |
+| 2 | `session/session.ts` | `deriveKey` に salt が必要(**既存のバグ**) |
+| 3 | `session/idle-timer.ts` | `Window` を受け取れる `EventTargetLike` 型を定義 |
+| 4 | `storage/adapters/local.ts` | `Awaited<ReturnType<typeof fs.readdir>>` が **string[] のオーバーロードに解決**されていた → 推論に任せる |
+| 5-6 | `ui/blueprint-actions.tsx` | `Badge` の `tone` → `variant`(props 名が違った) |
+
+### ローカルの typecheck について
+`node_modules` が無い状態で実行されたため、**1,845 件のほぼ全てが誤検知**だった:
+| コード | 件数 | 内容 |
+|---|---|---|
+| TS7026 | 1,511 | JSX.IntrinsicElements が無い ← react の型が無い |
+| TS2307 | 155 | モジュールが見つからない ← node_modules 無し |
+| TS7006 | 105 | implicitly any ← 連鎖 |
+
+**リポジトリのルートで `pnpm install` を実行してから** typecheck すると、正確な結果が出る。

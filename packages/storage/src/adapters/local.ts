@@ -38,7 +38,10 @@ export function createLocalStorage(root: string): StorageAdapter {
       const base = resolve(prefix);
       const out: string[] = [];
       async function walk(dir: string) {
-        let entries: Awaited<ReturnType<typeof fs.readdir>>;
+        // Awaited<ReturnType<typeof fs.readdir>> だと string[] のオーバーロードに
+        // 解決されてしまう(withFileTypes: true では Dirent[] が返る)。
+        // 型注釈を書かず、推論に任せる。
+        let entries;
         try {
           entries = await fs.readdir(dir, { withFileTypes: true });
         } catch {
