@@ -24,7 +24,10 @@ export const GET = handleRoute(async () => {
   });
   if (!out.ok) throw out.error;
 
-  return new Response(out.value, {
+  // Uint8Array<ArrayBufferLike> は BodyInit に代入できない(TS 5.9 で型が厳格化)。
+  // ArrayBuffer に取り出して渡す。
+  const body = out.value.buffer.slice(out.value.byteOffset, out.value.byteOffset + out.value.byteLength) as ArrayBuffer;
+  return new Response(body, {
     status: 200,
     headers: {
       "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

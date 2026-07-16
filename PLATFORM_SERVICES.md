@@ -3695,3 +3695,50 @@ export function Combobox({
 ### 再発防止
 `check-build-ready.mjs` に「**引数リストに文が混入していないか**」を追加
 (わざと壊して検出を確認)。preflight で毎回回る。
+
+---
+
+## 【突破】✓ Compiled successfully — 残るは型エラー 1 件
+
+10 回目のビルドで、ついに**コンパイルが通った**:
+```
+✓ Compiled successfully in 20.5s
+Running TypeScript ...
+Failed to type check.
+```
+
+| 項目 | 9 回目 | 10 回目 |
+|---|---|---|
+| Module not found | 0 | 0 ✅ |
+| 重複 export | 0 | 0 ✅ |
+| 構文エラー | 2 件 | **0** ✅ |
+| **コンパイル** | 失敗 | **成功** ✅ |
+| 型エラー | (到達せず) | **1 件** ← 新たに露出 |
+
+### 型エラー 1 件
+```
+./src/app/api/inquiries/export/route.ts:27:23
+Type error: Argument of type 'Uint8Array<ArrayBufferLike>' is not assignable to
+parameter of type 'BodyInit | null | undefined'.
+```
+
+`writeSheet` が返す `Uint8Array` を `new Response()` に渡していた。
+**TypeScript 5.9 で `BodyInit` の型が厳格化**され、`Uint8Array<ArrayBufferLike>` が
+代入できなくなった(`URLSearchParams` との判別が付かない)。
+
+**修正**: `ArrayBuffer` に取り出して渡す。
+```ts
+const body = out.value.buffer.slice(
+  out.value.byteOffset,
+  out.value.byteOffset + out.value.byteLength,
+) as ArrayBuffer;
+return new Response(body, { ... });
+```
+
+### なぜ今まで出なかったか
+**コンパイルが通らなかったので、型検査まで到達していなかった**。
+`next build` は「コンパイル → 型検査」の順なので、前段で落ちていた間は見えなかった。
+
+### 同種のエラーを探した
+`new Blob([res.value])` は問題ない(`BlobPart` は `ArrayBufferView` を受け付ける)。
+`Response` の `BodyInit` だけが厳格。他に該当箇所は無かった。
