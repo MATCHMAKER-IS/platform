@@ -6,7 +6,7 @@
  * OAuth トークンの取得・更新はアプリ側の責務(fetchImpl 注入で耐障害ラッパーと合成可能)。
  * @packageDocumentation
  */
-import { createApiClient, type MultipartFile } from "@platform/integrations";
+import { createApiClient } from "@platform/integrations";
 import type { Result } from "@platform/core";
 
 /** 一覧のページング(freee は limit/offset、上限は概ね100)。 */

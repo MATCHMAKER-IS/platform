@@ -4008,3 +4008,60 @@ Type error: Property 'options' is missing in type '{ children: ... }'
 取り込んだデモの既存バグ。修正した。
 
 ### 型検査環境: children 以外は 0 件
+
+---
+
+## nav.ts が NavItem を使っていた — 私のミス
+
+```
+Type error: Property 'href' is missing in type '{ label; children }' but required in type 'NavItem'
+```
+
+`@platform/ui` には **2 つの NavItem** があった(重複 export を解消したとき別名にした):
+| 型 | href | children |
+|---|---|---|
+| `NavItem`(lib/nav) | **必須** | なし |
+| `NavDropdownItem`(nav-dropdown) | 任意 | **あり** |
+
+私が作った `buildNavItems()` は「区分 → 子項目」の入れ子を返すので、
+**`href` を持たない**。`NavDropdownItem` が正しい。
+
+**修正**: `NavItem` → `NavDropdownItem`。
+
+### 型検査環境: children 以外は 0 件
+
+---
+
+## 【突破口】ローカルの型検査で全 32 件が見えた
+
+`pnpm --filter showcase-demo typecheck` の結果をいただき、**全型エラーが一度に見えた**。
+Amplify では 1 回に 1 件しか出ないので、14 回のビルドを要していた。
+
+### 直した 21 件
+| 種類 | 件数 | 内容 |
+|---|---|---|
+| **TS6133**(未使用) | 12 | import 削除・引数は `_` 接頭辞(API を壊さない)・変数削除 |
+| **TS2430**(interface 継承) | 5 | `title` が `HTMLAttributes` の `string` と衝突 → `Omit` |
+| **TS4114**(override) | 2 | `componentDidCatch` / `render` に `override` |
+| **TS2322**(Pagination) | 1 | `pageCount` → `totalPages` |
+| **nav.ts** | 1 | `NavItem` → `NavDropdownItem` |
+
+**すべて既存のバグ**(`nav.ts` を除く)。`tsc` を通していれば気づけたはず。
+
+### 【学び】title は HTMLAttributes と衝突する
+```ts
+interface EmptyStateProps extends React.HTMLAttributes<HTMLDivElement> {
+  title: React.ReactNode;   // ❌ HTMLAttributes の title は string
+}
+interface EmptyStateProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
+  title: React.ReactNode;   // ✅
+}
+```
+
+### 残り 11 件
+`form/use-zod-form.ts`(zod の型)・`session`・`storage`・`blueprint-actions`・`notice-board` など。
+次で潰す。
+
+### 検証
+- smoke **1,243 項目 all pass**・preflight 全緑
+- **api-surface: 破壊的変更 0 件**(引数を `_now` にしても公開 API は変わらない)

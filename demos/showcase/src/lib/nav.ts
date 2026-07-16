@@ -10,7 +10,9 @@
  *
  * @packageDocumentation
  */
-import type { NavItem } from "@platform/ui";
+// NavItem(lib/nav)は href 必須。区分は href を持たず children だけなので、
+// children を持てる NavDropdownItem を使う。
+import type { NavDropdownItem } from "@platform/ui";
 
 /** ナビの 1 区分。 */
 export interface NavSection {
@@ -160,7 +162,7 @@ export const SECTIONS: NavSection[] = [
  *
  * @returns ナビ項目(入れ子)
  */
-export function buildNavItems(): NavItem[] {
+export function buildNavItems(): NavDropdownItem[] {
   return SECTIONS.map((section) => ({
     label: section.title,
     children: section.items.map((item) => ({ label: item.title, href: item.href })),
@@ -172,7 +174,7 @@ export function buildNavItems(): NavItem[] {
  *
  * @returns 区分へのリンク
  */
-export function buildHeaderItems(): NavItem[] {
+export function buildHeaderItems(): NavDropdownItem[] {
   return [
     { label: "ホーム", href: "/" },
     ...SECTIONS.map((section) => ({

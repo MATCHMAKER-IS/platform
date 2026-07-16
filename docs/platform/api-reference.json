@@ -4702,7 +4702,7 @@
       "name": "sortCasts",
       "kind": "function",
       "summary": "キャストを並び替える。featured は 注目→評価順、rating は評価降順、newest は入店日降順、name は名前順。 在籍中のみを対象にする。",
-      "signature": "sortCasts(casts: T[], sort: CastSort = \"featured\", now: Date = new Date()): T[]",
+      "signature": "sortCasts(casts: T[], sort: CastSort = \"featured\", _now: Date = new Date()): T[]",
       "params": [
         {
           "name": "casts",

@@ -33,7 +33,6 @@ export interface ViewToggleProps {
 
 /** 表示モードの切り替えボタン群。 */
 export function ViewToggle({ value, onChange, modes = ["card", "list", "block"], className }: ViewToggleProps) {
-  const t = useT();
   return (
     <div className={cn("inline-flex rounded-[var(--radius)] border border-[var(--color-border)] p-0.5", className)} role="tablist" aria-label={t("view.toggle")}>
       {modes.map((m) => {
@@ -110,7 +109,6 @@ export function DataView<T>({
   items, renderItem, getKey, view, defaultView = "card", onViewChange,
   showToggle = true, modes, cardMinWidth, blockMinWidth, empty, toolbarStart, className,
 }: DataViewProps<T>) {
-  const t = useT();
   const [internal, setInternal] = React.useState<ViewMode>(defaultView);
   const mode = view ?? internal;
   const setMode = (m: ViewMode) => { onViewChange?.(m); if (view === undefined) setInternal(m); };

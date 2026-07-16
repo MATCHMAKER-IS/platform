@@ -3,7 +3,7 @@
  * カスタムテーマ作成 UI の中核。ユーザーは主色・背景の系統など数点を選ぶだけでよい。
  * @packageDocumentation
  */
-import { darken, lighten, mix, readableTextColor } from "@platform/color";
+import { lighten, mix, readableTextColor } from "@platform/color";
 import type { Theme, ThemeShape } from "./tokens";
 
 /** deriveTheme に渡す最小限の入力。 */
