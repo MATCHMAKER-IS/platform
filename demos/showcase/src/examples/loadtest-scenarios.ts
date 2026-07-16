@@ -12,7 +12,7 @@
  *
  * @packageDocumentation
  */
-import type { Scenario, ScenarioStep, RequestFn, RequestOutcome } from "@platform/loadtest";
+import type { Scenario, RequestFn, RequestOutcome } from "@platform/loadtest";
 
 /** HTTP リクエストを組み立てるための最小の依存。テストではモックを渡す。 */
 export interface HttpDeps {
@@ -32,10 +32,8 @@ export interface HttpDeps {
  */
 export function buildHttpStep(deps: HttpDeps) {
   const fetchImpl = deps.fetchImpl ?? globalThis.fetch;
-  const now = deps.now ?? Date.now;
   return (path: string, init?: RequestInit): RequestFn =>
     async (): Promise<RequestOutcome> => {
-      const t0 = now();
       try {
         const headers: Record<string, string> = { ...(init?.headers as Record<string, string> | undefined) };
         if (deps.cookie) headers.cookie = deps.cookie;

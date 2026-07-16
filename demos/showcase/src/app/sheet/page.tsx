@@ -46,10 +46,6 @@ export default function Page() {
     { key: "amount", label: "金額", type: "number", required: true },
   ] as any;
   const importedRows = useMemo(() => (pasted ? tsvToRows(pasted, ["date", "vendor", "category", "amount"]) : []), [pasted]);
-  const importedCols: SheetColumn<Record<string, string>>[] = [
-    { key: "date", header: "日付", width: 120 }, { key: "vendor", header: "取引先", width: 140 },
-    { key: "category", header: "科目", width: 120 }, { key: "amount", header: "金額", width: 110, align: "right" },
-  ];
 
   return (
     <main style={{ maxWidth: 760, margin: "2.5rem auto", padding: "0 1rem" }}>
@@ -104,6 +100,12 @@ export default function Page() {
               onPartialConfirm={(rows) => setImportResult(`部分保存: エラー行を除いて ${rows.length} 件を保存`)}
             />
           </div>
+        )}
+        {importResult && (
+          <p style={{ marginTop: ".75rem", padding: ".5rem .75rem", borderRadius: 8, fontSize: ".85rem",
+            background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
+            {importResult}
+          </p>
         )}
       </section>
       <section style={{ marginTop: "2rem" }}>

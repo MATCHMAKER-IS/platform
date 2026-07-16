@@ -3922,3 +3922,24 @@ if (!zip) return;
 ### 型検査環境での残り: 0 件
 `children` 関連の 24 件は**私の shim が `PropsWithChildren` を再現できていない**ための誤検知。
 `TS7006`(implicitly any)も同様。**本物のエラーは 0**。
+
+---
+
+## 未使用の変数 — 型検査環境の設定ミスに気づいた
+
+```
+Type error: 'importResult' is declared but its value is never read.
+```
+
+`useState` の値を設定していたのに、**画面に表示していなかった**。表示を追加した。
+
+### 【私のミス】型検査環境が本番と違っていた
+`/tmp` に合成した tsconfig で **`noUnusedLocals: false`** にしていた。
+本番(`tsconfig.base.json`)は **`true`**。だから未使用を見逃していた。
+
+**本番と同じ設定にした**ところ、3 件見つかった:
+- `loadtest-scenarios.ts`: `now` / `ScenarioStep`(**私が `durationMs` を消した副作用**)
+- `theme-showcase.tsx`: `React` の import(JSX transform では不要)
+
+### 型検査環境での残り: 0 件
+**本番と同じ設定**(`noUnusedLocals: true`)で **0 件**。

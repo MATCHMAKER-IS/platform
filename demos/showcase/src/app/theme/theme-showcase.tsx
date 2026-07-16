@@ -4,7 +4,6 @@
  * 11 スキンの一覧、選択スキンのトークン(色・角丸・フォント)、WCAG コントラスト検査結果を見せる。
  * スキンを切り替えると、この画面全体が CSS 変数経由で即座に変わる。
  */
-import * as React from "react";
 import { builtInThemes, checkTheme, type ThemeMode } from "@platform/theme";
 import { useSkin, SkinSelector } from "@platform/ui";
 
