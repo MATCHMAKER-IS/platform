@@ -141,7 +141,7 @@ export default function Page() {
 
         <Section title="ラジオボタン・トグルグループ">
           <RadioGroup value={plan} onValueChange={setPlan}>
-            {[["standard","スタンダード"],["pro","プロ"],["enterprise","エンタープライズ"]].map(([v,l]) => (
+            {([["standard","スタンダード"],["pro","プロ"],["enterprise","エンタープライズ"]] as const).map(([v,l]) => (
               <label key={v} style={{ display: "flex", gap: ".5rem", alignItems: "center", cursor: "pointer" }}>
                 <RadioGroupItem value={v} /> {l}
               </label>

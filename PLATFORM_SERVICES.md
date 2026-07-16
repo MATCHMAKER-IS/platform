@@ -3943,3 +3943,26 @@ Type error: 'importResult' is declared but its value is never read.
 
 ### 型検査環境での残り: 0 件
 **本番と同じ設定**(`noUnusedLocals: true`)で **0 件**。
+
+---
+
+## 配列の分割代入で undefined — 私の検査の穴
+
+```
+Type error: Type 'string | undefined' is not assignable to type 'string'.
+> 146 |   <RadioGroupItem value={v} />
+```
+
+```tsx
+{[["standard","スタンダード"],["pro","プロ"]].map(([v,l]) => ...)}
+```
+`string[][]` として推論されるので、分割代入した `v` は `string | undefined`
+(`noUncheckedIndexedAccess: true` のため)。
+
+**修正**: `as const` で tuple にする。
+
+### 【私のミス】shim の粗さで本物を隠していた
+`useState()` の誤検知(`Expected 1 arguments`)を**除外していたら、同じファイルの本物も
+一緒に消えていた**。shim の `useState<S>(i: S)` を `useState<S = undefined>(i?: S)` に直した。
+
+これで**除外なしで 0 件**になった(`children` 関連を除く)。
