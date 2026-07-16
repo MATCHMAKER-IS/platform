@@ -3537,3 +3537,78 @@ the name `DataTableProps` is exported multiple times
 smoke に「**index.ts に重複 export が無いか**」を追加
 (`export { ... } from "..."` の形だけを見る。型定義の中身は拾わない)。
 わざと重複を作って検出を確認した。
+
+---
+
+## 【重大な反省】自分で壊して、自分で直した
+
+Amplify のビルドを直す過程で、**私が `.js` 拡張子を 896 ファイルから一括除去**していた。
+そして smoke が壊れたので、**smoke の方を 295 箇所書き換えて**辻褄を合わせていた。
+
+今日それに気づき、**前回の zip から全ファイルを復元**した(691 + 427 ファイル)。
+smoke も元の形に戻した。
+
+**やってはいけないことをした**: 「動かないから設定を変える」ではなく、
+「動かないから**検査の方を緩める**」をしてしまった。これは最悪の対処。
+
+### 現在の状態
+zip(1242 passed 時点)との差分は **4 ファイルだけ**:
+- `kanban.tsx` / `tree.tsx` … `"use client"` を追加(**正しい修正**)
+- `tools/smoke.mjs` … 検査を追加(main/exports の実在・重複 export・use client)
+- `api-reference.json` … 生成物
+
+### 今回見つけた本当のバグ
+1. **`main` が存在しない `dist` を指していた**(89 パッケージ)→ src に統一
+2. **index.ts の重複 export**(10 件)→ 別名で解消(破壊的変更 0)
+3. **`"use client"` の付け忘れ**(kanban / tree)→ 追加
+
+どれも `tsc` は通る。**Turbopack だけが落ちる**類のバグ。
+
+### 残る課題: Turbopack が `.js` → `.ts` を解決しない
+`moduleResolution: "Bundler"` では `.js` は不要だが、このプロジェクトは 896 ファイルで
+`.js` を付けている。Turbopack がこれを解決できるかは**ビルドしないと分からない**。
+
+**この環境では `next build` を実行できない**ため、次のビルドログで判断する。
+
+---
+
+## 基盤全体の再確認 — 静的に検出できる問題は 0
+
+Amplify のビルドが 7 回失敗したので、**基盤全体を体系的に検査**した。
+
+### 検査した層(すべてクリア)
+| 層 | 内容 | 結果 |
+|---|---|---|
+| A | package.json の main / exports が実在するか | ✅ 0 件 |
+| B | index.ts の重複 export | ✅ 0 件 |
+| C | フックを使う .tsx に `"use client"` があるか | ✅ 0 件 |
+| D | `"use client"` と metadata の混在 | ✅ 0 件 |
+| E | **571 ファイルの import がすべて解決できるか** | ✅ 0 件 |
+| F | 外部依存が package.json と lock にあるか | ✅ 0 件 |
+| G | CSS の解決 | ✅ 0 件 |
+| I | server component にイベントハンドラ | ✅ 0 件 |
+| J | client で `node:` を import | ✅ 0 件 |
+| L | client が server 専用コードを import | ✅ 0 件 |
+
+### 恒久化: `tools/check-build-ready.mjs`(新規)
+**ローカルの dev では動くのに `next build` で落ちる**類のバグを、ビルドせずに見つける。
+7 回の失敗で 1 つずつ判明した問題を、まとめて検査する。
+
+わざと 4 パターン壊して検出を確認:
+- `main` を dist に戻す → 検出 ✅
+- 重複 export を作る → 検出 ✅
+- `"use client"` を外す → 検出 ✅
+- 存在しない import を書く → 検出 ✅
+
+preflight と `pnpm check:build` に組み込んだ。
+
+### 現在の状態
+- smoke **1,243 項目 all pass**・preflight 全緑・生成物 drift 0
+- **静的に検出できる問題は残っていない**
+
+### 残る不確実性
+**この環境では `next build` を実行できない**(npm レジストリに繋がらない)。
+Turbopack が `.js` → `.ts` を解決するかは、実際にビルドしないと分からない。
+
+次のビルドで `@platform/*` のエラーが消えていれば、`main` の修正が効いたということ。
+相対 import(`.js`)のエラーだけが残るなら、**896 ファイルから `.js` を外す**必要がある。

@@ -13,6 +13,7 @@
     "changeset": "changeset",
     "check": "pnpm typecheck && pnpm lint && pnpm smoke",
     "check:api": "node tools/api-surface.mjs",
+    "check:build": "node tools/check-build-ready.mjs",
     "check:deps": "node tools/check-deps.mjs",
     "check:showcase": "node tools/check-showcase-deps.mjs",
     "clean": "pnpm -r exec rm -rf dist .next .turbo node_modules && rm -rf node_modules",

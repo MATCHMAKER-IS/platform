@@ -11220,5 +11220,36 @@ export const z = anyChain;
   // tsc は通ってしまうので、ビルドするまで気づけない。
   ok("index.ts に重複 export が無い(Turbopack が落ちる・tsc では気づけない)", dups.length === 0);
 }
+
+// ── "use client" の付け忘れ(Turbopack/RSC が落ちる) ──
+{
+  section('React: "use client" の付け忘れが無いか');
+  const fsc = await import("node:fs/promises");
+  const path = await import("node:path");
+  const root = new URL("..", import.meta.url).pathname;
+
+  const HOOKS = /\buse(State|Effect|Ref|Memo|Callback|Context|Reducer|LayoutEffect|ImperativeHandle)\b/;
+  const missing = [];
+
+  const walk = async (dir) => {
+    let entries;
+    try { entries = await fsc.readdir(dir, { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) { if (e.name !== "node_modules" && e.name !== ".next") await walk(p); continue; }
+      if (!e.name.endsWith(".tsx") || e.name.endsWith(".test.tsx")) continue;
+      const s = await fsc.readFile(p, "utf8");
+      if (HOOKS.test(s) && !s.trimStart().startsWith('"use client"')) {
+        missing.push(path.relative(root, p));
+      }
+    }
+  };
+  await walk(path.join(root, "packages"));
+  await walk(path.join(root, "demos"));
+
+  // サーバコンポーネントでフックを使うと RSC のビルドが落ちる。
+  // 実際に @platform/ui の kanban.tsx / tree.tsx で付け忘れていた。
+  ok('フックを使う .tsx にはすべて "use client" がある', missing.length === 0);
+}
 console.log(`\n─────────────\n結果: ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
