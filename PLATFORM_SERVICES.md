@@ -3966,3 +3966,25 @@ Type error: Type 'string | undefined' is not assignable to type 'string'.
 一緒に消えていた**。shim の `useState<S>(i: S)` を `useState<S = undefined>(i?: S)` に直した。
 
 これで**除外なしで 0 件**になった(`children` 関連を除く)。
+
+---
+
+## SearchInput の props 名が違った
+
+```
+Type error: Property 'onChange' does not exist on type 'SearchInputProps'
+```
+
+`SearchInput` は `onChange` を**意図的に除外**している:
+```ts
+export interface SearchInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange"> {
+  onValueChange?: (value: string) => void;   // ← こちらを使う
+}
+```
+値を直接受け取れるようにするため(`e.target.value` を書かなくてよい)。
+
+**修正**: `onChange` → `onValueChange`。取り込んだデモの既存バグ。
+
+### 型検査環境での残り: children 関連のみ
+24 件すべて `children`。**私の shim が `PropsWithChildren` を再現できていない**ための誤検知。
+実物の React では問題にならない。

@@ -56,7 +56,7 @@ export function UserTable({ users, onExport }: UserTableProps) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <SearchInput value={search} onChange={setSearch} placeholder="名前・メールで検索" className="max-w-xs" />
+        <SearchInput value={search} onValueChange={setSearch} placeholder="名前・メールで検索" className="max-w-xs" />
         <Select value={role} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRole(e.target.value as typeof role)}>
           <option value="all">すべての役割</option>
           <option value="admin">管理者</option>
