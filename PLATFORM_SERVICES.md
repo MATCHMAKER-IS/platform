@@ -3988,3 +3988,23 @@ export interface SearchInputProps extends Omit<React.InputHTMLAttributes<HTMLInp
 ### 型検査環境での残り: children 関連のみ
 24 件すべて `children`。**私の shim が `PropsWithChildren` を再現できていない**ための誤検知。
 実物の React では問題にならない。
+
+---
+
+## Select は options 配列を渡す設計だった
+
+```
+Type error: Property 'options' is missing in type '{ children: ... }'
+```
+
+`<Select>` に `<option>` を子要素として書いていたが、**`options` 配列を渡す設計**:
+```tsx
+<Select value={role} options={[{ value: "all", label: "すべての役割" }, ...]} />
+```
+
+**なぜこの設計か**: 選択肢をデータとして扱えるので、API から取得したものをそのまま渡せる。
+`<option>` を手で並べると、動的な選択肢に対応できない。
+
+取り込んだデモの既存バグ。修正した。
+
+### 型検査環境: children 以外は 0 件

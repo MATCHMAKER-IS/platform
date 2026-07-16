@@ -57,12 +57,16 @@ export function UserTable({ users, onExport }: UserTableProps) {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput value={search} onValueChange={setSearch} placeholder="名前・メールで検索" className="max-w-xs" />
-        <Select value={role} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRole(e.target.value as typeof role)}>
-          <option value="all">すべての役割</option>
-          <option value="admin">管理者</option>
-          <option value="editor">編集者</option>
-          <option value="viewer">閲覧者</option>
-        </Select>
+        <Select
+          value={role}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRole(e.target.value as typeof role)}
+          options={[
+            { value: "all", label: "すべての役割" },
+            { value: "admin", label: "管理者" },
+            { value: "editor", label: "編集者" },
+            { value: "viewer", label: "閲覧者" },
+          ]}
+        />
         <span className="text-sm text-[var(--color-muted)]">{result.total}件</span>
         {onExport && <Button variant="secondary" className="ml-auto" onClick={() => onExport(result.rows)}>エクスポート</Button>}
       </div>
