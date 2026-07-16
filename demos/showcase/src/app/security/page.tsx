@@ -8,7 +8,9 @@ import { policy } from "../../server/store";
 
 export default function Page() {
   // --- 暗号化デモ ---
-  const key = deriveKey("demo-secret-please-change-in-real-apps");
+  // deriveKey は salt が必須(8 文字以上)。環境ごとに変えることで、
+  // 同じパスワードでも別の鍵になる(レインボーテーブル対策)。
+  const key = deriveKey("demo-secret-please-change-in-real-apps", "demo-salt-please-change");
   const plaintext = "1234-5678-9012-3456";
   const encrypted = encrypt(plaintext, key);
   const decrypted = decrypt(encrypted, key);

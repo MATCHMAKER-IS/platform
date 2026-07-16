@@ -26,7 +26,7 @@ export default function Page() {
     const fakeFetch = async (_url: string, init?: any) => (!init || !init.method
       ? { ok: !!mem, json: async () => mem }
       : ((mem = JSON.parse(init.body).prefs), { ok: true })) as any;
-    return createColumnPrefsStore({ endpoint: "/api/column-prefs", userId: "demo-user", fetch: fakeFetch });
+    return createColumnPrefsStore({ endpoint: "/api/column-prefs", userId: "demo-user", fetch: fakeFetch as unknown as typeof fetch });
   }, []);
   const initialPresets: ColumnPreset[] = [
     { id: "p1", name: "経理向け(金額優先)", prefs: { order: ["amount", "date", "vendor", "category", "id"], hidden: [] }, shared: true },

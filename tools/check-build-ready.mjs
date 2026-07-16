@@ -154,7 +154,13 @@ export function check() {
           if (!t) issues.push(`[E] ${path.relative(ROOT, f)}: ${spec} が解決できない`);
           else if (!existsSync(t)) issues.push(`[E] ${path.relative(ROOT, f)}: ${spec} → 実体が無い`);
         } else if (spec.startsWith(".") && !spec.endsWith(".css")) {
-          if (!resolveRelative(f, spec)) issues.push(`[E] ${path.relative(ROOT, f)}: ${spec}`);
+          // Turbopack は .js → .ts を解決しない(実際に 336 件の Module not found が出た)。
+          // moduleResolution: Bundler なので拡張子は不要。
+          if (spec.endsWith(".js")) {
+            issues.push(`[E] ${path.relative(ROOT, f)}: ${spec} — .js を外すこと(Turbopack が解決しない)`);
+          } else if (!resolveRelative(f, spec)) {
+            issues.push(`[E] ${path.relative(ROOT, f)}: ${spec}`);
+          }
         }
       }
     }

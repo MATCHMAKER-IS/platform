@@ -3796,3 +3796,25 @@ TypeScript の仕様。**interface は宣言マージできるので、index sig
 ### 残る型エラー
 `register/page.tsx` の zod import など。**shim の粗さと混ざっている**ので、
 次のビルドログで本物を選り分ける。
+
+---
+
+## 【私のミス】.js を付けてしまった
+
+`data-console/page.tsx` を書き直したとき、**`.js` を付けてしまった**:
+```ts
+import { DataConsole } from "../../examples/data-console.js";   // ❌
+```
+全ファイルから `.js` を外したのに、新しく書いたファイルで戻してしまった。
+
+### 検査の穴も直した
+`check-build-ready` の import 解決は `.js` → `.ts` を試すので、**存在すると判定**していた。
+だが **Turbopack は解決しない**。検査が実態と合っていなかった。
+
+**修正**: `.js` 付きの相対 import 自体を**禁止**する(わざと付けて検出を確認)。
+
+### あわせて直した型エラー
+| # | 内容 | 種類 |
+|---|---|---|
+| 1 | `deriveKey` に salt を渡す | **既存のバグ**(salt は必須引数) |
+| 2 | `fakeFetch` をキャスト | デモ用モックの型 |

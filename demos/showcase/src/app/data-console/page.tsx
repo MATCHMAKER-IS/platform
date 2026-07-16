@@ -1,4 +1,4 @@
-import { DataConsole, type BookingRow } from "../../examples/data-console.js";
+import { DataConsole, type BookingRow } from "../../examples/data-console";
 
 export const metadata = { title: "データ管理画面" };
 
