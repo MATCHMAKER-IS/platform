@@ -46,7 +46,6 @@ export interface ComboboxProps {
  * ```
  */
 export function Combobox({
-  const t = useT();
   options,
   value,
   onChange,
@@ -55,6 +54,7 @@ export function Combobox({
   emptyText,
   className,
 }: ComboboxProps) {
+  const t = useT();
   const [open, setOpen] = React.useState(false);
   const selected = options.find((o) => o.value === value);
 

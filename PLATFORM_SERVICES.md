@@ -3652,3 +3652,46 @@ export { Histogram, ... } from "./components/histogram.js";  // ← 153 行
 ### 現在の状態
 - smoke **1,243 項目 all pass**・preflight 全緑・check-build-ready 緑
 - **静的に検出できる問題は 0**
+
+---
+
+## 【劇的な前進】388 件 → 2 件
+
+`.js` を外し、重複 export を解消した効果:
+
+| 項目 | 8 回目 | 9 回目 |
+|---|---|---|
+| Module not found | 336 件 | **0 件** ✅ |
+| 重複 export | 4 件 | **0 件** ✅ |
+| **構文エラー** | — | **2 件** ← 新たに露出 |
+
+### 残る 2 件は「構文エラー」— 既存のバグ
+```
+./packages/ui/src/components/combobox.tsx:49:9
+Expected ',', got 'ident'
+> 49 |   const t = useT();
+```
+
+**関数の引数リストの中に文が入っていた**:
+```tsx
+export function Combobox({
+  const t = useT();      // ← ここに文がある(壊れている)
+  options,
+  value,
+}: ComboboxProps) {
+```
+
+`combobox.tsx` と `draggable-dashboard.tsx` の 2 件。**`const t = useT();` を
+関数本体に移した**(`t` は本文で使われているので削除ではなく移動)。
+
+### いつ壊れたか
+**直前の zip でも壊れていた**ので、`.js` 除去とは無関係の**既存のバグ**。
+おそらく i18n 対応の一括処理が引数リストに挿入してしまったもの。
+
+### なぜ気づかなかったか
+- **smoke は combobox を使っていない**(/tmp に合成していない)
+- **CI の `pnpm -r typecheck` は失敗していたはず** → 誰も見ていなかった可能性
+
+### 再発防止
+`check-build-ready.mjs` に「**引数リストに文が混入していないか**」を追加
+(わざと壊して検出を確認)。preflight で毎回回る。

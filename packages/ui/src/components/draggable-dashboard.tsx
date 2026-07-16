@@ -50,9 +50,9 @@ export interface DraggableDashboardProps {
 
 /** ドラッグ&ドロップ対応ダッシュボード。 */
 export function DraggableDashboard({
-  const t = useT();
   layout, onLayoutChange, renderWidget, titleOf, columns = 12, gap = 16, editable = true, className,
 }: DraggableDashboardProps) {
+  const t = useT();
   const gridRef = React.useRef<HTMLDivElement>(null);
   const [dragId, setDragId] = React.useState<string | null>(null);
   const resizing = React.useRef<{ id: string; startX: number; startSpan: number } | null>(null);

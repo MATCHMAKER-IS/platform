@@ -13,6 +13,7 @@
  * - D: "use client" と metadata を同時に export していないか(Next の禁止事項)
  * - E: すべての import が解決できるか(@platform/* と相対 import)
  * - F: client から node: 専用のコードを import していないか
+ * - G: 構文エラー(引数リストに文が混入。過去の一括処理が壊した形)
  *
  * 使い方: node tools/check-build-ready.mjs
  */
@@ -154,6 +155,27 @@ export function check() {
           else if (!existsSync(t)) issues.push(`[E] ${path.relative(ROOT, f)}: ${spec} → 実体が無い`);
         } else if (spec.startsWith(".") && !spec.endsWith(".css")) {
           if (!resolveRelative(f, spec)) issues.push(`[E] ${path.relative(ROOT, f)}: ${spec}`);
+        }
+      }
+    }
+  }
+
+  // ── G: 構文エラー(引数リストに文が混入)──
+  // 過去の一括処理が壊した形。tsc は通らないが、型検査を回さないと気づけない。
+  // 実際に combobox.tsx / draggable-dashboard.tsx で
+  // `export function X({ const t = useT(); options, ... })` になっていた。
+  for (const dir of [path.join(ROOT, "packages"), path.join(ROOT, "apps"), path.join(ROOT, "demos")]) {
+    for (const f of collect(dir)) {
+      const lines = readFileSync(f, "utf8").split("\n");
+      let inParams = false;
+      for (let i = 0; i < lines.length; i++) {
+        const l = lines[i];
+        if (/^\s*export\s+(?:default\s+)?function\s+\w+\s*\(\s*\{\s*$/.test(l)) { inParams = true; continue; }
+        if (!inParams) continue;
+        if (/^\s*\}[:)]/.test(l)) { inParams = false; continue; }
+        if (/^\s*(const|let|var|return|if|for)\s/.test(l)) {
+          issues.push(`[G] ${path.relative(ROOT, f)}:${i + 1}: 引数リストに文が混入(${l.trim().slice(0, 40)})`);
+          inParams = false;
         }
       }
     }
