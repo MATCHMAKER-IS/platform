@@ -20,4 +20,6 @@ export { createZohoAnalyticsClient, type ZohoAnalyticsClient } from "./analytics
 export { createZohoCliqClient, type ZohoCliqClient } from "./cliq/index";
 export { createZohoCreatorClient, type ZohoCreatorClient } from "./creator/index";
 export { createZohoBookingsClient, type ZohoBookingsClient } from "./bookings/index";
-export { refreshAccessToken } from "./core/login";
+// 実装元は ./core/oauth。以前 ./core/login にも同一実装のコピーがあり、
+// export * が衝突して TS2308 になっていた(コピーの方を削除済み)。
+export { refreshAccessToken } from "./core/oauth";

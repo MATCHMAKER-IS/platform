@@ -17,7 +17,7 @@ const buttonVariants = cva(
         ghost: "text-[var(--color-fg)] hover:bg-slate-100",
         danger: "bg-[var(--color-danger)] text-white hover:opacity-90",
       },
-      size: { sm: "h-8 px-3 text-sm", md: "h-10 px-4 text-sm", lg: "h-11 px-6 text-base" },
+      size: { sm: "h-7 px-2.5 text-xs", md: "h-9 px-3.5 text-sm", lg: "h-10 px-5 text-sm" },
     },
     defaultVariants: { variant: "primary", size: "md" },
   },

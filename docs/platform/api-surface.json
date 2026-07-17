@@ -2079,6 +2079,7 @@
   "@platform/session": [
     "AttemptRecord",
     "CookieOptions",
+    "EventTargetLike",
     "IDLE_ACTIVITY_EVENTS",
     "IdleTimer",
     "IdleTimerConfig",

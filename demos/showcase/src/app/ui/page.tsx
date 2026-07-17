@@ -71,6 +71,9 @@ export default function Page() {
               <span style={{ fontSize: ".65rem", color: "var(--color-muted)" }}>{n}</span>
             </div>
           ))}
+          <a href="/icons" style={{ alignSelf: "center", fontSize: ".8rem", color: "var(--color-primary)" }}>
+            → 一覧(カテゴリ別・検索・コピー)
+          </a>
         </Section>
 
         <Section title="音声入力(Web Speech API)">

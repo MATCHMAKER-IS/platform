@@ -32,7 +32,7 @@ export function ColorPicker({ value = "#0f766e", onChange, className }: ColorPic
         <button
           type="button"
           className={cn(
-            "flex h-10 items-center gap-2 rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]",
+            "flex h-9 items-center gap-2 rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]",
             className,
           )}
         >

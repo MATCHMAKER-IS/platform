@@ -92,47 +92,8 @@ export async function exchangeCodeForToken(config: {
 }
 
 
-/**
- * リフレッシュトークンでアクセストークンを取り直す。ヘッドレス実行(MCP サーバ・バッチ・cron)用。
- * Self Client 等で発行した refresh_token を環境変数に置き、起動時に呼ぶ。
- *
- * **人の操作を伴わない**のが {@link exchangeCodeForToken} との違い(あちらはブラウザで認可する)。
- *
- * @param config.refreshToken リフレッシュトークン(**環境変数から。コードに直書きしない**)
- * @param config.clientId クライアント ID
- * @param config.clientSecret クライアントシークレット
- * @param config.dc データセンター
- * @param config.fetchImpl fetch の実装(テスト注入用)
- * @returns アクセストークンと有効期限
- */
-export async function refreshAccessToken(config: {
-  dataCenter: ZohoDataCenter;
-  clientId: string;
-  clientSecret: string;
-  refreshToken: string;
-  fetchImpl?: typeof fetch;
-}): Promise<{ ok: true; value: { accessToken: string; apiDomain: string; expiresIn: number } } | { ok: false; error: string }> {
-  const doFetch = config.fetchImpl ?? fetch;
-  const params = new URLSearchParams({
-    grant_type: "refresh_token",
-    client_id: config.clientId,
-    client_secret: config.clientSecret,
-    refresh_token: config.refreshToken,
-  });
-  try {
-    const res = await doFetch(`${accountsUrl(config.dataCenter)}/oauth/v2/token`, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body: params.toString(),
-    });
-    if (!res.ok) return { ok: false, error: `トークン更新に失敗しました: ${res.status}` };
-    const j = (await res.json()) as { access_token?: string; api_domain?: string; expires_in?: number; error?: string };
-    if (j.error || !j.access_token) return { ok: false, error: j.error ?? "access_token が返りませんでした" };
-    return { ok: true, value: { accessToken: j.access_token, apiDomain: j.api_domain ?? `https://www.zohoapis.${config.dataCenter}`, expiresIn: j.expires_in ?? 3600 } };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
-}
+// refreshAccessToken は ./oauth.ts が実装元。ここにあった同一実装のコピーは削除した
+// (export * が衝突して TS2308 になり、@platform/zoho を Next のビルドに含めた瞬間に落ちる)。
 
 /** Zoho ユーザープロフィール。 */
 export interface ZohoUserInfo { zuid?: string; email: string; displayName?: string; firstName?: string; lastName?: string }

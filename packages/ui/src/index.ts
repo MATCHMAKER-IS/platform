@@ -115,7 +115,7 @@ export { Waveform, type WaveformProps } from "./components/waveform";
 export { formatTime } from "./lib/format-time";
 
 // ユーティリティ
-export { Icon, type IconProps, type IconName } from "./components/icon";
+export { Icon, iconNames, hasIcon, type IconProps, type IconName } from "./components/icon";
 export { useClientInfo } from "./components/use-client-info";
 export { useBluetooth, type UseBluetoothState } from "./components/use-bluetooth";
 export { useHid, type UseHidState } from "./components/use-hid";

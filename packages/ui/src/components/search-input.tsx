@@ -31,7 +31,7 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
         placeholder={placeholder}
         onChange={(e) => onValueChange?.(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") onSearch?.((e.target as HTMLInputElement).value); }}
-        className="h-10 w-full rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg)] pl-9 pr-9 text-sm text-[var(--color-fg)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] [&::-webkit-search-cancel-button]:hidden"
+        className="h-9 w-full rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg)] pl-9 pr-9 text-sm text-[var(--color-fg)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] [&::-webkit-search-cancel-button]:hidden"
         {...props}
       />
       {clearable && value ? (

@@ -42,7 +42,11 @@ export function themeToCssVars(theme: Theme, mode: ThemeMode): Record<string, st
   vars["--font-family"] = shape.fontFamily;
   vars["--font-heading"] = shape.headingFontFamily ?? shape.fontFamily;
   vars["--radius"] = `${shape.radius}px`;
-  vars["--spacing"] = `${shape.spacing}px`;
+  // ⚠️ `--spacing` にしないこと。Tailwind CSS 4 が動的間隔スケールの基準として
+  // `--spacing` を使っており(`p-4` → `calc(var(--spacing) * 4)`)、ここで上書きすると
+  // **Tailwind のユーティリティが全部この値の倍率になる**(既定 0.25rem に対し 8px なら 2 倍)。
+  // 実際にボタンが h-10=40px → 80px になった。スキンごとに倍率が変わるという最悪の壊れ方をする。
+  vars["--space"] = `${shape.spacing}px`;
   vars["--shadow"] = SHADOWS[shape.elevation] ?? SHADOWS[1] ?? "none";
   return vars;
 }

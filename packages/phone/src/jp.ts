@@ -41,7 +41,7 @@ export type PhoneType = "mobile" | "ip" | "toll-free" | "landline" | "unknown";
  * **種別で桁数も整形パターンも違う**(固定電話は市外局番の桁数が地域で変わる)。
  *
  * @param input 電話番号
- * @returns 種別(`mobile` / `landline` / `toll-free` など)。**判定できなければ null**
+ * @returns 種別(`mobile` / `landline` / `toll-free` / `ip`)。**判定できなければ `"unknown"`**(null は返さない)
  */
 export function phoneType(input: string): PhoneType {
   const n = normalizePhone(input);

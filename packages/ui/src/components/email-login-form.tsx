@@ -106,7 +106,7 @@ export function EmailLoginForm({
         type="submit"
         disabled={loading}
         aria-busy={loading}
-        className="inline-flex h-10 items-center justify-center rounded-[var(--radius)] bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--color-primary-fg)] transition-colors hover:opacity-90 disabled:pointer-events-none disabled:opacity-50"
+        className="inline-flex h-9 items-center justify-center rounded-[var(--radius)] bg-[var(--color-primary)] px-4 text-sm font-medium text-[var(--color-primary-fg)] transition-colors hover:opacity-90 disabled:pointer-events-none disabled:opacity-50"
       >
         {loading ? "処理中…" : submitLabel}
       </button>

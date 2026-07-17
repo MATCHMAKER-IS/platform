@@ -104,7 +104,10 @@ import { AppSkin, SkinSelector } from "@platform/ui";
 | `--color-accent` | 副次アクセント |
 | `--color-success` / `--color-warning` / `--color-danger` | 状態色 |
 | `--font-family` / `--font-heading` | 本文 / 見出しフォント |
-| `--radius` / `--spacing` / `--shadow` | 角丸 / 余白基準 / 影 |
+| `--radius` / `--space` / `--shadow` | 角丸 / 余白基準 / 影 |
+
+> `--space` は以前 `--spacing` でしたが、**Tailwind CSS 4 の予約名と衝突する**ため改名しました。
+> Tailwind は `p-4` を `calc(var(--spacing) * 4)` と解決するので、上書きすると全ユーティリティが歪みます。
 
 ---
 

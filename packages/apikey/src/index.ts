@@ -134,7 +134,13 @@ export type AuthResult =
  * @param plaintext リクエストの API キー
  * @param store 検索ストア
  * @param now 現在時刻(テスト用)
- * @returns 認証されたキー。**無効・失効・期限切れなら null**(理由は返さない。攻撃者に情報を与えない)
+ * @returns {@link AuthResult}。成功なら `{ ok: true, record }`、失敗なら `{ ok: false, reason }`。
+ *
+ * @remarks
+ * **reason を利用者へそのまま返さないこと。**「失効しています」と教えると、攻撃者に
+ * 「そのキーは実在する」と伝わり、総当たりの手がかりになる。呼び出し側では
+ * `not_found` / `revoked` / `expired` を **区別せず同じ 401 にする**。
+ * reason は監査ログ・調査用。
  */
 export async function authenticateApiKey(plaintext: string, store: ApiKeyStore, now: number = Date.now()): Promise<AuthResult> {
   const record = await store.findByHash(hashApiKey(plaintext));

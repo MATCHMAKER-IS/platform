@@ -19,6 +19,9 @@
  * - L: Tailwind 4 の予約 CSS 変数(--spacing 等)を基盤が上書きしていないか
  * - M: 統合デモサイトの nav に href の重複 / リンク切れが無いか
  * - N: パッケージが相手のバレルに無い名前を import していないか(TS2305)
+ * - O: 入力系コントロールの高さが 10 ファイルで揃っているか
+ * - P: showcase が未宣言のパッケージを直接 import していないか(Module not found)
+ * - R: 同名だが中身の違う公開型が複数パッケージにないか(`--types` で表示)
  *
  * 使い方: node tools/check-build-ready.mjs
  */
@@ -207,14 +210,38 @@ export function check() {
   // ── I: 未使用の import(noUnusedLocals: true なのでビルドが止まる)──
   for (const f of collect(path.join(SITE, "src"))) {
     const src = readFileSync(f, "utf8");
-    for (const m of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*"[^"]+"/g)) {
-      const body = src.slice(m.index + m[0].length);
+    // **行頭が `import` の文だけ**を本物とみなす。複数行にまたがる場合は
+    // 行頭の `}` または `} from "..."` までを 1 文として取る。
+    //   - <pre> に載せたサンプルの import は JSX の中でインデントされているので拾わない
+    //   - 1 行版と複数行版の両方を拾う(片方だけだと取りこぼす。実際にやらかした)
+    const lines = src.split("\n");
+    const statements = [];
+    for (let i = 0; i < lines.length; i += 1) {
+      if (!/^import\s/.test(lines[i] ?? "")) continue;
+      let stmt = lines[i] ?? "";
+      // `from "..."` で閉じていなければ、行頭 `}` が出るまで足す
+      while (i + 1 < lines.length && !/from\s*"[^"]+"\s*;?\s*$/.test(stmt)) {
+        i += 1;
+        stmt += "\n" + (lines[i] ?? "");
+      }
+      statements.push(stmt);
+    }
+    // 使用判定は「import 文を除いた残り全部」
+    const body = src.split("\n").filter((l, i) => {
+      const joined = statements.join("\n");
+      return !joined.includes(l) || !/^\s*(import\s|type\s|\w+,?$|\}\s*from)/.test(l);
+    }).join("\n");
+    for (const stmt of statements) {
+      const m = /import\s*\{([\s\S]*?)\}\s*from\s*"[^"]+"/.exec(stmt);
+      if (!m) continue;
       for (const raw of (m[1] ?? "").split(",")) {
         const item = raw.trim();
         if (!item) continue;
         const name = item.replace(/^type\s+/, "").split(" as ").pop().trim();
         if (!name || !/^[A-Za-z_$][\w$]*$/.test(name)) continue;
-        if (!new RegExp(`\\b${name.replace(/\$/g, "\\$")}\\b`).test(body)) {
+        // import 文そのものを除いた本文で使われているか
+        const rest = src.replace(stmt, "");
+        if (!new RegExp(`\\b${name.replace(/\$/g, "\\$")}\\b`).test(rest)) {
           issues.push(`[I] ${path.relative(ROOT, f)}: ${name} を import しているが使っていない(noUnusedLocals でビルドが止まる)`);
         }
       }
@@ -438,6 +465,100 @@ export function check() {
             ` — TS2305 になる。実装元から再 export するか、実装元パッケージから直接 import すること`,
           );
         }
+      }
+    }
+  }
+
+  // ── O: 入力系コントロールの高さが揃っているか ──
+  // 「入力欄の高さ」は 1 つの決定なのに、h-9 が 10 ファイルにベタ書きされている。
+  // 揃っていないと、Input の隣に Button を置いたときに段差ができる(見た目の問題なので
+  // 型検査でもテストでも捕まらない)。値を変えるときは全部を一緒に変えること。
+  {
+    const CONTROL_H = "h-9"; // 入力系コントロールの標準の高さ(36px)
+    const files = [
+      "autocomplete.tsx", "color-picker.tsx", "combobox.tsx", "date-picker.tsx",
+      "email-login-form.tsx", "input.tsx", "number-input.tsx", "password-input.tsx",
+      "search-input.tsx", "button.tsx",
+    ];
+    for (const name of files) {
+      const f = path.join(ROOT, "packages/ui/src/components", name);
+      if (!existsSync(f)) continue;
+      const src = readFileSync(f, "utf8");
+      if (!src.includes(CONTROL_H)) {
+        issues.push(
+          `[O] packages/ui/src/components/${name}: 入力系コントロールの標準の高さ ${CONTROL_H} が見当たらない` +
+          ` — Input と Button で段差ができる。高さを変えるならこの ${files.length} ファイルを揃えて変えること`,
+        );
+      }
+    }
+  }
+
+  // ── P: showcase が package.json に無いパッケージを import していないか ──
+  // .npmrc が巻き上げを抑えているので、宣言していない依存は解決できず
+  // `Module not found` で build が落ちる(実際に lucide-react でやらかした)。
+  // dev では動くことがあるので気づきにくい。基盤経由で使うのが規約
+  // (packages/ui/README.md「アプリは lucide を直接依存に持たない」)。
+  {
+    const pkgPath = path.join(SITE, "package.json");
+    if (existsSync(pkgPath)) {
+      const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+      const declared = new Set([...Object.keys(pkg.dependencies ?? {}), ...Object.keys(pkg.devDependencies ?? {})]);
+      for (const f of collect(path.join(SITE, "src"))) {
+        const src = readFileSync(f, "utf8");
+        for (const m of src.matchAll(/^import\s[^\n]*?from\s*"([^"]+)"/gm)) {
+          const spec = m[1] ?? "";
+          if (spec.startsWith(".") || spec.startsWith("/") || spec.startsWith("node:")) continue;
+          // "@scope/name/sub" と "name/sub" の両方からパッケージ名を取る
+          const parts = spec.split("/");
+          const name = spec.startsWith("@") ? `${parts[0]}/${parts[1]}` : parts[0];
+          if (!name || declared.has(name)) continue;
+          issues.push(
+            `[P] ${path.relative(ROOT, f)}: "${name}" は demos/showcase/package.json に無い` +
+            ` — .npmrc が巻き上げを抑えているので Module not found になる。基盤(@platform/*)経由で使うこと`,
+          );
+        }
+      }
+    }
+  }
+
+  // ── R: 同名だが中身の違う公開型が、複数パッケージにないか ──
+  // @platform/audit と @platform/dencho の両方に ChainVerification があり、
+  // brokenAt が `number | null` と `number | undefined` で違っていた。
+  // **片方を見て書いたコードが、もう片方では型エラーになる**(実際にやらかした)。
+  // 名前が同じで中身が違うのが危険。中身が同じなら実害は小さいので拾わない。
+  const KNOWN_OK = new Set([
+    // 各パッケージが独立に持つのが自然な汎用名(統合するとかえって依存が増える)
+    "RetryOptions", "Attachment", "Money", "Result",
+  ]);
+  {
+    const shapes = new Map(); // 型名 → [{ pkg, body }]
+    for (const f of collect(path.join(ROOT, "packages"), [".ts"])) {
+      const rel = path.relative(path.join(ROOT, "packages"), f);
+      const pkg = rel.split(path.sep)[0];
+      if (!pkg || f.includes(".test.")) continue;
+      const src = readFileSync(f, "utf8");
+      for (const m of src.matchAll(/export\s+interface\s+(\w+)\s*\{([^}]*)\}/g)) {
+        const name = m[1];
+        if (!name || KNOWN_OK.has(name)) continue;
+        // コメントと空白を落として比較(表記ゆれで誤検知しないように)
+        const body = (m[2] ?? "").replace(/\/\*\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "").replace(/\s+/g, " ").trim();
+        const list = shapes.get(name) ?? [];
+        if (!list.some((x) => x.pkg === pkg)) list.push({ pkg, body });
+        shapes.set(name, list);
+      }
+    }
+    for (const [name, list] of shapes) {
+      if (list.length < 2) continue;
+      const bodies = new Set(list.map((x) => x.body));
+      if (bodies.size < 2) continue; // 中身が同じなら実害は小さい
+      const pkgs = list.map((x) => `@platform/${x.pkg}`).sort().join(" / ");
+      // ビルドは止まらない(使う側が正しく書けば通る)ので、既定では警告に留める。
+      // `node tools/check-build-ready.mjs --types` で一覧できる。
+      if (process.argv.includes("--types")) {
+        issues.push(
+          `[R] 同名だが中身の違う公開型: ${name} (${pkgs})` +
+          ` — 片方を見て書くともう片方で型エラーになる。名前を分けるか、片方へ寄せること`,
+        );
       }
     }
   }

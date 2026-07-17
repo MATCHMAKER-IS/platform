@@ -177,8 +177,6 @@ export interface RagStoreOptions {
   overFetch?: number;
 }
 
-const CHUNK_STORE = Symbol("chunk");
-
 /**
  * RAG ストアを作る。
  *

@@ -9855,8 +9855,8 @@ export const z = anyChain;
   const T = await import(`${base}/catalog-tools.mts`);
 
   const demos = C.loadDemos({ root });
-  ok("loadDemos: 統合デモサイトの nav.ts から55デモを読む(サイトの表示と検索結果が食い違わない)",
-    demos.length === 55 && demos.every((d) => d.name && d.summary && Array.isArray(d.packages)) &&
+  ok("loadDemos: 統合デモサイトの nav.ts から65デモを読む(サイトの表示と検索結果が食い違わない)",
+    demos.length === 65 && demos.every((d) => d.name && d.summary && Array.isArray(d.packages)) &&
     demos.find((d) => d.name === "theme").packages.includes("theme") &&
     demos.find((d) => d.name === "apps-internal").packages.includes("contract"));
   ok("searchDemos: パッケージ名/日本語/@platform付きで引ける・該当なしは空",
@@ -11045,9 +11045,9 @@ export const z = anyChain;
   ok("nav: 区分は3つ(基盤デモ/アプリデモ/使用例)・メニュー上は分かれて見える",
     N.SECTIONS.length === 3 &&
     N.SECTIONS.map((s) => s.title).join(",") === "基盤デモ,アプリデモ,使用例");
-  ok("nav: 基盤デモ41・アプリデモ5・使用例9 = 55件(data-console は画面を持つので基盤デモ側)",
-    N.PLATFORM_DEMOS.length === 41 && N.APP_DEMOS.length === 5 && N.CODE_EXAMPLES.length === 9 &&
-    N.allDemos().length === 55);
+  ok("nav: 基盤デモ51・アプリデモ5・使用例9 = 65件(data-console は画面を持つので基盤デモ側)",
+    N.PLATFORM_DEMOS.length === 51 && N.APP_DEMOS.length === 5 && N.CODE_EXAMPLES.length === 9 &&
+    N.allDemos().length === 65);
   ok("buildNavItems: 区分ごとに入れ子(1サイトだが別物として映る)",
     N.buildNavItems().length === 3 && N.buildNavItems().every((n) => Array.isArray(n.children) && n.children.length > 0));
 

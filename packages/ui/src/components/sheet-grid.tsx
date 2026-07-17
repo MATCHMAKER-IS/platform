@@ -121,14 +121,24 @@ export function SheetGrid<T extends Record<string, unknown>>({
     if (col.format === "date") return i18n.date(v as string | number);
     return String(v);
   };
+  // 左固定列の「位置」だけを担う(背景は持たない)。
+  // 背景まで持たせると、ヘッダ/フッタの背景指定を style が className より強く上書きしてしまい、
+  // 固定列だけ色が違う・sticky なのに透ける、という壊れ方をする。
   const stickyCol = (c: number): React.CSSProperties =>
-    c < freezeLeft ? { position: "sticky", left: lefts[c] ?? 0, zIndex: 2, background: "var(--color-bg)" } : {};
+    c < freezeLeft ? { position: "sticky", left: lefts[c] ?? 0, zIndex: 2 } : {};
+
+  // 本体の固定列。行の上を通るので不透明にする。
+  const stickyColBody = (c: number): React.CSSProperties =>
+    c < freezeLeft ? { ...stickyCol(c), background: "var(--color-bg)" } : {};
 
   const renderHeaderCell = (c: number) => {
     const col = columns[c]!;
     return (
-      <th key={col.key} className={cn(cellCls(col.align), "relative bg-[var(--color-muted)]/10 font-semibold")}
-        style={{ width: widths[c], minWidth: widths[c], height: rowHeight, ...(stickyHeader ? { position: "sticky", top: 0, zIndex: c < freezeLeft ? 4 : 3 } : {}), ...stickyCol(c), ...(c < freezeLeft && stickyHeader ? { left: lefts[c] ?? 0 } : {}) }}>
+      <th key={col.key} className={cn(cellCls(col.align), "relative font-semibold")}
+        style={{ width: widths[c], minWidth: widths[c], height: rowHeight,
+          // ★不透明であること。sticky で浮いているので、半透明だと下の行が透ける。
+          background: "var(--color-surface)", boxShadow: "inset 0 -1px 0 var(--color-border)",
+          ...(stickyHeader ? { position: "sticky", top: 0, zIndex: c < freezeLeft ? 4 : 3 } : {}), ...stickyCol(c), ...(c < freezeLeft && stickyHeader ? { left: lefts[c] ?? 0 } : {}) }}>
         {col.header}
         {resizable && <span data-resizer="1" onPointerDown={startResize(c)} title={t("grid.resize")} className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-[var(--color-primary)]/40" />}
       </th>
@@ -159,7 +169,7 @@ export function SheetGrid<T extends Record<string, unknown>>({
               return (
                 <td key={col.key} onPointerDown={onCellDown(r, c)} onPointerEnter={onCellEnter(r, c)} title={errMsg ?? undefined}
                   className={cn(cellCls(col.align), range && inRange(range, r, c) && "bg-[var(--color-primary)]/15", errMsg && "bg-[var(--color-danger)]/15 outline outline-1 outline-[var(--color-danger)]")}
-                  style={{ width: widths[c], minWidth: widths[c], ...stickyCol(c) }}>
+                  style={{ width: widths[c], minWidth: widths[c], ...stickyColBody(c) }}>
                   {formatCell(col, row)}
                 </td>
               );
@@ -192,8 +202,11 @@ export function SheetGrid<T extends Record<string, unknown>>({
 
 function renderFooterCell<T>(col: SheetColumn<T>, c: number, widths: number[], lefts: number[], freezeLeft: number, cellCls: (a?: string) => string, stickyCol: (c: number) => React.CSSProperties) {
   return (
-    <td key={col.key} className={cn(cellCls(col.align), "bg-[var(--color-muted)]/10 font-semibold")}
-      style={{ width: widths[c], minWidth: widths[c], position: "sticky", bottom: 0, zIndex: c < freezeLeft ? 4 : 3, ...stickyCol(c), ...(c < freezeLeft ? { left: lefts[c] ?? 0 } : {}) }}>
+    <td key={col.key} className={cn(cellCls(col.align), "font-semibold")}
+      style={{ width: widths[c], minWidth: widths[c], position: "sticky", bottom: 0, zIndex: c < freezeLeft ? 4 : 3,
+        // ★不透明であること(ヘッダと同じ理由)。
+        background: "var(--color-surface)", boxShadow: "inset 0 1px 0 var(--color-border)",
+        ...stickyCol(c), ...(c < freezeLeft ? { left: lefts[c] ?? 0 } : {}) }}>
       {col.footer ?? ""}
     </td>
   );

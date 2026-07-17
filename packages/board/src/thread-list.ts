@@ -66,6 +66,7 @@ export function filterByTag(summaries: ThreadSummary[], tag: string): ThreadSumm
  * **簡易検索**。本格的な全文検索が要るなら `@platform/search`(BM25)を使う。
  *
  * @param summaries スレッドの要約
+ * @param postsByThread スレッド id → 投稿(本文も検索対象にするため)
  * @param keyword 検索語(**大文字小文字は区別しない**)
  * @returns 一致したスレッド
  */

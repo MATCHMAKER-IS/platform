@@ -50,7 +50,7 @@
 - **@platform/auth** — 認証・認可の共通部品。
   - 主なexport: AuthUser, AuthenticationOptionsInput, AuthenticatorData, AuthenticatorFlags, BackupCodeRecord, BackupCodeVerifyResult, …(全72)
 - **@platform/session** — セッション・クッキー処理の共通部品。
-  - 主なexport: AttemptRecord, CookieOptions, IDLE_ACTIVITY_EVENTS, IdleTimer, IdleTimerConfig, LoginAuditEvent, …(全34)
+  - 主なexport: AttemptRecord, CookieOptions, EventTargetLike, IDLE_ACTIVITY_EVENTS, IdleTimer, IdleTimerConfig, …(全35)
 
 ## データ
 

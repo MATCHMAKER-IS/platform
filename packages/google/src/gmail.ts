@@ -88,7 +88,15 @@ export function createGmailClient(config: { accessToken: string; fetchImpl?: typ
   return {
     sendEmail: (msg) => api.post("/messages/send", { body: { raw: toBase64Url(buildRawEmail(msg)) } }),
     sendRaw: (raw) => api.post("/messages/send", { body: { raw: toBase64Url(raw) } }),
-    listMessages: (params) => api.get<{ messages?: { id: string }[] }>("/messages", { query: { q: params?.q, maxResults: params?.maxResults, labelIds: params?.labelIds } }),
+    // labelIds は string[] だが、共通クライアントの query は string|number|boolean しか受けない。
+    // Gmail API はカンマ区切りも解釈するので、ここで畳んで渡す(配列のまま渡すと TS2322)。
+    listMessages: (params) => api.get<{ messages?: { id: string }[] }>("/messages", {
+      query: {
+        q: params?.q,
+        maxResults: params?.maxResults,
+        labelIds: params?.labelIds && params.labelIds.length > 0 ? params.labelIds.join(",") : undefined,
+      },
+    }),
     getMessage: (messageId, format = "full") => api.get(`/messages/${messageId}`, { query: { format } }),
     listLabels: () => api.get<{ labels?: unknown[] }>("/labels"),
   };

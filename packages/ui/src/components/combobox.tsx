@@ -66,7 +66,7 @@ export function Combobox({
           role="combobox"
           aria-expanded={open}
           className={cn(
-            "flex h-10 w-full items-center justify-between rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]",
+            "flex h-9 w-full items-center justify-between rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]",
             !selected && "text-[var(--color-muted)]",
             className,
           )}

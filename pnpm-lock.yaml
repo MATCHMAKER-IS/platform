@@ -373,6 +373,12 @@ importers:
       '@platform/ai':
         specifier: workspace:*
         version: link:../../packages/ai
+      '@platform/apikey':
+        specifier: workspace:*
+        version: link:../../packages/apikey
+      '@platform/audit':
+        specifier: workspace:*
+        version: link:../../packages/audit
       '@platform/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -412,6 +418,9 @@ importers:
       '@platform/csv':
         specifier: workspace:*
         version: link:../../packages/csv
+      '@platform/currency':
+        specifier: workspace:*
+        version: link:../../packages/currency
       '@platform/datetime':
         specifier: workspace:*
         version: link:../../packages/datetime
@@ -433,6 +442,9 @@ importers:
       '@platform/freee':
         specifier: workspace:*
         version: link:../../packages/freee
+      '@platform/google':
+        specifier: workspace:*
+        version: link:../../packages/google
       '@platform/guard':
         specifier: workspace:*
         version: link:../../packages/guard
@@ -448,6 +460,9 @@ importers:
       '@platform/image':
         specifier: workspace:*
         version: link:../../packages/image
+      '@platform/inventory':
+        specifier: workspace:*
+        version: link:../../packages/inventory
       '@platform/invoice':
         specifier: workspace:*
         version: link:../../packages/invoice
@@ -463,6 +478,9 @@ importers:
       '@platform/notify':
         specifier: workspace:*
         version: link:../../packages/notify
+      '@platform/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@platform/ocr':
         specifier: workspace:*
         version: link:../../packages/ocr
@@ -472,6 +490,12 @@ importers:
       '@platform/pdf':
         specifier: workspace:*
         version: link:../../packages/pdf
+      '@platform/phone':
+        specifier: workspace:*
+        version: link:../../packages/phone
+      '@platform/pii':
+        specifier: workspace:*
+        version: link:../../packages/pii
       '@platform/print':
         specifier: workspace:*
         version: link:../../packages/print
@@ -526,6 +550,9 @@ importers:
       '@platform/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@platform/units':
+        specifier: workspace:*
+        version: link:../../packages/units
       '@platform/upload':
         specifier: workspace:*
         version: link:../../packages/upload
@@ -544,6 +571,9 @@ importers:
       '@platform/zengin':
         specifier: workspace:*
         version: link:../../packages/zengin
+      '@platform/zoho':
+        specifier: workspace:*
+        version: link:../../packages/zoho
       next:
         specifier: ^16.2.0
         version: 16.2.0(@playwright/test@1.61.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)

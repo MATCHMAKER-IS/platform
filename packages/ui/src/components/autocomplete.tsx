@@ -57,7 +57,7 @@ export function Autocomplete({
           else if (e.key === "Enter") { e.preventDefault(); const s = filtered[active]; if (s) choose(s); }
           else if (e.key === "Escape") setOpen(false);
         }}
-        className="h-10 w-full rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+        className="h-9 w-full rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
       />
       {open && filtered.length > 0 && (
         <ul className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg)] py-1 shadow-md">
