@@ -31,8 +31,7 @@ export function useTween(from: number, to: number, options: UseTweenOptions = {}
 
   React.useEffect(() => {
     startRef.current = null;
-    const now = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
-    const raf = (globalThis as unknown as { requestAnimationFrame?: (cb: (t: number) => void) => number }).requestAnimationFrame;
+        const raf = (globalThis as unknown as { requestAnimationFrame?: (cb: (t: number) => void) => number }).requestAnimationFrame;
     const caf = (globalThis as unknown as { cancelAnimationFrame?: (h: number) => void }).cancelAnimationFrame;
     if (!raf) { setValue(to); return; } // RAF 無し(SSR 等)は即最終値
 

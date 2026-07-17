@@ -40,15 +40,6 @@ function newBlock(type: EditableBlock["type"]): EditableBlock {
 /** ブロックエディタ。 */
 export function BlockEditor({ blocks, onChange, className }: BlockEditorProps) {
   const update = (i: number, data: Record<string, unknown>) => onChange(blocks.map((b, j) => (j === i ? { ...b, data } : b)));
-  const move = (i: number, dir: -1 | 1) => {
-    const j = i + dir;
-    if (j < 0 || j >= blocks.length) return;
-    const next = blocks.slice();
-    const tmp = next[i]!;
-    next[i] = next[j]!;
-    next[j] = tmp;
-    onChange(next);
-  };
   const remove = (i: number) => onChange(blocks.filter((_, j) => j !== i));
   const add = (type: EditableBlock["type"]) => onChange([...blocks, newBlock(type)]);
 

@@ -1454,6 +1454,7 @@
     "MailTransport",
     "Mailer",
     "MailerOptions",
+    "MemoryTransport",
     "PolicyApplication",
     "RecipientPolicy",
     "RenderedEmail",
@@ -2075,6 +2076,7 @@
   "@platform/session": [
     "AttemptRecord",
     "CookieOptions",
+    "EventTargetLike",
     "IDLE_ACTIVITY_EVENTS",
     "IdleTimer",
     "IdleTimerConfig",
@@ -2143,6 +2145,7 @@
     "visibleBlocks"
   ],
   "@platform/sms": [
+    "MemorySmsTransport",
     "OtpSmsOptions",
     "Sms",
     "SmsEncoding",

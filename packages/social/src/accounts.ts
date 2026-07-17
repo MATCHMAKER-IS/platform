@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import { type SocialPlatform, ALL_PLATFORMS } from "./platforms";
-import { normalizeHandle, canonicalHandle, isValidHandle, buildProfileUrl, displayHandle } from "./handle";
+import { normalizeHandle, canonicalHandle, buildProfileUrl, displayHandle } from "./handle";
 import { parseSocialUrl } from "./parse";
 
 /** 1 アカウント。 */

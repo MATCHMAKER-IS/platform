@@ -7,7 +7,7 @@ import * as React from "react";
 import { cn } from "../lib/cn";
 
 /** {@link PageHeader} の props。 */
-export interface PageHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface PageHeaderProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
   /** ページタイトル。 */
   title: React.ReactNode;
   /** 補足説明。 */
