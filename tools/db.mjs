@@ -14,8 +14,9 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = new URL("..", import.meta.url).pathname;
+const root = fileURLToPath(new URL("..", import.meta.url));
 const APPS = { "internal-app": "app", "crud-template": "app_crud", "equipment-app": "app_equipment" };
 const HOST = process.env.PGHOST ?? "localhost";
 

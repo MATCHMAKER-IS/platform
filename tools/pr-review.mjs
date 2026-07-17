@@ -7,8 +7,9 @@
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const tryRun = (cmd, args) => {
   try { return { ok: true, out: execFileSync(cmd, args, { cwd: ROOT, encoding: "utf8" }) }; }
   catch (e) { return { ok: false, out: (e.stdout ?? "") + (e.stderr ?? "") }; }

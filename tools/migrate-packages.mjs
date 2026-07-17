@@ -13,8 +13,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { CATEGORIES, CATEGORY_SLUGS } from "./package-categories.mjs";
+import { fileURLToPath } from "node:url";
 
-const root = new URL("..", import.meta.url).pathname;
+const root = fileURLToPath(new URL("..", import.meta.url));
 const arg = process.argv.find((a) => a.startsWith("--category="));
 const only = arg ? arg.split("=")[1] : null;
 

@@ -15,7 +15,7 @@ import { readFileSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
 /** E2E テストのあるディレクトリ。 */
 const TEST_DIRS = ["e2e", "apps/internal-app/e2e"];

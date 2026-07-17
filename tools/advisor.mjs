@@ -12,7 +12,7 @@
 import { readFileSync, existsSync, writeFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const read = (rel) => (existsSync(path.join(ROOT, rel)) ? readFileSync(path.join(ROOT, rel), "utf8") : "");
 
 function loadPackages() {

@@ -5,12 +5,14 @@
  *   node tools/check-win-setup.mjs
  */
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 
-const root = new URL("..", import.meta.url).pathname;
-const ps1 = readFileSync(`${root}scripts/setup.ps1`, "utf8");
-const bat = readFileSync(`${root}scripts/setup.bat`, "utf8");
+const root = fileURLToPath(new URL("..", import.meta.url));
+const ps1 = readFileSync(path.join(root, "scripts/setup.ps1"), "utf8");
+const bat = readFileSync(path.join(root, "scripts/setup.bat"), "utf8");
 let pssa = "";
-try { pssa = readFileSync(`${root}scripts/PSScriptAnalyzerSettings.psd1`, "utf8"); } catch { pssa = ""; }
+try { pssa = readFileSync(path.join(root, "scripts/PSScriptAnalyzerSettings.psd1"), "utf8"); } catch { pssa = ""; }
 
 let ng = 0;
 const check = (name, cond) => { console.log((cond ? "✅" : "❌") + " " + name); if (!cond) ng += 1; };
@@ -54,7 +56,7 @@ check("pssa: 危険ルールは除外していない(PlainTextPassword/InvokeExp
   const block = m ? m[1] : pssa;
   return !block.includes("PSAvoidUsingPlainTextForPassword") && !block.includes("PSAvoidUsingInvokeExpression");
 })());
-check("ci.yml: windows-scripts ジョブが設定ファイルを参照", (() => { try { return readFileSync(`${root}.github/workflows/ci.yml`, "utf8").includes("PSScriptAnalyzerSettings.psd1"); } catch { return false; } })());
+check("ci.yml: windows-scripts ジョブが設定ファイルを参照", (() => { try { return readFileSync(path.join(root, ".github/workflows/ci.yml"), "utf8").includes("PSScriptAnalyzerSettings.psd1"); } catch { return false; } })());
 
 if (ng > 0) { console.log(`\n❌ ${ng} 件の問題`); process.exitCode = 1; }
 else console.log("\n✅ Windows セットアップスクリプト 静的検査 OK");

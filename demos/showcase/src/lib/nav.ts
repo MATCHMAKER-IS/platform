@@ -163,6 +163,9 @@ export const SECTIONS: NavSection[] = [
 export function buildNavItems(): NavItem[] {
   return SECTIONS.map((section) => ({
     label: section.title,
+    // 区分自体もリンクにする(トップの該当セクションへ)。buildHeaderItems と同じ形。
+    // NavItem.href は必須。省略すると tsc が落ちる(Amplify で実際に落ちた)。
+    href: `/#${encodeURIComponent(section.title)}`,
     children: section.items.map((item) => ({ label: item.title, href: item.href })),
   }));
 }

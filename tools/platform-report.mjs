@@ -6,8 +6,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { CATEGORIES } from "./package-categories.mjs";
+import { fileURLToPath } from "node:url";
 
-const root = new URL("..", import.meta.url).pathname;
+const root = fileURLToPath(new URL("..", import.meta.url));
 const read = (p) => fs.readFileSync(p, "utf8");
 
 function* walk(dir, ext) {

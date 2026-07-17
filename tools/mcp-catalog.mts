@@ -11,8 +11,9 @@
 import { serveStdio } from "@platform/mcp";
 import { buildCatalogTools } from "./lib/catalog-tools.mjs";
 import { loadCatalog, loadDemos } from "./lib/catalog.mjs";
+import { fileURLToPath } from "node:url";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
 // 起動時に一度だけ読む(生成物が更新されたら再起動する)
 const catalog = loadCatalog({ root: ROOT });

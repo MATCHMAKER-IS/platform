@@ -8,7 +8,7 @@
 import { readFileSync, existsSync, writeFileSync, mkdirSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"];
 
 function* walk(dir) {

@@ -7,8 +7,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { CATEGORIES } from "./package-categories.mjs";
+import { fileURLToPath } from "node:url";
 
-const root = new URL("..", import.meta.url).pathname;
+const root = fileURLToPath(new URL("..", import.meta.url));
 const surface = JSON.parse(fs.readFileSync(path.join(root, "docs/platform/api-surface.json"), "utf8"));
 
 

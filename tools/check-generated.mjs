@@ -5,8 +5,10 @@
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const checks = [
   { gen: ["tools/gen-module-list.mjs"], file: "docs/ai/module-list.md" },
   { gen: ["tools/advisor.mjs", "report"], file: "docs/ai/advisor-report.md" },
@@ -23,9 +25,9 @@ const checks = [
 
 let ng = 0;
 for (const c of checks) {
-  const before = readFileSync(`${ROOT}${c.file}`, "utf8");
+  const before = readFileSync(path.join(ROOT, c.file), "utf8");
   execFileSync("node", c.gen, { cwd: ROOT, stdio: "ignore" });
-  const after = readFileSync(`${ROOT}${c.file}`, "utf8");
+  const after = readFileSync(path.join(ROOT, c.file), "utf8");
   // platform-report は生成日を含むので日付行を無視して比較
   const norm = (s) => s.replace(/生成日: \d{4}-\d{2}-\d{2}/g, "生成日: DATE");
   if (norm(before) !== norm(after)) {

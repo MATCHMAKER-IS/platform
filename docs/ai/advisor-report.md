@@ -1,6 +1,6 @@
 # Advisor レポート(自動生成)
 
-> 再生成: `node tools/advisor.mjs report`。生成日: 2026-07-16
+> 再生成: `node tools/advisor.mjs report`。生成日: 2026-07-17
 
 重複や似た API は「わざと(層が違う)」の場合もあります。這は**再利用の当たりを付ける入口**であり、機械的な指摘です。
 

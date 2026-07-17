@@ -18,7 +18,7 @@ import { readFileSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
 /** ランタイムコードを持たないパッケージ(検査対象外)。理由を残す。 */
 const EXEMPT = {

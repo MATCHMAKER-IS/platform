@@ -6,8 +6,9 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = new URL("..", import.meta.url).pathname;
+const root = fileURLToPath(new URL("..", import.meta.url));
 const APPS = ["internal-app", "public-site", "crud-template", "equipment-app"];
 // フレームワーク由来・例示不要のもの
 const IGNORE = new Set(["NODE_ENV", "NEXT_RUNTIME", "CI"]);

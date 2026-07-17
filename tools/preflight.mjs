@@ -5,8 +5,9 @@
  */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
-const root = new URL("..", import.meta.url).pathname;
+const root = fileURLToPath(new URL("..", import.meta.url));
 const run = (name, cmd, args) => {
   const t0 = Date.now();
   const r = spawnSync(cmd, args, { cwd: root, encoding: "utf8" });

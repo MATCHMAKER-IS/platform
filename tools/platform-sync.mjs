@@ -19,7 +19,7 @@ import { readFileSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
 function runTool(args, { quiet = true } = {}) {
   const r = spawnSync("node", [path.join(ROOT, "tools", args[0]), ...args.slice(1)], {

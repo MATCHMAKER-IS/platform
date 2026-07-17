@@ -8,7 +8,7 @@
 import { readFileSync, existsSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
 import path from "node:path";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
 /** schema テキストを { models: [{ name, fields:[{name,type,optional,isRelation,relationModel}] }], relations } に解析。 */
 function parseSchema(src) {

@@ -9,7 +9,7 @@ import { readFileSync, readdirSync, existsSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { CATEGORIES } from "./package-categories.mjs";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const pkgDir = path.join(ROOT, "packages");
 
 /** name -> { deps: string[], category } を集める。 */

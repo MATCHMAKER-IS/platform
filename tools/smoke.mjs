@@ -15,6 +15,7 @@ async function loadUiCatalogs() {
  * 実行検証を行う。`node --experimental-strip-types tools/smoke.mjs` で実行。
  */
 import { createHmac, randomBytes, timingSafeEqual, scryptSync, createCipheriv, createDecipheriv, randomInt } from "node:crypto";
+import { fileURLToPath } from "node:url";
 
 let pass = 0, fail = 0;
 const ok = (name, cond) => { if (cond) { pass++; console.log(`  ✅ ${name}`); } else { fail++; console.log(`  ❌ ${name}`); } };
@@ -1274,7 +1275,7 @@ section("dependency boundaries");
 {
   const { execSync } = await import("node:child_process");
   let passed = true;
-  try { execSync("node tools/check-deps.mjs", { cwd: new URL("..", import.meta.url).pathname, stdio: "pipe" }); }
+  try { execSync("node tools/check-deps.mjs", { cwd: fileURLToPath(new URL("..", import.meta.url)), stdio: "pipe" }); }
   catch { passed = false; }
   ok("循環依存・層破りなし", passed);
 }
@@ -9625,7 +9626,7 @@ export const z = anyChain;
       }
       return files;
     };
-    const root = new URL(`../apps/${app}/src`, import.meta.url).pathname;
+    const root = fileURLToPath(new URL(`../apps/${app}/src`, import.meta.url));
     for (const f of await walk(root)) {
       if (f.endsWith("server/env.ts")) continue;
       const body = await fsc.readFile(f, "utf8");
@@ -9656,7 +9657,7 @@ export const z = anyChain;
     iaEnv.includes("MAINTENANCE_ALLOW_IPS") && iaEnv.includes("SENTRY_DSN") && iaEnv.includes("useChatPrisma"));
 
   // check-env-example: 新しい読み取り口を検出し、参照=記載 になっている
-  const out = execFileSync("node", [new URL("./check-env-example.mjs", import.meta.url).pathname], { encoding: "utf8" });
+  const out = execFileSync("node", [fileURLToPath(new URL("./check-env-example.mjs", import.meta.url))], { encoding: "utf8" });
   ok("check-env-example: optionalEnv/requireEnv/featureEnv 等を検出・全アプリ✅・残骸警告なし",
     !out.includes("❌") && !out.includes("⚠️") && out.includes("参照 38 変数") && (out.match(/✅/g) || []).length === 4);
 
@@ -9687,15 +9688,15 @@ export const z = anyChain;
         else if (e.name === name) n += 1;
       }
     };
-    await walk(new URL(dir, import.meta.url).pathname);
+    await walk(fileURLToPath(new URL(dir, import.meta.url)));
     return n;
   };
   const pages = await countFiles("../apps/internal-app/src/app", "page.tsx");
   const apis = await countFiles("../apps/internal-app/src/app/api", "route.ts");
   const schema = await fsc.readFile(new URL("../apps/internal-app/prisma/schema.prisma", import.meta.url), "utf8");
   const models = (schema.match(/^model /gm) || []).length;
-  const demos = (await fsc.readdir(new URL("../demos", import.meta.url).pathname, { withFileTypes: true })).filter((e) => e.isDirectory()).length;
-  const pkgs = (await fsc.readdir(new URL("../packages", import.meta.url).pathname, { withFileTypes: true })).filter((e) => e.isDirectory()).length;
+  const demos = (await fsc.readdir(fileURLToPath(new URL("../demos", import.meta.url)), { withFileTypes: true })).filter((e) => e.isDirectory()).length;
+  const pkgs = (await fsc.readdir(fileURLToPath(new URL("../packages", import.meta.url)), { withFileTypes: true })).filter((e) => e.isDirectory()).length;
 
   ok(`紹介文の数値が実態と一致(internal 画面${pages}/API${apis}/モデル${models}・デモ${demos}・パッケージ${pkgs})`,
     doc.includes(`**画面 ${pages} / API ${apis} / DB モデル ${models}**`) &&
@@ -9712,7 +9713,7 @@ export const z = anyChain;
   section("AI開発アシスト: カタログMCP / 資料の鮮度");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
-  const root = new URL("..", import.meta.url).pathname;
+  const root = fileURLToPath(new URL("..", import.meta.url));
 
   // カタログ(検索ロジック)
   const base = `${osc.tmpdir()}/cat-${Date.now()}`;
@@ -9830,7 +9831,7 @@ export const z = anyChain;
   section("開発ポート / デモ検索 / 設計ルール");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
-  const root = new URL("..", import.meta.url).pathname;
+  const root = fileURLToPath(new URL("..", import.meta.url));
 
   // ポート: 重複なし・全アプリ明記・ドキュメント一致
   const P = await import(new URL("./check-ports.mjs", import.meta.url).href);
@@ -9906,7 +9907,7 @@ export const z = anyChain;
     adr.includes("workspace:*") && adr.includes("api-surface") && adr.includes("platform:check") && adr.includes("見直す条件"));
 
   // 全パッケージが private かつ同一バージョン(方針どおり)
-  const pkgDirs = (await fsc.readdir(new URL("../packages", import.meta.url).pathname, { withFileTypes: true })).filter((e) => e.isDirectory());
+  const pkgDirs = (await fsc.readdir(fileURLToPath(new URL("../packages", import.meta.url)), { withFileTypes: true })).filter((e) => e.isDirectory());
   let allPrivate = true, versions = new Set();
   for (const d of pkgDirs) {
     try {
@@ -11081,7 +11082,7 @@ export const z = anyChain;
       else if (/\.tsx?$/.test(e.name)) srcFiles.push(p);
     }
   };
-  await walk(new URL("../demos/showcase/src", import.meta.url).pathname);
+  await walk(fileURLToPath(new URL("../demos/showcase/src", import.meta.url)));
   const dbDeps = [];
   for (const f of srcFiles) {
     const s = await fsc.readFile(f, "utf8");
@@ -11153,7 +11154,7 @@ export const z = anyChain;
   section("パッケージのエントリ: ソース直指しで統一されているか");
   const fsc = await import("node:fs/promises");
   const path = await import("node:path");
-  const root = new URL("..", import.meta.url).pathname;
+  const root = fileURLToPath(new URL("..", import.meta.url));
   const pkgDir = path.join(root, "packages");
   const names = (await fsc.readdir(pkgDir, { withFileTypes: true })).filter((e) => e.isDirectory()).map((e) => e.name);
 
@@ -11194,7 +11195,7 @@ export const z = anyChain;
   section("パッケージの index: 名前の重複が無いか");
   const fsc = await import("node:fs/promises");
   const path = await import("node:path");
-  const root = new URL("..", import.meta.url).pathname;
+  const root = fileURLToPath(new URL("..", import.meta.url));
   const pkgDir = path.join(root, "packages");
   const names = (await fsc.readdir(pkgDir, { withFileTypes: true })).filter((e) => e.isDirectory()).map((e) => e.name);
 
@@ -11229,7 +11230,7 @@ export const z = anyChain;
   section('React: "use client" の付け忘れが無いか');
   const fsc = await import("node:fs/promises");
   const path = await import("node:path");
-  const root = new URL("..", import.meta.url).pathname;
+  const root = fileURLToPath(new URL("..", import.meta.url));
 
   const HOOKS = /\buse(State|Effect|Ref|Memo|Callback|Context|Reducer|LayoutEffect|ImperativeHandle)\b/;
   const missing = [];
