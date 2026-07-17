@@ -370,6 +370,9 @@ importers:
       '@platform/address':
         specifier: workspace:*
         version: link:../../packages/address
+      '@platform/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@platform/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -412,6 +415,12 @@ importers:
       '@platform/datetime':
         specifier: workspace:*
         version: link:../../packages/datetime
+      '@platform/dencho':
+        specifier: workspace:*
+        version: link:../../packages/dencho
+      '@platform/depreciation':
+        specifier: workspace:*
+        version: link:../../packages/depreciation
       '@platform/device':
         specifier: workspace:*
         version: link:../../packages/device
@@ -439,12 +448,18 @@ importers:
       '@platform/image':
         specifier: workspace:*
         version: link:../../packages/image
+      '@platform/invoice':
+        specifier: workspace:*
+        version: link:../../packages/invoice
       '@platform/loadtest':
         specifier: workspace:*
         version: link:../../packages/loadtest
       '@platform/mail':
         specifier: workspace:*
         version: link:../../packages/mail
+      '@platform/mcp':
+        specifier: workspace:*
+        version: link:../../packages/mcp
       '@platform/notify':
         specifier: workspace:*
         version: link:../../packages/notify
@@ -460,6 +475,15 @@ importers:
       '@platform/print':
         specifier: workspace:*
         version: link:../../packages/print
+      '@platform/purchase':
+        specifier: workspace:*
+        version: link:../../packages/purchase
+      '@platform/quote':
+        specifier: workspace:*
+        version: link:../../packages/quote
+      '@platform/rag':
+        specifier: workspace:*
+        version: link:../../packages/rag
       '@platform/ratelimit':
         specifier: workspace:*
         version: link:../../packages/ratelimit
@@ -469,12 +493,18 @@ importers:
       '@platform/report':
         specifier: workspace:*
         version: link:../../packages/report
+      '@platform/search':
+        specifier: workspace:*
+        version: link:../../packages/search
       '@platform/security':
         specifier: workspace:*
         version: link:../../packages/security
       '@platform/seo':
         specifier: workspace:*
         version: link:../../packages/seo
+      '@platform/sequence':
+        specifier: workspace:*
+        version: link:../../packages/sequence
       '@platform/session':
         specifier: workspace:*
         version: link:../../packages/session
@@ -487,6 +517,9 @@ importers:
       '@platform/task':
         specifier: workspace:*
         version: link:../../packages/task
+      '@platform/tax':
+        specifier: workspace:*
+        version: link:../../packages/tax
       '@platform/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -508,6 +541,9 @@ importers:
       '@platform/xlsx':
         specifier: workspace:*
         version: link:../../packages/xlsx
+      '@platform/zengin':
+        specifier: workspace:*
+        version: link:../../packages/zengin
       next:
         specifier: ^16.2.0
         version: 16.2.0(@playwright/test@1.61.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
