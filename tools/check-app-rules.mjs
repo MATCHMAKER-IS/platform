@@ -9,6 +9,9 @@
  *   1. 禁止ライブラリの直接 import(nodemailer / pdfkit 等 → 基盤のラッパー経由にする)
  *   2. 汎用処理の自作らしきファイル名(csv.ts / pdf.ts / logger.ts 等)
  *   3. 基盤にある機能の再実装らしき関数名(formatDate / validateEmail 等)
+ *   4. **基盤の UI 部品を使わず、生の <button> / <input> を書いていないか**
+ *      → サイズもスキンも基盤と揃わなくなる。デモサイトが基盤を使っていない、
+ *        という本末転倒が実際に起きた(21 ページで生タグ 129 個・Button 使用 0 箇所)
  *
  * 業務ロジック(勤怠の集計・経費の承認判定など)は **apps に書くのが正しい**ので検出しない。
  */
@@ -114,6 +117,23 @@ export function check() {
           }
         }
 
+        // 4. 基盤の UI 部品を使わず生タグを書いていないか
+        //    `<button>` を inline style で作ると、基盤の h-9 を変えても追従せず、
+        //    スキンを切り替えても変わらない。**基盤を使う理由そのものが消える**。
+        if (/\.tsx$/.test(file)) {
+          const raw = {
+            button: (body.match(/<button[\s>]/g) ?? []).length,
+            input: (body.match(/<input[\s>]/g) ?? []).length,
+            select: (body.match(/<select[\s>]/g) ?? []).length,
+            textarea: (body.match(/<textarea[\s>]/g) ?? []).length,
+          };
+          const total = raw.button + raw.input + raw.select + raw.textarea;
+          if (total > 0) {
+            const detail = Object.entries(raw).filter(([, n]) => n > 0).map(([k, n]) => `<${k}> ${n}`).join(" / ");
+            rawTagFiles.push({ rel, detail, total });
+          }
+        }
+
         // 2. 汎用処理の自作を疑うファイル名
         const base = path.basename(file);
         if (SUSPICIOUS_FILES[base]) {
@@ -125,8 +145,28 @@ export function check() {
       }
     }
   }
+  // 116 ファイルを 1 行ずつ出すと、他の検査の警告が埋もれて誰も読まなくなる。
+  // 既定は **要約 1 行**。詳細は `--ui` で出す。
+  if (rawTagFiles.length > 0) {
+    const total = rawTagFiles.reduce((n, f) => n + f.total, 0);
+    if (process.argv.includes("--ui")) {
+      for (const f of rawTagFiles.sort((a, b) => b.total - a.total)) {
+        issues.push({ level: "warn", message: `${f.rel}: 生タグ ${f.detail} → @platform/ui の Button / Input / Select / Textarea を使ってください` });
+      }
+    } else {
+      issues.push({
+        level: "warn",
+        message:
+          `生タグ(<button>/<input>/<select>/<textarea>)を ${rawTagFiles.length} ファイル・${total} 箇所で使っています` +
+          ` → @platform/ui を使ってください(CLAUDE.md「UI 部品は @platform/ui を使う」)。一覧: node tools/check-app-rules.mjs --ui`,
+      });
+    }
+  }
   return { scanned, issues };
 }
+
+/** 生タグを使っているファイル(要約用に貯める)。 */
+const rawTagFiles = [];
 
 function main() {
   const { scanned, issues } = check();

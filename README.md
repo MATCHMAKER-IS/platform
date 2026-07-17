@@ -1,90 +1,119 @@
-# `mcp/page.tsx` の型エラー修正 + Result 型の総点検（2 ファイル）
+# ①規約の文書化 + ②検査の追加（4 ファイル）
 
-**依存は増えません。`pnpm install` は不要です。**
+**コードの変更はありません。`pnpm install` 不要、`pnpm build` にも影響しません。**
 
 ```powershell
-cd demos\showcase
-pnpm build
+node tools/check-app-rules.mjs          # 要約 1 行
+node tools/check-app-rules.mjs --ui     # 116 ファイルの一覧(多い順 = 着手順)
+node tools/preflight.mjs                # すべて緑のまま
 ```
 
-## 原因
+## 調査結果 — 私が持ち込んだ問題ではありませんでした
 
-```ts
-export function parseJsonRpc(line: string):
-  { ok: true; value: JsonRpcRequest } | { ok: false; error: JsonRpcResponse }
-```
+**116 ファイル・666 箇所**が生タグを使っています。
 
-**`JsonRpcRequest | null` だと思い込んでいました。** 8 回目の「戻り値の形」の失敗です。
+| | ファイル数 |
+|---|---|
+| `apps/internal-app` | **81** |
+| `demos/showcase` | 30（うち私が作った 19） |
+| その他アプリ | 5 |
 
-### 修正のついでに、無駄も消えました
+内訳: `<button>` 330 / `<input>` 250 / `<select>` 62 / `<textarea>` 21。
 
-```diff
-- if (!parsed) return JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } }, null, 2);
-+ // parseJsonRpc は Result 型。失敗時は **整形済みの JsonRpcResponse** をくれるので、
-+ // アプリ側で -32700 を組み立てる必要がない(手で書くとコード番号を間違える)。
-+ if (!parsed.ok) return JSON.stringify(parsed.error, null, 2);
-```
+**そして `CLAUDE.md` にも `patterns.md` にも「UI 部品は基盤を使う」という規約が
+ありませんでした。** つまりこれは規約違反ではなく、**規約が存在しない**状態です。
 
-**私は `-32700` を手で書いていました。** 基盤がエラー応答を整形して返してくれるので不要です。
-JSON-RPC のエラーコードを各アプリで手書きするのは、まさに基盤が防ぎたいことでした。
+私は `patterns.md` の「既存の同型コードを 1 つ開いて真似る」に従い、
+既存（生タグ）を真似ていました。**ルールが無ければ、AI も人も同じことをします。**
 
-## ★ 手書きの走査を諦めて、tsc に直接聞きました
+## ① 規約の文書化
 
-「Result 型を返す関数」を正規表現で探そうとして **2 回失敗**しました
-（複数行シグネチャを拾えず、`parseJsonRpc` も `createMessage` も検出できなかった）。
+### `CLAUDE.md`
 
-代わりに **`union-literals.ts` で全部を実際に呼ぶ**ようにしました。
-
-```ts
-// /mcp
-const parsed = parseJsonRpc('{"jsonrpc":"2.0","id":1,"method":"tools/list"}');
-export const mcpOut = parsed.ok ? ... : JSON.stringify(parsed.error);
-
-// /chat
-const cm = createMessage({ ... });
-export const chatMsgs = cm.ok ? [cm.message] : [];
-
-// /rag, /ai, /inventory, /board-threads, /zengin も同様
-```
-
-**結果、私が使っている戻り値の扱いは全部正しいことが確認できました。**
-`createMessage` は `{ ok, message }`、`createThread` は `{ ok, thread }`、
-`applyMovement` は `{ ok, movements }` と**形が微妙に違う**ので、思い込みでは書けません。
-
-## 8 パターン中 4 つを実際に壊して確認
+「apps に書かない(基盤にある)」の表に **UI 部品**を追加し、専用の節を新設：
 
 ```
-① TS2339: Property 'id' does not exist on type '{ ok: true; value: JsonRpcRequest; }'   ← 今回
-② TS2339: Property 'message' does not exist on type 'CreateMessageResult'
-③ TS2345: Argument of type 'Money | null' is not assignable to parameter of type 'Money'
-④ TS2322: Type '"direct"' is not assignable to type 'RoomKind'
-⑤ EmailLoginValues の remember 漏れ → ❌ **捕まらない**
+### UI 部品は `@platform/ui` を使う
+
+❌ <button className="rounded bg-neutral-900 px-3 py-1.5">保存</button>
+✅ <Button>保存</Button>
 ```
 
-**⑤ だけは私の環境では原理的に無理です。** `@platform/ui` は React 依存で、
-`@types/react` が無いためスタブ扱いになります。
-ただし**あなたの `pnpm typecheck` では走ります**（該当は `/login` の 1 箇所のみと確認済み）。
+**理由も書きました**（これが無いと守られません）：
 
-## これまでの失敗の総括
+- **サイズが揃わない** — 基盤で `h-10`→`h-9` にしたのに、生タグの画面だけ大きいまま（実際に起きた）
+- **スキンが効かない** — `bg-neutral-900` は固定色。11 スキンを用意した意味が消える
+- **1 箇所で直せない** — フォーカスリングやアクセシビリティの修正が全アプリへの一括修正になる
 
-| 種類 | 回数 | 現在の状態 |
-|---|---|---|
-| 列挙値の思い込み | 4 | ✅ `union-literals.ts` で捕捉 |
-| 戻り値の null 許容 | 2 | ✅ 同上 |
-| **Result 型の形** | **2**（今回含む） | ✅ 同上（全関数を実際に呼ぶ形に） |
-| `@platform/ui` の型 | 1 | ❌ 原理的に不可（該当 1 箇所のみ） |
-| 古いファイルの混入 | 1 | ✅ 確認手順を追加 |
+### `docs/ai/patterns.md`
 
-**`union-literals.ts` が、この 9 回分の失敗の記録そのもの**です。
-ページで新しい API を使うときは、必ずここに一度書いてから使います。
+**冒頭に警告 + 0 節（最初に読む）**を新設：
+
+> ⚠️ **ただし UI だけは既存を真似ないこと。**
+> 既存コードの多くが生タグを Tailwind 直書きで使っている(移行中)。**真似ると同じ負債が増える。**
+
+用途 → 部品の対応表も載せました（`Button` / `Input` / `Select` / `NumberInput` /
+`DatePicker` / `Combobox` / `TagInput` ほか）。
+
+**ここが AI（Claude Code / Cursor）が読む定型集なので、実質こちらが効きます。**
+
+## ② 検査
+
+`check-app-rules.mjs` の「検出するもの」に **4 番目**として追加。
+
+```
+⚠️  生タグ(<button>/<input>/<select>/<textarea>)を 116 ファイル・666 箇所で使っています
+    → @platform/ui を使ってください(CLAUDE.md「UI 部品は @platform/ui を使う」)
+    一覧: node tools/check-app-rules.mjs --ui
+```
+
+### 既定は要約 1 行
+
+**116 行を毎回出すと、他の検査の警告が埋もれて誰も読まなくなります。**
+既定は要約、詳細は `--ui`。一覧は**箇所数の多い順**なので、着手順がそのまま分かります。
+
+```
+apps/internal-app/src/app/cms/cms-client.tsx: <button> 16 / <input> 9 / <select> 3 / <textarea> 1
+apps/equipment-app/src/app/equipment-client.tsx: <button> 11 / <input> 8
+...
+```
+
+### `warn` にした理由
+
+666 箇所を今すぐ直すのは無理なので、**`error` にすると `preflight` が常時赤**になり、
+他の本物のエラーが埋もれます。移行が終わったら `error` に上げてください。
+
+## ★ smoke が正しく壊れました
+
+`check-app-rules` に warn を足した瞬間、smoke の
+`ok("...侵していない", r.issues.length === 0)` が赤くなりました。**正しい検知です。**
+
+期待を緩めるだけでは検査が骨抜きになるので、こう直しました：
+
+- `error` のみで判定（warn は「移行中」なので許す）
+- **代わりに「生タグ検査が機能しているか」を新しく検査**
+  （件数と `--ui` の案内が出るか。**「warn が 0 か」ではなく「検査が生きているか」を見る**）
+- **規約の文書化そのものも検査**（`CLAUDE.md` と `patterns.md` に理由まで書かれているか）
+
+検査だけあってドキュメントに無いと、**誰も理由を知らないまま赤くなる**ので。
+
+`error`（`nodemailer` の直接 import 等）は**今も止まる**ことを確認済みです。
 
 ## 検証状況
 
 | 検査 | 結果 |
 |---|---|
-| **全ページの Result 型の扱いを tsc で検証** | ✅ 正しい |
-| 過去の失敗 8 パターンを実際に壊して確認 | ✅ 4/5（⑤ は環境的に不可） |
-| `check-build-ready`（I/J/K/L/M/N/O/P/R） | ✅ |
+| `smoke` | ✅ **1247 passed, 0 failed** |
 | `preflight` | ✅ すべて緑 |
+| error が今も止まるか（骨抜き防止） | ✅ 確認済み |
+| `check-docs-links` / `check-docs-duplication` | ✅ |
 | `gen-all` | ✅ |
-| **`pnpm build`** | ❌ 未検証 |
+
+## 次（③）について
+
+一覧の**多い順から、1〜2 ファイルずつ**です。`demos/showcase` の私の 19 ファイルから始めるのが安全です
+（私が作った負債で、見た目が変わっても影響が小さい）。
+
+**`apps/internal-app` の 81 ファイルは別件**として計画を立ててください。本番の業務アプリで、
+`<input type="file">` 8 箇所 / `range` 2 箇所は**基盤に受け皿がありません**（`FileInput` / `RangeInput` が無い）。
+機械的に置換すると壊れるので、基盤側に部品を足す判断が先です。

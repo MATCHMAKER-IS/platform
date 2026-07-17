@@ -10528,13 +10528,32 @@ export const z = anyChain;
   // 機械検査(規約は書くだけでは守られない)
   const R = await import(new URL("./check-app-rules.mjs", import.meta.url).href);
   const r = R.check();
-  ok(`check-app-rules: apps/demos が基盤の役割を侵していない(${r.scanned} ファイル)`, r.issues.length === 0);
+  // error は 0 であること。warn は「移行中」の指摘(生タグ等)なので許す。
+  const errors = r.issues.filter((i) => i.level === "error");
+  ok(`check-app-rules: apps/demos が基盤の役割を侵していない(${r.scanned} ファイル・error ${errors.length})`, errors.length === 0);
+  // 生タグ検査が生きていること。**移行が終わるまで warn が出続けるので、
+  // 「warn が 0 か」ではなく「検査が機能しているか」を見る**(骨抜き防止)。
+  const rawWarn = r.issues.find((i) => i.level === "warn" && i.message.includes("生タグ"));
+  ok("check-app-rules: 生タグ(<button>/<input>)を検出し、件数と --ui の案内を出す",
+    rawWarn !== undefined && /\d+ ファイル・\d+ 箇所/.test(rawWarn.message) && rawWarn.message.includes("--ui"));
   const tool = await fsc.readFile(new URL("./check-app-rules.mjs", import.meta.url), "utf8");
   ok("check-app-rules: 禁止ライブラリの直接 import と汎用処理の自作を検出・例外は理由付き",
     tool.includes("nodemailer") && tool.includes("@platform/mail") && tool.includes("@anthropic-ai/sdk") &&
     tool.includes("ADR 0010") && tool.includes("SUSPICIOUS_FILES") && tool.includes("ALLOW"));
   ok("check-app-rules: 業務ロジックは検出しない(apps に書くのが正しいため)",
     tool.includes("業務ロジック") && tool.includes("apps に書くのが正しい"));
+  // 116 ファイルを 1 行ずつ出すと他の警告が埋もれるので、既定は要約 1 行にしてある
+  ok("check-app-rules: 生タグは既定で要約 1 行・詳細は --ui(警告の洪水を防ぐ)",
+    tool.includes("--ui") && tool.includes("rawTagFiles"));
+
+  // 規約そのもの(検査だけあってドキュメントに無いと、誰も理由を知らないまま赤くなる)
+  const claudeUiRule = await fsc.readFile(new URL("../CLAUDE.md", import.meta.url), "utf8");
+  ok("CLAUDE.md: UI 部品は @platform/ui を使う(生タグ禁止・理由・移行中である旨)",
+    claudeUiRule.includes("UI 部品は `@platform/ui` を使う") && claudeUiRule.includes("スキンが効かない") &&
+    claudeUiRule.includes("check-app-rules"));
+  const patternsUiRule = await fsc.readFile(new URL("../docs/ai/patterns.md", import.meta.url), "utf8");
+  ok("patterns.md: UI は既存を真似ない(既存が生タグなので、真似ると負債が増える)",
+    patternsUiRule.includes("UI だけは既存を真似ない") && patternsUiRule.includes("@platform/ui"));
 }
 
 // ── タスク管理の画面(@platform/task の配線) ──

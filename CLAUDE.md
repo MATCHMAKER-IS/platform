@@ -64,11 +64,46 @@
 | 画面の表示制御・遷移 | CSV・PDF・Excel・帳票 |
 | 業務フロー固有の分岐 | メール・通知・SMS |
 | このアプリだけの設定 | ファイル操作・ストレージ |
+| | **UI 部品(ボタン・入力欄・プルダウン等)** |
 | | HTTP クライアント・外部 API 連携 |
 | | AI 連携・RAG・MCP |
 | | Workflow・Scheduler・Queue・Cache |
 | | Feature Flag・設定管理 |
 | | テストユーティリティ |
+
+### UI 部品は `@platform/ui` を使う
+
+**生の `<button>` / `<input>` / `<select>` / `<textarea>` を書かないこと。**
+
+```tsx
+// ❌ 生タグ + inline style や Tailwind 直書き
+<button className="rounded bg-neutral-900 px-3 py-1.5 text-sm text-white">保存</button>
+<input className="rounded border px-2 py-1 text-sm" />
+
+// ✅ 基盤の部品
+import { Button, Input } from "@platform/ui";
+<Button>保存</Button>
+<Input placeholder="氏名" />
+```
+
+**なぜか**:
+
+- **サイズが揃わない**。基盤で入力欄の高さを変えても、生タグは追従しない。
+  実際、`h-10`→`h-9` にしたのに生タグの画面だけ大きいまま、という事象が起きた
+- **スキンが効かない**。`bg-neutral-900` のような固定色はテーマを切り替えても変わらない。
+  11 スキンを用意した意味が消える
+- **1 箇所で直せない**。フォーカスリングやアクセシビリティ属性の修正が、
+  基盤ではなく全アプリへの一括修正になる
+
+`@platform/ui` にあるもの: `Button` / `Input` / `Textarea` / `Select` / `NumberInput` /
+`PasswordInput` / `Checkbox` / `Radio` / `Switch` / `DatePicker` / `Combobox` /
+`TagInput` / `ColorPicker` / `Slider` ほか。
+
+**無い部品が必要なら、アプリで自作せず基盤に足す。**
+そのとき「このアプリだけで使うか」を考える必要はない —— UI 部品は定義上どのアプリでも使う。
+
+> 検査: `node tools/check-app-rules.mjs` が生タグを検出する(現在は警告)。
+> 既存コードには未適用の箇所が多く残っている(移行中)。**新しく書くコードでは守ること。**
 
 ### 判断基準(基盤 or アプリ)
 

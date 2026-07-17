@@ -2,6 +2,46 @@
 
 新規実装時は**既存の同型コードを1つ開いて真似る**のが最短。ここでは代表パターンの雛形と参照先を示す。
 
+> ⚠️ **ただし UI だけは既存を真似ないこと。**
+> 既存コードの多くが生の `<button>` / `<input>` を Tailwind 直書きで使っている(移行中)。
+> **真似ると同じ負債が増える。** UI 部品は必ず `@platform/ui` を使う(下記 0 節)。
+
+## 0. UI 部品は `@platform/ui` を使う ★最初に読む
+
+参照: `demos/showcase/src/app/ui/page.tsx`(全部品の一覧) /
+`demos/showcase/src/app/register/page.tsx`(フォームの実例)
+
+```tsx
+// ❌ 生タグ + inline style / Tailwind 直書き
+<button className="rounded bg-neutral-900 px-3 py-1.5 text-sm text-white">保存</button>
+<input className="rounded border px-2 py-1 text-sm" />
+<select className="..."><option>A</option></select>
+
+// ✅ 基盤の部品
+import { Button, Input, Select, Textarea, NumberInput } from "@platform/ui";
+<Button>保存</Button>
+<Button variant="secondary" size="sm">戻る</Button>
+<Input placeholder="氏名" />
+<Select placeholder="部署" options={[{ label: "営業", value: "s" }]} />
+```
+
+| 用途 | 部品 |
+|---|---|
+| ボタン | `Button`(`variant`: primary/secondary/ghost/danger、`size`: sm/md/lg) |
+| 文字入力 | `Input` / `Textarea` / `PasswordInput` |
+| 数値 | `NumberInput` |
+| 選択 | `Select` / `Combobox` / `Checkbox` / `Radio` / `Switch` |
+| 日付・色・範囲 | `DatePicker` / `ColorPicker` / `Slider` |
+| タグ | `TagInput` |
+
+**なぜか**: 生タグだとサイズが基盤に追従せず、固定色はスキン切替で変わらず、
+フォーカスリングやアクセシビリティの修正が全アプリへの一括修正になる。
+
+**無い部品が必要なら、アプリで自作せず基盤に足す。**
+UI 部品は定義上どのアプリでも使うので、「このアプリだけか」を悩む必要はない。
+
+> 検査: `node tools/check-app-rules.mjs` が生タグを警告する。
+
 ## 1. ストア(memory + prisma 両実装)
 
 参照: `apps/internal-app/src/server/report-preset.ts`(小さく典型的)
