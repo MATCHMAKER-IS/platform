@@ -257,7 +257,7 @@ export { resolveTheme, nextThemePreference, toggleTheme, applyTheme, THEME_LABEL
 export { isNavActive, findActiveNav, flattenNav, hasActiveChild, filterNavByPermission, type NavItem } from "./lib/nav";
 export { NoticeBoard, type NoticeBoardProps, type NoticeItem, type NoticeLevel } from "./components/notice-board";
 export { Kanban, type KanbanProps, type KanbanColumn, type KanbanCard } from "./components/kanban";
-export { moveCard, countByColumn } from "./lib/kanban";
+export { moveCard, countByColumn, type KanbanCardLike, type KanbanColumnLike } from "./lib/kanban";
 
 // ── スケジュール/カレンダー(閲覧用・Google カレンダー風)──
 export { ScheduleCalendar, type ScheduleCalendarProps, type CalendarView } from "./components/schedule-calendar";

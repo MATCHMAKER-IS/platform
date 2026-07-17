@@ -76,7 +76,7 @@ export function createSms(options: SmsOptions): Sms {
 }
 
 export { createTwilioTransport, type TwilioConfig } from "./transports/twilio";
-export { createMemoryTransport } from "./transports/memory";
+export { createMemoryTransport, type MemorySmsTransport } from "./transports/memory";
 
 export * from "./segment";
 export { withSmsRetry, createFallbackSmsTransport, type SmsRetryOptions, type SmsFallbackOptions } from "./resilient";

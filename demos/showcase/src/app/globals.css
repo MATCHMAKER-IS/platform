@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* 基盤の UI 部品は node_modules 配下の symlink(pnpm workspace)として解決される。
+   Tailwind 4 の自動検出は node_modules を除外するため、明示的に走査対象へ加える。
+   これが無いと @platform/ui のクラスが 1 つも生成されず、レイアウトが崩れる。 */
+@source "../../../../packages/ui/src";

@@ -10,3 +10,13 @@
   --radius: 0.5rem;
   --font-sans: "Inter", system-ui, "Hiragino Sans", "Noto Sans JP", sans-serif;
 }
+
+/* ダッシュボードグリッド(DashboardGrid)。
+   Tailwind の任意値では書けない grid-template-columns の動的カラム数をここで持つ。 */
+.platform-dashboard {
+  display: grid;
+  grid-template-columns: repeat(var(--dash-cols, 12), minmax(0, 1fr));
+}
+@media (max-width: 640px) {
+  .platform-dashboard { grid-template-columns: 1fr; }
+}

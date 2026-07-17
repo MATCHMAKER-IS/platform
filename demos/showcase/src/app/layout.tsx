@@ -1,4 +1,5 @@
 import "@platform/ui/tokens.css";
+import "./globals.css";
 import { Toaster, AppSkin, ThemeSwitcher } from "@platform/ui";
 import { DemoSidebar } from "../components/demo-sidebar";
 

@@ -26026,6 +26026,16 @@
       "returns": "形式が妥当そうなら true"
     },
     {
+      "name": "KanbanCardLike",
+      "kind": "interface",
+      "summary": "カンバンの純ロジック(カードの移動・並べ替え)。UI から分離してテスト可能にする。"
+    },
+    {
+      "name": "KanbanColumnLike",
+      "kind": "interface",
+      "summary": ""
+    },
+    {
       "name": "KeyChord",
       "kind": "interface",
       "summary": "mod = Mac の ⌘ / それ以外の Ctrl。 */ mod: boolean; ctrl: boolean; meta: boolean; shift: boolean; alt: boolean; } /** キー入力(KeyboardEvent 互換の最小形)。"

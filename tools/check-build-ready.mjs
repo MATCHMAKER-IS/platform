@@ -15,6 +15,7 @@
  * - F: client から node: 専用のコードを import していないか
  * - G: 構文エラー(引数リストに文が混入。過去の一括処理が壊した形)
  * - J: server → client へ関数を持つオブジェクト(create*() の戻り値)を渡していないか
+ * - K: バレルが関数だけ出して戻り値の型を出していない(TS2742/TS2883)
  *
  * 使い方: node tools/check-build-ready.mjs
  */
@@ -267,6 +268,63 @@ export function check() {
             issues.push(
               `[J] ${path.relative(ROOT, f)}: ${name}(create*() の戻り値)を server から client へ prop で渡している` +
               ` — 関数は RSC 境界を越えられない。client 側で作るか、プレーンデータを渡すこと`,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  // ── K: バレルが「関数だけ出して戻り値の型を出していない」状態でないか ──
+  // packages/*/package.json の exports は "." のみ。サブパスを名指しできないので、
+  // 戻り値の型がバレルから出ていないと、利用側で型に名前を付けられずビルドが落ちる:
+  //   TS2742/TS2883: The inferred type of 'x' cannot be named without a reference to ...
+  // dev では動き、next build の型検査で初めて出る(Amplify で実際に落ちた)。
+  {
+    const BUILTIN = new Set(["void","string","number","boolean","Promise","Result","Record","Array",
+      "Map","Set","unknown","any","never","null","undefined","object","Uint8Array","Date","RegExp",
+      "AsyncGenerator","Generator","Iterable","AsyncIterable","ReadableStream","Response","Buffer",
+      "URL","Error","Partial","Required","Pick","Omit","this"]);
+    const declaredTypes = (src) =>
+      new Set([...src.matchAll(/^\s*(?:export\s+)?(?:interface|type|class|enum)\s+(\w+)/gm)].map((m) => m[1]));
+    const exportedTypes = (src) =>
+      new Set([...src.matchAll(/^\s*export\s+(?:interface|type|class|enum)\s+(\w+)/gm)].map((m) => m[1]));
+    const resolveTs = (from, spec) => {
+      const t = path.resolve(path.dirname(from), spec);
+      for (const c of [`${t}.ts`, `${t}.tsx`, path.join(t, "index.ts")]) if (existsSync(c)) return c;
+      return null;
+    };
+
+    for (const barrel of collect(path.join(ROOT, "packages"), [".ts"]).filter((f) => f.endsWith("src/index.ts"))) {
+      const bsrc = readFileSync(barrel, "utf8");
+      const out = exportedTypes(bsrc);
+      // export { A, type B, type C } の型名を「全部」拾う(1つ目だけでは取りこぼす)
+      for (const m of bsrc.matchAll(/export\s*\{([^}]*)\}/g)) {
+        for (const raw of (m[1] ?? "").split(",")) {
+          const n = raw.trim();
+          if (n.startsWith("type ")) out.add(n.slice(5).split(" as ").pop().trim());
+        }
+      }
+      for (const m of bsrc.matchAll(/export\s*\*\s*from\s*"(\.[^"]+)"/g)) {
+        const t = resolveTs(barrel, m[1]);
+        if (t) for (const n of exportedTypes(readFileSync(t, "utf8"))) out.add(n);
+      }
+      for (const m of bsrc.matchAll(/export\s*\{([^}]*)\}\s*from\s*"(\.[^"]+)"/g)) {
+        const target = resolveTs(barrel, m[2]);
+        if (!target) continue;
+        const tsrc = readFileSync(target, "utf8");
+        const decl = declaredTypes(tsrc);
+        for (const raw of (m[1] ?? "").split(",")) {
+          const name = raw.trim();
+          if (!name || name.startsWith("type ")) continue;
+          const fn = name.split(" as ")[0].trim();
+          const fm = new RegExp(`export\\s+function\\s+${fn}\\s*(?:<[^>]*>)?\\s*\\([^)]*\\)\\s*:\\s*([^{;]+)`, "s").exec(tsrc);
+          if (!fm) continue;
+          for (const id of new Set([...(fm[1] ?? "").matchAll(/\b([A-Z]\w*)/g)].map((x) => x[1]))) {
+            if (BUILTIN.has(id) || !decl.has(id) || out.has(id)) continue;
+            issues.push(
+              `[K] ${path.relative(ROOT, barrel)}: ${fn}() の戻り値の型 ${id} がバレルから export されていない` +
+              ` — 利用側で TS2742/TS2883 になる。\`export { ${fn}, type ${id} } from "..."\` にすること`,
             );
           }
         }
