@@ -12,4 +12,7 @@ export * from "./dunning";
 export * from "./recurring";
 export * from "./reconcile";
 // 適格請求書発行事業者の登録番号(T+13桁)の検証・正規化は税パッケージを再エクスポート
-export { isValidInvoiceNumber, normalizeInvoiceNumber } from "@platform/tax";
+// 税まわりは @platform/tax が実装元。ただし invoice を入口にする利用者
+// (@platform/quote / @platform/purchase)が「税計算の設定」を書けるよう、
+// 引数に必要な型はここから通す。これが無いと利用側が TS2305 で落ちる。
+export { isValidInvoiceNumber, normalizeInvoiceNumber, type Rounding, type TaxRate, type TaxSummary } from "@platform/tax";

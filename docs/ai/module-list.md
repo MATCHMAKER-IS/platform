@@ -50,7 +50,7 @@
 - **@platform/auth** — 認証・認可の共通部品。
   - 主なexport: AuthUser, AuthenticationOptionsInput, AuthenticatorData, AuthenticatorFlags, BackupCodeRecord, BackupCodeVerifyResult, …(全72)
 - **@platform/session** — セッション・クッキー処理の共通部品。
-  - 主なexport: AttemptRecord, CookieOptions, EventTargetLike, IDLE_ACTIVITY_EVENTS, IdleTimer, IdleTimerConfig, …(全35)
+  - 主なexport: AttemptRecord, CookieOptions, IDLE_ACTIVITY_EVENTS, IdleTimer, IdleTimerConfig, LoginAuditEvent, …(全34)
 
 ## データ
 
@@ -138,7 +138,7 @@
 ## UI・表現
 
 - **@platform/ui** — Tailwind CSS + shadcn/ui の慣習に沿った共通 UI 部品。内部は Radix(統合 `radix-ui`)/
-  - 主なexport: Accordion, AccordionContent, AccordionItem, AccordionTrigger, ActivityTimeline, ActivityTimelineProps, …(全779)
+  - 主なexport: Accordion, AccordionContent, AccordionItem, AccordionTrigger, ActivityTimeline, ActivityTimelineProps, …(全781)
 - **@platform/form** — フォーム統合(react-hook-form + zod + `@platform/ui`)。
   - 主なexport: AutocompleteField, CheckboxField, ColorField, ComboboxField, CsrfField, DateField, …(全74)
 - **@platform/report** — 帳票(請求書・見積書等)。日本の消費税計算と印刷用 HTML を提供します。
@@ -200,7 +200,7 @@
 - **@platform/commerce** — EC サイトの基盤処理。カート・お気に入り・クーポン割引・注文サマリ(消費税/送料)・在庫引当の
   - 主なexport: AddToCartInput, Cart, CartItem, Coupon, DiscountType, Favorites, …(全81)
 - **@platform/invoice** — 明細計算・税率別集計・番号採番・支払期限/入金状態。消費税計算は `@platform/tax` に委譲します。
-  - 主なexport: AgingBuckets, ApplyPaymentResult, BillingInterval, DUNNING_LABELS, DUNNING_THRESHOLDS, DunningInvoice, …(全41)
+  - 主なexport: AgingBuckets, ApplyPaymentResult, BillingInterval, DUNNING_LABELS, DUNNING_THRESHOLDS, DunningInvoice, …(全44)
 - **@platform/quote** — 明細計算は `@platform/invoice` を再利用し、見積特有の**有効期限・状態・請求書変換**を提供します。
   - 主なexport: Quote, QuoteStatus, buildQuote, convertToInvoice, daysUntilExpiry, isExpired, …(全8)
 - **@platform/purchase** — 発注明細・金額(税計算は `@platform/invoice` 再利用)・入荷/発注残・状態を扱います。

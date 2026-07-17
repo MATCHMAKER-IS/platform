@@ -16,6 +16,9 @@
  * - G: 構文エラー(引数リストに文が混入。過去の一括処理が壊した形)
  * - J: server → client へ関数を持つオブジェクト(create*() の戻り値)を渡していないか
  * - K: バレルが関数だけ出して戻り値の型を出していない(TS2742/TS2883)
+ * - L: Tailwind 4 の予約 CSS 変数(--spacing 等)を基盤が上書きしていないか
+ * - M: 統合デモサイトの nav に href の重複 / リンク切れが無いか
+ * - N: パッケージが相手のバレルに無い名前を import していないか(TS2305)
  *
  * 使い方: node tools/check-build-ready.mjs
  */
@@ -327,6 +330,113 @@ export function check() {
               ` — 利用側で TS2742/TS2883 になる。\`export { ${fn}, type ${id} } from "..."\` にすること`,
             );
           }
+        }
+      }
+    }
+  }
+
+  // ── L: Tailwind CSS 4 の予約 CSS 変数を基盤が上書きしていないか ──
+  // Tailwind 4 はユーティリティを `calc(var(--spacing) * N)` のように解決する。
+  // @platform/theme が同名の変数を <html> に流し込むと、**Tailwind のクラスが全部歪む**。
+  // 実際に `--spacing: 8px` でボタンが h-10=40px → 80px になった(スキンごとに倍率が変わる)。
+  // 見た目の問題なので型検査でもテストでも捕まらない。ここで名前だけを見る。
+  {
+    // 「値を差し替えるだけ」の変数(--font-sans / --radius-lg など)は上書きして良い。
+    // むしろ Tailwind 4 の推奨カスタマイズ方法。危険なのは以下の 2 種類だけ:
+    //   --spacing … 間隔ユーティリティの「倍率の基準」。壊れ方が全体に及ぶ
+    //   --tw-*    … Tailwind の内部変数
+    const RESERVED = [["--spacing", true], ["--tw-", false]];
+    for (const f of collect(path.join(ROOT, "packages"), [".ts", ".css"])) {
+      const s = readFileSync(f, "utf8");
+      for (const [name, exact] of RESERVED) {
+        // CSS 変数を「書いている」箇所だけを見る(参照 var(--x) は問題ない)。
+        // exact=true は完全一致(--spacing-4 のような名前空間は正当なので拾わない)。
+        const tail = exact ? "" : "[\\w-]*";
+        const re = new RegExp(`["'\`]${name}${tail}["'\`]\\s*\\]?\\s*=|^\\s*${name}${tail}\\s*:`, "m");
+        if (!re.test(s)) continue;
+        issues.push(
+          `[L] ${path.relative(ROOT, f)}: Tailwind 4 の予約変数 ${name} を定義している` +
+          ` — ユーティリティの倍率基準なので、上書きすると Tailwind のクラスが全部歪む。別名にすること(例: --spacing → --space)`,
+        );
+      }
+    }
+  }
+
+  // ── M: 統合デモサイトの nav が壊れていないか(href の重複 / リンク切れ) ──
+  // href が重複すると、サイドバーで 2 件が同時に「現在地」になり、
+  // 片方を押してももう片方へ飛ぶ(実際に「掲示板」を押すとダッシュボードが出た)。
+  // 実体の無い href はリンク切れだが、重複していると別ページに吸い込まれて気づけない。
+  {
+    const navFile = path.join(SITE, "src/lib/nav.ts");
+    if (existsSync(navFile)) {
+      const src = readFileSync(navFile, "utf8");
+      const entries = [...src.matchAll(/\{\s*href:\s*"([^"]+)",\s*title:\s*"([^"]+)"/g)].map((m) => ({ href: m[1], title: m[2] }));
+      const seen = new Map();
+      for (const e of entries) {
+        const prev = seen.get(e.href);
+        if (prev) issues.push(`[M] nav.ts: href "${e.href}" が重複(「${prev}」と「${e.title}」) — サイドバーで両方が現在地になり、別ページへ飛ぶ`);
+        else seen.set(e.href, e.title);
+      }
+      const appDir = path.join(SITE, "src/app");
+      for (const e of entries) {
+        const rel = e.href === "/" ? "" : e.href.replace(/^\//, "");
+        if (!existsSync(path.join(appDir, rel, "page.tsx"))) {
+          issues.push(`[M] nav.ts: "${e.title}" の href "${e.href}" にページが無い(リンク切れ)`);
+        }
+      }
+    }
+  }
+
+  // ── N: パッケージが「相手のバレルに無い名前」を import していないか ──
+  // @platform/quote が `import { type Rounding } from "@platform/invoice"` と書いていたが、
+  // invoice のバレルは Rounding を出しておらず(実装元は @platform/tax)、TS2305 で落ちた。
+  // 検査 K は「戻り値の型」しか見ないので、この形(引数の型・任意の named import)は素通りする。
+  // showcase に足すまで Next のビルドに含まれないため、長く潜伏しうる。
+  {
+    const barrelExports = new Map(); // pkg 名 → Set<公開名>
+    const declared = (src) => {
+      const out = new Set();
+      for (const m of src.matchAll(/^\s*export\s+(?:declare\s+)?(?:async\s+)?(?:function\*?|const|let|var|class|abstract\s+class|interface|type|enum)\s+(\w+)/gm)) out.add(m[1]);
+      // `export { A, type B }` と `export type { C }` の両方を拾う
+      for (const m of src.matchAll(/export\s+(?:type\s+)?\{([^}]*)\}/g)) {
+        for (const raw of (m[1] ?? "").split(",")) {
+          const n = raw.trim().replace(/^type\s+/, "").split(" as ").pop()?.trim();
+          if (n) out.add(n);
+        }
+      }
+      return out;
+    };
+    const resolveTs = (from, spec) => {
+      const t = path.resolve(path.dirname(from), spec);
+      for (const c of [`${t}.ts`, `${t}.tsx`, path.join(t, "index.ts")]) if (existsSync(c)) return c;
+      return null;
+    };
+    // 各パッケージのバレルが公開する名前(export * from も 1 段だけ辿る)
+    for (const barrel of collect(path.join(ROOT, "packages"), [".ts"]).filter((f) => f.endsWith("src/index.ts"))) {
+      const pkg = path.relative(path.join(ROOT, "packages"), barrel).split(path.sep)[0];
+      const src = readFileSync(barrel, "utf8");
+      const names = declared(src);
+      for (const m of src.matchAll(/export\s+(?:type\s+)?\*\s*from\s*"(\.[^"]+)"/g)) {
+        const t = resolveTs(barrel, m[1]);
+        if (t) for (const n of declared(readFileSync(t, "utf8"))) names.add(n);
+      }
+      // `export * from "@platform/x"` のような他パッケージ丸ごと再 export があれば、判定不能なので諦める
+      if (/export\s+(?:type\s+)?\*\s*from\s*"@platform\//.test(src)) names.add("*");
+      barrelExports.set(`@platform/${pkg}`, names);
+    }
+    // 各パッケージの import を突き合わせる
+    for (const f of collect(path.join(ROOT, "packages"), [".ts", ".tsx"])) {
+      const src = readFileSync(f, "utf8");
+      for (const m of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*"(@platform\/[\w-]+)"/g)) {
+        const target = barrelExports.get(m[2]);
+        if (!target || target.size === 0 || target.has("*")) continue;
+        for (const raw of (m[1] ?? "").split(",")) {
+          const name = raw.trim().replace(/^type\s+/, "").split(" as ")[0]?.trim();
+          if (!name || target.has(name)) continue;
+          issues.push(
+            `[N] ${path.relative(ROOT, f)}: ${m[2]} は "${name}" を export していない` +
+            ` — TS2305 になる。実装元から再 export するか、実装元パッケージから直接 import すること`,
+          );
         }
       }
     }

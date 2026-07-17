@@ -4,7 +4,7 @@
 
 重複や似た API は「わざと(層が違う)」の場合もあります。這は**再利用の当たりを付ける入口**であり、機械的な指摘です。
 
-## 同名 export(80 組)
+## 同名 export(83 組)
 
 | export | 提供パッケージ |
 |---|---|
@@ -61,6 +61,9 @@
 | `unescapeHtml` | @platform/html, @platform/utils |
 | `NormalizeOptions` | @platform/image, @platform/url |
 | `movingAverage` | @platform/inventory, @platform/utils |
+| `Rounding` | @platform/invoice, @platform/tax |
+| `TaxRate` | @platform/invoice, @platform/tax |
+| `TaxSummary` | @platform/invoice, @platform/tax |
 | `daysUntilDue` | @platform/invoice, @platform/task |
 | `isValidInvoiceNumber` | @platform/invoice, @platform/tax |
 | `normalizeInvoiceNumber` | @platform/invoice, @platform/tax |

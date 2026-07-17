@@ -10,9 +10,7 @@
  *
  * @packageDocumentation
  */
-// NavItem(lib/nav)は href 必須。区分は href を持たず children だけなので、
-// children を持てる NavDropdownItem を使う。
-import type { NavDropdownItem } from "@platform/ui";
+import type { NavItem } from "@platform/ui";
 
 /** ナビの 1 区分。 */
 export interface NavSection {
@@ -49,6 +47,28 @@ export const PLATFORM_DEMOS: DemoEntry[] = [
     packages: ["ui"] },
   { href: "/views", title: "表示切替 / ページネーション", desc: "カード/リスト/ブロック表示・ページネーション・トップに戻る",
     packages: ["ui"] },
+  { href: "/zengin", title: "全銀フォーマット(総合振込)", desc: "銀行へ渡す振込データ生成。半角カナ変換・件数/合計の自動集計・CRLF",
+    packages: ["zengin"] },
+  { href: "/tax", title: "消費税・インボイス", desc: "税率ごとに区分した消費税額(適格請求書の必須要件)・端数処理・登録番号の検証",
+    packages: ["tax"] },
+  { href: "/quote", title: "見積 → 請求", desc: "有効期限・受注/失注・請求書への変換(金額が必ず一致する)",
+    packages: ["quote", "invoice", "tax"] },
+  { href: "/purchase", title: "発注・入荷", desc: "発注書の金額・分納・発注残・過剰入荷の検知",
+    packages: ["purchase", "invoice"] },
+  { href: "/invoice-builder", title: "請求書(適格請求書)", desc: "明細→税率別集計→インボイス。翌月末払い・入金ステータス・残額",
+    packages: ["invoice", "tax"] },
+  { href: "/dencho", title: "電子帳簿保存法", desc: "ハッシュチェーンで改ざん検知・検索要件・保存期間・タイムスタンプ",
+    packages: ["dencho"] },
+  { href: "/depreciation", title: "減価償却", desc: "定額法/定率法のスケジュール・償却率・備忘価額",
+    packages: ["depreciation"] },
+  { href: "/sequence", title: "採番(伝票番号)", desc: "接頭辞・ゼロ埋め・年度/年/月でのリセット",
+    packages: ["sequence"] },
+  { href: "/ai", title: "AI Gateway", desc: "モデル差し替え・コスト集計・トークン上限・PIIマスク・フォールバック",
+    packages: ["ai"] },
+  { href: "/rag", title: "RAG(社内文書検索)", desc: "チャンク分割→索引→権限つき検索→AIに渡す文脈の組み立て",
+    packages: ["rag", "search", "ai"] },
+  { href: "/mcp", title: "MCPサーバ", desc: "社内システムをAIから呼べる道具として公開。JSON-RPCを実際に投げられる",
+    packages: ["mcp"] },
   { href: "/theme", title: "テーマ機構(スキン)", desc: "11スキンの切り替え・全トークン表示・WCAGコントラスト検査",
     packages: ["theme", "ui", "color"] },
   { href: "/charts", title: "グラフ(チャート)", desc: "棒/積み上げ/折れ線/円/レーダー/散布/複合/ガント/ヒートマップ/ツリーマップ/ファネル",
@@ -81,8 +101,6 @@ export const PLATFORM_DEMOS: DemoEntry[] = [
     packages: ["image", "ui"] },
   { href: "/import-history", title: "取り込み履歴", desc: "CSV取り込み→検証→部分保存→ロールバック",
     packages: ["importer", "csv", "ui"] },
-  { href: "/board", title: "掲示板", desc: "スレッド・返信・リアクション・添付",
-    packages: ["board", "ui"] },
   { href: "/numbers", title: "数値ユーティリティ", desc: "丸め・統計・外れ値・回帰・時系列分解",
     packages: ["utils"] },
   { href: "/strings", title: "文字列ユーティリティ", desc: "全角半角・表示幅・マスク・類似度・和暦",
@@ -162,9 +180,12 @@ export const SECTIONS: NavSection[] = [
  *
  * @returns ナビ項目(入れ子)
  */
-export function buildNavItems(): NavDropdownItem[] {
+export function buildNavItems(): NavItem[] {
   return SECTIONS.map((section) => ({
     label: section.title,
+    // 区分自体もリンクにする(トップの該当セクションへ)。buildHeaderItems と同じ形。
+    // NavItem.href は必須。省略すると tsc が落ちる(Amplify で実際に落ちた)。
+    href: `/#${encodeURIComponent(section.title)}`,
     children: section.items.map((item) => ({ label: item.title, href: item.href })),
   }));
 }
@@ -174,7 +195,7 @@ export function buildNavItems(): NavDropdownItem[] {
  *
  * @returns 区分へのリンク
  */
-export function buildHeaderItems(): NavDropdownItem[] {
+export function buildHeaderItems(): NavItem[] {
   return [
     { label: "ホーム", href: "/" },
     ...SECTIONS.map((section) => ({
