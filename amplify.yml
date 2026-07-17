@@ -23,6 +23,13 @@
 #    → **環境変数が空**だった(このバージョンの Amplify では提供されない)。
 #      `cd ""` で `/` へ移動し、`No package found in this workspace`
 #
+# 4. `pnpm install --frozen-lockfile`(pnpm 既定の isolated linker)
+#    → **ビルドは成功するのにデプロイで落ちる**:
+#      `CustomerError: The 'node_modules' folder is missing the 'next' dependency`
+#      Amplify の Lambda ランタイムは node_modules が「実ディレクトリ」である前提。
+#      pnpm 既定は .pnpm/ へのシンボリックリンク農場を作るので解決できない。
+#      → install 時だけ `--node-linker=hoisted` を付ける(.npmrc は触らない)
+#
 # 【対策】
 # - install はルートで行う(workspace 全体の解決に必要)
 # - build は **リポジトリのルートからの相対パスで cd し直す**。
@@ -40,7 +47,14 @@ applications:
             - corepack enable
             - corepack prepare pnpm@9.15.0 --activate
             # ここで cd ../.. すると、build にも残る(それを前提に build を書く)
-            - cd ../.. && pnpm install --frozen-lockfile
+            #
+            # --node-linker=hoisted は **Amplify のためだけ** に付けている。
+            # .npmrc には書かないこと。あそこは「各パッケージが宣言した依存だけを使う」
+            # (= 隠れ依存を防ぐ)ための設定で、基盤の設計思想そのもの。
+            # hoisted を .npmrc に書くとローカルと CI でも隠れ依存が通るようになり、
+            # check-deps / check-showcase-deps が守っているものが足元から崩れる。
+            # Amplify のパッケージング要求は、ここだけで満たせば足りる。
+            - cd ../.. && pnpm install --frozen-lockfile --node-linker=hoisted
         build:
           commands:
             # preBuild の cd でモノレポのルートに居る。そこから appRoot へ入り直す。
@@ -54,5 +68,7 @@ applications:
           - "**/*"
       cache:
         paths:
-          - ../../node_modules/**/*
+          # node_modules はキャッシュしない。
+          # isolated 構造で作られた古いキャッシュが復元されると、hoisted 指定が
+          # 効かず上記 4 の症状が再発する。install は 50 秒程度なので割に合わない。
           - .next/cache/**/*
