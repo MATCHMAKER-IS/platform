@@ -1,7 +1,7 @@
 "use client";
 /**
  * 共通 RichTextEditor(TipTap ラッパー)。
- * 太字・取り消し線・文字色・文字サイズの変更に対応した軽量エディタ。
+ * 太字・イタリック・取り消し線・コード・見出し・箇条書き/番号リスト・引用・文字色・文字サイズ・履歴に対応したエディタ。
  * @packageDocumentation
  */
 import * as React from "react";
@@ -10,7 +10,7 @@ import { Extension } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import TextStyle from "@tiptap/extension-text-style";
 import { Color } from "@tiptap/extension-color";
-import { Bold, Strikethrough } from "lucide-react";
+import { Bold, Italic, Strikethrough, Code, Heading1, Heading2, List, ListOrdered, Quote, Undo, Redo } from "lucide-react";
 import { cn } from "../lib/cn";
 import { useT } from "./i18n-provider";
 
@@ -51,7 +51,7 @@ const SIZES: { label: string; value: string }[] = [
 ];
 const COLORS = ["#0f172a", "#dc2626", "#0f766e", "#2563eb", "#d97706"];
 
-/** 太字・取り消し線・文字色・サイズ変更に対応したリッチテキストエディタ。 */
+/** 太字・イタリック・取り消し線・コード・見出し・リスト・引用・文字色・サイズ・履歴に対応したリッチテキストエディタ。 */
 export function RichTextEditor({ value = "", onChange, className }: RichTextEditorProps) {
   const t = useT();
   const editor = useEditor({
@@ -75,9 +75,38 @@ export function RichTextEditor({ value = "", onChange, className }: RichTextEdit
         <button type="button" onClick={() => editor.chain().focus().toggleBold().run()} className={btn(editor.isActive("bold"))} aria-label={t("editor.bold")}>
           <Bold className="h-4 w-4" />
         </button>
+        <button type="button" onClick={() => editor.chain().focus().toggleItalic().run()} className={btn(editor.isActive("italic"))} aria-label="イタリック">
+          <Italic className="h-4 w-4" />
+        </button>
         <button type="button" onClick={() => editor.chain().focus().toggleStrike().run()} className={btn(editor.isActive("strike"))} aria-label={t("editor.strike")}>
           <Strikethrough className="h-4 w-4" />
         </button>
+        <button type="button" onClick={() => editor.chain().focus().toggleCode().run()} className={btn(editor.isActive("code"))} aria-label="インラインコード">
+          <Code className="h-4 w-4" />
+        </button>
+
+        <span className="mx-0.5 h-5 w-px bg-[var(--color-border)]" />
+
+        <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={btn(editor.isActive("heading", { level: 1 }))} aria-label="見出し1">
+          <Heading1 className="h-4 w-4" />
+        </button>
+        <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={btn(editor.isActive("heading", { level: 2 }))} aria-label="見出し2">
+          <Heading2 className="h-4 w-4" />
+        </button>
+
+        <span className="mx-0.5 h-5 w-px bg-[var(--color-border)]" />
+
+        <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={btn(editor.isActive("bulletList"))} aria-label="箇条書き">
+          <List className="h-4 w-4" />
+        </button>
+        <button type="button" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={btn(editor.isActive("orderedList"))} aria-label="番号リスト">
+          <ListOrdered className="h-4 w-4" />
+        </button>
+        <button type="button" onClick={() => editor.chain().focus().toggleBlockquote().run()} className={btn(editor.isActive("blockquote"))} aria-label="引用">
+          <Quote className="h-4 w-4" />
+        </button>
+
+        <span className="mx-0.5 h-5 w-px bg-[var(--color-border)]" />
 
         <select
           onChange={(e) => editor.chain().focus().setMark("textStyle", { fontSize: e.target.value }).run()}
@@ -100,6 +129,15 @@ export function RichTextEditor({ value = "", onChange, className }: RichTextEdit
             />
           ))}
         </span>
+
+        <span className="mx-0.5 h-5 w-px bg-[var(--color-border)]" />
+
+        <button type="button" onClick={() => editor.chain().focus().undo().run()} className={btn(false)} aria-label="元に戻す">
+          <Undo className="h-4 w-4" />
+        </button>
+        <button type="button" onClick={() => editor.chain().focus().redo().run()} className={btn(false)} aria-label="やり直し">
+          <Redo className="h-4 w-4" />
+        </button>
       </div>
       <EditorContent editor={editor} className="prose max-w-none p-3 text-sm focus:outline-none [&_.ProseMirror]:min-h-[120px] [&_.ProseMirror]:outline-none" />
     </div>

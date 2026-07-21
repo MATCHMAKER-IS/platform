@@ -9,7 +9,7 @@ import {
   Tabs, TabsList, TabsTrigger, TabsContent, Accordion, AccordionItem, AccordionTrigger, AccordionContent,
   Avatar, AvatarFallback, Badge, Skeleton, Breadcrumb, Pagination,
   Rating, Autocomplete, TagInput, OTPInput, SignaturePad,
-  VideoPlayer, AudioPlayer, StreamPlayer, Waveform, AudioRecorder, VideoRecorder,
+  VideoPlayer, AudioPlayer, StreamPlayer, Waveform, AudioRecorder, VideoRecorder, Separator,
 } from "@platform/ui";
 
 // interface は index signature を持たないので Record<string, unknown> に代入できない。
@@ -31,6 +31,7 @@ const columns: Column<Row>[] = [
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section style={{ marginTop: "2rem" }}>
+      <Separator style={{ marginBottom: "1.25rem" }} />
       <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: ".75rem" }}>{title}</h2>
       {children}
     </section>

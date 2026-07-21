@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   DataView, Card, CardHeader, CardTitle, CardDescription, CardContent,
-  ListItem, Block, Badge, Pagination, SimplePagination, BackToTop, Icon,
+  ListItem, Block, Badge, Pagination, SimplePagination, Icon,
 } from "@platform/ui";
 
 interface Product { id: number; name: string; category: string; price: number; }
@@ -63,8 +63,6 @@ export default function Page() {
 
       <p style={{ marginTop: "4rem", color: "var(--color-muted)" }}>↓ さらにスクロールしてみてください(トップに戻るボタンが表示されます)</p>
       <p style={{ marginTop: "60vh" }}><a href="/">← 戻る</a></p>
-
-      <BackToTop />
     </main>
   );
 }

@@ -9811,7 +9811,7 @@ export const __store = () => store;
   const scTheme = await fsc.readFile(new URL("../demos/showcase/src/app/theme/theme-showcase.tsx", import.meta.url), "utf8");
   const scNav = await fsc.readFile(new URL("../demos/showcase/src/lib/nav.ts", import.meta.url), "utf8");
   ok("showcase: layout に AppSkin+ナビ・テーマデモページ(11スキン/トークン/a11y)・ナビに導線",
-    scLayout.includes("AppSkin") && scLayout.includes("ThemeSwitcher") && scLayout.includes("DemoSidebar") &&
+    scLayout.includes("AppSkin") && scLayout.includes("ThemeSwitcher") && scLayout.includes("CollapsibleSidebar") &&
     scTheme.includes("builtInThemes") && scTheme.includes("checkTheme") && scTheme.includes("SkinSelector") &&
     scNav.includes('href: "/theme"'));
   // internal-app 主要管理画面の色がCSS変数化
@@ -10208,8 +10208,8 @@ export const z = anyChain;
   const T = await import(`${base}/catalog-tools.mts`);
 
   const demos = C.loadDemos({ root });
-  ok("loadDemos: 統合デモサイトの nav.ts から81デモを読む(サイトの表示と検索結果が食い違わない)",
-    demos.length === 81 && demos.every((d) => d.name && d.summary && Array.isArray(d.packages)) &&
+  ok("loadDemos: 統合デモサイトの nav.ts から86デモを読む(サイトの表示と検索結果が食い違わない)",
+    demos.length === 86 && demos.every((d) => d.name && d.summary && Array.isArray(d.packages)) &&
     demos.find((d) => d.name === "theme").packages.includes("theme") &&
     demos.find((d) => d.name === "apps-internal").packages.includes("contract"));
   ok("searchDemos: パッケージ名/日本語/@platform付きで引ける・該当なしは空",
@@ -11420,9 +11420,9 @@ export const z = anyChain;
   ok("nav: 区分は3つ(基盤デモ/アプリデモ/使用例)・メニュー上は分かれて見える",
     N.SECTIONS.length === 3 &&
     N.SECTIONS.map((s) => s.title).join(",") === "基盤デモ,アプリデモ,使用例");
-  ok("nav: 基盤デモ65・アプリデモ7・使用例9 = 81件(data-console は画面を持つので基盤デモ側)",
-    N.PLATFORM_DEMOS.length === 65 && N.APP_DEMOS.length === 7 && N.CODE_EXAMPLES.length === 9 &&
-    N.allDemos().length === 81);
+  ok("nav: 基盤デモ70・アプリデモ7・使用例9 = 86件(data-console は画面を持つので基盤デモ側)",
+    N.PLATFORM_DEMOS.length === 70 && N.APP_DEMOS.length === 7 && N.CODE_EXAMPLES.length === 9 &&
+    N.allDemos().length === 86);
   ok("buildNavItems: 区分ごとに入れ子(1サイトだが別物として映る)",
     N.buildNavItems().length === 3 && N.buildNavItems().every((n) => Array.isArray(n.children) && n.children.length > 0));
 

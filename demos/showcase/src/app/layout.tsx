@@ -1,7 +1,10 @@
 import "@platform/ui/tokens.css";
 import "./globals.css";
-import { Toaster, AppSkin, ThemeSwitcher } from "@platform/ui";
-import { DemoSidebar } from "../components/demo-sidebar";
+import { Toaster, AppSkin, ThemeSwitcher, BackToTop } from "@platform/ui";
+import { CollapsibleSidebar } from "../components/collapsible-sidebar";
+import { DemoMeta } from "../components/demo-meta";
+import { DemoIntro } from "../components/demo-intro";
+import { LiveClock } from "../components/live-clock";
 
 export const metadata = {
   title: "基盤デモ",
@@ -21,29 +24,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       >
         <AppSkin>
           <div style={{ display: "flex", minHeight: "100vh" }}>
-            {/* 左: 区分ごとのナビ(基盤デモ / アプリデモ / 使用例) */}
-            <aside
-              style={{
-                width: 240,
-                flexShrink: 0,
-                borderRight: "1px solid var(--color-border)",
-                background: "var(--color-surface)",
-                overflowY: "auto",
-                maxHeight: "100vh",
-                position: "sticky",
-                top: 0,
-              }}
-            >
-              <DemoSidebar />
-            </aside>
+            {/* 左: 区分ごとのナビ(開閉できる) */}
+            <CollapsibleSidebar />
 
             {/* 右: 本文 */}
             <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
               <div
                 style={{
                   display: "flex",
-                  justifyContent: "flex-end",
-                  padding: "8px 16px",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "8px 16px 8px 48px",
                   borderBottom: "1px solid var(--color-border)",
                   position: "sticky",
                   top: 0,
@@ -51,12 +43,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   zIndex: 10,
                 }}
               >
-                <ThemeSwitcher />
+                <DemoMeta />
+                <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+                  <LiveClock compact />
+                  <ThemeSwitcher />
+                </div>
               </div>
-              <main style={{ flex: 1 }}>{children}</main>
+              <main style={{ flex: 1 }}>
+                <DemoIntro />
+                {children}
+              </main>
             </div>
           </div>
           <Toaster />
+          <BackToTop />
         </AppSkin>
       </body>
     </html>

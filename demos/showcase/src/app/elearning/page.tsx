@@ -6,6 +6,7 @@
  */
 import * as React from "react";
 import { Button, Badge, Alert, Separator, Checkbox, RadioGroup, RadioGroupItem } from "@platform/ui";
+import { Countdown } from "../../components/countdown";
 import {
   gradeQuiz,
   courseProgress,
@@ -82,6 +83,47 @@ const COURSE: Course = {
   ],
 };
 
+type Slide = { title: string; points: string[] };
+const SLIDES: Slide[] = [
+  { title: "情報セキュリティとは", points: ["会社の情報（顧客・技術・人事）を守る取り組み", "「うっかり」と「悪意」の両方に備える", "全員が当事者：一人の漏洩が全社に波及する"] },
+  { title: "よくある漏洩の入口", points: ["メールの誤送信・添付ミス", "推測されやすい／使い回しのパスワード", "端末や USB の紛失・置き忘れ", "不審なリンク（フィッシング）"] },
+  { title: "今日から守ること", points: ["パスワードは長く・使い回さない（管理ツールを使う）", "送信前に宛先と添付をもう一度確認", "離席時は画面ロック（Win+L）", "怪しいメールは開かず情シスへ報告"] },
+  { title: "もし事故が起きたら", points: ["隠さない・すぐ報告（初動が被害を左右する）", "自己判断で消さない・触らない", "情シスの指示に従って対応", "再発防止までが対応"] },
+];
+
+/** 資料をスライドで見せる簡易ビューア（前後送り・ページ表示・ドット）。 */
+function SlideViewer({ slides }: { slides: Slide[] }) {
+  const [i, setI] = React.useState(0);
+  const cur = slides[i]!;
+  const go = (d: number) => setI((x) => Math.min(slides.length - 1, Math.max(0, x + d)));
+  return (
+    <div>
+      <div style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius)", background: "var(--color-bg)", padding: "28px 24px", minHeight: 220 }}>
+        <div style={{ fontSize: 11, color: "var(--color-muted)", marginBottom: 8 }}>スライド {i + 1} / {slides.length}</div>
+        <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>{cur.title}</div>
+        <ul style={{ margin: 0, paddingLeft: 20, fontSize: 14, lineHeight: 2 }}>
+          {cur.points.map((p, k) => <li key={k}>{p}</li>)}
+        </ul>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12, gap: 8 }}>
+        <Button size="sm" variant="secondary" disabled={i === 0} onClick={() => go(-1)}>← 前へ</Button>
+        <div style={{ display: "flex", gap: 6 }}>
+          {slides.map((_, k) => (
+            <button
+              key={k}
+              type="button"
+              aria-label={`スライド ${k + 1}`}
+              onClick={() => setI(k)}
+              style={{ width: 8, height: 8, borderRadius: 999, border: "none", cursor: "pointer", padding: 0, background: k === i ? "var(--color-primary)" : "var(--color-border)" }}
+            />
+          ))}
+        </div>
+        <Button size="sm" disabled={i === slides.length - 1} onClick={() => go(1)}>次へ →</Button>
+      </div>
+    </div>
+  );
+}
+
 export default function Page() {
   const [progress, setProgress] = React.useState<Progress>({ completedLessons: [] });
   const [answers, setAnswers] = React.useState<Record<string, number[]>>({});
@@ -92,6 +134,10 @@ export default function Page() {
   const cp = courseProgress(COURSE, progress);
   const mp = moduleProgress(COURSE, progress);
   const next = nextLesson(COURSE, progress);
+  const remainingSec = COURSE.modules
+    .flatMap((m) => m.lessons)
+    .filter((l) => !progress.completedLessons.includes(l.id))
+    .reduce((s, l) => s + (l.estimatedMinutes ?? 1), 0) * 60;
 
   function complete(lessonId: string) {
     const r = markLessonComplete(COURSE, progress, lessonId);
@@ -156,6 +202,11 @@ export default function Page() {
       </Alert>
 
       <div style={box}>
+        <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 10 }}>教材（スライド）</h2>
+        <SlideViewer slides={SLIDES} />
+      </div>
+
+      <div style={box}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>{COURSE.title}</h2>
           <div style={{ display: "flex", gap: 8 }}>
@@ -169,6 +220,13 @@ export default function Page() {
             )}
           </div>
         </div>
+
+        {remainingSec > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 12, padding: "8px 12px", borderRadius: "var(--radius)", background: "var(--color-bg)", border: "1px solid var(--color-border)" }}>
+            <span style={{ color: "var(--color-muted)" }}>学習セッションの残り時間（未修了レッスンの目安）</span>
+            <Countdown seconds={remainingSec} running style={{ fontSize: 18 }} />
+          </div>
+        )}
 
         {COURSE.modules.map((m) => {
           const mprog = mp.find((x) => x.moduleId === m.id);

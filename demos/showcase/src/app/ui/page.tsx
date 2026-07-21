@@ -11,7 +11,7 @@ import {
   PasswordInput, PasswordStrengthMeter,
   Icon, VoiceInput,
   RadioGroup, RadioGroupItem, ToggleGroup, ToggleGroupItem,
-  NumberInput, DatePicker, TimePicker, ColorPicker, FileUpload,
+  NumberInput, DatePicker, TimePicker, ColorPicker, FileUpload, Separator,
 } from "@platform/ui";
 
 const prefs = [
@@ -24,6 +24,7 @@ const prefs = [
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section style={{ marginTop: "2rem" }}>
+      <Separator style={{ marginBottom: "1.25rem" }} />
       <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: ".75rem" }}>{title}</h2>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", alignItems: "center" }}>{children}</div>
     </section>

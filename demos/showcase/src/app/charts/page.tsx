@@ -79,6 +79,10 @@ export default function Page() {
           <BarChart title="横棒グラフ" data={stacked} xKey="地域" series={[{ key: "食品" }]} horizontal unit="万円" />
         </Box>
         <Box>
+          <BarChart title="積み上げ横棒(地域×カテゴリ)" data={stacked} xKey="地域"
+            series={[{ key: "文具" }, { key: "食品" }, { key: "家電" }]} stacked horizontal unit="万円" toggleable />
+        </Box>
+        <Box>
           <LineChart title="折れ線(スムーズ・ズーム/ブラシ)" data={monthly} xKey="month" series={[{ key: "売上" }, { key: "費用" }]} smooth unit="万円" toggleable brush />
         </Box>
         <Box>
