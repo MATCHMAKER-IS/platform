@@ -157,7 +157,7 @@
           "description": "消費税額"
         },
         {
-          "name": "input.settlement",
+          "name": "input.payment",
           "description": "決済方法。`unpaid`(未払金)/ `cash`(即時現金)/ `advance`(仮払金から精算)"
         },
         {
@@ -1121,7 +1121,7 @@
           "description": "現在時刻(テスト用)"
         }
       ],
-      "returns": "認証されたキー。**無効・失効・期限切れなら null**(理由は返さない。攻撃者に情報を与えない)"
+      "returns": "{@link AuthResult}。成功なら `{ ok: true, record }`、失敗なら `{ ok: false, reason }`。"
     },
     {
       "name": "AuthResult",
@@ -2377,6 +2377,98 @@
         }
       ],
       "returns": "ブラウザの `navigator.credentials.create()` に渡すオプション"
+    }
+  ],
+  "@platform/barcode": [
+    {
+      "name": "AssetUrlOptions",
+      "kind": "interface",
+      "summary": "{@link buildAssetUrl} の指定。"
+    },
+    {
+      "name": "BarcodeFormat",
+      "kind": "type",
+      "summary": "1 次元バーコードの種類。"
+    },
+    {
+      "name": "BarcodeOptions",
+      "kind": "interface",
+      "summary": "{@link barcodeSvg} の指定。"
+    },
+    {
+      "name": "barcodeSvg",
+      "kind": "function",
+      "summary": "バーの高さ(mm 相当・既定 10)。 */ height?: number; /** 人が読む文字を下に出す(既定 true)。**目視確認できないと現場が困る。** */ includeText?: boolean; /** 拡大率(既定 2)。小さいと読み取り機が拾えない。 */ scale?: number; } /** 1 次元バーコードを SVG 文字列で返す。",
+      "signature": "barcodeSvg(value: string, options: BarcodeOptions): Promise<Result<string>>",
+      "params": [
+        {
+          "name": "value",
+          "description": "バーコードにする値"
+        },
+        {
+          "name": "options",
+          "description": "種類と見た目"
+        }
+      ],
+      "returns": "SVG の文字列"
+    },
+    {
+      "name": "buildAssetUrl",
+      "kind": "function",
+      "summary": "社内のベース URL(例 `https://portal.example.co.jp`)。 */ baseUrl: string; /** 資産の種類(例 `asset` / `employee` / `invoice`)。 */ kind: string; /** 資産の ID。 */ id: string; } /** QR に埋め込む社内 URL を組み立てる。",
+      "signature": "buildAssetUrl(options: AssetUrlOptions): string",
+      "params": [
+        {
+          "name": "options",
+          "description": "ベース URL と資産の情報"
+        }
+      ],
+      "returns": "`https://portal.example.co.jp/asset/A-0042` の形"
+    },
+    {
+      "name": "qrDataUrl",
+      "kind": "function",
+      "summary": "QR コードを PNG の data URL で返す。",
+      "signature": "qrDataUrl(text: string, options: QrOptions = {}): Promise<Result<string>>",
+      "params": [
+        {
+          "name": "text",
+          "description": "埋め込む文字列"
+        },
+        {
+          "name": "options",
+          "description": "指定"
+        }
+      ],
+      "returns": "`data:image/png;base64,...`"
+    },
+    {
+      "name": "QrLevel",
+      "kind": "type",
+      "summary": "`@platform/barcode` — QR コード・バーコードの**発行**(生成)。 サーバ(帳票 PDF・ラベル印刷)でもブラウザ(画面表示)でも**同じ関数で SVG が出せる**。 実体は `qrcode`(QR)と `bwip-js`(1 次元バーコード)。**規格が複雑で誤り訂正も要るため自作しない。** **読み取りは `@platform/mobile`**(BarcodeDetector・JAN/EAN のチェックディジット検証)。 「読む」と「出す」で関心が違うので分けてある。",
+      "example": "const svg = await qrSvg(\"https://example.co.jp/asset/A-0042\");   // 備品ラベル\nconst png = await qrDataUrl(otpauthUri, { level: \"M\" });          // TOTP 登録用\nconst bar = await barcodeSvg(\"4901234567894\", { format: \"ean13\" }); // JAN"
+    },
+    {
+      "name": "QrOptions",
+      "kind": "interface",
+      "summary": "{@link qrSvg} / {@link qrDataUrl} の指定。"
+    },
+    {
+      "name": "qrSvg",
+      "kind": "function",
+      "summary": "誤り訂正レベル(既定 `M`)。 */ level?: QrLevel; /** 余白のモジュール数(既定 4)。**0 にすると読み取り率が落ちる**ので推奨しない。 */ margin?: number; /** 1 辺の px(既定 256)。`qrDataUrl` のみ有効。 */ width?: number; /** 前景色(既定 `#000000`)。 */ dark?: string; /** 背景色(既定 `#ffffff`)。**透過にすると印刷で読めないことがある。** */ light?: string; } /** QR コードを SVG 文字列で返す。",
+      "signature": "qrSvg(text: string, options: QrOptions = {}): Promise<Result<string>>",
+      "params": [
+        {
+          "name": "text",
+          "description": "埋め込む文字列(URL・ID・otpauth URI など)"
+        },
+        {
+          "name": "options",
+          "description": "指定"
+        }
+      ],
+      "returns": "SVG の文字列。**空文字なら失敗**(QR は空を表せない)"
     }
   ],
   "@platform/blog": [
@@ -4706,14 +4798,14 @@
       "name": "sortCasts",
       "kind": "function",
       "summary": "キャストを並び替える。featured は 注目→評価順、rating は評価降順、newest は入店日降順、name は名前順。 在籍中のみを対象にする。",
-      "signature": "sortCasts(casts: T[], sort: CastSort = \"featured\", _now: Date = new Date()): T[]",
+      "signature": "sortCasts(casts: T[], sort: CastSort = \"featured\"): T[]",
       "params": [
         {
           "name": "casts",
           "description": "キャストの配列"
         },
         {
-          "name": "order",
+          "name": "sort",
           "description": "並び順(`featured` / `rating` / `newest` / `name`)"
         }
       ],
@@ -5317,6 +5409,11 @@
     {
       "name": "AnnouncementInput",
       "kind": "interface",
+      "summary": ""
+    },
+    {
+      "name": "AnnouncementLevel",
+      "kind": "type",
       "summary": "お知らせ（サイト上部のバナー告知）の管理。表示期間・対象パス・CTA。 Announcement 型と表示判定（activeAnnouncements）は @platform/site 側。"
     },
     {
@@ -5661,6 +5758,20 @@
         }
       ],
       "returns": "条件に合う記事"
+    },
+    {
+      "name": "isAnnouncementLevel",
+      "kind": "function",
+      "summary": "重要度として妥当かを判定する型ガード。 **DB からは `string`(や `unknown`)で来る**ため、`AnnouncementLevel` に 絞り込む前段のバリデーションに使う。想定外の値はそのまま弾ける。",
+      "signature": "isAnnouncementLevel(v: unknown): v is AnnouncementLevel",
+      "params": [
+        {
+          "name": "v",
+          "description": "判定対象の値(DB 由来の未検証値を想定)"
+        }
+      ],
+      "returns": "`\"info\"` / `\"warning\"` / `\"sale\"` のいずれかなら `true`(型ガード)",
+      "example": "if (isAnnouncementLevel(row.level)) a.level = row.level; // ここで level は AnnouncementLevel に絞り込まれる"
     },
     {
       "name": "isLive",
@@ -6080,7 +6191,7 @@
     {
       "name": "validateAnnouncementInput",
       "kind": "function",
-      "summary": "お知らせの入力を検証する。",
+      "summary": "重要度。**@platform/site の Announcement.level と同じ union** に揃える。 */ level?: AnnouncementLevel; } /** お知らせの入力を検証する。",
       "signature": "validateAnnouncementInput(input: AnnouncementInput)",
       "params": [
         {
@@ -10606,7 +10717,7 @@
           "description": "追加/上書きマッピング(ベンダー独自語彙に対応)"
         }
       ],
-      "returns": "正規化した状態。**サービスごとに状態名が違う**ので、ここで揃える(未知の値は `pending` 扱い)"
+      "returns": "正規化した状態。**サービスごとに状態名が違う**ので、ここで揃える(未知の値・空・null は `unknown`)"
     },
     {
       "name": "parseEkycWebhook",
@@ -10619,7 +10730,7 @@
           "description": "リクエストボディ"
         }
       ],
-      "returns": "イベント。**解析できなければ null**"
+      "returns": "イベント。**解析できなくても例外を投げない**(status は `unknown` になる)。"
     },
     {
       "name": "verifyEkycSignature",
@@ -11783,7 +11894,6 @@
       "name": "useZodForm",
       "kind": "function",
       "summary": "zod スキーマから型安全なフォームを作るフック。 react-hook-form + @hookform/resolvers/zod を配線し、値の型をスキーマから推論する。",
-      "signature": "useZodForm(schema: z.ZodType<TFieldValues>, options?: Omit<UseFormProps<TFieldValues>, \"resolver\">,): UseFormReturn<TFieldValues>",
       "params": [
         {
           "name": "schema",
@@ -19011,7 +19121,7 @@
           "description": "電話番号"
         }
       ],
-      "returns": "種別(`mobile` / `landline` / `toll-free` など)。**判定できなければ null**"
+      "returns": "種別(`mobile` / `landline` / `toll-free` / `ip`)。**判定できなければ `\"unknown\"`**(null は返さない)"
     },
     {
       "name": "PhoneType",
@@ -21573,6 +21683,11 @@
   ],
   "@platform/session": [
     {
+      "name": "ActivityTarget",
+      "kind": "interface",
+      "summary": "操作イベントを購読できる対象。"
+    },
+    {
       "name": "AttemptRecord",
       "kind": "interface",
       "summary": "ログイン試行の抑制(ブルートフォース対策)。 識別子(メール/IP)ごとに失敗回数を数え、閾値を超えたら一定時間ロックする。 段階的バックオフにも対応。ストアは注入(メモリ/Redis 等)。"
@@ -21580,8 +21695,20 @@
     {
       "name": "bindActivityListeners",
       "kind": "function",
-      "summary": "",
-      "signature": "bindActivityListeners(timer: IdleTimer, target: EventTargetLike = globalThis as unknown as Window): () => void"
+      "summary": "DOM の活動イベントをタイマーに配線する(ブラウザ専用)。返り値で解除できる。",
+      "signature": "bindActivityListeners(timer: IdleTimer, target: ActivityTarget = globalThis as unknown as ActivityTarget): () => void",
+      "params": [
+        {
+          "name": "timer",
+          "description": "無操作タイマー"
+        },
+        {
+          "name": "target",
+          "description": "イベントを購読する対象(既定はブラウザの window)"
+        }
+      ],
+      "returns": "購読を解除する関数。**画面を離れるときに必ず呼ぶ**(呼ばないとリークする)",
+      "example": "const timer = createIdleTimer({ timeoutMs: 15*60_000, warnBeforeMs: 60_000, onWarn, onIdle: logout });\ntimer.start();\nconst unbind = bindActivityListeners(timer);\n// クリーンアップ: unbind(); timer.stop();"
     },
     {
       "name": "clearCookie",
@@ -21747,23 +21874,6 @@
       "returns": "ヘルパー。`needsStepUp` で判定する"
     },
     {
-      "name": "EventTargetLike",
-      "kind": "type",
-      "summary": "DOM の活動イベントをタイマーに配線する(ブラウザ専用)。返り値で解除できる。",
-      "params": [
-        {
-          "name": "timer",
-          "description": "無操作タイマー"
-        },
-        {
-          "name": "target",
-          "description": "イベントを購読する対象(既定はブラウザの window)"
-        }
-      ],
-      "returns": "購読を解除する関数。**画面を離れるときに必ず呼ぶ**(呼ばないとリークする) / /** イベントを購読できるもの(Window / Document / Element)。 **DOM の `EventTarget` をそのまま使う**。自前で構造を書くと、 `Window` の `addEventListener`(オーバーロードあり)と噛み合わない。",
-      "example": "const timer = createIdleTimer({ timeoutMs: 15*60_000, warnBeforeMs: 60_000, onWarn, onIdle: logout });\ntimer.start();\nconst unbind = bindActivityListeners(timer);\n// クリーンアップ: unbind(); timer.stop();"
-    },
-    {
       "name": "getCookie",
       "kind": "function",
       "summary": "Cookie ヘッダから特定の値を取り出す。",
@@ -21896,7 +22006,7 @@
     {
       "name": "Session",
       "kind": "interface",
-      "summary": "暗号化の秘密鍵(十分に長い秘密値。`@platform/env` で検証)。 */ secret: string; /** クッキー名(既定 \"session\")。 */ cookieName?: string; /** 有効期間(秒、既定 7 日)。絶対的な上限(活動しても延長されない)。 */ maxAgeSec?: number; /** 無操作タイムアウト(秒)。**既定 undefined = 無効**(無操作でもログアウトしない)。 設定すると、最後の活動から この秒数を超えたセッションを失効扱いにする。 活動のたびに {@link Session.refresh} を呼ぶことで無操作タイマーがスライドする。 / idleTimeoutSec?: number; /** クッキー属性の上書き(dev では secure:false 等)。 */ cookie?: CookieOptions; } /** 封緘クッキーセッションの操作。"
+      "summary": "暗号化の秘密鍵(十分に長い秘密値。`@platform/env` で検証)。 */ secret: string; /** 鍵導出のソルト(**必須**・8 文字以上)。**アプリ/環境ごとに一意の値**を設定する。"
     },
     {
       "name": "SessionConfig",
@@ -24447,6 +24557,40 @@
       "summary": "1 件の通知。"
     },
     {
+      "name": "arcPath",
+      "kind": "function",
+      "summary": "円弧の SVG パスを作る。",
+      "signature": "arcPath(cx: number, cy: number, r: number, startAngle: number, endAngle: number): string",
+      "params": [
+        {
+          "name": "cx",
+          "description": "/ cy 中心"
+        },
+        {
+          "name": "radius",
+          "description": "半径"
+        },
+        {
+          "name": "startAngle",
+          "description": "/ endAngle 角度(度)"
+        }
+      ],
+      "returns": "SVG の `d` 属性の値"
+    },
+    {
+      "name": "bodyRange",
+      "kind": "function",
+      "summary": "実体の値幅(始値と終値の差の絶対値)。",
+      "signature": "bodyRange(c: Candle): number",
+      "params": [
+        {
+          "name": "c",
+          "description": "ローソク足"
+        }
+      ],
+      "returns": "値幅(常に 0 以上)"
+    },
+    {
       "name": "bucketByTime",
       "kind": "function",
       "summary": "ログを時系列に集計する(ミニチャート用)。 **エラーがいつ集中したかが分かる**(件数だけでは「いつ」が見えない)。",
@@ -24596,6 +24740,41 @@
       "summary": "リソース(会議室・担当者・設備など)。"
     },
     {
+      "name": "Candle",
+      "kind": "interface",
+      "summary": "チャート系の純粋な計算(検証しやすいよう UI から分離)。"
+    },
+    {
+      "name": "candleGeometry",
+      "kind": "function",
+      "summary": "ローソク足の描画座標を計算する。",
+      "signature": "candleGeometry(c: Candle, x: number, width: number, y: number, height: number)",
+      "params": [
+        {
+          "name": "c",
+          "description": "OHLC"
+        },
+        {
+          "name": "x",
+          "description": "バーの左端 px、width バー幅"
+        },
+        {
+          "name": "y",
+          "description": "高値(high)の px、height 高値〜安値の px 高さ"
+        }
+      ]
+    },
+    {
+      "name": "CandleRow",
+      "kind": "interface",
+      "summary": "ローソク足(OHLC)の純ロジック。**描画を含まない**ので、サーバでも画面でも使える。 社内業務では株価だけでなく、**日次の在庫推移・受注金額のばらつき・センサー値の変動**など 「1 期間の始値/高値/安値/終値」を見たい場面で使う。"
+    },
+    {
+      "name": "CandleSummary",
+      "kind": "interface",
+      "summary": "{@link summarizeCandles} の戻り値。"
+    },
+    {
       "name": "canRollback",
       "kind": "function",
       "summary": "ロールバックできるかを判定する。 **挿入があり、まだロールバックしていない**ときだけ。二重に取り消すと、 別の取り込みで入れたデータまで消える。",
@@ -24670,6 +24849,44 @@
         }
       ],
       "returns": "0–1 の値"
+    },
+    {
+      "name": "clampPan",
+      "kind": "function",
+      "summary": "ずらし幅を「画像が枠から離れない」範囲に収める。",
+      "signature": "clampPan(state: ZoomState, viewW: number, viewH: number): ZoomState",
+      "params": [
+        {
+          "name": "state",
+          "description": "現在の状態"
+        },
+        {
+          "name": "viewW",
+          "description": "表示枠の幅"
+        },
+        {
+          "name": "viewH",
+          "description": "表示枠の高さ"
+        }
+      ],
+      "returns": "収めた状態"
+    },
+    {
+      "name": "clampScale",
+      "kind": "function",
+      "summary": "拡大率を制限内に収める。",
+      "signature": "clampScale(scale: number, limits: ZoomLimits = {}): number",
+      "params": [
+        {
+          "name": "scale",
+          "description": "希望の拡大率"
+        },
+        {
+          "name": "limits",
+          "description": "制限"
+        }
+      ],
+      "returns": "制限内の拡大率"
     },
     {
       "name": "clampSpan",
@@ -25587,6 +25804,36 @@
       "returns": "原インデックス。**無ければ -1**"
     },
     {
+      "name": "fitScale",
+      "kind": "function",
+      "summary": "画像を枠に「収める」拡大率を求める(contain 相当)。",
+      "signature": "fitScale(natural: { width: number; height: number }, view: { width: number; height: number }): number",
+      "params": [
+        {
+          "name": "natural",
+          "description": "画像の実寸"
+        },
+        {
+          "name": "view",
+          "description": "表示枠のサイズ"
+        }
+      ],
+      "returns": "拡大率。**枠より小さい画像は 1**(拡大しない)"
+    },
+    {
+      "name": "fitStrength",
+      "kind": "function",
+      "summary": "R² を人が読める強さに変える。",
+      "signature": "fitStrength(r2: number): \"強い\" | \"中程度\" | \"弱い\" | \"ほぼ無し\"",
+      "params": [
+        {
+          "name": "r2",
+          "description": "決定係数"
+        }
+      ],
+      "returns": "`強い` / `中程度` / `弱い` / `ほぼ無し`"
+    },
+    {
       "name": "flattenNav",
       "kind": "function",
       "summary": "入れ子のナビ項目を平坦化する。",
@@ -25697,6 +25944,19 @@
       "returns": "`3分前` 形式(`Intl.RelativeTimeFormat` を使うのでロケールに追従)"
     },
     {
+      "name": "formatScale",
+      "kind": "function",
+      "summary": "拡大率を表示用の文字列にする。",
+      "signature": "formatScale(scale: number): string",
+      "params": [
+        {
+          "name": "scale",
+          "description": "拡大率(1 = 等倍)"
+        }
+      ],
+      "returns": "`120%` の形(小数は四捨五入)"
+    },
+    {
       "name": "formatShortcut",
       "kind": "function",
       "summary": "ショートカットを表示用にする。 **Mac は記号(⌘⇧K)、他は語(Ctrl+Shift+K)**。OS の慣習に合わせないと、 利用者は自分のキーボードのどれを押すか分からない。",
@@ -25725,6 +25985,19 @@
         }
       ],
       "returns": "`1:23` 形式(**時間があれば `1:02:03`**)"
+    },
+    {
+      "name": "fullRange",
+      "kind": "function",
+      "summary": "高値と安値の差(その期間にどれだけ振れたか)。",
+      "signature": "fullRange(c: Candle): number",
+      "params": [
+        {
+          "name": "c",
+          "description": "ローソク足"
+        }
+      ],
+      "returns": "値幅(常に 0 以上)"
     },
     {
       "name": "FunnelStage",
@@ -25841,6 +26114,28 @@
       "returns": "`{ text, matched }` の配列(**HTML を組み立てずに返す**ので、エスケープ漏れによる XSS を避けられる)"
     },
     {
+      "name": "HistBin",
+      "kind": "interface",
+      "summary": "ヒストグラムのビン。"
+    },
+    {
+      "name": "histogramBins",
+      "kind": "function",
+      "summary": "数値を等幅のビンに分ける(ヒストグラム用)。",
+      "signature": "histogramBins(values: number[], binCount = 10): HistBin[]",
+      "params": [
+        {
+          "name": "values",
+          "description": "数値の配列"
+        },
+        {
+          "name": "binCount",
+          "description": "ビンの数"
+        }
+      ],
+      "returns": "各ビンの範囲と件数(**最後のビンだけ上端を含む**。でないと最大値がどこにも入らない)"
+    },
+    {
       "name": "histogramData",
       "kind": "function",
       "summary": "ヒストグラム用 {label, count, start, end}[]。",
@@ -25883,6 +26178,35 @@
       "summary": "全体の検証結果。"
     },
     {
+      "name": "INPUT_KIND_LABELS",
+      "kind": "const",
+      "summary": "入力の種類の説明(画面に出す用)。"
+    },
+    {
+      "name": "inputAttrs",
+      "kind": "function",
+      "summary": "ブラウザの自動補完。適切に指定すると入力が一気に楽になる。 */ autoComplete?: string; /** 先頭を大文字にしない(メール・URL で邪魔になる)。 */ autoCapitalize?: \"none\" | \"sentences\"; /** 自動修正を切る(固有名詞・型番で邪魔になる)。 */ autoCorrect?: \"on\" | \"off\"; /** 半角数字だけを想定する場合のヒント(スマホでテンキーが出やすくなる)。 */ pattern?: string; } const TABLE: Record<InputKind, InputKindAttrs> = { // 通常の文字。IME は利用者に任せる(制御できない)。 text: { inputMode: \"text\" }, // 半角数字のみ。**type=\"number\" は使わない**(スピナーが出る、先頭 0 が消える、 // 全角を弾いてしまう)。text + inputMode=numeric が定石。 digits: { inputMode: \"numeric\", pattern: \"[0-9]*\", autoComplete: \"off\", autoCorrect: \"off\" }, tel: { inputMode: \"tel\", autoComplete: \"tel\", autoCorrect: \"off\" }, email: { inputMode: \"email\", autoComplete: \"email\", autoCapitalize: \"none\", autoCorrect: \"off\" }, url: { inputMode: \"url\", autoComplete: \"url\", autoCapitalize: \"none\", autoCorrect: \"off\" }, search: { inputMode: \"search\", autoCorrect: \"off\" }, // 小数を含む数値(金額・数量)。 decimal: { inputMode: \"decimal\", autoComplete: \"off\", autoCorrect: \"off\" }, // カナ。**IME をカナに固定はできない**ので、キーボードは text のまま。 // 全角カナで打ってもらう前提で、検証は @platform/validation の katakana を使う。 kana: { inputMode: \"text\", autoCorrect: \"off\" }, }; /** 入力の種類から、`<input>` に渡す属性を返す。",
+      "signature": "inputAttrs(kind: InputKind): InputKindAttrs",
+      "params": [
+        {
+          "name": "kind",
+          "description": "入力の種類"
+        }
+      ],
+      "returns": "`<Input {...inputAttrs(\"digits\")} />` の形で展開できる属性",
+      "example": "<Input {...inputAttrs(\"tel\")} value={tel} onChange={...} />   // スマホで電話キーボード\n<Input {...inputAttrs(\"digits\")} value={zip} onChange={...} /> // テンキー"
+    },
+    {
+      "name": "InputKind",
+      "kind": "type",
+      "summary": "入力の種類 → スマホのキーボード指定(`inputMode`)と関連属性。 **CSS の `ime-mode` は使わない。** 標準から削除済みで、Edge の通常モードでは動かず、 「いつ動かなくなってもおかしくない」状態にある。**IME は制御できない**と考えるのが正しい。 できるのは以下の 2 つだけ: 1. `inputMode` で **キーボードの種類をヒントとして渡す**(スマホで効く) 2. 入力された全角を **コード側で正規化する**(`@platform/validation` の `toHalfWidth` 等) 「日本語固定」「英数固定」は**ブラウザには指示できない**。 利用者が全角で打ってくる前提で受け止め、正規化するのが唯一の正解。"
+    },
+    {
+      "name": "InputKindAttrs",
+      "kind": "interface",
+      "summary": "{@link inputAttrs} が返す属性。そのまま `<Input {...attrs} />` に展開できる。"
+    },
+    {
       "name": "inRange",
       "kind": "function",
       "summary": "セルが選択範囲内かを判定する。",
@@ -25923,6 +26247,19 @@
         }
       ],
       "returns": "0–1 の位置。**a === b なら 0**(0 除算を避ける)"
+    },
+    {
+      "name": "isBullish",
+      "kind": "function",
+      "summary": "陽線か(終値 >= 始値)。",
+      "signature": "isBullish(c: Candle): boolean",
+      "params": [
+        {
+          "name": "c",
+          "description": "ローソク足"
+        }
+      ],
+      "returns": "陽線なら true"
     },
     {
       "name": "isEmailLike",
@@ -26684,6 +27021,27 @@
       "returns": "変換後の Blob。**個人情報を隠す用途では元画像を破棄すること**(モザイクは復元されないが、元が残っていれば意味がない)"
     },
     {
+      "name": "polarToCartesian",
+      "kind": "function",
+      "summary": "極座標を直交座標にする。 **0° は真上・時計回り**(数学の慣習とは違う)。円グラフは 12 時から 時計回りに描くのが一般的なので、それに合わせてある。",
+      "signature": "polarToCartesian(cx: number, cy: number, r: number, angleDeg: number)",
+      "params": [
+        {
+          "name": "cx",
+          "description": "/ cy 中心"
+        },
+        {
+          "name": "radius",
+          "description": "半径"
+        },
+        {
+          "name": "angleDeg",
+          "description": "角度(**度**。0 = 真上)"
+        }
+      ],
+      "returns": "`{ x, y }`"
+    },
+    {
       "name": "PositionedEvent",
       "kind": "interface",
       "summary": "開始日時。 */ start: Date; /** 終了日時。 */ end: Date; title: string; /** 終日イベント。 */ allDay?: boolean; /** 表示色(帯・チップ)。 */ color?: string; /** カテゴリ(凡例・フィルタ用)。 */ category?: string; /** リソース ID(会議室・担当者など。リソース横並び表示で使う)。 */ resourceId?: string; /** 付随データ(クリック時に受け取る)。 */ data?: unknown; } /** 時間グリッド上でのイベント配置(%指定)。"
@@ -26835,6 +27193,34 @@
         }
       ],
       "returns": "正規化した矩形(**逆方向のドラッグに対応**)"
+    },
+    {
+      "name": "RegressionInput",
+      "kind": "interface",
+      "summary": "散布図の純ロジック(回帰直線)。**描画を含まない**ので、サーバでも画面でも使える。 社内業務では「残業時間と不具合件数」「気温と来店数」「単価と受注率」のように、 **2 つの数値の関係を見たい**場面で使う。"
+    },
+    {
+      "name": "regressionLine",
+      "kind": "function",
+      "summary": "直線を引くための 2 点(x の最小・最大)。**そのままチャートの系列に渡せる**。 */ points: { x: number; y: number }[]; /** 傾き。 */ slope: number; /** 切片。 */ intercept: number; /** 決定係数。**1 に近いほど当てはまりが良い**。 */ r2: number; /** `y = 1.23x + 4.56` の形。凡例やラベルに使う。 */ equation: string; } /** 点群から回帰直線を求める。",
+      "signature": "regressionLine(points: readonly RegressionInput[], digits = 2): RegressionLine | null",
+      "params": [
+        {
+          "name": "points",
+          "description": "点群"
+        },
+        {
+          "name": "digits",
+          "description": "式に出す小数桁(既定 2)"
+        }
+      ],
+      "returns": "回帰直線。**引けなければ null**",
+      "example": "const line = regressionLine([{ x: 1, y: 2 }, { x: 2, y: 4 }, { x: 3, y: 6 }]);\nline?.equation  // \"y = 2x + 0\"\nline?.r2        // 1(完全に一直線)"
+    },
+    {
+      "name": "RegressionLine",
+      "kind": "interface",
+      "summary": "{@link regressionLine} の戻り値。"
     },
     {
       "name": "relativeTime",
@@ -27043,6 +27429,23 @@
       "name": "ReviewField",
       "kind": "interface",
       "summary": "信頼度による確認要否の判定(純関数)。"
+    },
+    {
+      "name": "ringDashOffset",
+      "kind": "function",
+      "summary": "進捗リングの `stroke-dashoffset` を計算する。 **円周を破線として扱い、見せる長さを変える**のが定石(SVG で弧を描くより簡単)。",
+      "signature": "ringDashOffset(progress: number, radius: number): number",
+      "params": [
+        {
+          "name": "radius",
+          "description": "半径"
+        },
+        {
+          "name": "progress",
+          "description": "進捗(0–1)"
+        }
+      ],
+      "returns": "`stroke-dashoffset` の値"
     },
     {
       "name": "RowDiff",
@@ -27278,6 +27681,19 @@
       "summary": "構造化ログ 1 行の解析結果。"
     },
     {
+      "name": "summarizeCandles",
+      "kind": "function",
+      "summary": "陽線の本数。 */ bullish: number; /** 陰線の本数(同値は陽線に数えるので `count - bullish`)。 */ bearish: number; /** 期間の最高値。 */ high: number; /** 期間の最安値。 */ low: number; /** 最初の始値。 */ first: number; /** 最後の終値。 */ last: number; /** first → last の変化率(%)。first が 0 なら 0。 */ changePercent: number; /** 1 本あたりの平均値幅(high - low)。 */ averageRange: number; } /** ローソク足の集計。",
+      "signature": "summarizeCandles(rows: readonly Candle[]): CandleSummary",
+      "params": [
+        {
+          "name": "rows",
+          "description": "ローソク足の配列(時系列)"
+        }
+      ],
+      "returns": "陽線/陰線の本数・期間の高安・変化率など。**空配列なら全て 0**"
+    },
+    {
       "name": "summarizeImport",
       "kind": "function",
       "summary": "検証結果の要約を作る。",
@@ -27341,6 +27757,23 @@
       "name": "TimeInterval",
       "kind": "interface",
       "summary": "時間区間。"
+    },
+    {
+      "name": "toCandles",
+      "kind": "function",
+      "summary": "数値の時系列を、期間ごとにまとめてローソク足にする。",
+      "signature": "toCandles(points: readonly { label: string; value: number }[], size: number): CandleRow[]",
+      "params": [
+        {
+          "name": "points",
+          "description": "値の時系列(`label` は期間のラベル)"
+        },
+        {
+          "name": "size",
+          "description": "1 本にまとめる件数(例: 5 なら 5 件で 1 本)"
+        }
+      ],
+      "returns": "ローソク足。**端数は最後の 1 本にまとめる**(捨てない)"
     },
     {
       "name": "toGanttRows",
@@ -27419,6 +27852,19 @@
       "returns": "`#rrggbb`"
     },
     {
+      "name": "toPercentStacked",
+      "kind": "function",
+      "summary": "各行を合計 100% に正規化する(帯グラフ用)。 **構成比の推移を見る**のに使う(実数だと全体の増減に紛れて、割合の変化が見えない)。",
+      "signature": "toPercentStacked(values: number[], binCount = 10): HistBin[]",
+      "params": [
+        {
+          "name": "rows",
+          "description": "行ごとの系列値"
+        }
+      ],
+      "returns": "各行が 100% になるよう正規化した値。**合計 0 の行は全て 0**"
+    },
+    {
       "name": "totalBusyMinutes",
       "kind": "function",
       "summary": "合計使用時間を返す(稼働率の算出に使う)。 **重なりを二重に数えない**(まとめてから合計する)。",
@@ -27430,6 +27876,19 @@
         }
       ],
       "returns": "合計の分数"
+    },
+    {
+      "name": "toWaterfall",
+      "kind": "function",
+      "summary": "増減項目を滝グラフ用に変換する。 **「前期からどう変わって今期になったか」を見せる**(売上 100 → +30 → -10 → 120)。 各バーの浮き位置(offset)を計算する。",
+      "signature": "toWaterfall(items: WaterfallItem[]): WaterfallRow[]",
+      "params": [
+        {
+          "name": "items",
+          "description": "増減項目"
+        }
+      ],
+      "returns": "各バーの offset と高さ"
     },
     {
       "name": "transitionPresets",
@@ -27857,9 +28316,81 @@
       "returns": "有効な行"
     },
     {
+      "name": "WaterfallItem",
+      "kind": "interface",
+      "summary": "ウォーターフォールの入力項目。"
+    },
+    {
+      "name": "WaterfallRow",
+      "kind": "interface",
+      "summary": "\"total\" は基準線(0)からの絶対値バー(小計/合計)。省略時は増減(delta)。 */ type?: \"delta\" | \"total\"; } /** ウォーターフォールの 1 行(積み上げ横棒用: 透明 offset + 実体 bar)。"
+    },
+    {
+      "name": "withMovingAverage",
+      "kind": "function",
+      "summary": "移動平均を、**元の行と同じ長さ**で返す(先頭は null)。",
+      "signature": "withMovingAverage(rows: readonly T[], window: number): (T &",
+      "params": [
+        {
+          "name": "rows",
+          "description": "ローソク足の配列(時系列)"
+        },
+        {
+          "name": "window",
+          "description": "区間の幅(例: 5 なら 5 日移動平均)"
+        }
+      ],
+      "returns": "各行に `ma` を足した配列。**計算できない先頭は `ma: null`**",
+      "example": "withMovingAverage(rows, 5)[0].ma  // null(4 本目までは出せない)\nwithMovingAverage(rows, 5)[4].ma  // 1〜5 本目の終値の平均"
+    },
+    {
       "name": "WsStatus",
       "kind": "type",
       "summary": "WebSocket の接続状態。"
+    },
+    {
+      "name": "ZOOM_RESET",
+      "kind": "const",
+      "summary": "最小の拡大率(既定 1 = 縮小しない)。 */ min?: number; /** 最大の拡大率(既定 8)。 */ max?: number; } /** 等倍・中央の初期状態。"
+    },
+    {
+      "name": "zoomAt",
+      "kind": "function",
+      "summary": "ホイール/ピンチで拡大する。**カーソル位置を中心に**寄る。",
+      "signature": "zoomAt(state: ZoomState, factor: number, cursor: { x: number; y: number }, view: { width: number; height: number }, limits: Zoo…): ZoomState",
+      "params": [
+        {
+          "name": "state",
+          "description": "現在の状態"
+        },
+        {
+          "name": "factor",
+          "description": "倍率(1.1 なら 10% 拡大 / 0.9 なら縮小)"
+        },
+        {
+          "name": "cursor",
+          "description": "枠の中心からのカーソル位置(px)"
+        },
+        {
+          "name": "view",
+          "description": "表示枠のサイズ"
+        },
+        {
+          "name": "limits",
+          "description": "制限"
+        }
+      ],
+      "returns": "新しい状態(制限済み)"
+    },
+    {
+      "name": "ZoomLimits",
+      "kind": "interface",
+      "summary": "拡大率(1 = 等倍)。 */ scale: number; /** 横のずらし幅(px・表示座標)。 */ x: number; /** 縦のずらし幅(px・表示座標)。 */ y: number; } /** ズームの制限。"
+    },
+    {
+      "name": "ZoomState",
+      "kind": "interface",
+      "summary": "画像ズームの純ロジック(描画を含まない)。 業務では**添付画像を細部まで確認したい**場面が多い(領収書の但し書き、図面の寸法、 現場写真の傷)。ダウンロードして別アプリで開かせるのは手間なので、画面で拡大できるようにする。"
     }
   ],
   "@platform/units": [

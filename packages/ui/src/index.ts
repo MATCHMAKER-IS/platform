@@ -206,6 +206,31 @@ export { useTween, useSpring, useInView, type UseTweenOptions, type UseInViewOpt
 
 export { cn } from "./lib/cn";
 export { sparklineData, histogramData, movingAverageData, cumulativeData } from "./lib/chart-data";
+// チャートの純ロジック。**部品を使わず自前で描くとき**や、データを先に整形したいときに要る。
+// 以前はバレルから出ておらず、CandlestickChart 経由でしか触れなかった。
+export {
+  candleGeometry, toPercentStacked, histogramBins, toWaterfall,
+  polarToCartesian, arcPath, ringDashOffset,
+  type Candle, type HistBin, type WaterfallItem, type WaterfallRow,
+} from "./components/charts/chart-math";
+// ローソク足の純ロジック(描画を含まない)。陽線判定・移動平均の長さ揃え・集計。
+export {
+  isBullish, bodyRange, fullRange, withMovingAverage, summarizeCandles, toCandles,
+  type CandleRow, type CandleSummary,
+} from "./lib/candle-data";
+// 散布図の純ロジック(回帰直線)。描画を含まない。
+// ScatterPoint は components/scatter.tsx が別物を出しているので、ここでは出さない
+// (同名で中身が違う型はバレルに 2 つ置けない。検査 B/R がそれを見ている)。
+export { regressionLine, fitStrength, type RegressionLine, type RegressionInput } from "./lib/scatter-data";
+// 入力の種類 → inputMode。**ime-mode は使わない**(標準から削除済み)。
+export { inputAttrs, INPUT_KIND_LABELS, type InputKind, type InputKindAttrs } from "./lib/input-kind";
+// IME 変換中を追う。**確定前に検証すると「やまだ」で弾く**、変換確定の Enter で送信される。
+export { useComposition, type CompositionState } from "./components/use-composition";
+// 画像ズーム。純ロジック(lib/zoom)と描画(components/image-zoom)を分けてある。
+export { ImageZoom, type ImageZoomProps } from "./components/image-zoom";
+// ファイル選択。生の <input type="file"> は見た目が揃わないので部品にする。
+export { FileInput, type FileInputProps } from "./components/file-input";
+export { clampScale, clampPan, zoomAt, fitScale, formatScale, ZOOM_RESET, type ZoomState, type ZoomLimits } from "./lib/zoom";
 export { computeShares, donutSegments, achievementRate, funnelStages, relativeTime, type Share, type DonutSegment, type FunnelStage } from "./lib/dashboard";
 export { MiniCalendar, type MiniCalendarProps } from "./components/mini-calendar";
 export { DateRangePicker, type DateRangePickerProps, type PickedRange } from "./components/date-range-picker";

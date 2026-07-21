@@ -12,6 +12,15 @@ import { getCookie, serializeCookie, clearCookie, type CookieOptions } from "./c
 export interface SessionConfig {
   /** 暗号化の秘密鍵(十分に長い秘密値。`@platform/env` で検証)。 */
   secret: string;
+  /**
+   * 鍵導出のソルト(**必須**・8 文字以上)。**アプリ/環境ごとに一意の値**を設定する。
+   *
+   * @remarks
+   * 既定値を持たせない。固定の共有既定値があると **複数環境で同一鍵になり**、
+   * レインボーテーブル攻撃に弱くなる({@link @platform/crypto#deriveKey} が必須化している理由)。
+   * 本番は `env.SESSION_SALT` のような環境変数から渡すこと。
+   */
+  salt: string;
   /** クッキー名(既定 "session")。 */
   cookieName?: string;
   /** 有効期間(秒、既定 7 日)。絶対的な上限(活動しても延長されない)。 */
@@ -73,10 +82,9 @@ interface SessionEnvelope<T> {
  * @returns セッション。`seal` で署名、`unseal` で検証
  */
 export function createSession<T>(config: SessionConfig): Session<T> {
-  const { secret, cookieName = "session", maxAgeSec = 60 * 60 * 24 * 7, idleTimeoutSec, cookie } = config;
-  // deriveKey は salt が必須(8 文字以上)。セッション用の固定 salt を使う
-  // (secret 自体が環境ごとに違うので、salt は定数でよい)。
-  const key = deriveKey(secret, "platform-session-v1");
+  const { secret, salt, cookieName = "session", maxAgeSec = 60 * 60 * 24 * 7, idleTimeoutSec, cookie } = config;
+  // salt は必須(deriveKey が 8 文字未満なら AppError を投げる)
+  const key = deriveKey(secret, salt);
   const now = () => Date.now();
 
   /** 生クッキーを検証し、有効ならエンベロープを返す(絶対期限 + 無操作の両方を判定)。 */

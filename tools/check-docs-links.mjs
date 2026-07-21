@@ -71,7 +71,9 @@ export function check() {
     const dir = path.dirname(file);
 
     // 1. pnpm コマンドの実在
-    for (const m of body.matchAll(/`pnpm ([a-z][a-z0-9:]*)\b/g)) {
+    // ハイフンも拾う(gen:portal-reference / version-packages 等)。
+    // 入れないと `pnpm gen:portal-reference` を "gen:portal" と誤読して「存在しない」と言う。
+    for (const m of body.matchAll(/`pnpm ([a-z][a-z0-9:-]*)\b/g)) {
       const cmd = m[1];
       if (!cmd || PNPM_BUILTIN.has(cmd) || PLACEHOLDERS.has(cmd)) continue;
       // pnpm --filter xxx のような形は除外

@@ -11,7 +11,7 @@ export const CATEGORIES = {
   "AI基盤": ["ai", "rag", "mcp"],
   "外部SaaS連携": ["zoho", "google", "line", "freee", "stripe", "paypal", "ekyc"],
   "非同期・フロー制御": ["jobs", "rpa", "cron", "workflow", "fsm", "blueprint", "saga", "flags"],
-  "UI・表現": ["ui", "form", "report", "pdf", "print", "i18n", "color", "html", "theme"],
+  "UI・表現": ["ui", "form", "report", "pdf", "print", "barcode", "i18n", "color", "html", "theme"],
   "メディア・デバイス": ["media", "image", "ocr", "upload", "device", "mobile", "bluetooth", "hid"],
   "業務ドメイン": ["address", "phone", "currency", "units", "tax", "importer", "sequence", "zengin", "payroll", "dencho", "commerce", "invoice", "quote", "purchase", "inventory", "accounting", "audit", "depreciation", "booking", "cast", "elearning", "task", "contract"],
   "コンテンツ・サイト": ["cms", "blog", "seo", "site", "url", "social", "board", "chat", "faq"],

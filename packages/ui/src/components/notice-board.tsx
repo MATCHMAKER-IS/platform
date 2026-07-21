@@ -25,8 +25,7 @@ export interface NoticeItem {
 }
 
 /** {@link NoticeBoard} の props。 */
-// 描画するのは <ul> なので HTMLUListElement(HTMLDivElement だと props が合わない)
-export interface NoticeBoardProps extends React.HTMLAttributes<HTMLUListElement> {
+export interface NoticeBoardProps extends React.HTMLAttributes<HTMLElement> {
   items: NoticeItem[];
   /** 0 件時の表示。 */
   emptyText?: React.ReactNode;
@@ -39,13 +38,7 @@ const LEVEL_DOT: Record<NoticeLevel, string> = {
 /** お知らせ一覧。未読ドット・カテゴリ・日付を表示。 */
 export function NoticeBoard({ items, emptyText = "お知らせはありません", className, ...props }: NoticeBoardProps) {
   if (items.length === 0) {
-    // 空のときも <ul> にする(props の型を揃えるため。<div> だと
-    // HTMLUListElement 用の props を渡せない)。
-    return (
-      <ul className={cn("px-4 py-8 text-center text-sm text-[var(--color-muted)]", className)} {...props}>
-        <li>{emptyText}</li>
-      </ul>
-    );
+    return <div className={cn("px-4 py-8 text-center text-sm text-[var(--color-muted)]", className)} {...props}>{emptyText}</div>;
   }
   return (
     <ul className={cn("divide-y divide-[var(--color-border)]", className)} {...props}>

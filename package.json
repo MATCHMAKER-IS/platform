@@ -42,6 +42,7 @@
     "gen:depgraph": "node tools/gen-depgraph.mjs",
     "gen:erd": "node tools/gen-erd.mjs",
     "gen:reference": "node tools/gen-reference.mjs",
+    "gen:portal-reference": "node tools/gen-portal-reference.mjs",
     "gen:site": "node tools/gen-ref-site.mjs",
     "i18n:check": "node tools/i18n-check.mjs",
     "lint": "turbo run lint",

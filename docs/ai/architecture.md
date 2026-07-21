@@ -8,7 +8,7 @@
 apps/       … アプリ(業務ロジック・画面・API route・Prisma schema)
   internal-app/   社内業務アプリ(Next.js)
   public-site/    公開サイト(Next.js・Prisma無し)
-packages/   … 基盤(107 個・純ロジック/部品。業務判断を持たない)
+packages/   … 基盤(108 個・純ロジック/部品。業務判断を持たない)
 tools/      … 検査・生成スクリプト(smoke / check-deps / api-surface / check-schema / gen-module-list)
 docs/       … ドキュメント(機能カタログは リポジトリ直下の PLATFORM_SERVICES.md)
 ```

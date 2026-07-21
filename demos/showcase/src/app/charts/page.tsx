@@ -1,6 +1,41 @@
 "use client";
 /** グラフ(チャート)デモ。全種+主要オプション。 */
-import { BarChart, LineChart, ComboChart, PieChart, RadarChart, ScatterChart, GanttChart, Heatmap, Treemap, FunnelChart, CandlestickChart, BubbleChart, BandChart, ChartHistogram, HorizontalBarChart, WaterfallChart, SankeyChart, ChartGauge, ProgressRing, CsvExportButton } from "@platform/ui";
+import { BarChart, LineChart, ComboChart, PieChart, RadarChart, ScatterChart, GanttChart, Heatmap, Treemap, FunnelChart, CandlestickChart, BubbleChart, BandChart, ChartHistogram, HorizontalBarChart, WaterfallChart, SankeyChart, ChartGauge, ProgressRing, CsvExportButton, withMovingAverage, summarizeCandles, toCandles, regressionLine, fitStrength } from "@platform/ui";
+
+// 散布図(広告費と売上)。**回帰直線も基盤に任せる**。
+const ads = [
+  { x: 10, y: 40 }, { x: 20, y: 55 }, { x: 30, y: 52 },
+  { x: 40, y: 78 }, { x: 50, y: 84 }, { x: 60, y: 91 }, { x: 70, y: 105 },
+];
+const adsFit = regressionLine(ads);
+// 関係が無い例(R² が低いと、直線を引いても意味がないと分かる)
+const noise = [
+  { x: 1, y: 12 }, { x: 2, y: 31 }, { x: 3, y: 8 }, { x: 4, y: 27 },
+  { x: 5, y: 15 }, { x: 6, y: 33 }, { x: 7, y: 11 },
+];
+const noiseFit = regressionLine(noise);
+
+// 日次の在庫推移(OHLC)。株価でなくても「1 期間の始値/高値/安値/終値」は使える。
+const stock = [
+  { label: "7/1", open: 100, high: 110, low: 95, close: 108 },
+  { label: "7/2", open: 108, high: 112, low: 104, close: 106 },
+  { label: "7/3", open: 106, high: 107, low: 98, close: 100 },
+  { label: "7/4", open: 100, high: 105, low: 96, close: 104 },
+  { label: "7/5", open: 104, high: 118, low: 103, close: 116 },
+  { label: "7/6", open: 116, high: 120, low: 112, close: 114 },
+  { label: "7/7", open: 114, high: 116, low: 105, close: 107 },
+  { label: "7/8", open: 107, high: 113, low: 106, close: 112 },
+  { label: "7/9", open: 112, high: 122, low: 111, close: 121 },
+  { label: "7/10", open: 121, high: 124, low: 117, close: 118 },
+];
+// **移動平均は基盤に任せる**。自前で movingAverage を呼ぶと window-1 本ぶん日付がずれる。
+const stockWithMa = withMovingAverage(stock, 5);
+const stockSummary = summarizeCandles(stock);
+// 1 日 1 件の数値 → 週足(5 件で 1 本)。端数は捨てない。
+const weekly = toCandles(
+  [42, 38, 51, 47, 56, 44, 39, 61, 58, 53, 49, 67].map((v, i) => ({ label: `${i + 1}日`, value: v })),
+  5,
+);
 
 const monthly = [
   { month: "1月", 売上: 420, 費用: 280, 利益率: 33 },
@@ -63,8 +98,33 @@ export default function Page() {
           <RadarChart title="レーダー(A社 vs B社)" data={skills} xKey="項目" series={[{ key: "A", name: "A社" }, { key: "B", name: "B社" }]} toggleable />
         </Box>
         <Box>
-          <ScatterChart title="散布図" xLabel="広告費" yLabel="売上"
-            series={[{ key: "s1", name: "店舗", points: [{ x: 10, y: 40 }, { x: 20, y: 55 }, { x: 30, y: 52 }, { x: 40, y: 78 }, { x: 50, y: 84 }] }]} />
+          <ScatterChart title="散布図(そのまま)" xLabel="広告費(万円)" yLabel="売上(万円)"
+            series={[{ key: "s1", name: "店舗", points: ads }]} />
+          <div style={{ fontSize: 11, color: "var(--color-muted)", marginTop: 6 }}>
+            点を見て「なんとなく右肩上がり」までは分かりますが、<b>どのくらいかは言えません</b>。
+          </div>
+        </Box>
+        <Box>
+          <ScatterChart title="散布図 + 回帰直線（showRegression）" xLabel="広告費(万円)" yLabel="売上(万円)"
+            showRegression
+            series={[{ key: "s1", name: "店舗", points: ads }]} />
+          <div style={{ fontSize: 11, color: "var(--color-muted)", marginTop: 6, lineHeight: 1.7 }}>
+            <b>{adsFit?.equation}</b>（R²={adsFit?.r2.toFixed(2)} = 当てはまりは
+            <b>{adsFit ? fitStrength(adsFit.r2) : "—"}</b>）。
+            広告費を 1 万円増やすと売上が約 <b>{adsFit?.slope.toFixed(1)}</b> 万円増える、と読めます。
+            <br />
+            <code>showRegression</code> は<b>既定 false</b>のオプションです。凡例に式と R² が出ます。
+          </div>
+        </Box>
+        <Box>
+          <ScatterChart title="回帰が意味を持たない例" xLabel="社員番号" yLabel="残業時間"
+            showRegression
+            series={[{ key: "noise", name: "ばらつき", points: noise }]} />
+          <div style={{ fontSize: 11, color: "var(--color-muted)", marginTop: 6, lineHeight: 1.7 }}>
+            R²={noiseFit?.r2.toFixed(2)} =「<b>{noiseFit ? fitStrength(noiseFit.r2) : "—"}</b>」。
+            <b>直線は引けても、関係があるとは限りません。</b>
+            R² を見ずに「傾きがプラスだから相関がある」と言うのが、一番ありがちな誤読です。
+          </div>
         </Box>
         <Box>
           <GanttChart title="ガントチャート(プロジェクト)" tasks={[
@@ -101,14 +161,20 @@ export default function Page() {
             series={[{ key: "b", name: "店舗", points: [{ x: 10, y: 40, z: 20 }, { x: 20, y: 55, z: 60 }, { x: 30, y: 52, z: 35 }, { x: 40, y: 78, z: 90 }, { x: 50, y: 84, z: 50 }] }]} />
         </Box>
         <Box>
-          <CandlestickChart title="ローソク足(株価 OHLC)" unit="円" data={[
-            { label: "1日", open: 100, high: 110, low: 95, close: 108 },
-            { label: "2日", open: 108, high: 112, low: 104, close: 106 },
-            { label: "3日", open: 106, high: 107, low: 98, close: 100 },
-            { label: "4日", open: 100, high: 105, low: 96, close: 104 },
-            { label: "5日", open: 104, high: 118, low: 103, close: 116 },
-            { label: "6日", open: 116, high: 120, low: 112, close: 114 },
-          ]} />
+          <CandlestickChart title="ローソク足(OHLC) + 5日移動平均" unit="個" maWindow={5} data={stockWithMa} />
+          <div style={{ fontSize: 11, color: "var(--color-muted)", marginTop: 6, lineHeight: 1.7 }}>
+            日次の在庫推移。<b>陽線 {stockSummary.bullish}</b> / 陰線 {stockSummary.bearish}、
+            高 {stockSummary.high} / 安 {stockSummary.low}、
+            変化率 <b>{stockSummary.changePercent.toFixed(1)}%</b>、平均値幅 {stockSummary.averageRange.toFixed(1)}。
+            移動平均は <code>withMovingAverage()</code> で<b>長さを揃えて</b>います（先頭4本は線が出ません）。
+          </div>
+        </Box>
+        <Box>
+          <CandlestickChart title="日次の受注金額を週足にまとめる" unit="万円" data={weekly} height={280} />
+          <div style={{ fontSize: 11, color: "var(--color-muted)", marginTop: 6, lineHeight: 1.7 }}>
+            <b>1 日 1 件の数値しか無くても</b>、<code>toCandles(points, 5)</code> で週ごとにまとめると
+            「その週にどれだけ振れたか」が見えます。<b>端数は捨てません</b>（最後の週が短くても 1 本になります）。
+          </div>
         </Box>
         <Box>
           <WaterfallChart title="ウォーターフォール(損益内訳)" unit="万円" items={[

@@ -17,9 +17,9 @@
 ## AI向けドキュメント(まずここを読む)
 
 - `docs/ai/architecture.md` … 層のルール・ストアの作り方・検証手順・変更チェックリスト
-- `docs/ai/module-list.md` … 107 パッケージのカテゴリ別インデックス(自動生成: `node tools/gen-module-list.mjs`)
+- `docs/ai/module-list.md` … 108 パッケージのカテゴリ別インデックス(自動生成: `node tools/gen-module-list.mjs`)
 - `docs/ai/patterns.md` … ストア/route/スモーク/通知/UI の定型コード
-- 各 `packages/<name>/README.md` … 個別パッケージの用途・使い方(107/107 整備済み)
+- 各 `packages/<name>/README.md` … 個別パッケージの用途・使い方(108/108 整備済み)
 
 新機能の前に module-list で既存部品を確認し、車輪の再発明を避けること。
 
@@ -101,6 +101,14 @@ import { Button, Input } from "@platform/ui";
 
 **無い部品が必要なら、アプリで自作せず基盤に足す。**
 そのとき「このアプリだけで使うか」を考える必要はない —— UI 部品は定義上どのアプリでも使う。
+
+**現在 `@platform/ui` に無く、生タグで書かざるを得ないもの**(足したら生タグを消すこと):
+
+| 用途 | 現状 | 使用箇所 |
+|---|---|---|
+| `<input type="datetime-local">` | 無い(`DatePicker` は日付のみ) | `demos/showcase/src/app/status-page` |
+| `<input type="file">` | **`FileInput` を追加済み**(`label` を渡すとボタン風) | — |
+| `<input type="range">` | **`Slider` で代替できる**(`value={[n]}` / `onValueChange={([v]) => …}`) | apps 各所(2 箇所・要置換) |
 
 > 検査: `node tools/check-app-rules.mjs` が生タグを検出する(現在は警告)。
 > 既存コードには未適用の箇所が多く残っている(移行中)。**新しく書くコードでは守ること。**
@@ -322,6 +330,8 @@ export function EnvSettingsTable({ rows, groupNotes, runtime }: EnvSettingsTable
 | `node tools/check-package-shape.mjs` | tsconfig / scripts / vitest.config の欠落 |
 | `node tools/check-docs-links.mjs` | 資料のリンク切れ・存在しないコマンドの案内 |
 | `node tools/check-e2e-quality.mjs` | E2E の Flaky リスク(固定待ち等) |
+| `node tools/check-app-transpile.mjs` | apps の next.config `transpilePackages` 漏れ(next build が落ちる) |
+| `node tools/check-jsx-tags.mjs` | JSX インラインタグの閉じ忘れ・`**` 混入(next build を落とす構文エラーの一次検知) |
 
 > **`pnpm changeset` は使わない。** バージョンを上げない方針(docs/adr/0011)。
 > `.changeset/` は将来 外部配布する日のために残してあるだけ。

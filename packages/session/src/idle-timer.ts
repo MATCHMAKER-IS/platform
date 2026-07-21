@@ -78,6 +78,19 @@ export function createIdleTimer(config: IdleTimerConfig): IdleTimer {
 export const IDLE_ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "visibilitychange"] as const;
 
 /**
+ * 操作イベントを購読できる対象。
+ *
+ * @remarks
+ * **`Window` 型を使わない。** `@platform/session` の tsconfig は `lib: ["ES2022"]` で
+ * DOM を含まないため、`Window` を書くと **型検査が通らない**(TS2304)。
+ * 必要な形だけを宣言すれば、ブラウザでも Node でもテストの偽物でも渡せる。
+ */
+export interface ActivityTarget {
+  addEventListener: (type: string, handler: () => void, options?: unknown) => void;
+  removeEventListener: (type: string, handler: () => void, options?: unknown) => void;
+}
+
+/**
  * DOM の活動イベントをタイマーに配線する(ブラウザ専用)。返り値で解除できる。
  * @example
  * ```ts
@@ -91,15 +104,7 @@ export const IDLE_ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "scrol
  * @param target イベントを購読する対象(既定はブラウザの window)
  * @returns 購読を解除する関数。**画面を離れるときに必ず呼ぶ**(呼ばないとリークする)
  */
-/**
- * イベントを購読できるもの(Window / Document / Element)。
- *
- * **DOM の `EventTarget` をそのまま使う**。自前で構造を書くと、
- * `Window` の `addEventListener`(オーバーロードあり)と噛み合わない。
- */
-export type EventTargetLike = EventTarget;
-
-export function bindActivityListeners(timer: IdleTimer, target: EventTargetLike = globalThis as unknown as Window): () => void {
+export function bindActivityListeners(timer: IdleTimer, target: ActivityTarget = globalThis as unknown as ActivityTarget): () => void {
   const handler = () => timer.activity();
   for (const ev of IDLE_ACTIVITY_EVENTS) target.addEventListener(ev, handler, { passive: true });
   return () => { for (const ev of IDLE_ACTIVITY_EVENTS) target.removeEventListener(ev, handler); };

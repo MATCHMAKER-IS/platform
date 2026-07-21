@@ -50,7 +50,7 @@
 - **@platform/auth** — 認証・認可の共通部品。
   - 主なexport: AuthUser, AuthenticationOptionsInput, AuthenticatorData, AuthenticatorFlags, BackupCodeRecord, BackupCodeVerifyResult, …(全72)
 - **@platform/session** — セッション・クッキー処理の共通部品。
-  - 主なexport: AttemptRecord, CookieOptions, EventTargetLike, IDLE_ACTIVITY_EVENTS, IdleTimer, IdleTimerConfig, …(全35)
+  - 主なexport: ActivityTarget, AttemptRecord, CookieOptions, IDLE_ACTIVITY_EVENTS, IdleTimer, IdleTimerConfig, …(全35)
 
 ## データ
 
@@ -138,7 +138,7 @@
 ## UI・表現
 
 - **@platform/ui** — Tailwind CSS + shadcn/ui の慣習に沿った共通 UI 部品。内部は Radix(統合 `radix-ui`)/
-  - 主なexport: Accordion, AccordionContent, AccordionItem, AccordionTrigger, ActivityTimeline, ActivityTimelineProps, …(全781)
+  - 主なexport: Accordion, AccordionContent, AccordionItem, AccordionTrigger, ActivityTimeline, ActivityTimelineProps, …(全824)
 - **@platform/form** — フォーム統合(react-hook-form + zod + `@platform/ui`)。
   - 主なexport: AutocompleteField, CheckboxField, ColorField, ComboboxField, CsrfField, DateField, …(全74)
 - **@platform/report** — 帳票(請求書・見積書等)。日本の消費税計算と印刷用 HTML を提供します。
@@ -147,6 +147,8 @@
   - 主なexport: DEFAULT_INVOICE_PDF_OPTIONS, PdfOptions, PdfRenderer, PdfService, createPdf, createPlaywrightRenderer
 - **@platform/print** — 印刷処理。ブラウザ印刷とサーマルプリンタ(ESC/POS)。
   - 主なexport: Align, PageOptions, PrintElementOptions, PrintOptions, RECEIPT_PROFILES, ReceiptBuilder, …(全14)
+- **@platform/barcode** — QR コード・バーコードの**発行**(生成)。
+  - 主なexport: AssetUrlOptions, BarcodeFormat, BarcodeOptions, QrLevel, QrOptions, barcodeSvg, …(全9)
 - **@platform/i18n** — 軽量 i18n。翻訳カタログ + 補間 + フォールバック + Intl 整形(数値/通貨/日付/相対時間/複数形)。
   - 主なexport: Catalog, Catalogs, I18nOptions, LOCALES, LOCALE_LABELS, Locale, …(全12)
 - **@platform/color** — 色ユーティリティ(純関数)。hex⇔rgb⇔hsl 変換・WCAG コントラスト比・明暗調整・混色。
@@ -227,7 +229,7 @@
 ## コンテンツ・サイト
 
 - **@platform/cms** — CMS(お知らせ・記事・ページ)の共通基盤。投稿モデル・下書き/公開/予約のステータス管理・改訂履歴・タグ/カテゴリ・公開申請までを部品化しています。
-  - 主なexport: AnnouncementInput, AnnouncementRow, AnnouncementStore, AnnouncementStoreDb, BlogView, CategoryInput, …(全79)
+  - 主なexport: AnnouncementInput, AnnouncementLevel, AnnouncementRow, AnnouncementStore, AnnouncementStoreDb, BlogView, …(全81)
 - **@platform/blog** — ブログ/コンテンツの基盤処理。スラッグ生成・抜粋・読了時間・目次、記事の公開状態/絞り込み/関連記事、
   - 主なexport: AdjacentPosts, BlogPost, Comment, CommentNode, CommentStatus, ExcerptOptions, …(全46)
 - **@platform/seo** — SEO のための機能。メタタグ・Open Graph / Twitter Card・JSON-LD 構造化データ・robots.txt の生成。

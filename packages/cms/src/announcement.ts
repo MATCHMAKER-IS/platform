@@ -6,6 +6,30 @@
 import { type Announcement } from "@platform/site";
 
 /** お知らせの入力。 */
+/**
+ * お知らせの重要度。**`@platform/site` の `Announcement["level"]` と同じ**。
+ * ずれると「CMS で保存できるのにサイトで型エラー」になる。
+ */
+export type AnnouncementLevel = NonNullable<Announcement["level"]>;
+
+/**
+ * 重要度として妥当かを判定する型ガード。
+ *
+ * **DB からは `string`(や `unknown`)で来る**ため、`AnnouncementLevel` に
+ * 絞り込む前段のバリデーションに使う。想定外の値はそのまま弾ける。
+ *
+ * @param v 判定対象の値(DB 由来の未検証値を想定)
+ * @returns `"info"` / `"warning"` / `"sale"` のいずれかなら `true`(型ガード)
+ *
+ * @example
+ * ```ts
+ * if (isAnnouncementLevel(row.level)) a.level = row.level; // ここで level は AnnouncementLevel に絞り込まれる
+ * ```
+ */
+export function isAnnouncementLevel(v: unknown): v is AnnouncementLevel {
+  return v === "info" || v === "warning" || v === "sale";
+}
+
 export interface AnnouncementInput {
   message: string;
   startAt?: string;
@@ -13,7 +37,8 @@ export interface AnnouncementInput {
   paths?: string[];
   ctaLabel?: string;
   ctaHref?: string;
-  level?: string;
+  /** 重要度。**@platform/site の Announcement.level と同じ union** に揃える。 */
+  level?: AnnouncementLevel;
 }
 
 /**
@@ -129,7 +154,8 @@ function rowToAnnouncement(row: AnnouncementRow): Announcement {
   if (Array.isArray(row.paths) && row.paths.length > 0) a.paths = row.paths as string[];
   if (row.ctaLabel) a.ctaLabel = row.ctaLabel;
   if (row.ctaHref) a.ctaHref = row.ctaHref;
-  if (row.level) a.level = row.level;
+  // DB は string。**妥当な値だけ通す**(想定外の値が入っていても画面を壊さない)
+  if (isAnnouncementLevel(row.level)) a.level = row.level;
   return a;
 }
 

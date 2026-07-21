@@ -21,15 +21,12 @@ import type { z } from "zod";
  * const form = useZodForm(schema, { defaultValues: { email: "", name: "" } });
  * ```
  */
-export function useZodForm<TFieldValues extends FieldValues>(
-  schema: z.ZodType<TFieldValues>,
-  options?: Omit<UseFormProps<TFieldValues>, "resolver">,
-): UseFormReturn<TFieldValues> {
-  return useForm<TFieldValues>({
+export function useZodForm<S extends z.ZodType<FieldValues>>(
+  schema: S,
+  options?: Omit<UseFormProps<z.output<S>>, "resolver">,
+): UseFormReturn<z.output<S>> {
+  return useForm<z.output<S>>({
     ...options,
-    // zod と @hookform/resolvers のジェネリクスが完全には噛み合わないため、
-    // ここだけ any を挟む(実行時は正しく動く)。
-    // z.input<S> を使うと zod 4 では unknown に推論され、FieldValues 制約を満たせない。
-    resolver: zodResolver(schema as never) as never,
+    resolver: zodResolver(schema) as never,
   });
 }

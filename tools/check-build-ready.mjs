@@ -239,7 +239,15 @@ export function check() {
         if (!item) continue;
         const name = item.replace(/^type\s+/, "").split(" as ").pop().trim();
         if (!name || !/^[A-Za-z_$][\w$]*$/.test(name)) continue;
-        // import 文そのものを除いた本文で使われているか
+        // import 文そのものを除いた本文で使われているか。
+        //
+        // ⚠️ **この検査は「プロパティアクセスしかない」場合を見逃す。**
+        //    `summarize()` の戻り値を `sum.pageViews` と読んでいるだけなのに、
+        //    `pageViews` の import を「使用中」と誤認する(実際に build が落ちた)。
+        //    直前が `.` かで弾く実装を試したが、`...spread` やコメント中の名前と
+        //    区別しきれず誤検知(/image で 10 件)を出したので撤回した。
+        //    **正しく直すには TypeScript の AST が要る。**tsc が確実に捕まえるので、
+        //    ここは「明らかな未使用」を早く知らせる補助と割り切る。
         const rest = src.replace(stmt, "");
         if (!new RegExp(`\\b${name.replace(/\$/g, "\\$")}\\b`).test(rest)) {
           issues.push(`[I] ${path.relative(ROOT, f)}: ${name} を import しているが使っていない(noUnusedLocals でビルドが止まる)`);
@@ -248,11 +256,58 @@ export function check() {
     }
   }
 
-  // ── F: client が node: を使う ──
-  for (const f of collect(path.join(SITE, "src"))) {
-    const s = readFileSync(f, "utf8");
-    if (s.trimStart().startsWith('"use client"') && /from\s+"node:/.test(s)) {
-      issues.push(`[F] ${path.relative(ROOT, f)}: "use client" なのに node: を import`);
+  // ── F: client が node: を使う(直接 / 基盤のバレル経由の両方) ──
+  {
+    // ブラウザに polyfill が無く、Turbopack が解決できないもの。
+    // node:crypto は通る(polyfill がある)ので挙げない。実際 /pii や /dencho は動いている。
+    const FATAL = ["node:fs", "node:os", "node:child_process", "node:net", "node:worker_threads"];
+
+    // パッケージのバレルが FATAL を引き込むか(1 段だけ辿る)。
+    // `createGuardedJob` は node に依存しないのに、バレルが lock-file.ts(node:fs)を
+    // 再 export しているせいで client から使えなかった(実際に /cron が落ちた)。
+    const barrelPullsNode = new Map();
+    const pkgsDir = path.join(ROOT, "packages");
+    if (existsSync(pkgsDir)) {
+      for (const pkg of readdirSync(pkgsDir)) {
+        const barrel = path.join(pkgsDir, pkg, "src/index.ts");
+        if (!existsSync(barrel)) continue;
+        const src = readFileSync(barrel, "utf8");
+        const targets = new Set();
+        for (const m of src.matchAll(/(?:export|import)\s+(?:type\s+)?(?:\*|\{[^}]*\})\s*from\s*"(\.[^"]+)"/g)) {
+          targets.add(m[1]);
+        }
+        let hit = null;
+        for (const rel of targets) {
+          const base = path.resolve(path.dirname(barrel), rel);
+          for (const cand of [`${base}.ts`, path.join(base, "index.ts")]) {
+            if (!existsSync(cand)) continue;
+            const body = readFileSync(cand, "utf8");
+            for (const n of FATAL) if (body.includes(`"${n}"`)) hit = n;
+          }
+        }
+        if (hit) barrelPullsNode.set(`@platform/${pkg}`, hit);
+      }
+    }
+
+    for (const f of collect(path.join(SITE, "src"))) {
+      const s = readFileSync(f, "utf8");
+      if (!s.trimStart().startsWith('"use client"')) continue;
+      if (/from\s+"node:/.test(s)) {
+        issues.push(`[F] ${path.relative(ROOT, f)}: "use client" なのに node: を import`);
+      }
+      // バレル経由。サブパス(@platform/x/browser 等)は別入口なので対象外。
+      // **行頭の import 行だけ**を見る。<pre> に載せたサンプルコードの import を
+      // 本物と誤認しないため(検査 I で同じ間違いをした)。
+      const importLines = [...s.matchAll(/^import\s[^\n]*$/gm)].map((x) => x[0]).join("\n");
+      for (const m of importLines.matchAll(/from\s+"(@platform\/[\w-]+)"/g)) {
+        const bad = barrelPullsNode.get(m[1]);
+        if (!bad) continue;
+        issues.push(
+          `[F] ${path.relative(ROOT, f)}: "use client" から ${m[1]} を import しているが、` +
+          ` そのバレルは ${bad} を引き込む — Turbopack が解決できずビルドが落ちる。` +
+          ` Server Component にするか、node に依存しないサブパス(例 ${m[1]}/browser)を基盤に用意すること`,
+        );
+      }
     }
   }
 
@@ -411,6 +466,28 @@ export function check() {
           issues.push(`[M] nav.ts: "${e.title}" の href "${e.href}" にページが無い(リンク切れ)`);
         }
       }
+      // nav に載せないのが正しいページ(他のデモから遷移する従属ページ)。
+      const NOT_IN_NAV = new Set([
+        "/dashboard", // /session の保護ページ。未ログインだと /session へ飛ぶので単独では意味がない
+      ]);
+      // 逆方向も見る。**ページはあるのに nav に無い = 誰からも辿れない**。
+      // リンク切れにならないので気づけない(nav を並べ替えたとき 1 件落として実際に起きた)。
+      const linked = new Set(entries.map((e) => e.href));
+      const walk = (dir, base) => {
+        for (const name of readdirSync(dir)) {
+          const full = path.join(dir, name);
+          if (!statSync(full).isDirectory()) continue;
+          if (name === "api" || name.startsWith("_")) continue;
+          // 動的ルート([name] 等)は一覧に載せる対象ではない(親が載っていればよい)
+          if (name.startsWith("[")) continue;
+          const href = `${base}/${name}`;
+          if (existsSync(path.join(full, "page.tsx")) && !linked.has(href) && !NOT_IN_NAV.has(href)) {
+            issues.push(`[M] ${href} はページがあるのに nav.ts に無い(メニューから辿れない)`);
+          }
+          walk(full, href);
+        }
+      };
+      if (existsSync(appDir)) walk(appDir, "");
     }
   }
 

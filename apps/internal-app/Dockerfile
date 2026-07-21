@@ -17,8 +17,9 @@ RUN pnpm fetch
 
 # ビルド(ソース全体 + オフライン install + prisma generate + next build)
 FROM base AS build
+# pnpm fetch は仮想ストア(/pnpm)を作る。node_modules は作らないので、
+# ストアだけ持ち込み、この後の `pnpm install --offline` がストアから node_modules を復元する。
 COPY --from=fetch /pnpm /pnpm
-COPY --from=fetch /repo/node_modules ./node_modules
 COPY . .
 RUN pnpm install --frozen-lockfile --offline
 RUN pnpm --filter @platform/db exec prisma generate --schema=../../apps/internal-app/prisma/schema.prisma

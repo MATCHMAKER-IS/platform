@@ -22,6 +22,7 @@ const STEPS = [
   ["gen-app-map.mjs"],
   ["gen-erd.mjs"],
   ["gen-example-sources.mjs"],  // 使用例のソースを固める(実行時に読まないため)
+  ["gen-portal-reference.mjs"], // 基盤ポータルの API リファレンス(gen-reference.mjs の出力に依存)
   ["platform-report.mjs"],
 ];
 

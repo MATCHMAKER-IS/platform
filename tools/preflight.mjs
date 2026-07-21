@@ -1,7 +1,7 @@
 /**
  * オフライン検証ゲートの一括実行(依存インストール不要)。人も CI(boundaries)もこれ1本。
  *   node tools/preflight.mjs      (= pnpm verify:offline)
- * 内容: smoke / check-deps / api-surface(差分検査) / check-schema ×3 / check-env-example / check-doc-numbers / check-ports / check-package-shape / check-docs-links / check-docs-duplication / check-e2e-quality / check-app-rules / check-showcase-deps / check-build-ready / setup.sh 構文
+ * 内容: smoke / check-deps / api-surface(差分検査) / check-schema ×3 / check-env-example / check-doc-numbers / check-ports / check-package-shape / check-docs-links / check-docs-duplication / check-e2e-quality / check-app-rules / check-showcase-deps / check-app-transpile / check-jsx-tags / check-build-ready / setup.sh 構文
  */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -40,6 +40,8 @@ run("check-docs-duplication", "node", ["tools/check-docs-duplication.mjs"]);  //
 allOk = run("check-e2e-quality", "node", ["tools/check-e2e-quality.mjs"]) && allOk;  // E2E の Flaky リスク(固定待ち等)
 allOk = run("check-app-rules", "node", ["tools/check-app-rules.mjs"]) && allOk;  // apps が基盤の役割を侵していないか(CLAUDE.md の規約)
 allOk = run("check-showcase-deps", "node", ["tools/check-showcase-deps.mjs"]) && allOk;  // デモサイトの依存漏れ(ビルドしないと気づけない)
+allOk = run("check-app-transpile", "node", ["tools/check-app-transpile.mjs"]) && allOk;  // apps の transpilePackages 漏れ(next build だけが落ちる。typecheck/smoke は通る)
+allOk = run("check-jsx-tags", "node", ["tools/check-jsx-tags.mjs"]) && allOk;  // JSX インラインタグの閉じ忘れ(next build を構文エラーで落とす。tsc 無しでも一次検知)
 allOk = run("check-build-ready", "node", ["tools/check-build-ready.mjs"]) && allOk;  // next build が通る前提(エントリ/重複export/use client/import)
 allOk = run("advisor(dup検出)", "node", ["tools/advisor.mjs", "dup"]) && allOk;
 if (existsSync("/bin/bash") || existsSync("/usr/bin/bash")) {

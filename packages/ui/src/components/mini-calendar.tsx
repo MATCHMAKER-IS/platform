@@ -4,7 +4,8 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { startOfMonth, endOfMonth, dayOfWeek, dayNumber, isHoliday, holidayName, isSameDay, addMonths,
+import {
+  startOfMonth, endOfMonth, dayOfWeek, dayNumber, isHoliday, holidayName, isSameDay, addMonths,
 } from "@platform/datetime";
 import { cn } from "../lib/cn";
 

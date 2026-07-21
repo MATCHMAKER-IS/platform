@@ -4,7 +4,7 @@
  *   node tools/check-generated.mjs
  */
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -21,13 +21,21 @@ const checks = [
   { gen: ["tools/gen-depgraph.mjs"], file: "docs/platform/depgraph.md" },
   // 使用例のソース(実行時に読まないよう固めたもの。古いとデモサイトの表示が実態とずれる)
   { gen: ["tools/gen-example-sources.mjs"], file: "demos/showcase/src/lib/example-sources.generated.ts" },
+  // 基盤ポータルの API リファレンス。**TSDoc を直したのに再生成を忘れると、
+  // ポータルが古い引数・戻り値を出し続ける**(誰も気づけない)。api-reference.json の後に走らせること。
+  { gen: ["tools/gen-portal-reference.mjs"], file: "demos/showcase/src/lib/portal-reference.generated.ts" },
 ];
 
 let ng = 0;
 for (const c of checks) {
-  const before = readFileSync(path.join(ROOT, c.file), "utf8");
+  const fp = path.join(ROOT, c.file);
+  const before = readFileSync(fp, "utf8");
   execFileSync("node", c.gen, { cwd: ROOT, stdio: "ignore" });
-  const after = readFileSync(path.join(ROOT, c.file), "utf8");
+  const after = readFileSync(fp, "utf8");
+  // 「検査」はワークツリーを変更しない。比較のために再生成で書き換わった内容を元へ戻す
+  // (drift の有無にかかわらず、実行前後でファイルを同一に保つ。中断・失敗時に汚さない。
+  //  更新は本来の担当 `gen-all.mjs` / `platform:sync` が行う)。
+  if (after !== before) writeFileSync(fp, before);
   // platform-report は生成日を含むので日付行を無視して比較
   const norm = (s) => s.replace(/生成日: \d{4}-\d{2}-\d{2}/g, "生成日: DATE");
   if (norm(before) !== norm(after)) {

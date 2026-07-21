@@ -69,8 +69,16 @@ export type LineWebhookEvent = LineMessageEvent | LinePostbackEvent | LineSimple
  * @returns イベントの配列。**解析できなければ空配列**
  */
 export function parseLineWebhook(body: string): LineWebhookEvent[] {
-  const parsed = JSON.parse(body) as { events?: LineWebhookEvent[] };
-  return parsed.events ?? [];
+  // **例外を投げない。** webhook の入口で throw すると 500 が返り、
+  // LINE 側がリトライを繰り返す(壊れたボディは何度送っても壊れている)。
+  // 空配列を返して 200 で受け、ログに残すのが正しい。
+  try {
+    const parsed = JSON.parse(body) as { events?: LineWebhookEvent[] } | null;
+    if (parsed === null || typeof parsed !== "object") return [];
+    return Array.isArray(parsed.events) ? parsed.events : [];
+  } catch {
+    return [];
+  }
 }
 
 /**

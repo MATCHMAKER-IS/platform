@@ -29,7 +29,7 @@ const DEFAULT_STATUS_MAP: Record<string, EkycStatus> = {
  * ベンダー生ステータスを正規化する。
  * @param raw ベンダーの status 文字列
  * @param mapping 追加/上書きマッピング(ベンダー独自語彙に対応)
- * @returns 正規化した状態。**サービスごとに状態名が違う**ので、ここで揃える(未知の値は `pending` 扱い)
+ * @returns 正規化した状態。**サービスごとに状態名が違う**ので、ここで揃える(未知の値・空・null は `unknown`)
  */
 export function normalizeEkycStatus(raw: string | undefined | null, mapping?: Record<string, EkycStatus>): EkycStatus {
   if (!raw) return "unknown";

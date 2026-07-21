@@ -5,6 +5,7 @@
  */
 import { promises as fs } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
+import type { Dirent } from "node:fs";
 import type { StorageAdapter, PutOptions } from "../index";
 
 /**
@@ -38,10 +39,7 @@ export function createLocalStorage(root: string): StorageAdapter {
       const base = resolve(prefix);
       const out: string[] = [];
       async function walk(dir: string) {
-        // Awaited<ReturnType<typeof fs.readdir>> だと string[] のオーバーロードに
-        // 解決されてしまう(withFileTypes: true では Dirent[] が返る)。
-        // 型注釈を書かず、推論に任せる。
-        let entries;
+        let entries: Dirent[];
         try {
           entries = await fs.readdir(dir, { withFileTypes: true });
         } catch {

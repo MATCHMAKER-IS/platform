@@ -1,12 +1,16 @@
 "use client";
 /** ローソク足チャート(OHLC)。 @packageDocumentation */
-import { ResponsiveContainer, ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { cn } from "../../lib/cn";
 import { ChartTitle } from "./chart-common";
 import { candleGeometry, type Candle } from "./chart-math";
 
 /** ローソク足の 1 本。 */
-export interface Candlestick extends Candle { label: string }
+export interface Candlestick extends Candle {
+  label: string;
+  /** 移動平均(任意)。`withMovingAverage()` が付ける。**計算できない先頭は null**。 */
+  ma?: number | null;
+}
 
 /** {@link CandlestickChart} の props。 */
 export interface CandlestickChartProps {
@@ -20,6 +24,14 @@ export interface CandlestickChartProps {
   downColor?: string;
   unit?: string;
   className?: string;
+  /**
+   * 移動平均を重ねる区間(例 5 なら 5 本移動平均)。
+   * **`data` に `ma` が入っている前提**。`withMovingAverage()` で作ると
+   * 長さと日付が揃う(自前で `movingAverage` を呼ぶと **window-1 本ぶんずれる**)。
+   */
+  maWindow?: number;
+  /** 移動平均線の色。 */
+  maColor?: string;
 }
 
 function CandleShape(props: { x?: number; y?: number; width?: number; height?: number; payload?: Candle; upColor: string; downColor: string }) {
@@ -36,7 +48,7 @@ function CandleShape(props: { x?: number; y?: number; width?: number; height?: n
 }
 
 /** ローソク足チャート。株価等の OHLC を表示。 */
-export function CandlestickChart({ data, title, height = 320, showGrid = true, upColor = "#16a34a", downColor = "#dc2626", unit, className }: CandlestickChartProps) {
+export function CandlestickChart({ data, title, height = 320, showGrid = true, upColor = "#16a34a", downColor = "#dc2626", unit, className, maWindow, maColor = "var(--color-primary)" }: CandlestickChartProps) {
   return (
     <div className={cn("w-full", className)}>
       <ChartTitle>{title}</ChartTitle>
@@ -54,11 +66,20 @@ export function CandlestickChart({ data, title, height = 320, showGrid = true, u
                   <div style={{ fontWeight: 600 }}>{c.label}</div>
                   <div>始 {c.open} / 高 {c.high}</div>
                   <div>安 {c.low} / 終 {c.close}</div>
+                  {typeof (c as Candlestick & { ma?: number | null }).ma === "number" && (
+                    <div style={{ color: maColor }}>MA{maWindow} {(c as Candlestick & { ma?: number | null }).ma}</div>
+                  )}
                 </div>
               );
             }}
           />
           <Bar dataKey={(d: Candle) => [d.low, d.high]} shape={<CandleShape upColor={upColor} downColor={downColor} />} isAnimationActive={false} />
+          {maWindow !== undefined && (
+            <>
+              <Line type="monotone" dataKey="ma" name={`MA${maWindow}`} stroke={maColor} strokeWidth={2} dot={false} connectNulls={false} isAnimationActive={false} />
+              <Legend />
+            </>
+          )}
         </ComposedChart>
       </ResponsiveContainer>
     </div>

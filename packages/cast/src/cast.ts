@@ -107,10 +107,10 @@ export type CastSort = "featured" | "rating" | "newest" | "name";
  * 在籍中のみを対象にする。
  *
  * @param casts キャストの配列
- * @param order 並び順(`featured` / `rating` / `newest` / `name`)
+ * @param sort 並び順(`featured` / `rating` / `newest` / `name`)
  * @returns 並べ替えた新しい配列(**在籍中のみ**)
  */
-export function sortCasts<T extends Cast>(casts: T[], sort: CastSort = "featured", _now: Date = new Date()): T[] {
+export function sortCasts<T extends Cast>(casts: T[], sort: CastSort = "featured"): T[] {
   const list = activeCasts(casts);
   switch (sort) {
     case "featured":

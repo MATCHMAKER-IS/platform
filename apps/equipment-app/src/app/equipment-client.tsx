@@ -1,6 +1,7 @@
 "use client";
 /** 備品管理。ログイン → 一覧(貸出状態) → 登録・貸出・返却・編集・無効化。 */
 import * as React from "react";
+import { Button, Input, Checkbox } from "@platform/ui";
 
 interface Item { code: string; name: string; note?: string; active: boolean; currentBorrower?: string; }
 interface FieldError { field: string; message: string; }
@@ -71,10 +72,10 @@ export function EquipmentClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
     return (
       <div style={{ maxWidth: 360, margin: "80px auto", padding: 24, border: "1px solid #e5e5e5", borderRadius: 8 }}>
         <h1 style={{ fontSize: 18, marginTop: 0 }}>備品管理にログイン</h1>
-        <label style={{ display: "block", fontSize: 12, color: "#666", marginBottom: 8 }}>メール<input value={email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} style={{ display: "block", width: "100%", padding: 6, boxSizing: "border-box" }} /></label>
-        <label style={{ display: "block", fontSize: 12, color: "#666", marginBottom: 8 }}>パスワード<input type="password" value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} placeholder="初期: admin1234" style={{ display: "block", width: "100%", padding: 6, boxSizing: "border-box" }} /></label>
-        {loginError && <p style={{ color: "#c00", fontSize: 12 }}>{loginError}</p>}
-        <button onClick={doLogin} style={{ width: "100%", padding: 8 }}>ログイン</button>
+        <label style={{ display: "block", fontSize: 12, color: "var(--color-muted)", marginBottom: 8 }}>メール<Input value={email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} /></label>
+        <label style={{ display: "block", fontSize: 12, color: "var(--color-muted)", marginBottom: 8 }}>パスワード<Input type="password" value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} placeholder="初期: admin1234" /></label>
+        {loginError && <p style={{ color: "var(--color-danger)", fontSize: 12 }}>{loginError}</p>}
+        <Button onClick={doLogin} style={{ width: "100%" }}>ログイン</Button>
       </div>
     );
   }
@@ -83,21 +84,21 @@ export function EquipmentClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
     <div style={{ maxWidth: 760, margin: "0 auto", padding: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "1px solid #e5e5e5", paddingBottom: 8 }}>
         <h1 style={{ fontSize: 20, margin: 0 }}>備品管理</h1>
-        <span style={{ fontSize: 12, color: "#666" }}>{authed?.name ?? authed?.email} <button onClick={doLogout} style={{ marginLeft: 8 }}>ログアウト</button></span>
+        <span style={{ fontSize: 12, color: "var(--color-muted)" }}>{authed?.name ?? authed?.email} <Button size="sm" variant="ghost" onClick={doLogout} style={{ marginLeft: 8 }}>ログアウト</Button></span>
       </div>
 
       <div style={{ border: "1px solid #e5e5e5", borderRadius: 6, padding: 12, margin: "16px 0" }}>
-        <div style={{ display: "flex", gap: 8 }}>
-          <label style={{ fontSize: 12, color: "#666" }}>コード<input value={form.code} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, code: e.target.value })} placeholder="EQ-001" style={{ display: "block", padding: 4 }} /></label>
-          <label style={{ fontSize: 12, color: "#666" }}>名称<input value={form.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })} style={{ display: "block", padding: 4 }} /></label>
-          <label style={{ flex: 1, fontSize: 12, color: "#666" }}>備考<input value={form.note} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, note: e.target.value })} style={{ display: "block", width: "100%", padding: 4 }} /></label>
-          <button onClick={add} style={{ alignSelf: "flex-end", padding: "6px 16px" }}>登録</button>
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+          <label style={{ flex: 1, fontSize: 12, color: "var(--color-muted)" }}>コード<Input value={form.code} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, code: e.target.value })} placeholder="EQ-001" /></label>
+          <label style={{ flex: 1, fontSize: 12, color: "var(--color-muted)" }}>名称<Input value={form.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })} /></label>
+          <label style={{ flex: 1, fontSize: 12, color: "var(--color-muted)" }}>備考<Input value={form.note} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, note: e.target.value })} /></label>
+          <Button onClick={add}>登録</Button>
         </div>
         {errors.length > 0 && <ul style={{ color: "#c00", fontSize: 12, marginTop: 8 }}>{errors.map((e, i) => <li key={i}>{e.field}: {e.message}</li>)}</ul>}
       </div>
 
-      {opError && <p style={{ color: "#c00", fontSize: 12 }}>{opError}</p>}
-      <label style={{ fontSize: 12 }}><input type="checkbox" checked={showInactive} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setShowInactive(e.target.checked)} /> 無効も表示</label>
+      {opError && <p style={{ color: "var(--color-danger)", fontSize: 12 }}>{opError}</p>}
+      <label style={{ fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}><Checkbox checked={showInactive} onCheckedChange={(v) => setShowInactive(v === true)} /> 無効も表示</label>
       <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 8, fontSize: 14 }}>
         <thead><tr style={{ borderBottom: "1px solid #ddd", textAlign: "left", color: "#666", fontSize: 12 }}><th style={{ padding: 6 }}>コード</th><th>名称</th><th>状態</th><th></th></tr></thead>
         <tbody>
@@ -106,8 +107,8 @@ export function EquipmentClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
               <td style={{ padding: 6 }}><code>{it.code}</code></td>
               {editing === it.code ? (
                 <>
-                  <td><input value={edit.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEdit({ ...edit, name: e.target.value })} style={{ padding: 4 }} /></td>
-                  <td colSpan={2}><button onClick={() => void saveEdit(it.code)}>保存</button> <button onClick={() => setEditing(null)}>取消</button></td>
+                  <td><Input value={edit.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEdit({ ...edit, name: e.target.value })} /></td>
+                  <td colSpan={2}><Button size="sm" onClick={() => void saveEdit(it.code)}>保存</Button> <Button size="sm" variant="secondary" onClick={() => setEditing(null)}>取消</Button></td>
                 </>
               ) : (
                 <>
@@ -115,13 +116,13 @@ export function EquipmentClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
                   <td>{!it.active ? "無効" : it.currentBorrower ? <span style={{ color: "#b45309" }}>貸出中: {it.currentBorrower}</span> : "在庫あり"}</td>
                   <td style={{ textAlign: "right" }}>
                     {it.active && !it.currentBorrower && (lendCode === it.code ? (
-                      <span><input value={borrower} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBorrower(e.target.value)} placeholder="借用者名" style={{ padding: 4, width: 110 }} /> <button onClick={() => void lend(it.code)}>確定</button> <button onClick={() => { setLendCode(null); setBorrower(""); }}>×</button></span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Input value={borrower} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBorrower(e.target.value)} placeholder="借用者名" style={{ width: 110 }} /> <Button size="sm" onClick={() => void lend(it.code)}>確定</Button> <Button size="sm" variant="ghost" onClick={() => { setLendCode(null); setBorrower(""); }}>×</Button></span>
                     ) : (
-                      <button onClick={() => { setLendCode(it.code); setBorrower(""); }}>貸出</button>
+                      <Button size="sm" variant="secondary" onClick={() => { setLendCode(it.code); setBorrower(""); }}>貸出</Button>
                     ))}
-                    {it.active && it.currentBorrower && <button onClick={() => void giveBack(it.code)}>返却</button>}{" "}
-                    <button onClick={() => { setEditing(it.code); setEdit({ name: it.name, note: it.note ?? "" }); }}>編集</button>{" "}
-                    <button onClick={() => void toggle(it.code, !it.active)}>{it.active ? "無効化" : "有効化"}</button>
+                    {it.active && it.currentBorrower && <Button size="sm" onClick={() => void giveBack(it.code)}>返却</Button>}{" "}
+                    <Button size="sm" variant="secondary" onClick={() => { setEditing(it.code); setEdit({ name: it.name, note: it.note ?? "" }); }}>編集</Button>{" "}
+                    <Button size="sm" variant="ghost" onClick={() => void toggle(it.code, !it.active)}>{it.active ? "無効化" : "有効化"}</Button>
                   </td>
                 </>
               )}

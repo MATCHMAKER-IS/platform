@@ -4,6 +4,10 @@
 
 ## このコミットまでに整備済み(オフラインで可能な全て)
 
+- **build/deploy 事前点検で修正済み**(いずれも「build/deploy しないと気づけない」類):
+  - **全5アプリの `next.config.mjs` の `transpilePackages` 漏れ**(internal-app は 46 依存中 9 しか記載が無く `next build` 失敗確実)→ **package.json の @platform 依存から動的生成**に統一。再発防止に **`tools/check-app-transpile.mjs`** を新設し preflight に組込。
+  - **`Dockerfile.migrate` が `prisma migrate deploy`**(migrations/ が無く ADR-0013=db push に反し必ず失敗)→ **`prisma db push --skip-generate`** に是正。
+  - **`Dockerfile`(app)の `COPY --from=fetch /repo/node_modules`**(pnpm fetch は node_modules を作らない=初回 COPY 失敗)→ 除去(ストア `/pnpm` のみ持込み `install --offline` で復元)。
 - **全8ワークフローを監査**: ci / e2e / security / i18n の `--frozen-lockfile` を暫定通常 install 化(TODO 付き・4ファイル5箇所)、pnpm バージョン固定を `packageManager` に一本化(ci / i18n)
 - verify ジョブ: Typecheck 前の **prisma generate**、Build への**ダミー env**(fail-fast 対策)、e2e の暫定 `continue-on-error`
 - boundaries ジョブ: **`node tools/preflight.mjs` に一本化**(smoke / check-deps / api-surface 差分 / schema×3 / env-example / setup.sh 構文 = 8ゲート約10秒)

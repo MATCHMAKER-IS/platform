@@ -1,11 +1,19 @@
 # syntax=docker/dockerfile:1
-# マイグレーション実行専用イメージ(docker-compose.prod.yml の migrate サービス)。
+# スキーマ適用専用イメージ(docker-compose.prod.yml の migrate サービス)。
 # 実行: docker compose -f docker-compose.prod.yml run --rm migrate
+#
+# 本プロジェクトは **db push** を正式方式とし、マイグレーション履歴を持たない(ADR-0013)。
+# したがって `prisma migrate deploy` は使わない(migrations/ が無く、必ず失敗するため)。
+# db push は schema.prisma と DB を直接同期する。破壊的変更を検知した場合は
+# 非対話のため失敗し(exit≠0)、デプロイは停止する = 意図しないデータ消失を防ぐ安全側の挙動。
 # ⚠ 未検証(作成環境に docker なし)。prisma のバージョンは packages/db の ^7.2.0 に追随させること。
+#
+# 【注意】本番でデータを預かるようになったら、db push ではなく本格マイグレーション
+#   (prisma migrate)への移行を ADR で再検討すること(履歴・レビュー・ロールバックのため)。
 
 FROM node:22-bookworm-slim
 WORKDIR /repo
 RUN npm install -g prisma@7.2.0
 COPY apps/internal-app/prisma ./apps/internal-app/prisma
 # DATABASE_URL は env_file から供給
-CMD ["prisma", "migrate", "deploy", "--schema=apps/internal-app/prisma/schema.prisma"]
+CMD ["prisma", "db", "push", "--schema=apps/internal-app/prisma/schema.prisma", "--skip-generate"]

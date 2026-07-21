@@ -50,7 +50,6 @@ export function renderStatusPage(options: StatusPageOptions): string {
     lang = "ja", title, message, brand, accent = "#2563eb",
     referenceId, action, showReload = false, headExtra = "", footer,
   } = options;
-  const icon = options.brand ? "" : "";
   return `<!doctype html>
 <html lang="${escapeHtml(lang)}">
 <head>

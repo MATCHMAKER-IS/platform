@@ -46,6 +46,7 @@
 | コマンド | 説明 |
 |---|---|
 | `pnpm gen:all` | 全生成物を正しい順で再生成し、drift ゼロを確認（2 パス） |
+| `pnpm gen:portal-reference` | 基盤ポータルの API リファレンスを再生成（`gen:all` に含まれる。**TSDoc を直したら実行**） |
 | `pnpm gen:site` | リファレンスサイト（docs/site/*.html）を生成 |
 | `pnpm site` | サイト生成 + 開き方を案内 |
 | `pnpm gen:erd` | ER 図（Mermaid）を生成 |

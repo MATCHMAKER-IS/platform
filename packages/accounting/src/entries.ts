@@ -175,7 +175,7 @@ export type ExpensePayment = "unpaid" | "cash" | "advance";
  * @param input.description 摘要(任意)
  * @param input.net 税抜金額
  * @param input.tax 消費税額
- * @param input.settlement 決済方法。`unpaid`(未払金)/ `cash`(即時現金)/ `advance`(仮払金から精算)
+ * @param input.payment 決済方法。`unpaid`(未払金)/ `cash`(即時現金)/ `advance`(仮払金から精算)
  * @param input.account 費用科目(未指定なら既定の経費科目)
  * @param accounts 勘定科目名(既定は DEFAULT_ACCOUNTS)
  * @returns 貸借の一致した仕訳
