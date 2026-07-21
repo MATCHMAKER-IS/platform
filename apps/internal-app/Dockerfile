@@ -4,7 +4,7 @@
 # ⚠ 未検証: 作成環境では docker が使えないため、初回は手元 or CI で要ビルド確認(docs/ops/CI_FIRST_RUN.md の Docker 節)。
 # 前提: pnpm-lock.yaml がコミット済みであること(CI_FIRST_RUN 手順1)。
 
-FROM node:22-bookworm-slim AS base
+FROM node:26-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable
@@ -31,7 +31,7 @@ RUN DATABASE_URL=postgresql://build:build@localhost:5432/build \
     pnpm --filter internal-app build
 
 # 実行(standalone 出力のみの薄いイメージ)
-FROM node:22-bookworm-slim AS runner
+FROM node:26-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
