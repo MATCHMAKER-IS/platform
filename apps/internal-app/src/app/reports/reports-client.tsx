@@ -19,8 +19,16 @@ export function ReportsClient() {
 
   const loadPresets = React.useCallback(async () => { const r = await doFetch("/api/reports/presets"); if (r.ok) setPresets(((await r.json()) as { presets: typeof presets }).presets); }, []);
   React.useEffect(() => { void loadPresets(); }, [loadPresets]);
-  const savePreset = async (reportType: string) => { if (!presetName) return; await doFetch("/api/reports/presets", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "add", name: presetName, reportType, ...(from ? { from } : {}), ...(to ? { to } : {}), ...(partner ? { partner } : {}) }) }); setPresetName(""); await loadPresets(); };
-  const removePreset = async (id: string) => { await doFetch("/api/reports/presets", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "remove", id }) }); await loadPresets(); };
+  const savePreset = async (reportType: string) => {
+    if (!presetName) return;
+    await doFetch("/api/reports/presets", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "add", name: presetName, reportType, ...(from ? { from } : {}), ...(to ? { to } : {}), ...(partner ? { partner } : {}) }) });
+    setPresetName("");
+    await loadPresets();
+  };
+  const removePreset = async (id: string) => {
+    await doFetch("/api/reports/presets", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "remove", id }) });
+    await loadPresets();
+  };
   const applyPreset = (pr: { from?: string; to?: string; partner?: string }) => { setFrom(pr.from ?? ""); setTo(pr.to ?? ""); setPartner(pr.partner ?? ""); };
 
   const qs = (type: string, format: string, filterable: boolean) => {

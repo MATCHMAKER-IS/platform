@@ -1,7 +1,7 @@
 /**
  * オフライン検証ゲートの一括実行(依存インストール不要)。人も CI(boundaries)もこれ1本。
  *   node tools/preflight.mjs      (= pnpm verify:offline)
- * 内容: smoke / check-deps / api-surface(差分検査) / check-schema ×3 / check-env-example / check-doc-numbers / check-ports / check-package-shape / check-docs-links / check-docs-duplication / check-docs-orphans / check-doc-apis / check-e2e-quality / check-app-rules / check-api-auth / check-permissions / check-reimplementation / check-showcase-deps / check-app-transpile / check-jsx-tags / check-a11y / check-pwa / check-maintainability / check-hardcoded-colors / check-contract / check-drill / check-imports / check-build-ready / setup.sh 構文
+ * 内容: smoke / check-deps / api-surface(差分検査) / check-core-signatures / check-schema ×3 / check-env-example / check-doc-numbers / check-ports / check-package-shape / check-docs-links / check-docs-duplication / check-docs-orphans / check-doc-apis / check-e2e-quality / check-app-rules / check-api-auth / check-permissions / check-reimplementation / check-showcase-deps / check-app-transpile / check-jsx-tags / check-a11y / check-pwa / check-maintainability / check-hardcoded-colors / check-contract / check-drill / check-imports / check-build-ready / setup.sh 構文
  */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -28,6 +28,7 @@ let allOk = true;
 allOk = run("smoke", "node", ["--experimental-strip-types", "tools/smoke.mjs"]) && allOk;
 allOk = run("check-deps", "node", ["tools/check-deps.mjs"]) && allOk;
 allOk = run("api-surface(差分)", "node", ["tools/api-surface.mjs"]) && allOk;
+allOk = run("check-core-signatures", "node", ["tools/check-core-signatures.mjs"]) && allOk;  // 依存の多い基盤の形が変わっていないか
 for (const app of ["internal-app", "crud-template", "equipment-app"]) {
   allOk = run(`check-schema:${app}`, "node", ["tools/check-schema.mjs", `apps/${app}/prisma/schema.prisma`]) && allOk;
 }

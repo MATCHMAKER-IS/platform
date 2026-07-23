@@ -25,23 +25,55 @@ export function AutomationClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   const [deliveryLog, setDeliveryLog] = React.useState<{ id: string; at: string; reportType: string; recipientCount: number; recipients: string[]; status: string }[]>([]);
   const [msg, setMsg] = React.useState("");
 
-  const loadExport = React.useCallback(async () => { const r = await doFetch("/api/admin/export-schedule"); if (r.ok) { const d = (await r.json()) as { schedules: Schedule[]; history: Run[] }; setSchedules(d.schedules); setHistory(d.history); } }, [doFetch]);
-  const loadReports = React.useCallback(async () => { const r = await doFetch("/api/admin/report-schedule"); if (r.ok) setReportScheds(((await r.json()) as { schedules: typeof reportScheds }).schedules); }, [doFetch]);
+  const loadExport = React.useCallback(async () => {
+    const r = await doFetch("/api/admin/export-schedule");
+    if (r.ok) { const d = (await r.json()) as { schedules: Schedule[]; history: Run[] }; setSchedules(d.schedules); setHistory(d.history); }
+  }, [doFetch]);
+  const loadReports = React.useCallback(async () => {
+    const r = await doFetch("/api/admin/report-schedule");
+    if (r.ok) setReportScheds(((await r.json()) as { schedules: typeof reportScheds }).schedules);
+  }, [doFetch]);
   const loadLog = React.useCallback(async () => { const r = await doFetch("/api/admin/report-log"); if (r.ok) setDeliveryLog(((await r.json()) as { log: typeof deliveryLog }).log); }, [doFetch]);
-  const loadTpl = React.useCallback(async () => { const r = await doFetch("/api/admin/notification-templates"); if (r.ok) { const d = (await r.json()) as { resolved: Record<string, Tpl>; overrides: typeof overrides }; setTemplates(d.resolved); setOverrides(d.overrides ?? {}); } }, [doFetch]);
+  const loadTpl = React.useCallback(async () => {
+    const r = await doFetch("/api/admin/notification-templates");
+    if (r.ok) { const d = (await r.json()) as { resolved: Record<string, Tpl>; overrides: typeof overrides }; setTemplates(d.resolved); setOverrides(d.overrides ?? {}); }
+  }, [doFetch]);
   React.useEffect(() => { if (tab === "export") void loadExport(); else if (tab === "reports") void loadReports(); else if (tab === "log") void loadLog(); else void loadTpl(); }, [tab, loadExport, loadReports, loadLog, loadTpl]);
 
-  const addSchedule = async () => { await doFetch("/api/admin/export-schedule", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "add", type: newType, frequency: newFreq }) }); await loadExport(); };
-  const toggle = async (id: string, enabled: boolean) => { await doFetch("/api/admin/export-schedule", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "setEnabled", id, enabled }) }); await loadExport(); };
-  const remove = async (id: string) => { await doFetch("/api/admin/export-schedule", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "remove", id }) }); await loadExport(); };
+  const addSchedule = async () => {
+    await doFetch("/api/admin/export-schedule", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "add", type: newType, frequency: newFreq }) });
+    await loadExport();
+  };
+  const toggle = async (id: string, enabled: boolean) => {
+    await doFetch("/api/admin/export-schedule", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "setEnabled", id, enabled }) });
+    await loadExport();
+  };
+  const remove = async (id: string) => {
+    await doFetch("/api/admin/export-schedule", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "remove", id }) });
+    await loadExport();
+  };
 
-  const addReport = async () => { if (!rTo) { setMsg("宛先メールを入力してください"); return; } await doFetch("/api/admin/report-schedule", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "add", reportType: rType, frequency: rFreq, recipient: rTo }) }); setRTo(""); await loadReports(); };
-  const toggleReport = async (id: string, enabled: boolean) => { await doFetch("/api/admin/report-schedule", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "setEnabled", id, enabled }) }); await loadReports(); };
-  const removeReport = async (id: string) => { await doFetch("/api/admin/report-schedule", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "remove", id }) }); await loadReports(); };
+  const addReport = async () => {
+    if (!rTo) { setMsg("宛先メールを入力してください"); return; } await doFetch("/api/admin/report-schedule", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "add", reportType: rType, frequency: rFreq, recipient: rTo }) });
+    setRTo("");
+    await loadReports();
+  };
+  const toggleReport = async (id: string, enabled: boolean) => {
+    await doFetch("/api/admin/report-schedule", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "setEnabled", id, enabled }) });
+    await loadReports();
+  };
+  const removeReport = async (id: string) => {
+    await doFetch("/api/admin/report-schedule", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "remove", id }) });
+    await loadReports();
+  };
   const setOverride = (event: string, locale: string, field: "title" | "body", value: string) => {
     setOverrides((o) => ({ ...o, [event]: { ...(o[event] ?? {}), [locale]: { ...((o[event] ?? {})[locale] ?? {}), [field]: value } } }));
   };
-  const saveTpl = async () => { setMsg(""); const r = await doFetch("/api/admin/notification-templates", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(overrides) }); if (r.ok) { setMsg("保存しました"); await loadTpl(); } };
+  const saveTpl = async () => {
+    setMsg("");
+    const r = await doFetch("/api/admin/notification-templates", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(overrides) });
+    if (r.ok) { setMsg("保存しました"); await loadTpl(); }
+  };
 
   return (
     <div className="mx-auto max-w-3xl p-6">

@@ -20,7 +20,10 @@ export function ReviewSection({ subjectType, subjectId, canModerate = false, fet
     if (r.ok) { const d = (await r.json()) as { reviews: Review[]; summary: Summary }; setReviews(d.reviews); setSummary(d.summary); }
     if (canModerate) { const m = await doFetch(`/api/reviews/moderate?subjectType=${encodeURIComponent(subjectType)}&subjectId=${encodeURIComponent(subjectId)}`); if (m.ok) setReviews(((await m.json()) as { reviews: Review[] }).reviews); }
   }, [doFetch, subjectType, subjectId, canModerate]);
-  const setHidden = async (id: string, hidden: boolean) => { await doFetch("/api/reviews/moderate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, hidden }) }); await reload(); };
+  const setHidden = async (id: string, hidden: boolean) => {
+    await doFetch("/api/reviews/moderate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, hidden }) });
+    await reload();
+  };
   React.useEffect(() => { void reload(); }, [reload]);
 
   const submit = async () => {

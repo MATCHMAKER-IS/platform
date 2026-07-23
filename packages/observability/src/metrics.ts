@@ -48,7 +48,10 @@ export function createMetrics(histogramBuckets: number[] = [5, 10, 25, 50, 100, 
     },
     toPrometheus() {
       const lines: string[] = [];
-      const labelStr = (k: string) => { const i = k.indexOf("|"); return i < 0 ? "" : "{" + k.slice(i + 1).split(",").map((p) => { const [a, b] = p.split("="); return `${a}="${b}"`; }).join(",") + "}"; };
+      const labelStr = (k: string) => {
+        const i = k.indexOf("|");
+        return i < 0 ? "" : "{" + k.slice(i + 1).split(",").map((p) => { const [a, b] = p.split("="); return `${a}="${b}"`; }).join(",") + "}";
+      };
       for (const [k, v] of counters) lines.push(`${nameOnly.get(k)}${labelStr(k)} ${v}`);
       for (const [k, v] of gauges) lines.push(`${nameOnly.get(k)}${labelStr(k)} ${v}`);
       for (const [k, h] of histograms) {

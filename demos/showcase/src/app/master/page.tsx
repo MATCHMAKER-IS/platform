@@ -126,11 +126,21 @@ export default function Page() {
   const filtered = rows.filter((r) => master.fields.map((f) => String(r[f.key])).join(" ").toLowerCase().includes(q.toLowerCase()));
   const isReferenced = refsToMaster(master.id).length > 0;
   const delRefs = confirmDel ? referencingRows(master.id, String(confirmDel.id)) : [];
-  const save = () => { if (!editing || !validRow(master, editing)) return; persist(isNew ? [...rows, editing] : rows.map((r) => (r.id === editing.id ? editing : r))); log(`${master.label}マスタ：${isNew ? "登録" : "編集"}「${String(editing.name ?? editing.code)}」`); setEditing(null); };
+  const save = () => {
+    if (!editing || !validRow(master, editing)) return;
+    persist(isNew ? [...rows, editing] : rows.map((r) => (r.id === editing.id ? editing : r)));
+    log(`${master.label}マスタ：${isNew ? "登録" : "編集"}「${String(editing.name ?? editing.code)}」`);
+    setEditing(null);
+  };
 
   // CSV 入出力
   const csvCell = (v: unknown) => { const s = String(v ?? ""); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
-  const parseLine = (line: string) => { const out: string[] = []; let cur = "", q = false; for (let i = 0; i < line.length; i++) { const c = line[i]; if (q) { if (c === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; } else { if (c === '"') q = true; else if (c === ",") { out.push(cur); cur = ""; } else cur += c; } } out.push(cur); return out; };
+  const parseLine = (line: string) => {
+    const out: string[] = [];
+    let cur = "", q = false;
+    for (let i = 0; i < line.length; i++) { const c = line[i]; if (q) { if (c === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; } else { if (c === '"') q = true; else if (c === ",") { out.push(cur); cur = ""; } else cur += c; } } out.push(cur);
+    return out;
+  };
   const exportCsv = () => {
     const header = master.fields.map((f) => f.label).join(",");
     const body = rows.map((r) => master.fields.map((f) => csvCell(r[f.key])).join(","));

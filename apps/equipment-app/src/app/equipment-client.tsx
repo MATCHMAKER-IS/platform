@@ -54,7 +54,10 @@ export function EquipmentClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
     if (r.ok) { setEditing(null); await load(); }
     else setErrors(((await r.json()) as { errors?: FieldError[] }).errors ?? []);
   };
-  const toggle = async (code: string, active: boolean) => { await doFetch(`/api/equipment/${code}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ active }) }); await load(); };
+  const toggle = async (code: string, active: boolean) => {
+    await doFetch(`/api/equipment/${code}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ active }) });
+    await load();
+  };
   const lend = async (code: string) => {
     setOpError("");
     const r = await doFetch(`/api/equipment/${code}/lend`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ borrower }) });

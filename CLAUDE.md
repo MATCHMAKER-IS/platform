@@ -390,3 +390,9 @@ export function EnvSettingsTable({ rows, groupNotes, runtime }: EnvSettingsTable
 >
 > **外部ライブラリの形は変わる**: lucide の `icons` は版によって有無が変わる。
 > 名前で引く仕組みは、**取得経路を 1 つに賭けない**（`icon.tsx` の `buildRegistry` が両方に対応）。
+
+> **依存の多い基盤は重く扱う**: `@platform/core` は **54 パッケージ・142 ファイル**が依存する（2026-07 時点）。 <!-- doc-numbers:ignore -->
+> 名前を消さなくても、**引数や戻り値を変えれば全体が壊れる**（型検査でしか分からない）。
+> `check-core-signatures` が形を記録しており、変えると preflight が止まる。
+> 意図した変更なら `node tools/check-core-signatures.mjs --update` で記録を更新し、
+> **なぜ変えたかをコミットメッセージに書く**。

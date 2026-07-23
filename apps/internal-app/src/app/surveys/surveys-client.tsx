@@ -38,8 +38,14 @@ export function SurveysClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
     else setMsg(((await r.json()) as { error?: string }).error ?? "作成に失敗しました");
   };
 
-  const setStatus = async (id: string, status: string) => { await doFetch(`/api/surveys/${id}/status`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) }); await reload(); };
-  const remind = async (id: string) => { const r = await doFetch(`/api/surveys/${id}/remind`, { method: "POST" }); if (r.ok) { const d = (await r.json()) as { reminded: number }; setMsg(`未回答者 ${d.reminded} 名にリマインドしました`); } };
+  const setStatus = async (id: string, status: string) => {
+    await doFetch(`/api/surveys/${id}/status`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) });
+    await reload();
+  };
+  const remind = async (id: string) => {
+    const r = await doFetch(`/api/surveys/${id}/remind`, { method: "POST" });
+    if (r.ok) { const d = (await r.json()) as { reminded: number }; setMsg(`未回答者 ${d.reminded} 名にリマインドしました`); }
+  };
 
   return (
     <div className="mx-auto max-w-3xl p-6">

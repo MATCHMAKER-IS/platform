@@ -25,7 +25,10 @@ export function ServiceAccountsClient({ fetchImpl }: { fetchImpl?: typeof fetch 
     if (r.ok) { const d = (await r.json()) as { plaintext: string }; setIssued(d.plaintext); setName(""); setScopes(["invoice:read"]); await reload(); }
     else setMsg(((await r.json()) as { error?: string }).error ?? "発行に失敗しました");
   };
-  const setActive = async (id: string, active: boolean) => { await doFetch("/api/admin/service-accounts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "setActive", id, active }) }); await reload(); };
+  const setActive = async (id: string, active: boolean) => {
+    await doFetch("/api/admin/service-accounts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "setActive", id, active }) });
+    await reload();
+  };
 
   return (
     <div className="mx-auto max-w-3xl p-6">

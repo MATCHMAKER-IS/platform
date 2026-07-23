@@ -28,7 +28,11 @@ const SEED: DemoEvent[] = [
 const bid = (id: string) => (id.includes("#") ? id.split("#")[0]! : id);
 const keyOf = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 const withDate = (dateSrc: Date, timeSrc: Date) => new Date(dateSrc.getFullYear(), dateSrc.getMonth(), dateSrc.getDate(), timeSrc.getHours(), timeSrc.getMinutes(), 0, 0);
-const dayBeforeISO = (d: Date) => { const x = new Date(d); x.setDate(x.getDate() - 1); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`; };
+const dayBeforeISO = (d: Date) => {
+  const x = new Date(d);
+  x.setDate(x.getDate() - 1);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+};
 const fmt = (d: Date) => d.toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 const RECUR_LABEL: Record<Recur, string> = { none: "繰り返しなし", daily: "毎日", weekly: "毎週", monthly: "毎月" };
 

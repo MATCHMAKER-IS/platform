@@ -8,7 +8,10 @@ interface I18nData { locale: string; locales: { code: string; label: string }[];
 export function LanguageSwitcher({ fetchImpl, onChange }: { fetchImpl?: typeof fetch; onChange?: (messages: Record<string, string>, locale: string) => void }) {
   const doFetch = fetchImpl ?? (globalThis as unknown as { fetch: typeof fetch }).fetch;
   const [data, setData] = React.useState<I18nData | null>(null);
-  const load = React.useCallback(async (locale: string) => { const r = await doFetch(`/api/i18n?locale=${locale}`); if (r.ok) { const d = (await r.json()) as I18nData; setData(d); if (onChange) onChange(d.messages, d.locale); } }, [doFetch, onChange]);
+  const load = React.useCallback(async (locale: string) => {
+    const r = await doFetch(`/api/i18n?locale=${locale}`);
+    if (r.ok) { const d = (await r.json()) as I18nData; setData(d); if (onChange) onChange(d.messages, d.locale); }
+  }, [doFetch, onChange]);
   React.useEffect(() => { void load("ja"); }, [load]);
   if (!data) return null;
   return (

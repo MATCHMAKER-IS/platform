@@ -1,6 +1,6 @@
 # 検査の一覧（preflight は何を見ているか）
 
-`node tools/preflight.mjs` は **依存をインストールせずに 30 個の検査**をまとめて実行する。
+`node tools/preflight.mjs` は **依存をインストールせずに 31 個の検査**をまとめて実行する。
 「手元で `pnpm install` する前に、壊れているかどうかを知る」ための入口。
 
 ```bash
@@ -17,6 +17,7 @@ node tools/<検査名>.mjs        # 1 つだけ実行する
 | `smoke` | 依存なしで実ソースを動かす 1,300 件以上の確認 | ロジックの退行 |
 | `check-deps` | 内部パッケージの循環依存・層破り | 直せない依存の絡まり |
 | `api-surface` | 公開 API の破壊的変更（削除・シグネチャ変更） | 利用側が壊れる |
+| `check-core-signatures` | **依存の多い基盤**（core など）の引数・戻り値・型の形 | 型検査でしか気づけず、多数のパッケージに波及する |
 | `check-env-example` | コードが読む環境変数が `.env.example` にあるか | 設定漏れで起動しない |
 | `check-doc-numbers` | 手書き資料の数値が実態と合っているか | 資料の数字が嘘になる |
 | `check-ports` | アプリのポート重複 | 同時起動できない |
@@ -66,7 +67,7 @@ node tools/<検査名>.mjs        # 1 つだけ実行する
 | 事実 | 影響 |
 |---|---|
 | `tools/smoke.mjs` が **12,000 行超** | どこを直すか探すのに時間がかかる。ただし 227 の `section()` で区切ってあり、目的の箇所は検索で辿れる |
-| **200 文字を超える行が 1,600 行以上** | 差分が読めず、**文字列置換での編集が失敗しやすい**（実際に何度も起きた） |
+| **200 文字を超える行が 1,300 行あまり** | 差分が読めず、**文字列置換での編集が失敗しやすい**（実際に何度も起きた）。機械的に割れるもの（1 行に詰めた関数本体・`.replace` の連鎖）は 131 行分を解消済み。残るのは JSX の属性や長い文字列で、**割ると意味が変わる**ため触るついでに直す |
 | 大きいファイルは 6 件 | `utils/numbers.ts`・`utils/strings.ts`・`datetime/calendar.ts` は関数の集まりなので、分割の効果は薄い |
 
 `check-maintainability` が上限として記録しており、**増やすと preflight が失敗する**。
@@ -87,6 +88,7 @@ node tools/<検査名>.mjs        # 1 つだけ実行する
 | `check-generated`（生成物が古い） | `pnpm gen:all` |
 | `check-app-rules`（生タグを減らした） | `node tools/check-app-rules.mjs --set-limit` |
 | `check-contract`（相手の API 変更に追随した） | `node tools/record-contract.mjs` で記録を取り直す |
+| `check-core-signatures`（意図して形を変えた） | `node tools/check-core-signatures.mjs --update` |
 
 更新したときは、**なぜ更新したかをコミットメッセージに書く**。基準の更新は「検査を黙らせる」ことでもあるため、
 理由が残っていないと、後から見て事故と区別できない。

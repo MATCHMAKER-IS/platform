@@ -279,8 +279,18 @@ section("security/csrf アルゴリズム");
 section("session 封緘(AES-256-GCM)");
 {
   const key = scryptSync("sess-secret", "platform-crypto", 32);
-  const enc = (pt) => { const iv = randomBytes(12); const c = createCipheriv("aes-256-gcm", key, iv); const e = Buffer.concat([c.update(pt, "utf8"), c.final()]); return `${iv.toString("base64")}:${c.getAuthTag().toString("base64")}:${e.toString("base64")}`; };
-  const dec = (ct) => { const [i, t, d] = ct.split(":"); const dc = createDecipheriv("aes-256-gcm", key, Buffer.from(i, "base64")); dc.setAuthTag(Buffer.from(t, "base64")); return Buffer.concat([dc.update(Buffer.from(d, "base64")), dc.final()]).toString("utf8"); };
+  const enc = (pt) => {
+    const iv = randomBytes(12);
+    const c = createCipheriv("aes-256-gcm", key, iv);
+    const e = Buffer.concat([c.update(pt, "utf8"), c.final()]);
+    return `${iv.toString("base64")}:${c.getAuthTag().toString("base64")}:${e.toString("base64")}`;
+  };
+  const dec = (ct) => {
+    const [i, t, d] = ct.split(":");
+    const dc = createDecipheriv("aes-256-gcm", key, Buffer.from(i, "base64"));
+    dc.setAuthTag(Buffer.from(t, "base64"));
+    return Buffer.concat([dc.update(Buffer.from(d, "base64")), dc.final()]).toString("utf8");
+  };
   const sealed = enc(JSON.stringify({ data: { userId: "u1" }, exp: Date.now() + 3600e3 }));
   ok("封緘→開封 往復", JSON.parse(dec(sealed)).data.userId === "u1");
   let tampered = false; try { dec(sealed.slice(0, -4) + "AAAA"); } catch { tampered = true; }
@@ -391,7 +401,11 @@ section("report / notify / jobs");
 
   // memory queue のセマンティクス(オラクル)
   const q = []; let out = ""; let h = null;
-  const mq = { add: (n, d) => { q.push({ n, d }); if (h) while (q.length) { const j = q.shift(); h(j.n, j.d); } }, process: (fn) => { h = fn; while (q.length) { const j = q.shift(); fn(j.n, j.d); } } };
+  const mq = { add: (n, d) => {
+    q.push({ n, d });
+    if (h) while (q.length) { const j = q.shift(); h(j.n, j.d); } }, process: (fn) => { h = fn;
+    while (q.length) { const j = q.shift(); fn(j.n, j.d); } }
+  };
   mq.process((n) => { out += n + ";"; });
   mq.add("a"); mq.add("b");
   ok("ジョブ: 登録順に処理", out === "a;b;");
@@ -1327,7 +1341,11 @@ section("phone intl type / line client");
   await fs.writeFile(core, `export const ErrorCode={EXTERNAL:"EXTERNAL",INTERNAL:"INTERNAL"};export class AppError extends Error{constructor(c,m,o){super(m);this.code=c;this.details=o?.details;}}export function ok(v){return{ok:true,value:v};}export function err(e){return{ok:false,error:e};}export async function tryCatch(fn){try{return{ok:true,value:await fn()};}catch(e){return{ok:false,error:e};}}`);
   let ig = (await fs.readFile(new URL("../packages/integrations/src/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`);
   const igp = smokeTmp("line-ig.ts"); await fs.writeFile(igp, ig);
-  let ln = (await fs.readFile(new URL("../packages/line/src/index.ts", import.meta.url), "utf8")).replace('import { createApiClient } from "@platform/integrations";', `import { createApiClient } from "${igp}";`).replace(/from "@platform\/core"/g, `from "${core}"`).replace(/export \* from "\.\/messages";\n?/g, "").replace(/export \* from "\.\/webhook";\n?/g, "");
+  let ln = (await fs.readFile(new URL("../packages/line/src/index.ts", import.meta.url), "utf8"))
+    .replace('import { createApiClient } from "@platform/integrations";', `import { createApiClient } from "${igp}";`)
+    .replace(/from "@platform\/core"/g, `from "${core}"`)
+    .replace(/export \* from "\.\/messages";\n?/g, "")
+    .replace(/export \* from "\.\/webhook";\n?/g, "");
   const lnp = smokeTmp("line-ln.ts"); await fs.writeFile(lnp, ln);
   const L = await import(lnp);
   let cap = null;
@@ -1438,13 +1456,20 @@ section("zoho crm / books");
   const igp = "/tmp/zoho-ig-" + stamp + ".ts"; await fs.writeFile(igp, ig);
   let cl = (await fs.readFile(new URL("../packages/zoho/src/core/client.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${igp}"`);
   const clp = "/tmp/zoho-client-" + stamp + ".ts"; await fs.writeFile(clp, cl);
-  let crm = (await fs.readFile(new URL("../packages/zoho/src/crm/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`).replace('from "../core/client"', `from "${clp}"`);
+  let crm = (await fs.readFile(new URL("../packages/zoho/src/crm/index.ts", import.meta.url), "utf8"))
+    .replace(/from "@platform\/core"/g, `from "${core}"`)
+    .replace('from "../core/client"', `from "${clp}"`);
   const crmp = "/tmp/zoho-crm-" + stamp + ".ts"; await fs.writeFile(crmp, crm);
-  let bk = (await fs.readFile(new URL("../packages/zoho/src/books/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`).replace('from "../core/client"', `from "${clp}"`);
+  let bk = (await fs.readFile(new URL("../packages/zoho/src/books/index.ts", import.meta.url), "utf8"))
+    .replace(/from "@platform\/core"/g, `from "${core}"`)
+    .replace('from "../core/client"', `from "${clp}"`);
   const bkp = "/tmp/zoho-books-" + stamp + ".ts"; await fs.writeFile(bkp, bk);
   const CRM = await import(crmp), BK = await import(bkp);
   let cap = null;
-  const fake = async (url, init) => { cap = { url, init: { ...init, bodyJson: init.body ? JSON.parse(init.body) : undefined } }; return { ok: true, status: 200, headers: { get: () => "application/json" }, json: async () => ({ data: [] }), text: async () => "" }; };
+  const fake = async (url, init) => {
+    cap = { url, init: { ...init, bodyJson: init.body ? JSON.parse(init.body) : undefined } };
+    return { ok: true, status: 200, headers: { get: () => "application/json" }, json: async () => ({ data: [] }), text: async () => "" };
+  };
   const crmc = CRM.createZohoCrmClient({ apiDomain: "https://www.zohoapis.jp", accessToken: "TK", fetchImpl: fake });
   await crmc.getRecords("Leads", { fields: ["Last_Name"], perPage: 50 });
   ok("Zoho CRM getRecords URL/認証", cap.url.includes("/crm/v8/Leads?fields=Last_Name&per_page=50") && cap.init.headers.Authorization === "Zoho-oauthtoken TK");
@@ -1469,7 +1494,10 @@ section("zoho desk/inventory/campaigns/projects/people");
   let cl = (await fs.readFile(new URL("../packages/zoho/src/core/client.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${igp}"`);
   const clp = "/tmp/zsvc-client-" + stamp + ".ts"; await fs.writeFile(clp, cl);
   const load = async (svc) => {
-    let t = (await fs.readFile(new URL(`../packages/zoho/src/${svc}/index.ts`, import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`).replace('from "../core/client"', `from "${clp}"`).replace('from "../core/datacenter"', `from "${dcp}"`);
+    let t = (await fs.readFile(new URL(`../packages/zoho/src/${svc}/index.ts`, import.meta.url), "utf8"))
+      .replace(/from "@platform\/core"/g, `from "${core}"`)
+      .replace('from "../core/client"', `from "${clp}"`)
+      .replace('from "../core/datacenter"', `from "${dcp}"`);
     const f = `/tmp/zsvc-${svc}-${stamp}.ts`; await fs.writeFile(f, t); return import(f);
   };
   const D = await load("desk"), I = await load("inventory"), C = await load("campaigns"), P = await load("projects"), PE = await load("people");
@@ -1501,10 +1529,21 @@ section("zoho sign/recruit/workdrive/analytics");
   const dcp = "/tmp/zw2-dc-" + stamp + ".ts"; await fs.writeFile(dcp, await fs.readFile(new URL("../packages/zoho/src/core/datacenter.ts", import.meta.url), "utf8"));
   let cl = (await fs.readFile(new URL("../packages/zoho/src/core/client.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${igp}"`);
   const clp = "/tmp/zw2-client-" + stamp + ".ts"; await fs.writeFile(clp, cl);
-  const load = async (svc) => { let t = (await fs.readFile(new URL(`../packages/zoho/src/${svc}/index.ts`, import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`).replace('from "../core/client"', `from "${clp}"`).replace('from "../core/datacenter"', `from "${dcp}"`); const f = `/tmp/zw2-${svc}-${stamp}.ts`; await fs.writeFile(f, t); return import(f); };
+  const load = async (svc) => {
+    let t = (await fs.readFile(new URL(`../packages/zoho/src/${svc}/index.ts`, import.meta.url), "utf8"))
+      .replace(/from "@platform\/core"/g, `from "${core}"`)
+      .replace('from "../core/client"', `from "${clp}"`)
+      .replace('from "../core/datacenter"', `from "${dcp}"`);
+    const f = `/tmp/zw2-${svc}-${stamp}.ts`;
+    await fs.writeFile(f, t);
+    return import(f);
+  };
   const S = await load("sign"), R = await load("recruit"), W = await load("workdrive"), A = await load("analytics");
   let cap = null;
-  const fake = async (url, init) => { cap = { url, init: { ...init, bodyJson: init.body ? JSON.parse(init.body) : undefined } }; return { ok: true, status: 200, headers: { get: () => "application/json" }, json: async () => ({ data: [] }), text: async () => "" }; };
+  const fake = async (url, init) => {
+    cap = { url, init: { ...init, bodyJson: init.body ? JSON.parse(init.body) : undefined } };
+    return { ok: true, status: 200, headers: { get: () => "application/json" }, json: async () => ({ data: [] }), text: async () => "" };
+  };
   await S.createZohoSignClient({ dataCenter: "jp", accessToken: "TK", fetchImpl: fake }).listDocuments({ row_count: 10 });
   ok("Zoho Sign data=JSON page_context", cap.url.startsWith("https://sign.zoho.jp/api/v1/requests?data=") && decodeURIComponent(cap.url).includes("page_context"));
   await R.createZohoRecruitClient({ dataCenter: "com", accessToken: "TK", fetchImpl: fake }).getCandidates({ perPage: 200 });
@@ -1529,10 +1568,21 @@ section("zoho cliq/creator/bookings + desk拡張");
   const dcp = "/tmp/zv3-dc-" + stamp + ".ts"; await fs.writeFile(dcp, await fs.readFile(new URL("../packages/zoho/src/core/datacenter.ts", import.meta.url), "utf8"));
   let cl = (await fs.readFile(new URL("../packages/zoho/src/core/client.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${igp}"`);
   const clp = "/tmp/zv3-client-" + stamp + ".ts"; await fs.writeFile(clp, cl);
-  const load = async (svc) => { let t = (await fs.readFile(new URL(`../packages/zoho/src/${svc}/index.ts`, import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`).replace('from "../core/client"', `from "${clp}"`).replace('from "../core/datacenter"', `from "${dcp}"`); const f = `/tmp/zv3-${svc}-${stamp}.ts`; await fs.writeFile(f, t); return import(f); };
+  const load = async (svc) => {
+    let t = (await fs.readFile(new URL(`../packages/zoho/src/${svc}/index.ts`, import.meta.url), "utf8"))
+      .replace(/from "@platform\/core"/g, `from "${core}"`)
+      .replace('from "../core/client"', `from "${clp}"`)
+      .replace('from "../core/datacenter"', `from "${dcp}"`);
+    const f = `/tmp/zv3-${svc}-${stamp}.ts`;
+    await fs.writeFile(f, t);
+    return import(f);
+  };
   const CL = await load("cliq"), CR = await load("creator"), BK = await load("bookings"), D = await load("desk");
   let cap = null;
-  const fake = async (url, init) => { cap = { url, init: { ...init, bodyJson: init.body ? JSON.parse(init.body) : undefined } }; return { ok: true, status: 200, headers: { get: () => "application/json" }, json: async () => ({}), text: async () => "" }; };
+  const fake = async (url, init) => {
+    cap = { url, init: { ...init, bodyJson: init.body ? JSON.parse(init.body) : undefined } };
+    return { ok: true, status: 200, headers: { get: () => "application/json" }, json: async () => ({}), text: async () => "" };
+  };
   await CL.createZohoCliqClient({ dataCenter: "com", accessToken: "TK", fetchImpl: fake }).postToChannel("CH1", "hi");
   ok("Zoho Cliq postToChannel", cap.url === "https://cliq.zoho.com/api/v2/channels/CH1/message" && cap.init.bodyJson.text === "hi");
   await CR.createZohoCreatorClient({ dataCenter: "com", accessToken: "TK", accountOwner: "jason", appLinkName: "app", fetchImpl: fake }).getRecords("Leads", { limit: 100 });
@@ -1564,7 +1614,9 @@ section("multipart / token-refresh / zoho-login");
   const dcp = "/tmp/mtl-dc-" + stamp + ".ts"; await fs.writeFile(dcp, await fs.readFile(new URL("../packages/zoho/src/core/datacenter.ts", import.meta.url), "utf8"));
   let oa = (await fs.readFile(new URL("../packages/zoho/src/core/oauth.ts", import.meta.url), "utf8")).replace('from "./datacenter"', `from "${dcp}"`);
   const oap = "/tmp/mtl-oa-" + stamp + ".ts"; await fs.writeFile(oap, oa);
-  let tmSrc = (await fs.readFile(new URL("../packages/zoho/src/core/token-manager.ts", import.meta.url), "utf8")).replace('from "./oauth"', `from "${oap}"`).replace('from "./datacenter"', `from "${dcp}"`);
+  let tmSrc = (await fs.readFile(new URL("../packages/zoho/src/core/token-manager.ts", import.meta.url), "utf8"))
+    .replace('from "./oauth"', `from "${oap}"`)
+    .replace('from "./datacenter"', `from "${dcp}"`);
   const tmp = "/tmp/mtl-tm-" + stamp + ".ts"; await fs.writeFile(tmp, tmSrc);
   const TM = await import(tmp);
   let refreshN = 0;
@@ -2397,12 +2449,18 @@ section("resilient zoho fetch");
   const dc = await w("dc", await fs.readFile(new URL("../packages/zoho/src/core/datacenter.ts", import.meta.url), "utf8"));
   let oaSrc = (await fs.readFile(new URL("../packages/zoho/src/core/oauth.ts", import.meta.url), "utf8")).replace('from "./datacenter"', `from "${dc}"`);
   const oa = await w("oa", oaSrc);
-  let tmSrc = (await fs.readFile(new URL("../packages/zoho/src/core/token-manager.ts", import.meta.url), "utf8")).replace('from "./oauth"', `from "${oa}"`).replace('from "./datacenter"', `from "${dc}"`);
+  let tmSrc = (await fs.readFile(new URL("../packages/zoho/src/core/token-manager.ts", import.meta.url), "utf8"))
+    .replace('from "./oauth"', `from "${oa}"`)
+    .replace('from "./datacenter"', `from "${dc}"`);
   const tm = await w("tm", tmSrc);
   const zcore = await w("zcore", `export * from "${dc}";\nexport * from "${tm}";\n`);
   const obs = await w("obs", `import { createTracer, createMetrics } from "${obsidx}";\nexport const metrics = createMetrics();\nexport const tracer = createTracer(() => {});\n`);
   const zcore2 = await w("zcore2", 'class AppError extends Error { constructor(c,m,o){ super(m); this.code=c; this.details=o?.details; } } export function createBulkhead(opts){ let running=0; const q=[]; const max=opts.maxConcurrent; async function acq(){ if(running<max){running++;return;} return new Promise((res)=>q.push(res)); } function rel(){ const n=q.shift(); if(n){ n(); } else running--; } return { async run(fn){ await acq(); try{ return await fn(); } finally{ rel(); } }, active:()=>running, queued:()=>q.length }; }');
-  let zcSrc = (await fs.readFile(new URL("../apps/internal-app/src/server/zoho-client.ts", import.meta.url), "utf8")).replace('from "@platform/zoho/core"', `from "${zcore}"`).replace('from "@platform/observability"', `from "${obsidx}"`).replace('from "./observability"', `from "${obs}"`).replace('from "@platform/core"', `from "${zcore2}"`);
+  let zcSrc = (await fs.readFile(new URL("../apps/internal-app/src/server/zoho-client.ts", import.meta.url), "utf8"))
+    .replace('from "@platform/zoho/core"', `from "${zcore}"`)
+    .replace('from "@platform/observability"', `from "${obsidx}"`)
+    .replace('from "./observability"', `from "${obs}"`)
+    .replace('from "@platform/core"', `from "${zcore2}"`);
   const zc = await w("zc", zcSrc);
   const ZC = await import(zc);
   const orig = globalThis.fetch;
@@ -2474,7 +2532,12 @@ section("api instrumentation (all shapes)");
   // Platform Debugger の収集器(開発時のみ有効)。ここでは無効相当のスタブで差し替える
   const dbgc = `/tmp/inst2-dbg-${stamp}.ts`;
   await fs.writeFile(dbgc, `export const debugCollector={enabled:false,start(){},record(){},finish(){},list:()=>[],get:()=>undefined,clear(){},summarize:()=>({})};`);
-  let ins = (await fs.readFile(new URL("../apps/internal-app/src/server/instrument.ts", import.meta.url), "utf8")).replace('from "@platform/observability"', `from "${obs}"`).replace('from "./observability"', `from "${obs}"`).replace('from "./log-context"', `from "${lc}"`).replace('from "@platform/core"', `from "${coreShim}"`).replace('from "./debug-collector"', `from "${dbgc}"`);
+  let ins = (await fs.readFile(new URL("../apps/internal-app/src/server/instrument.ts", import.meta.url), "utf8"))
+    .replace('from "@platform/observability"', `from "${obs}"`)
+    .replace('from "./observability"', `from "${obs}"`)
+    .replace('from "./log-context"', `from "${lc}"`)
+    .replace('from "@platform/core"', `from "${coreShim}"`)
+    .replace('from "./debug-collector"', `from "${dbgc}"`);
   const insp = `/tmp/inst2-${stamp}.ts`; await fs.writeFile(insp, ins);
   const I = await import(insp);
   const { metrics } = await import(obs);
@@ -2587,13 +2650,24 @@ section("search bm25 / redis / ws queue");
   await fs.rm(tok); await fs.rm(bmf);
 
   // ratelimit redis(フェイク)
-  let redisSrc = (await fs.readFile(new URL("../packages/ratelimit/src/redis.ts", import.meta.url), "utf8")).replace('import Redis from "ioredis";\n', "").replace('typeof urlOrClient === "string" ? (new Redis(urlOrClient) as unknown as RedisLike) : urlOrClient', "urlOrClient as RedisLike");
+  let redisSrc = (await fs.readFile(new URL("../packages/ratelimit/src/redis.ts", import.meta.url), "utf8"))
+    .replace('import Redis from "ioredis";\n', "")
+    .replace('typeof urlOrClient === "string" ? (new Redis(urlOrClient) as unknown as RedisLike) : urlOrClient', "urlOrClient as RedisLike");
   const ttypes = `/tmp/rl-types-${stamp}.ts`; await fs.writeFile(ttypes, "export interface RateLimitStore { increment(key: string, windowSeconds: number): Promise<number> }");
   redisSrc = redisSrc.replace('from "./types"', `from "${ttypes}"`);
   const rf = `/tmp/rl-${stamp}.ts`; await fs.writeFile(rf, redisSrc);
   const { createRedisStore } = await import(rf);
   const store = new Map(); let clock = 0;
-  const fake = { eval: async (_s, _n, key, ttl) => { const e = store.get(key); if (e && e.exp !== null && e.exp <= clock) store.delete(key); const cur = store.get(key) ?? { count: 0, exp: null }; cur.count += 1; if (cur.count === 1) cur.exp = clock + Number(ttl) * 1000; store.set(key, cur); return cur.count; } };
+  const fake = { eval: async (_s, _n, key, ttl) => {
+    const e = store.get(key);
+    if (e && e.exp !== null && e.exp <= clock) store.delete(key);
+    const cur = store.get(key) ?? { count: 0, exp: null };
+    cur.count += 1;
+    if (cur.count === 1) cur.exp = clock + Number(ttl) * 1000;
+    store.set(key, cur);
+    return cur.count;
+    }
+  };
   const rl = createRedisStore(fake);
   ok("redis INCR+EXPIRE アトミック", (await rl.increment("k", 60)) === 1 && (await rl.increment("k", 60)) === 2 && store.get("k").exp === 60000);
   await fs.rm(ttypes); await fs.rm(rf);
@@ -2658,7 +2732,9 @@ section("cache redis / db tx-retry / jobs");
   const w = async (name, src) => { const f = `/tmp/dd-${name}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
   // cache redis(注入)
   const cidx = await w("cidx", "export interface CacheAdapter { get(key: string): Promise<string | null>; set(key: string, value: string, ttlSeconds?: number): Promise<void>; delete(key: string): Promise<void>; }");
-  let credis = (await fs.readFile(new URL("../packages/cache/src/adapters/redis.ts", import.meta.url), "utf8")).replace('import Redis from "ioredis";\n', "").replace('from "../index"', `from "${cidx}"`);
+  let credis = (await fs.readFile(new URL("../packages/cache/src/adapters/redis.ts", import.meta.url), "utf8"))
+    .replace('import Redis from "ioredis";\n', "")
+    .replace('from "../index"', `from "${cidx}"`);
   const credisf = await w("credis", credis);
   const { createRedisCache } = await import(credisf);
   const store = new Map(); let exArgs = null;
@@ -2672,9 +2748,16 @@ section("cache redis / db tx-retry / jobs");
   const core = await w("core", `export const ErrorCode={CONFLICT:"CONFLICT",DATABASE:"DATABASE",INTERNAL:"INTERNAL"};export class AppError extends Error{constructor(c,m,o){super(m);this.code=c;this.cause=o?.cause;}static from(e,c){return new AppError(c,String(e));}}export async function tryCatch(fn){try{return{ok:true,value:await fn()};}catch(e){return{ok:false,error:e instanceof AppError?e:new AppError("INTERNAL",String(e),{cause:e})};}}`);
   const prisma = await w("prisma", "export class PrismaClient {}");
   const errs = await w("errs", `import { AppError, ErrorCode } from "${core}";export function mapPrismaError(e){return new AppError(ErrorCode.DATABASE,"db",{cause:e});}export function isRetryablePrismaError(e){return /40001|40P01|deadlock|serialization|P2034/i.test(e?.message??"");}`);
-  let tx = (await fs.readFile(new URL("../packages/db/src/transaction.ts", import.meta.url), "utf8")).replace('from "@prisma/client"', `from "${prisma}"`).replace('from "@platform/core"', `from "${core}"`).replace('from "./errors"', `from "${errs}"`);
+  let tx = (await fs.readFile(new URL("../packages/db/src/transaction.ts", import.meta.url), "utf8"))
+    .replace('from "@prisma/client"', `from "${prisma}"`)
+    .replace('from "@platform/core"', `from "${core}"`)
+    .replace('from "./errors"', `from "${errs}"`);
   const txf = await w("tx", tx);
-  let res = (await fs.readFile(new URL("../packages/db/src/resilience.ts", import.meta.url), "utf8")).replace('from "@prisma/client"', `from "${prisma}"`).replace('from "@platform/core"', `from "${core}"`).replace('from "./errors"', `from "${errs}"`).replace('from "./transaction"', `from "${txf}"`);
+  let res = (await fs.readFile(new URL("../packages/db/src/resilience.ts", import.meta.url), "utf8"))
+    .replace('from "@prisma/client"', `from "${prisma}"`)
+    .replace('from "@platform/core"', `from "${core}"`)
+    .replace('from "./errors"', `from "${errs}"`)
+    .replace('from "./transaction"', `from "${txf}"`);
   const resf = await w("res", res);
   const { transactionWithRetry } = await import(resf);
   const { abortTransaction } = await import(txf);
@@ -2693,7 +2776,11 @@ section("cache redis / db tx-retry / jobs");
   const bull = await w("bull", "export class Queue{constructor(){}async add(){}async close(){}}export class Worker{constructor(){}}");
   const mem = await w("mem", `export function createMemoryQueue(){return {};}`);
   const def = await w("def", `export function defineJob(n){return {name:n};}`);
-  let jidx = (await fs.readFile(new URL("../packages/jobs/src/index.ts", import.meta.url), "utf8")).replace('from "bullmq"', `from "${bull}"`).replace('from "@platform/core"', `from "${jcore}"`).replace('from "./memory"', `from "${mem}"`).replace('from "./define"', `from "${def}"`);
+  let jidx = (await fs.readFile(new URL("../packages/jobs/src/index.ts", import.meta.url), "utf8"))
+    .replace('from "bullmq"', `from "${bull}"`)
+    .replace('from "@platform/core"', `from "${jcore}"`)
+    .replace('from "./memory"', `from "${mem}"`)
+    .replace('from "./define"', `from "${def}"`);
   const jidxf = await w("jidx", jidx);
   const { connectionFromUrl, createQueue } = await import(jidxf);
   ok("jobs: URL パース", connectionFromUrl("redis://:pw@h:6380").password === "pw" && connectionFromUrl("redis://h").port === 6379);
@@ -2717,7 +2804,12 @@ section("reliable expense notifications");
   const wf = await w("wf", "export {}");
   const enmail = await w("enmail", 'export function buildTransitionMails(i){ return (i.applicantEmail && i.next.status==="approved") ? [{ to:[i.applicantEmail], subject:"承認", text:i.title }] : []; }');
   const svcstore = await w("svcstore", `import { createMemoryOutboxStore } from "${obsidx}";\nimport { createMemorySeenStore } from "${notifyidx}";\nexport const notifyOutbox=createMemoryOutboxStore();\nexport const notifySeen=createMemorySeenStore();\nexport const log={info(){},warn(){}};\nexport let beh=async()=>{};\nexport const mailer={ async sendMail(){ try{ await beh(); return {ok:true,value:undefined}; }catch(e){ return {ok:false,error:{message:e.message}}; } } };\nexport function setBeh(f){ beh=f; }`);
-  let svc = (await fs.readFile(new URL("../apps/internal-app/src/server/expense-notify-service.ts", import.meta.url), "utf8")).replace('from "@platform/workflow"', `from "${wf}"`).replace('from "@platform/observability"', `from "${obsidx}"`).replace('from "@platform/notify"', `from "${notifyidx}"`).replace('from "../lib/expense-notify"', `from "${enmail}"`).replace('from "./services"', `from "${svcstore}"`);
+  let svc = (await fs.readFile(new URL("../apps/internal-app/src/server/expense-notify-service.ts", import.meta.url), "utf8"))
+    .replace('from "@platform/workflow"', `from "${wf}"`)
+    .replace('from "@platform/observability"', `from "${obsidx}"`)
+    .replace('from "@platform/notify"', `from "${notifyidx}"`)
+    .replace('from "../lib/expense-notify"', `from "${enmail}"`)
+    .replace('from "./services"', `from "${svcstore}"`);
   const svcf = await w("svc", svc);
   const S = await import(svcf);
   const { notifyOutbox, setBeh } = await import(svcstore);
@@ -2741,12 +2833,18 @@ section("notify relay scheduler");
   const runner = await w("runner", (await fs.readFile(new URL("../packages/cron/src/runner.ts", import.meta.url), "utf8")).replace('from "./lock"', `from "${lock}"`));
   const core = await w("core", 'export const ErrorCode={INTERNAL:"INTERNAL"};export class AppError extends Error{constructor(c,m){super(m);this.code=c;}static from(e,c){return new AppError(c,e instanceof Error?e.message:String(e));}}');
   const croner = await w("croner", "export const REG=[];export class Cron{constructor(_s,_o,fn){this.fn=fn;REG.push(this);}stop(){}}");
-  let idx = (await fs.readFile(new URL("../packages/cron/src/index.ts", import.meta.url), "utf8")).replaceAll('from "croner"', `from "${croner}"`).replaceAll('from "@platform/core"', `from "${core}"`).replaceAll('from "./runner"', `from "${runner}"`).replaceAll('from "./lock"', `from "${lock}"`).replace(/export \{ createRedisLockStore[^\n]*\n/, "").replace(/export \{ tryAcquireFileLock[^\n]*\n/, "");
+  let idx = (await fs.readFile(new URL("../packages/cron/src/index.ts", import.meta.url), "utf8")).replaceAll('from "croner"', `from "${croner}"`).replaceAll('from "@platform/core"', `from "${core}"`).replaceAll('from "./runner"', `from "${runner}"`).replaceAll('from "./lock"', `from "${lock}"`)
+    .replace(/export \{ createRedisLockStore[^\n]*\n/, "")
+    .replace(/export \{ tryAcquireFileLock[^\n]*\n/, "");
   const cidx = await w("cidx", idx);
   const obs = await w("obs", 'export const metrics={counters:{},incrementCounter(n,v,l){const k=n+JSON.stringify(l||{});this.counters[k]=(this.counters[k]||0)+v;},observeHistogram(){}};');
   const svc = await w("svc", 'export const log={info(){},warn(){},error(){}};');
   const esvc = await w("esvc", 'export let calls=0;export async function relayExpenseNotifications(){ calls++; return {sent:1,failed:0,exhausted:0}; }');
-  let ns = (await fs.readFile(new URL("../apps/internal-app/src/server/notify-scheduler.ts", import.meta.url), "utf8")).replace('from "@platform/cron"', `from "${cidx}"`).replace('from "./expense-notify-service"', `from "${esvc}"`).replace('from "./observability"', `from "${obs}"`).replace('from "./services"', `from "${svc}"`);
+  let ns = (await fs.readFile(new URL("../apps/internal-app/src/server/notify-scheduler.ts", import.meta.url), "utf8"))
+    .replace('from "@platform/cron"', `from "${cidx}"`)
+    .replace('from "./expense-notify-service"', `from "${esvc}"`)
+    .replace('from "./observability"', `from "${obs}"`)
+    .replace('from "./services"', `from "${svc}"`);
   const nsf = await w("ns", ns);
   const { createNotifyScheduler } = await import(nsf);
   const { REG } = await import(croner);
@@ -2945,7 +3043,9 @@ section("error policy / bulkhead / process guards");
   // リトライ層の分類統一(notify withRetry の既定 = defaultShouldRetry)
   const nidx2 = await w("nidx2", "export {}");
   const ncore = await w("ncore", 'export function defaultShouldRetry(e){ return !(e && e.__perm); }');
-  let nres = (await fs.readFile(new URL("../packages/notify/src/resilient.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${ncore}"`).replace('from "./index"', `from "${nidx2}"`);
+  let nres = (await fs.readFile(new URL("../packages/notify/src/resilient.ts", import.meta.url), "utf8"))
+    .replace('from "@platform/core"', `from "${ncore}"`)
+    .replace('from "./index"', `from "${nidx2}"`);
   const nresf = await w("nresf", nres);
   const { withRetry } = await import(nresf);
   let perm = 0; const permErr = Object.assign(new Error("v"), { __perm: true });
@@ -3147,7 +3247,11 @@ section("line: builders / webhook / client");
   const intF = `/tmp/line-int-${stamp}.ts`;
   await fs.writeFile(intF, "export function createApiClient(){ const c=[]; globalThis.__lc=c; const r=async(m,p,o)=>{ c.push({m,p,body:o?.body}); return {ok:true,value:{richMenuId:'rm1'}}; }; return { get:(p)=>r('GET',p), post:(p,o)=>r('POST',p,o), put:(p,o)=>r('PUT',p,o), delete:(p,o)=>r('DELETE',p,o), patch:(p,o)=>r('PATCH',p,o) }; }");
   const emptyF = `/tmp/line-empty-${stamp}.ts`; await fs.writeFile(emptyF, "export {};");
-  const idxSrc = (await fs.readFile(new URL("../packages/line/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${intF}"`).replace('from "@platform/core"', `from "${coreF}"`).replace('from "./messages"', `from "${emptyF}"`).replace('from "./webhook"', `from "${emptyF}"`);
+  const idxSrc = (await fs.readFile(new URL("../packages/line/src/index.ts", import.meta.url), "utf8"))
+    .replace('from "@platform/integrations"', `from "${intF}"`)
+    .replace('from "@platform/core"', `from "${coreF}"`)
+    .replace('from "./messages"', `from "${emptyF}"`)
+    .replace('from "./webhook"', `from "${emptyF}"`);
   const idxF = `/tmp/line-index-${stamp}.ts`; await fs.writeFile(idxF, idxSrc);
   const L = await import(idxF);
   const client = L.createLineClient({ channelAccessToken: "t" });
@@ -3200,7 +3304,13 @@ section("freee: token / receipts / journal");
   const intF = `/tmp/fr-int-${stamp}.ts`;
   await fs.writeFile(intF, "export function createApiClient(){ const c=[]; globalThis.__fr=c; const r=async(m,p,o)=>{ c.push({m,p,query:o?.query,body:o?.body,multipart:o?.multipart}); return {ok:true,value:{id:1}}; }; return { get:(p,o)=>r('GET',p,o), post:(p,o)=>r('POST',p,o), put:(p,o)=>r('PUT',p,o), delete:(p,o)=>r('DELETE',p,o), patch:(p,o)=>r('PATCH',p,o) }; }");
   const emptyF = `/tmp/fr-empty-${stamp}.ts`; await fs.writeFile(emptyF, "export {};");
-  const idxSrc = (await fs.readFile(new URL("../packages/freee/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${intF}"`).replace(/from "@platform\/core"/g, `from "${coreF}"`).replace('from "./token"', `from "${emptyF}"`).replace('from "./builders"', `from "${emptyF}"`).replace('from "./webhook"', `from "${emptyF}"`).replace('from "./hr"', `from "${emptyF}"`);
+  const idxSrc = (await fs.readFile(new URL("../packages/freee/src/index.ts", import.meta.url), "utf8"))
+    .replace('from "@platform/integrations"', `from "${intF}"`)
+    .replace(/from "@platform\/core"/g, `from "${coreF}"`)
+    .replace('from "./token"', `from "${emptyF}"`)
+    .replace('from "./builders"', `from "${emptyF}"`)
+    .replace('from "./webhook"', `from "${emptyF}"`)
+    .replace('from "./hr"', `from "${emptyF}"`);
   const idxF = `/tmp/fr-index-${stamp}.ts`; await fs.writeFile(idxF, idxSrc);
   const F = await import(idxF);
   const client = F.createFreeeClient({ accessToken: "t" });
@@ -3228,7 +3338,9 @@ section("freee: HR / approval / webhook");
   const intF = await w("int", "export function createApiClient(c){ const calls=[]; globalThis.__frx={baseUrl:c.baseUrl,calls}; const r=async(m,p,o)=>{ calls.push({m,p,query:o?.query,body:o?.body}); return {ok:true,value:{}}; }; return { get:(p,o)=>r('GET',p,o), post:(p,o)=>r('POST',p,o), put:(p,o)=>r('PUT',p,o), delete:(p,o)=>r('DELETE',p,o), patch:(p,o)=>r('PATCH',p,o) }; }");
 
   // HR クライアント
-  const hrSrc = (await fs.readFile(new URL("../packages/freee/src/hr.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${intF}"`).replace('from "@platform/core"', `from "${coreF}"`);
+  const hrSrc = (await fs.readFile(new URL("../packages/freee/src/hr.ts", import.meta.url), "utf8"))
+    .replace('from "@platform/integrations"', `from "${intF}"`)
+    .replace('from "@platform/core"', `from "${coreF}"`);
   const hrF = await w("hr", hrSrc);
   const H = await import(hrF);
   const hr = H.createFreeeHrClient({ accessToken: "t" });
@@ -3246,7 +3358,13 @@ section("freee: HR / approval / webhook");
 
   // 承認ワークフロー(会計 index)
   const emptyF = await w("empty", "export {}");
-  const idxSrc = (await fs.readFile(new URL("../packages/freee/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${intF}"`).replace(/from "@platform\/core"/g, `from "${coreF}"`).replace('from "./token"', `from "${emptyF}"`).replace('from "./builders"', `from "${emptyF}"`).replace('from "./webhook"', `from "${emptyF}"`).replace('from "./hr"', `from "${emptyF}"`);
+  const idxSrc = (await fs.readFile(new URL("../packages/freee/src/index.ts", import.meta.url), "utf8"))
+    .replace('from "@platform/integrations"', `from "${intF}"`)
+    .replace(/from "@platform\/core"/g, `from "${coreF}"`)
+    .replace('from "./token"', `from "${emptyF}"`)
+    .replace('from "./builders"', `from "${emptyF}"`)
+    .replace('from "./webhook"', `from "${emptyF}"`)
+    .replace('from "./hr"', `from "${emptyF}"`);
   const idxF = await w("idx", idxSrc);
   const F = await import(idxF);
   const freee = F.createFreeeClient({ accessToken: "t" });
@@ -3288,7 +3406,9 @@ section("google: oauth / gmail / drive / calendar");
   ok("google userinfo(email/hd 社内判定)", ui.email === "a@x.com" && ui.hd === "example.co.jp");
 
   // Gmail(raw 構築 + 送信)
-  const gmSrc = (await fs.readFile(new URL("../packages/google/src/gmail.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${intF}"`).replace('from "@platform/core"', `from "${coreF}"`);
+  const gmSrc = (await fs.readFile(new URL("../packages/google/src/gmail.ts", import.meta.url), "utf8"))
+    .replace('from "@platform/integrations"', `from "${intF}"`)
+    .replace('from "@platform/core"', `from "${coreF}"`);
   const G = await import(await w("gm", gmSrc));
   const raw = G.buildRawEmail({ to: "a@x.com", subject: "テスト", text: "本文", cc: ["b@x.com"] });
   const gmail = G.createGmailClient({ accessToken: "t" });
@@ -3296,7 +3416,9 @@ section("google: oauth / gmail / drive / calendar");
   ok("gmail(MIME件名/base64url送信)", raw.includes("=?UTF-8?B?") && !raw.includes("テスト") && globalThis.__gx.path === "/messages/send" && !/[+/=]/.test(globalThis.__gx.body.raw));
 
   // Drive(multipart アップロード + 共有)
-  const drSrc = (await fs.readFile(new URL("../packages/google/src/drive.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${intF}"`).replace('from "@platform/core"', `from "${coreF}"`);
+  const drSrc = (await fs.readFile(new URL("../packages/google/src/drive.ts", import.meta.url), "utf8"))
+    .replace('from "@platform/integrations"', `from "${intF}"`)
+    .replace('from "@platform/core"', `from "${coreF}"`);
   const D = await import(await w("dr", drSrc));
   const drive = D.createGoogleDriveClient({ accessToken: "t" });
   await drive.uploadFile({ name: "報告書.pdf", data: new Uint8Array([1]), mimeType: "application/pdf", parents: ["folder1"] });
@@ -3306,7 +3428,12 @@ section("google: oauth / gmail / drive / calendar");
 
   // Calendar 拡張(index を integrations shim で)
   const emptyF = await w("empty", "export {}");
-  const idxSrc = (await fs.readFile(new URL("../packages/google/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${intF}"`).replace('from "@platform/core"', `from "${coreF}"`).replace('from "./oauth"', `from "${emptyF}"`).replace('from "./gmail"', `from "${emptyF}"`).replace('from "./drive"', `from "${emptyF}"`);
+  const idxSrc = (await fs.readFile(new URL("../packages/google/src/index.ts", import.meta.url), "utf8"))
+    .replace('from "@platform/integrations"', `from "${intF}"`)
+    .replace('from "@platform/core"', `from "${coreF}"`)
+    .replace('from "./oauth"', `from "${emptyF}"`)
+    .replace('from "./gmail"', `from "${emptyF}"`)
+    .replace('from "./drive"', `from "${emptyF}"`);
   const I = await import(await w("idx", idxSrc));
   const cal = I.createGoogleCalendarClient({ accessToken: "t" });
   await cal.createEvent("primary", { summary: "会議" }, { sendUpdates: "all" });
@@ -3365,7 +3492,9 @@ section("session: idle timeout / idle timer / login throttle");
   await fs.writeFile(cryptoF, "export function deriveKey(s){return s} export function encrypt(t){return Buffer.from(t,'utf8').toString('base64')} export function decrypt(x){return Buffer.from(x,'base64').toString('utf8')}");
   const cookieF = `/tmp/sess-cookie-${stamp}.ts`;
   await fs.writeFile(cookieF, "export function getCookie(h,n){ if(!h) return undefined; for(const p of h.split(';')){ const [k,v]=p.trim().split('='); if(k===n) return v; } return undefined } export function serializeCookie(n,v,o){ return `${n}=${v}; Max-Age=${o?.maxAge??0}` } export function clearCookie(n){ return `${n}=; Max-Age=0` }");
-  const sessSrc = (await fs.readFile(new URL("../packages/session/src/session.ts", import.meta.url), "utf8")).replace('from "@platform/crypto"', `from "${cryptoF}"`).replace('from "./cookie"', `from "${cookieF}"`);
+  const sessSrc = (await fs.readFile(new URL("../packages/session/src/session.ts", import.meta.url), "utf8"))
+    .replace('from "@platform/crypto"', `from "${cryptoF}"`)
+    .replace('from "./cookie"', `from "${cookieF}"`);
   const sessF = `/tmp/sess-session-${stamp}.ts`; await fs.writeFile(sessF, sessSrc);
   const S = await import(sessF);
   const idle = S.createSession({ secret: "y".repeat(32), salt: "smoke-salt-1", maxAgeSec: 3600, idleTimeoutSec: 0.05 });
@@ -3402,7 +3531,9 @@ section("session: idle timeout / idle timer / login throttle");
   // store session: 再生成 + 全端末ログアウト(crypto/cookie shim)
   const stCrypto = `/tmp/sess-stcrypto-${stamp}.ts`;
   await fs.writeFile(stCrypto, "let n=0; export function randomToken(){ return 'tok'+(++n) }");
-  const stStoreSrc = (await fs.readFile(new URL("../packages/session/src/store-session.ts", import.meta.url), "utf8")).replace('from "@platform/crypto"', `from "${stCrypto}"`).replace('from "./cookie"', `from "${cookieF}"`);
+  const stStoreSrc = (await fs.readFile(new URL("../packages/session/src/store-session.ts", import.meta.url), "utf8"))
+    .replace('from "@platform/crypto"', `from "${stCrypto}"`)
+    .replace('from "./cookie"', `from "${cookieF}"`);
   const stStoreF = `/tmp/sess-store-${stamp}.ts`; await fs.writeFile(stStoreF, stStoreSrc);
   const SS = await import(stStoreF);
   const map = new Map();
@@ -3475,7 +3606,9 @@ section("ekyc: status / webhook / client");
   const intF = `/tmp/ekyc-int-${stamp}.ts`;
   await fs.writeFile(intF, "export function createApiClient(config){ const calls=[]; globalThis.__ekyc=calls; const r=(m)=>(p,o)=>{ calls.push({m,p,h:config.headers,b:config.baseUrl}); return Promise.resolve({ok:true,value:{}}); }; return { get:r('GET'), post:r('POST'), put:r('PUT'), patch:r('PATCH'), delete:r('DELETE') }; }");
   const coreF = `/tmp/ekyc-core-${stamp}.ts`; await fs.writeFile(coreF, "export {};");
-  const clSrc = (await fs.readFile(new URL("../packages/ekyc/src/client.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from ${JSON.stringify(intF)}`).replace('from "@platform/core"', `from ${JSON.stringify(coreF)}`);
+  const clSrc = (await fs.readFile(new URL("../packages/ekyc/src/client.ts", import.meta.url), "utf8"))
+    .replace('from "@platform/integrations"', `from ${JSON.stringify(intF)}`)
+    .replace('from "@platform/core"', `from ${JSON.stringify(coreF)}`);
   const clF = `/tmp/ekyc-cl-${stamp}.ts`; await fs.writeFile(clF, clSrc);
   const C = await import(clF);
   const client = C.createEkycClient({ apiKey: "k", baseUrl: "https://api.example.com/v1" });
@@ -3508,7 +3641,9 @@ section("ekyc: client / webhook / status");
   await fs.writeFile(coreF, `export const ErrorCode={EXTERNAL:"EXTERNAL",INTERNAL:"INTERNAL"};export class AppError extends Error{constructor(c,m,d){super(m);this.code=c;this.details=d;}}export async function tryCatch(fn){try{return {ok:true,value:await fn()};}catch(e){return {ok:false,error:e instanceof AppError?e:new AppError("INTERNAL",String(e))};}}`);
   const intSrc = (await fs.readFile(new URL("../packages/integrations/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${coreF}"`);
   const intF = `/tmp/ekyc-int-${stamp2}.ts`; await fs.writeFile(intF, intSrc);
-  const clientSrc = (await fs.readFile(new URL("../packages/ekyc/src/client.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${intF}"`).replace('from "@platform/core"', `from "${coreF}"`);
+  const clientSrc = (await fs.readFile(new URL("../packages/ekyc/src/client.ts", import.meta.url), "utf8"))
+    .replace('from "@platform/integrations"', `from "${intF}"`)
+    .replace('from "@platform/core"', `from "${coreF}"`);
   const clientF = `/tmp/ekyc-client-${stamp2}.ts`; await fs.writeFile(clientF, clientSrc);
   const C = await import(clientF);
   const calls = [];
@@ -3684,7 +3819,9 @@ section("mail: template / allowlist");
   // allowlist は ./email.js を import → fs read + .js→.ts shim
   const emailSrc = (await fs.readFile(new URL("../packages/mail/src/email.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const emailF = `/tmp/mail-email-${stamp}.ts`; await fs.writeFile(emailF, emailSrc);
-  const alSrc = (await fs.readFile(new URL("../packages/mail/src/allowlist.ts", import.meta.url), "utf8")).replace(/from "\.\/email"/g, `from "${emailF}"`).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(`from "${emailF.replace(/\.ts"$/, '.ts')}"`, `from "${emailF}"`);
+  const alSrc = (await fs.readFile(new URL("../packages/mail/src/allowlist.ts", import.meta.url), "utf8"))
+    .replace(/from "\.\/email"/g, `from "${emailF}"`)
+    .replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(`from "${emailF.replace(/\.ts"$/, '.ts')}"`, `from "${emailF}"`);
   const alF = `/tmp/mail-al-${stamp}.ts`; await fs.writeFile(alF, alSrc);
   const A = await import(alF);
   ok("allowlist: ドメイン許可/拒否/大小無視/ブロック優先", A.isAllowedRecipient("a@corp.com", { allowedDomains: ["corp.com"] }) === true &&
@@ -5161,8 +5298,17 @@ section("blueprint-workflow integration");
   const B = await import(BP), WF = await import(wfPath["index"]);
   const TIERS = [{ under: 30000, steps: [{ name: "課長承認", approverRole: "manager" }] }, { under: 100000, steps: [{ name: "課長承認", approverRole: "manager" }, { name: "部長承認", approverRole: "director" }] }, { steps: [{ name: "課長承認", approverRole: "manager" }, { name: "部長承認", approverRole: "director" }, { name: "役員承認", approverRole: "executive" }] }];
   const bp = { initial: "draft", states: ["draft", "submitted", "approved", "rejected"], final: ["approved", "rejected"], transitions: [{ from: "draft", to: "submitted", name: "提出", requiredFields: ["amount", "purpose"], actions: ["startApproval"] }, { from: "submitted", to: "approved", name: "承認完了", condition: (e) => e.approval?.status === "approved", actions: ["postJournal"] }] };
-  const submit = (ex) => { const t = B.applyTransition(bp, ex, "提出"); if (!t.ok) return { ok: false }; return { ok: true, expense: { ...t.record, approval: WF.startWorkflow(WF.routeByAmount(ex.amount, TIERS)) } }; };
-  const approveStep = (ex, actor) => { const r = WF.approve(WF.routeByAmount(ex.amount, TIERS), ex.approval, actor); if (!r.ok) return { ok: false }; const next = { ...ex, approval: r.value }; if (r.value.status === "approved") { const d = B.applyTransition(bp, next, "承認完了"); if (d.ok) return { ok: true, expense: d.record }; } return { ok: true, expense: next }; };
+  const submit = (ex) => {
+    const t = B.applyTransition(bp, ex, "提出");
+    if (!t.ok) return { ok: false };
+    return { ok: true, expense: { ...t.record, approval: WF.startWorkflow(WF.routeByAmount(ex.amount, TIERS)) } };
+  };
+  const approveStep = (ex, actor) => {
+    const r = WF.approve(WF.routeByAmount(ex.amount, TIERS), ex.approval, actor);
+    if (!r.ok) return { ok: false };
+    const next = { ...ex, approval: r.value };
+    if (r.value.status === "approved") { const d = B.applyTransition(bp, next, "承認完了"); if (d.ok) return { ok: true, expense: d.record }; } return { ok: true, expense: next };
+  };
   let lo = submit({ state: "draft", amount: 20000, purpose: "x" });
   const loApproved = approveStep(lo.expense, { id: "m", roles: ["manager"] });
   let hi = submit({ state: "draft", amount: 200000, purpose: "y" });
@@ -5445,7 +5591,9 @@ section("auth");
   await fscb.writeFile(BOARD, `export * from "${ATTB}"; export * from "${POST}"; export * from "${REAC}"; export * from "${TL}";`);
   await fscb.writeFile(RTB, await rd("../packages/realtime/src/broadcast.ts"));
   await fscb.writeFile(RT, `export * from "${RTB}";`);
-  await fscb.writeFile(SESS, (await rd("../demos/showcase/src/examples/chat-room-room-session.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`).replace(/from "@platform\/realtime"/g, `from "${RT}"`));
+  await fscb.writeFile(SESS, (await rd("../demos/showcase/src/examples/chat-room-room-session.ts"))
+    .replace(/from "@platform\/chat"/g, `from "${CHAT}"`)
+    .replace(/from "@platform\/realtime"/g, `from "${RT}"`));
   await fscb.writeFile(VIEW, (await rd("../demos/showcase/src/examples/chat-room-view.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
   await fscb.writeFile(BV, (await rd("../demos/showcase/src/examples/board-threads-board-view.ts")).replace(/from "@platform\/board"/g, `from "${BOARD}"`));
   const CH = await import(CHAT);
@@ -5717,7 +5865,9 @@ section("notify");
   await fsp.writeFile(ROOM, (await rdp("../packages/chat/src/room.ts")).replace(/from "\.\/message\.ts"/g, `from "${MSG}"`));
   await fsp.writeFile(CHAT, `export * from "${AC}"; export * from "${MSG}"; export * from "${ROOM}";`);
   await fsp.writeFile(STORE, (await rdp("../apps/internal-app/src/server/chat-store.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
-  await fsp.writeFile(PSTORE, (await rdp("../apps/internal-app/src/server/chat-store-prisma.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`).replace(/from "\.\/chat-store\.ts"/g, `from "${STORE}"`));
+  await fsp.writeFile(PSTORE, (await rdp("../apps/internal-app/src/server/chat-store-prisma.ts"))
+    .replace(/from "@platform\/chat"/g, `from "${CHAT}"`)
+    .replace(/from "\.\/chat-store\.ts"/g, `from "${STORE}"`));
   await fsp.writeFile(RREPO, (await rdp("../apps/internal-app/src/server/chat-rooms.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
   await fsp.writeFile(PRES, await rdp("../apps/internal-app/src/server/chat-presence.ts"));
 section("realtime");
@@ -5843,15 +5993,26 @@ section("realtime");
   await fsx.writeFile(BM, (await rdx("../packages/search/src/bm25.ts")).replace(/from "\.\/tokenize\.ts"/g, `from "${TOK}"`));
   await fsx.writeFile(MEM, (await rdx("../packages/search/src/adapters/memory.ts")).replace(/from "\.\.\/index\.ts"/g, `from "${SEARCH}"`).replace(/from "\.\.\/bm25\.ts"/g, `from "${BM}"`));
   await fsx.writeFile(MEI, `export function createMeilisearchAdapter(){ return {}; }`);
-  await fsx.writeFile(SEARCH, (await rdx("../packages/search/src/index.ts")).replace(/from "@platform\/core"/g, `from "${CORE}"`).replace(/from "\.\/adapters\/memory\.ts"/g, `from "${MEM}"`).replace(/from "\.\/adapters\/meilisearch\.ts"/g, `from "${MEI}"`).replace(/from "\.\/bm25\.ts"/g, `from "${BM}"`).replace(/from "\.\/tokenize\.ts"/g, `from "${TOK}"`));
+  await fsx.writeFile(SEARCH, (await rdx("../packages/search/src/index.ts"))
+    .replace(/from "@platform\/core"/g, `from "${CORE}"`)
+    .replace(/from "\.\/adapters\/memory\.ts"/g, `from "${MEM}"`)
+    .replace(/from "\.\/adapters\/meilisearch\.ts"/g, `from "${MEI}"`)
+    .replace(/from "\.\/bm25\.ts"/g, `from "${BM}"`)
+    .replace(/from "\.\/tokenize\.ts"/g, `from "${TOK}"`));
 section("notify");
   await fsx.writeFile(NTPL, await rdx("../packages/notify/src/template.ts"));
   await fsx.writeFile(NT, `export * from "${NTPL}";`);
   await fsx.writeFile(RUNNER, await rdx("../packages/cron/src/runner.ts"));
   await fsx.writeFile(STORE, (await rdx("../apps/internal-app/src/server/chat-store.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
   await fsx.writeFile(RREPO, (await rdx("../apps/internal-app/src/server/chat-rooms.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
-  await fsx.writeFile(CSEARCH, (await rdx("../apps/internal-app/src/server/chat-search.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`).replace(/from "@platform\/board"/g, `from "${BOARD}"`).replace(/from "@platform\/search"/g, `from "${SEARCH}"`));
-  await fsx.writeFile(DIGEST, (await rdx("../apps/internal-app/src/server/chat-digest.ts")).replace(/from "@platform\/notify"/g, `from "${NT}"`).replace(/from "\.\/chat-store\.ts"/g, `from "${STORE}"`).replace(/from "\.\/chat-rooms\.ts"/g, `from "${RREPO}"`));
+  await fsx.writeFile(CSEARCH, (await rdx("../apps/internal-app/src/server/chat-search.ts"))
+    .replace(/from "@platform\/chat"/g, `from "${CHAT}"`)
+    .replace(/from "@platform\/board"/g, `from "${BOARD}"`)
+    .replace(/from "@platform\/search"/g, `from "${SEARCH}"`));
+  await fsx.writeFile(DIGEST, (await rdx("../apps/internal-app/src/server/chat-digest.ts"))
+    .replace(/from "@platform\/notify"/g, `from "${NT}"`)
+    .replace(/from "\.\/chat-store\.ts"/g, `from "${STORE}"`)
+    .replace(/from "\.\/chat-rooms\.ts"/g, `from "${RREPO}"`));
   await fsx.writeFile(RTB, await rdx("../packages/realtime/src/broadcast.ts"));
   await fsx.writeFile(RT, `export * from "${RTB}";`);
   await fsx.writeFile(GW, (await rdx("../apps/internal-app/src/server/chat-gateway.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`).replace(/from "@platform\/realtime"/g, `from "${RT}"`));
@@ -5876,7 +6037,10 @@ section("notify");
 
   // 編集・削除フロー(gateway + store + controller 封筒)
   const B = await import(RTB), ST = await import(STORE), G = await import(GW), CC = await import(CTRL);
-  const memPS = () => { const h = new Map(); return { async publish(ch, msg) { (h.get(ch) || []).forEach(fn => fn(typeof msg === "string" ? msg : JSON.stringify(msg))); }, async subscribe(ch, fn) { const a = h.get(ch) || []; a.push(fn); h.set(ch, a); }, async unsubscribe(ch) { h.delete(ch); } }; };
+  const memPS = () => {
+    const h = new Map();
+    return { async publish(ch, msg) { (h.get(ch) || []).forEach(fn => fn(typeof msg === "string" ? msg : JSON.stringify(msg))); }, async subscribe(ch, fn) { const a = h.get(ch) || []; a.push(fn); h.set(ch, a); }, async unsubscribe(ch) { h.delete(ch); } };
+  };
   const store = ST.createMemoryChatStore({ keepPerRoom: 100 });
   const idxLog = [];
   const hub = B.createBroadcastHub(memPS());
@@ -5955,7 +6119,10 @@ section("notify");
   await fsr.writeFile(GW, (await rdr("../apps/internal-app/src/server/chat-gateway.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`).replace(/from "@platform\/realtime"/g, `from "${RT}"`));
   await fsr.writeFile(CTRL, (await rdr("../apps/internal-app/src/app/chat/chat-controller.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
   await fsr.writeFile(RSTORE, (await rdr("../apps/internal-app/src/server/chat-reactions.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
-  await fsr.writeFile(THUMB, (await rdr("../apps/internal-app/src/server/chat-thumbnails.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`).replace(/from "@platform\/image"/g, `from "${IMG}"`).replace(/from "@platform\/storage"/g, `from "${GEO}"`));
+  await fsr.writeFile(THUMB, (await rdr("../apps/internal-app/src/server/chat-thumbnails.ts"))
+    .replace(/from "@platform\/chat"/g, `from "${CHAT}"`)
+    .replace(/from "@platform\/image"/g, `from "${IMG}"`)
+    .replace(/from "@platform\/storage"/g, `from "${GEO}"`));
 
   // ハイライト(純関数)
   const H = await import(HL);
@@ -5971,7 +6138,10 @@ section("notify");
 
   // リアクション配信(gateway + store + controller 封筒)
   const B = await import(RTB), RS = await import(RSTORE), G = await import(GW), CC = await import(CTRL);
-  const memPS = () => { const h = new Map(); return { async publish(ch, msg) { (h.get(ch) || []).forEach(fn => fn(typeof msg === "string" ? msg : JSON.stringify(msg))); }, async subscribe(ch, fn) { const a = h.get(ch) || []; a.push(fn); h.set(ch, a); }, async unsubscribe(ch) { h.delete(ch); } }; };
+  const memPS = () => {
+    const h = new Map();
+    return { async publish(ch, msg) { (h.get(ch) || []).forEach(fn => fn(typeof msg === "string" ? msg : JSON.stringify(msg))); }, async subscribe(ch, fn) { const a = h.get(ch) || []; a.push(fn); h.set(ch, a); }, async unsubscribe(ch) { h.delete(ch); } };
+  };
   const rstore = RS.createMemoryReactionStore();
   const hub = B.createBroadcastHub(memPS());
   let rn = 0;
@@ -6033,7 +6203,10 @@ section("notify");
   await fsp.writeFile(STORE, (await rdp("../apps/internal-app/src/server/chat-store.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
   await fsp.writeFile(RREPO, (await rdp("../apps/internal-app/src/server/chat-rooms.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
   await fsp.writeFile(PINS, (await rdp("../apps/internal-app/src/server/chat-pins.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
-  await fsp.writeFile(MENT, (await rdp("../apps/internal-app/src/server/chat-mentions.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`).replace(/from "\.\/chat-store\.ts"/g, `from "${STORE}"`).replace(/from "\.\/chat-rooms\.ts"/g, `from "${RREPO}"`));
+  await fsp.writeFile(MENT, (await rdp("../apps/internal-app/src/server/chat-mentions.ts"))
+    .replace(/from "@platform\/chat"/g, `from "${CHAT}"`)
+    .replace(/from "\.\/chat-store\.ts"/g, `from "${STORE}"`)
+    .replace(/from "\.\/chat-rooms\.ts"/g, `from "${RREPO}"`));
   await fsp.writeFile(REAC, (await rdp("../apps/internal-app/src/server/chat-reactions.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
   await fsp.writeFile(RTB, await rdp("../packages/realtime/src/broadcast.ts"));
   await fsp.writeFile(RT, `export * from "${RTB}";`);
@@ -6096,7 +6269,10 @@ section("notify");
 
   // ピン配信(gateway → controller 封筒)
   const B = await import(RTB), G = await import(GW), CC = await import(CTRL);
-  const memBus = () => { const h = new Map(); return { async publish(ch, msg) { (h.get(ch) || []).forEach(fn => fn(typeof msg === "string" ? msg : JSON.stringify(msg))); }, async subscribe(ch, fn) { const a = h.get(ch) || []; a.push(fn); h.set(ch, a); }, async unsubscribe(ch) { h.delete(ch); } }; };
+  const memBus = () => {
+    const h = new Map();
+    return { async publish(ch, msg) { (h.get(ch) || []).forEach(fn => fn(typeof msg === "string" ? msg : JSON.stringify(msg))); }, async subscribe(ch, fn) { const a = h.get(ch) || []; a.push(fn); h.set(ch, a); }, async unsubscribe(ch) { h.delete(ch); } };
+  };
   const pstore2 = PS.createMemoryPinStore();
   const hub = B.createBroadcastHub(memBus());
   const gw = G.createChatGateway({ hub, newId: () => "x", togglePinStore: (r, m, u) => pstore2.togglePin(r, m, u) });
@@ -6293,7 +6469,9 @@ section("audit");
   await fsz.writeFile(NP, (await rdz("../apps/internal-app/src/server/notification-prefs.ts")).replace(/from "@platform\/notify"/g, `from "${NT}"`));
   for (const [f, src] of [[AEV, "event"], [ALOG, "log"], [AQ, "query"]]) await fsz.writeFile(f, await rdz(`../packages/audit/src/${src}.ts`));
   let alog = await fsz.readFile(ALOG, "utf8"); alog = alog.replace(new RegExp('from "./event.ts"', "g"), `from "${AEV}"`); await fsz.writeFile(ALOG, alog);
-  let aq = await fsz.readFile(AQ, "utf8"); aq = aq.replace(new RegExp('from "./log.ts"', "g"), `from "${ALOG}"`).replace(new RegExp('from "./event.ts"', "g"), `from "${AEV}"`); await fsz.writeFile(AQ, aq);
+  let aq = await fsz.readFile(AQ, "utf8"); aq = aq
+    .replace(new RegExp('from "./log.ts"', "g"), `from "${ALOG}"`)
+    .replace(new RegExp('from "./event.ts"', "g"), `from "${AEV}"`); await fsz.writeFile(AQ, aq);
   await fsz.writeFile(AUD, `export * from "${AEV}"; export * from "${ALOG}"; export * from "${AQ}";`);
   const CSVSTUB2 = `${dz}/wz-csv-${stz}.ts`;
   await fsz.writeFile(CSVSTUB2, await rdz("../packages/csv/src/index.ts"));
@@ -6365,7 +6543,9 @@ section("audit");
   const AEV = `${dc}/cv-aev-${stc}.ts`, ALOG = `${dc}/cv-alog-${stc}.ts`, AQ = `${dc}/cv-aq-${stc}.ts`, AUD = `${dc}/cv-aud-${stc}.ts`, CSV = `${dc}/cv-csv-${stc}.ts`, AL = `${dc}/cv-al-${stc}.ts`;
   for (const [f, src] of [[AEV, "event"], [ALOG, "log"], [AQ, "query"]]) await fsc.writeFile(f, await rdc(`../packages/audit/src/${src}.ts`));
   let alog = await fsc.readFile(ALOG, "utf8"); alog = alog.replace(new RegExp('from "./event.ts"', "g"), `from "${AEV}"`); await fsc.writeFile(ALOG, alog);
-  let aq = await fsc.readFile(AQ, "utf8"); aq = aq.replace(new RegExp('from "./log.ts"', "g"), `from "${ALOG}"`).replace(new RegExp('from "./event.ts"', "g"), `from "${AEV}"`); await fsc.writeFile(AQ, aq);
+  let aq = await fsc.readFile(AQ, "utf8"); aq = aq
+    .replace(new RegExp('from "./log.ts"', "g"), `from "${ALOG}"`)
+    .replace(new RegExp('from "./event.ts"', "g"), `from "${AEV}"`); await fsc.writeFile(AQ, aq);
   await fsc.writeFile(AUD, `export * from "${AEV}"; export * from "${ALOG}"; export * from "${AQ}";`);
   await fsc.writeFile(CSV, await rdc("../packages/csv/src/index.ts"));
   await fsc.writeFile(AL, (await rdc("../apps/internal-app/src/server/audit-log.ts")).replace(/from "@platform\/audit"/g, `from "${AUD}"`).replace(/from "@platform\/csv"/g, `from "${CSV}"`));
@@ -6398,7 +6578,9 @@ section("audit");
   const AEV = `${dp}/pz2-aev-${stp}.ts`, ALOG = `${dp}/pz2-alog-${stp}.ts`, AQ = `${dp}/pz2-aq-${stp}.ts`, AUD = `${dp}/pz2-aud-${stp}.ts`, CSV = `${dp}/pz2-csv-${stp}.ts`, AL = `${dp}/pz2-al-${stp}.ts`, AA = `${dp}/pz2-aa-${stp}.ts`;
   for (const [f, src] of [[AEV, "event"], [ALOG, "log"], [AQ, "query"]]) await fsp.writeFile(f, await rdp(`../packages/audit/src/${src}.ts`));
   let alog = await fsp.readFile(ALOG, "utf8"); alog = alog.replace(new RegExp('from "./event.ts"', "g"), `from "${AEV}"`); await fsp.writeFile(ALOG, alog);
-  let aq = await fsp.readFile(AQ, "utf8"); aq = aq.replace(new RegExp('from "./log.ts"', "g"), `from "${ALOG}"`).replace(new RegExp('from "./event.ts"', "g"), `from "${AEV}"`); await fsp.writeFile(AQ, aq);
+  let aq = await fsp.readFile(AQ, "utf8"); aq = aq
+    .replace(new RegExp('from "./log.ts"', "g"), `from "${ALOG}"`)
+    .replace(new RegExp('from "./event.ts"', "g"), `from "${AEV}"`); await fsp.writeFile(AQ, aq);
   await fsp.writeFile(AUD, `export * from "${AEV}"; export * from "${ALOG}"; export * from "${AQ}";`);
   await fsp.writeFile(CSV, await rdp("../packages/csv/src/index.ts"));
   await fsp.writeFile(AL, (await rdp("../apps/internal-app/src/server/audit-log.ts")).replace(/from "@platform\/audit"/g, `from "${AUD}"`).replace(/from "@platform\/csv"/g, `from "${CSV}"`));
@@ -6482,7 +6664,9 @@ section("analytics");
   const EEV = `${dt}/ad-ev-${stt}.ts`, ELOG = `${dt}/ad-log-${stt}.ts`, EQ = `${dt}/ad-q-${stt}.ts`, EAUD = `${dt}/ad-aud-${stt}.ts`, ECSV = `${dt}/ad-csv-${stt}.ts`, EAL = `${dt}/ad-al-${stt}.ts`, DPR = `${dt}/dp-${stt}.ts`;
   for (const [f, src] of [[EEV, "event"], [ELOG, "log"], [EQ, "query"]]) await fst.writeFile(f, await rdt(`../packages/audit/src/${src}.ts`));
   let elog = await fst.readFile(ELOG, "utf8"); elog = elog.replace(new RegExp('from "./event.ts"', "g"), `from "${EEV}"`); await fst.writeFile(ELOG, elog);
-  let eq = await fst.readFile(EQ, "utf8"); eq = eq.replace(new RegExp('from "./log.ts"', "g"), `from "${ELOG}"`).replace(new RegExp('from "./event.ts"', "g"), `from "${EEV}"`); await fst.writeFile(EQ, eq);
+  let eq = await fst.readFile(EQ, "utf8"); eq = eq
+    .replace(new RegExp('from "./log.ts"', "g"), `from "${ELOG}"`)
+    .replace(new RegExp('from "./event.ts"', "g"), `from "${EEV}"`); await fst.writeFile(EQ, eq);
   await fst.writeFile(EAUD, `export * from "${EEV}"; export * from "${ELOG}"; export * from "${EQ}";`);
   await fst.writeFile(ECSV, await rdt("../packages/csv/src/index.ts"));
   await fst.writeFile(EAL, (await rdt("../apps/internal-app/src/server/audit-log.ts")).replace(/from "@platform\/audit"/g, `from "${EAUD}"`).replace(/from "@platform\/csv"/g, `from "${ECSV}"`));
@@ -6567,7 +6751,9 @@ section("analytics");
   await fsh.writeFile(HE, await rdh("../packages/html/src/escape.ts"));
   await fsh.writeFile(HW, await rdh("../packages/html/src/whitespace.ts"));
   await fsh.writeFile(HF, await rdh("../packages/html/src/fullwidth.ts"));
-  await fsh.writeFile(HT, (await rdh("../packages/html/src/text.ts")).replace(new RegExp('from "./escape.ts"', "g"), `from "${HE}"`).replace(new RegExp('from "./whitespace.ts"', "g"), `from "${HW}"`));
+  await fsh.writeFile(HT, (await rdh("../packages/html/src/text.ts"))
+    .replace(new RegExp('from "./escape.ts"', "g"), `from "${HE}"`)
+    .replace(new RegExp('from "./whitespace.ts"', "g"), `from "${HW}"`));
   const HTMLE = await import(HE), HTMLW = await import(HW), HTMLF = await import(HF), HTMLT = await import(HT);
   ok("html(escape/stripTags/nl2br/normalizeSpace/zenkaku/textToHtml-XSS安全/truncate/linkify)",
     HTMLE.escapeHtml('<a>&\"') === "&lt;a&gt;&amp;&quot;" && HTMLE.stripTags("<p>x<b>y</b></p>") === "xy" &&
@@ -6580,7 +6766,9 @@ section("analytics");
   const LST = `${dh}/l-st-${sth}.ts`, LRN = `${dh}/l-rn-${sth}.ts`, LSC = `${dh}/l-sc-${sth}.ts`;
   await fsh.writeFile(LST, await rdh("../packages/loadtest/src/stats.ts"));
   await fsh.writeFile(LRN, (await rdh("../packages/loadtest/src/runner.ts")).replace(new RegExp('from "./stats.ts"', "g"), `from "${LST}"`));
-  await fsh.writeFile(LSC, (await rdh("../packages/loadtest/src/scenario.ts")).replace(new RegExp('from "./stats.ts"', "g"), `from "${LST}"`).replace(new RegExp('from "./runner.ts"', "g"), `from "${LRN}"`));
+  await fsh.writeFile(LSC, (await rdh("../packages/loadtest/src/scenario.ts"))
+    .replace(new RegExp('from "./stats.ts"', "g"), `from "${LST}"`)
+    .replace(new RegExp('from "./runner.ts"', "g"), `from "${LRN}"`));
   const SC = await import(LSC);
   const steps = [
     { name: "home", weight: 3, request: async () => ({ ok: true, status: 200 }) },
@@ -6599,7 +6787,9 @@ section("analytics");
 section("audit");
   for (const [f, src] of [[EEV, "event"], [ELOG, "log"], [EQ, "query"]]) await fsh.writeFile(f, await rdh(`../packages/audit/src/${src}.ts`));
   let elog = await fsh.readFile(ELOG, "utf8"); elog = elog.replace(new RegExp('from "./event.ts"', "g"), `from "${EEV}"`); await fsh.writeFile(ELOG, elog);
-  let eq = await fsh.readFile(EQ, "utf8"); eq = eq.replace(new RegExp('from "./log.ts"', "g"), `from "${ELOG}"`).replace(new RegExp('from "./event.ts"', "g"), `from "${EEV}"`); await fsh.writeFile(EQ, eq);
+  let eq = await fsh.readFile(EQ, "utf8"); eq = eq
+    .replace(new RegExp('from "./log.ts"', "g"), `from "${ELOG}"`)
+    .replace(new RegExp('from "./event.ts"', "g"), `from "${EEV}"`); await fsh.writeFile(EQ, eq);
   await fsh.writeFile(EAUD, `export * from "${EEV}"; export * from "${ELOG}"; export * from "${EQ}";`);
   await fsh.writeFile(ECSV, await rdh("../packages/csv/src/index.ts"));
   await fsh.writeFile(EAL, (await rdh("../apps/internal-app/src/server/audit-log.ts")).replace(/from "@platform\/audit"/g, `from "${EAUD}"`).replace(/from "@platform\/csv"/g, `from "${ECSV}"`));
@@ -6652,7 +6842,9 @@ section("audit");
   await fsp.writeFile(HE, await rdp("../packages/html/src/escape.ts"));
   await fsp.writeFile(HW, await rdp("../packages/html/src/whitespace.ts"));
   await fsp.writeFile(HF, await rdp("../packages/html/src/fullwidth.ts"));
-  await fsp.writeFile(HT, (await rdp("../packages/html/src/text.ts")).replace(new RegExp('from "./escape.ts"', "g"), `from "${HE}"`).replace(new RegExp('from "./whitespace.ts"', "g"), `from "${HW}"`));
+  await fsp.writeFile(HT, (await rdp("../packages/html/src/text.ts"))
+    .replace(new RegExp('from "./escape.ts"', "g"), `from "${HE}"`)
+    .replace(new RegExp('from "./whitespace.ts"', "g"), `from "${HW}"`));
   const HEM = `${dp}/ps-hem-${sp}.ts`;
   await fsp.writeFile(HEM, (await rdp("../packages/html/src/embed.ts")).replace(/from "\.\/escape\.ts"/g, `from "${HE}"`));
   const HTMLBARREL = `${dp}/ps-html-${sp}.ts`;
@@ -6682,7 +6874,11 @@ section("audit");
 
   // site-content(実ソース)
   const CONTENT = `${dp}/ps-content-${sp}.ts`;
-  await fsp.writeFile(CONTENT, (await rdp("../apps/public-site/src/server/site-content.ts")).replace(/from "@platform\/site"/g, `from "${SITEBARREL}"`).replace(/from "@platform\/html"/g, `from "${HTMLBARREL}"`).replace(/from "@platform\/search"/g, `from "${SEARCHFAKE}"`).replace(/from "@platform\/board"/g, `from "${BOARDBARREL}"`));
+  await fsp.writeFile(CONTENT, (await rdp("../apps/public-site/src/server/site-content.ts"))
+    .replace(/from "@platform\/site"/g, `from "${SITEBARREL}"`)
+    .replace(/from "@platform\/html"/g, `from "${HTMLBARREL}"`)
+    .replace(/from "@platform\/search"/g, `from "${SEARCHFAKE}"`)
+    .replace(/from "@platform\/board"/g, `from "${BOARDBARREL}"`));
 
   const C = await import(CONTENT);
   const page = { slug: "about", title: "会社概要", blocks: [
@@ -6824,7 +7020,9 @@ section("seo");
   await fsb.writeFile(HE, await rdb("../packages/html/src/escape.ts"));
   await fsb.writeFile(HW, await rdb("../packages/html/src/whitespace.ts"));
   await fsb.writeFile(HF, await rdb("../packages/html/src/fullwidth.ts"));
-  await fsb.writeFile(HT, (await rdb("../packages/html/src/text.ts")).replace(new RegExp('from "./escape.ts"', "g"), `from "${HE}"`).replace(new RegExp('from "./whitespace.ts"', "g"), `from "${HW}"`));
+  await fsb.writeFile(HT, (await rdb("../packages/html/src/text.ts"))
+    .replace(new RegExp('from "./escape.ts"', "g"), `from "${HE}"`)
+    .replace(new RegExp('from "./whitespace.ts"', "g"), `from "${HW}"`));
   const HEM2 = `${db}/pb-hem-${sb}.ts`;
   await fsb.writeFile(HEM2, (await rdb("../packages/html/src/embed.ts")).replace(new RegExp('from "./escape.ts"', "g"), `from "${HE}"`));
   await fsb.writeFile(HB, `export * from "${HE}"; export * from "${HW}"; export * from "${HF}"; export * from "${HT}"; export * from "${HEM2}";`);
@@ -6845,7 +7043,11 @@ section("seo");
   await fsb.writeFile(SF, `export function createBm25Index(_o){const d=[];return{async index(x){for(const i of x)d.push(i);},async search(q,l){return d.filter((i)=>String(i.text??"").includes(q)).slice(0,l).map((i,n)=>({document:i,score:10-n}));},async delete(){}};}\nexport function createSearch(a){return{async index(x){await a.index(x);return{ok:true,value:undefined};},async search(q,l=10){return{ok:true,value:await a.search(q,l)};},async delete(){return{ok:true,value:undefined};}};}\n`);
   // content(実ソース)
   const CT = `${db}/pb-content-${sb}.ts`;
-  await fsb.writeFile(CT, (await rdb("../apps/public-site/src/server/site-content.ts")).replace(/from "@platform\/site"/g, `from "${SB}"`).replace(/from "@platform\/html"/g, `from "${HB}"`).replace(/from "@platform\/board"/g, `from "${BB}"`).replace(/from "@platform\/search"/g, `from "${SF}"`));
+  await fsb.writeFile(CT, (await rdb("../apps/public-site/src/server/site-content.ts"))
+    .replace(/from "@platform\/site"/g, `from "${SB}"`)
+    .replace(/from "@platform\/html"/g, `from "${HB}"`)
+    .replace(/from "@platform\/board"/g, `from "${BB}"`)
+    .replace(/from "@platform\/search"/g, `from "${SF}"`));
 
   const C = await import(CT);
   const cats = [
@@ -6989,7 +7191,9 @@ section("seo");
   await fse.writeFile(HE, await rde("../packages/html/src/escape.ts"));
   await fse.writeFile(HW, await rde("../packages/html/src/whitespace.ts"));
   await fse.writeFile(HF, await rde("../packages/html/src/fullwidth.ts"));
-  await fse.writeFile(HT, (await rde("../packages/html/src/text.ts")).replace(new RegExp('from "./escape.ts"', "g"), `from "${HE}"`).replace(new RegExp('from "./whitespace.ts"', "g"), `from "${HW}"`));
+  await fse.writeFile(HT, (await rde("../packages/html/src/text.ts"))
+    .replace(new RegExp('from "./escape.ts"', "g"), `from "${HE}"`)
+    .replace(new RegExp('from "./whitespace.ts"', "g"), `from "${HW}"`));
   await fse.writeFile(HM, (await rde("../packages/html/src/embed.ts")).replace(new RegExp('from "./escape.ts"', "g"), `from "${HE}"`));
   await fse.writeFile(HB, `export * from "${HE}"; export * from "${HW}"; export * from "${HF}"; export * from "${HT}"; export * from "${HM}";`);
   // site バレル
@@ -7009,7 +7213,11 @@ section("seo");
   await fse.writeFile(SF, `export function createBm25Index(_o){const d=[];return{async index(x){for(const i of x)d.push(i);},async search(q,l){return d.filter((i)=>String(i.text??"").includes(q)).slice(0,l).map((i,n)=>({document:i,score:10-n}));},async delete(){}};}\nexport function createSearch(a){return{async index(x){await a.index(x);return{ok:true,value:undefined};},async search(q,l=10){return{ok:true,value:await a.search(q,l)};},async delete(){return{ok:true,value:undefined};}};}\n`);
   // site-content(実ソース)
   const SC = `${de}/xe-sc-${se}.ts`;
-  await fse.writeFile(SC, (await rde("../apps/public-site/src/server/site-content.ts")).replace(/from "@platform\/site"/g, `from "${SB}"`).replace(/from "@platform\/html"/g, `from "${HB}"`).replace(/from "@platform\/board"/g, `from "${BB}"`).replace(/from "@platform\/search"/g, `from "${SF}"`));
+  await fse.writeFile(SC, (await rde("../apps/public-site/src/server/site-content.ts"))
+    .replace(/from "@platform\/site"/g, `from "${SB}"`)
+    .replace(/from "@platform\/html"/g, `from "${HB}"`)
+    .replace(/from "@platform\/board"/g, `from "${BB}"`)
+    .replace(/from "@platform\/search"/g, `from "${SF}"`));
   // preview(実ソース)。siteEnv(env.ts)はテスト用スタブに差し替える
   const PVENV = `${de}/xe-pvenv-${se}.ts`;
   // 実 env.ts は起動時に固定するが、この検証は token の有無を動的に切り替えるため getter で読む
@@ -7201,7 +7409,9 @@ section("cms");
   const MO = `${dd}/w-model-${sd}.ts`, SCH = `${dd}/w-sched-${sd}.ts`, SUM = `${dd}/w-sum-${sd}.ts`;
   await fsd.writeFile(MO, (await rdd("../packages/cms/src/model.ts")).replace(/from "@platform\/site"/g, `from "${SITE}"`));
   await fsd.writeFile(SCH, (await rdd("../packages/cms/src/scheduling.ts")).replace(new RegExp('from "./model.ts"', "g"), `from "${MO}"`));
-  await fsd.writeFile(SUM, (await rdd("../packages/cms/src/summary.ts")).replace(new RegExp('from "./model.ts"', "g"), `from "${MO}"`).replace(new RegExp('from "./scheduling.ts"', "g"), `from "${SCH}"`));
+  await fsd.writeFile(SUM, (await rdd("../packages/cms/src/summary.ts"))
+    .replace(new RegExp('from "./model.ts"', "g"), `from "${MO}"`)
+    .replace(new RegExp('from "./scheduling.ts"', "g"), `from "${SCH}"`));
 
   const S = await import(SUM);
   const now = new Date("2025-07-01T00:00:00Z");
@@ -7248,7 +7458,9 @@ section("cms");
   const MO = `${dg}/v-model-${sg}.ts`, SCH = `${dg}/v-sched-${sg}.ts`, FT = `${dg}/v-filter-${sg}.ts`;
   await fsg.writeFile(MO, (await rdg("../packages/cms/src/model.ts")).replace(/from "@platform\/site"/g, `from "${SITE}"`));
   await fsg.writeFile(SCH, (await rdg("../packages/cms/src/scheduling.ts")).replace(new RegExp('from "./model.ts"', "g"), `from "${MO}"`));
-  await fsg.writeFile(FT, (await rdg("../packages/cms/src/filter.ts")).replace(new RegExp('from "./model.ts"', "g"), `from "${MO}"`).replace(new RegExp('from "./scheduling.ts"', "g"), `from "${SCH}"`));
+  await fsg.writeFile(FT, (await rdg("../packages/cms/src/filter.ts"))
+    .replace(new RegExp('from "./model.ts"', "g"), `from "${MO}"`)
+    .replace(new RegExp('from "./scheduling.ts"', "g"), `from "${SCH}"`));
   const F = await import(FT);
 
   const now = new Date("2025-07-01T00:00:00Z");
@@ -7460,7 +7672,9 @@ section("tax");
   // repos/helper
   const IREPO = `${db_}/z-irepo-${sb}.ts`, PDRAFT = `${db_}/z-pdraft-${sb}.ts`, VREPO = `${db_}/z-vrepo-${sb}.ts`;
   await fsb.writeFile(IREPO, (await rdb("../apps/internal-app/src/server/inventory-repo.ts")).replace(/from "@platform\/inventory"/g, `from "${INV}"`));
-  await fsb.writeFile(PDRAFT, (await rdb("../apps/internal-app/src/server/purchase-draft.ts")).replace(/from "@platform\/purchase"/g, `from "${PR}"`).replace(new RegExp('from "./inventory-repo.ts"', "g"), `from "${IREPO}"`));
+  await fsb.writeFile(PDRAFT, (await rdb("../apps/internal-app/src/server/purchase-draft.ts"))
+    .replace(/from "@platform\/purchase"/g, `from "${PR}"`)
+    .replace(new RegExp('from "./inventory-repo.ts"', "g"), `from "${IREPO}"`));
   await fsb.writeFile(VREPO, (await rdb("../apps/internal-app/src/server/invoice-repo.ts")).replace(/from "@platform\/invoice"/g, `from "${IV}"`));
 
   const IR = await import(IREPO), PD = await import(PDRAFT), VR = await import(VREPO);
@@ -7554,7 +7768,9 @@ section("tax");
   // purchase(order + receiving)
   const PO = W("po"), PRc = W("prc"), PT = W("pur");
   await fsc.writeFile(PO, (await rdc("../packages/purchase/src/purchase-order.ts")).replace(/from "@platform\/invoice"/g, `from "${IV}"`));
-  await fsc.writeFile(PRc, (await rdc("../packages/purchase/src/receiving.ts")).replace(/from "@platform\/invoice"/g, `from "${IV}"`).replace(new RegExp('from "./purchase-order.ts"', "g"), `from "${PO}"`));
+  await fsc.writeFile(PRc, (await rdc("../packages/purchase/src/receiving.ts"))
+    .replace(/from "@platform\/invoice"/g, `from "${IV}"`)
+    .replace(new RegExp('from "./purchase-order.ts"', "g"), `from "${PO}"`));
   await fsc.writeFile(PT, `export * from "${PO}";\nexport * from "${PRc}";`);
   // repos
   const RCVr = W("rcv"), QRr = W("qrepo"), PRr = W("prepo");
@@ -7655,7 +7871,10 @@ section("datetime");
   await fsc.writeFile(IL, (await rdc("../packages/invoice/src/line.ts")).replace(/from "@platform\/tax"/g, `from "${TX}"`));
   await fsc.writeFile(II, (await rdc("../packages/invoice/src/invoice.ts")).replace(/from "@platform\/tax"/g, `from "${TX}"`).replace(new RegExp('from "./line.ts"', "g"), `from "${IL}"`));
   await fsc.writeFile(IP, await rdc("../packages/invoice/src/payment.ts"));
-  await fsc.writeFile(IRe, (await rdc("../packages/invoice/src/recurring.ts")).replace(new RegExp('from "./invoice.ts"', "g"), `from "${II}"`).replace(new RegExp('from "./line.ts"', "g"), `from "${IL}"`).replace(/from "@platform\/datetime"/g, `from "${DTB}"`));
+  await fsc.writeFile(IRe, (await rdc("../packages/invoice/src/recurring.ts"))
+    .replace(new RegExp('from "./invoice.ts"', "g"), `from "${II}"`)
+    .replace(new RegExp('from "./line.ts"', "g"), `from "${IL}"`)
+    .replace(/from "@platform\/datetime"/g, `from "${DTB}"`));
   await fsc.writeFile(IV, `export * from "${IL}";\nexport * from "${II}";\nexport * from "${IP}";\nexport * from "${IRe}";\nexport type { Rounding } from "${TX}";`);
   // payroll(worktime)
   const PW = W("payw"), PY = W("pay");
@@ -7665,7 +7884,9 @@ section("datetime");
   const AJ = W("accj"), AE = W("acce"), AX = W("accx"), AC = W("acc");
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
   await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`));
-  await fsc.writeFile(AX, (await rdc("../packages/accounting/src/export.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`).replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
+  await fsc.writeFile(AX, (await rdc("../packages/accounting/src/export.ts"))
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
   await fsc.writeFile(AC, `export * from "${AJ}";\nexport * from "${AE}";\nexport * from "${AX}";`);
   // app repos
   const RRr = W("recrepo"), ARr = W("attrepo"), LGr = W("ledger");
@@ -7675,7 +7896,9 @@ section("datetime");
   await fsc.writeFile(ATc, (await rdc("../packages/attendance/src/core.ts")).replace(/from "@platform\/payroll"/g, `from "${PY}"`));
   await fsc.writeFile(ATl, await rdc("../packages/attendance/src/leave.ts"));
   await fsc.writeFile(ATi, `export * from "${ATc}";\nexport * from "${ATl}";\n`);
-  await fsc.writeFile(ARr, (await rdc("../apps/internal-app/src/server/attendance-repo.ts")).replace(/from "@platform\/payroll"/g, `from "${PY}"`).replace(/from "@platform\/attendance"/g, `from "${ATi}"`));
+  await fsc.writeFile(ARr, (await rdc("../apps/internal-app/src/server/attendance-repo.ts"))
+    .replace(/from "@platform\/payroll"/g, `from "${PY}"`)
+    .replace(/from "@platform\/attendance"/g, `from "${ATi}"`));
   await fsc.writeFile(LGr, (await rdc("../apps/internal-app/src/server/ledger.ts")).replace(/from "@platform\/accounting"/g, `from "${AC}"`));
 
   const RR = await import(RRr), AR = await import(ARr), LG = await import(LGr);
@@ -7777,8 +8000,12 @@ section("core");
   const AJ = W("accj"), AE = W("acce"), AX = W("accx"), AS = W("accs"), AB = W("acc");
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
   await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`));
-  await fsc.writeFile(AX, (await rdc("../packages/accounting/src/export.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`).replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
-  await fsc.writeFile(AS, (await rdc("../packages/accounting/src/sync.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`).replace(new RegExp('from "./export.ts"', "g"), `from "${AX}"`));
+  await fsc.writeFile(AX, (await rdc("../packages/accounting/src/export.ts"))
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
+  await fsc.writeFile(AS, (await rdc("../packages/accounting/src/sync.ts"))
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
+    .replace(new RegExp('from "./export.ts"', "g"), `from "${AX}"`));
   await fsc.writeFile(AB, `export * from "${AJ}";\nexport * from "${AE}";\nexport * from "${AX}";\nexport * from "${AS}";`);
   // workflow / pdf(兄弟re-export除去 + core張替)
   const WF = W("wf"), PD = W("pdf");
@@ -7946,8 +8173,12 @@ section("core");
 section("accounting");
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
   await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`));
-  await fsc.writeFile(ACl, (await rdc("../packages/accounting/src/closing.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`).replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
-  await fsc.writeFile(ATr, (await rdc("../packages/accounting/src/tax-report.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`).replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
+  await fsc.writeFile(ACl, (await rdc("../packages/accounting/src/closing.ts"))
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
+  await fsc.writeFile(ATr, (await rdc("../packages/accounting/src/tax-report.ts"))
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
   await fsc.writeFile(AB, `export * from "${AJ}";\nexport * from "${AE}";\nexport * from "${ACl}";\nexport * from "${ATr}";`);
   // app helpers
   const FINr = W("fin"), ALr = W("alerts");
@@ -8090,14 +8321,20 @@ section("accounting");
   const AJ = W("accj"), AE = W("acce"), ACl = W("accc"), ATr = W("acct"), AB = W("acc");
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
   await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`));
-  await fsc.writeFile(ACl, (await rdc("../packages/accounting/src/closing.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`).replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
-  await fsc.writeFile(ATr, (await rdc("../packages/accounting/src/tax-report.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`).replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
+  await fsc.writeFile(ACl, (await rdc("../packages/accounting/src/closing.ts"))
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
+  await fsc.writeFile(ATr, (await rdc("../packages/accounting/src/tax-report.ts"))
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
   await fsc.writeFile(AB, `export * from "${AJ}";\nexport * from "${AE}";\nexport * from "${ACl}";\nexport * from "${ATr}";`);
   // helpers
   const TRr = W("trend"), PLr = W("plink"), DJr = W("djournal"), FINr = W("fin");
   await fsc.writeFile(TRr, await rdc("../apps/internal-app/src/server/trend.ts"));
   await fsc.writeFile(PLr, await rdc("../apps/internal-app/src/server/partner-link.ts"));
-  await fsc.writeFile(DJr, (await rdc("../apps/internal-app/src/server/depreciation-journal.ts")).replace(new RegExp('from "./asset-repo.ts"', "g"), `from "${ASr}"`).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
+  await fsc.writeFile(DJr, (await rdc("../apps/internal-app/src/server/depreciation-journal.ts"))
+    .replace(new RegExp('from "./asset-repo.ts"', "g"), `from "${ASr}"`)
+    .replace(/from "@platform\/accounting"/g, `from "${AB}"`));
   await fsc.writeFile(FINr, (await rdc("../apps/internal-app/src/server/financials.ts")).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
 
   const TR = await import(TRr), PL = await import(PLr), DJ = await import(DJr), FIN = await import(FINr), AC = await import(AB);
@@ -8235,14 +8472,18 @@ section("core");
   const AJ = W("accj"), AE = W("acce"), ACl = W("accc"), AB = W("acc");
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
   await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`));
-  await fsc.writeFile(ACl, (await rdc("../packages/accounting/src/closing.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`).replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
+  await fsc.writeFile(ACl, (await rdc("../packages/accounting/src/closing.ts"))
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
   await fsc.writeFile(AB, `export * from "${AJ}";\nexport * from "${AE}";\nexport * from "${ACl}";`);
   // helpers
   const PBr = W("pbal"), YEr = W("ye"), ALr = W("alerts"), AMr = W("amail"), MSr = W("msvc");
   await fsc.writeFile(PBr, await rdc("../apps/internal-app/src/server/partner-balance.ts"));
   await fsc.writeFile(YEr, (await rdc("../apps/internal-app/src/server/year-end.ts")).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
   await fsc.writeFile(ALr, await rdc("../apps/internal-app/src/server/alerts.ts"));
-  await fsc.writeFile(AMr, (await rdc("../apps/internal-app/src/server/alert-mail.ts")).replace(/from "@platform\/mail"/g, `from "${ML}"`).replace(new RegExp('from "./alerts.ts"', "g"), `from "${ALr}"`));
+  await fsc.writeFile(AMr, (await rdc("../apps/internal-app/src/server/alert-mail.ts"))
+    .replace(/from "@platform\/mail"/g, `from "${ML}"`)
+    .replace(new RegExp('from "./alerts.ts"', "g"), `from "${ALr}"`));
   await fsc.writeFile(MSr, (await rdc("../apps/internal-app/src/server/mail-service.ts")).replace(/from "@platform\/mail"/g, `from "${ML}"`));
 
   const PB = await import(PBr), YE = await import(YEr), AM = await import(AMr), MS = await import(MSr), AC = await import(AB);
@@ -8309,13 +8550,19 @@ section("core");
   await fsc.writeFile(CSV, await rdc("../packages/csv/src/index.ts"));
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
   await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`));
-  await fsc.writeFile(AX, (await rdc("../packages/accounting/src/export.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`).replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
+  await fsc.writeFile(AX, (await rdc("../packages/accounting/src/export.ts"))
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
   await fsc.writeFile(AB, `export * from "${AJ}";\nexport * from "${AE}";\nexport * from "${AX}";`);
   // helpers
   const JEr = W("je"), AFr = W("af"), DAr = W("da"), PLr = W("pl");
-  await fsc.writeFile(JEr, (await rdc("../apps/internal-app/src/server/journal-export.ts")).replace(/from "@platform\/accounting"/g, `from "${AB}"`).replace(/from "@platform\/csv"/g, `from "${CSV}"`));
+  await fsc.writeFile(JEr, (await rdc("../apps/internal-app/src/server/journal-export.ts"))
+    .replace(/from "@platform\/accounting"/g, `from "${AB}"`)
+    .replace(/from "@platform\/csv"/g, `from "${CSV}"`));
   await fsc.writeFile(AFr, (await rdc("../apps/internal-app/src/server/approval-flow.ts")).replace(/from "@platform\/workflow"/g, `from "${WF}"`));
-  await fsc.writeFile(DAr, (await rdc("../apps/internal-app/src/server/doc-approval-repo.ts")).replace(/from "@platform\/workflow"/g, `from "${WF}"`).replace(new RegExp('from "./approval-flow.ts"', "g"), `from "${AFr}"`));
+  await fsc.writeFile(DAr, (await rdc("../apps/internal-app/src/server/doc-approval-repo.ts"))
+    .replace(/from "@platform\/workflow"/g, `from "${WF}"`)
+    .replace(new RegExp('from "./approval-flow.ts"', "g"), `from "${AFr}"`));
   await fsc.writeFile(PLr, await rdc("../apps/internal-app/src/server/period-lock-repo.ts"));
 
   const JE = await import(JEr), AF = await import(AFr), DA = await import(DAr), PL = await import(PLr), AC = await import(AB);
@@ -8417,11 +8664,25 @@ section("core");
   await fsc.writeFile(ASr, (await rdc("../apps/internal-app/src/server/asset-repo.ts")).replace(/from "@platform\/depreciation"/g, `from "${DEPB}"`));
   const ALr = W("ledger"), CIr = W("cimp"), PEr = W("pexp"), DJr = W("disp"), AFr = W("aflow"), DAr = W("dappr");
   await fsc.writeFile(ALr, (await rdc("../apps/internal-app/src/server/account-ledger.ts")).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
-  await fsc.writeFile(CIr, (await rdc("../apps/internal-app/src/server/csv-import.ts")).replace(/from "@platform\/csv"/g, `from "${CSV}"`).replace(new RegExp('from "./partner-repo.ts"', "g"), `from "${PR}"`).replace(/from "@platform\/accounting"/g, `from "${AB}"`).replace(/import \{ type Product \} from "\.\/inventory-repo\.ts";\n?/g, "").replace(/import \{ type AccountDef \} from "\.\/account-master-repo\.ts";\n?/g, "").replace(/import \{ type Product \} from "\.\/inventory-repo\.ts";\n?/g, "").replace(/import \{ type AccountDef \} from "\.\/account-master-repo\.ts";\n?/g, ""));
-  await fsc.writeFile(PEr, (await rdc("../apps/internal-app/src/server/partner-export.ts")).replace(/from "@platform\/csv"/g, `from "${CSV}"`).replace(new RegExp('from "./partner-repo.ts"', "g"), `from "${PR}"`));
-  await fsc.writeFile(DJr, (await rdc("../apps/internal-app/src/server/disposal-journal.ts")).replace(new RegExp('from "./asset-repo.ts"', "g"), `from "${ASr}"`).replace(/from "@platform\/depreciation"/g, `from "${DEPB}"`).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
+  await fsc.writeFile(CIr, (await rdc("../apps/internal-app/src/server/csv-import.ts"))
+    .replace(/from "@platform\/csv"/g, `from "${CSV}"`)
+    .replace(new RegExp('from "./partner-repo.ts"', "g"), `from "${PR}"`)
+    .replace(/from "@platform\/accounting"/g, `from "${AB}"`)
+    .replace(/import \{ type Product \} from "\.\/inventory-repo\.ts";\n?/g, "")
+    .replace(/import \{ type AccountDef \} from "\.\/account-master-repo\.ts";\n?/g, "")
+    .replace(/import \{ type Product \} from "\.\/inventory-repo\.ts";\n?/g, "")
+    .replace(/import \{ type AccountDef \} from "\.\/account-master-repo\.ts";\n?/g, ""));
+  await fsc.writeFile(PEr, (await rdc("../apps/internal-app/src/server/partner-export.ts"))
+    .replace(/from "@platform\/csv"/g, `from "${CSV}"`)
+    .replace(new RegExp('from "./partner-repo.ts"', "g"), `from "${PR}"`));
+  await fsc.writeFile(DJr, (await rdc("../apps/internal-app/src/server/disposal-journal.ts"))
+    .replace(new RegExp('from "./asset-repo.ts"', "g"), `from "${ASr}"`)
+    .replace(/from "@platform\/depreciation"/g, `from "${DEPB}"`)
+    .replace(/from "@platform\/accounting"/g, `from "${AB}"`));
   await fsc.writeFile(AFr, (await rdc("../apps/internal-app/src/server/approval-flow.ts")).replace(/from "@platform\/workflow"/g, `from "${WB}"`));
-  await fsc.writeFile(DAr, (await rdc("../apps/internal-app/src/server/doc-approval-repo.ts")).replace(/from "@platform\/workflow"/g, `from "${WB}"`).replace(new RegExp('from "./approval-flow.ts"', "g"), `from "${AFr}"`));
+  await fsc.writeFile(DAr, (await rdc("../apps/internal-app/src/server/doc-approval-repo.ts"))
+    .replace(/from "@platform\/workflow"/g, `from "${WB}"`)
+    .replace(new RegExp('from "./approval-flow.ts"', "g"), `from "${AFr}"`));
 
   const AL = await import(ALr), CI = await import(CIr), PE = await import(PEr), DJ = await import(DJr), AS = await import(ASr), DA = await import(DAr), AC = await import(AB);
 
@@ -8486,8 +8747,12 @@ section("core");
   const AJ = W("accj"), AE = W("acce"), ACl = W("accc"), ATR = W("acctr"), AB = W("acc");
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
   await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`));
-  await fsc.writeFile(ACl, (await rdc("../packages/accounting/src/closing.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`).replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
-  await fsc.writeFile(ATR, (await rdc("../packages/accounting/src/tax-report.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`).replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
+  await fsc.writeFile(ACl, (await rdc("../packages/accounting/src/closing.ts"))
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
+  await fsc.writeFile(ATR, (await rdc("../packages/accounting/src/tax-report.ts"))
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
   await fsc.writeFile(AB, `export * from "${AJ}";\nexport * from "${AE}";\nexport * from "${ACl}";\nexport * from "${ATR}";`);
   const PR = W("prepo");
   await fsc.writeFile(PR, await rdc("../apps/internal-app/src/server/partner-repo.ts"));
@@ -8495,7 +8760,12 @@ section("core");
   await fsc.writeFile(MBr, (await rdc("../apps/internal-app/src/server/mailbox-repo.ts")).replace(/from "@platform\/mail"/g, `from "${ML}"`));
   await fsc.writeFile(CMPr, (await rdc("../apps/internal-app/src/server/comparative.ts")).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
   await fsc.writeFile(MJr, (await rdc("../apps/internal-app/src/server/manual-journal-repo.ts")).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
-  await fsc.writeFile(CIr, (await rdc("../apps/internal-app/src/server/csv-import.ts")).replace(/from "@platform\/csv"/g, `from "${CSV}"`).replace(new RegExp('from "./partner-repo.ts"', "g"), `from "${PR}"`).replace(/from "@platform\/accounting"/g, `from "${AB}"`).replace(/import \{ type Product \} from "\.\/inventory-repo\.ts";\n?/g, "").replace(/import \{ type AccountDef \} from "\.\/account-master-repo\.ts";\n?/g, ""));
+  await fsc.writeFile(CIr, (await rdc("../apps/internal-app/src/server/csv-import.ts"))
+    .replace(/from "@platform\/csv"/g, `from "${CSV}"`)
+    .replace(new RegExp('from "./partner-repo.ts"', "g"), `from "${PR}"`)
+    .replace(/from "@platform\/accounting"/g, `from "${AB}"`)
+    .replace(/import \{ type Product \} from "\.\/inventory-repo\.ts";\n?/g, "")
+    .replace(/import \{ type AccountDef \} from "\.\/account-master-repo\.ts";\n?/g, ""));
   await fsc.writeFile(FINr, (await rdc("../apps/internal-app/src/server/financials.ts")).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
 
   const MB = await import(MBr), CMP = await import(CMPr), MJ = await import(MJr), CI = await import(CIr), FIN = await import(FINr), MAIL = await import(ML), AC = await import(AB);
@@ -8566,8 +8836,12 @@ section("core");
   const AJ = W("accj"), AE = W("acce"), ACl = W("accc"), ATR = W("acctr"), AB = W("acc");
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
   await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`));
-  await fsc.writeFile(ACl, (await rdc("../packages/accounting/src/closing.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`).replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
-  await fsc.writeFile(ATR, (await rdc("../packages/accounting/src/tax-report.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`).replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
+  await fsc.writeFile(ACl, (await rdc("../packages/accounting/src/closing.ts"))
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
+  await fsc.writeFile(ATR, (await rdc("../packages/accounting/src/tax-report.ts"))
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
   await fsc.writeFile(AB, `export * from "${AJ}";\nexport * from "${AE}";\nexport * from "${ACl}";\nexport * from "${ATR}";`);
   const AMr = W("amaster"), YTr = W("ytrend"), IQr = W("inq"), CBr = W("bot"), FINr = W("fin");
   await fsc.writeFile(AMr, (await rdc("../apps/internal-app/src/server/account-master-repo.ts")).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
@@ -8741,8 +9015,12 @@ section("auth");
   const AJ = W("aj"), AE = W("ae"), ACl = W("acl"), ATR = W("atr"), AB = W("acc");
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
   await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`));
-  await fsc.writeFile(ACl, (await rdc("../packages/accounting/src/closing.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`).replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
-  await fsc.writeFile(ATR, (await rdc("../packages/accounting/src/tax-report.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`).replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
+  await fsc.writeFile(ACl, (await rdc("../packages/accounting/src/closing.ts"))
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
+  await fsc.writeFile(ATR, (await rdc("../packages/accounting/src/tax-report.ts"))
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
   await fsc.writeFile(AB, `export * from "${AJ}";\nexport * from "${AE}";\nexport * from "${ACl}";\nexport * from "${ATR}";`);
   const PRr = W("partner"), Ur = W("user"), BCr = W("bc"), MBr = W("mbox"), FINr = W("fin"), FISr = W("fis");
   await fsc.writeFile(PRr, await rdc("../apps/internal-app/src/server/partner-repo.ts"));
@@ -8888,7 +9166,9 @@ section("notify");
   await fsc.writeFile(NB, `export * from "${NI}";\nexport * from "${ND}";\nexport * from "${NS}";\nexport * from "${NW}";`);
   const AAr = W("aa"), ANr = W("an");
   await fsc.writeFile(AAr, await rdc("../apps/internal-app/src/server/audit-anomaly.ts"));
-  await fsc.writeFile(ANr, (await rdc("../apps/internal-app/src/server/alert-notify.ts")).replace(/from "@platform\/notify"/g, `from "${NB}"`).replace(new RegExp('from "./audit-anomaly.ts"', "g"), `from "${AAr}"`));
+  await fsc.writeFile(ANr, (await rdc("../apps/internal-app/src/server/alert-notify.ts"))
+    .replace(/from "@platform\/notify"/g, `from "${NB}"`)
+    .replace(new RegExp('from "./audit-anomaly.ts"', "g"), `from "${AAr}"`));
   const AN = await import(ANr), NO = await import(NB);
   const anomalies = [{ level: "critical", kind: "mass_delete", title: "大量削除", detail: "u1", actor: "u1" }, { level: "warning", kind: "off_hours", title: "深夜", detail: "u2", actor: "u2" }];
   const sent = [];
@@ -8929,7 +9209,9 @@ section("notify");
   await fsc.writeFile(COMr, await rdc("../packages/commerce/src/review.ts"));
   const SVr = W("survey"), SEr = W("sexport"), RVr = W("review"), SGr = W("sig");
   await fsc.writeFile(SVr, await rdc("../apps/internal-app/src/server/survey-repo.ts"));
-  await fsc.writeFile(SEr, (await rdc("../apps/internal-app/src/server/survey-export.ts")).replace(/from "@platform\/csv"/g, `from "${CSVr}"`).replace(new RegExp('from "./survey-repo.ts"', "g"), `from "${SVr}"`));
+  await fsc.writeFile(SEr, (await rdc("../apps/internal-app/src/server/survey-export.ts"))
+    .replace(/from "@platform\/csv"/g, `from "${CSVr}"`)
+    .replace(new RegExp('from "./survey-repo.ts"', "g"), `from "${SVr}"`));
   await fsc.writeFile(RVr, (await rdc("../apps/internal-app/src/server/review-repo.ts")).replace(/from "@platform\/commerce"/g, `from "${COMr}"`));
   await fsc.writeFile(SGr, await rdc("../apps/internal-app/src/server/signature-repo.ts"));
   const SV = await import(SVr), SE = await import(SEr), RV = await import(RVr), SG = await import(SGr);
@@ -9170,7 +9452,9 @@ section("saga");
   await fsc.writeFile(RLB, `export * from "${RT}";\nexport * from "${RLim}";\nexport * from "${RM}";`);
   // app modules
   const SSm = W("ss"), FFm = W("ff");
-  await fsc.writeFile(SSm, (await rdc("../apps/internal-app/src/server/secret-store.ts")).replace(/from "@platform\/secrets"/g, `from "${SECp}"`).replace(/from "@platform\/crypto"/g, `from "${CRYp}"`));
+  await fsc.writeFile(SSm, (await rdc("../apps/internal-app/src/server/secret-store.ts"))
+    .replace(/from "@platform\/secrets"/g, `from "${SECp}"`)
+    .replace(/from "@platform\/crypto"/g, `from "${CRYp}"`));
   await fsc.writeFile(FFm, (await rdc("../apps/internal-app/src/server/feature-flags.ts")).replace(/from "@platform\/flags"/g, `from "${FLp}"`));
   const SS = await import(SSm), FF = await import(FFm), RL = await import(RLB);
   const MASTER = "master-key-abcdef";
@@ -9261,8 +9545,16 @@ section("core");
   const TK = W("tk"), BM = W("bm"), MA = W("ma"), SE = W("se");
   await fsc.writeFile(TK, await rdc("../packages/search/src/tokenize.ts"));
   await fsc.writeFile(BM, (await rdc("../packages/search/src/bm25.ts")).replace(new RegExp('from "./tokenize.ts"', "g"), `from "${TK}"`).replace(/from "@platform\/core"/g, `from "${CB}"`));
-  await fsc.writeFile(MA, (await rdc("../packages/search/src/adapters/memory.ts")).replace(new RegExp('from "../bm25.ts"', "g"), `from "${BM}"`).replace(new RegExp('from "../tokenize.ts"', "g"), `from "${TK}"`).replace(new RegExp('from "../index.ts"', "g"), `from "${SE}"`).replace(/from "@platform\/core"/g, `from "${CB}"`));
-  await fsc.writeFile(SE, (await rdc("../packages/search/src/index.ts")).replace(/from "@platform\/core"/g, `from "${CB}"`).replace(new RegExp('from "./adapters/memory.ts"', "g"), `from "${MA}"`).replace(new RegExp('from "./bm25.ts"', "g"), `from "${BM}"`).replace(new RegExp('from "./tokenize.ts"', "g"), `from "${TK}"`).split("\n").filter((l) => !/meilisearch/.test(l)).join("\n"));
+  await fsc.writeFile(MA, (await rdc("../packages/search/src/adapters/memory.ts"))
+    .replace(new RegExp('from "../bm25.ts"', "g"), `from "${BM}"`)
+    .replace(new RegExp('from "../tokenize.ts"', "g"), `from "${TK}"`)
+    .replace(new RegExp('from "../index.ts"', "g"), `from "${SE}"`)
+    .replace(/from "@platform\/core"/g, `from "${CB}"`));
+  await fsc.writeFile(SE, (await rdc("../packages/search/src/index.ts"))
+    .replace(/from "@platform\/core"/g, `from "${CB}"`)
+    .replace(new RegExp('from "./adapters/memory.ts"', "g"), `from "${MA}"`)
+    .replace(new RegExp('from "./bm25.ts"', "g"), `from "${BM}"`)
+    .replace(new RegExp('from "./tokenize.ts"', "g"), `from "${TK}"`).split("\n").filter((l) => !/meilisearch/.test(l)).join("\n"));
   const DGm = W("dg"), ESm = W("es"), BKm = W("bk");
   await fsc.writeFile(DGm, await rdc("../apps/internal-app/src/server/digest.ts"));
   await fsc.writeFile(ESm, (await rdc("../apps/internal-app/src/server/entity-search.ts")).replace(/from "@platform\/search"/g, `from "${SE}"`));
@@ -9308,13 +9600,23 @@ section("core");
   const TK = W("tk"), BM = W("bm"), MA = W("ma"), SEp = W("se");
   await fsc.writeFile(TK, await rdc("../packages/search/src/tokenize.ts"));
   await fsc.writeFile(BM, (await rdc("../packages/search/src/bm25.ts")).replace(new RegExp('from "./tokenize.ts"', "g"), `from "${TK}"`).replace(/from "@platform\/core"/g, `from "${CB}"`));
-  await fsc.writeFile(MA, (await rdc("../packages/search/src/adapters/memory.ts")).replace(new RegExp('from "../bm25.ts"', "g"), `from "${BM}"`).replace(new RegExp('from "../tokenize.ts"', "g"), `from "${TK}"`).replace(new RegExp('from "../index.ts"', "g"), `from "${SEp}"`).replace(/from "@platform\/core"/g, `from "${CB}"`));
-  await fsc.writeFile(SEp, (await rdc("../packages/search/src/index.ts")).replace(/from "@platform\/core"/g, `from "${CB}"`).replace(new RegExp('from "./adapters/memory.ts"', "g"), `from "${MA}"`).replace(new RegExp('from "./bm25.ts"', "g"), `from "${BM}"`).replace(new RegExp('from "./tokenize.ts"', "g"), `from "${TK}"`).split("\n").filter((l) => !/meilisearch/.test(l)).join("\n"));
+  await fsc.writeFile(MA, (await rdc("../packages/search/src/adapters/memory.ts"))
+    .replace(new RegExp('from "../bm25.ts"', "g"), `from "${BM}"`)
+    .replace(new RegExp('from "../tokenize.ts"', "g"), `from "${TK}"`)
+    .replace(new RegExp('from "../index.ts"', "g"), `from "${SEp}"`)
+    .replace(/from "@platform\/core"/g, `from "${CB}"`));
+  await fsc.writeFile(SEp, (await rdc("../packages/search/src/index.ts"))
+    .replace(/from "@platform\/core"/g, `from "${CB}"`)
+    .replace(new RegExp('from "./adapters/memory.ts"', "g"), `from "${MA}"`)
+    .replace(new RegExp('from "./bm25.ts"', "g"), `from "${BM}"`)
+    .replace(new RegExp('from "./tokenize.ts"', "g"), `from "${TK}"`).split("\n").filter((l) => !/meilisearch/.test(l)).join("\n"));
   const BKm = W("bk"), ESm = W("es"), RSm = W("rs"), SIm = W("si"), AAm = W("aa");
   await fsc.writeFile(BKm, await rdc("../apps/internal-app/src/server/backup.ts"));
   await fsc.writeFile(ESm, (await rdc("../apps/internal-app/src/server/entity-search.ts")).replace(/from "@platform\/search"/g, `from "${SEp}"`));
   await fsc.writeFile(RSm, (await rdc("../apps/internal-app/src/server/restore.ts")).replace(new RegExp('from "./backup.ts"', "g"), `from "${BKm}"`));
-  await fsc.writeFile(SIm, (await rdc("../apps/internal-app/src/server/search-index.ts")).replace(/from "@platform\/search"/g, `from "${SEp}"`).replace(new RegExp('from "./entity-search.ts"', "g"), `from "${ESm}"`));
+  await fsc.writeFile(SIm, (await rdc("../apps/internal-app/src/server/search-index.ts"))
+    .replace(/from "@platform\/search"/g, `from "${SEp}"`)
+    .replace(new RegExp('from "./entity-search.ts"', "g"), `from "${ESm}"`));
   await fsc.writeFile(AAm, await rdc("../apps/internal-app/src/server/audit-archive.ts"));
   const BK = await import(BKm), ES = await import(ESm), RS = await import(RSm), SI = await import(SIm), AA = await import(AAm);
   const now = new Date("2025-06-10T12:00:00Z");
@@ -9853,7 +10155,11 @@ section("mcp");
     R.canAccess({ id: "u", roles: ["hr"] }, { roles: ["hr"] }) === true && R.canAccess({ id: "u", roles: ["m"] }, { users: ["u"] }) === true && R.canAccess({ id: "u", roles: ["m"] }, { public: true }) === true && R.canAccess({ id: "u", roles: ["m"] }, { roles: ["hr"] }) === false && R.canAccess({ id: "a", roles: ["admin"] }, { roles: ["hr"] }) === false && R.canAccess({ id: "u", roles: [] }, undefined) === false);
 
   const indexed = [];
-  const backend = { index: async (d) => { indexed.push(...d); return { ok: true, value: undefined }; }, search: async (q, l) => ({ ok: true, value: indexed.filter((x) => String(x.body).includes(q) || String(x.title).includes(q)).slice(0, l).map((x, i) => ({ document: { id: x.id }, score: 10 - i })) }), delete: async () => ({ ok: true, value: undefined }) };
+  const backend = { index: async (d) => {
+    indexed.push(...d);
+    return { ok: true, value: undefined };
+    }, search: async (q, l) => ({ ok: true, value: indexed.filter((x) => String(x.body).includes(q) || String(x.title).includes(q)).slice(0, l).map((x, i) => ({ document: { id: x.id }, score: 10 - i })) }), delete: async () => ({ ok: true, value: undefined })
+  };
   const store = R.createRagStore({ backend, chunk: { maxChars: 100, overlap: 0 } });
   await store.ingest([{ id: "HR", title: "人事", body: "賞与の計算", acl: { roles: ["hr"] } }, { id: "PUB", title: "お知らせ", body: "賞与支給日", acl: { public: true } }, { id: "SEC", title: "役員", body: "賞与原資", acl: { roles: ["exec"] } }]);
   const m = await store.retrieve("賞与", { id: "m", roles: ["member"] }, 10);
@@ -9953,7 +10259,12 @@ section("rag");
   await vi.upsert([mk("A", [1, 0, 0]), mk("B", [0.9, 0.1, 0]), mk("C", [0, 0, 1])]);
   const q = await vi.query([1, 0, 0], 2);
   const calls = [];
-  const db = { execute: async (sql, params) => { calls.push({ sql, params }); }, queryRows: async (sql, params) => { calls.push({ sql, params }); return [{ id: "X", chunk: JSON.stringify({ id: "X", docId: "D", title: "t", text: "b", index: 0 }), distance: 0.2 }]; } };
+  const db = { execute: async (sql, params) => {
+    calls.push({ sql, params });
+    }, queryRows: async (sql, params) => { calls.push({ sql, params });
+    return [{ id: "X", chunk: JSON.stringify({ id: "X", docId: "D", title: "t", text: "b", index: 0 }), distance: 0.2 }];
+    }
+  };
   const pv = R.createPgVectorIndex(db);
   await pv.upsert([mk("X", [0.1, 0.2])]);
   const pq = await pv.query([0.1, 0.2], 5);
@@ -10052,7 +10363,12 @@ section("rag");
   // rag-service が import する csv も合成(core を参照)
   await fsc.writeFile(`${base}/csv.ts`, (await fsc.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
   let svc = (await fsc.readFile(new URL("../apps/internal-app/src/server/rag-service.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-  svc = svc.replace('from "@platform/rag"', `from "${base}/rag.ts"`).replace('from "@platform/search"', `from "${base}/search/index.ts"`).replace('from "@platform/ai"', `from "${base}/ai.ts"`).replace('from "@platform/utils"', `from "${base}/utils.ts"`).replace('from "@platform/csv"', `from "${base}/csv.ts"`);
+  svc = svc
+    .replace('from "@platform/rag"', `from "${base}/rag.ts"`)
+    .replace('from "@platform/search"', `from "${base}/search/index.ts"`)
+    .replace('from "@platform/ai"', `from "${base}/ai.ts"`)
+    .replace('from "@platform/utils"', `from "${base}/utils.ts"`)
+    .replace('from "@platform/csv"', `from "${base}/csv.ts"`);
   await fsc.writeFile(`${base}/rag-service.ts`, svc);
   const S = await import(`${base}/rag-service.ts`);
 
@@ -10569,7 +10885,12 @@ section("search");
   // rag-service が import する csv も合成(core を参照)
   await fsc.writeFile(`${base}/csv.ts`, (await fsc.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
   let svc = (await fsc.readFile(new URL("../apps/internal-app/src/server/rag-service.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-  svc = svc.replace('from "@platform/rag"', `from "${base}/rag.ts"`).replace('from "@platform/search"', `from "${base}/search/index.ts"`).replace('from "@platform/ai"', `from "${base}/ai.ts"`).replace('from "@platform/utils"', `from "${base}/utils.ts"`).replace('from "@platform/csv"', `from "${base}/csv.ts"`);
+  svc = svc
+    .replace('from "@platform/rag"', `from "${base}/rag.ts"`)
+    .replace('from "@platform/search"', `from "${base}/search/index.ts"`)
+    .replace('from "@platform/ai"', `from "${base}/ai.ts"`)
+    .replace('from "@platform/utils"', `from "${base}/utils.ts"`)
+    .replace('from "@platform/csv"', `from "${base}/csv.ts"`);
   await fsc.writeFile(`${base}/rag-service.ts`, svc);
   const S = await import(`${base}/rag-service.ts`);
 
@@ -10671,7 +10992,11 @@ export async function rawExecute(_db,sql,params=[]){_calls.push({type:"exec",sql
   const csvp = `${dc}/wP-csv-${sc}.ts`;
   await fsc.writeFile(csvp, (await fsc.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
   let v = (await fsc.readFile(new URL("../apps/internal-app/src/server/db-viewer.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-  v = v.replace('from "@platform/db"', `from "${dbp}"`).replace('from "@platform/csv"', `from "${csvp}"`).replace('from "./services.ts"', `from "${svcp}"`).replace('from "@platform/core"', `from "${cop}"`);
+  v = v
+    .replace('from "@platform/db"', `from "${dbp}"`)
+    .replace('from "@platform/csv"', `from "${csvp}"`)
+    .replace('from "./services.ts"', `from "${svcp}"`)
+    .replace('from "@platform/core"', `from "${cop}"`);
   await fsc.writeFile(vp, v);
   const V = await import(vp);
   const DB = await import(dbp);
@@ -11075,7 +11400,12 @@ section("color");
   await fsc.writeFile(`${base}/csv.ts`, await mapCore("../packages/csv/src/index.ts"));
   await fsc.writeFile(`${base}/dictionary-store.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/dictionary-store.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/utils"', `from "${base}/utils.ts"`));
   let svc = (await fsc.readFile(new URL("../apps/internal-app/src/server/rag-service.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-  svc = svc.replace('from "@platform/rag"', `from "${base}/rag.ts"`).replace('from "@platform/search"', `from "${base}/search/index.ts"`).replace('from "@platform/ai"', `from "${base}/ai.ts"`).replace('from "@platform/utils"', `from "${base}/utils.ts"`).replace('from "@platform/csv"', `from "${base}/csv.ts"`);
+  svc = svc
+    .replace('from "@platform/rag"', `from "${base}/rag.ts"`)
+    .replace('from "@platform/search"', `from "${base}/search/index.ts"`)
+    .replace('from "@platform/ai"', `from "${base}/ai.ts"`)
+    .replace('from "@platform/utils"', `from "${base}/utils.ts"`)
+    .replace('from "@platform/csv"', `from "${base}/csv.ts"`);
   await fsc.writeFile(`${base}/rag-service.ts`, svc);
   const S = await import(`${base}/rag-service.ts`);
 
@@ -11591,8 +11921,14 @@ section("ui");
   await fsc.writeFile(`${base}/bm25.ts`, (await fsc.readFile(new URL("../packages/search/src/bm25.ts", import.meta.url), "utf8")).replace('from "./tokenize"', `from "${base}/tokenize.ts"`));
   await fsc.writeFile(`${base}/doc-sections.mts`, await fsc.readFile(new URL("./lib/doc-sections.mts", import.meta.url), "utf8"));
   await fsc.writeFile(`${base}/rerank.ts`, await fsc.readFile(new URL("../packages/rag/src/rerank.ts", import.meta.url), "utf8"));
-  await fsc.writeFile(`${base}/doc-search.mts`, (await fsc.readFile(new URL("./lib/doc-search.mts", import.meta.url), "utf8")).replace('from "@platform/search"', `from "${base}/bm25.ts"`).replace('from "@platform/rag"', `from "${base}/rerank.ts"`).replace(/from "\.\/doc-sections\.mjs"/g, `from "${base}/doc-sections.mts"`));
-  await fsc.writeFile(`${base}/catalog-tools.mts`, (await fsc.readFile(new URL("./lib/catalog-tools.mts", import.meta.url), "utf8")).replace('from "@platform/mcp"', `from "${base}/mcp.ts"`).replace('from "./catalog.mjs"', `from "${base}/catalog.mts"`).replace('from "./doc-search.mjs"', `from "${base}/doc-search.mts"`));
+  await fsc.writeFile(`${base}/doc-search.mts`, (await fsc.readFile(new URL("./lib/doc-search.mts", import.meta.url), "utf8"))
+    .replace('from "@platform/search"', `from "${base}/bm25.ts"`)
+    .replace('from "@platform/rag"', `from "${base}/rerank.ts"`)
+    .replace(/from "\.\/doc-sections\.mjs"/g, `from "${base}/doc-sections.mts"`));
+  await fsc.writeFile(`${base}/catalog-tools.mts`, (await fsc.readFile(new URL("./lib/catalog-tools.mts", import.meta.url), "utf8"))
+    .replace('from "@platform/mcp"', `from "${base}/mcp.ts"`)
+    .replace('from "./catalog.mjs"', `from "${base}/catalog.mts"`)
+    .replace('from "./doc-search.mjs"', `from "${base}/doc-search.mts"`));
   const C = await import(`${base}/catalog.mts`);
   const T = await import(`${base}/catalog-tools.mts`);
 
@@ -11747,8 +12083,14 @@ section("env");
   await fsc.writeFile(`${base}/bm25.ts`, (await fsc.readFile(new URL("../packages/search/src/bm25.ts", import.meta.url), "utf8")).replace('from "./tokenize"', `from "${base}/tokenize.ts"`));
   await fsc.writeFile(`${base}/doc-sections.mts`, await fsc.readFile(new URL("./lib/doc-sections.mts", import.meta.url), "utf8"));
   await fsc.writeFile(`${base}/rerank.ts`, await fsc.readFile(new URL("../packages/rag/src/rerank.ts", import.meta.url), "utf8"));
-  await fsc.writeFile(`${base}/doc-search.mts`, (await fsc.readFile(new URL("./lib/doc-search.mts", import.meta.url), "utf8")).replace('from "@platform/search"', `from "${base}/bm25.ts"`).replace('from "@platform/rag"', `from "${base}/rerank.ts"`).replace(/from "\.\/doc-sections\.mjs"/g, `from "${base}/doc-sections.mts"`));
-  await fsc.writeFile(`${base}/catalog-tools.mts`, (await fsc.readFile(new URL("./lib/catalog-tools.mts", import.meta.url), "utf8")).replace('from "@platform/mcp"', `from "${base}/mcp.ts"`).replace('from "./catalog.mjs"', `from "${base}/catalog.mts"`).replace('from "./doc-search.mjs"', `from "${base}/doc-search.mts"`));
+  await fsc.writeFile(`${base}/doc-search.mts`, (await fsc.readFile(new URL("./lib/doc-search.mts", import.meta.url), "utf8"))
+    .replace('from "@platform/search"', `from "${base}/bm25.ts"`)
+    .replace('from "@platform/rag"', `from "${base}/rerank.ts"`)
+    .replace(/from "\.\/doc-sections\.mjs"/g, `from "${base}/doc-sections.mts"`));
+  await fsc.writeFile(`${base}/catalog-tools.mts`, (await fsc.readFile(new URL("./lib/catalog-tools.mts", import.meta.url), "utf8"))
+    .replace('from "@platform/mcp"', `from "${base}/mcp.ts"`)
+    .replace('from "./catalog.mjs"', `from "${base}/catalog.mts"`)
+    .replace('from "./doc-search.mjs"', `from "${base}/doc-search.mts"`));
   const C = await import(`${base}/catalog.mts`);
   const T = await import(`${base}/catalog-tools.mts`);
 
@@ -12110,7 +12452,9 @@ section("env");
     await fsc.writeFile(`${base}/${f}.ts`, src);
   }
   await fsc.writeFile(`${base}/index.ts`, `export * from "${base}/stats.ts";\nexport * from "${base}/runner.ts";\nexport * from "${base}/scenario.ts";\n`);
-  await fsc.writeFile(`${base}/scen.ts`, (await fsc.readFile(new URL("../demos/showcase/src/examples/loadtest-scenarios.ts", import.meta.url), "utf8")).replace('from "@platform/loadtest"', `from "${base}/index.ts"`).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  await fsc.writeFile(`${base}/scen.ts`, (await fsc.readFile(new URL("../demos/showcase/src/examples/loadtest-scenarios.ts", import.meta.url), "utf8"))
+    .replace('from "@platform/loadtest"', `from "${base}/index.ts"`)
+    .replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const S = await import(`${base}/scen.ts`);
   const L = await import(`${base}/index.ts`);
 

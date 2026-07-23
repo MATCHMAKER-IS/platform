@@ -48,11 +48,18 @@ export function AdminConsoleClient({ fetchImpl }: AdminConsoleClientProps) {
   const [alerts, setAlerts] = React.useState<Anomaly[] | null>(null);
   const [alertMsg, setAlertMsg] = React.useState("");
   const loadAudit = React.useCallback(async () => { const r = await doFetch("/api/admin/audit-summary"); if (r.ok) setAudit(((await r.json()) as { summary: typeof audit }).summary); }, [doFetch]);
-  const loadLogins = React.useCallback(async () => { const r = await doFetch("/api/admin/logins"); if (r.ok) setLogins((await r.json()) as { summary: { total: number; success: number; failure: number; byEvent: Count[] }; recent: AuditRow[] }); }, [doFetch]);
+  const loadLogins = React.useCallback(async () => {
+    const r = await doFetch("/api/admin/logins");
+    if (r.ok) setLogins((await r.json()) as { summary: { total: number; success: number; failure: number; byEvent: Count[] }; recent: AuditRow[] });
+  }, [doFetch]);
   const loadMatrix = React.useCallback(async () => { const r = await doFetch("/api/admin/permissions"); if (r.ok) setMatrix(((await r.json()) as { matrix: Matrix }).matrix); }, [doFetch]);
   const loadHealth = React.useCallback(async () => { const r = await doFetch("/api/admin/health"); if (r.ok) setHealth(((await r.json()) as { health: Health }).health); }, [doFetch]);
   const loadAlerts = React.useCallback(async () => { const r = await doFetch("/api/admin/audit-alerts"); if (r.ok) setAlerts(((await r.json()) as { anomalies: Anomaly[] }).anomalies); }, [doFetch]);
-  const dispatchAlerts = async () => { setAlertMsg(""); const r = await doFetch("/api/admin/audit-alerts", { method: "POST" }); if (r.ok) { const d = (await r.json()) as { dispatched: number; anomalies: number }; setAlertMsg(d.anomalies === 0 ? "異常は検出されませんでした" : `${d.anomalies} 件の異常を管理者 ${d.dispatched} 名へ配信しました`); } };
+  const dispatchAlerts = async () => {
+    setAlertMsg("");
+    const r = await doFetch("/api/admin/audit-alerts", { method: "POST" });
+    if (r.ok) { const d = (await r.json()) as { dispatched: number; anomalies: number }; setAlertMsg(d.anomalies === 0 ? "異常は検出されませんでした" : `${d.anomalies} 件の異常を管理者 ${d.dispatched} 名へ配信しました`); }
+  };
 
   React.useEffect(() => {
     if (tab === "settings" && !settings) void loadSettings();

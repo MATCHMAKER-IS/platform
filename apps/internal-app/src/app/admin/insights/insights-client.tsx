@@ -32,8 +32,14 @@ export function InsightsClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
     const r = await doFetch("/api/admin/webhooks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "add", url: form.url, events, secret: form.secret }) });
     if (r.ok) { setForm({ url: "", events: "invoice.created", secret: "" }); await loadSubs(); } else setMsg(((await r.json()) as { error?: string }).error ?? "追加に失敗しました");
   };
-  const setActive = async (id: string, active: boolean) => { await doFetch("/api/admin/webhooks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "setActive", id, active }) }); await loadSubs(); };
-  const remove = async (id: string) => { await doFetch("/api/admin/webhooks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "remove", id }) }); await loadSubs(); };
+  const setActive = async (id: string, active: boolean) => {
+    await doFetch("/api/admin/webhooks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "setActive", id, active }) });
+    await loadSubs();
+  };
+  const remove = async (id: string) => {
+    await doFetch("/api/admin/webhooks", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ op: "remove", id }) });
+    await loadSubs();
+  };
 
   const bars = (c: Count[]) => { const max = Math.max(1, ...c.map((x) => x.count)); return c.slice(0, 12).map((x) => (
     <div key={x.key} className="flex items-center gap-2 text-xs"><span className="w-40 truncate text-neutral-600">{x.key}</span><span className="h-3 rounded bg-blue-500" style={{ width: `${(x.count / max) * 60}%` }}></span><span className="text-neutral-500">{x.count}</span></div>
