@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@platform/ui": "workspace:*",
-    "@hookform/resolvers": "^3.10.0",
+    "@hookform/resolvers": "^5.4.0",
     "react-hook-form": "^7.54.2"
   },
   "peerDependencies": {
