@@ -24,7 +24,7 @@
     "@platform/config": "workspace:*",
     "@types/fluent-ffmpeg": "^2.1.27",
     "@types/node": "^22.10.0",
-    "typescript": "^5.7.3",
+    "typescript": "^7.0.2",
     "vitest": "^3.0.4"
   }
 }
