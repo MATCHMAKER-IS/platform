@@ -71,7 +71,7 @@
     "@playwright/test": "^1.49.0",
     "@tailwindcss/postcss": "^4.0.0",
     "eslint": "^9.18.0",
-    "eslint-plugin-boundaries": "^5.0.1",
+    "eslint-plugin-boundaries": "^7.0.2",
     "eslint-plugin-security": "^3.0.1",
     "prettier": "^3.4.2",
     "tailwindcss": "^4.0.0",
