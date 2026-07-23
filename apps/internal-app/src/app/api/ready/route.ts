@@ -1,3 +1,4 @@
+// public-api: 起動完了の確認。ロードバランサが認可なしで叩く
 /** レディネスチェック API(GET)。DB・マイグレーション等を集約し 200/503 を返す(デプロイの健全性確認用)。 */
 import { withApiObservability } from "../../../server/instrument";
 import { checkReadiness, readinessHttpStatus } from "../../../lib/readiness";

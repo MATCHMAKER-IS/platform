@@ -1,6 +1,7 @@
 "use client";
 /** 会計。請求・入金・仕入から自動生成した仕訳と試算表を表示。貸借一致を確認できる。 */
 import * as React from "react";
+import { Button, Input, Select, Textarea } from "@platform/ui";
 
 interface Row { date: string; description: string; account: string; debit: number; credit: number; }
 interface Balance { account: string; debit: number; credit: number; balance: number; }
@@ -98,7 +99,7 @@ export function AccountingClient({ fetchImpl }: AccountingClientProps) {
     <div className="mx-auto max-w-5xl p-6">
       <div className="mb-1 flex items-center justify-between">
         <h1 className="text-2xl font-bold">会計</h1>
-        <span className="flex gap-2"><a href="/api/accounting/export" className="rounded border border-neutral-300 px-4 py-2 text-sm">仕訳帳CSV</a><button onClick={exportFreee} className="rounded border border-neutral-300 px-4 py-2 text-sm">freee 形式で書き出し</button></span>
+        <span className="flex gap-2"><a href="/api/accounting/export" className="rounded border border-neutral-300 px-4 py-2 text-sm">仕訳帳CSV</a><Button onClick={exportFreee} className="rounded border border-neutral-300 px-4 py-2 text-sm">freee 形式で書き出し</Button></span>
       </div>
       <p className="mb-4 text-xs text-neutral-500">請求（売上）・入金・仕入から仕訳を自動生成しています。会計ソフト取込用の元データです。</p>
       {freee && (
@@ -119,7 +120,7 @@ export function AccountingClient({ fetchImpl }: AccountingClientProps) {
           <tbody>
             {ledger.trialBalance.map((b) => (
               <tr key={b.account} className="border-b border-neutral-100">
-                <td className="px-2 py-1.5"><button onClick={() => showLedger(b.account)} className="text-blue-600 hover:underline">{b.account}</button></td>
+                <td className="px-2 py-1.5"><Button onClick={() => showLedger(b.account)} className="text-blue-600 hover:underline">{b.account}</Button></td>
                 <td className="px-2 py-1.5 text-right">{yen(b.debit)}</td>
                 <td className="px-2 py-1.5 text-right">{yen(b.credit)}</td>
                 <td className="px-2 py-1.5 text-right font-medium">{yen(b.balance)}</td>
@@ -151,7 +152,7 @@ export function AccountingClient({ fetchImpl }: AccountingClientProps) {
         <div className="mt-6 rounded border border-neutral-200 p-4">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-sm font-medium">勘定元帳：{detail.account}</h2>
-            <button onClick={() => setDetail(null)} className="text-xs text-neutral-500 hover:underline">閉じる</button>
+            <Button onClick={() => setDetail(null)} className="text-xs text-neutral-500 hover:underline">閉じる</Button>
           </div>
           <table className="w-full text-sm">
             <thead><tr className="border-b border-neutral-200 text-left text-xs text-neutral-500"><th className="px-2 py-1">日付</th><th className="px-2 py-1">摘要</th><th className="px-2 py-1 text-right">借方</th><th className="px-2 py-1 text-right">貸方</th><th className="px-2 py-1 text-right">残高</th></tr></thead>
@@ -169,14 +170,14 @@ export function AccountingClient({ fetchImpl }: AccountingClientProps) {
       <div className="mt-6 rounded border border-neutral-200 p-4">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-medium">手動仕訳（決算整理）の CSV 取込</h2>
-          <button onClick={() => setImporting((v) => !v)} className="text-xs text-blue-600 hover:underline">{importing ? "閉じる" : "取込を開く"}</button>
+          <Button onClick={() => setImporting((v) => !v)} className="text-xs text-blue-600 hover:underline">{importing ? "閉じる" : "取込を開く"}</Button>
         </div>
         {importing && (
           <div className="mb-3">
             <p className="mb-2 text-xs text-neutral-500">見出し「日付,摘要,勘定科目,借方,貸方,備考」。同じ日付＋摘要の行が 1 仕訳に束ねられ、貸借一致した仕訳のみ登録されます。取り込んだ仕訳は決算・元帳・仕訳帳に反映されます。</p>
             <input type="file" accept=".csv,text/csv" onChange={onJournalFile} className="mb-2 block text-sm" />
-            <textarea value={jcsv} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setJcsv(e.target.value)} rows={4} placeholder="日付,摘要,勘定科目,借方,貸方,備考&#10;2025-12-31,前払家賃,前払費用,50000,0,&#10;2025-12-31,前払家賃,支払家賃,0,50000," className="block w-full rounded border border-neutral-300 px-2 py-1 font-mono text-xs" />
-            <div className="mt-2 flex items-center gap-3"><button onClick={runJournalImport} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">取り込む</button>{importMsg && <span className="text-xs text-neutral-600">{importMsg}</span>}</div>
+            <Textarea value={jcsv} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setJcsv(e.target.value)} rows={4} placeholder="日付,摘要,勘定科目,借方,貸方,備考&#10;2025-12-31,前払家賃,前払費用,50000,0,&#10;2025-12-31,前払家賃,支払家賃,0,50000," className="block w-full rounded border border-neutral-300 px-2 py-1 font-mono text-xs" />
+            <div className="mt-2 flex items-center gap-3"><Button onClick={runJournalImport} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">取り込む</Button>{importMsg && <span className="text-xs text-neutral-600">{importMsg}</span>}</div>
           </div>
         )}
         {manual && manual.length > 0 && (
@@ -191,20 +192,20 @@ export function AccountingClient({ fetchImpl }: AccountingClientProps) {
       <div className="mt-6 rounded border border-neutral-200 p-4">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-medium">勘定科目マスタ（科目 → 区分）</h2>
-          <button onClick={() => setShowAccounts((v) => !v)} className="text-xs text-blue-600 hover:underline">{showAccounts ? "閉じる" : "開く"}</button>
+          <Button onClick={() => setShowAccounts((v) => !v)} className="text-xs text-blue-600 hover:underline">{showAccounts ? "閉じる" : "開く"}</Button>
         </div>
         {showAccounts && (
           <>
             <p className="mb-2 text-xs text-neutral-500">ここで科目の区分（資産・負債・純資産・収益・費用）を登録すると、手動仕訳の任意科目も損益計算書・貸借対照表に集計されます。</p>
             <div className="mb-3 flex flex-wrap items-end gap-2">
-              <label className="text-xs text-neutral-500">科目名<input value={acctForm.account} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAcctForm({ ...acctForm, account: e.target.value })} placeholder="例: 支払保険料" className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-              <label className="text-xs text-neutral-500">区分<select value={acctForm.type} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAcctForm({ ...acctForm, type: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm"><option value="asset">資産</option><option value="liability">負債</option><option value="equity">純資産</option><option value="revenue">収益</option><option value="expense">費用</option></select></label>
-              <button onClick={saveAccount} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">登録</button>
+              <label className="text-xs text-neutral-500">科目名<Input value={acctForm.account} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAcctForm({ ...acctForm, account: e.target.value })} placeholder="例: 支払保険料" className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+              <label className="text-xs text-neutral-500">区分<Select value={acctForm.type} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAcctForm({ ...acctForm, type: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" options={[{ label: "資産", value: "asset" }, { label: "負債", value: "liability" }, { label: "純資産", value: "equity" }, { label: "収益", value: "revenue" }, { label: "費用", value: "expense" }]} /></label>
+              <Button onClick={saveAccount} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">登録</Button>
             </div>
             {accounts && (
               <table className="w-full text-sm">
                 <thead><tr className="border-b border-neutral-200 text-left text-xs text-neutral-500"><th className="px-2 py-1">科目</th><th className="px-2 py-1">区分</th><th className="px-2 py-1"></th></tr></thead>
-                <tbody>{accounts.map((a) => <tr key={a.account} className="border-b border-neutral-100"><td className="px-2 py-1.5">{a.account}</td><td className="px-2 py-1.5">{TYPE_LABEL[a.type] ?? a.type}</td><td className="px-2 py-1.5 text-right"><button onClick={() => removeAccount(a.account)} className="text-xs text-red-600 hover:underline">削除</button></td></tr>)}</tbody>
+                <tbody>{accounts.map((a) => <tr key={a.account} className="border-b border-neutral-100"><td className="px-2 py-1.5">{a.account}</td><td className="px-2 py-1.5">{TYPE_LABEL[a.type] ?? a.type}</td><td className="px-2 py-1.5 text-right"><Button onClick={() => removeAccount(a.account)} className="text-xs text-red-600 hover:underline">削除</Button></td></tr>)}</tbody>
               </table>
             )}
           </>

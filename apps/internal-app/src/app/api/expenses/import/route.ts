@@ -1,9 +1,14 @@
 /** 経費取込 API(POST)。取込行を Expense に変換し、バッチ記録+監査つきで一括作成する。 */
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
 import { withApiObservability } from "../../../../server/instrument";
 import { recordImportBatch } from "../../../../server/import-repo";
 import { toExpenses } from "../../../../lib/expense-import";
 
 async function handlePOST(req: Request): Promise<Response> {
+  // 認可: この API を叩いてよいかを最初に判定する
+  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  requirePermission(user, "expense:import");
   let body: { rows?: Record<string, string>[]; errorCount?: number };
   try {
     body = (await req.json()) as { rows?: Record<string, string>[]; errorCount?: number };

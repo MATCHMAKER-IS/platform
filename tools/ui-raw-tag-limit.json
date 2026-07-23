@@ -1,0 +1,5 @@
+{
+  "_comment": "生タグ(<button>/<input>/<select>/<textarea>)の上限。増やさないための歯止め。減らしたら --set-limit で下げる。",
+  "limit": 44,
+  "updatedAt": "2026-07-22"
+}

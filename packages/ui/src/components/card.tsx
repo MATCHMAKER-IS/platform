@@ -5,7 +5,27 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 
-/** カード枠。 */
+/**
+ * カード(囲み枠)。
+ *
+ * **関係のある情報をひとまとまりに見せる**ためのもの。
+ * `CardHeader` / `CardTitle` / `CardContent` / `CardFooter` を組み合わせて使う。
+ *
+ * ダッシュボードのタイルには `DashboardWidget` があり、そちらは枠と見出しを
+ * 自前で描く。**両方を重ねると枠が二重になる**ので、どちらかにする。
+ *
+ * @example
+ * ```tsx
+ * <Card>
+ *   <CardHeader>
+ *     <CardTitle>今月の請求</CardTitle>
+ *     <CardDescription>2026 年 7 月分</CardDescription>
+ *   </CardHeader>
+ *   <CardContent>…明細…</CardContent>
+ *   <CardFooter><Button>PDF を出す</Button></CardFooter>
+ * </Card>
+ * ```
+ */
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-fg)] shadow-sm", className)} {...props} />;
 }

@@ -21,6 +21,12 @@ export {
   resolveIssuer,
   type OidcProviderConfig,
   type OidcProviderKind,
+  verifyIdTokenClaims,
+  subjectKey,
+  type IdTokenClaims,
+  type IdTokenFailure,
+  type IdTokenVerification,
+  type IdTokenVerifyOptions,
 } from "./oidc";
 export {
   resolveHierarchy, canAny, canAll, canScoped, filterAuthorized, featureFlags,
@@ -31,3 +37,4 @@ export * from "./totp";
 export * from "./recovery-codes";
 export * from "./two-factor";
 export * from "./webauthn";
+export * from "./password-reset";

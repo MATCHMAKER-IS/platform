@@ -39,12 +39,18 @@ export interface KanbanProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 
 }
 
 /** カンバンボード。列ごとにカードを表示し、ドラッグで移動可能。 */
+/**
+ * かんばん(列で状態を表す板)。
+ *
+ * 作業の流れが見える。列が多いと横に長くなるので、**5 列程度**まで。
+ * 誰の担当かが分かるようにすると、止まっている作業に気づける。
+ */
 export function Kanban({ columns, onMove, onCardClick, readOnly, className, ...props }: KanbanProps) {
   const dragId = React.useRef<string | null>(null);
   return (
     <div className={cn("flex gap-4 overflow-x-auto pb-2", className)} {...props}>
       {columns.map((col) => (
-        <div key={col.id} className="flex w-72 shrink-0 flex-col rounded-[var(--radius)] bg-slate-50"
+        <div key={col.id} className="flex w-72 shrink-0 flex-col rounded-[var(--radius)] bg-[var(--color-subtle)]"
           onDragOver={readOnly ? undefined : (e) => e.preventDefault()}
           onDrop={readOnly ? undefined : () => { if (dragId.current) { onMove?.(dragId.current, col.id, col.cards.length); dragId.current = null; } }}
         >
@@ -53,7 +59,7 @@ export function Kanban({ columns, onMove, onCardClick, readOnly, className, ...p
               {col.accent && <span className="h-2.5 w-2.5 rounded-full" style={{ background: col.accent }} aria-hidden />}
               {col.title}
             </span>
-            <span className="rounded-full bg-slate-200 px-2 text-xs text-[var(--color-muted)]">{col.cards.length}</span>
+            <span className="rounded-full bg-[var(--color-subtle-strong)] px-2 text-xs text-[var(--color-muted)]">{col.cards.length}</span>
           </div>
           <div className="flex flex-1 flex-col gap-2 p-2">
             {col.cards.map((card, idx) => (

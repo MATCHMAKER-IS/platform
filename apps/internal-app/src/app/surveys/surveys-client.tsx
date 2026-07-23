@@ -1,6 +1,7 @@
 "use client";
 /** アンケート一覧・作成。設問(単一/複数/評価/自由記述)を組み立てて公開する。 */
 import * as React from "react";
+import { Button, Checkbox, Input } from "@platform/ui";
 
 interface Survey { id: string; title: string; description: string; questions: unknown[]; status: string; createdAt: string; }
 type QType = "single" | "multi" | "text" | "rating";
@@ -44,35 +45,35 @@ export function SurveysClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
     <div className="mx-auto max-w-3xl p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">アンケート</h1>
-        <button onClick={() => setCreating((v) => !v)} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">{creating ? "閉じる" : "新規作成"}</button>
+        <Button onClick={() => setCreating((v) => !v)} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">{creating ? "閉じる" : "新規作成"}</Button>
       </div>
       {msg && <p className="mb-3 rounded bg-neutral-100 px-3 py-2 text-sm text-neutral-700">{msg}</p>}
 
       {creating && (
         <div className="mb-6 rounded border border-neutral-200 p-4">
-          <label className="text-xs text-neutral-500">タイトル<input value={title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)} className="mt-0.5 mb-2 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-          <label className="text-xs text-neutral-500">説明<input value={desc} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDesc(e.target.value)} className="mt-0.5 mb-3 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+          <label className="text-xs text-neutral-500">タイトル<Input value={title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)} className="mt-0.5 mb-2 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+          <label className="text-xs text-neutral-500">説明<Input value={desc} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDesc(e.target.value)} className="mt-0.5 mb-3 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
           <div className="mb-3 grid grid-cols-2 gap-2">
-            <label className="text-xs text-neutral-500">配信対象の部門（カンマ区切り・空=全員）<input value={depts} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDepts(e.target.value)} placeholder="営業部, 経理部" className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">配信対象のロール（カンマ区切り）<input value={roles} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRoles(e.target.value)} placeholder="manager, finance" className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">回答締切（任意）<input type="datetime-local" value={closesAt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setClosesAt(e.target.value)} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="flex items-center gap-2 pt-4 text-xs text-neutral-600"><input type="checkbox" checked={anonymous} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAnonymous(e.target.checked)} />匿名回答にする（回答者を記録しない）</label>
+            <label className="text-xs text-neutral-500">配信対象の部門（カンマ区切り・空=全員）<Input value={depts} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDepts(e.target.value)} placeholder="営業部, 経理部" className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-neutral-500">配信対象のロール（カンマ区切り）<Input value={roles} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRoles(e.target.value)} placeholder="manager, finance" className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-neutral-500">回答締切（任意）<Input type="datetime-local" value={closesAt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setClosesAt(e.target.value)} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="flex items-center gap-2 pt-4 text-xs text-neutral-600"><Checkbox  checked={anonymous} onCheckedChange={(v) => setAnonymous(!!v)} />匿名回答にする（回答者を記録しない）</label>
           </div>
           <div className="space-y-2">
             {questions.map((q, i) => (
               <div key={i} className="rounded border border-neutral-200 p-2">
                 <div className="flex gap-2">
-                  <input value={q.text} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQ(i, { text: e.target.value })} placeholder={`設問 ${i + 1}`} className="flex-1 rounded border border-neutral-300 px-2 py-1 text-sm" />
+                  <Input value={q.text} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQ(i, { text: e.target.value })} placeholder={`設問 ${i + 1}`} className="flex-1 rounded border border-neutral-300 px-2 py-1 text-sm" />
                   <select value={q.type} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setQ(i, { type: e.target.value as QType })} className="rounded border border-neutral-300 px-2 py-1 text-sm">
                     {(Object.keys(TYPE_LABEL) as QType[]).map((t) => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
                   </select>
-                  {questions.length > 1 && <button onClick={() => removeQ(i)} className="text-xs text-neutral-400 hover:underline">削除</button>}
+                  {questions.length > 1 && <Button onClick={() => removeQ(i)} className="text-xs text-neutral-400 hover:underline">削除</Button>}
                 </div>
-                {(q.type === "single" || q.type === "multi") && <input value={q.options} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQ(i, { options: e.target.value })} placeholder="選択肢（カンマ区切り）" className="mt-1 block w-full rounded border border-neutral-300 px-2 py-1 text-xs" />}
+                {(q.type === "single" || q.type === "multi") && <Input value={q.options} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQ(i, { options: e.target.value })} placeholder="選択肢（カンマ区切り）" className="mt-1 block w-full rounded border border-neutral-300 px-2 py-1 text-xs" />}
               </div>
             ))}
           </div>
-          <div className="mt-2 flex gap-2"><button onClick={addQ} className="rounded border border-neutral-300 px-3 py-1 text-xs">設問を追加</button><button onClick={create} className="rounded bg-neutral-900 px-4 py-1 text-sm text-white">作成</button></div>
+          <div className="mt-2 flex gap-2"><Button onClick={addQ} className="rounded border border-neutral-300 px-3 py-1 text-xs">設問を追加</Button><Button onClick={create} className="rounded bg-neutral-900 px-4 py-1 text-sm text-white">作成</Button></div>
         </div>
       )}
 
@@ -86,9 +87,9 @@ export function SurveysClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
             <div className="flex gap-2 text-xs">
               <a href={`/surveys/${s.id}`} className="text-blue-600 hover:underline">回答</a>
               <a href={`/surveys/${s.id}/results`} className="text-blue-600 hover:underline">集計</a>
-              {s.status === "draft" && <button onClick={() => setStatus(s.id, "open")} className="text-green-700 hover:underline">公開</button>}
-              {s.status === "open" && <button onClick={() => remind(s.id)} className="text-amber-700 hover:underline">リマインド</button>}
-              {s.status === "open" && <button onClick={() => setStatus(s.id, "closed")} className="text-neutral-500 hover:underline">終了</button>}
+              {s.status === "draft" && <Button onClick={() => setStatus(s.id, "open")} className="text-green-700 hover:underline">公開</Button>}
+              {s.status === "open" && <Button onClick={() => remind(s.id)} className="text-amber-700 hover:underline">リマインド</Button>}
+              {s.status === "open" && <Button onClick={() => setStatus(s.id, "closed")} className="text-neutral-500 hover:underline">終了</Button>}
             </div>
           </div>
         ))}

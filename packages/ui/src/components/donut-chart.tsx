@@ -30,6 +30,14 @@ export interface DonutChartProps {
 }
 
 /** ドーナツチャート。構成比を色分けした円で表示する。 */
+/**
+ * ドーナツ図(内訳の割合)。
+ *
+ * **合計 100% になるもの**にだけ使う。項目は 5 個程度まで。
+ * それ以上は角度の差が読めないので、棒グラフか表にする。
+ *
+ * 「その他」でまとめると読みやすくなるが、**まとめた中身を別に出せる**ようにしておく。
+ */
 export function DonutChart({ data, size = 160, strokeWidth = 24, centerLabel, showLegend = true, className }: DonutChartProps) {
   if (data.length === 0) return null;
   const radius = (size - strokeWidth) / 2;

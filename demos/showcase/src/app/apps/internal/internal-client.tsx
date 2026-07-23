@@ -9,6 +9,7 @@
  * (実物の全機能を再現すると、それはもう実物になってしまう)。
  */
 import * as React from "react";
+import { Button } from "@platform/ui";
 import { summarize, sortTasks, isOverdue, type Task } from "@platform/task";
 import { contractAlerts, type Contract } from "@platform/contract";
 import { needsReview, publishedOnly, type FaqItem } from "@platform/faq";
@@ -90,7 +91,7 @@ export function InternalAppDemo() {
       {/* アプリ内のタブ(実物のナビを模す) */}
       <div style={{ display: "flex", gap: 2, borderBottom: "1px solid var(--color-border)", padding: "0 16px", overflowX: "auto" }}>
         {TABS.map((t) => (
-          <button
+          <Button
             key={t.key}
             onClick={() => setTab(t.key)}
             style={{
@@ -101,7 +102,7 @@ export function InternalAppDemo() {
             }}
           >
             {t.label}
-          </button>
+          </Button>
         ))}
       </div>
 

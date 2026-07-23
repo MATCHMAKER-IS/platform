@@ -14,6 +14,12 @@ export interface SkinSelectorProps {
   swatches?: (id: string) => string[];
 }
 
+/**
+ * 配色の選択。
+ *
+ * 見た目の好みだけでなく、**明暗の切り替え**は目の負担に関わる。
+ * 選んだ内容は保存し、次回も同じにする。
+ */
 export function SkinSelector({ variant = "grid", swatches }: SkinSelectorProps) {
   const { skinId, available, setSkin } = useSkin();
 

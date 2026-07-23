@@ -16,6 +16,12 @@ export interface MessageComposerProps {
 }
 
 /** メッセージ入力+送信。 */
+/**
+ * 発言の入力欄。
+ *
+ * Enter で送るか、改行にするかを決める(**業務では改行を優先**する方が安全)。
+ * 送信中は二重送信を防ぐため、押せなくする。
+ */
 export function MessageComposer({ onSend, placeholder = "メッセージを入力", disabled, className }: MessageComposerProps) {
   const [text, setText] = React.useState("");
 

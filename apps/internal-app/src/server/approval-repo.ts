@@ -3,7 +3,8 @@
  * WorkflowState ⇄ ExpenseRequest 行を相互変換し、承認/却下/差戻しをトランザクション内で適用する。
  * @packageDocumentation
  */
-import { withTransaction, type Result } from "@platform/db";
+import { withTransaction } from "@platform/db";
+import type { Result } from "@platform/core";
 import { db } from "./services";
 import { EXPENSE_WORKFLOW, actOn, type ExpenseRequest } from "../lib/expense-approval";
 import { startWorkflow, type WorkflowState, type Actor } from "@platform/workflow";

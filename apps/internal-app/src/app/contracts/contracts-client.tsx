@@ -8,6 +8,7 @@
  * 判定・集計はすべて `@platform/contract` の担当。この画面は表示と操作の受け渡しだけ。
  */
 import * as React from "react";
+import { Button } from "@platform/ui";
 import type { Contract, ContractAlert, ContractSummary } from "@platform/contract";
 
 interface ContractView extends Contract {
@@ -147,10 +148,10 @@ export function ContractsClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
                 <td style={{ ...td, textAlign: "right" }}>{yen(c.amount)}</td>
                 <td style={td}>
                   {c.status === "active" && c.renewalType !== "none" && (
-                    <button onClick={() => void act(c.id, "renew")} style={actBtn}>更新</button>
+                    <Button onClick={() => void act(c.id, "renew")} style={actBtn}>更新</Button>
                   )}
                   {c.status === "active" && (
-                    <button onClick={() => void act(c.id, "terminate")} style={{ ...actBtn, color: "var(--color-danger, #c00)" }}>解約</button>
+                    <Button onClick={() => void act(c.id, "terminate")} style={{ ...actBtn, color: "var(--color-danger, #c00)" }}>解約</Button>
                   )}
                 </td>
               </tr>

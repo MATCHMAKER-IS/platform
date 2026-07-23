@@ -22,6 +22,12 @@ export interface ChatWindowProps {
 }
 
 /** チャットウィンドウ(ヘッダ+一覧+入力)。 */
+/**
+ * 会話の画面(履歴 + 入力)。
+ *
+ * 人同士のやり取りにも、AI との対話にも使える。
+ * **送信中の状態**を必ず見せる(返事が遅いと送れたか分からない)。
+ */
 export function ChatWindow({ title, subtitle, groups, firstUnreadId, onSend, disabled, className }: ChatWindowProps) {
   return (
     <div className={cn("flex h-full flex-col rounded-[var(--radius)] border border-[var(--color-border)]", className)}>

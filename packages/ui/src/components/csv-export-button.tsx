@@ -15,6 +15,12 @@ export interface CsvExportButtonProps extends Omit<ButtonProps, "onClick"> {
 }
 
 /** クリックで CSV をダウンロードするボタン(Excel 用に BOM 付き)。 */
+/**
+ * CSV 書き出しボタン。
+ *
+ * Excel で開く前提なら **BOM 付き**にする(`@platform/csv` が対応済み)。
+ * 件数が多いと時間がかかるので、**押した後の状態**を見せる。
+ */
 export function CsvExportButton({ rows, filename = "export.csv", columns, children, ...props }: CsvExportButtonProps) {
   return (
     <Button onClick={() => downloadCsv(filename, rows, columns ? { columns } : undefined)} {...props}>

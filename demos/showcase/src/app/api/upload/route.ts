@@ -1,3 +1,4 @@
+// public-api: デモ用。保存先はメモリで、再起動すると消える
 /** アップロード API。@platform/upload で受け取り→検証→ローカル storage 保存。 */
 import { handleUpload } from "@platform/upload";
 import { createStorage, createLocalStorage } from "@platform/storage";

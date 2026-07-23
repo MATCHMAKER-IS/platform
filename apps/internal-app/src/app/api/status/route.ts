@@ -1,3 +1,4 @@
+// public-api: 稼働状況の公開。障害時に社外からも見える必要がある
 /** 統合ステータス(GET)。DB・外部連携・Webhook等の稼働状況を集約。認証不要（表示用の要約）。 */
 import { runHealthChecks } from "@platform/observability";
 import { db } from "../../../server/services";

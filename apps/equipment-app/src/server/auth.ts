@@ -4,6 +4,7 @@
  * パスワード: scrypt("salt:hash")。ユーザーはメモリ台帳(本番は internal-app の user-repo を移植)。
  * @packageDocumentation
  */
+import { hashPassword as hashNew, verifyPassword as verifyNew } from "@platform/crypto";
 import { createHmac, timingSafeEqual, scryptSync, randomBytes } from "node:crypto";
 
 /** セッションのペイロード。 */
@@ -43,19 +44,31 @@ export function verifySession(token: string, secret: string): SessionPayload | n
 }
 
 /** 平文パスワードを `salt:hash` に変換する。 */
+/**
+ * パスワードのハッシュ化。**実装は @platform/crypto に一本化**した
+ * (ADR 0015: 同じ機能を 2 か所に持たない)。自作していた頃は scrypt 32 byte だったが、
+ * 基盤は 64 byte で強度が高い。
+ */
 export function hashPassword(plain: string): string {
-  const salt = randomBytes(16).toString("hex");
-  const hash = scryptSync(plain, salt, 32).toString("hex");
-  return `${salt}:${hash}`;
+  return hashNew(plain);
 }
 
-/** 平文とハッシュ(`salt:hash`)を定数時間で照合する。 */
-export function verifyPassword(plain: string, stored: string): boolean {
+/**
+ * 旧形式(`hex(salt):hex(hash)`・scrypt 32 byte)の照合。
+ * これが無いと、移行前に作られた利用者が**全員ログインできなくなる**。
+ */
+function verifyLegacy(plain: string, stored: string): boolean {
   const [salt, hash] = stored.split(":");
   if (!salt || !hash) return false;
+  if (!/^[0-9a-f]+$/i.test(salt) || !/^[0-9a-f]+$/i.test(hash)) return false;
   const actual = scryptSync(plain, salt, 32);
   const expected = Buffer.from(hash, "hex");
   return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
+
+/** パスワードを照合する(新形式・旧形式のどちらでも通る)。 */
+export function verifyPassword(plain: string, stored: string): boolean {
+  return verifyNew(plain, stored) || verifyLegacy(plain, stored);
 }
 
 interface UserRecord {

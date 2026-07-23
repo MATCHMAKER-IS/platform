@@ -1,3 +1,4 @@
+// public-api: デモ用。パスワードの強度を判定するだけで保存しない
 /**
  * パスワード API。生成と強度判定を基盤(@platform/crypto)で行う。
  * crypto は node:crypto に依存するためサーバ側でのみ実行する。

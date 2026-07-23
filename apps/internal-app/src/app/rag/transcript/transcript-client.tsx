@@ -1,6 +1,7 @@
 "use client";
 /** 文字起こし取り込み。辞書で表記を補正してから RAG に投入し、補正差分を見せる。 */
 import * as React from "react";
+import { Button, Input, Select, Textarea } from "@platform/ui";
 
 export function TranscriptClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   const doFetch = fetchImpl ?? (globalThis as unknown as { fetch: typeof fetch }).fetch;
@@ -28,17 +29,13 @@ export function TranscriptClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
       <h1 style={{ fontSize: 22 }}>文字起こし取り込み（辞書補正）</h1>
       <p style={{ fontSize: 13, color: "var(--color-muted, #666)", lineHeight: 1.6 }}>音声認識の定型的な誤変換（例: 議事六→議事録、ケーピーアイ→KPI）を辞書で補正してから RAG に取り込みます。補正後のテキストが検索対象になります。</p>
       <div style={{ ...card, marginTop: 12 }}>
-        <input value={title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)} placeholder="タイトル（例: 4月定例MTG 議事録）" style={{ width: "100%", boxSizing: "border-box", padding: 8, border: "1px solid #ddd", borderRadius: 6, marginBottom: 8 }} />
-        <textarea value={text} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setText(e.target.value)} placeholder="文字起こしテキストを貼り付け" rows={6} style={{ width: "100%", boxSizing: "border-box", padding: 8, border: "1px solid #ddd", borderRadius: 6, fontFamily: "inherit" }} />
+        <Input value={title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)} placeholder="タイトル（例: 4月定例MTG 議事録）" style={{ width: "100%", boxSizing: "border-box", padding: 8, border: "1px solid #ddd", borderRadius: 6, marginBottom: 8 }} />
+        <Textarea value={text} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setText(e.target.value)} placeholder="文字起こしテキストを貼り付け" rows={6} style={{ width: "100%", boxSizing: "border-box", padding: 8, border: "1px solid #ddd", borderRadius: 6, fontFamily: "inherit" }} />
         <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 8 }}>
           <label style={{ fontSize: 13 }}>公開範囲:
-            <select value={visibility} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setVisibility(e.target.value as "public" | "hr" | "admin")} style={{ marginLeft: 6, padding: 4 }}>
-              <option value="public">全員</option>
-              <option value="hr">人事・管理者</option>
-              <option value="admin">管理者のみ</option>
-            </select>
+            <Select value={visibility} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setVisibility(e.target.value as "public" | "hr" | "admin")} style={{ marginLeft: 6, padding: 4 }} options={[{ label: "全員", value: "public" }, { label: "人事・管理者", value: "hr" }, { label: "管理者のみ", value: "admin" }]} />
           </label>
-          <button onClick={submit} disabled={busy || title.trim().length === 0 || text.trim().length === 0} style={{ marginLeft: "auto", padding: "8px 20px", background: busy ? "#ccc" : "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>{busy ? "取り込み中…" : "補正して取り込む"}</button>
+          <Button onClick={submit} disabled={busy || title.trim().length === 0 || text.trim().length === 0} style={{ marginLeft: "auto", padding: "8px 20px", background: busy ? "#ccc" : "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>{busy ? "取り込み中…" : "補正して取り込む"}</Button>
         </div>
         {error && <p style={{ color: "var(--color-danger, #c00)", fontSize: 13, marginTop: 8 }}>{error}</p>}
       </div>

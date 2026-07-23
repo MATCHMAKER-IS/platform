@@ -63,7 +63,8 @@
     "verify": "pnpm check:deps && pnpm check:api && pnpm typecheck && pnpm lint && pnpm test && pnpm build",
     "verify:offline": "node tools/preflight.mjs && node tools/check-generated.mjs",
     "version-packages": "changeset version",
-    "ws:demo": "node tools/ws-demo-server.mjs"
+    "ws:demo": "node tools/ws-demo-server.mjs",
+    "gen:docs-index": "node --experimental-strip-types tools/gen-docs-index.mts"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.11",

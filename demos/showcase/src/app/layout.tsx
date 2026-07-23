@@ -5,11 +5,16 @@ import { CollapsibleSidebar } from "../components/collapsible-sidebar";
 import { DemoMeta } from "../components/demo-meta";
 import { DemoIntro } from "../components/demo-intro";
 import { LiveClock } from "../components/live-clock";
+import { ModeToggle } from "../components/mode-toggle";
+import { CommandPalette } from "../components/command-palette";
+import { DebugPanel } from "../components/debug-panel";
 
 export const metadata = {
   title: "基盤デモ",
   description: "社内基盤(@platform/*)の使い方と、業務アプリの画面を1つにまとめたデモサイト",
 };
+
+export const viewport = { width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -45,7 +50,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               >
                 <DemoMeta />
                 <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+                  <CommandPalette />
                   <LiveClock compact />
+                  <ModeToggle />
                   <ThemeSwitcher />
                 </div>
               </div>
@@ -57,6 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
           <Toaster />
           <BackToTop />
+          <DebugPanel />
         </AppSkin>
       </body>
     </html>

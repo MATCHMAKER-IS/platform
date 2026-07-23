@@ -30,6 +30,12 @@ export function moveItem<T>(items: T[], from: number, to: number): T[] {
 }
 
 /** D&D 並べ替えリスト。 */
+/**
+ * 並べ替えできる一覧。
+ *
+ * 手で順序を決めるものに使う(表示順・優先度)。
+ * **保存のタイミング**を決める(動かすたびか、まとめてか)。
+ */
 export function SortableList<T>({ items, getKey, onReorder, renderItem, className, itemClassName }: SortableListProps<T>) {
   const [dragIndex, setDragIndex] = React.useState<number | null>(null);
   const [overIndex, setOverIndex] = React.useState<number | null>(null);

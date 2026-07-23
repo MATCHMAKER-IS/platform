@@ -7,7 +7,28 @@ import { Accordion as Primitive } from "radix-ui";
 import { ChevronDown } from "lucide-react";
 import { cn } from "../lib/cn";
 
-/** アコーディオンのルート(`type="single"` か `"multiple"`)。 */
+/**
+ * 折りたたみ(開閉できる見出し)。
+ *
+ * **最初は隠しておいてよい情報**に使う。よく使う項目を隠すと、毎回開く手間が増える。
+ * FAQ・詳細設定・補足説明に向く。
+ *
+ * - `type="single"` … 1 つ開くと他が閉じる(場所を取らない)
+ * - `type="multiple"` … 複数を同時に開ける(見比べたいとき)
+ * - `defaultValue` で最初から開いておく項目を指定できる
+ *
+ * **中身を検索したい場合は使わない。** 閉じている部分はブラウザの検索に引っかかりません。
+ *
+ * @example
+ * ```tsx
+ * <Accordion type="single" collapsible defaultValue="q1">
+ *   <AccordionItem value="q1">
+ *     <AccordionTrigger>経費はいつ振り込まれますか</AccordionTrigger>
+ *     <AccordionContent>承認された月の翌月 25 日です。</AccordionContent>
+ *   </AccordionItem>
+ * </Accordion>
+ * ```
+ */
 export const Accordion = Primitive.Root;
 
 /** 1 項目。 */

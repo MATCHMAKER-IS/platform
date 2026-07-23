@@ -1,3 +1,4 @@
+// public-api: 社外からの問い合わせ受付(公開フォーム)。レート制限で保護する
 /** お問い合わせ: 匿名インテーク(POST)。公開サイトのフォームから受け付ける。X-Intake-Token で保護。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { inquiryStore } from "../../../../server/platform-services";

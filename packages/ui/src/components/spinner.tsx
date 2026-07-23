@@ -12,6 +12,13 @@ export interface SpinnerProps extends React.SVGAttributes<SVGSVGElement> {
 }
 
 /** 回転スピナー。 */
+/**
+ * 読み込み中の回転。
+ *
+ * **いつ終わるか分からない**処理に使う。終わりが分かるなら `Progress`。
+ * 3 秒を超えるなら「何をしているか」を文字で添える
+ * (「集計しています」だけで、待つ気持ちが変わる)。
+ */
 export function Spinner({ size = 20, className, ...props }: SpinnerProps) {
   return (
     <svg

@@ -43,6 +43,12 @@ export interface CopyButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLBut
 }
 
 /** テキストをコピーするボタン(コピー後にチェック表示)。 */
+/**
+ * 押すとコピーするボタン。
+ *
+ * ID・URL・エラー番号など、**手で写すと間違えるもの**の横に置く。
+ * コピーできたことを必ず伝える(押した手応えが無いと何度も押される)。
+ */
 export const CopyButton = React.forwardRef<HTMLButtonElement, CopyButtonProps>(
   ({ value, label = "コピー", copiedLabel = "コピーしました", className, ...props }, ref) => {
     const [copied, copy] = useCopyToClipboard();
@@ -53,7 +59,7 @@ export const CopyButton = React.forwardRef<HTMLButtonElement, CopyButtonProps>(
         onClick={() => copy(value)}
         aria-label={copied ? copiedLabel : label || "コピー"}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-[var(--radius)] border border-[var(--color-border)] px-2.5 py-1.5 text-sm text-[var(--color-fg)] transition-colors hover:bg-slate-50",
+          "inline-flex items-center gap-1.5 rounded-[var(--radius)] border border-[var(--color-border)] px-2.5 py-1.5 text-sm text-[var(--color-fg)] transition-colors hover:bg-[var(--color-subtle)]",
           className,
         )}
         {...props}

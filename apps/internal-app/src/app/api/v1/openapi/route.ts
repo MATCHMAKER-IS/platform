@@ -1,3 +1,4 @@
+// public-api: API 仕様書の公開。利用者が実装前に読む
 /** 外部API仕様(OpenAPI 3.0 JSON)。開発者向け。認証不要。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { openApiSpec } from "../../../../server/api-reference";

@@ -1,6 +1,7 @@
 "use client";
 /** 在庫管理画面。在庫状況の一覧、発注アラート、入出庫の記録、商品登録。 */
 import * as React from "react";
+import { Button, Input, Select } from "@platform/ui";
 
 interface MovementSummary { totalIn: number; totalOut: number; adjustments: number; onHand: number; }
 interface Product { sku: string; name: string; unit: string; policy?: { safetyStock: number; dailyDemand: number; leadTimeDays: number; targetLevel?: number }; }
@@ -70,14 +71,14 @@ export function InventoryClient({ fetchImpl, canWrite = true }: InventoryClientP
       {reorderCount > 0 && (
         <div className="mb-4 flex items-center justify-between rounded bg-amber-50 px-3 py-2">
           <p className="text-sm text-amber-800">発注が必要な商品が {reorderCount} 件あります。</p>
-          {canWrite && <button onClick={createDraft} className="rounded bg-amber-600 px-3 py-1 text-sm text-white">発注書ドラフトを作成</button>}
+          {canWrite && <Button onClick={createDraft} className="rounded bg-amber-600 px-3 py-1 text-sm text-white">発注書ドラフトを作成</Button>}
         </div>
       )}
       {draft && (
         <div className="mb-4 rounded border border-amber-300 p-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm font-medium">発注書ドラフト {draft.number}（{draft.supplier}）</span>
-            <button onClick={() => setDraft(null)} className="text-xs text-neutral-500">閉じる</button>
+            <Button onClick={() => setDraft(null)} className="text-xs text-neutral-500">閉じる</Button>
           </div>
           <table className="w-full text-sm">
             <tbody>
@@ -99,7 +100,7 @@ export function InventoryClient({ fetchImpl, canWrite = true }: InventoryClientP
         <tbody>
           {rows.map((r) => (
             <tr key={r.product.sku} className="border-b border-neutral-100">
-              <td className="px-2 py-2 font-mono text-xs"><button onClick={() => openDetail(r.product.sku)} className="text-blue-600 hover:underline">{r.product.sku}</button></td>
+              <td className="px-2 py-2 font-mono text-xs"><Button onClick={() => openDetail(r.product.sku)} className="text-blue-600 hover:underline">{r.product.sku}</Button></td>
               <td className="px-2 py-2">{r.product.name}</td>
               <td className="px-2 py-2 text-right font-medium">{r.summary.onHand} {r.product.unit}</td>
               <td className="px-2 py-2 text-right text-neutral-500">{r.summary.totalIn}</td>
@@ -115,7 +116,7 @@ export function InventoryClient({ fetchImpl, canWrite = true }: InventoryClientP
         <div className="mb-6 rounded border border-neutral-200 p-4">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-sm font-medium">{detail.product.sku}・{detail.product.name} の詳細</h2>
-            <button onClick={() => setDetail(null)} className="text-xs text-neutral-500">閉じる</button>
+            <Button onClick={() => setDetail(null)} className="text-xs text-neutral-500">閉じる</Button>
           </div>
           <div className="mb-3 flex flex-wrap gap-2 text-xs">
             {detail.byWarehouse.map((w) => (<span key={w.warehouse} className="rounded bg-neutral-100 px-2 py-1">{w.warehouse}: {w.onHand}</span>))}
@@ -147,23 +148,18 @@ export function InventoryClient({ fetchImpl, canWrite = true }: InventoryClientP
           <div className="rounded border border-neutral-200 p-4">
             <h2 className="mb-3 text-sm font-medium">入出庫の記録</h2>
             <div className="flex flex-col gap-2">
-              <select value={move.sku} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setMove({ ...move, sku: e.target.value })} className="rounded border border-neutral-300 px-2 py-1 text-sm">
-                <option value="">商品を選択</option>
-                {rows.map((r) => <option key={r.product.sku} value={r.product.sku}>{r.product.sku}・{r.product.name}</option>)}
-              </select>
+              <Select value={move.sku} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setMove({ ...move, sku: e.target.value })} className="rounded border border-neutral-300 px-2 py-1 text-sm" options={[{ label: "商品を選択", value: "" }, ...rows.map((r) => ({ label: `${r.product.sku}・${r.product.name}`, value: String(r.product.sku) }))]} />
               <div className="flex gap-2">
-                <select value={move.type} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setMove({ ...move, type: e.target.value as typeof move.type })} className="rounded border border-neutral-300 px-2 py-1 text-sm">
-                  <option value="inbound">入庫</option><option value="outbound">出庫</option><option value="adjustment">調整</option>
-                </select>
-                <input value={move.quantity} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMove({ ...move, quantity: e.target.value })} placeholder="数量" inputMode="numeric" className="w-24 rounded border border-neutral-300 px-2 py-1 text-sm" />
-                <input value={move.ref} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMove({ ...move, ref: e.target.value })} placeholder="参照（発注/出荷番号）" className="flex-1 rounded border border-neutral-300 px-2 py-1 text-sm" />
+                <Select value={move.type} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setMove({ ...move, type: e.target.value as typeof move.type })} className="rounded border border-neutral-300 px-2 py-1 text-sm" options={[{ label: "入庫", value: "inbound" }, { label: "出庫", value: "outbound" }, { label: "調整", value: "adjustment" }]} />
+                <Input value={move.quantity} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMove({ ...move, quantity: e.target.value })} placeholder="数量" inputMode="numeric" className="w-24 rounded border border-neutral-300 px-2 py-1 text-sm" />
+                <Input value={move.ref} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMove({ ...move, ref: e.target.value })} placeholder="参照（発注/出荷番号）" className="flex-1 rounded border border-neutral-300 px-2 py-1 text-sm" />
               </div>
               <div className="flex gap-2">
-                <input value={move.warehouse} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMove({ ...move, warehouse: e.target.value })} placeholder="倉庫（任意）" className="flex-1 rounded border border-neutral-300 px-2 py-1 text-sm" />
-                <input value={move.lotId} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMove({ ...move, lotId: e.target.value })} placeholder="ロット（任意）" className="w-28 rounded border border-neutral-300 px-2 py-1 text-sm" />
-                <input type="date" value={move.expiry} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMove({ ...move, expiry: e.target.value })} className="rounded border border-neutral-300 px-2 py-1 text-sm" />
+                <Input value={move.warehouse} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMove({ ...move, warehouse: e.target.value })} placeholder="倉庫（任意）" className="flex-1 rounded border border-neutral-300 px-2 py-1 text-sm" />
+                <Input value={move.lotId} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMove({ ...move, lotId: e.target.value })} placeholder="ロット（任意）" className="w-28 rounded border border-neutral-300 px-2 py-1 text-sm" />
+                <Input type="date" value={move.expiry} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMove({ ...move, expiry: e.target.value })} className="rounded border border-neutral-300 px-2 py-1 text-sm" />
               </div>
-              <button onClick={submitMove} className="self-start rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">記録する</button>
+              <Button onClick={submitMove} className="self-start rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">記録する</Button>
               <p className="text-xs text-neutral-400">調整はマイナスも入力できます（棚卸差異など）。</p>
             </div>
           </div>
@@ -171,10 +167,10 @@ export function InventoryClient({ fetchImpl, canWrite = true }: InventoryClientP
           <div className="rounded border border-neutral-200 p-4">
             <h2 className="mb-3 text-sm font-medium">商品を登録</h2>
             <div className="flex flex-col gap-2">
-              <input value={newProduct.sku} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewProduct({ ...newProduct, sku: e.target.value })} placeholder="SKU" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
-              <input value={newProduct.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewProduct({ ...newProduct, name: e.target.value })} placeholder="品名" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
-              <input value={newProduct.unit} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewProduct({ ...newProduct, unit: e.target.value })} placeholder="単位" className="w-24 rounded border border-neutral-300 px-2 py-1 text-sm" />
-              <button onClick={submitProduct} className="self-start rounded border border-neutral-300 px-4 py-1.5 text-sm">登録する</button>
+              <Input value={newProduct.sku} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewProduct({ ...newProduct, sku: e.target.value })} placeholder="SKU" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
+              <Input value={newProduct.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewProduct({ ...newProduct, name: e.target.value })} placeholder="品名" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
+              <Input value={newProduct.unit} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewProduct({ ...newProduct, unit: e.target.value })} placeholder="単位" className="w-24 rounded border border-neutral-300 px-2 py-1 text-sm" />
+              <Button onClick={submitProduct} className="self-start rounded border border-neutral-300 px-4 py-1.5 text-sm">登録する</Button>
             </div>
           </div>
         </div>

@@ -21,6 +21,12 @@ export interface GoalProgressProps {
 const defaultFormat = (n: number) => n.toLocaleString("ja-JP");
 
 /** 目標達成バー。達成率で色が変わり(100%以上は緑)、目標位置にマーカーを表示。 */
+/**
+ * 目標に対する進み。
+ *
+ * 達成率だけでなく**残りと期限**を出す。
+ * 「80%」より「あと 3 件・今週まで」の方が動ける。
+ */
 export function GoalProgress({ label, actual, target, format = defaultFormat, className }: GoalProgressProps) {
   const rate = achievementRate(actual, target);
   const reached = rate >= 100;

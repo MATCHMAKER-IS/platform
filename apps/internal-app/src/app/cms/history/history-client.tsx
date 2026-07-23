@@ -1,6 +1,7 @@
 "use client";
 /** CMS 操作履歴。監査ログの cms.* 操作を一覧表示する。 */
 import * as React from "react";
+import { Button } from "@platform/ui";
 
 interface Row {
   seq: number;
@@ -40,11 +41,11 @@ export function HistoryClient({ fetchImpl }: HistoryClientProps) {
     <div className="mx-auto max-w-4xl p-6">
       <h1 className="mb-4 text-2xl font-bold">操作履歴</h1>
       <div className="mb-3 flex gap-1">
-        <button onClick={() => setFilter("")} className={filter === "" ? "rounded bg-neutral-900 px-3 py-1 text-sm text-white" : "rounded border border-neutral-300 px-3 py-1 text-sm"}>すべて</button>
+        <Button onClick={() => setFilter("")} className={filter === "" ? "rounded bg-neutral-900 px-3 py-1 text-sm text-white" : "rounded border border-neutral-300 px-3 py-1 text-sm"}>すべて</Button>
         {kinds.map((k) => (
-          <button key={k} onClick={() => setFilter(k)} className={filter === k ? "rounded bg-neutral-900 px-3 py-1 text-sm text-white" : "rounded border border-neutral-300 px-3 py-1 text-sm"}>
+          <Button key={k} onClick={() => setFilter(k)} className={filter === k ? "rounded bg-neutral-900 px-3 py-1 text-sm text-white" : "rounded border border-neutral-300 px-3 py-1 text-sm"}>
             {k === "post" ? "記事" : k === "page" ? "ページ" : k === "announcement" ? "お知らせ" : k === "category" ? "カテゴリ" : "タグ"}
-          </button>
+          </Button>
         ))}
       </div>
       {shown.length === 0 ? (

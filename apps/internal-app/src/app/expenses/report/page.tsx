@@ -1,7 +1,7 @@
 "use client";
 /** 月次レポート。対象月・言語を選び、集計とプレビュー(HTML)を表示・ダウンロードする。 */
 import { useMemo, useState, type ChangeEvent } from "react";
-import { Button } from "@platform/ui";
+import { Button, Select } from "@platform/ui";
 import { formatNumber } from "@platform/utils";
 import { buildMonthlyReport, availableMonths } from "../../../lib/expense-report";
 import { SAMPLE_EXPENSES } from "../../../lib/sample-expenses";
@@ -30,14 +30,10 @@ export default function ReportPage() {
 
       <div style={{ display: "flex", gap: "1rem", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap" }}>
         <label>対象月:
-          <select value={month} onChange={(e: ChangeEvent<HTMLSelectElement>) => setMonth(e.target.value)} style={{ marginLeft: ".5rem", padding: ".25rem .5rem" }}>
-            {months.map((m) => <option key={m} value={m}>{m}</option>)}
-          </select>
+          <Select value={month} onChange={(e: ChangeEvent<HTMLSelectElement>) => setMonth(e.target.value)} style={{ marginLeft: ".5rem", padding: ".25rem .5rem" }} options={[...months.map((m) => ({ label: m, value: String(m) }))]} />
         </label>
         <label>言語:
-          <select value={locale} onChange={(e: ChangeEvent<HTMLSelectElement>) => setLocale(e.target.value as ReportLocale)} style={{ marginLeft: ".5rem", padding: ".25rem .5rem" }}>
-            {LOCALES.map((l) => <option key={l} value={l}>{l}</option>)}
-          </select>
+          <Select value={locale} onChange={(e: ChangeEvent<HTMLSelectElement>) => setLocale(e.target.value as ReportLocale)} style={{ marginLeft: ".5rem", padding: ".25rem .5rem" }} options={[...LOCALES.map((l) => ({ label: l, value: String(l) }))]} />
         </label>
         <Button onClick={download}>HTML ダウンロード</Button>
         <a href={`/api/expenses/report?month=${month}`} style={{ textDecoration: "none" }}><Button>Excel ダウンロード</Button></a>

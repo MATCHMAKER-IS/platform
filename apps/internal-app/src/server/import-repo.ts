@@ -2,7 +2,8 @@
  * 取込バッチの記録・一覧・ロールバック(Prisma + トランザクション + 監査ログ)。
  * @packageDocumentation
  */
-import { withTransaction, recordAudit, type Result } from "@platform/db";
+import { withTransaction, recordAudit } from "@platform/db";
+import type { Result } from "@platform/core";
 import type { ImportHistoryRow } from "@platform/ui";
 import { db } from "./services";
 import { expenseToCreateData } from "./expense-repo";

@@ -1,6 +1,7 @@
 "use client";
 /** AI 画像生成/編集。AI Image Gateway 経由。テキスト同様アプリは直叩きせず、コストがログに計上される。 */
 import * as React from "react";
+import { Button, Input } from "@platform/ui";
 
 interface Result { images: string[]; model: string; costJpy: number | null; mock: boolean; }
 
@@ -28,8 +29,8 @@ export function AiImageClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
       <h1 style={{ fontSize: 22 }}>AI 画像生成</h1>
       {result?.mock && <p style={{ fontSize: 12, color: "var(--color-warning, #b45309)", background: "#fffbeb", padding: "8px 12px", borderRadius: 8 }}>モックモードで動作中です（OPENAI_API_KEY 未設定）。プレースホルダ画像を返しますが、Gateway 経由・コスト計上の流れは同じです。</p>}
       <div style={{ ...card, marginTop: 12 }}>
-        <input value={prompt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPrompt(e.target.value)} placeholder="例: 会社ロゴを水彩風に / 青空の背景" style={{ width: "100%", boxSizing: "border-box", padding: "8px 12px", border: "1px solid #ddd", borderRadius: 8 }} />
-        <button onClick={generate} disabled={busy || prompt.trim().length === 0} style={{ marginTop: 8, padding: "8px 20px", background: busy ? "#ccc" : "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>{busy ? "生成中…" : "生成する"}</button>
+        <Input value={prompt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPrompt(e.target.value)} placeholder="例: 会社ロゴを水彩風に / 青空の背景" style={{ width: "100%", boxSizing: "border-box", padding: "8px 12px", border: "1px solid #ddd", borderRadius: 8 }} />
+        <Button onClick={generate} disabled={busy || prompt.trim().length === 0} style={{ marginTop: 8, padding: "8px 20px", background: busy ? "#ccc" : "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>{busy ? "生成中…" : "生成する"}</Button>
         {error && <p style={{ color: "var(--color-danger, #c00)", fontSize: 13, marginTop: 8 }}>{error}</p>}
       </div>
       {result && (

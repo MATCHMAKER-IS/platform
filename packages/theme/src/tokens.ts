@@ -35,6 +35,21 @@ export interface ThemeTokens {
   success: string;
   warning: string;
   danger: string;
+
+  /**
+   * 横の案内(サイドバー)の背景。
+   *
+   * **省略すると `surface` と同じ**になる(これまでと同じ見た目)。
+   * 濃い色を指定すると、本文と案内がはっきり分かれる。
+   * 指定するときは `sidebarFg` も必ず一緒に決めること(文字が読めなくなる)。
+   */
+  sidebarBg?: string;
+  /** 横の案内の文字色。`sidebarBg` を濃くしたら明るい色にする。 */
+  sidebarFg?: string;
+  /** 横の案内の中で、選ばれている項目の背景。省略すると primary を薄めた色。 */
+  sidebarActiveBg?: string;
+  /** 選ばれている項目の文字色。 */
+  sidebarActiveFg?: string;
 }
 
 /** モードに依存しない、スキン共通のデザイン特性。 */

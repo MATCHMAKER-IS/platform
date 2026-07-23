@@ -27,6 +27,12 @@ const BRAND: Record<string, string> = {
 };
 
 /** SNS シェアボタン群。 */
+/**
+ * 共有ボタン(SNS・メール)。
+ *
+ * 社外向けの画面で使う。**社内システムには置かない**
+ * (共有先に社内情報が渡る事故につながる)。
+ */
 export function SocialShare({ links, variant = "solid", onShare, className }: SocialShareProps) {
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>

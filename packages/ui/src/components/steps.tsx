@@ -16,6 +16,13 @@ export interface StepsProps {
 }
 
 /** 横型ステッパー。 */
+/**
+ * 手順の表示(今どこにいるか)。
+ *
+ * 申請 → 承認 → 完了のように**順序があるもの**に使う。
+ * タブと違い、**戻れない・飛ばせない**ことが伝わる。
+ * 全体で何段階あるかを最初に見せると、利用者が見通しを持てる。
+ */
 export function Steps({ steps, current, className }: StepsProps) {
   return (
     <ol className={cn("flex items-center", className)}>

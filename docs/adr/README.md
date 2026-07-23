@@ -14,3 +14,11 @@
 | [0008](0008-mcp-minimal-inhouse.md) | MCP は SDK 非依存の最小自作 | 採用 |
 | [0009](0009-deploy-conoha-first-aws-next.md) | デプロイは ConoHa 先行・AWS(Amplify)を次段 | 採用 |
 | [0010](0010-ai-gateway-required.md) | AI 呼び出しは AI Gateway 経由を必須化 | 採用 |
+| [0011](0011-no-versioning-monorepo.md) | 基盤パッケージのバージョン管理はしない(モノレポ内製前提) | 採用 |
+| [0012](0012-performance-targets.md) | パフォーマンスの目標値と測り方 | 採用 |
+| [0013](0013-db-push-not-migrations.md) | DB スキーマの適用は `db push`(履歴を持たない) | 採用 |
+| [0014](0014-migration-baseline-on-production.md) | 本番投入時はデータを保持したままマイグレーションへ切替(baseline) | 採用 |
+| [0015](0015-package-consolidation-policy.md) | パッケージを分ける基準(統廃合の判断軸) | 採用 |
+| [0016](0016-two-factor-and-sso.md) | 2要素認証は自前ログインのときだけ・SSO では IdP に任せる | 採用 |
+| [0017](0017-access-review.md) | 権限は付けたら終わりにしない(棚卸し・退職時の停止) | 採用 |
+| [0018](0018-data-retention.md) | 保存義務と削除要求が衝突したら保存義務を優先し本人に説明 | 採用 |

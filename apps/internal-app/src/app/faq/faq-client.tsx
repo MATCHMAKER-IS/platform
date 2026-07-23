@@ -6,6 +6,7 @@
  * この画面は表示と、操作を API に渡すことだけを行う。
  */
 import * as React from "react";
+import { Button, Input } from "@platform/ui";
 import type { FaqItem } from "@platform/faq";
 
 interface Hit { item: FaqItem; matched: string; score: number; rate?: number }
@@ -58,7 +59,7 @@ export function FaqClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
     const isOpen = opened === item.id;
     return (
       <div key={item.id} style={{ borderTop: "1px solid var(--color-border, #f3f4f6)", padding: "8px 0" }}>
-        <button
+        <Button
           onClick={() => setOpened(isOpen ? null : item.id)}
           style={{
             display: "flex", width: "100%", textAlign: "left", gap: 8, alignItems: "baseline",
@@ -73,7 +74,7 @@ export function FaqClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
               {Math.round(rate * 100)}% 役立った
             </span>
           )}
-        </button>
+        </Button>
         {isOpen && (
           <div style={{ marginLeft: 20, marginTop: 8 }}>
             <div style={{ fontSize: 13, lineHeight: 1.8, whiteSpace: "pre-wrap", color: "var(--color-fg, #333)" }}>{item.answer}</div>
@@ -83,8 +84,8 @@ export function FaqClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
               ) : (
                 <>
                   <span style={{ fontSize: 12, color: "var(--color-muted, #888)" }}>役に立ちましたか?</span>
-                  <button onClick={() => void sendVote(item.id, true)} style={voteBtn}>はい</button>
-                  <button onClick={() => void sendVote(item.id, false)} style={voteBtn}>いいえ</button>
+                  <Button onClick={() => void sendVote(item.id, true)} style={voteBtn}>はい</Button>
+                  <Button onClick={() => void sendVote(item.id, false)} style={voteBtn}>いいえ</Button>
                 </>
               )}
             </div>
@@ -103,7 +104,7 @@ export function FaqClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
 
       {/* 検索 */}
       <div style={card}>
-        <input
+        <Input
           value={query}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => void search(e.target.value)}
           placeholder="探したいことを入力(例: 経費 締め切り)"

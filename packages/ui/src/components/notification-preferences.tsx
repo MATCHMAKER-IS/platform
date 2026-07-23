@@ -47,6 +47,12 @@ const MODES: { key: PrefMode; label: string }[] = [
 ];
 
 /** 通知設定フォーム。 */
+/**
+ * 通知の設定(何を受け取るか)。
+ *
+ * **全部を既定で有効にしない**。多すぎると全部切られる。
+ * 業務上必要なもの(承認依頼)だけを既定で入れ、残りは選ばせる。
+ */
 export function NotificationPreferences({ value, onChange, categories = DEFAULT_CATEGORIES, channels = DEFAULT_CHANNELS, onSave, saving, className }: NotificationPreferencesProps) {
   const toggleDefault = (ch: PrefChannel) => {
     const has = value.defaultChannels.includes(ch);
@@ -89,7 +95,10 @@ export function NotificationPreferences({ value, onChange, categories = DEFAULT_
                     <button
                       key={m.key}
                       onClick={() => setCategoryMode(cat.key, m.key)}
-                      className={cn("rounded-md border px-2 py-1 text-xs", mode === m.key ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-primary-fg,#fff)]" : "border-[var(--color-border)]")}
+                      className={cn(
+                        "rounded-md border px-2 py-1 text-xs",
+                        mode === m.key ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-[var(--color-primary-fg,#fff)]" : "border-[var(--color-border)]",
+                      )}
                     >
                       {m.label}
                     </button>

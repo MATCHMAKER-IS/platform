@@ -21,6 +21,12 @@ export interface VideoPlayerProps {
 }
 
 /** 動画プレイヤー。 */
+/**
+ * 動画の再生。
+ *
+ * 研修や手順の説明に使う。**字幕を付けられるようにする**
+ * (音を出せない場所で見る人がいる)。
+ */
 export function VideoPlayer({ src, poster, className }: VideoPlayerProps) {
   const t = useT();
   const containerRef = React.useRef<HTMLDivElement>(null);

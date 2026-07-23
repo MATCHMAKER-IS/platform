@@ -19,6 +19,14 @@ export interface HistogramProps {
 }
 
 /** ヒストグラム。 */
+/**
+ * 度数分布(値の散らばり)。
+ *
+ * 「平均は 30 分」だけでは分からない**偏り**を見せる
+ * (半分は 5 分、半分は 60 分、でも平均は 30 分になる)。
+ *
+ * 区間の数を変えると印象が変わる。**恣意的に見えないよう**、既定のまま使うのが無難。
+ */
 export function Histogram({ values, bins, min, max, height = 120, showLabels = true, className }: HistogramProps) {
   const options: HistogramOptions = { bins, min, max };
   const data = histogram(values, options);

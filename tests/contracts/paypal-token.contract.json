@@ -1,0 +1,10 @@
+{
+  "connector": "paypal",
+  "title": "PayPal OAuth トークン取得",
+  "endpoint": "POST https://api-m.paypal.com/v1/oauth2/token",
+  "sourceFile": "packages/paypal/src/index.ts",
+  "requiredFields": ["access_token", "expires_in"],
+  "note": "決済 API 呼び出しの前提。欠けると決済処理が始められない。",
+  "capturedAt": null,
+  "fixture": null
+}

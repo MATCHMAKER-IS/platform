@@ -1,6 +1,7 @@
 "use client";
 /** 在庫のデモ: 入出庫の履歴から現在庫を導出・発注点・発注量。 */
 import * as React from "react";
+import { Button, Input } from "@platform/ui";
 import {
   onHand,
   summarize,
@@ -102,15 +103,15 @@ export default function Page() {
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 12 }}>
           <label style={{ fontSize: 12 }}>
             <div style={{ marginBottom: 4, color: "var(--color-muted)" }}>安全在庫</div>
-            <input type="number" value={safetyStock} onChange={(e) => setSafetyStock(Number(e.target.value))} style={{ ...field, width: 80, textAlign: "right" }} />
+            <Input type="number" value={safetyStock} onChange={(e) => setSafetyStock(Number(e.target.value))} style={{ ...field, width: 80, textAlign: "right" }} />
           </label>
           <label style={{ fontSize: 12 }}>
             <div style={{ marginBottom: 4, color: "var(--color-muted)" }}>1日あたり需要</div>
-            <input type="number" value={dailyDemand} onChange={(e) => setDailyDemand(Number(e.target.value))} style={{ ...field, width: 80, textAlign: "right" }} />
+            <Input type="number" value={dailyDemand} onChange={(e) => setDailyDemand(Number(e.target.value))} style={{ ...field, width: 80, textAlign: "right" }} />
           </label>
           <label style={{ fontSize: 12 }}>
             <div style={{ marginBottom: 4, color: "var(--color-muted)" }}>調達リードタイム（日）</div>
-            <input type="number" value={leadTimeDays} onChange={(e) => setLeadTimeDays(Number(e.target.value))} style={{ ...field, width: 80, textAlign: "right" }} />
+            <Input type="number" value={leadTimeDays} onChange={(e) => setLeadTimeDays(Number(e.target.value))} style={{ ...field, width: 80, textAlign: "right" }} />
           </label>
         </div>
 
@@ -145,14 +146,14 @@ export default function Page() {
               </option>
             ))}
           </select>
-          <input type="number" value={qty} onChange={(e) => setQty(Number(e.target.value))} style={{ ...field, width: 90, textAlign: "right" }} />
-          <button
+          <Input type="number" value={qty} onChange={(e) => setQty(Number(e.target.value))} style={{ ...field, width: 90, textAlign: "right" }} />
+          <Button
             onClick={add}
             style={{ padding: "7px 18px", borderRadius: "var(--radius)", border: "none", background: "var(--color-primary)", color: "var(--color-primary-fg)", cursor: "pointer" }}
           >
             記録する
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => {
               setMovements(INITIAL);
               setRejected("");
@@ -160,7 +161,7 @@ export default function Page() {
             style={{ padding: "7px 18px", borderRadius: "var(--radius)", border: "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-fg)", cursor: "pointer" }}
           >
             戻す
-          </button>
+          </Button>
         </div>
         {rejected !== "" && <p style={{ fontSize: 13, color: "var(--color-danger)", marginTop: 10, fontWeight: 700 }}>× {rejected}</p>}
         <p style={{ fontSize: 12, color: "var(--color-muted)", marginTop: 10, lineHeight: 1.8 }}>

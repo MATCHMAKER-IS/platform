@@ -51,14 +51,14 @@ export function NoticeBoard({ items, emptyText = "お知らせはありません
               {...(item.onClick ? { onClick: item.onClick, type: "button" } : {})}
               className={cn(
                 "flex w-full items-start gap-3 px-3 py-2.5 text-left",
-                (item.href || item.onClick) && "hover:bg-slate-50",
+                (item.href || item.onClick) && "hover:bg-[var(--color-subtle)]",
               )}
             >
               <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", item.unread ? LEVEL_DOT[item.level ?? "info"] : "bg-transparent ring-1 ring-[var(--color-border)]")} aria-hidden />
               <span className="min-w-0 flex-1">
                 <span className="flex flex-wrap items-baseline gap-x-2">
                   <span className={cn("truncate text-sm", item.unread ? "font-semibold text-[var(--color-fg)]" : "text-[var(--color-fg)]")}>{item.title}</span>
-                  {item.category && <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-[var(--color-muted)]">{item.category}</span>}
+                  {item.category && <span className="rounded bg-[var(--color-subtle-strong)] px-1.5 py-0.5 text-xs text-[var(--color-muted)]">{item.category}</span>}
                 </span>
                 {item.date && <span className="mt-0.5 block text-xs text-[var(--color-muted)]">{item.date}</span>}
               </span>

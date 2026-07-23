@@ -32,7 +32,7 @@ const DOT_COLOR: Record<TimelineStatus, string> = {
   success: "bg-emerald-500",
   warning: "bg-amber-500",
   danger: "bg-red-500",
-  muted: "bg-slate-300",
+  muted: "bg-[var(--color-subtle-strong)]",
 };
 
 /** 縦型アクティビティ履歴。承認フローや変更履歴の表示に。 */

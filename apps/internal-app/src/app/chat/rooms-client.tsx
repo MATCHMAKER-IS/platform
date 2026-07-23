@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { Badge, List } from "@platform/ui";
+import { Badge, Button, List } from "@platform/ui";
 
 /** 1 ルームの未読情報。 */
 export interface RoomUnreadView {
@@ -47,10 +47,10 @@ export function RoomsClient({ roomIds, roomName, onOpen, fetchImpl }: RoomsClien
   return (
     <List>
       {rows.map((r) => (
-        <button key={r.roomId} onClick={() => onOpen?.(r.roomId)} className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-[var(--color-muted-bg,#f5f5f5)]">
+        <Button key={r.roomId} onClick={() => onOpen?.(r.roomId)} className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-[var(--color-muted-bg,#f5f5f5)]">
           <span>{nameOf(r.roomId)}</span>
           {r.unread > 0 && <Badge tone="danger">{r.unread}</Badge>}
-        </button>
+        </Button>
       ))}
     </List>
   );

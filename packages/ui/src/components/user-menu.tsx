@@ -33,6 +33,11 @@ export interface UserMenuProps {
 }
 
 /** アバター + ドロップダウンのユーザーメニュー。 */
+/**
+ * 利用者のメニュー(設定・ログアウト)。
+ *
+ * 右上に置くのが慣例。**ログアウトは一番下**に離す(押し間違い防止)。
+ */
 export function UserMenu({ name, detail, avatar, items, className }: UserMenuProps) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
@@ -55,7 +60,7 @@ export function UserMenu({ name, detail, avatar, items, className }: UserMenuPro
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-[var(--radius)] p-1 pr-2 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+        className="flex items-center gap-2 rounded-[var(--radius)] p-1 pr-2 transition-colors hover:bg-[var(--color-subtle-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
       >
         <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[var(--color-primary)] text-sm font-medium text-[var(--color-primary-fg)]">
           {avatar ?? initial}
@@ -73,7 +78,7 @@ export function UserMenu({ name, detail, avatar, items, className }: UserMenuPro
           {items.map((item, i) => {
             const cls = cn(
               "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors",
-              item.danger ? "text-[var(--color-danger)] hover:bg-red-50" : "text-[var(--color-fg)] hover:bg-slate-50",
+              item.danger ? "text-[var(--color-danger)] hover:bg-red-50" : "text-[var(--color-fg)] hover:bg-[var(--color-subtle)]",
               item.separated && "mt-1 border-t border-[var(--color-border)] pt-2.5",
             );
             const inner = (

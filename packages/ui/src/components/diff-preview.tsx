@@ -18,6 +18,12 @@ export interface DiffPreviewProps<T extends Record<string, unknown>> {
 }
 
 /** 差分プレビュー。 */
+/**
+ * 変更前後の比較。
+ *
+ * 承認の前に**何が変わるか**を見せる。
+ * 変更点だけを出すと、消された項目に気づけないことがある。
+ */
 export function DiffPreview<T extends Record<string, unknown>>({ diff, labelOf, className }: DiffPreviewProps<T>) {
   const t = useT();
   return (

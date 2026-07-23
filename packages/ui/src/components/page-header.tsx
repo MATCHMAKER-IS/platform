@@ -19,6 +19,12 @@ export interface PageHeaderProps extends Omit<React.HTMLAttributes<HTMLDivElemen
 }
 
 /** ページ上部の見出しブロック。 */
+/**
+ * 画面の見出し(題名・説明・操作)。
+ *
+ * **その画面が何をする場所か**を最初に伝える。
+ * 主要な操作(新規作成・書き出し)は右側に置くと、視線の流れに合う。
+ */
 export const PageHeader = React.forwardRef<HTMLDivElement, PageHeaderProps>(
   ({ title, description, breadcrumb, actions, className, ...props }, ref) => (
     <div ref={ref} className={cn("mb-6 flex flex-col gap-3", className)} {...props}>

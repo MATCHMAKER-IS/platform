@@ -1,6 +1,7 @@
 "use client";
 /** 経営ダッシュボード。売掛・買掛・在庫・勤怠承認・請求の KPI を一画面に集約。 */
 import * as React from "react";
+import { Button } from "@platform/ui";
 
 interface Kpi {
   receivables: { outstanding: number; overdue: number };
@@ -65,7 +66,7 @@ export function OverviewClient({ fetchImpl }: OverviewClientProps) {
         <div className="mb-6 rounded border border-neutral-200 p-4">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-sm font-medium">アラート（{alerts.length} 件）</h2>
-            <button onClick={notifyMe} className="rounded border border-neutral-300 px-3 py-1 text-xs">自分に通知する</button>
+            <Button onClick={notifyMe} className="rounded border border-neutral-300 px-3 py-1 text-xs">自分に通知する</Button>
           </div>
           {sent && <p className="mb-2 text-xs text-green-700">{sent}</p>}
           <ul className="space-y-2">

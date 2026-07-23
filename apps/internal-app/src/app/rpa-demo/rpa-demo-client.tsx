@@ -1,6 +1,7 @@
 "use client";
 /** RPA 安全実行のデモ。ランナー経由(直列化・リトライ・タイムアウト・監査)でサンプルタスクを実行し、監査ログを表示。 */
 import * as React from "react";
+import { Button } from "@platform/ui";
 
 interface RunResult { ok: boolean; runId: string; attempts: number; error?: string; }
 interface AuditEvent { action: string; target?: string; at: string; metadata?: Record<string, unknown>; }
@@ -32,8 +33,8 @@ export function RpaDemoClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
       <h1 style={{ fontSize: 22 }}>RPA デモ（安全実行）</h1>
       <p style={{ fontSize: 13, color: "var(--color-muted, #666)", lineHeight: 1.6 }}>RPA ランナー経由でサンプルタスクを実行します。同じ <code>lockKey</code> のタスクは直列化され、失敗時はリトライ、全操作は監査に記録されます（基盤は RPA 本体を持たず、安全に回す枠組みだけを提供します）。</p>
       <div style={{ ...card, marginTop: 12, display: "flex", gap: 8 }}>
-        <button onClick={() => run(false)} disabled={busy} style={{ padding: "8px 20px", background: busy ? "#ccc" : "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>{busy ? "実行中…" : "成功パターンを実行"}</button>
-        <button onClick={() => run(true)} disabled={busy} style={{ padding: "8px 20px", background: "var(--color-surface, #fff)", color: "var(--color-danger, #c00)", border: "1px solid #f0c0c0", borderRadius: 8 }}>失敗パターンを実行（リトライ確認）</button>
+        <Button onClick={() => run(false)} disabled={busy} style={{ padding: "8px 20px", background: busy ? "#ccc" : "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>{busy ? "実行中…" : "成功パターンを実行"}</Button>
+        <Button onClick={() => run(true)} disabled={busy} style={{ padding: "8px 20px", background: "var(--color-surface, #fff)", color: "var(--color-danger, #c00)", border: "1px solid #f0c0c0", borderRadius: 8 }}>失敗パターンを実行（リトライ確認）</Button>
       </div>
       {result && (
         <div style={{ ...card, marginTop: 12, background: result.ok ? "#f0fdf4" : "#fef2f2" }}>

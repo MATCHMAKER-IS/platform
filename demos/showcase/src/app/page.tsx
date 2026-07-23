@@ -6,6 +6,7 @@
  */
 import Link from "next/link";
 import { SECTIONS, allDemos } from "../lib/nav";
+import { DevGuide } from "../components/dev-guide";
 
 export default function Page() {
   const total = allDemos().length;
@@ -20,6 +21,8 @@ export default function Page() {
           全 {total} デモ。すべて <strong>DB 不要</strong>(メモリ・モックデータ)で動きます。
         </p>
       </header>
+
+      <DevGuide />
 
       {SECTIONS.map((section) => (
         <section key={section.title} id={section.title} style={{ marginBottom: 40 }}>

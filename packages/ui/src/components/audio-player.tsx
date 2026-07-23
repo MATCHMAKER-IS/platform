@@ -20,6 +20,11 @@ export interface AudioPlayerProps {
 }
 
 /** 音声プレイヤー。 */
+/**
+ * 音声の再生。
+ *
+ * 議事録や問い合わせ録音に使う。**再生位置を保存**すると、途中から続きを聞ける。
+ */
 export function AudioPlayer({ src, title, className }: AudioPlayerProps) {
   const audioRef = React.useRef<HTMLAudioElement>(null);
   const m = useMediaElement(audioRef);

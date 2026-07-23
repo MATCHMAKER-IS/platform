@@ -1,6 +1,7 @@
 "use client";
 /** 管理: 利用状況ダッシュボード・設定変更履歴・送信Webhook購読を1画面に集約。 */
 import * as React from "react";
+import { Button, Input } from "@platform/ui";
 
 interface Count { key: string; count: number; }
 interface Usage { totalEvents: number; activeUsers: number; byFeature: Count[]; byActor: Count[]; byAction: Count[]; }
@@ -43,7 +44,7 @@ export function InsightsClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
     <div className="mx-auto max-w-3xl p-6">
       <h1 className="mb-1 text-2xl font-bold">利用状況・設定履歴・Webhook</h1>
       <div className="mb-4 flex gap-1 border-b border-neutral-200">
-        {TABS.map(([k, l]) => <button key={k} onClick={() => setTab(k!)} className={`px-3 py-2 text-sm ${tab === k ? "border-b-2 border-neutral-900 font-medium" : "text-neutral-500"}`}>{l}</button>)}
+        {TABS.map(([k, l]) => <Button key={k} onClick={() => setTab(k!)} className={`px-3 py-2 text-sm ${tab === k ? "border-b-2 border-neutral-900 font-medium" : "text-neutral-500"}`}>{l}</Button>)}
       </div>
 
       {tab === "usage" && usage && (
@@ -75,15 +76,15 @@ export function InsightsClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
           <h2 className="mb-2 text-sm font-medium">送信Webhook（イベントを外部URLへ署名付きで配信）</h2>
           {msg && <p className="mb-2 text-xs text-red-600">{msg}</p>}
           <div className="mb-3 grid grid-cols-3 gap-2">
-            <input value={form.url} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, url: e.target.value })} placeholder="https://example.com/hook" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
-            <input value={form.events} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, events: e.target.value })} placeholder="invoice.created,* " className="rounded border border-neutral-300 px-2 py-1 text-sm" />
-            <div className="flex gap-1"><input value={form.secret} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, secret: e.target.value })} placeholder="署名secret" className="flex-1 rounded border border-neutral-300 px-2 py-1 text-sm" /><button onClick={addSub} className="rounded bg-neutral-900 px-3 py-1 text-sm text-white">追加</button></div>
+            <Input value={form.url} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, url: e.target.value })} placeholder="https://example.com/hook" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
+            <Input value={form.events} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, events: e.target.value })} placeholder="invoice.created,* " className="rounded border border-neutral-300 px-2 py-1 text-sm" />
+            <div className="flex gap-1"><Input value={form.secret} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, secret: e.target.value })} placeholder="署名secret" className="flex-1 rounded border border-neutral-300 px-2 py-1 text-sm" /><Button onClick={addSub} className="rounded bg-neutral-900 px-3 py-1 text-sm text-white">追加</Button></div>
           </div>
           <ul className="space-y-1">
             {subs.map((s) => (
               <li key={s.id} className="flex items-center justify-between border-b border-neutral-100 py-1.5 text-sm">
                 <span><span className={`mr-2 rounded px-1.5 py-0.5 text-xs ${s.active ? "bg-green-100 text-green-800" : "bg-neutral-200 text-neutral-600"}`}>{s.active ? "有効" : "停止"}</span>{s.url} <span className="text-xs text-neutral-400">[{s.events.join(", ")}]</span></span>
-                <span className="flex gap-2 text-xs"><button onClick={() => setActive(s.id, !s.active)} className="text-blue-600 hover:underline">{s.active ? "停止" : "有効化"}</button><button onClick={() => remove(s.id)} className="text-red-600 hover:underline">削除</button></span>
+                <span className="flex gap-2 text-xs"><Button onClick={() => setActive(s.id, !s.active)} className="text-blue-600 hover:underline">{s.active ? "停止" : "有効化"}</Button><Button onClick={() => remove(s.id)} className="text-red-600 hover:underline">削除</Button></span>
               </li>
             ))}
             {subs.length === 0 && <li className="text-xs text-neutral-500">購読はありません。</li>}

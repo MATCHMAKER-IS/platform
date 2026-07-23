@@ -34,6 +34,12 @@ export interface MessageListProps {
 }
 
 /** メッセージ一覧(日付区切り・未読ライン付き)。 */
+/**
+ * 会話の履歴。
+ *
+ * 新しいものを下に積み、**開いたら最新を見せる**。
+ * 未読の位置に区切りを入れると、どこから読めばよいか分かる。
+ */
 export function MessageList({ groups, firstUnreadId, className }: MessageListProps) {
   return (
     <div className={cn("flex flex-col gap-4 overflow-y-auto p-4", className)}>

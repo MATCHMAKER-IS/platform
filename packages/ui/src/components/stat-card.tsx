@@ -18,7 +18,22 @@ export interface StatCardProps {
   className?: string;
 }
 
-/** サマリーカード。 */
+/**
+ * 数値を 1 つ見せるカード。
+ *
+ * **今どうなっているか**を一目で伝えるためのもの。細かい内訳は表に任せる。
+ *
+ * - `label` は何の数字かを短く(「今月の売上」)
+ * - `value` は数値だけにする。単位は `hint` へ回すと数字が読みやすい
+ * - `href` を渡すと押せるようになる。**押した先に明細がある**ときだけ付ける
+ *   (押せそうなのに何も起きないのが最も分かりにくい)
+ *
+ * @example
+ * ```tsx
+ * <StatCard label="未承認の申請" value={12} hint="件（3 件は期限切れ）" href="/expenses" />
+ * <StatCard label="今月の売上" value="1,240,000" hint="円" icon="💰" />
+ * ```
+ */
 export function StatCard({ label, value, hint, icon, href, className }: StatCardProps) {
   const inner = (
     <div className={cn("flex items-center gap-3 rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg,#fff)] px-4 py-3", className)}>

@@ -1,0 +1,11 @@
+{
+  "_comment": "復元訓練の記録。手順は docs/ops/BACKUP_RESTORE.md。node tools/check-drill.mjs が間隔を見張る。",
+  "intervalDays": 180,
+  "rtoMinutes": 240,
+  "lastDrillAt": null,
+  "durationMinutes": null,
+  "restoredFrom": null,
+  "operator": null,
+  "issues": [],
+  "nextActions": []
+}

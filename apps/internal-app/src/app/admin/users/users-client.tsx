@@ -1,6 +1,7 @@
 "use client";
 /** 管理画面: ユーザー・権限ディレクトリ。利用者の追加・ロール割当・有効/無効を管理する。 */
 import * as React from "react";
+import { Button, Input } from "@platform/ui";
 
 interface User { email: string; name: string; department: string; roles: string[]; permissions: string[]; active: boolean; createdAt: string; passwordSetAt?: string; }
 interface Perm { key: string; label: string; }
@@ -56,31 +57,31 @@ export function UsersClient({ fetchImpl }: UsersClientProps) {
         <div className="mb-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm">
           <p className="text-amber-800">{tempPw.email} の一時パスワード（この画面でのみ表示。控えて本人へ伝えてください）:</p>
           <p className="mt-1 font-mono text-base font-bold text-neutral-900">{tempPw.password}</p>
-          <button onClick={() => setTempPw(null)} className="mt-1 text-xs text-neutral-500 hover:underline">閉じる</button>
+          <Button onClick={() => setTempPw(null)} className="mt-1 text-xs text-neutral-500 hover:underline">閉じる</Button>
         </div>
       )}
 
       <div className="mb-6 rounded border border-neutral-200 p-4">
         <h2 className="mb-2 text-sm font-medium">ユーザーを追加 / 編集</h2>
         <div className="flex flex-col gap-2">
-          <label className="text-xs text-neutral-500">メールアドレス<input value={form.email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, email: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-          <label className="text-xs text-neutral-500">氏名<input value={form.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-          <label className="text-xs text-neutral-500">部門<input value={form.department} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, department: e.target.value })} placeholder="営業部 / 経理部 など" className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+          <label className="text-xs text-neutral-500">メールアドレス<Input value={form.email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, email: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+          <label className="text-xs text-neutral-500">氏名<Input value={form.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+          <label className="text-xs text-neutral-500">部門<Input value={form.department} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, department: e.target.value })} placeholder="営業部 / 経理部 など" className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
           <div className="text-xs text-neutral-500">ロール
             <div className="mt-1 flex flex-wrap gap-2">
               {roles.map((r) => (
-                <button key={r} onClick={() => toggleRole(r)} className={`rounded border px-2 py-1 text-xs ${form.roles.includes(r) ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-300 text-neutral-600"}`}>{ROLE_LABEL[r] ?? r}</button>
+                <Button key={r} onClick={() => toggleRole(r)} className={`rounded border px-2 py-1 text-xs ${form.roles.includes(r) ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-300 text-neutral-600"}`}>{ROLE_LABEL[r] ?? r}</Button>
               ))}
             </div>
           </div>
           <div className="text-xs text-neutral-500">個別権限（ロールに追加で付与）
             <div className="mt-1 flex flex-wrap gap-1">
               {perms.map((p) => (
-                <button key={p.key} onClick={() => togglePerm(p.key)} className={`rounded border px-2 py-0.5 text-xs ${form.permissions.includes(p.key) ? "border-blue-600 bg-blue-600 text-white" : "border-neutral-300 text-neutral-600"}`}>{p.label}</button>
+                <Button key={p.key} onClick={() => togglePerm(p.key)} className={`rounded border px-2 py-0.5 text-xs ${form.permissions.includes(p.key) ? "border-blue-600 bg-blue-600 text-white" : "border-neutral-300 text-neutral-600"}`}>{p.label}</Button>
               ))}
             </div>
           </div>
-          <button onClick={save} className="mt-1 self-start rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">保存</button>
+          <Button onClick={save} className="mt-1 self-start rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">保存</Button>
         </div>
       </div>
 
@@ -94,7 +95,7 @@ export function UsersClient({ fetchImpl }: UsersClientProps) {
               <td className="px-2 py-1.5">{u.department || "—"}</td>
               <td className="px-2 py-1.5">{u.roles.map((r) => ROLE_LABEL[r] ?? r).join("・") || "—"}{u.permissions.length > 0 && <span className="ml-1 text-xs text-blue-600">+{u.permissions.length}権限</span>}</td>
               <td className="px-2 py-1.5">{u.active ? <span className="rounded bg-green-100 px-1.5 py-0.5 text-xs text-green-800">有効</span> : <span className="rounded bg-neutral-200 px-1.5 py-0.5 text-xs text-neutral-600">無効</span>}</td>
-              <td className="px-2 py-1.5 text-right"><span className="flex justify-end gap-2"><button onClick={() => edit(u)} className="text-blue-600 hover:underline">編集</button><button onClick={() => reissue(u.email)} className="text-amber-700 hover:underline">パスワード再発行</button><button onClick={() => setActive(u.email, !u.active)} className="text-neutral-500 hover:underline">{u.active ? "無効化" : "有効化"}</button></span></td>
+              <td className="px-2 py-1.5 text-right"><span className="flex justify-end gap-2"><Button onClick={() => edit(u)} className="text-blue-600 hover:underline">編集</Button><Button onClick={() => reissue(u.email)} className="text-amber-700 hover:underline">パスワード再発行</Button><Button onClick={() => setActive(u.email, !u.active)} className="text-neutral-500 hover:underline">{u.active ? "無効化" : "有効化"}</Button></span></td>
             </tr>
           ))}
         </tbody>

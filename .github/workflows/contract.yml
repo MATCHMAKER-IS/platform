@@ -1,0 +1,53 @@
+# 外部SaaSとの契約テスト（週次）。
+#
+# 目的: freee / Google / PayPal などの API が「こちらの知らないうちに変わった」ことを、
+#       利用者からの連絡ではなく CI で先に検知する。
+#
+# 動き:
+#   1. 認証情報（Secrets）があるコネクタだけ、本物の API に問い合わせて応答を記録する
+#   2. 記録した応答に、実装が依存するフィールドが揃っているか厳格モードで検査する
+#   3. 欠けていれば失敗 → Issue で気づける
+#
+# Secrets が未設定の場合は記録をスキップし、契約と実装のズレ（C003）だけを見る。
+name: contract
+
+on:
+  schedule:
+    - cron: "0 21 * * 0" # 毎週月曜 6:00 JST
+  workflow_dispatch: # 手動実行（連携先の障害調査時など）
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 契約と実装のズレを検査（認証情報不要）
+        run: node tools/check-contract.mjs
+
+      - name: 実応答を記録（認証情報がある場合のみ）
+        env:
+          FREEE_CLIENT_ID: ${{ secrets.FREEE_CLIENT_ID }}
+          FREEE_CLIENT_SECRET: ${{ secrets.FREEE_CLIENT_SECRET }}
+          FREEE_REFRESH_TOKEN: ${{ secrets.FREEE_REFRESH_TOKEN }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          PAYPAL_CLIENT_ID: ${{ secrets.PAYPAL_CLIENT_ID }}
+          PAYPAL_CLIENT_SECRET: ${{ secrets.PAYPAL_CLIENT_SECRET }}
+        run: node tools/record-contract.mjs
+
+      - name: 厳格モードで検査（未記録・期限切れも失敗）
+        env:
+          CONTRACT_STRICT: "1"
+        run: node tools/check-contract.mjs
+        continue-on-error: true # 認証情報の整備前に赤くし続けない。整えたら false にする
+
+      - name: 記録の差分を表示
+        if: always()
+        run: git --no-pager diff --stat tests/contracts || true

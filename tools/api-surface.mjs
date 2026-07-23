@@ -8,13 +8,15 @@
  *   node tools/api-surface.mjs --update … スナップショットを再生成
  */
 import { readFileSync, readdirSync, existsSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 
 const ROOT = process.cwd();
 const SNAPSHOT = join(ROOT, "docs/platform/api-surface.json");
 
 const EXPORT_DECL = /export\s+(?:async\s+)?(?:function|const|class|interface|type|enum)\s+([A-Za-z0-9_$]+)/g;
-const EXPORT_NAMED = /export\s*\{([^}]*)\}/g;
+// `export { a, b }` と `export type { A, B }` の両方を拾う。
+// type を落とすと、型だけを外に出しているパッケージ(theme など)の記録が空になる。
+const EXPORT_NAMED = /export\s+(?:type\s+)?\{([^}]*)\}/g;
 
 /** ソースから export 名を抽出(re-export の `X as Y` は Y を採用)。 */
 function extractExports(src) {
@@ -48,8 +50,12 @@ function collectPackageSurface(pkgDir) {
       // 拡張子は付いていないのが既定(moduleResolution: Bundler)。
       // 古いコードが .js を付けている場合にも備える。
       const stem = m[1].replace(/\.js$/, "");
+      // 相対パスは**そのファイルのある場所**から解決する。
+      // src/ 起点で解決すると、入れ子(src/core/index.ts の "./datacenter")を辿れず、
+      // その配下の export がすべて記録から漏れる(実際に @platform/zoho で起きていた)。
+      const fromDir = dirname(filePath);
       for (const cand of [`${stem}.ts`, `${stem}.tsx`, `${stem}/index.ts`]) {
-        const p = join(pkgDir, "src", cand);
+        const p = join(fromDir, cand);
         if (existsSync(p)) { walk(p); break; }
       }
     }

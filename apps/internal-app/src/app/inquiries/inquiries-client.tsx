@@ -1,6 +1,7 @@
 "use client";
 /** お問い合わせ管理。届いた問い合わせの一覧・状況更新（未対応/対応中/完了）。 */
 import * as React from "react";
+import { Button, Select } from "@platform/ui";
 
 interface Inquiry { id: string; name: string; email: string; category: string; subject: string; message: string; status: "new" | "in_progress" | "closed"; createdAt: string; }
 
@@ -33,9 +34,7 @@ export function InquiriesClient({ fetchImpl }: InquiriesClientProps) {
     <div className="mx-auto max-w-4xl p-6">
       <div className="mb-1 flex items-center justify-between">
         <h1 className="text-2xl font-bold">お問い合わせ管理 {open > 0 && <span className="ml-1 rounded-full bg-red-600 px-2 py-0.5 text-sm text-white">{open}</span>}</h1>
-        <select value={filter} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilter(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-sm">
-          <option value="">すべて</option><option value="new">未対応</option><option value="in_progress">対応中</option><option value="closed">完了</option>
-        </select>
+        <Select value={filter} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilter(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-sm" options={[{ label: "すべて", value: "" }, { label: "未対応", value: "new" }, { label: "対応中", value: "in_progress" }, { label: "完了", value: "closed" }]} />
       </div>
       <p className="mb-4 text-xs text-neutral-500">未対応 {open} 件。行をクリックで詳細、状況を切り替えられます。</p>
 
@@ -59,13 +58,13 @@ export function InquiriesClient({ fetchImpl }: InquiriesClientProps) {
         <div className="mt-6 rounded border border-neutral-200 p-4">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-sm font-medium">{detail.subject}</h2>
-            <button onClick={() => setDetail(null)} className="text-xs text-neutral-500 hover:underline">閉じる</button>
+            <Button onClick={() => setDetail(null)} className="text-xs text-neutral-500 hover:underline">閉じる</Button>
           </div>
           <p className="text-xs text-neutral-500">{detail.name}（{detail.email}） ／ {detail.category} ／ {fmt(detail.createdAt)}</p>
           <p className="mt-3 whitespace-pre-wrap text-sm text-neutral-800">{detail.message}</p>
           <div className="mt-4 flex gap-2">
             {(["new", "in_progress", "closed"] as const).map((st) => (
-              <button key={st} onClick={() => setStatus(detail.id, st)} className={`rounded px-3 py-1 text-xs ${detail.status === st ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}>{STATUS_LABEL[st]}</button>
+              <Button key={st} onClick={() => setStatus(detail.id, st)} className={`rounded px-3 py-1 text-xs ${detail.status === st ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}>{STATUS_LABEL[st]}</Button>
             ))}
           </div>
         </div>

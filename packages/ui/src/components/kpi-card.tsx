@@ -25,7 +25,29 @@ export interface KpiCardProps {
   className?: string;
 }
 
-/** KPI カード。 */
+/**
+ * 指標カード(前期比つき)。
+ *
+ * `StatCard` が「今の値」だけを見せるのに対し、こちらは**前と比べてどうか**を見せる。
+ * 経営や運用の画面で「増えた/減った」を判断させたいときに使う。
+ *
+ * | props | 使いどころ |
+ * |---|---|
+ * | `previous` | 前期の値。**渡すと増減が出る**。無ければ数値だけ |
+ * | `series` | 推移の小さな折れ線。傾向が一目で分かる |
+ * | `format` | 値の整形(既定は桁区切り)。通貨や小数に |
+ * | `suffix` | 単位(「円」「%」)。値と分けると数字が読みやすい |
+ * | `higherIsBetter` | **コストや離職率は `false`**。増加を赤で見せる |
+ *
+ * `higherIsBetter` を既定のままにすると、**費用が増えたときに緑(良い)で出る**。
+ * 指標の性質に合わせて必ず確認する。
+ *
+ * @example
+ * ```tsx
+ * <KpiCard label="今月の売上" value={1240000} previous={1180000} suffix="円" series={last12} />
+ * <KpiCard label="解約率" value={3.2} previous={2.8} suffix="%" higherIsBetter={false} />
+ * ```
+ */
 export function KpiCard({ label, value, previous, series, format, suffix, higherIsBetter = true, className }: KpiCardProps) {
   const fmt = format ?? ((n: number) => formatNumber(n, {}));
   return (

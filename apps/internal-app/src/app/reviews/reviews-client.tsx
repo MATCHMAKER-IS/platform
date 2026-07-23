@@ -1,6 +1,7 @@
 "use client";
 /** 口コミページ。対象（社内ツール等）を選び、その口コミ一覧・投稿を表示。 */
 import * as React from "react";
+import { Button } from "@platform/ui";
 import { ReviewSection } from "../../components/ReviewSection";
 
 const SUBJECTS = [
@@ -19,7 +20,7 @@ export function ReviewsClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="mb-4 text-2xl font-bold">口コミ</h1>
       <div className="mb-4 flex flex-wrap gap-2">
-        {SUBJECTS.map((s) => <button key={s.id} onClick={() => setSel(s)} className={`rounded-full border px-3 py-1 text-sm ${sel.id === s.id ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-300"}`}>{s.label}</button>)}
+        {SUBJECTS.map((s) => <Button key={s.id} onClick={() => setSel(s)} className={`rounded-full border px-3 py-1 text-sm ${sel.id === s.id ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-300"}`}>{s.label}</Button>)}
       </div>
       <ReviewSection subjectType={sel.type} subjectId={sel.id} canModerate={isAdmin} />
     </div>

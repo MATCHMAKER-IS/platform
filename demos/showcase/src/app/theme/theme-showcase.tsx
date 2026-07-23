@@ -376,6 +376,58 @@ import { buildThemeStylesheet } from "@platform/theme";
 const css = buildThemeStylesheet(registry.list());   // [data-skin="acme"] { --color-primary: ... }`}
         </span>
         <Separator style={{ margin: "12px 0" }} />
+
+        {/* 横の案内(サイドバー)の見え方。テーマを切り替えると色が変わる */}
+        <div style={{ fontSize: 13, fontWeight: 700, margin: "16px 0 8px" }}>横の案内(サイドバー)</div>
+        <p style={{ fontSize: 11.5, color: "var(--color-muted)", lineHeight: 1.8, margin: "0 0 10px" }}>
+          テーマが <code>sidebarBg</code> を持つ場合だけ、案内の色が変わります(ネイビーサイド・フォレストサイド・ワインサイド)。
+          持たないテーマでは <code>surface</code> のまま——<strong>これまでと同じ見た目</strong>です。
+        </p>
+        <div style={{ display: "flex", border: "1px solid var(--color-border)", borderRadius: "var(--radius)", overflow: "hidden", minHeight: 180 }}>
+          <div
+            style={{
+              width: 170, padding: 12, flexShrink: 0,
+              background: "var(--color-sidebar-bg, var(--color-surface))",
+              color: "var(--color-sidebar-fg, var(--color-fg))",
+            }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 10, opacity: 0.85 }}>社内システム</div>
+            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 2 }}>
+              {[
+                { label: "ダッシュボード", active: false },
+                { label: "経費申請", active: true },
+                { label: "勤怠", active: false },
+                { label: "請求", active: false },
+                { label: "設定", active: false },
+              ].map((it) => (
+                <li
+                  key={it.label}
+                  style={{
+                    fontSize: 12.5, padding: "7px 10px", borderRadius: "var(--radius)",
+                    ...(it.active
+                      ? {
+                          background: "var(--color-sidebar-active-bg, color-mix(in srgb, currentColor 12%, transparent))",
+                          color: "var(--color-sidebar-active-fg, inherit)",
+                          fontWeight: 600,
+                        }
+                      : { opacity: 0.75 }),
+                  }}
+                >
+                  {it.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div style={{ flex: 1, padding: 16, background: "var(--color-bg)" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>経費申請</div>
+            <p style={{ fontSize: 12, color: "var(--color-muted)", lineHeight: 1.9, margin: 0 }}>
+              本文は明るいまま、案内だけ濃くする型です。境目がはっきりするので、
+              画面が広くても<strong>今どこにいるか</strong>を見失いにくくなります。
+            </p>
+          </div>
+        </div>
+
+        <Separator style={{ margin: "16px 0 12px" }} />
         <p style={{ fontSize: 11.5, color: "var(--color-muted)", lineHeight: 1.8, margin: 0 }}>
           <strong>アプリのコードに色を書かない</strong>のが要点です。
           <code>bg-neutral-900</code> と直書きすると、<strong>スキンを切り替えても変わりません</strong>——

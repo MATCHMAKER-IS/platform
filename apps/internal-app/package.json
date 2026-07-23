@@ -16,6 +16,7 @@
   "dependencies": {
     "@platform/accounting": "workspace:*",
     "@platform/analytics": "workspace:*",
+    "@platform/attendance": "workspace:*",
     "@platform/audit": "workspace:*",
     "@platform/blueprint": "workspace:*",
     "@platform/board": "workspace:*",
@@ -24,6 +25,7 @@
     "@platform/contract": "workspace:*",
     "@platform/core": "workspace:*",
     "@platform/cron": "workspace:*",
+    "@platform/crypto": "workspace:*",
     "@platform/csv": "workspace:*",
     "@platform/datetime": "workspace:*",
     "@platform/db": "workspace:*",
@@ -40,6 +42,7 @@
     "@platform/logger": "workspace:*",
     "@platform/mail": "workspace:*",
     "@platform/mcp": "workspace:*",
+    "@platform/mobile": "workspace:*",
     "@platform/notify": "workspace:*",
     "@platform/os-notify": "workspace:*",
     "@platform/purchase": "workspace:*",

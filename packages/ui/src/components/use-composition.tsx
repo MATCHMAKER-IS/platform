@@ -41,6 +41,18 @@ export interface CompositionState {
  * />
  * ```
  */
+/**
+ * 日本語入力の変換中を検知する。
+ *
+ * **変換中の Enter を「送信」と誤認しない**ために使う。
+ * これが無いと、漢字を選んだつもりが送信される(日本語では頻発する)。
+ *
+ * @example
+ * ```tsx
+ * const { composing, bind } = useComposition();
+ * <input {...bind} onKeyDown={(e) => { if (e.key === "Enter" && !composing) send(); }} />
+ * ```
+ */
 export function useComposition(): CompositionState {
   const [isComposing, setIsComposing] = React.useState(false);
   const handlers = React.useMemo(

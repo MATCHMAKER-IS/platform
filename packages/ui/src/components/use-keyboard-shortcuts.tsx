@@ -23,6 +23,15 @@ function isEditable(target: EventTarget | null): boolean {
 }
 
 /** ショートカットを登録する。isMac は省略時に自動判定。 */
+/**
+ * キーボード操作の登録。
+ *
+ * 慣れた人が速く動くための補助。**これだけでしかできない操作を作らない**
+ * (知らない人には無いのと同じ)。
+ *
+ * 入力欄にいる間は動かさない(文字が打てなくなる)。
+ * 割り当ては、ブラウザや読み上げソフトの操作と重ならないか確認する。
+ */
 export function useKeyboardShortcuts(bindings: ShortcutBinding[], isMac?: boolean): void {
   const bindingsRef = React.useRef(bindings);
   bindingsRef.current = bindings;

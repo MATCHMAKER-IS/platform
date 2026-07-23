@@ -25,12 +25,21 @@ export interface MessageBubbleProps {
 }
 
 /** メッセージの吹き出し。 */
+/**
+ * 会話の 1 件(吹き出し)。
+ *
+ * 自分の発言と相手の発言を左右で分ける。**時刻を必ず添える**
+ * (いつの話か分からないと、後から追えない)。
+ */
 export function MessageBubble({ text, authorName, timestamp, own, edited, renderLinks = true, className }: MessageBubbleProps) {
   return (
     <div className={cn("flex flex-col gap-0.5", own ? "items-end" : "items-start", className)}>
       {!own && authorName && <span className="px-1 text-xs text-[var(--color-muted)]">{authorName}</span>}
       <div
-        className={cn("max-w-[75%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap break-words [&_a]:underline", own ? "bg-[var(--color-primary)] text-white" : "bg-[var(--color-muted-bg,#f1f1f1)] text-[var(--color-fg)]")}
+        className={cn(
+          "max-w-[75%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap break-words [&_a]:underline",
+          own ? "bg-[var(--color-primary)] text-white" : "bg-[var(--color-muted-bg,#f1f1f1)] text-[var(--color-fg)]",
+        )}
         {...(renderLinks ? { dangerouslySetInnerHTML: { __html: linkify(text) } } : {})}
       >
         {renderLinks ? null : text}

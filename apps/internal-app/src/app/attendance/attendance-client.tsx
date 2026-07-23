@@ -1,6 +1,7 @@
 "use client";
 /** 勤怠。月を選んで勤務表を表示（実働・残業・深夜・休日）、打刻を記録、月次集計。 */
 import * as React from "react";
+import { Button, Checkbox, Input } from "@platform/ui";
 
 interface Day { date: string; clockIn: string; clockOut: string; breakMinutes?: number; isHoliday?: boolean; totalMinutes: number; overtimeMinutes: number; nightMinutes: number; holidayMinutes: number; }
 interface Approval { status: string; submittedAt: string; history: { action: string; actor: string }[]; }
@@ -49,8 +50,8 @@ export function AttendanceClient({ fetchImpl }: AttendanceClientProps) {
         <h1 className="text-2xl font-bold">勤怠</h1>
         <div className="flex items-center gap-2">
           {summary?.approval && <span className={`rounded px-2 py-0.5 text-xs ${APPROVAL_LABEL[summary.approval.status]?.cls ?? ""}`}>{APPROVAL_LABEL[summary.approval.status]?.label ?? summary.approval.status}</span>}
-          {(!summary?.approval || summary.approval.status === "rejected") && <button onClick={submitMonth} className="rounded bg-neutral-900 px-3 py-1.5 text-sm text-white">月次を申請</button>}
-          <input type="month" value={month} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMonth(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-sm" />
+          {(!summary?.approval || summary.approval.status === "rejected") && <Button onClick={submitMonth} className="rounded bg-neutral-900 px-3 py-1.5 text-sm text-white">月次を申請</Button>}
+          <Input type="month" value={month} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMonth(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-sm" />
         </div>
       </div>
       {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
@@ -68,12 +69,12 @@ export function AttendanceClient({ fetchImpl }: AttendanceClientProps) {
       <div className="mb-6 rounded border border-neutral-200 p-4">
         <h2 className="mb-3 text-sm font-medium">打刻を記録</h2>
         <div className="flex flex-wrap items-end gap-2">
-          <label className="text-xs text-neutral-500">日付<input type="date" value={form.date} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, date: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-          <label className="text-xs text-neutral-500">出勤<input type="time" value={form.clockIn} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, clockIn: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-          <label className="text-xs text-neutral-500">退勤<input type="time" value={form.clockOut} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, clockOut: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-          <label className="text-xs text-neutral-500">休憩(分)<input value={form.breakMinutes} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, breakMinutes: e.target.value })} inputMode="numeric" className="mt-0.5 block w-20 rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-          <label className="flex items-center gap-1 text-xs text-neutral-600"><input type="checkbox" checked={form.isHoliday} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, isHoliday: e.target.checked })} />法定休日</label>
-          <button onClick={submit} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">記録</button>
+          <label className="text-xs text-neutral-500">日付<Input type="date" value={form.date} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, date: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+          <label className="text-xs text-neutral-500">出勤<Input type="time" value={form.clockIn} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, clockIn: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+          <label className="text-xs text-neutral-500">退勤<Input type="time" value={form.clockOut} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, clockOut: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+          <label className="text-xs text-neutral-500">休憩(分)<Input value={form.breakMinutes} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, breakMinutes: e.target.value })} inputMode="numeric" className="mt-0.5 block w-20 rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+          <label className="flex items-center gap-1 text-xs text-neutral-600"><Checkbox  checked={form.isHoliday} onCheckedChange={(v) => setForm({ ...form, isHoliday: !!v })} />法定休日</label>
+          <Button onClick={submit} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">記録</Button>
         </div>
         <p className="mt-2 text-xs text-neutral-400">退勤が出勤より前の場合は日をまたぐ勤務として扱います。深夜は 22:00〜翌5:00。</p>
       </div>

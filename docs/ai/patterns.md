@@ -9,7 +9,7 @@
 ## 0. UI 部品は `@platform/ui` を使う ★最初に読む
 
 参照: `demos/showcase/src/app/ui/page.tsx`(全部品の一覧) /
-`demos/showcase/src/app/register/page.tsx`(フォームの実例)
+`demos/showcase/src/app/inquiries/register-demo.tsx`(フォームの実例)
 
 ```tsx
 // ❌ 生タグ + inline style / Tailwind 直書き

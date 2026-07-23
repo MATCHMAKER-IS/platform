@@ -19,6 +19,22 @@ export interface SearchInputProps extends Omit<React.InputHTMLAttributes<HTMLInp
 }
 
 /** 検索入力。アイコン + クリア + Enter で検索。 */
+/**
+ * 検索欄(虫眼鏡と消去ボタンつき)。
+ *
+ * **入力のたびに検索すると重い。** 件数が多いなら `@platform/utils` の `debounce`
+ * を挟むか、決定キーで検索する。
+ *
+ * - 何を探せるかを `placeholder` に書く(「取引先・請求番号で検索」)
+ * - 結果が 0 件のときは `EmptyState` で**条件を外す操作**を出す
+ * - URL に検索語を残すと、共有や再読み込みで消えない
+ *
+ * @example
+ * ```tsx
+ * <SearchInput value={q} onChange={(e) => setQ(e.target.value)}
+ *   placeholder="取引先・請求番号で検索" onClear={() => setQ("")} />
+ * ```
+ */
 export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
   ({ className, value, onValueChange, onSearch, clearable = true, placeholder = "検索…", ...props }, ref) => (
     <div className={cn("relative inline-flex w-full items-center", className)}>

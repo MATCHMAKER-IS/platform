@@ -53,12 +53,30 @@ importers:
 
   apps/crud-template:
     dependencies:
+      '@platform/audit':
+        specifier: workspace:*
+        version: link:../../packages/audit
+      '@platform/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
+      '@platform/context':
+        specifier: workspace:*
+        version: link:../../packages/context
+      '@platform/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@platform/db':
         specifier: workspace:*
         version: link:../../packages/db
       '@platform/env':
         specifier: workspace:*
         version: link:../../packages/env
+      '@platform/logger':
+        specifier: workspace:*
+        version: link:../../packages/logger
+      '@platform/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@platform/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -87,12 +105,24 @@ importers:
 
   apps/equipment-app:
     dependencies:
+      '@platform/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@platform/crypto':
+        specifier: workspace:*
+        version: link:../../packages/crypto
       '@platform/db':
         specifier: workspace:*
         version: link:../../packages/db
       '@platform/env':
         specifier: workspace:*
         version: link:../../packages/env
+      '@platform/ratelimit':
+        specifier: workspace:*
+        version: link:../../packages/ratelimit
+      '@platform/session':
+        specifier: workspace:*
+        version: link:../../packages/session
       '@platform/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -127,6 +157,9 @@ importers:
       '@platform/analytics':
         specifier: workspace:*
         version: link:../../packages/analytics
+      '@platform/attendance':
+        specifier: workspace:*
+        version: link:../../packages/attendance
       '@platform/audit':
         specifier: workspace:*
         version: link:../../packages/audit
@@ -151,6 +184,9 @@ importers:
       '@platform/cron':
         specifier: workspace:*
         version: link:../../packages/cron
+      '@platform/crypto':
+        specifier: workspace:*
+        version: link:../../packages/crypto
       '@platform/csv':
         specifier: workspace:*
         version: link:../../packages/csv
@@ -199,6 +235,9 @@ importers:
       '@platform/mcp':
         specifier: workspace:*
         version: link:../../packages/mcp
+      '@platform/mobile':
+        specifier: workspace:*
+        version: link:../../packages/mobile
       '@platform/notify':
         specifier: workspace:*
         version: link:../../packages/notify
@@ -379,6 +418,9 @@ importers:
       '@platform/apikey':
         specifier: workspace:*
         version: link:../../packages/apikey
+      '@platform/attendance':
+        specifier: workspace:*
+        version: link:../../packages/attendance
       '@platform/audit':
         specifier: workspace:*
         version: link:../../packages/audit
@@ -451,6 +493,12 @@ importers:
       '@platform/elearning':
         specifier: workspace:*
         version: link:../../packages/elearning
+      '@platform/env':
+        specifier: workspace:*
+        version: link:../../packages/env
+      '@platform/faker':
+        specifier: workspace:*
+        version: link:../../packages/faker
       '@platform/faq':
         specifier: workspace:*
         version: link:../../packages/faq
@@ -508,12 +556,21 @@ importers:
       '@platform/mcp':
         specifier: workspace:*
         version: link:../../packages/mcp
+      '@platform/microsoft':
+        specifier: workspace:*
+        version: link:../../packages/microsoft
       '@platform/mobile':
         specifier: workspace:*
         version: link:../../packages/mobile
+      '@platform/net':
+        specifier: workspace:*
+        version: link:../../packages/net
       '@platform/notify':
         specifier: workspace:*
         version: link:../../packages/notify
+      '@platform/notion':
+        specifier: workspace:*
+        version: link:../../packages/notion
       '@platform/observability':
         specifier: workspace:*
         version: link:../../packages/observability
@@ -553,6 +610,9 @@ importers:
       '@platform/report':
         specifier: workspace:*
         version: link:../../packages/report
+      '@platform/rpa':
+        specifier: workspace:*
+        version: link:../../packages/rpa
       '@platform/saga':
         specifier: workspace:*
         version: link:../../packages/saga
@@ -577,6 +637,9 @@ importers:
       '@platform/site':
         specifier: workspace:*
         version: link:../../packages/site
+      '@platform/slack':
+        specifier: workspace:*
+        version: link:../../packages/slack
       '@platform/social':
         specifier: workspace:*
         version: link:../../packages/social
@@ -657,6 +720,25 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
+  packages/access-review:
+    dependencies:
+      '@platform/auth':
+        specifier: workspace:*
+        version: link:../auth
+      '@platform/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@platform/config':
+        specifier: workspace:*
+        version: link:../config
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.4
+        version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.1)(yaml@2.9.0)
+
   packages/accounting:
     devDependencies:
       '@platform/config':
@@ -725,6 +807,25 @@ importers:
         specifier: ^3.0.4
         version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.1)(yaml@2.9.0)
 
+  packages/attendance:
+    dependencies:
+      '@platform/datetime':
+        specifier: workspace:*
+        version: link:../datetime
+      '@platform/payroll':
+        specifier: workspace:*
+        version: link:../payroll
+    devDependencies:
+      '@platform/config':
+        specifier: workspace:*
+        version: link:../config
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.4
+        version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.1)(yaml@2.9.0)
+
   packages/audit:
     devDependencies:
       '@platform/config':
@@ -776,6 +877,10 @@ importers:
         version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.1)(yaml@2.9.0)
 
   packages/blog:
+    dependencies:
+      '@platform/url':
+        specifier: workspace:*
+        version: link:../url
     devDependencies:
       '@platform/config':
         specifier: workspace:*
@@ -1612,6 +1717,25 @@ importers:
         specifier: ^3.0.4
         version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.1)(yaml@2.9.0)
 
+  packages/microsoft:
+    dependencies:
+      '@platform/core':
+        specifier: workspace:*
+        version: link:../core
+      '@platform/integrations':
+        specifier: workspace:*
+        version: link:../integrations
+    devDependencies:
+      '@platform/config':
+        specifier: workspace:*
+        version: link:../config
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.4
+        version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.1)(yaml@2.9.0)
+
   packages/mobile:
     devDependencies:
       '@platform/config':
@@ -1647,6 +1771,25 @@ importers:
       '@platform/core':
         specifier: workspace:*
         version: link:../core
+    devDependencies:
+      '@platform/config':
+        specifier: workspace:*
+        version: link:../config
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.4
+        version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.1)(yaml@2.9.0)
+
+  packages/notion:
+    dependencies:
+      '@platform/core':
+        specifier: workspace:*
+        version: link:../core
+      '@platform/integrations':
+        specifier: workspace:*
+        version: link:../integrations
     devDependencies:
       '@platform/config':
         specifier: workspace:*
@@ -2017,6 +2160,25 @@ importers:
         version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.1)(yaml@2.9.0)
 
   packages/site:
+    devDependencies:
+      '@platform/config':
+        specifier: workspace:*
+        version: link:../config
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.0.4
+        version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.1)(yaml@2.9.0)
+
+  packages/slack:
+    dependencies:
+      '@platform/core':
+        specifier: workspace:*
+        version: link:../core
+      '@platform/integrations':
+        specifier: workspace:*
+        version: link:../integrations
     devDependencies:
       '@platform/config':
         specifier: workspace:*

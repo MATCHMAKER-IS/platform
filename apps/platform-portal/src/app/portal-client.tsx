@@ -1,7 +1,7 @@
 "use client";
 /** 基盤ポータル。パッケージ検索・カテゴリ絞り込み・ADR・ヘルスを1画面で。 */
 import * as React from "react";
-import { SkinSelector } from "@platform/ui";
+import { Button, Input, Select, SkinSelector } from "@platform/ui";
 
 interface ReferenceEntry { name: string; kind: string; summary: string; }
 interface PackageInfo { name: string; category: string; summary: string; exports: string[]; hasReadme: boolean; reference: ReferenceEntry[]; }
@@ -42,7 +42,7 @@ export function PortalClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
 
   const card: React.CSSProperties = { background: "var(--color-surface, #fff)", border: "1px solid #e8e8e8", borderRadius: 10, padding: 16 };
   const tabBtn = (t: Tab, label: string) => (
-    <button onClick={() => setTab(t)} style={{ padding: "8px 16px", border: "none", borderBottom: tab === t ? "2px solid #2563eb" : "2px solid transparent", background: "none", fontWeight: tab === t ? 600 : 400, color: tab === t ? "var(--color-primary, #2563eb)" : "var(--color-muted, #666)", cursor: "pointer" }}>{label}</button>
+    <Button onClick={() => setTab(t)} style={{ padding: "8px 16px", border: "none", borderBottom: tab === t ? "2px solid #2563eb" : "2px solid transparent", background: "none", fontWeight: tab === t ? 600 : 400, color: tab === t ? "var(--color-primary, #2563eb)" : "var(--color-muted, #666)", cursor: "pointer" }}>{label}</Button>
   );
 
   return (
@@ -69,11 +69,8 @@ export function PortalClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
       {tab === "packages" && (
         <div>
           <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-            <input value={q} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQ(e.target.value)} placeholder="名前・説明・export で検索（例: mail, retrieve, createDb）" style={{ flex: 1, minWidth: 240, padding: "8px 12px", border: "1px solid #ddd", borderRadius: 8 }} />
-            <select value={cat} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCat(e.target.value)} style={{ padding: "8px 12px", border: "1px solid #ddd", borderRadius: 8 }}>
-              <option value="">全カテゴリ</option>
-              {catalog.categories.map((c) => <option key={c.name} value={c.name}>{c.name} ({c.count})</option>)}
-            </select>
+            <Input value={q} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQ(e.target.value)} placeholder="名前・説明・export で検索（例: mail, retrieve, createDb）" style={{ flex: 1, minWidth: 240, padding: "8px 12px", border: "1px solid #ddd", borderRadius: 8 }} />
+            <Select value={cat} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCat(e.target.value)} style={{ padding: "8px 12px", border: "1px solid #ddd", borderRadius: 8 }} options={[{ label: "全カテゴリ", value: "" }, ...catalog.categories.map((c) => ({ label: `${c.name} (${c.count})`, value: String(c.name) }))]} />
           </div>
           <p style={{ color: "var(--color-muted, #888)", fontSize: 12, margin: "0 0 12px" }}>{filtered.length} 件</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12 }}>

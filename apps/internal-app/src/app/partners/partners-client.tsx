@@ -1,6 +1,7 @@
 "use client";
 /** 取引先マスタ。得意先・仕入先・報酬支払先を一元管理（1社が複数区分可）。区分で絞込、登録・更新。 */
 import * as React from "react";
+import { Button, Checkbox, Input, Textarea } from "@platform/ui";
 
 type Kind = "customer" | "supplier" | "payee";
 interface Partner { code: string; name: string; kinds: Kind[]; contact?: string; note?: string; }
@@ -79,8 +80,8 @@ export function PartnersClient({ fetchImpl, canWrite = true }: PartnersClientPro
         <h1 className="text-2xl font-bold">取引先マスタ</h1>
         <span className="flex gap-2">
           <a href="/api/partners/export" className="rounded border border-neutral-300 px-4 py-2 text-sm">CSV書出</a>
-          {canWrite && <button onClick={() => setImporting((v) => !v)} className="rounded border border-neutral-300 px-4 py-2 text-sm">{importing ? "取込を閉じる" : "CSV取込"}</button>}
-          <button onClick={toggleBalances} className="rounded border border-neutral-300 px-4 py-2 text-sm">{balances ? "残高を閉じる" : "残高一覧"}</button>
+          {canWrite && <Button onClick={() => setImporting((v) => !v)} className="rounded border border-neutral-300 px-4 py-2 text-sm">{importing ? "取込を閉じる" : "CSV取込"}</Button>}
+          <Button onClick={toggleBalances} className="rounded border border-neutral-300 px-4 py-2 text-sm">{balances ? "残高を閉じる" : "残高一覧"}</Button>
         </span>
       </div>
       <p className="mb-4 text-xs text-neutral-500">得意先・仕入先・報酬支払先を一元管理します（1社が複数区分を持てます）。</p>
@@ -105,32 +106,32 @@ export function PartnersClient({ fetchImpl, canWrite = true }: PartnersClientPro
           <h2 className="mb-2 text-sm font-medium">取引先を CSV で取り込み</h2>
           <p className="mb-2 text-xs text-neutral-500">見出し「コード,名称,区分,連絡先」。区分は customer/supplier/payee をカンマ区切りで。既存コードは上書きされます。</p>
           <input type="file" accept=".csv,text/csv" onChange={onFile} className="mb-2 block text-sm" />
-          <textarea value={csvText} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCsvText(e.target.value)} rows={5} placeholder="コード,名称,区分,連絡先&#10;P001,甲商事,&quot;customer,supplier&quot;,03-1234" className="block w-full rounded border border-neutral-300 px-2 py-1 font-mono text-xs" />
+          <Textarea value={csvText} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCsvText(e.target.value)} rows={5} placeholder="コード,名称,区分,連絡先&#10;P001,甲商事,&quot;customer,supplier&quot;,03-1234" className="block w-full rounded border border-neutral-300 px-2 py-1 font-mono text-xs" />
           <div className="mt-2 flex items-center gap-3">
-            <button onClick={runImport} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">取り込む</button>
+            <Button onClick={runImport} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">取り込む</Button>
             {importMsg && <span className="text-xs text-neutral-600">{importMsg}</span>}
           </div>
         </div>
       )}
 
       <div className="mb-4 flex gap-1 text-sm">
-        <button onClick={() => setFilter("")} className={`rounded px-3 py-1 ${filter === "" ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}>すべて</button>
-        {ALL_KINDS.map((k) => <button key={k} onClick={() => setFilter(k)} className={`rounded px-3 py-1 ${filter === k ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}>{KIND_LABEL[k]}</button>)}
+        <Button onClick={() => setFilter("")} className={`rounded px-3 py-1 ${filter === "" ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}>すべて</Button>
+        {ALL_KINDS.map((k) => <Button key={k} onClick={() => setFilter(k)} className={`rounded px-3 py-1 ${filter === k ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}>{KIND_LABEL[k]}</Button>)}
       </div>
 
       {canWrite && (
         <div className="mb-6 rounded border border-neutral-200 p-4">
           <h2 className="mb-3 text-sm font-medium">取引先を登録・更新</h2>
           <div className="flex flex-wrap items-end gap-2">
-            <label className="text-xs text-neutral-500">コード<input value={form.code} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, code: e.target.value })} className="mt-0.5 block w-24 rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">名称<input value={form.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">連絡先<input value={form.contact} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, contact: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-neutral-500">コード<Input value={form.code} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, code: e.target.value })} className="mt-0.5 block w-24 rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-neutral-500">名称<Input value={form.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-neutral-500">連絡先<Input value={form.contact} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, contact: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
           </div>
           <div className="mt-2 flex gap-3 text-sm">
             {ALL_KINDS.map((k) => (
-              <label key={k} className="flex items-center gap-1"><input type="checkbox" checked={form.kinds.includes(k)} onChange={() => toggleKind(k)} />{KIND_LABEL[k]}</label>
+              <label key={k} className="flex items-center gap-1"><Checkbox  checked={form.kinds.includes(k)} onCheckedChange={() => toggleKind(k)} />{KIND_LABEL[k]}</label>
             ))}
-            <button onClick={save} className="ml-auto rounded bg-neutral-900 px-4 py-1.5 text-white">保存</button>
+            <Button onClick={save} className="ml-auto rounded bg-neutral-900 px-4 py-1.5 text-white">保存</Button>
           </div>
         </div>
       )}
@@ -148,7 +149,7 @@ export function PartnersClient({ fetchImpl, canWrite = true }: PartnersClientPro
               <td className="px-2 py-2">{p.name}</td>
               <td className="px-2 py-2"><span className="flex flex-wrap gap-1">{p.kinds.map((k) => <span key={k} className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs">{KIND_LABEL[k]}</span>)}</span></td>
               <td className="px-2 py-2 text-xs text-neutral-500">{p.contact ?? ""}</td>
-              <td className="px-2 py-2 text-right"><span className="flex justify-end gap-2"><button onClick={() => showActivity(p)} className="text-blue-600 hover:underline">取引</button>{canWrite && <button onClick={() => edit(p)} className="text-blue-600 hover:underline">編集</button>}</span></td>
+              <td className="px-2 py-2 text-right"><span className="flex justify-end gap-2"><Button onClick={() => showActivity(p)} className="text-blue-600 hover:underline">取引</Button>{canWrite && <Button onClick={() => edit(p)} className="text-blue-600 hover:underline">編集</Button>}</span></td>
             </tr>
           ))}
           {partners.length === 0 && <tr><td colSpan={5} className="px-2 py-4 text-center text-sm text-neutral-500">取引先がありません。</td></tr>}
@@ -159,7 +160,7 @@ export function PartnersClient({ fetchImpl, canWrite = true }: PartnersClientPro
         <div className="mt-6 rounded border border-neutral-200 p-4">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-medium">取引先カルテ：{activity.name}（{activity.code}）</h2>
-            <button onClick={() => setActivity(null)} className="text-xs text-neutral-500 hover:underline">閉じる</button>
+            <Button onClick={() => setActivity(null)} className="text-xs text-neutral-500 hover:underline">閉じる</Button>
           </div>
           <div className="mb-3 grid grid-cols-3 gap-3 text-center text-sm">
             <div className="rounded bg-neutral-50 p-2"><div className="text-xs text-neutral-500">請求（売上）</div><div className="font-medium">{yen(activity.data.totalBilled)}</div><div className="text-xs text-neutral-400">{activity.data.invoices.length}件</div></div>

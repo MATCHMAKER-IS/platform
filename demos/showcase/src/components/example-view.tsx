@@ -8,6 +8,7 @@
  * API リファレンスを 1 つずつ読んでも分からない。**動く例を 1 本見せる**方が早い。
  */
 import * as React from "react";
+import { Button } from "@platform/ui";
 
 /** 使用例 1 件。 */
 export interface ExampleViewProps {
@@ -57,7 +58,7 @@ export function ExampleView({ title, intro, packages, code, output, notes }: Exa
             ["output", "実行結果"],
             ["code", "コード"],
           ] as const).map(([k, label]) => (
-            <button
+            <Button
               key={k}
               onClick={() => setTab(k)}
               style={{
@@ -72,7 +73,7 @@ export function ExampleView({ title, intro, packages, code, output, notes }: Exa
               }}
             >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
       )}

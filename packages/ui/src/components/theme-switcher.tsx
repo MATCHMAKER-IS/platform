@@ -12,6 +12,12 @@ export interface ThemeSwitcherProps {
   showLabel?: boolean;
 }
 
+/**
+ * 配色と明暗の切り替え。
+ *
+ * 設定画面や利用者メニューに置く。
+ * 選んだ内容は保存され、次に開いたときも残る。
+ */
 export function ThemeSwitcher({ showLabel = true }: ThemeSwitcherProps) {
   const { skinId, available, setSkin } = useSkin();
   return (

@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { Badge } from "@platform/ui";
+import { Badge, Button } from "@platform/ui";
 
 interface MentionRow {
   messageId: string;
@@ -43,14 +43,14 @@ export function MentionInboxClient({ fetchImpl, pollMs = 30000 }: MentionInboxCl
 
   return (
     <div className="relative inline-block">
-      <button className="relative rounded-full p-2 hover:bg-[var(--color-muted-bg,#f8f8f8)]" onClick={() => setOpen((v) => !v)} aria-label="メンション">
+      <Button className="relative rounded-full p-2 hover:bg-[var(--color-muted-bg,#f8f8f8)]" onClick={() => setOpen((v) => !v)} aria-label="メンション">
         <span aria-hidden>@</span>
         {count > 0 && (
           <span className="absolute -right-0.5 -top-0.5">
             <Badge variant="danger">{count > 99 ? "99+" : count}</Badge>
           </span>
         )}
-      </button>
+      </Button>
       {open && (
         <div className="absolute right-0 z-10 mt-1 w-80 rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg,#fff)] shadow-lg">
           <div className="border-b border-[var(--color-border)] px-3 py-2 text-sm font-medium">メンション</div>

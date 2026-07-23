@@ -16,6 +16,12 @@ export interface WaveformProps {
 }
 
 /** 波形表示付き音声プレイヤー。 */
+/**
+ * 音声の波形。
+ *
+ * 無音の部分が見えるので、**聞きたい場所を探す**のに使える。
+ * 波形だけでは内容が分からないので、書き起こしと併せると効く。
+ */
 export function Waveform({ src, height = 80, className }: WaveformProps) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const wsRef = React.useRef<WaveSurfer | null>(null);

@@ -23,11 +23,14 @@ const STEPS = [
   ["gen-erd.mjs"],
   ["gen-example-sources.mjs"],  // 使用例のソースを固める(実行時に読まないため)
   ["gen-portal-reference.mjs"], // 基盤ポータルの API リファレンス(gen-reference.mjs の出力に依存)
+  ["gen-docs-index.mts"],       // 社内資料の検索インデックス(/assistant と /chatbot が使う)
   ["platform-report.mjs"],
 ];
 
 function run(args, { quiet = true } = {}) {
-  const r = spawnSync("node", [path.join(ROOT, "tools", args[0]), ...args.slice(1)], {
+  // .mts(型を含む)は Node の型ストリップを有効にして実行する
+  const flags = args[0].endsWith(".mts") ? ["--experimental-strip-types"] : [];
+  const r = spawnSync("node", [...flags, path.join(ROOT, "tools", args[0]), ...args.slice(1)], {
     cwd: ROOT,
     encoding: "utf8",
     stdio: quiet ? "pipe" : "inherit",

@@ -28,6 +28,13 @@
 | **ブラウザで調べる**（Chrome DevTools） | [ops/DEVTOOLS_GUIDE.md](ops/DEVTOOLS_GUIDE.md) |
 | **新しいアプリを作りたい** | [ops/NEW_APP.md](ops/NEW_APP.md) |
 | PR の出し方・このリポジトリの約束 | [../CONTRIBUTING.md](../CONTRIBUTING.md) |
+| **開発の全体像**（設計から公開まで） | [DEVELOPMENT.md](DEVELOPMENT.md) |
+| **検査は何を見ているか**（preflight の 21 個） | [ops/CHECKS.md](ops/CHECKS.md) |
+| **デモを 1 本足す**（5 か所の更新） | [ops/ADD_DEMO.md](ops/ADD_DEMO.md) |
+| 新しい画面・機能の雛形を作る | [platform/SCAFFOLD.md](platform/SCAFFOLD.md) |
+| Prisma の書き方の実例 | [platform/PRISMA_EXAMPLES.md](platform/PRISMA_EXAMPLES.md) |
+| 生タグを @platform/ui へ置き換える | [ops/UI_MIGRATION.md](ops/UI_MIGRATION.md) |
+| チャット機能を組み込む | [platform/CHAT.md](platform/CHAT.md) |
 
 ### 困った
 
@@ -51,12 +58,19 @@
 | RAG を本番構成にする | [ops/RAG_PGVECTOR_MIGRATION.md](ops/RAG_PGVECTOR_MIGRATION.md) |
 | 基盤の健全性を点検する | [ops/AUDIT_REVIEW.md](ops/AUDIT_REVIEW.md) |
 | **障害対応**（本番が止まった） | [ops/INCIDENT_RESPONSE.md](ops/INCIDENT_RESPONSE.md) |
+| **バックアップと復元**（RPO/RTO・訓練） | [ops/BACKUP_RESTORE.md](ops/BACKUP_RESTORE.md) |
+| **社内限定にする**（ログイン・権限・接続元） | [ops/ACCESS_CONTROL.md](ops/ACCESS_CONTROL.md) |
+| 外部SaaSの API 変更を検知する | [ops/CONTRACT_TESTING.md](ops/CONTRACT_TESTING.md) |
+| デプロイ構成の全体像 | [platform/DEPLOYMENT.md](platform/DEPLOYMENT.md) |
+| デモサイトを Amplify で公開する | [ops/DEPLOY_DEMO_AMPLIFY.md](ops/DEPLOY_DEMO_AMPLIFY.md) |
+| 外部リポジトリから取り込む | [ops/UPSTREAM_IMPORT.md](ops/UPSTREAM_IMPORT.md) |
+| パッケージの統廃合を検討する | [ops/PACKAGE_CONSOLIDATION.md](ops/PACKAGE_CONSOLIDATION.md) |
 
 ### 判断の背景を知る
 
 | 知りたいこと | 読むもの |
 |---|---|
-| **なぜこういう作りなのか** | [adr/](adr/) — 設計判断の記録（11件） |
+| **なぜこういう作りなのか** | [adr/](adr/) — 設計判断の記録（15件） |
 | なぜバージョンを上げないのか | [adr/0011-no-versioning-monorepo.md](adr/0011-no-versioning-monorepo.md) |
 | なぜ基盤とアプリを分けるのか | [adr/0002-platform-app-separation.md](adr/0002-platform-app-separation.md) |
 | 何を作ってきたか（全変更履歴） | [../PLATFORM_SERVICES.md](../PLATFORM_SERVICES.md) |
@@ -89,6 +103,8 @@
 GitHub の **Issues → New issue → 「オンボーディング」** テンプレートを使ってください。
 環境構築から最初の PR まで、22 項目のチェックリストで進められます。
 
+最初の 1 機能を自分で作る実地課題は [ops/ONBOARDING_TASK.md](ops/ONBOARDING_TASK.md) にあります。
+
 **詰まった箇所は必ず記録してください。** あなたが詰まった場所は次の人も詰まります。それを直す PR が、最初の練習にちょうどいいお題です。
 
 ## 読む順番（新しく入った人向け）
@@ -112,7 +128,7 @@ GitHub の **Issues → New issue → 「オンボーディング」** テンプ
 pnpm site        # 生成 → docs/site/index.html をブラウザで開く
 ```
 
-103 パッケージ・465 API・ER 図・ADR・各アプリの画面/API を**検索**できます。`main` に push すると GitHub Pages に自動公開されます。
+113 パッケージ・465 API・ER 図・ADR・各アプリの画面/API を**検索**できます。`main` に push すると GitHub Pages に自動公開されます。
 
 ---
 

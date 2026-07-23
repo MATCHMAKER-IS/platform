@@ -8,7 +8,7 @@
  * UI は @platform/ui の部品で組む。
  */
 import * as React from "react";
-import { Button, Badge, Separator } from "@platform/ui";
+import { Badge, Button, Separator } from "@platform/ui";
 import { LiveClock } from "../../components/live-clock";
 import { Countdown } from "../../components/countdown";
 
@@ -77,7 +77,7 @@ export default function Page() {
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
           {PRESETS.map((p) => (
-            <button
+            <Button
               key={p.s}
               type="button"
               onClick={() => reset(p.s)}
@@ -89,7 +89,7 @@ export default function Page() {
               }}
             >
               {p.label}
-            </button>
+            </Button>
           ))}
         </div>
         <div style={{ fontSize: 12, color: "var(--color-muted)", marginTop: 12, textAlign: "center" }}>
@@ -112,7 +112,7 @@ export default function Page() {
               const active = it.id === selId;
               return (
                 <li key={it.id}>
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setSelId(it.id)}
                     style={{
@@ -126,7 +126,7 @@ export default function Page() {
                   >
                     <span style={{ fontSize: 13, fontWeight: 600 }}>{it.name}</span>
                     <span style={{ fontSize: 11, opacity: 0.8 }}>{it.category}</span>
-                  </button>
+                  </Button>
                 </li>
               );
             })}

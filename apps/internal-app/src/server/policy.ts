@@ -27,7 +27,9 @@ export const APP_POLICY: Policy = resolveHierarchy({
   },
   admin: {
     inherits: ["manager", "finance"],
-    permissions: ["*"],
+    // "*" ですべて通るが、運用操作は名前を明示しておく
+    // (何ができるロールなのかを、定義を読むだけで分かるようにするため)
+    permissions: ["*", "system:manage"],
   },
 });
 

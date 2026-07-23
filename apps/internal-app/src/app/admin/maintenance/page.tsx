@@ -5,7 +5,7 @@
  * middleware が(数秒以内に)反映する。デプロイや再起動は不要。
  */
 import { useEffect, useState } from "react";
-import { Card, Button, Switch, Badge } from "@platform/ui";
+import { Badge, Button, Card, Input, Switch } from "@platform/ui";
 
 interface MaintenanceState {
   enabled: boolean;
@@ -68,12 +68,12 @@ export default function MaintenancePage() {
 
         <label style={{ display: "block", marginBottom: ".75rem" }}>
           <span style={{ fontSize: ".85rem", color: "#374151" }}>復旧予定(画面に表示)</span>
-          <input value={recovery} onChange={(e) => setRecovery(e.target.value)} placeholder="例: 本日 22:00 頃"
+          <Input value={recovery} onChange={(e) => setRecovery(e.target.value)} placeholder="例: 本日 22:00 頃"
             style={{ display: "block", width: "100%", padding: ".5rem", marginTop: ".25rem", border: "1px solid #e5e7eb", borderRadius: 8 }} />
         </label>
         <label style={{ display: "block", marginBottom: "1rem" }}>
           <span style={{ fontSize: ".85rem", color: "#374151" }}>お知らせメッセージ(任意)</span>
-          <input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="例: システム更新のため一時停止しています"
+          <Input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="例: システム更新のため一時停止しています"
             style={{ display: "block", width: "100%", padding: ".5rem", marginTop: ".25rem", border: "1px solid #e5e7eb", borderRadius: 8 }} />
         </label>
 

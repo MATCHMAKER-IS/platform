@@ -1,6 +1,7 @@
 "use client";
 /** 部門別会計。部門ごとの予算・実績・差異（経費を予算区分の部門へ按分）。 */
 import * as React from "react";
+import { Input } from "@platform/ui";
 
 interface Dept { department: string; budget: number; actual: number; variance: number; }
 interface Data { period: string; departments: Dept[]; }
@@ -30,7 +31,7 @@ export function DepartmentsClient({ fetchImpl }: DepartmentsClientProps) {
     <div className="mx-auto max-w-3xl p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">部門別会計</h1>
-        <input type="month" value={period} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPeriod(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-sm" />
+        <Input type="month" value={period} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPeriod(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-sm" />
       </div>
       <p className="mb-4 text-xs text-neutral-500">経費を予算区分の部門へ按分し、部門ごとの予実を表示します（複数部門の区分は予算額で比例配分）。</p>
 

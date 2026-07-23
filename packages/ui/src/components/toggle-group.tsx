@@ -27,7 +27,7 @@ export const ToggleGroupItem = React.forwardRef<
   <Primitive.Item
     ref={ref}
     className={cn(
-      "rounded-[calc(var(--radius)-2px)] px-3 py-1.5 text-sm text-[var(--color-fg)] transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] data-[state=on]:bg-[var(--color-primary)] data-[state=on]:text-[var(--color-primary-fg)]",
+      "rounded-[calc(var(--radius)-2px)] px-3 py-1.5 text-sm text-[var(--color-fg)] transition-colors hover:bg-[var(--color-subtle-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] data-[state=on]:bg-[var(--color-primary)] data-[state=on]:text-[var(--color-primary-fg)]",
       className,
     )}
     {...props}

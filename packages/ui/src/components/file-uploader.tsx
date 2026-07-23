@@ -25,6 +25,12 @@ export interface FileUploaderProps {
 }
 
 /** 選択即アップロード + 進捗表示のアップローダー。 */
+/**
+ * ファイルの受け取り。
+ *
+ * **受け付ける形式と上限を先に見せる**(選んでから断られるのが最も不親切)。
+ * 進み具合を出し、失敗したらどのファイルかを示す。
+ */
 export function FileUploader({ url, headers, accept, multiple, hint, onUploaded, className }: FileUploaderProps) {
   const { upload, progress, uploading } = useUpload({ url, headers });
   const [error, setError] = React.useState<string | null>(null);

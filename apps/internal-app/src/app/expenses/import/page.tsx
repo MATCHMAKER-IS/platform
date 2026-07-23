@@ -1,7 +1,7 @@
 "use client";
 /** 経費 CSV 取込フロー: 貼り付け/アップロード → ImportReview で確認・修正 → 確定。 */
 import { useState, type ChangeEvent } from "react";
-import { ImportReview, Button, StatCard } from "@platform/ui";
+import { Button, ImportReview, StatCard, Textarea } from "@platform/ui";
 import { parseExpenseCsv, toExpenses, EXPENSE_IMPORT_FIELDS } from "../../../lib/expense-import";
 import { summarize, type Expense } from "../../../lib/expense";
 
@@ -45,7 +45,7 @@ export default function ImportPage() {
       {!rows && (
         <section>
           <p style={{ color: "var(--color-muted)", marginBottom: ".5rem" }}>CSV を貼り付けてください(ヘッダ: 日付/カテゴリ/金額/備考)。</p>
-          <textarea value={text} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setText(e.target.value)} rows={8}
+          <Textarea value={text} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setText(e.target.value)} rows={8}
             style={{ width: "100%", fontFamily: "monospace", fontSize: ".85rem", padding: ".5rem", border: "1px solid var(--color-border)", borderRadius: 8 }} />
           <div style={{ marginTop: ".75rem" }}><Button onClick={parse}>解析してレビュー</Button></div>
         </section>

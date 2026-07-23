@@ -19,6 +19,12 @@ export interface AppShellProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 /** アプリの外枠レイアウト(ヘッダ固定・サイドバー + 本文)。 */
+/**
+ * アプリの骨組み(ヘッダ・サイドバー・本文)。
+ *
+ * 画面ごとに配置を組まず、これで統一する。
+ * **どの画面でも同じ場所に同じものがある**ことが、迷わない一番の条件。
+ */
 export function AppShell({ header, sidebar, sidebarCollapsed, sidebarWidth = "16rem", className, children, ...props }: AppShellProps) {
   return (
     <div className={cn("flex min-h-screen flex-col bg-[var(--color-bg)] text-[var(--color-fg)]", className)} {...props}>
@@ -76,8 +82,8 @@ export function SidebarNav({ items, className, ...props }: SidebarNavProps) {
           </>
         );
         const cls = cn(
-          "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm hover:bg-slate-100",
-          item.active && "bg-slate-100 font-medium text-[var(--color-primary)]",
+          "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm hover:bg-[var(--color-subtle-strong)]",
+          item.active && "bg-[var(--color-subtle-strong)] font-medium text-[var(--color-primary)]",
         );
         return (
           <li key={i}>

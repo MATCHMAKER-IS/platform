@@ -1,3 +1,4 @@
+// public-api: 翻訳カタログの配信。秘密情報を含まない
 /** i18n: 指定ロケールの文言を返す(GET)。?locale=ja|en|zh|ko。 */
 import { withApiObservability } from "../../../server/instrument";
 import { appCatalogs } from "../../../server/i18n";

@@ -5,6 +5,7 @@
  * @packageDocumentation
  */
 export * from "./parse";
+export * from "./join";
 export * from "./domain";
 export * from "./query";
 export * from "./normalize";

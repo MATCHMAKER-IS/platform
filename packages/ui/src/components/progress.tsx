@@ -8,10 +8,26 @@ import { Slider } from "./slider";
 import { cn } from "../lib/cn";
 
 /** 進捗バー(0〜100、非操作)。 */
+/**
+ * 進み具合の帯。
+ *
+ * **終わりが分かるときだけ**使う。いつ終わるか分からない処理には `Spinner` を使う
+ * (止まっているように見える帯は、失敗と区別がつかない)。
+ *
+ * - 進みが分かるなら、**残り件数も文字で出す**(「120 / 500 件」)
+ * - 時間のかかる処理は、画面を離れても続くようにする(`@platform/jobs`)
+ * - `Seekbar` は動画・音声の再生位置用。押した位置へ移動できる
+ *
+ * @example
+ * ```tsx
+ * <Progress value={(done / total) * 100} />
+ * <p>{done} / {total} 件を取り込みました</p>
+ * ```
+ */
 export function Progress({ value = 0, className }: { value?: number; className?: string }) {
   return (
     <Primitive.Root
-      className={cn("relative h-2 w-full overflow-hidden rounded-full bg-slate-200", className)}
+      className={cn("relative h-2 w-full overflow-hidden rounded-full bg-[var(--color-subtle-strong)]", className)}
       value={value}
     >
       <Primitive.Indicator

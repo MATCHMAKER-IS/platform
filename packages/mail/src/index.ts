@@ -1,7 +1,7 @@
 /**
  * `@platform/mail` — メール送信の共通部品(Adapter パターン)。
  *
- * アプリは送信基盤(SMTP か Resend か)を意識せず `sendMail()` を呼ぶ。
+ * アプリは送信基盤(SMTP か Resend か)を意識せず、`createMailer()` が返す Mailer の `sendMail` を呼ぶ。
  * 裏の実装は差し替え可能で、切り替えてもアプリ側は無変更。
  *
  * @packageDocumentation

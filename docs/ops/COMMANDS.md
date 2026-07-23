@@ -35,7 +35,7 @@
 | `pnpm typecheck` | 型チェック |
 | `pnpm lint` | ESLint |
 | `node tools/check-tsdoc.mjs` | 公開 API の TSDoc 網羅性（`<package>` で詳細） |
-| `pnpm verify:offline` | preflight（依存境界・API 差分・生成物 drift 等）を一括 |
+| `pnpm verify:offline` | preflight（21 個の検査を一括。内訳は `docs/ops/CHECKS.md`） |
 | `pnpm test` | ユニットテスト（vitest） |
 | `pnpm e2e` | E2E（Playwright）。`pnpm e2e:ui` で UI モード |
 | `pnpm loadtest -- --url ... --dry` | 負荷テスト（`--dry` はネットワーク不要の動作確認） |

@@ -5,6 +5,8 @@
  * 検索実体は @platform/search(BM25/Meilisearch)を注入。ベクトル検索は Embedder + VectorIndex を足すだけ。
  * @packageDocumentation
  */
+
+export * from "./rerank";
 import { AppError, ErrorCode, ok, err, type Result } from "@platform/core";
 
 /** アクセス制御タグ。ドキュメントに付与し、検索時の許可判定に使う。 */

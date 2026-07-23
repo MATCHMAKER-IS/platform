@@ -24,6 +24,22 @@ export interface AutocompleteProps {
 }
 
 /** サジェスト表示付きテキスト入力。 */
+/**
+ * 入力補完(打つと候補が出る)。
+ *
+ * **候補が多くて選択肢に並べきれないとき**に使う(取引先・商品・住所)。
+ * 候補が 10 個程度なら `Select` の方が早い。
+ *
+ * - `suggestions` は入力に応じて絞り込んだものを渡す。全件渡すと重い
+ * - `onSelect` は候補を選んだときだけ。手入力を許すかは用途による
+ * - **候補に無い値を許すか**を必ず決める。許さないなら選択後に検証する
+ *
+ * @example
+ * ```tsx
+ * <Autocomplete value={q} onChange={setQ} suggestions={matched}
+ *   onSelect={(v) => setCustomer(v)} placeholder="取引先を検索" />
+ * ```
+ */
 export function Autocomplete({
   value, onChange, suggestions, onSelect, placeholder, maxItems = 8, className,
 }: AutocompleteProps) {
@@ -66,7 +82,7 @@ export function Autocomplete({
               key={s}
               onMouseDown={(e) => { e.preventDefault(); choose(s); }}
               onMouseEnter={() => setActive(i)}
-              className={cn("cursor-pointer px-3 py-1.5 text-sm", i === active ? "bg-slate-100" : "")}
+              className={cn("cursor-pointer px-3 py-1.5 text-sm", i === active ? "bg-[var(--color-subtle-strong)]" : "")}
             >
               {s}
             </li>

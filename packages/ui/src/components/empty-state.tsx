@@ -19,7 +19,31 @@ export interface EmptyStateProps extends Omit<React.HTMLAttributes<HTMLDivElemen
   action?: React.ReactNode;
 }
 
-/** 空状態。中央寄せでアイコン・見出し・説明・アクションを表示。 */
+/**
+ * 何も無いときに出す画面。
+ *
+ * **表を 0 行で見せない。** 「まだ何も無い」のか「絞り込みで消えた」のか
+ * 「読み込みに失敗した」のかが分からないと、利用者は待つしかなくなる。
+ *
+ * | props | 使いどころ |
+ * |---|---|
+ * | `title` | 状況を一言で(「まだ申請がありません」) |
+ * | `description` | 補足。**次にできること**を書く |
+ * | `action` | 行動を促すボタン(「申請を作る」) |
+ * | `icon` | 状況に合う絵柄。既定は受信トレイ |
+ *
+ * 絞り込みの結果が 0 件のときは、**条件を外す操作**を `action` に置くと親切。
+ *
+ * @example
+ * ```tsx
+ * <EmptyState title="まだ申請がありません" description="経費を使ったら、ここから申請します。"
+ *   action={<Button onClick={create}>申請を作る</Button>} />
+ *
+ * // 絞り込みで 0 件になった場合
+ * <EmptyState icon="🔍" title="条件に合う申請がありません"
+ *   action={<Button variant="secondary" onClick={reset}>条件をすべて外す</Button>} />
+ * ```
+ */
 export function EmptyState({ className, icon, title, description, action, ...props }: EmptyStateProps) {
   return (
     <div className={cn("flex flex-col items-center justify-center gap-3 px-6 py-12 text-center", className)} {...props}>

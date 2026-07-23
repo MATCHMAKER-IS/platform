@@ -51,6 +51,27 @@ const SERVICES: Service[] = [
     summary: "CRM / Books / Desk / Inventory ほか 14 サービス。データセンター（.jp 等）ごとにドメインが変わる点に注意。",
     ops: ["14 サービス", "DC 別ドメイン", "認可 URL 生成", "トークン更新"],
   },
+  {
+    href: "/connect",
+    name: "Microsoft 365 / Entra ID",
+    tag: "認証・メール・予定",
+    summary: "Entra ID の OAuth と Microsoft Graph。Outlook のメール送信、予定と Teams 会議、社員情報の取得。テナントは必ず自社の ID を指定する（common は他社アカウントも通る）。",
+    ops: ["OAuth（テナント指定）", "メール送信", "予定 / Teams 会議", "社員情報"],
+  },
+  {
+    href: "/connect",
+    name: "Slack",
+    tag: "通知・受信",
+    summary: "通知を送るだけなら @platform/notify の Webhook で足りる。スレッド返信・メッセージ更新・受信（イベント/スラッシュコマンド）が要るときに @platform/slack を使う。受信は署名検証が必須。",
+    ops: ["スレッド返信", "メッセージ更新", "利用者照会", "受信の署名検証"],
+  },
+  {
+    href: "/connect",
+    name: "Notion",
+    tag: "ドキュメント・案件管理",
+    summary: "議事録・手順書・案件管理の読み書き。入れ子の深いプロパティを平たい値にして返す。連携先をインテグレーションに共有し忘れると 404 になる点に注意。",
+    ops: ["DB 照会", "ページ作成 / 更新", "本文取得", "プロパティの平坦化"],
+  },
 ];
 
 const FOUNDATION: { title: string; body: string }[] = [
@@ -64,6 +85,11 @@ export default function Page() {
   return (
     <main style={{ maxWidth: 900, margin: "2.5rem auto", padding: "0 1rem" }}>
       <h1 style={{ fontSize: "1.6rem", fontWeight: 700, marginBottom: 6 }}>外部サービス連携</h1>
+      <div style={{ marginBottom: 16 }}>
+        <Alert variant="info" title="必要な鍵を確かめる">
+          各サービスの連携に何が必要か、いまの値で本当に通るかは <Link href="/connect" style={{ color: "var(--color-primary)" }}>接続チェック</Link> で確認できます。
+        </Alert>
+      </div>
       <p style={{ fontSize: 13, color: "var(--color-muted)", marginBottom: 20, lineHeight: 1.8 }}>
         freee・Google・Zoho など外部 SaaS との連携。すべて <code style={mono}>@platform/integrations</code> の
         共通土台の上に載っており、各サービスは「型付きクライアント＋ OAuth」という同じ形で扱えます。

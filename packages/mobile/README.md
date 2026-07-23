@@ -65,3 +65,64 @@ for (const b of found) if (isValidJan(b.rawValue)) addToInventory(b.rawValue);
 ```
 BarcodeDetector 非対応のブラウザでは `detectBarcodes` は空配列を返すため、専用のデコードライブラリ(ZXing 等)への切替や手入力で補えます。
 EOF_MARKER
+
+## PWA（Android / iOS のホーム画面から開く）
+
+ネイティブアプリを作らずに、ホーム画面のアイコンから起動できるようにします。
+
+```ts
+// app/manifest.json/route.ts
+import { buildWebManifest } from "@platform/mobile";
+export function GET() {
+  return Response.json(buildWebManifest({
+    name: "社内システム", shortName: "社内", themeColor: "#1e40af",
+    icons: [{ src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+            { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }],
+  }));
+}
+
+// app/sw.js/route.ts
+import { buildServiceWorker } from "@platform/mobile";
+export function GET() {
+  return new Response(buildServiceWorker({ version: "2026-07-23", precache: ["/", "/offline"], offlineFallback: "/offline" }),
+    { headers: { "Content-Type": "text/javascript" } });
+}
+```
+
+`checkInstallable()` が、インストールできない原因（アイコン不足・短い名前が長すぎる等）を具体的に示します。
+ブラウザは「インストールできない」としか言わないためです。
+
+### 押さえている点
+
+| 点 | 内容 |
+|---|---|
+| **iOS は自動で促せない** | 「共有 → ホーム画面に追加」を手で選んでもらう。`installGuidance()` が端末別の手順を返す |
+| **API はキャッシュしない** | 古い在庫数や承認状態を見せる方が、オフラインで見えないことより害が大きい |
+| **GET 以外は素通し** | 送信・更新をキャッシュすると二重送信になる |
+| **iOS の通知は条件つき** | 16.4 以降 **かつホーム画面に追加**していないと使えない。タブでは許可を求めても失敗する |
+| **許可を求めるタイミング** | 開いた直後に求めない。拒否は覚えられ、設定画面からしか戻せない |
+
+### ネイティブアプリが要る場合
+
+カメラ・バーコード・Bluetooth・位置情報は Web の API で扱えます（このパッケージが対応）。
+**Web でできないこと**（バックグラウンドでの常時位置取得、他アプリとの深い連携、
+オフラインでの大量データ保持）が必要になったときに、初めてネイティブを検討してください。
+
+## 実アプリでの設定例
+
+`apps/internal-app` が実際に対応しています。必要なのは次の 4 つだけです。
+
+| 置くもの | 役割 |
+|---|---|
+| `src/app/manifest.json/route.ts` | manifest を返す（`buildWebManifest`） |
+| `src/app/sw.js/route.ts` | Service Worker を返す（`buildServiceWorker`） |
+| `src/app/offline/page.tsx` | 圏外のときに出す画面 |
+| `src/components/ServiceWorkerRegister.tsx` | 登録する（layout に置く。失敗しても業務は止めない） |
+
+加えて `layout.tsx` の `metadata.manifest` と `viewport.themeColor`、
+`public/icon-192.png` / `icon-512.png` が要ります。
+
+### 更新したのに古い画面が出るとき
+
+`buildServiceWorker` の `version` を変えてください。**版が変わると古いキャッシュが捨てられます**。
+日付にしておくと、いつの版か分かります。

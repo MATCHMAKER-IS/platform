@@ -1,7 +1,7 @@
 "use client";
 /** カテゴリ・タグ管理。カテゴリは CRUD + 並べ替え、タグはリネーム/削除。 */
 import * as React from "react";
-import { SortableList } from "@platform/ui";
+import { Button, Input, SortableList } from "@platform/ui";
 
 interface Category { id: string; name: string; slug: string; parentId?: string; order?: number; }
 interface TagCount { tag: string; count: number; }
@@ -71,20 +71,20 @@ export function CategoryClient({ fetchImpl }: CategoryClientProps) {
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h1 className="text-xl font-bold">カテゴリ</h1>
-          <button onClick={() => { setEditing({ ...EMPTY }); setEditId(null); setError(""); }} className="rounded bg-neutral-900 px-3 py-1 text-sm text-white">追加</button>
+          <Button onClick={() => { setEditing({ ...EMPTY }); setEditId(null); setError(""); }} className="rounded bg-neutral-900 px-3 py-1 text-sm text-white">追加</Button>
         </div>
         {editing && (
           <div className="mb-4 flex flex-col gap-2 rounded border border-neutral-200 p-3">
             {error && <p className="rounded bg-red-50 px-2 py-1 text-xs text-red-700">{error}</p>}
-            <input value={editing.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ name: e.target.value })} placeholder="カテゴリ名" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
-            <input value={editing.slug} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ slug: e.target.value })} placeholder="slug" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
+            <Input value={editing.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ name: e.target.value })} placeholder="カテゴリ名" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
+            <Input value={editing.slug} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ slug: e.target.value })} placeholder="slug" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
             <select value={editing.parentId} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set({ parentId: e.target.value })} className="rounded border border-neutral-300 px-2 py-1 text-sm">
               <option value="">（親なし）</option>
               {cats.filter((c) => c.id !== editId).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
             <div className="flex gap-2">
-              <button onClick={save} className="rounded bg-neutral-900 px-3 py-1 text-sm text-white">保存</button>
-              <button onClick={() => { setEditing(null); setEditId(null); }} className="rounded border border-neutral-300 px-3 py-1 text-sm">キャンセル</button>
+              <Button onClick={save} className="rounded bg-neutral-900 px-3 py-1 text-sm text-white">保存</Button>
+              <Button onClick={() => { setEditing(null); setEditId(null); }} className="rounded border border-neutral-300 px-3 py-1 text-sm">キャンセル</Button>
             </div>
           </div>
         )}
@@ -99,8 +99,8 @@ export function CategoryClient({ fetchImpl }: CategoryClientProps) {
                 {c.parentId && <span className="ml-1 text-xs text-neutral-400">← {nameOf(c.parentId)}</span>}
               </span>
               <span className="flex gap-2">
-                <button onClick={() => { setEditing({ name: c.name, slug: c.slug, parentId: c.parentId ?? "" }); setEditId(c.id); setError(""); }} className="text-blue-600">編集</button>
-                <button onClick={() => remove(c.id)} className="text-red-600">削除</button>
+                <Button onClick={() => { setEditing({ name: c.name, slug: c.slug, parentId: c.parentId ?? "" }); setEditId(c.id); setError(""); }} className="text-blue-600">編集</Button>
+                <Button onClick={() => remove(c.id)} className="text-red-600">削除</Button>
               </span>
             </div>
           )}
@@ -115,8 +115,8 @@ export function CategoryClient({ fetchImpl }: CategoryClientProps) {
             <li key={t.tag} className="flex items-center justify-between rounded border border-neutral-200 px-3 py-2 text-sm">
               <span>#{t.tag} <span className="text-xs text-neutral-400">({t.count})</span></span>
               <span className="flex gap-2">
-                <button onClick={() => renameTag(t.tag)} className="text-blue-600">リネーム</button>
-                <button onClick={() => removeTag(t.tag)} className="text-red-600">削除</button>
+                <Button onClick={() => renameTag(t.tag)} className="text-blue-600">リネーム</Button>
+                <Button onClick={() => removeTag(t.tag)} className="text-red-600">削除</Button>
               </span>
             </li>
           ))}

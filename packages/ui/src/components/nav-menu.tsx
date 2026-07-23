@@ -42,17 +42,27 @@ function NavMenuNode({ item, currentPath, onNavigate, depth }: { item: NavItem; 
           aria-current={active ? "page" : undefined}
           aria-disabled={item.disabled}
           onClick={() => onNavigate?.(item)}
-          style={{ paddingLeft: `${0.75 + depth * 0.75}rem` }}
+          style={{
+            paddingLeft: `${0.75 + depth * 0.75}rem`,
+            // 選択中の色はテーマに従う。濃いサイドバーのテーマでは、
+            // 固定色(白系)だと選択中だけ浮いて読めなくなるため
+            ...(active
+              ? {
+                  background: "var(--color-sidebar-active-bg, var(--color-nav-active-bg, rgb(241 245 249)))",
+                  color: "var(--color-sidebar-active-fg, var(--color-fg))",
+                }
+              : { color: "var(--color-sidebar-fg, var(--color-muted))" }),
+          }}
           className={cn(
             "flex flex-1 items-center gap-2.5 rounded-[var(--radius)] py-2 pr-3 text-sm transition-colors",
-            active ? "bg-slate-100 font-medium text-[var(--color-fg)]" : "text-[var(--color-muted)] hover:bg-slate-50 hover:text-[var(--color-fg)]",
+            active ? "font-medium" : "hover:brightness-110",
             item.disabled && "pointer-events-none opacity-50",
           )}
         >
-          {item.icon != null && <span className="shrink-0 text-[var(--color-muted)]">{item.icon as React.ReactNode}</span>}
+          {item.icon != null && <span className="shrink-0 opacity-80">{item.icon as React.ReactNode}</span>}
           <span className="flex-1 truncate">{item.label}</span>
           {item.badge != null && (
-            <span className="rounded-full bg-slate-200 px-1.5 py-0.5 text-xs text-[var(--color-fg)]">{item.badge}</span>
+            <span className="rounded-full px-1.5 py-0.5 text-xs" style={{ background: "color-mix(in srgb, currentColor 18%, transparent)" }}>{item.badge}</span>
           )}
         </a>
         {hasChildren && (
@@ -61,7 +71,7 @@ function NavMenuNode({ item, currentPath, onNavigate, depth }: { item: NavItem; 
             aria-label={open ? "折りたたむ" : "展開"}
             aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
-            className="mr-1 flex h-7 w-7 items-center justify-center rounded text-[var(--color-muted)] hover:bg-slate-100"
+            className="mr-1 flex h-7 w-7 items-center justify-center rounded text-[var(--color-muted)] hover:bg-[var(--color-subtle-strong)]"
           >
             <span className={cn("transition-transform", open && "rotate-90")} aria-hidden="true">›</span>
           </button>

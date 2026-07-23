@@ -68,5 +68,5 @@ export function AudioVisualizer({ stream, mediaElement, variant = "bars", height
     return () => { cancelAnimationFrame(raf); node.disconnect(); void ctx.close(); };
   }, [stream, mediaElement, variant]);
 
-  return <canvas ref={canvasRef} height={height} className={cn("w-full rounded-[var(--radius)] bg-slate-50", className)} />;
+  return <canvas ref={canvasRef} height={height} className={cn("w-full rounded-[var(--radius)] bg-[var(--color-subtle)]", className)} />;
 }

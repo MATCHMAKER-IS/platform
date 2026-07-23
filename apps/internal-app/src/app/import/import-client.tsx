@@ -1,6 +1,7 @@
 "use client";
 /** CSVインポート。商品マスタ・勘定科目などをCSVで一括登録。まずプレビューで検証エラーを確認できる。 */
 import * as React from "react";
+import { Button, Textarea } from "@platform/ui";
 
 interface ImportError { line: number; message: string; }
 interface Target { key: string; label: string; endpoint: string; columns: string; sample: string; }
@@ -32,14 +33,14 @@ export function ImportClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="mb-4 text-2xl font-bold">CSVインポート</h1>
       <div className="mb-3 flex gap-2">
-        {TARGETS.map((t) => <button key={t.key} onClick={() => { setTarget(t); setCsv(""); setErrors(null); setResult(""); }} className={`rounded px-3 py-1.5 text-sm ${target.key === t.key ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600"}`}>{t.label}</button>)}
+        {TARGETS.map((t) => <Button key={t.key} onClick={() => { setTarget(t); setCsv(""); setErrors(null); setResult(""); }} className={`rounded px-3 py-1.5 text-sm ${target.key === t.key ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600"}`}>{t.label}</Button>)}
       </div>
       <p className="mb-1 text-xs text-neutral-500">列: {target.columns}</p>
-      <textarea value={csv} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCsv(e.target.value)} rows={8} placeholder={target.sample} className="block w-full rounded border border-neutral-300 px-2 py-1 font-mono text-xs" />
+      <Textarea value={csv} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCsv(e.target.value)} rows={8} placeholder={target.sample} className="block w-full rounded border border-neutral-300 px-2 py-1 font-mono text-xs" />
       <div className="mt-2 flex gap-2">
-        <button onClick={() => void send(true)} className="rounded border border-neutral-300 px-4 py-2 text-sm">プレビュー（検証）</button>
-        <button onClick={() => void send(false)} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">インポート実行</button>
-        <button onClick={() => setCsv(target.sample)} className="rounded px-3 py-2 text-xs text-blue-600">サンプルを入力</button>
+        <Button onClick={() => void send(true)} className="rounded border border-neutral-300 px-4 py-2 text-sm">プレビュー（検証）</Button>
+        <Button onClick={() => void send(false)} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">インポート実行</Button>
+        <Button onClick={() => setCsv(target.sample)} className="rounded px-3 py-2 text-xs text-blue-600">サンプルを入力</Button>
       </div>
       {result && <p className="mt-3 rounded bg-neutral-100 px-3 py-2 text-sm text-neutral-700">{result}</p>}
       {errors && errors.length > 0 && (

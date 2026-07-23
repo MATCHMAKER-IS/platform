@@ -19,6 +19,12 @@ export interface PrintButtonProps extends Omit<ButtonProps, "onClick"> {
 }
 
 /** 印刷ボタン。html / targetRef のいずれも無ければページ全体を印刷。 */
+/**
+ * 印刷ボタン。
+ *
+ * 画面をそのまま印刷すると崩れることが多い。
+ * **印刷用の見た目**(`@media print`)を用意してから使う。
+ */
 export function PrintButton({ html, targetRef, printOptions, children, ...props }: PrintButtonProps) {
   const onClick = () => {
     if (html != null) void printHtml(html, printOptions);

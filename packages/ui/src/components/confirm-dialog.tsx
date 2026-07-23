@@ -29,6 +29,13 @@ export interface ConfirmDialogProps {
 }
 
 /** 確認ダイアログ。 */
+/**
+ * 取り消せない操作の確認。
+ *
+ * 削除・一括更新など、**やり直せないもの**にだけ出す。
+ * 何度も出すと読まずに押されるので、本当に危ないものに限る。
+ * 確認の文には**何が起きるか**を書く(「削除しますか」ではなく「12 件を削除します」)。
+ */
 export function ConfirmDialog({
   open, onOpenChange, title, description,
   confirmText = "OK", cancelText, destructive, onConfirm,

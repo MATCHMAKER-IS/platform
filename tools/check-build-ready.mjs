@@ -32,6 +32,32 @@ const ROOT = path.resolve(import.meta.dirname, "..");
 const SITE = path.join(ROOT, "demos/showcase");
 
 /** ディレクトリを再帰してソースを集める。 */
+/**
+ * サンプルコードを載せている画面かどうか。
+ *
+ * `/code` のように**コード例を文字列で持つ**画面では、その中の `<Button>` を
+ * 実使用と誤認してしまう(実際に未使用の import を見逃し、ビルドで発覚した)。
+ *
+ * 一方で、除去をやり過ぎると本物のコードまで消えて**誤検知が大量に出る**。
+ * そこで、判定を機械的に広げず「コード例を持つ画面」だけを対象にする。
+ */
+const SAMPLE_CODE_FILES = [
+  "demos/showcase/src/app/code/page.tsx",
+];
+
+/**
+ * コード例の入れ物(バッククォートで囲まれた塊)を取り除く。
+ * 上のファイルにだけ適用する。
+ *
+ * @param src ソース
+ * @param rel リポジトリからの相対パス
+ * @returns コード例を除いたソース
+ */
+function stripSampleCode(src, rel) {
+  if (!SAMPLE_CODE_FILES.includes(rel)) return src;
+  return src.replace(/`[\s\S]*?`/g, " ");
+}
+
 function collect(dir, exts = [".ts", ".tsx"]) {
   const out = [];
   if (!existsSync(dir)) return out;
@@ -248,7 +274,10 @@ export function check() {
         //    区別しきれず誤検知(/image で 10 件)を出したので撤回した。
         //    **正しく直すには TypeScript の AST が要る。**tsc が確実に捕まえるので、
         //    ここは「明らかな未使用」を早く知らせる補助と割り切る。
-        const rest = src.replace(stmt, "");
+        // 文字列・テンプレート・コメントの中は「使っている」に数えない。
+        // サンプルコードを文字列で持つ画面(/code など)で、
+        // 中の <Button> を実使用と誤認し、未使用に気づけなかった。
+        const rest = stripSampleCode(src.replace(stmt, ""), path.relative(ROOT, f).replace(/\\/g, "/"));
         if (!new RegExp(`\\b${name.replace(/\$/g, "\\$")}\\b`).test(rest)) {
           issues.push(`[I] ${path.relative(ROOT, f)}: ${name} を import しているが使っていない(noUnusedLocals でビルドが止まる)`);
         }
@@ -636,6 +665,46 @@ export function check() {
           `[R] 同名だが中身の違う公開型: ${name} (${pkgs})` +
           ` — 片方を見て書くともう片方で型エラーになる。名前を分けるか、片方へ寄せること`,
         );
+      }
+    }
+  }
+
+  // ---- 文字列リテラルが広がって型が合わなくなる形 ----
+  // `type X = { kind: "A" | "B" }` に対して `setX((l) => [{ kind: "A" }, ...l])` と書くと、
+  // オブジェクトリテラルの "A" が string に広がり、**ビルドの型検査だけで落ちる**。
+  // 変数経由や引数に型注釈がある場合は起きないので、直書きの場合だけを見る。
+  for (const file of [...collect(path.join(ROOT, "demos"), [".tsx"]), ...collect(path.join(ROOT, "apps"), [".tsx"])]) {
+    const src = readFileSync(file, "utf8");
+    const rel = path.relative(ROOT, file).replace(/\\/g, "/");
+
+    // 文字列ユニオンを持つ型の名前と、その項目名を集める
+    const unionFields = new Map();  // 型名 -> Set(項目名)
+    for (const m of src.matchAll(/type\s+(\w+)\s*=\s*\{([^}]*)\}/g)) {
+      const fields = new Set();
+      for (const f of m[2].matchAll(/(\w+)\s*:\s*"[^"]+"\s*\|/g)) fields.add(f[1]);
+      if (fields.size > 0) unionFields.set(m[1], fields);
+    }
+    if (unionFields.size === 0) continue;
+
+    // useState<型[]> で使われている型だけを対象にする
+    const stateTypes = new Set();
+    for (const m of src.matchAll(/useState<(\w+)\[\]>/g)) stateTypes.add(m[1]);
+
+    for (const [typeName, fields] of unionFields) {
+      if (!stateTypes.has(typeName)) continue;
+      for (const m of src.matchAll(/set\w+\(\(\w+\)\s*=>\s*\[\{([^}]*)\}/g)) {
+        const body = m[1];
+        if (body.includes("as const")) continue;
+        for (const field of fields) {
+          const re = new RegExp(`\\b${field}\\s*:\\s*"[^"]+"`);
+          if (re.test(body)) {
+            issues.push(
+              `[T] ${rel}: ${typeName}.${field} に文字列を直接書いています` +
+              ` — 型が string に広がってビルドの型検査で落ちます。\`${field}: "…" as const\` にするか、` +
+              `型注釈のある変数を経由してください`,
+            );
+          }
+        }
       }
     }
   }

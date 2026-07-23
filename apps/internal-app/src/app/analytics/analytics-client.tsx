@@ -1,6 +1,7 @@
 "use client";
 /** 経営分析。売上・仕入・経費・粗利の月次推移を折れ線＋棒グラフ（インラインSVG）で表示。 */
 import * as React from "react";
+import { Button } from "@platform/ui";
 
 interface Point { month: string; sales: number; purchases: number; expenses: number; profit: number; }
 interface Summary { totalSales: number; totalProfit: number; avgProfit: number; profitMoM: number; }
@@ -40,7 +41,7 @@ export function AnalyticsClient({ fetchImpl }: AnalyticsClientProps) {
     <div className="mx-auto max-w-4xl p-6">
       <h1 className="mb-1 text-2xl font-bold">経営分析</h1>
       <p className="mb-4 text-xs text-neutral-500">{data.from} 〜 {data.to} の月次推移（売上＝棒、粗利＝折れ線）。</p>
-      <div className="mb-3 flex gap-1">{[3, 6, 12].map((m) => <button key={m} onClick={() => setMonths(m)} className={`rounded px-2 py-1 text-xs ${months === m ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600"}`}>{m}か月</button>)}</div>
+      <div className="mb-3 flex gap-1">{[3, 6, 12].map((m) => <Button key={m} onClick={() => setMonths(m)} className={`rounded px-2 py-1 text-xs ${months === m ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600"}`}>{m}か月</Button>)}</div>
 
       <div className="mb-4 grid grid-cols-4 gap-3 text-center text-sm">
         <div className="rounded border border-neutral-200 p-3"><div className="text-xs text-neutral-500">総売上</div><div className="mt-1 font-bold">{yen(data.summary.totalSales)}</div></div>

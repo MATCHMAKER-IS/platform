@@ -1,8 +1,8 @@
 # internal-app 画面・API 一覧(自動生成）
 
-> 再生成: `node tools/gen-app-map.mjs internal-app`。画面 79 / API 212。手で編集しない。
+> 再生成: `node tools/gen-app-map.mjs internal-app`。画面 80 / API 214。手で編集しない。
 
-## 画面(79)
+## 画面(80)
 
 | パス | タイトル |
 |---|---|
@@ -62,6 +62,7 @@
 | `/invoices` | 請求書 |
 | `/learning` | e-learning |
 | `/mailbox` | 受信箱 |
+| `/offline` | オフライン — 社内システム |
 | `/overview` | ダッシュボード |
 | `/partners` | 取引先マスタ |
 | `/payables` | 買掛金 |
@@ -86,7 +87,7 @@
 | `/trend` | 年次推移 |
 | `/withholding` | 源泉徴収・支払調書 |
 
-## API(212)
+## API(214)
 
 | エンドポイント | メソッド |
 |---|---|
@@ -302,3 +303,5 @@
 | `/api/v1/invoices` | GET |
 | `/api/v1/openapi` | GET |
 | `/api/withholding` | GET, POST |
+| `/manifest.json` | GET |
+| `/sw.js` | GET |

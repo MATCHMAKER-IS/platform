@@ -21,6 +21,12 @@ export interface FreshnessIndicatorProps {
 }
 
 /** 最終更新の相対時刻を表示する。古い場合は警告色。 */
+/**
+ * 情報の新しさ。
+ *
+ * いつ時点のデータかを示す。**集計に時間がかかる画面**では必須
+ * (古い数字を最新だと思って判断されると事故になる)。
+ */
 export function FreshnessIndicator({ updatedAt, now = Date.now(), staleAfterMinutes = 60, label = "最終更新", className }: FreshnessIndicatorProps) {
   const ms = updatedAt instanceof Date ? updatedAt.getTime() : updatedAt;
   const stale = now - ms > staleAfterMinutes * 60_000;

@@ -20,6 +20,23 @@ export interface OTPInputProps {
 }
 
 /** 桁区切りのワンタイムコード入力。 */
+/**
+ * 確認コードの入力(1 文字ずつの枠)。
+ *
+ * ログインの 2 要素認証や、メールで送った確認コードに使う。
+ * 入力すると次の枠へ自動で移り、貼り付けにも対応する
+ * (**利用者はメールからまとめてコピーする**ため、1 文字ずつ入れさせない)。
+ *
+ * - `onComplete` は全桁そろった時点で呼ばれる。**送信ボタンを押させない**
+ * - 間違えたときは全部消さず、間違った桁だけ直せるようにする
+ * - コードには期限がある。残り時間を近くに出すと親切
+ *
+ * @example
+ * ```tsx
+ * <OTPInput length={6} value={code} onChange={setCode}
+ *   onComplete={(v) => verify(v)} />
+ * ```
+ */
 export function OTPInput({ length = 6, value, onChange, onComplete, className }: OTPInputProps) {
   const refs = React.useRef<(HTMLInputElement | null)[]>([]);
   const chars = value.padEnd(length, " ").slice(0, length).split("");

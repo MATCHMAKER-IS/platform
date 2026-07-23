@@ -1,6 +1,7 @@
 "use client";
 /** システムステータス。DB・外部連携・Webhook等の稼働状況を表示。 */
 import * as React from "react";
+import { Button } from "@platform/ui";
 
 interface Check { name: string; status: "up" | "down"; durationMs: number; error?: string; }
 interface Report { status: "healthy" | "unhealthy"; checks: Check[]; timestamp: number; summary: { up: number; down: number; total: number }; }
@@ -17,7 +18,7 @@ export function StatusClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
     <div className="mx-auto max-w-2xl p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">システムステータス</h1>
-        <button onClick={() => void load()} className="rounded border border-neutral-300 px-3 py-1 text-sm">更新</button>
+        <Button onClick={() => void load()} className="rounded border border-neutral-300 px-3 py-1 text-sm">更新</Button>
       </div>
       <div className={`mb-4 rounded p-4 ${report.status === "healthy" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"}`}>
         <span className="text-lg font-semibold">{report.status === "healthy" ? "✓ 全システム正常" : "⚠ 一部に問題があります"}</span>

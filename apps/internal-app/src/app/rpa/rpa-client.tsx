@@ -1,6 +1,7 @@
 "use client";
 /** RPA 安全実行のデモ。直列化・リトライ・冪等・監査を体感できる。実処理はサンプル(擬似ポイント同期)。 */
 import * as React from "react";
+import { Button, Checkbox, Input } from "@platform/ui";
 
 interface RunResult { rows: number; attempts: number; skipped: boolean; }
 interface AuditEvent { action: string; target?: string; at: string; metadata?: Record<string, unknown>; }
@@ -41,14 +42,14 @@ export function RpaClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
 
       <div style={{ ...card, marginTop: 12 }}>
         <label style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-          <input type="checkbox" checked={fail} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFail(e.target.checked)} />
+          <Checkbox  checked={fail} onCheckedChange={(v) => setFail(!!v)} />
           最初の試行を意図的に失敗させる（リトライの様子を見る）
         </label>
         <label style={{ fontSize: 13, display: "block", marginBottom: 8 }}>
           冪等キー（同じ値の2回目以降はスキップ）:
-          <input value={idempotencyKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIdempotencyKey(e.target.value)} placeholder="例: 2025-01-daily" style={{ marginLeft: 6, padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6 }} />
+          <Input value={idempotencyKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIdempotencyKey(e.target.value)} placeholder="例: 2025-01-daily" style={{ marginLeft: 6, padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6 }} />
         </label>
-        <button onClick={run} disabled={busy} style={{ padding: "8px 20px", background: busy ? "#ccc" : "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>{busy ? "実行中…" : "サンプル RPA を実行"}</button>
+        <Button onClick={run} disabled={busy} style={{ padding: "8px 20px", background: busy ? "#ccc" : "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>{busy ? "実行中…" : "サンプル RPA を実行"}</Button>
         {result && <div style={{ marginTop: 12, fontSize: 13, color: "var(--color-success, #16a34a)" }}>成功（{result.rows} 件処理・試行 {result.attempts} 回{result.skipped ? "・冪等スキップ" : ""}）</div>}
         {error && <div style={{ marginTop: 12, fontSize: 13, color: "var(--color-danger, #dc2626)" }}>失敗: {error}</div>}
       </div>

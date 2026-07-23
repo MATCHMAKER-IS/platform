@@ -1,0 +1,5 @@
+{
+  "_comment": "認可も public-api 宣言も無い API ルートの上限。増やさないための歯止め。減らしたら --set-limit で下げる。",
+  "limit": 0,
+  "updatedAt": "2026-07-22"
+}

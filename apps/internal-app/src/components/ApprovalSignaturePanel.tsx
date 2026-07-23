@@ -1,6 +1,7 @@
 "use client";
 /** 承認へのサイン。承認（docType/docNumber）に手書き署名を付与し、既存署名と状況を表示する。 */
 import * as React from "react";
+import { Button } from "@platform/ui";
 import { SignaturePad } from "./SignaturePad";
 
 interface Sig { id: string; signer: string; image: string; signedAt: string; }
@@ -26,7 +27,7 @@ export function ApprovalSignaturePanel({ docType, docNumber, required = false, f
       <div className="flex items-center gap-2 text-xs">
         <span className="text-neutral-500">サイン: {sigs.length > 0 ? `${sigs.length}件（${sigs.map((s) => s.signer).join("、")}）` : "なし"}</span>
         {required && sigs.length === 0 && <span className="rounded bg-red-100 px-1.5 py-0.5 text-red-700">署名が必要です</span>}
-        <button type="button" onClick={() => setOpen((v) => !v)} className="text-blue-600 hover:underline">{open ? "閉じる" : "サインする"}</button>
+        <Button type="button" onClick={() => setOpen((v) => !v)} className="text-blue-600 hover:underline">{open ? "閉じる" : "サインする"}</Button>
       </div>
       {open && <div className="mt-2"><SignaturePad onSave={onSave} width={320} height={120} /></div>}
       {sigs.length > 0 && (

@@ -8,7 +8,34 @@ import { X } from "lucide-react";
 import { cn } from "../lib/cn";
 import { useT } from "./i18n-provider";
 
-/** ダイアログのルート。 */
+/**
+ * ダイアログ(重ねて出す小窓)。
+ *
+ * **画面を離れずに済む短い操作**に使う。項目が多い入力や、じっくり読む内容は
+ * 専用の画面にした方がよい(小窓は狭く、戻る操作もしにくい)。
+ *
+ * - 確認だけなら `AlertDialog`(取り消せない操作の確認に特化)
+ * - 閉じたときに入力を捨ててよいかを必ず決める。**捨てるなら確認を挟む**
+ * - `DialogTrigger` を使うと開閉の状態を自分で持たなくてよい
+ *
+ * @example
+ * ```tsx
+ * <Dialog>
+ *   <DialogTrigger asChild><Button>編集</Button></DialogTrigger>
+ *   <DialogContent>
+ *     <DialogHeader>
+ *       <DialogTitle>取引先を編集</DialogTitle>
+ *       <DialogDescription>変更は保存を押すまで反映されません。</DialogDescription>
+ *     </DialogHeader>
+ *     …入力…
+ *     <DialogFooter>
+ *       <DialogClose asChild><Button variant="secondary">やめる</Button></DialogClose>
+ *       <Button onClick={save}>保存</Button>
+ *     </DialogFooter>
+ *   </DialogContent>
+ * </Dialog>
+ * ```
+ */
 export const Dialog = Primitive.Root;
 /** ダイアログを開くトリガー。 */
 export const DialogTrigger = Primitive.Trigger;

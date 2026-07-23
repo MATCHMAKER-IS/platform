@@ -41,6 +41,12 @@ export interface TimelineChartProps {
 const PALETTE = ["var(--color-primary)", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
 
 /** 時系列ラインチャート。 */
+/**
+ * 時系列の帯(期間の重なり)。
+ *
+ * 案件・工程・貸出のように、**始まりと終わりがあるもの**を並べて見る。
+ * 重なりや空きが視覚的に分かるので、日程の調整に向く。
+ */
 export function TimelineChart({ series, band, width = 480, height = 240, xLabels, showLegend = true, showTooltip = false, formatX, formatY, className }: TimelineChartProps) {
   const allX: number[] = [];
   const allY: number[] = [];

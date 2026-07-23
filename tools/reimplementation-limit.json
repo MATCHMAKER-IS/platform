@@ -1,0 +1,5 @@
+{
+  "_comment": "基盤と同名の関数をアプリ側で定義している数の上限。増やさないための歯止め。偶然の同名は tools/check-reimplementation.mjs の ALLOW へ理由付きで登録する。",
+  "limit": 11,
+  "updatedAt": "2026-07-22"
+}

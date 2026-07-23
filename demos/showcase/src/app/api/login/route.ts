@@ -1,3 +1,4 @@
+// public-api: デモのログイン。ログイン前に呼ぶ
 /** ログイン(デモ)。レート制限(@platform/guard)+ セッション発行(@platform/session)。 */
 import { handleRoute } from "@platform/http";
 import { AppError, ErrorCode } from "@platform/core";

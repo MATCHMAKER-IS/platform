@@ -1,84 +1,21 @@
 "use client";
-/**
- * 問い合わせフォーム画面。@platform/ui の Button を使い、API を叩く。
- * 検証・受付・メール・一覧・Excel は API 側(基盤利用)で処理する。
- */
-import { useEffect, useState } from "react";
+import * as React from "react";
 import { Button } from "@platform/ui";
-
-interface Row { id: string; name: string; email: string; message: string; createdAtJst: string }
-
+import { InquiriesDemo } from "./inquiries-demo";
+import { RegisterDemo } from "./register-demo";
+import { ValidationDemo } from "./validation-demo";
+const TABS = [{ id: "a", label: "問い合わせ", Comp: InquiriesDemo }, { id: "b", label: "会員登録", Comp: RegisterDemo }, { id: "c", label: "入力バリデーション", Comp: ValidationDemo }] as const;
 export default function Page() {
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
-  const [rows, setRows] = useState<Row[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [ok, setOk] = useState<string | null>(null);
-
-  async function load() {
-    const res = await fetch("/api/inquiries");
-    const data = await res.json();
-    setRows(data.inquiries ?? []);
-  }
-  useEffect(() => { void load(); }, []);
-
-  async function submit() {
-    setError(null); setOk(null);
-    const res = await fetch("/api/inquiries", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    const data = await res.json();
-    if (!res.ok) { setError(data.error?.message ?? "エラー"); return; }
-    setOk(`受け付けました(${data.receivedAt})。確認メールをメモリ送信しました。`);
-    setForm({ name: "", email: "", message: "" });
-    void load();
-  }
-
-  const field = { display: "block", width: "100%", marginTop: ".25rem", padding: ".5rem",
-    border: "1px solid var(--color-border)", borderRadius: "var(--radius)" } as const;
-
+  const [tab, setTab] = React.useState<string>("a");
+  const Active = (TABS.find((t) => t.id === tab) ?? TABS[0]).Comp;
   return (
-    <main style={{ maxWidth: 680, margin: "3rem auto", padding: "0 1rem" }}>
-      <h1 style={{ fontSize: "1.4rem", fontWeight: 700 }}>問い合わせフォーム</h1>
-      <p style={{ color: "var(--color-muted)" }}>
-        入力検証(validation)→ 受付 → 確認メール(mail・メモリ)→ 一覧(datetime)→ Excel(xlsx)。
-      </p>
-
-      <div style={{ marginTop: "1rem", display: "grid", gap: ".75rem" }}>
-        <label>氏名<input style={field} value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
-        <label>メール<input style={field} value={form.email}
-          onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
-        <label>本文<textarea style={{ ...field, minHeight: 80 }} value={form.message}
-          onChange={(e) => setForm({ ...form, message: e.target.value })} /></label>
-        {error && <div style={{ color: "var(--color-danger)" }}>{error}</div>}
-        {ok && <div style={{ color: "var(--color-primary)" }}>{ok}</div>}
-        <div style={{ display: "flex", gap: ".5rem" }}>
-          <Button onClick={submit}>送信する</Button>
-          <a href="/api/inquiries/export"><Button variant="secondary">Excel 出力</Button></a>
-        </div>
+    <main style={{ maxWidth: 1000, margin: "2rem auto", padding: "0 1rem" }}>
+      <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: 12 }}>フォーム（問い合わせ・登録・検証）</h1>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12, borderBottom: "1px solid var(--color-border)", paddingBottom: 10 }}>
+        {TABS.map((t) => (<Button key={t.id} type="button" onClick={() => setTab(t.id)}
+          style={{ fontSize: 13, padding: "6px 14px", borderRadius: 8, cursor: "pointer", border: "1px solid var(--color-border)", background: tab === t.id ? "var(--color-primary)" : "var(--color-bg)", color: tab === t.id ? "var(--color-primary-fg)" : "var(--color-fg)" }}>{t.label}</Button>))}
       </div>
-
-      <h2 style={{ fontSize: "1.1rem", fontWeight: 600, marginTop: "2rem" }}>受付一覧</h2>
-      <table style={{ width: "100%", borderCollapse: "collapse", marginTop: ".5rem", fontSize: ".9rem" }}>
-        <thead><tr>
-          {["氏名", "メール", "本文", "受付日時(JST)"].map((h) => (
-            <th key={h} style={{ textAlign: "left", borderBottom: "1px solid var(--color-border)", padding: ".4rem" }}>{h}</th>
-          ))}
-        </tr></thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.id}>
-              <td style={{ padding: ".4rem", borderBottom: "1px solid #f1f5f9" }}>{r.name}</td>
-              <td style={{ padding: ".4rem", borderBottom: "1px solid #f1f5f9" }}>{r.email}</td>
-              <td style={{ padding: ".4rem", borderBottom: "1px solid #f1f5f9" }}>{r.message}</td>
-              <td style={{ padding: ".4rem", borderBottom: "1px solid #f1f5f9" }}>{r.createdAtJst}</td>
-            </tr>
-          ))}
-          {rows.length === 0 && <tr><td colSpan={4} style={{ padding: ".75rem", color: "var(--color-muted)" }}>まだありません</td></tr>}
-        </tbody>
-      </table>
+      <Active />
     </main>
   );
 }

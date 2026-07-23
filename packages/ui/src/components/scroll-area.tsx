@@ -18,6 +18,12 @@ export interface ScrollAreaProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 /** 枠内スクロール表示のコンテナ。 */
+/**
+ * 独自の枠内スクロール。
+ *
+ * 画面全体ではなく、**一部だけを縦に長くしたい**ときに使う。
+ * 中身が隠れていることが分かるよう、端で切れて見えるようにする。
+ */
 export const ScrollArea = React.forwardRef<HTMLDivElement, ScrollAreaProps>(
   ({ maxHeight = "16rem", onReachBottom, threshold = 8, className, style, onScroll, children, ...props }, ref) => {
     const reachedRef = React.useRef(false);

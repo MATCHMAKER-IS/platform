@@ -24,6 +24,12 @@ export interface StreamPlayerProps {
 }
 
 /** HLS/DASH ストリーミングプレイヤー。 */
+/**
+ * 配信の再生。
+ *
+ * 生放送や監視カメラなど、**終わりが無い映像**に使う。
+ * 通信が途切れたときに自動で繋ぎ直すかを決めておく。
+ */
 export function StreamPlayer({ src, type = "auto", poster, className }: StreamPlayerProps) {
   const t = useT();
   const containerRef = React.useRef<HTMLDivElement>(null);

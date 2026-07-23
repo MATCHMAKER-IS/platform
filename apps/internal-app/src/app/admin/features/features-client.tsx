@@ -1,6 +1,7 @@
 "use client";
 /** 機能アクセス設定。各機能の有効/無効と、使える役割を管理者が設定する（表示/非表示に反映）。 */
 import * as React from "react";
+import { Button, Checkbox } from "@platform/ui";
 
 interface Feature { key: string; label: string; href: string; }
 interface Rule { enabled: boolean; roles: string[]; }
@@ -43,10 +44,10 @@ export function FeaturesClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
               return (
                 <tr key={f.key} className={`border-b border-neutral-100 ${rule.enabled ? "" : "bg-neutral-50 opacity-60"}`}>
                   <td className="px-3 py-2">{f.label}<span className="ml-1 text-xs text-neutral-400">{f.href}</span></td>
-                  <td className="px-2 py-2 text-center"><input type="checkbox" checked={rule.enabled} onChange={() => toggleEnabled(f.key)} /></td>
+                  <td className="px-2 py-2 text-center"><Checkbox  checked={rule.enabled} onCheckedChange={() => toggleEnabled(f.key)} /></td>
                   {ROLES.map((role) => (
                     <td key={role} className="px-2 py-2 text-center">
-                      {role === "admin" ? <span className="text-xs text-neutral-400">常に可</span> : <input type="checkbox" disabled={!rule.enabled} checked={rule.roles.length === 0 || rule.roles.includes(role)} onChange={() => toggleRole(f.key, role)} />}
+                      {role === "admin" ? <span className="text-xs text-neutral-400">常に可</span> : <Checkbox  disabled={!rule.enabled} checked={rule.roles.length === 0 || rule.roles.includes(role)} onCheckedChange={() => toggleRole(f.key, role)} />}
                     </td>
                   ))}
                 </tr>
@@ -56,7 +57,7 @@ export function FeaturesClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         </table>
       </div>
       <p className="mt-2 text-xs text-neutral-400">役割の列にチェックが無い＝その役割は非表示（使用不可）。全て空＝全役割に表示。</p>
-      <button onClick={save} className="mt-4 rounded bg-neutral-900 px-6 py-2 text-sm text-white">保存</button>
+      <Button onClick={save} className="mt-4 rounded bg-neutral-900 px-6 py-2 text-sm text-white">保存</Button>
     </div>
   );
 }

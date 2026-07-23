@@ -7,6 +7,12 @@ import { Popover as Primitive } from "radix-ui";
 import { cn } from "../lib/cn";
 
 /** ポップオーバーのルート。 */
+/**
+ * 押すと開く小さな箱。
+ *
+ * `Tooltip` は触れると出る補足、こちらは**押して開く操作を含むもの**。
+ * 中に入力やボタンを置けるが、多いなら `Dialog` にする。
+ */
 export const Popover = Primitive.Root;
 /** 開くトリガー。 */
 export const PopoverTrigger = Primitive.Trigger;

@@ -1,6 +1,7 @@
 "use client";
 /** 月次決算。損益計算書・貸借対照表・消費税集計表を月ごとに表示。 */
 import * as React from "react";
+import { Button, Input } from "@platform/ui";
 import { InfoTip } from "../../components/InfoTip";
 
 interface PL { revenue: number; expense: number; netIncome: number; }
@@ -65,7 +66,7 @@ export function ClosingClient({ fetchImpl }: ClosingClientProps) {
     <div className="mx-auto max-w-4xl p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">月次決算</h1>
-        <input type="month" value={month} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMonth(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-sm" />
+        <Input type="month" value={month} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMonth(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-sm" />
       </div>
       {!data ? <p className="text-sm text-neutral-500">読み込み中…</p> : (
         <>
@@ -120,8 +121,8 @@ export function ClosingClient({ fetchImpl }: ClosingClientProps) {
             <div className="mb-2 flex items-center justify-between">
               <h2 className="text-sm font-medium">月次締めロック</h2>
               {locks.some((l) => l.period === month)
-                ? <button onClick={() => toggleLock("unlock")} className="rounded border border-neutral-300 px-4 py-1.5 text-sm">{month} の締めを解除</button>
-                : <button onClick={() => toggleLock("lock")} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">{month} を締める</button>}
+                ? <Button onClick={() => toggleLock("unlock")} className="rounded border border-neutral-300 px-4 py-1.5 text-sm">{month} の締めを解除</Button>
+                : <Button onClick={() => toggleLock("lock")} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">{month} を締める</Button>}
             </div>
             <p className="text-xs text-neutral-500">締めた月は請求の起票・入金記録ができなくなります（後追い修正の防止）。</p>
             {lockMsg && <p className="mt-1 text-xs text-green-700">{lockMsg}</p>}
@@ -131,8 +132,8 @@ export function ClosingClient({ fetchImpl }: ClosingClientProps) {
           <div className="mt-6 rounded border border-neutral-200 p-4">
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <h2 className="text-sm font-medium">年次決算・繰越（{month.slice(0, 4)}年度）</h2>
-              <label className="ml-auto text-xs text-neutral-500">期首繰越利益剰余金<input value={prior} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPrior(e.target.value)} inputMode="numeric" className="ml-1 w-28 rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-              <button onClick={runYearEnd} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">決算振替を計算</button>
+              <label className="ml-auto text-xs text-neutral-500">期首繰越利益剰余金<Input value={prior} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPrior(e.target.value)} inputMode="numeric" className="ml-1 w-28 rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+              <Button onClick={runYearEnd} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">決算振替を計算</Button>
             </div>
             {yearEnd && (
               <>
@@ -153,7 +154,7 @@ export function ClosingClient({ fetchImpl }: ClosingClientProps) {
           <div className="mt-6 rounded border border-neutral-200 p-4">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-1 text-sm font-medium">前年比較（{month.slice(0, 4)}年度 vs 前年度）<InfoTip text="増減率は（当期−前期）÷前期です。前期が0の項目は算出できないため「—」と表示されます。" /></h2>
-              <button onClick={runCompare} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">前年比較を計算</button>
+              <Button onClick={runCompare} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">前年比較を計算</Button>
             </div>
             {compare && (() => {
               const pct = (r: number | null) => (r === null ? "—" : `${r >= 0 ? "+" : ""}${Math.round(r * 1000) / 10}%`);

@@ -1,42 +1,26 @@
 "use client";
-/** アップロード/ダウンロードのデモ。選択→進捗付きアップロード→保存キーでダウンロード。 */
-import { useState } from "react";
-import { FileUploader } from "@platform/ui";
+/** ファイル・画像の統合デモ（アップロード/DL・画像編集をタブでまとめたもの）。 */
+import * as React from "react";
+import { Button } from "@platform/ui";
+import { FilesDemo } from "./files-demo";
+import { ImageDemo } from "./image-demo";
 
-interface Uploaded { key: string; name: string; size: number; type: string }
+const TABS = [
+  { id: "files", label: "ファイル入出力", Comp: FilesDemo },
+  { id: "image", label: "画像編集", Comp: ImageDemo },
+] as const;
 
 export default function Page() {
-  const [files, setFiles] = useState<Uploaded[]>([]);
-
+  const [tab, setTab] = React.useState<string>("files");
+  const Active = (TABS.find((t) => t.id === tab) ?? TABS[0]).Comp;
   return (
-    <main style={{ maxWidth: 560, margin: "3rem auto", padding: "0 1rem" }}>
-      <h1 style={{ fontSize: "1.5rem", fontWeight: 700 }}>アップロード / ダウンロード</h1>
-      <p style={{ color: "var(--color-muted)", marginBottom: "1rem" }}>
-        選択すると進捗付きでアップロード(@platform/upload + storage)。保存後のキーでダウンロードできます。
-      </p>
-
-      <FileUploader
-        url="/api/upload"
-        multiple
-        accept="image/*,application/pdf,.txt"
-        hint="画像 / PDF / テキスト(最大10MB)"
-        onUploaded={(data) => setFiles((data as { files: Uploaded[] }).files)}
-      />
-
-      {files.length > 0 && (
-        <ul style={{ marginTop: "1.5rem", display: "flex", flexDirection: "column", gap: ".5rem" }}>
-          {files.map((f) => {
-            const id = f.key.split("/").pop();
-            return (
-              <li key={f.key} style={{ display: "flex", justifyContent: "space-between", border: "1px solid var(--color-border)", borderRadius: "var(--radius)", padding: ".5rem .75rem", fontSize: ".9rem" }}>
-                <span>{f.name}({Math.round(f.size / 1024)}KB)</span>
-                <a href={`/api/download/${id}`} target="_blank" rel="noreferrer">ダウンロード</a>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      <p style={{ marginTop: "1.5rem" }}><a href="/">← 戻る</a></p>
+    <main style={{ maxWidth: 1000, margin: "2rem auto", padding: "0 1rem" }}>
+      <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: 12 }}>ファイル・画像</h1>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12, borderBottom: "1px solid var(--color-border)", paddingBottom: 10 }}>
+        {TABS.map((t) => (<Button key={t.id} type="button" onClick={() => setTab(t.id)}
+          style={{ fontSize: 13, padding: "6px 14px", borderRadius: 8, cursor: "pointer", border: "1px solid var(--color-border)", background: tab === t.id ? "var(--color-primary)" : "var(--color-bg)", color: tab === t.id ? "var(--color-primary-fg)" : "var(--color-fg)" }}>{t.label}</Button>))}
+      </div>
+      <Active />
     </main>
   );
 }

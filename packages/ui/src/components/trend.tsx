@@ -18,6 +18,13 @@ export interface TrendProps {
 }
 
 /** 前期比バッジ。 */
+/**
+ * 増減の表示(前と比べてどうか)。
+ *
+ * 数値の横に置いて、上向き・下向きと差分を示す。
+ * **増加が良いとは限らない**(費用・離職率・障害件数)。
+ * 良し悪しの向きを指定できる場合は、指標に合わせて必ず設定する。
+ */
 export function Trend({ current, previous, higherIsBetter = true, decimals = 1, className }: TrendProps) {
   const pct = percentChange(previous, current);
   const flat = !Number.isFinite(pct) || Math.abs(pct) < 0.05;

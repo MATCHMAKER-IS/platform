@@ -1,53 +1,36 @@
 "use client";
-/** クライアント情報のデモ(@platform/device の useClientInfo)。 */
-import { useState } from "react";
-import { useClientInfo, Button, Badge } from "@platform/ui";
-import { requestGeolocation } from "@platform/device";
+/** デバイス連携の統合デモ（端末情報・Bluetooth・WebHID をタブでまとめたもの）。 */
+import * as React from "react";
+import { Button } from "@platform/ui";
+import { DeviceInfoDemo } from "./info-demo";
+import { BluetoothDemo } from "./bluetooth-demo";
+import { HidDemo } from "./hid-demo";
+import { BarcodeDemo } from "./barcode-demo";
+import { OsNotifyDemo } from "./osnotify-demo";
+import { PwaDemo } from "./pwa-demo";
 
-function Row({ k, v }: { k: string; v: React.ReactNode }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", padding: ".4rem 0", borderBottom: "1px solid var(--color-border)" }}>
-      <span style={{ color: "var(--color-muted)" }}>{k}</span>
-      <span style={{ fontFamily: "monospace", textAlign: "right" }}>{v}</span>
-    </div>
-  );
-}
+const TABS = [
+  { id: "info", label: "端末・ブラウザ情報", Comp: DeviceInfoDemo },
+  { id: "bluetooth", label: "Bluetooth（BLE）", Comp: BluetoothDemo },
+  { id: "hid", label: "WebHID（周辺機器）", Comp: HidDemo },
+  { id: "barcode", label: "QR・バーコード", Comp: BarcodeDemo },
+  { id: "osnotify", label: "OS通知", Comp: OsNotifyDemo },
+  { id: "pwa", label: "PWA（ホーム画面）", Comp: PwaDemo },
+] as const;
 
 export default function Page() {
-  const info = useClientInfo();
-  const [geo, setGeo] = useState<string>("(未取得)");
-
-  if (!info) return <main style={{ maxWidth: 560, margin: "3rem auto", padding: "0 1rem" }}>読み込み中...</main>;
-
+  const [tab, setTab] = React.useState<string>("info");
+  const Active = (TABS.find((t) => t.id === tab) ?? TABS[0]).Comp;
   return (
-    <main style={{ maxWidth: 560, margin: "3rem auto", padding: "0 1rem" }}>
-      <h1 style={{ fontSize: "1.5rem", fontWeight: 700 }}>端末・ブラウザ情報</h1>
-      <p style={{ color: "var(--color-muted)", marginBottom: "1rem" }}>@platform/device で取得したこの端末の情報です。</p>
-
-      <section style={{ fontSize: ".9rem" }}>
-        <Row k="ブラウザ" v={`${info.browser.name ?? "?"} ${info.browser.version ?? ""}`} />
-        <Row k="エンジン" v={`${info.engine.name ?? "?"} ${info.engine.version ?? ""}`} />
-        <Row k="OS" v={`${info.os.name ?? "?"} ${info.os.version ?? ""}`} />
-        <Row k="端末種別" v={<Badge variant="secondary">{info.device.type}</Badge>} />
-        <Row k="ハードウェア" v={`${info.hardware.cores ?? "?"}コア / ${info.hardware.memoryGB ?? "?"}GB / タッチ${info.hardware.maxTouchPoints}`} />
-        <Row k="画面" v={`${info.screen.width}×${info.screen.height} @${info.screen.pixelRatio}x / ${info.screen.colorDepth}bit`} />
-        <Row k="ビューポート" v={`${info.viewport.width}×${info.viewport.height}`} />
-        <Row k="向き" v={info.screen.orientation ?? "?"} />
-        <Row k="ネットワーク" v={`${info.network.online ? "オンライン" : "オフライン"}${info.network.effectiveType ? ` / ${info.network.effectiveType}` : ""}${info.network.downlinkMbps ? ` / ${info.network.downlinkMbps}Mbps` : ""}`} />
-        <Row k="言語 / TZ" v={`${info.locale.language} / ${info.locale.timezone}`} />
-        <Row k="配色 / モーション" v={`${info.preferences.colorScheme} / ${info.preferences.reducedMotion ? "低減" : "通常"}`} />
-        <Row k="機能" v={`Cookie:${info.capabilities.cookiesEnabled ? "✓" : "✗"} / タッチ:${info.capabilities.touch ? "✓" : "✗"} / PWA:${info.capabilities.standalone ? "✓" : "✗"}`} />
-        <Row k="位置情報" v={geo} />
-      </section>
-
-      <div style={{ marginTop: "1rem" }}>
-        <Button variant="secondary" onClick={async () => {
-          const r = await requestGeolocation();
-          setGeo(r.ok ? `${r.value.latitude.toFixed(4)}, ${r.value.longitude.toFixed(4)} (±${Math.round(r.value.accuracyMeters)}m)` : r.error.message);
-        }}>位置情報を取得(要許可)</Button>
+    <main style={{ maxWidth: 1000, margin: "2rem auto", padding: "0 1rem" }}>
+      <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: 12 }}>デバイス連携（情報/BLE/HID/QR/通知）</h1>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12, borderBottom: "1px solid var(--color-border)", paddingBottom: 10 }}>
+        {TABS.map((t) => (
+          <Button key={t.id} type="button" onClick={() => setTab(t.id)}
+            style={{ fontSize: 13, padding: "6px 14px", borderRadius: 8, cursor: "pointer", border: "1px solid var(--color-border)", background: tab === t.id ? "var(--color-primary)" : "var(--color-bg)", color: tab === t.id ? "var(--color-primary-fg)" : "var(--color-fg)" }}>
+            {t.label}</Button>))}
       </div>
-
-      <p style={{ marginTop: "1.5rem" }}><a href="/">← 戻る</a></p>
+      <Active />
     </main>
   );
 }

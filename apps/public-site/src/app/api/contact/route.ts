@@ -1,3 +1,4 @@
+// public-api: 社外向けの問い合わせ受付(公開フォーム)。レート制限で保護する
 /** 公開サイト: お問い合わせ受付(POST)。社内アプリのインテークAPIへ転送して受信一覧に集約する。 */
 import { siteEnv } from "../../../server/env";
 async function handlePOST(req: Request): Promise<Response> {

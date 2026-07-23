@@ -1,85 +1,19 @@
 /**
- * 勤怠リポジトリ。出退勤から実労働・時間外・深夜・法定休日の各区分を @platform/payroll に委譲して集計する。
+ * 勤怠リポジトリ(このアプリの保存先)。
+ * 型と集計ロジックは @platform/attendance にあり、ここは Prisma 実装だけを持つ。
  * @packageDocumentation
  */
-import { splitDailyWork, parseTimeToMinutes } from "@platform/payroll";
+// 勤怠の型と計算は基盤に一本化した(ADR 0015: 同じ機能を 2 か所に持たない)。
+// ここに残すのは、このアプリ固有の保存先(Prisma 実装)だけ。
+import {
+  toDay, summarize,
+  type AttendanceEntry, type AttendanceDay, type AttendanceSummary, type AttendanceStore,
+} from "@platform/attendance";
 
-/** 1 日の打刻。 */
-export interface AttendanceEntry {
-  date: string;
-  clockIn: string;
-  clockOut: string;
-  breakMinutes?: number;
-  isHoliday?: boolean;
-}
+export type { AttendanceEntry, AttendanceDay, AttendanceSummary, AttendanceStore };
 
-/** 集計済みの 1 日。 */
-export interface AttendanceDay extends AttendanceEntry {
-  totalMinutes: number;
-  overtimeMinutes: number;
-  nightMinutes: number;
-  holidayMinutes: number;
-}
-
-/** 月次サマリー。 */
-export interface AttendanceSummary {
-  month: string;
-  days: AttendanceDay[];
-  totalMinutes: number;
-  overtimeMinutes: number;
-  nightMinutes: number;
-  holidayMinutes: number;
-}
-
-function toDay(entry: AttendanceEntry): AttendanceDay {
-  const startMin = parseTimeToMinutes(entry.clockIn);
-  let endMin = parseTimeToMinutes(entry.clockOut);
-  if (endMin <= startMin) endMin += 1440; // 日をまたぐ勤務
-  const split = splitDailyWork({ startMin, endMin, breakMinutes: entry.breakMinutes ?? 0, isHoliday: entry.isHoliday ?? false });
-  return { ...entry, totalMinutes: split.totalMinutes, overtimeMinutes: split.overtimeMinutes, nightMinutes: split.nightMinutes, holidayMinutes: split.holidayMinutes };
-}
-
-function summarize(month: string, entries: AttendanceEntry[]): AttendanceSummary {
-  const days = entries.map(toDay).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-  return {
-    month,
-    days,
-    totalMinutes: days.reduce((s, d) => s + d.totalMinutes, 0),
-    overtimeMinutes: days.reduce((s, d) => s + d.overtimeMinutes, 0),
-    nightMinutes: days.reduce((s, d) => s + d.nightMinutes, 0),
-    holidayMinutes: days.reduce((s, d) => s + d.holidayMinutes, 0),
-  };
-}
-
-/** 勤怠ストア。 */
-export interface AttendanceStore {
-  list(userId: string): Promise<AttendanceEntry[]>;
-  record(userId: string, entry: AttendanceEntry): Promise<AttendanceDay>;
-  /** 月次集計（month は "YYYY-MM"）。 */
-  monthly(userId: string, month: string): Promise<AttendanceSummary>;
-}
-
-/** インメモリ実装。 */
-export function createMemoryAttendanceStore(): AttendanceStore {
-  const byUser = new Map<string, AttendanceEntry[]>();
-  return {
-    async list(userId) {
-      return (byUser.get(userId) ?? []).slice().sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-    },
-    async record(userId, entry) {
-      const list = byUser.get(userId) ?? [];
-      const idx = list.findIndex((e) => e.date === entry.date);
-      if (idx >= 0) list[idx] = entry;
-      else list.push(entry);
-      byUser.set(userId, list);
-      return toDay(entry);
-    },
-    async monthly(userId, month) {
-      const entries = (byUser.get(userId) ?? []).filter((e) => e.date.startsWith(month));
-      return summarize(month, entries);
-    },
-  };
-}
+// メモリ実装は基盤のものを使う
+export { createMemoryAttendanceStore } from "@platform/attendance";
 
 // ── Prisma 実装 ──
 

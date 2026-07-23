@@ -35,7 +35,33 @@ export interface AlertProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "
   onDismiss?: () => void;
 }
 
-/** インライン通知。variant で 情報/成功/注意/エラー を切替。 */
+/**
+ * 画面の中に置く通知。
+ *
+ * **その画面で今起きていること**を伝える。操作の結果を一時的に見せたいだけなら
+ * トースト(`useToast`)の方が邪魔にならない。逆に、読まずに消されると困る内容
+ * (入力の誤り・データの欠落・法令上の注意)は Alert で残す。
+ *
+ * variant の使い分け:
+ * | variant | 使う場面 |
+ * |---|---|
+ * | `info` | 補足の説明・仕組みの案内 |
+ * | `success` | 処理が終わったことの確認 |
+ * | `warning` | まだ失敗ではないが、放置すると困ること |
+ * | `danger` | 失敗・できないことの説明 |
+ *
+ * **「エラーが発生しました」で終わらせない。** 何が起きて、次に何をすればよいかを書く。
+ *
+ * @example
+ * ```tsx
+ * <Alert variant="warning" title="期限が近づいています">
+ *   3 日以内に承認されないと差し戻されます。
+ * </Alert>
+ *
+ * // 閉じられるようにする(読み終えたら消してよい内容のとき)
+ * <Alert variant="info" onDismiss={() => setShown(false)}>保存しました</Alert>
+ * ```
+ */
 export function Alert({ className, variant = "info", title, hideIcon, onDismiss, children, ...props }: AlertProps) {
   const IconCmp = ICONS[variant ?? "info"];
   return (

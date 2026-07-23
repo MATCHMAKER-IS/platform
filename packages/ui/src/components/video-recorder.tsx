@@ -19,6 +19,12 @@ export interface VideoRecorderProps {
 }
 
 /** カメラ録画コンポーネント。 */
+/**
+ * 動画の撮影。
+ *
+ * 現場の記録や不具合の報告に使う。容量が大きくなるため、
+ * **長さの上限**と保存先(`@platform/storage`)を先に決める。
+ */
 export function VideoRecorder({ onRecorded, className }: VideoRecorderProps) {
   const r = useMediaRecorder({ audio: true, video: true });
   const previewRef = React.useRef<HTMLVideoElement>(null);

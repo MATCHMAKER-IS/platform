@@ -47,7 +47,7 @@ export function Rating({ value, max = 5, onChange, readOnly, size = 20, classNam
           className={cn("text-amber-400", !readOnly && "cursor-pointer", readOnly && "cursor-default")}
           aria-label={`${n} 点`}
         >
-          <Star width={size} height={size} className={n <= shown ? "fill-amber-400" : "fill-transparent text-slate-300"} />
+          <Star width={size} height={size} className={n <= shown ? "fill-amber-400" : "fill-transparent text-[var(--color-muted)]"} />
         </button>
       ))}
     </div>

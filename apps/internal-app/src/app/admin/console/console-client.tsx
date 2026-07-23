@@ -1,6 +1,7 @@
 "use client";
 /** 管理コンソール。お知らせ配信・システム設定・監査ダッシュボード・権限マトリクス・ヘルス・ログイン監視を1画面に集約。 */
 import * as React from "react";
+import { Button, Input, Textarea } from "@platform/ui";
 
 interface Count { key: string; count: number; }
 interface Settings { companyName: string; fiscalClosingMonth: number; consumptionTaxRate: number; mailFrom: string; invoicePrefix: string; signatureThreshold: number; }
@@ -73,16 +74,16 @@ export function AdminConsoleClient({ fetchImpl }: AdminConsoleClientProps) {
       <p className="mb-4 text-xs text-neutral-500">管理者向けの運用機能をまとめています。</p>
       {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
       <div className="mb-4 flex flex-wrap gap-1 border-b border-neutral-200">
-        {TABS.map(([k, label]) => <button key={k} onClick={() => setTab(k!)} className={`px-3 py-2 text-sm ${tab === k ? "border-b-2 border-neutral-900 font-medium" : "text-neutral-500"}`}>{label}</button>)}
+        {TABS.map(([k, label]) => <Button key={k} onClick={() => setTab(k!)} className={`px-3 py-2 text-sm ${tab === k ? "border-b-2 border-neutral-900 font-medium" : "text-neutral-500"}`}>{label}</Button>)}
       </div>
 
       {tab === "broadcast" && (
         <div className="rounded border border-neutral-200 p-4">
           <h2 className="mb-2 text-sm font-medium">全体周知（有効な全利用者の受信箱へ配信）</h2>
           <div className="flex flex-col gap-2">
-            <input value={bc.subject} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBc({ ...bc, subject: e.target.value })} placeholder="件名" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
-            <textarea value={bc.body} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBc({ ...bc, body: e.target.value })} rows={5} placeholder="本文" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
-            <div className="flex items-center gap-3"><button onClick={sendBroadcast} className="self-start rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">配信する</button>{bcMsg && <span className="text-xs text-neutral-600">{bcMsg}</span>}</div>
+            <Input value={bc.subject} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBc({ ...bc, subject: e.target.value })} placeholder="件名" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
+            <Textarea value={bc.body} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBc({ ...bc, body: e.target.value })} rows={5} placeholder="本文" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
+            <div className="flex items-center gap-3"><Button onClick={sendBroadcast} className="self-start rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">配信する</Button>{bcMsg && <span className="text-xs text-neutral-600">{bcMsg}</span>}</div>
           </div>
         </div>
       )}
@@ -91,14 +92,14 @@ export function AdminConsoleClient({ fetchImpl }: AdminConsoleClientProps) {
         <div className="rounded border border-neutral-200 p-4">
           <h2 className="mb-3 text-sm font-medium">システム設定</h2>
           <div className="grid grid-cols-2 gap-3">
-            <label className="text-xs text-neutral-500">会社名<input value={settings.companyName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, companyName: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">決算月<input type="number" value={settings.fiscalClosingMonth} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, fiscalClosingMonth: Number(e.target.value) })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">消費税率（例 0.10）<input value={settings.consumptionTaxRate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, consumptionTaxRate: Number(e.target.value) })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">送信メール既定From<input value={settings.mailFrom} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, mailFrom: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">請求書番号の接頭辞<input value={settings.invoicePrefix} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, invoicePrefix: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">承認で署名必須の金額（円・0で無効）<input type="number" value={settings.signatureThreshold} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, signatureThreshold: Number(e.target.value) })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-neutral-500">会社名<Input value={settings.companyName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, companyName: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-neutral-500">決算月<Input type="number" value={settings.fiscalClosingMonth} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, fiscalClosingMonth: Number(e.target.value) })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-neutral-500">消費税率（例 0.10）<Input value={settings.consumptionTaxRate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, consumptionTaxRate: Number(e.target.value) })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-neutral-500">送信メール既定From<Input value={settings.mailFrom} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, mailFrom: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-neutral-500">請求書番号の接頭辞<Input value={settings.invoicePrefix} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, invoicePrefix: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-neutral-500">承認で署名必須の金額（円・0で無効）<Input type="number" value={settings.signatureThreshold} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, signatureThreshold: Number(e.target.value) })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
           </div>
-          <div className="mt-3 flex items-center gap-3"><button onClick={saveSettings} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">保存</button>{setMsg && <span className="text-xs text-neutral-600">{setMsg}</span>}</div>
+          <div className="mt-3 flex items-center gap-3"><Button onClick={saveSettings} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">保存</Button>{setMsg && <span className="text-xs text-neutral-600">{setMsg}</span>}</div>
         </div>
       )}
 
@@ -150,7 +151,7 @@ export function AdminConsoleClient({ fetchImpl }: AdminConsoleClientProps) {
         <div className="rounded border border-neutral-200 p-4">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-sm font-medium">監査アラート（大量削除・ログイン失敗の連続・深夜帯の操作）</h2>
-            <button onClick={dispatchAlerts} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">管理者へ通知</button>
+            <Button onClick={dispatchAlerts} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">管理者へ通知</Button>
           </div>
           {alertMsg && <p className="mb-2 text-xs text-neutral-600">{alertMsg}</p>}
           {alerts.length === 0 ? (

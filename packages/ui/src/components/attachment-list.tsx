@@ -33,6 +33,12 @@ function humanSize(bytes: number): string {
 }
 
 /** 添付一覧(画像サムネ + ファイルチップ)。 */
+/**
+ * 添付ファイルの表示。
+ *
+ * 画像は縮小版を、それ以外は種類の絵柄を出す。
+ * **開く前に危険なファイル**(実行形式)は、その旨を示す。
+ */
 export function AttachmentList({ attachments, onOpen, className }: AttachmentListProps) {
   if (attachments.length === 0) return null;
   return (

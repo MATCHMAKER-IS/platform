@@ -37,6 +37,12 @@ function iconFor(type: string): string {
 }
 
 /** ファイル一覧。 */
+/**
+ * 添付の一覧。
+ *
+ * 名前だけでなく**大きさと種類**も出す。開かなくても中身の見当がつく。
+ * 消せるなら、消した後に戻せるかを決めておく。
+ */
 export function FileList({ files, onOpen, onDelete, className }: FileListProps) {
   if (files.length === 0) return null;
   return (

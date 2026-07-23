@@ -13,8 +13,8 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary: "bg-[var(--color-primary)] text-[var(--color-primary-fg)] hover:opacity-90",
-        secondary: "border border-[var(--color-border)] text-[var(--color-fg)] hover:bg-slate-50",
-        ghost: "text-[var(--color-fg)] hover:bg-slate-100",
+        secondary: "border border-[var(--color-border)] text-[var(--color-fg)] hover:bg-[var(--color-subtle)]",
+        ghost: "text-[var(--color-fg)] hover:bg-[var(--color-subtle-strong)]",
         danger: "bg-[var(--color-danger)] text-white hover:opacity-90",
       },
       size: { sm: "h-7 px-2.5 text-xs", md: "h-9 px-3.5 text-sm", lg: "h-10 px-5 text-sm" },

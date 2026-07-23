@@ -15,7 +15,7 @@
  *
  * 業務ロジック(勤怠の集計・経費の承認判定など)は **apps に書くのが正しい**ので検出しない。
  */
-import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -106,6 +106,20 @@ export function check() {
         if (ALLOW[rel]) continue;
         const body = readFileSync(file, "utf8");
 
+        // 手書きの set-cookie を検出する。
+        // 属性は手で書くと必ずどこかで抜ける。実際に Secure が全箇所で抜けており、
+        // HTTPS 以外でもセッションが送られる状態になっていた。
+        // @platform/session の serializeCookie / clearCookie は Secure を既定で付ける。
+        // 基盤経由(serializeCookie / clearCookie / createSession の write・destroy)なら良い
+        const usesBaseCookie = /serializeCookie|clearCookie|session\.(write|destroy)\(/.test(body);
+        const handWritten = /["'`]set-cookie["'`]\s*:\s*[`"']/i.test(body);
+        if (handWritten && !usesBaseCookie) {
+          issues.push({
+            level: "error",
+            message: `${rel}: set-cookie を手書きしています → @platform/session の serializeCookie / clearCookie を使ってください(Secure の付け忘れを防ぐ)`,
+          });
+        }
+
         // 1. 禁止ライブラリの直接 import
         for (const [lib, replacement] of Object.entries(FORBIDDEN_LIBS)) {
           const re = new RegExp(`from ["']${lib.replace(/[/@]/g, "\\$&")}["']`);
@@ -154,15 +168,54 @@ export function check() {
         issues.push({ level: "warn", message: `${f.rel}: 生タグ ${f.detail} → @platform/ui の Button / Input / Select / Textarea を使ってください` });
       }
     } else {
-      issues.push({
-        level: "warn",
-        message:
-          `生タグ(<button>/<input>/<select>/<textarea>)を ${rawTagFiles.length} ファイル・${total} 箇所で使っています` +
-          ` → @platform/ui を使ってください(CLAUDE.md「UI 部品は @platform/ui を使う」)。一覧: node tools/check-app-rules.mjs --ui`,
-      });
+      // ラチェット: いま以上に増やさない。減らす分にはいつでも良い。
+      // 「警告は出ているが誰も直さない」状態を避けるため、増えたら失敗にする。
+      const limit = readRawTagLimit();
+      if (total > limit) {
+        issues.push({
+          level: "error",
+          message:
+            `生タグが ${total} 箇所に増えました(上限 ${limit})。@platform/ui の部品を使ってください` +
+            ` → 一覧: node tools/check-app-rules.mjs --ui`,
+        });
+      } else {
+        issues.push({
+          level: "warn",
+          message:
+            `生タグ(<button>/<input>/<select>/<textarea>)を ${rawTagFiles.length} ファイル・${total} 箇所で使っています(上限 ${limit})` +
+            ` → @platform/ui を使ってください(CLAUDE.md「UI 部品は @platform/ui を使う」)。一覧: node tools/check-app-rules.mjs --ui` +
+            (total < limit ? `。${limit - total} 箇所減りました。node tools/check-app-rules.mjs --set-limit で上限を下げてください` : ""),
+        });
+      }
     }
   }
   return { scanned, issues };
+}
+
+/**
+ * 生タグの上限(ラチェット)。
+ *
+ * 一度に全部は直せないが、**増やさない**ことはすぐできる。
+ * 上限を超えたら失敗、下回ったら「上限を下げてください」と促す。
+ * こうすると数は一方向にしか動かない。
+ */
+const LIMIT_FILE = new URL("./ui-raw-tag-limit.json", import.meta.url);
+
+function readRawTagLimit() {
+  try {
+    return JSON.parse(readFileSync(LIMIT_FILE, "utf8")).limit ?? Number.MAX_SAFE_INTEGER;
+  } catch {
+    return Number.MAX_SAFE_INTEGER; // 未設定なら止めない(既存の運用を壊さない)
+  }
+}
+
+function writeRawTagLimit(n) {
+  const body = {
+    _comment: "生タグ(<button>/<input>/<select>/<textarea>)の上限。増やさないための歯止め。減らしたら --set-limit で下げる。",
+    limit: n,
+    updatedAt: new Date().toISOString().slice(0, 10),
+  };
+  writeFileSync(LIMIT_FILE, JSON.stringify(body, null, 2) + "\n");
 }
 
 /** 生タグを使っているファイル(要約用に貯める)。 */
@@ -170,6 +223,13 @@ const rawTagFiles = [];
 
 function main() {
   const { scanned, issues } = check();
+
+  if (process.argv.includes("--set-limit")) {
+    const total = rawTagFiles.reduce((n, f) => n + f.total, 0);
+    writeRawTagLimit(total);
+    console.log(`✅ 生タグの上限を ${total} に更新しました(これ以上は増やせません)`);
+    return;
+  }
   const errors = issues.filter((i) => i.level === "error");
   const warns = issues.filter((i) => i.level === "warn");
 

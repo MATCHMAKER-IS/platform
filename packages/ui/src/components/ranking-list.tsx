@@ -26,6 +26,12 @@ export interface RankingListProps {
 const defaultFormat = (n: number) => n.toLocaleString("ja-JP");
 
 /** ランキングリスト。値の降順に順位・バー・値を表示する。 */
+/**
+ * 順位の一覧。
+ *
+ * 上位だけでなく、**自分がどこにいるか**を示せると使われる。
+ * 人を順位付けするときは、目的と見せる範囲を先に決める。
+ */
 export function RankingList({ items, limit, format = defaultFormat, barColor = "var(--color-primary)", className }: RankingListProps) {
   const sorted = [...items].sort((a, b) => b.value - a.value).slice(0, limit ?? items.length);
   const max = sorted[0]?.value ?? 0;

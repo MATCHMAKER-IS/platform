@@ -25,6 +25,12 @@ export interface ThemeToggleProps {
 }
 
 /** ライト/ダークを切り替えるアイコンボタン。 */
+/**
+ * 明るい/暗いの切り替え。
+ *
+ * 端末の設定に従う「自動」を既定にする。
+ * 手動で変えたら、その選択を覚えておく。
+ */
 export const ThemeToggle = React.forwardRef<HTMLButtonElement, ThemeToggleProps>(
   ({ theme, onThemeChange, mode = "cycle", resolved, className }, ref) => {
     const handleClick = () => {
@@ -45,7 +51,7 @@ export const ThemeToggle = React.forwardRef<HTMLButtonElement, ThemeToggleProps>
         aria-label={label}
         title={label}
         className={cn(
-          "inline-flex h-10 w-10 items-center justify-center rounded-[var(--radius)] text-[var(--color-fg)] transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]",
+          "inline-flex h-10 w-10 items-center justify-center rounded-[var(--radius)] text-[var(--color-fg)] transition-colors hover:bg-[var(--color-subtle-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]",
           className,
         )}
       >

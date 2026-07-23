@@ -1,6 +1,7 @@
 "use client";
 /** 初期セットアップウィザード。管理者不在時に最初の管理者作成＋会社設定を行う。 */
 import * as React from "react";
+import { Button, Input } from "@platform/ui";
 
 interface State { initialized: boolean; canCreateFirstAdmin: boolean; steps: { admin: boolean; company: boolean }; }
 
@@ -38,12 +39,12 @@ export function SetupClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
       <p className="mb-4 text-sm text-neutral-600">最初の管理者アカウントと会社情報を設定します。</p>
       {msg && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{msg}</p>}
       <div className="space-y-3">
-        <label className="block text-xs text-neutral-500">会社名<input value={form.companyName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, companyName: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm" /></label>
-        <label className="block text-xs text-neutral-500">管理者名<input value={form.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm" /></label>
-        <label className="block text-xs text-neutral-500">メールアドレス<input type="email" value={form.email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, email: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm" /></label>
-        <label className="block text-xs text-neutral-500">パスワード（8文字以上）<input type="password" value={form.password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, password: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm" /></label>
+        <label className="block text-xs text-neutral-500">会社名<Input value={form.companyName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, companyName: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm" /></label>
+        <label className="block text-xs text-neutral-500">管理者名<Input value={form.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm" /></label>
+        <label className="block text-xs text-neutral-500">メールアドレス<Input type="email" value={form.email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, email: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm" /></label>
+        <label className="block text-xs text-neutral-500">パスワード（8文字以上）<Input type="password" value={form.password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, password: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm" /></label>
       </div>
-      <button onClick={submit} className="mt-4 w-full rounded bg-neutral-900 px-6 py-2.5 text-sm text-white">セットアップを完了</button>
+      <Button onClick={submit} className="mt-4 w-full rounded bg-neutral-900 px-6 py-2.5 text-sm text-white">セットアップを完了</Button>
     </div>
   );
 }

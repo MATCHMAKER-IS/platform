@@ -1,3 +1,4 @@
+// public-api: デモ用。セッションの有無を返すだけで、無ければ未ログインとして扱う
 /** 現在のセッションを返す。 */
 import { session } from "../../../server/session";
 

@@ -6,6 +6,7 @@
  * 一覧・検索・作成・編集・削除という、どのアプリにも要る形を示す。
  */
 import * as React from "react";
+import { Button, Input } from "@platform/ui";
 
 interface Row { id: string; name: string; email: string; dept: string; createdAt: string }
 
@@ -39,18 +40,18 @@ export function CrudDemo() {
 
       <div style={{ padding: 16, maxWidth: 900 }}>
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          <input
+          <Input
             value={search}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
             placeholder="名前・メール・部署で検索"
             style={{ flex: 1, padding: "8px 12px", fontSize: 13, borderRadius: 8, border: "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-fg)" }}
           />
-          <button
+          <Button
             onClick={() => setEditing({ id: String(Date.now()), name: "", email: "", dept: "", createdAt: new Date().toISOString().slice(0, 10) })}
             style={{ padding: "8px 16px", fontSize: 13, cursor: "pointer", borderRadius: 8, border: "none", background: "var(--color-primary)", color: "var(--color-primary-fg, #fff)" }}
           >
             + 新規
-          </button>
+          </Button>
         </div>
 
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
@@ -67,8 +68,8 @@ export function CrudDemo() {
                 <td style={td}>{r.dept}</td>
                 <td style={td}>{r.createdAt}</td>
                 <td style={{ ...td, textAlign: "right" }}>
-                  <button onClick={() => setEditing(r)} style={btn}>編集</button>
-                  <button onClick={() => remove(r.id)} style={{ ...btn, color: "var(--color-danger)" }}>削除</button>
+                  <Button onClick={() => setEditing(r)} style={btn}>編集</Button>
+                  <Button onClick={() => remove(r.id)} style={{ ...btn, color: "var(--color-danger)" }}>削除</Button>
                 </td>
               </tr>
             ))}
@@ -101,7 +102,7 @@ function EditForm({ row, onSave, onCancel }: { row: Row; onSave: (r: Row) => voi
           <label style={{ display: "block", fontSize: 11, color: "var(--color-muted)", marginBottom: 2 }}>
             {k === "name" ? "名前" : k === "email" ? "メール" : "部署"}
           </label>
-          <input
+          <Input
             value={form[k]}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [k]: e.target.value })}
             style={{ width: "100%", padding: "6px 10px", fontSize: 13, borderRadius: 6, border: "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-fg)" }}
@@ -109,12 +110,12 @@ function EditForm({ row, onSave, onCancel }: { row: Row; onSave: (r: Row) => voi
         </div>
       ))}
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-        <button onClick={() => onSave(form)} disabled={!valid}
+        <Button onClick={() => onSave(form)} disabled={!valid}
           style={{ padding: "6px 16px", fontSize: 12, cursor: valid ? "pointer" : "not-allowed", borderRadius: 6, border: "none",
             background: valid ? "var(--color-primary)" : "var(--color-muted)", color: "#fff", opacity: valid ? 1 : 0.5 }}>
           保存
-        </button>
-        <button onClick={onCancel} style={{ ...btn, padding: "6px 16px" }}>キャンセル</button>
+        </Button>
+        <Button onClick={onCancel} style={{ ...btn, padding: "6px 16px" }}>キャンセル</Button>
       </div>
       {!valid && <p style={{ fontSize: 11, color: "var(--color-muted)", margin: "8px 0 0" }}>名前とメール(@ を含む)は必須です</p>}
     </div>

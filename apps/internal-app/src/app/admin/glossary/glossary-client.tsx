@@ -1,6 +1,7 @@
 "use client";
 /** 補正辞書の管理。非エンジニアが表記ゆれ(from→to)と固有名詞を編集できる。 */
 import * as React from "react";
+import { Button, Input } from "@platform/ui";
 
 interface Rule { from: string; to: string; }
 
@@ -74,15 +75,15 @@ export function GlossaryClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
       <div style={{ ...card, marginTop: 12 }}>
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>置換ルール（from → to）</div>
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          <input value={from} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFrom(e.target.value)} placeholder="誤変換（例: 議事六）" style={{ ...input, flex: 1 }} />
+          <Input value={from} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFrom(e.target.value)} placeholder="誤変換（例: 議事六）" style={{ ...input, flex: 1 }} />
           <span style={{ alignSelf: "center" }}>→</span>
-          <input value={to} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTo(e.target.value)} placeholder="正しい表記（例: 議事録）" style={{ ...input, flex: 1 }} />
-          <button onClick={addRule} disabled={from.trim().length === 0} style={{ ...input, background: "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none" }}>追加</button>
+          <Input value={to} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTo(e.target.value)} placeholder="正しい表記（例: 議事録）" style={{ ...input, flex: 1 }} />
+          <Button onClick={addRule} disabled={from.trim().length === 0} style={{ ...input, background: "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none" }}>追加</Button>
         </div>
         {rules.map((r) => (
           <div key={r.from} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", borderBottom: "1px solid #f5f5f5", fontSize: 13 }}>
             <code>{r.from}</code><span style={{ color: "var(--color-muted, #999)" }}>→</span><code>{r.to}</code>
-            <button onClick={() => delRule(r.from)} style={{ marginLeft: "auto", fontSize: 11, color: "var(--color-danger, #c00)", background: "none", border: "none", cursor: "pointer" }}>削除</button>
+            <Button onClick={() => delRule(r.from)} style={{ marginLeft: "auto", fontSize: 11, color: "var(--color-danger, #c00)", background: "none", border: "none", cursor: "pointer" }}>削除</Button>
           </div>
         ))}
       </div>
@@ -90,14 +91,14 @@ export function GlossaryClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
       <div style={{ ...card, marginTop: 12 }}>
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>固有名詞（LLM ヒント用）</div>
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          <input value={term} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTerm(e.target.value)} placeholder="固有名詞・専門用語" style={{ ...input, flex: 1 }} />
-          <button onClick={addTerm} disabled={term.trim().length === 0} style={{ ...input, background: "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none" }}>追加</button>
+          <Input value={term} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTerm(e.target.value)} placeholder="固有名詞・専門用語" style={{ ...input, flex: 1 }} />
+          <Button onClick={addTerm} disabled={term.trim().length === 0} style={{ ...input, background: "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none" }}>追加</Button>
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {terms.map((t) => (
             <span key={t} style={{ fontSize: 12, background: "#eef2ff", color: "#4338ca", padding: "3px 6px 3px 10px", borderRadius: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
               {t}
-              <button onClick={() => delTerm(t)} title="削除" style={{ fontSize: 11, color: "#6366f1", background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>
+              <Button onClick={() => delTerm(t)} title="削除" style={{ fontSize: 11, color: "#6366f1", background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 1 }}>×</Button>
             </span>
           ))}
         </div>
@@ -106,8 +107,8 @@ export function GlossaryClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
       <div style={{ ...card, marginTop: 12 }}>
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>CSV 入出力（バックアップ・一括登録）</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <button onClick={() => exportCsv("replacements")} style={{ ...input }}>置換ルールを書き出し</button>
-          <button onClick={() => exportCsv("terms")} style={{ ...input }}>固有名詞を書き出し</button>
+          <Button onClick={() => exportCsv("replacements")} style={{ ...input }}>置換ルールを書き出し</Button>
+          <Button onClick={() => exportCsv("terms")} style={{ ...input }}>固有名詞を書き出し</Button>
           <label style={{ ...input, cursor: "pointer", background: "#f9fafb" }}>
             置換ルールを取込
             <input type="file" accept=".csv" style={{ display: "none" }} onChange={(e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) void importCsv("replacements", f); }} />
@@ -124,7 +125,7 @@ export function GlossaryClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
       <div style={{ ...card, marginTop: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ fontSize: 14, fontWeight: 600 }}>変更履歴</div>
-          <button onClick={loadAudit} style={{ ...input, fontSize: 12 }}>履歴を表示</button>
+          <Button onClick={loadAudit} style={{ ...input, fontSize: 12 }}>履歴を表示</Button>
         </div>
         {showAudit && (
           <div style={{ marginTop: 8 }}>

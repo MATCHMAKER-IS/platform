@@ -2,7 +2,6 @@
  * `@platform/net` — ネットワークユーティリティ(URL/リトライ/IP)とソケット(TCP フレーミング)。
  * @packageDocumentation
  */
-export * from "./url";
 export * from "./backoff";
 export * from "./ip";
 export * from "./framing";

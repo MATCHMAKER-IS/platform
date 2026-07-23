@@ -24,13 +24,16 @@ const checks = [
   // 基盤ポータルの API リファレンス。**TSDoc を直したのに再生成を忘れると、
   // ポータルが古い引数・戻り値を出し続ける**(誰も気づけない)。api-reference.json の後に走らせること。
   { gen: ["tools/gen-portal-reference.mjs"], file: "demos/showcase/src/lib/portal-reference.generated.ts" },
+  { gen: ["tools/gen-docs-index.mts"], file: "demos/showcase/public/docs-index.json" },
 ];
 
 let ng = 0;
 for (const c of checks) {
   const fp = path.join(ROOT, c.file);
   const before = readFileSync(fp, "utf8");
-  execFileSync("node", c.gen, { cwd: ROOT, stdio: "ignore" });
+  // .mts(型を含む)は型ストリップを有効にして実行する
+  const flags = c.gen[0].endsWith(".mts") ? ["--experimental-strip-types"] : [];
+  execFileSync("node", [...flags, ...c.gen], { cwd: ROOT, stdio: "ignore" });
   const after = readFileSync(fp, "utf8");
   // 「検査」はワークツリーを変更しない。比較のために再生成で書き換わった内容を元へ戻す
   // (drift の有無にかかわらず、実行前後でファイルを同一に保つ。中断・失敗時に汚さない。

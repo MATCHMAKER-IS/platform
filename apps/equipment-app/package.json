@@ -11,13 +11,17 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@platform/core": "workspace:*",
+    "@platform/crypto": "workspace:*",
     "@platform/db": "workspace:*",
     "@platform/env": "workspace:*",
+    "@platform/ratelimit": "workspace:*",
+    "@platform/session": "workspace:*",
+    "@platform/theme": "workspace:*",
+    "@platform/ui": "workspace:*",
     "next": "16.2.0",
     "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "@platform/theme": "workspace:*",
-    "@platform/ui": "workspace:*"
+    "react-dom": "19.2.0"
   },
   "devDependencies": {
     "@platform/config": "workspace:*",

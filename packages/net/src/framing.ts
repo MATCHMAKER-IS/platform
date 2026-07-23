@@ -51,8 +51,6 @@ export class LengthPrefixedDecoder {
   get pending(): number { return this.buf.length; }
 }
 
-const NL = 0x0a;
-
 /** 改行区切りのデコーダ(行単位のプロトコル用)。 */
 export class LineDecoder {
   private buf = "";

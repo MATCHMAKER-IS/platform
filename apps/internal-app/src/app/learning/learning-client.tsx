@@ -1,6 +1,7 @@
 "use client";
 /** e-learning 受講画面。進捗バー・章別・レッスン完了・クイズ・修了証。 */
 import * as React from "react";
+import { Button, Input } from "@platform/ui";
 
 interface Lesson { id: string; title: string; type: string; estimatedMinutes?: number; quiz?: { id: string; prompt: string; choices: string[]; multiple?: boolean }[]; }
 interface Module { id: string; title: string; lessons: Lesson[]; }
@@ -53,7 +54,7 @@ export function LearningClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         <div style={{ height: 8, background: "var(--color-border, #eee)", borderRadius: 4, overflow: "hidden" }}>
           <div style={{ width: `${state.summary.ratio * 100}%`, height: "100%", background: state.summary.certified ? "var(--color-success, #16a34a)" : "var(--color-primary, #2563eb)", transition: "width 400ms cubic-bezier(0.34,1.56,0.64,1)" }} />
         </div>
-        {state.summary.certified && <div style={{ marginTop: 12 }}><button onClick={getCert} style={{ padding: "8px 20px", background: "var(--color-success, #16a34a)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>修了証を発行</button>{cert && <p style={{ fontSize: 13, color: "var(--color-success, #16a34a)", marginTop: 8 }}>{cert}</p>}</div>}
+        {state.summary.certified && <div style={{ marginTop: 12 }}><Button onClick={getCert} style={{ padding: "8px 20px", background: "var(--color-success, #16a34a)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>修了証を発行</Button>{cert && <p style={{ fontSize: 13, color: "var(--color-success, #16a34a)", marginTop: 8 }}>{cert}</p>}</div>}
       </div>
 
       {state.course.modules.map((m) => (
@@ -67,8 +68,8 @@ export function LearningClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
                   <div style={{ fontSize: 14, color: done.has(l.id) ? "var(--color-muted, #999)" : "#222", textDecoration: done.has(l.id) ? "line-through" : "none" }}>{l.title}</div>
                   {l.estimatedMinutes && <div style={{ fontSize: 11, color: "var(--color-muted, #aaa)" }}>約 {l.estimatedMinutes} 分</div>}
                 </div>
-                {!done.has(l.id) && l.type !== "quiz" && <button onClick={() => complete(l.id)} style={{ fontSize: 12, padding: "5px 14px", background: "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 6 }}>完了にする</button>}
-                {l.type === "quiz" && !done.has(l.id) && <button onClick={() => { setOpenQuiz(openQuiz === l.id ? null : l.id); setQuizMsg(""); }} style={{ fontSize: 12, padding: "5px 14px", background: "#7c3aed", color: "var(--color-surface, #fff)", border: "none", borderRadius: 6 }}>クイズに挑戦</button>}
+                {!done.has(l.id) && l.type !== "quiz" && <Button onClick={() => complete(l.id)} style={{ fontSize: 12, padding: "5px 14px", background: "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 6 }}>完了にする</Button>}
+                {l.type === "quiz" && !done.has(l.id) && <Button onClick={() => { setOpenQuiz(openQuiz === l.id ? null : l.id); setQuizMsg(""); }} style={{ fontSize: 12, padding: "5px 14px", background: "#7c3aed", color: "var(--color-surface, #fff)", border: "none", borderRadius: 6 }}>クイズに挑戦</Button>}
               </div>
               {openQuiz === l.id && l.quiz && (
                 <div style={{ marginTop: 10, padding: 12, background: "#faf5ff", borderRadius: 8 }}>
@@ -77,7 +78,7 @@ export function LearningClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
                       <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>{q.prompt}{q.multiple && <span style={{ fontSize: 11, color: "var(--color-muted, #999)" }}>（複数選択）</span>}</div>
                       {q.choices.map((choice, ci) => (
                         <label key={ci} style={{ display: "block", fontSize: 13, padding: "3px 0", cursor: "pointer" }}>
-                          <input type={q.multiple ? "checkbox" : "radio"} name={q.id} checked={(answers[q.id] ?? []).includes(ci)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          <Input type={q.multiple ? "checkbox" : "radio"} name={q.id} checked={(answers[q.id] ?? []).includes(ci)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                             setAnswers((prev) => {
                               const cur = prev[q.id] ?? [];
                               if (q.multiple) return { ...prev, [q.id]: e.target.checked ? [...cur, ci] : cur.filter((x) => x !== ci) };
@@ -88,7 +89,7 @@ export function LearningClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
                       ))}
                     </div>
                   ))}
-                  <button onClick={() => submitQuiz(l.id)} style={{ fontSize: 13, padding: "6px 18px", background: "#7c3aed", color: "var(--color-surface, #fff)", border: "none", borderRadius: 6 }}>採点する</button>
+                  <Button onClick={() => submitQuiz(l.id)} style={{ fontSize: 13, padding: "6px 18px", background: "#7c3aed", color: "var(--color-surface, #fff)", border: "none", borderRadius: 6 }}>採点する</Button>
                   {quizMsg && <p style={{ fontSize: 13, marginTop: 8, color: quizMsg.startsWith("合格") ? "var(--color-success, #16a34a)" : "var(--color-warning, #b45309)" }}>{quizMsg}</p>}
                 </div>
               )}

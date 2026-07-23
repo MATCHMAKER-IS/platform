@@ -20,6 +20,12 @@ export interface BannerAdProps {
 }
 
 /** バナー広告。 */
+/**
+ * 帯状の告知。
+ *
+ * 社内なら通達や障害の連絡に使う。**閉じたら次から出さない**か、
+ * 重要な間は出し続けるかを決める(毎回出ると読まれなくなる)。
+ */
 export function BannerAd({ image, href, alt = "", sponsored, dismissible, onDismiss, onClick, className }: BannerAdProps) {
   const [closed, setClosed] = React.useState(false);
   if (closed) return null;

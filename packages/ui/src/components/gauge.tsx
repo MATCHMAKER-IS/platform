@@ -18,6 +18,15 @@ export interface GaugeProps {
 }
 
 /** 達成率ゲージ(半円)。 */
+/**
+ * 円弧のメーター(達成度・使用率)。
+ *
+ * **上限が決まっているもの**に使う(予算消化率・容量・進捗)。
+ * 上限が無い数値(売上そのもの)には向かない。
+ *
+ * 危険域の色は、業務によって意味が逆になる。**高いほど良いのか悪いのか**を
+ * 確認してから閾値を決める(使用率 90% は警告、達成率 90% は良好)。
+ */
 export function Gauge({ value, target = 100, size = 120, label, className }: GaugeProps) {
   const ratio = clamp(target === 0 ? 0 : value / target, 0, 1);
   const r = size / 2 - 8;

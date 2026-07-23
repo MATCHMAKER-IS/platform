@@ -1,4 +1,109 @@
 {
+  "@platform/access-review": [
+    {
+      "name": "AccessGrant",
+      "kind": "interface",
+      "summary": "権限の棚卸し(アクセスレビュー)と、退職・異動時の停止。 `@platform/auth` は「**今この人が何をできるか**」を判定する。 こちらは「**なぜその権限を持っているのか・いつまで持ってよいのか**」を扱う。 権限は付けるときは慎重に検討されるが、**外すきっかけが無い**ため溜まり続ける。 退職者のアカウントが半年後も生きていた、という事故はどの会社でも起きている。 見直す機会を仕組みとして持たせるのが、このパッケージの目的(ADR 0017)。"
+    },
+    {
+      "name": "EmploymentStatus",
+      "kind": "type",
+      "summary": "対象者。 */ userId: string; /** ロール名または権限名。 */ grant: string; /** いつから。 */ grantedOn: string; /** 誰が付けたか(後から理由を聞ける相手)。 */ grantedBy: string; /** なぜ付けたか。**空にしない**(後から要否を判断できなくなる)。 */ reason: string; /** 期限(YYYY-MM-DD)。強い権限には必ず付ける。 */ expiresOn?: string; /** 外した日。 */ revokedOn?: string; /** 最後に棚卸しで確認した日。 */ lastReviewedOn?: string; /** 誰が確認したか。 */ lastReviewedBy?: string; } /** 在籍の状態。"
+    },
+    {
+      "name": "isActiveGrant",
+      "kind": "function",
+      "summary": "有効な(まだ外されておらず、期限も切れていない)権限か。",
+      "signature": "isActiveGrant(g: AccessGrant, asOf: string): boolean"
+    },
+    {
+      "name": "isStrongGrant",
+      "kind": "function",
+      "summary": "強い権限か。前方一致も見る(`expense:*` のようなワイルドカード)。",
+      "signature": "isStrongGrant(grant: string): boolean"
+    },
+    {
+      "name": "OffboardingStep",
+      "kind": "interface",
+      "summary": "退職時にやること 1 件。"
+    },
+    {
+      "name": "offboardingSteps",
+      "kind": "function",
+      "summary": "対象の権限(あれば)。 */ grants?: string[]; } /** 退職者に対してやることを、**順序つきで**返す。 順序が大事。権限だけ消してもセッションが生きていれば操作できるため、 **セッションの無効化が先**。",
+      "signature": "offboardingSteps(person: Person, grants: readonly AccessGrant[]): OffboardingStep[]",
+      "params": [
+        {
+          "name": "person",
+          "description": "退職者"
+        },
+        {
+          "name": "grants",
+          "description": "その人の権限"
+        }
+      ],
+      "returns": "やることの一覧(順序つき)"
+    },
+    {
+      "name": "Person",
+      "kind": "interface",
+      "summary": "対象者。"
+    },
+    {
+      "name": "reviewAccess",
+      "kind": "function",
+      "summary": "何日ごとに見直すか(既定 180 = 半年)。 */ reviewIntervalDays?: number; /** 強い権限に許す最長の期間(日。既定 90)。 */ maxStrongGrantDays?: number; } const DAY = 86_400_000; const daysBetween = (from: string, to: string) => Math.floor((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY); /** 棚卸しを実行し、要対応の一覧を返す。 見つけるもの: - **退職者に残っている権限**(high。最優先で外す) - **休職者のログイン可能な権限**(medium) - **期限切れなのに残っている権限**(high) - **期限の無い強い権限**(high。恒久的に持たせない) - **長く見直していない権限**(medium) - **理由が書かれていない権限**(low。次に判断できない)",
+      "signature": "reviewAccess(people: readonly Person[], grants: readonly AccessGrant[], asOf: string, options: ReviewOptions = {},): ReviewFinding[]",
+      "params": [
+        {
+          "name": "people",
+          "description": "対象者"
+        },
+        {
+          "name": "grants",
+          "description": "権限の付与記録"
+        },
+        {
+          "name": "asOf",
+          "description": "基準日(YYYY-MM-DD)"
+        },
+        {
+          "name": "options",
+          "description": "棚卸しの設定"
+        }
+      ],
+      "returns": "要対応の一覧(深刻度の高い順)",
+      "example": "const findings = reviewAccess(people, grants, \"2026-07-23\");\nconst urgent = findings.filter((f) => f.severity === \"high\");"
+    },
+    {
+      "name": "ReviewFinding",
+      "kind": "interface",
+      "summary": "所属(異動の検出に使う)。 */ department: string; status: EmploymentStatus; /** 退職日(status が resigned のとき)。 */ resignedOn?: string; } /** 棚卸しで見つかった要対応。"
+    },
+    {
+      "name": "ReviewOptions",
+      "kind": "interface",
+      "summary": "棚卸しの設定。"
+    },
+    {
+      "name": "STRONG_GRANTS",
+      "kind": "const",
+      "summary": "深刻度。high は**今すぐ**対応する。 */ severity: \"high\" | \"medium\" | \"low\"; /** 何が問題か。 */ reason: string; /** どうすればよいか。 */ action: string; } /** 強い権限とみなすもの。ここに載るものは期限付きでのみ許す。"
+    },
+    {
+      "name": "summarizeReview",
+      "kind": "function",
+      "summary": "棚卸しの結果を、そのまま報告できる形にまとめる。",
+      "signature": "summarizeReview(findings: readonly ReviewFinding[])",
+      "params": [
+        {
+          "name": "findings",
+          "description": "要対応の一覧"
+        }
+      ],
+      "returns": "深刻度ごとの件数と、対応が必要な人数"
+    }
+  ],
   "@platform/accounting": [
     {
       "name": "AccountBalance",
@@ -1228,6 +1333,173 @@
       "returns": "一致すれば true"
     }
   ],
+  "@platform/attendance": [
+    {
+      "name": "AttendanceDay",
+      "kind": "interface",
+      "summary": "日付(YYYY-MM-DD)。 */ date: string; /** 出勤時刻(HH:mm)。 */ clockIn: string; /** 退勤時刻(HH:mm)。**出勤より前なら翌日として扱う**(夜勤)。 */ clockOut: string; /** 休憩(分)。 */ breakMinutes?: number; /** 法定休日の勤務か。 */ isHoliday?: boolean; /** 勤務区分(通常 / 直行直帰 / 振替出勤など)。集計は変えず、記録として残す。 */ workType?: string; /** 備考(遅刻の理由など)。 */ note?: string; } /** 集計済みの 1 日。"
+    },
+    {
+      "name": "AttendanceEntry",
+      "kind": "interface",
+      "summary": "勤怠の記録と集計(純ロジック)。 もとは社内アプリの中にあったが、**次のアプリを作れば必ず再実装される**ため基盤へ移した。 給与計算(`@platform/payroll`)は「分数から金額を出す」ところを担当し、 こちらは**その入力となる分数を、打刻から作る**ところを担当する。 保存先(`AttendanceStore`)はアプリが用意する。開発ではメモリ、本番は DB。"
+    },
+    {
+      "name": "AttendanceStore",
+      "kind": "interface",
+      "summary": "勤怠ストア。保存先はアプリが決める。"
+    },
+    {
+      "name": "AttendanceSummary",
+      "kind": "interface",
+      "summary": "遅刻した分(所定の始業より遅い場合)。 */ lateMinutes: number; /** 早退した分(所定の終業より早い場合)。 */ earlyLeaveMinutes: number; } /** 月次サマリー。"
+    },
+    {
+      "name": "createMemoryAttendanceStore",
+      "kind": "function",
+      "summary": "月次集計(month は \"YYYY-MM\")。 */ monthly(userId: string, month: string): Promise<AttendanceSummary>; } /** メモリ実装(開発・テスト用)。 **本番では DB 実装を使うこと。** 勤怠は賃金台帳の元になるため、 消えると法定帳簿が作れなくなる。",
+      "signature": "createMemoryAttendanceStore(hours: WorkingHours = {}): AttendanceStore",
+      "params": [
+        {
+          "name": "hours",
+          "description": "所定労働時間"
+        }
+      ],
+      "returns": "メモリ上のストア"
+    },
+    {
+      "name": "grantsSinceHire",
+      "kind": "function",
+      "summary": "日付に年を足す(YYYY-MM-DD のまま扱う)。 */ function addYears(date: string, years: number): string { const d = new Date(`${date}T00:00:00Z`); d.setUTCFullYear(d.getUTCFullYear() + years); return d.toISOString().slice(0, 10); } /** 入社日から、指定日までの付与履歴を作る。 基準日を統一する運用(全社員 4/1 付与など)の場合は、 この関数を使わず付与記録を直接持つこと。",
+      "signature": "grantsSinceHire(hireDate: string, until: string): LeaveGrant[]",
+      "params": [
+        {
+          "name": "hireDate",
+          "description": "入社日(YYYY-MM-DD)"
+        },
+        {
+          "name": "until",
+          "description": "どこまでの付与を作るか(YYYY-MM-DD)"
+        }
+      ],
+      "returns": "付与の配列(古い順)",
+      "example": "grantsSinceHire(\"2024-04-01\", \"2026-07-22\");\n// → 2024-10-01(10日) / 2025-10-01(11日) の 2 件"
+    },
+    {
+      "name": "leaveBalance",
+      "kind": "function",
+      "summary": "残日数を計算する。 **古い付与から消化する**(先入先出)。新しい分から使うと、 古い分が時効で消え、実質的に日数を捨てることになる。",
+      "signature": "leaveBalance(grants: LeaveGrant[], taken: LeaveTaken[], asOf: string): LeaveBalance",
+      "params": [
+        {
+          "name": "grants",
+          "description": "付与の履歴"
+        },
+        {
+          "name": "taken",
+          "description": "取得の履歴"
+        },
+        {
+          "name": "asOf",
+          "description": "基準日(YYYY-MM-DD)"
+        }
+      ],
+      "returns": "残日数と内訳"
+    },
+    {
+      "name": "LeaveBalance",
+      "kind": "interface",
+      "summary": "取得日(YYYY-MM-DD)。 */ date: string; /** 日数(半日なら 0.5、時間単位なら端数)。 */ days: number; /** 種別(年休 / 特別休暇など。集計は年休のみ)。 */ kind?: string; } /** 残日数の内訳。"
+    },
+    {
+      "name": "LeaveGrant",
+      "kind": "interface",
+      "summary": "年次有給休暇の付与・消化・残日数(純ロジック)。 有給は**法律で付与日数と時効が決まっている**ため、会社ごとに作り直すものではない。 一方で「取得の申請と承認」は業務の流れなので、`@platform/workflow` の担当。 ここは**日数の計算だけ**を持つ。 押さえている点: - 継続勤務年数に応じた**法定付与日数**(労働基準法 第39条) - **時効は 2 年**。付与から 2 年で消える - 消化は**古い分から**充てる(そうしないと時効で捨てる分が増える) - 繰越の上限は付与日数まで(法定どおり)"
+    },
+    {
+      "name": "LeaveTaken",
+      "kind": "interface",
+      "summary": "付与日(YYYY-MM-DD)。 */ grantedOn: string; /** 付与日数。 */ days: number; /** 失効日(YYYY-MM-DD)。付与から 2 年後。 */ expiresOn: string; } /** 取得 1 件。"
+    },
+    {
+      "name": "mandatoryLeaveStatus",
+      "kind": "function",
+      "summary": "年 5 日の取得義務を満たしているか(労働基準法 第39条第7項)。 10 日以上付与された人は、**付与日から 1 年以内に 5 日**取らせる義務がある。 満たせないと会社側の違反になるため、期限が近い人を早めに知らせる。",
+      "signature": "mandatoryLeaveStatus(grant: LeaveGrant, taken: LeaveTaken[], // 判定は付与日から 1 年の窓で行うため、基準日は使わない。 // 引数に残してあるのは、呼び出し側が他の関数と同じ形で書けるようにするため。 _asOf?…)",
+      "params": [
+        {
+          "name": "grant",
+          "description": "対象の付与"
+        },
+        {
+          "name": "taken",
+          "description": "取得の履歴"
+        },
+        {
+          "name": "asOf",
+          "description": "基準日"
+        }
+      ],
+      "returns": "義務の対象か・取得済み日数・不足日数・期限"
+    },
+    {
+      "name": "statutoryLeaveDays",
+      "kind": "function",
+      "summary": "使える残日数。 */ remaining: number; /** 付与された合計(有効なもの)。 */ granted: number; /** 取得済みの合計。 */ taken: number; /** 時効で消えた日数。 */ expired: number; /** 次に失効する分(残っている場合)。 */ nextExpiry?: { date: string; days: number }; } /** 継続勤務年数に応じた法定付与日数(週 5 日勤務・フルタイム)。 週の所定労働日数が少ない場合は比例付与になるが、 それは会社の制度によるため、必要なら呼び出し側で調整する。 / const STATUTORY_DAYS: { years: number; days: number }[] = [ { years: 0.5, days: 10 }, { years: 1.5, days: 11 }, { years: 2.5, days: 12 }, { years: 3.5, days: 14 }, { years: 4.5, days: 16 }, { years: 5.5, days: 18 }, { years: 6.5, days: 20 }, ]; /** 入社日から数えた、その時点の法定付与日数を返す。 6 か月継続勤務で 10 日、以降 1 年ごとに増え、6 年半以降は 20 日で頭打ち。",
+      "signature": "statutoryLeaveDays(yearsOfService: number): number",
+      "params": [
+        {
+          "name": "yearsOfService",
+          "description": "継続勤務年数(0.5 = 6 か月)"
+        }
+      ],
+      "returns": "付与日数(6 か月未満は 0)"
+    },
+    {
+      "name": "summarize",
+      "kind": "function",
+      "summary": "月次で集計する。",
+      "signature": "summarize(month: string, entries: AttendanceEntry[], hours: WorkingHours = {}): AttendanceSummary",
+      "params": [
+        {
+          "name": "month",
+          "description": "対象月(YYYY-MM)"
+        },
+        {
+          "name": "entries",
+          "description": "その月の打刻"
+        },
+        {
+          "name": "hours",
+          "description": "所定労働時間"
+        }
+      ],
+      "returns": "月次サマリー(日付昇順)"
+    },
+    {
+      "name": "toDay",
+      "kind": "function",
+      "summary": "始業(HH:mm。既定 \"09:00\")。 */ start?: string; /** 終業(HH:mm。既定 \"18:00\")。 */ end?: string; /** 遅刻とみなさない猶予(分。既定 0)。 */ graceMinutes?: number; } /** 打刻 1 件を集計する。 退勤が出勤より前なら**翌日にまたいだ**とみなす(夜勤)。 遅刻・早退は所定労働時間との差で判定するが、**休日勤務では判定しない** (所定の始業が存在しないため)。",
+      "signature": "toDay(entry: AttendanceEntry, hours: WorkingHours = {}): AttendanceDay",
+      "params": [
+        {
+          "name": "entry",
+          "description": "打刻"
+        },
+        {
+          "name": "hours",
+          "description": "所定労働時間(省略時は 9:00-18:00)"
+        }
+      ],
+      "returns": "集計済みの 1 日",
+      "example": "toDay({ date: \"2026-07-22\", clockIn: \"09:15\", clockOut: \"20:00\", breakMinutes: 60 });\n// → totalMinutes 585 / overtimeMinutes 105 / lateMinutes 15"
+    },
+    {
+      "name": "WorkingHours",
+      "kind": "interface",
+      "summary": "出勤した日数。 */ workedDays: number; } /** 所定労働時間の設定。会社ごとに違うため引数で受ける。"
+    }
+  ],
   "@platform/audit": [
     {
       "name": "appendAll",
@@ -1671,6 +1943,33 @@
       "summary": "clientData 検証の結果。"
     },
     {
+      "name": "completePasswordReset",
+      "kind": "function",
+      "summary": "再設定を確定する(トークンを使用済みにする)。 **パスワードの更新とセッションの無効化は呼び出し側の責任**。 「新しいパスワードにしたのに、盗まれたセッションが生きている」を防ぐため、 ここを終えたら必ず既存セッションを切ること。",
+      "signature": "completePasswordReset(store: PasswordResetStore, tokenHash: string, now: () => number = () => Date.now(),): Promise<void>",
+      "params": [
+        {
+          "name": "store",
+          "description": "保存先"
+        },
+        {
+          "name": "tokenHash",
+          "description": "verifyPasswordReset が返したハッシュ"
+        },
+        {
+          "name": "now",
+          "description": "現在時刻(テスト用に差し替え可能)"
+        }
+      ]
+    },
+    {
+      "name": "createMemoryPasswordResetStore",
+      "kind": "function",
+      "summary": "メモリ実装(開発・テスト用)。 **本番では DB 実装を使うこと。** 再起動で消えると、 送ったメールのリンクが全部無効になる。",
+      "signature": "createMemoryPasswordResetStore(): PasswordResetStore",
+      "returns": "メモリ上に保持する保存先"
+    },
+    {
       "name": "createOtpChallenge",
       "kind": "function",
       "summary": "コード桁数(既定 6)。 */ length?: number; /** 有効期間(秒。既定 300=5分)。 */ ttlSec?: number; /** 最大試行回数(既定 5)。 */ maxAttempts?: number; /** ID 生成関数(既定はランダム)。 */ generateId?: () => string; /** 現在時刻(テスト用)。 */ now?: Date; } /** OTP チャレンジを新規作成する。 返り値の `code` を SMS/メールで送信し、`challenge` を保存する(コードは challenge に平文で入らない)。",
@@ -1883,6 +2182,19 @@
       "returns": "16 進のハッシュ文字列"
     },
     {
+      "name": "hashResetToken",
+      "kind": "function",
+      "summary": "トークンのハッシュで引く。 */ findByHash(tokenHash: string): Promise<PasswordResetRequest | null> | PasswordResetRequest | null; /** 使用済みにする。 */ markUsed(tokenHash: string, at: number): Promise<void> | void; /** 同じ利用者の未使用の要求を無効化する(新しく発行したら古いものは使えなくする)。 */ invalidateFor(userId: string): Promise<void> | void; } /** トークンをハッシュ化する(保存と照合に使う)。",
+      "signature": "hashResetToken(token: string): string",
+      "params": [
+        {
+          "name": "token",
+          "description": "生のトークン"
+        }
+      ],
+      "returns": "SHA-256 の 16 進表現"
+    },
+    {
       "name": "hotp",
       "kind": "function",
       "summary": "桁数(既定 6)。 */ digits?: number; /** アルゴリズム(既定 SHA1・認証アプリの既定)。 */ algorithm?: TotpAlgorithm; /** 時間ステップ秒(TOTP のみ・既定 30)。 */ period?: number; } /** カウンタを 8 バイトのビッグエンディアンにする。 */ function counterBytes(counter: number): Buffer { const buf = Buffer.alloc(8); // 上位 32bit / 下位 32bit に分けて書く(2^53 まで安全) buf.writeUInt32BE(Math.floor(counter / 0x100000000), 0); buf.writeUInt32BE(counter >>> 0, 4); return buf; } /** HOTP(RFC 4226): カウンタベースのコードを生成する。secret は base32。",
@@ -1904,6 +2216,26 @@
       "returns": "HOTP コード(RFC 4226)"
     },
     {
+      "name": "IdTokenClaims",
+      "kind": "interface",
+      "summary": "ID トークン(JWT)の中身。 名前は OIDC の標準に合わせてある。IdP によって入る項目が違うため、 **必須なのは iss / sub / aud / exp だけ**として扱う。"
+    },
+    {
+      "name": "IdTokenFailure",
+      "kind": "type",
+      "summary": "発行者。**必ず期待した IdP か確かめる**。 */ iss: string; /** 利用者の一意な ID。**メールアドレスではなくこれで名寄せする**(メールは変わる)。 */ sub: string; /** 宛先。**自分のクライアント ID か確かめる**。 */ aud: string | string[]; /** 失効時刻(秒)。 */ exp: number; /** 発行時刻(秒)。 */ iat?: number; /** リプレイ防止の値。認可要求時に送ったものと一致するか確かめる。 */ nonce?: string; email?: string; /** メールが確認済みか。**未確認のメールで名寄せしない**。 */ email_verified?: boolean; name?: string; /** Entra の場合のテナント ID。 */ tid?: string; [key: string]: unknown; } /** 検証の失敗理由。画面には出さず、ログに残す用。"
+    },
+    {
+      "name": "IdTokenVerification",
+      "kind": "type",
+      "summary": "検証結果。"
+    },
+    {
+      "name": "IdTokenVerifyOptions",
+      "kind": "interface",
+      "summary": "検証の条件。"
+    },
+    {
       "name": "isSignCountValid",
       "kind": "function",
       "summary": "署名カウンタが進んだか(クローン検知)。stored 以下ならクローンの疑い。",
@@ -1919,6 +2251,38 @@
         }
       ],
       "returns": "増えていれば true。**減っていたら認証器の複製を疑う**(0 のままの認証器は例外的に許す)"
+    },
+    {
+      "name": "IssuedReset",
+      "kind": "interface",
+      "summary": "有効期限(分。既定 30)。長くすると盗まれたときの猶予が伸びる。 */ expiresInMinutes?: number; /** 要求元(IP など。監査用)。 */ requestedFrom?: string; /** 現在時刻(テスト用)。 */ now?: () => number; /** トークン生成(テスト用)。 */ generateToken?: () => string; } /** 発行結果。`token` はメールに載せる生の値で、**保存してはいけない**。"
+    },
+    {
+      "name": "IssueOptions",
+      "kind": "interface",
+      "summary": "発行の設定。"
+    },
+    {
+      "name": "issuePasswordReset",
+      "kind": "function",
+      "summary": "再設定トークンを発行する。 古い未使用の要求は無効化する(複数のリンクが同時に生きている状態を作らない)。",
+      "signature": "issuePasswordReset(store: PasswordResetStore, userId: string, options: IssueOptions = {},): Promise<IssuedReset>",
+      "params": [
+        {
+          "name": "store",
+          "description": "保存先"
+        },
+        {
+          "name": "userId",
+          "description": "対象ユーザー"
+        },
+        {
+          "name": "options",
+          "description": "有効期限・要求元など"
+        }
+      ],
+      "returns": "生のトークンと期限(トークンはメールに載せ、保存しない)",
+      "example": "const issued = await issuePasswordReset(store, user.id);\nawait mailer.sendMail({ to: user.email, subject: \"パスワード再設定\",\n  text: `次のリンクから再設定してください（30分間有効）\\n${base}/reset?token=${issued.token}` });"
     },
     {
       "name": "isTwoFactorEnabled",
@@ -1988,6 +2352,16 @@
       ]
     },
     {
+      "name": "PasswordResetRequest",
+      "kind": "interface",
+      "summary": "パスワード再設定(忘れたときの手続き)。 仕組みは単純だが、**間違えると乗っ取りに直結する**ため、危ない点を明示しておく。 1. 利用者がメールアドレスを入力する 2. 使い捨てトークンを発行し、**ハッシュだけ**を保存する 3. 生のトークンを含むリンクをメールで送る 4. リンクを開いて新しいパスワードを設定する 5. トークンを使用済みにし、**既存のセッションを無効化**する 守っていること: - **生のトークンを保存しない** … 保存先が漏れても、そのままでは使えない - **短い有効期限**(既定 30 分) … 盗まれた場合の猶予を短くする - **1 回だけ有効** … 使用済みは再利用できない - **存在しないメールでも同じ応答** … 「登録があるか」を外部に漏らさない - **比較は一定時間** … 応答時間からトークンを推測されない 保存先(RequestStore)はアプリが用意する。開発ではメモリ、本番は DB。"
+    },
+    {
+      "name": "PasswordResetStore",
+      "kind": "interface",
+      "summary": "対象ユーザー。 */ userId: string; /** トークンのハッシュ(生の値は保存しない)。 */ tokenHash: string; /** 期限(ミリ秒。Date.now() と比較する)。 */ expiresAt: number; /** 使用済みなら、その時刻。 */ usedAt?: number; /** 要求元(監査用。誰が要求したかを後から追える)。 */ requestedFrom?: string; } /** 保存先。アプリが memory / DB のどちらかで実装する。"
+    },
+    {
       "name": "Permission",
       "kind": "type",
       "summary": "RBAC(ロールベースアクセス制御)。 「どのロールがどの権限を持つか」をポリシーとして定義し、 `can()` で判定する。フレームワーク非依存の純ロジックなので、 どのアプリからでも再利用できる。"
@@ -2054,6 +2428,16 @@
       "returns": "残り秒。0 なら今すぐ再送できる"
     },
     {
+      "name": "ResetFailure",
+      "kind": "type",
+      "summary": "照合の失敗理由。画面には**区別せず**「無効なリンクです」と出す。"
+    },
+    {
+      "name": "ResetVerification",
+      "kind": "type",
+      "summary": "照合結果。"
+    },
+    {
       "name": "resolveHierarchy",
       "kind": "function",
       "summary": "ロール階層を平坦な {@link Policy} に解決する(継承を展開)。循環は安全に無視。",
@@ -2105,6 +2489,19 @@
       "name": "Session",
       "kind": "interface",
       "summary": "一意なユーザー ID(IdP の sub 等)。 */ id: string; /** 表示名。 */ name?: string; /** メールアドレス。 */ email?: string; /** 付与されたロール。 */ roles: Role[]; } /** セッション。"
+    },
+    {
+      "name": "subjectKey",
+      "kind": "function",
+      "summary": "ID トークンから、社内で使う利用者の識別子を作る。 **メールアドレスで名寄せしない。** 結婚や異動で変わるうえ、 退職者のメールが再利用されると別人に繋がる。`iss` と `sub` の組で識別する。",
+      "signature": "subjectKey(claims: IdTokenClaims): string",
+      "params": [
+        {
+          "name": "claims",
+          "description": "検証済みのトークン"
+        }
+      ],
+      "returns": "`<発行者ホスト>:<sub>` の形の識別子"
     },
     {
       "name": "toBase64Url",
@@ -2268,6 +2665,24 @@
       "returns": "すべて一致すれば true。**origin の検証を省くとフィッシングを許す**"
     },
     {
+      "name": "verifyIdTokenClaims",
+      "kind": "function",
+      "summary": "期待する発行者(`resolveIssuer` の戻り値)。 */ issuer: string; /** 自分のクライアント ID。 */ clientId: string; /** 認可要求時に送った nonce。 */ nonce?: string; /** 自社テナントに限る場合の ID(Entra)。 */ tenantId?: string; /** メール確認済みを必須にするか(既定 true)。 */ requireVerifiedEmail?: boolean; /** 時計のずれの許容(秒。既定 60)。 */ clockToleranceSeconds?: number; /** 現在時刻(秒。テスト用)。 */ now?: () => number; } /** ID トークンの**中身**を検証する。 **署名の検証は別途必要**(IdP の公開鍵が要るため、この関数では行わない)。 ここが担うのは「署名が正しいトークンでも、**宛先や発行者が違えば拒否する**」部分。 署名だけ見て中身を見ないと、次の攻撃が通る: - **別のアプリ向けのトークンを流用される**(aud を見ていない) - **別のテナント・別の IdP のトークンを使われる**(iss を見ていない) - **期限切れのトークンを使い回される**(exp を見ていない)",
+      "signature": "verifyIdTokenClaims(claims: Partial<IdTokenClaims> | null | undefined, options: IdTokenVerifyOptions,): IdTokenVerification",
+      "params": [
+        {
+          "name": "claims",
+          "description": "署名検証済みのトークンの中身"
+        },
+        {
+          "name": "options",
+          "description": "期待する発行者・宛先など"
+        }
+      ],
+      "returns": "検証結果(失敗理由は画面に出さずログへ)",
+      "example": "const v = verifyIdTokenClaims(claims, {\n  issuer: resolveIssuer(config), clientId: config.clientId, nonce, tenantId: config.tenantId,\n});\nif (!v.ok) { logger.warn({ reason: v.reason }, \"id token rejected\"); return unauthorized(); }"
+    },
+    {
       "name": "verifyOtpCode",
       "kind": "function",
       "summary": "OTP コードを検証する(定数時間比較)。 期限切れ・試行超過・不一致を区別して返し、試行回数を加算した challenge を返す。 成功後は challenge を破棄(再利用不可)にすること。",
@@ -2291,6 +2706,27 @@
         }
       ],
       "returns": "判定結果と、試行回数を加算した challenge"
+    },
+    {
+      "name": "verifyPasswordReset",
+      "kind": "function",
+      "summary": "トークンを照合する(まだ使用済みにはしない)。 失敗理由は呼び出し側でログに残す用で、**画面には出さない**。 「期限切れ」と「存在しない」を区別して見せると、有効なトークンを探る手がかりになる。",
+      "signature": "verifyPasswordReset(store: PasswordResetStore, token: string, now: () => number = () => Date.now(),): Promise<ResetVerification>",
+      "params": [
+        {
+          "name": "store",
+          "description": "保存先"
+        },
+        {
+          "name": "token",
+          "description": "利用者が持ってきた生のトークン"
+        },
+        {
+          "name": "now",
+          "description": "現在時刻(テスト用に差し替え可能)"
+        }
+      ],
+      "returns": "成功なら userId と tokenHash、失敗なら理由"
     },
     {
       "name": "verifyRpIdHash",
@@ -2709,23 +3145,6 @@
       "returns": "公開済みなら true"
     },
     {
-      "name": "joinUrl",
-      "kind": "function",
-      "summary": "ベース URL とパスを結合する。 **スラッシュの重複・欠落を吸収する**(`site.com/` + `/posts` が `site.com//posts` に ならない)。手で結合すると必ずどこかで間違える。",
-      "signature": "joinUrl(base: string, path: string): string",
-      "params": [
-        {
-          "name": "base",
-          "description": "ベース URL"
-        },
-        {
-          "name": "path",
-          "description": "パス"
-        }
-      ],
-      "returns": "結合した URL"
-    },
-    {
       "name": "matchPermalink",
       "kind": "function",
       "summary": "パスがパターンに一致すればトークン値を返す(ルーティング・URL 解析用)。一致しなければ null。 例: matchPermalink(\"/blog/:year/:month/:slug\", \"/blog/2025/07/hello\") → { year:\"2025\", month:\"07\", slug:\"hello\" } {@link buildPermalink} の逆。**同じパターンを使う**ことで、生成と解析がずれない。",
@@ -2812,7 +3231,7 @@
     {
       "name": "postUrl",
       "kind": "function",
-      "summary": "記事の絶対 URL を作る。 **絶対 URL が要る場面がある**(RSS・OGP・メール本文)。相対パスでは機能しない。",
+      "summary": "URL を結合する。 実装は `@platform/url` に一本化した(ADR 0015: 同じ機能を 2 か所に持たない)。 以前はこのファイルに独自実装があり、`@platform/net` にも別実装があった。 / export { joinUrl }; /** 記事の絶対 URL を作る。 **絶対 URL が要る場面がある**(RSS・OGP・メール本文)。相対パスでは機能しない。",
       "signature": "postUrl(post: PermalinkPost, options: PermalinkOptions & { pattern: string; baseUrl: string }): string",
       "params": [
         {
@@ -15913,7 +16332,7 @@
     {
       "name": "MailMessage",
       "kind": "interface",
-      "summary": "`@platform/mail` — メール送信の共通部品(Adapter パターン)。 アプリは送信基盤(SMTP か Resend か)を意識せず `sendMail()` を呼ぶ。 裏の実装は差し替え可能で、切り替えてもアプリ側は無変更。"
+      "summary": "`@platform/mail` — メール送信の共通部品(Adapter パターン)。 アプリは送信基盤(SMTP か Resend か)を意識せず、`createMailer()` が返す Mailer の `sendMail` を呼ぶ。 裏の実装は差し替え可能で、切り替えてもアプリ側は無変更。"
     },
     {
       "name": "MailRetryOptions",
@@ -16370,6 +16789,127 @@
       "summary": "長さ(秒)。 */ durationSec: number; /** コンテナ形式(例: \"mov,mp4,m4a,...\")。 */ format: string; /** 全体ビットレート(bps)。 */ bitrate: number; /** 映像トラック(音声のみなら undefined)。 */ video?: { codec: string; width: number; height: number; fps: number }; /** 音声トラック。 */ audio?: { codec: string; sampleRate: number; channels: number }; } /** メディア処理口。"
     }
   ],
+  "@platform/microsoft": [
+    {
+      "name": "buildMicrosoftAuthUrl",
+      "kind": "function",
+      "summary": "アプリ(クライアント)ID。 */ clientId: string; /** 戻り先 URL(Entra 側の登録と完全一致させる)。 */ redirectUri: string; /** テナント ID。`common` にすると他社アカウントも通るため、社内用途では自社の ID を指定する。 */ tenantId: string; /** 要求する権限(例: `[\"User.Read\", \"Mail.Send\"]`)。 */ scope: string[]; /** CSRF 対策の状態文字列。呼び出し側で検証する。 */ state: string; /** リフレッシュトークンを得るために既定で付ける(offline_access)。 */ offlineAccess?: boolean; } /** 認可画面の URL を作る。",
+      "signature": "buildMicrosoftAuthUrl(params: MicrosoftAuthUrlParams): string",
+      "params": [
+        {
+          "name": "params",
+          "description": "テナント・クライアント・スコープなど"
+        }
+      ],
+      "returns": "利用者をリダイレクトさせる URL",
+      "example": "const url = buildMicrosoftAuthUrl({\n  clientId, redirectUri, tenantId, scope: [\"User.Read\"], state,\n});"
+    },
+    {
+      "name": "createMicrosoftAuthedFetch",
+      "kind": "function",
+      "summary": "トークンを自動で付ける fetch を作る。 401 が返ったら 1 度だけトークンを捨てて再試行する (期限内でも失効していることがあるため)。",
+      "signature": "createMicrosoftAuthedFetch(manager: MicrosoftTokenManager, baseFetch?: typeof fetch): typeof fetch",
+      "params": [
+        {
+          "name": "manager",
+          "description": "トークンマネージャ"
+        },
+        {
+          "name": "baseFetch",
+          "description": "実際の fetch(テスト用に差し替え可能)"
+        }
+      ],
+      "returns": "認証済みの fetch"
+    },
+    {
+      "name": "createMicrosoftGraphClient",
+      "kind": "function",
+      "summary": "Graph クライアントを作る。",
+      "signature": "createMicrosoftGraphClient(authedFetch: typeof fetch): MicrosoftGraphClient",
+      "params": [
+        {
+          "name": "authedFetch",
+          "description": "`createMicrosoftAuthedFetch` で作った認証済み fetch"
+        }
+      ],
+      "returns": "Graph クライアント",
+      "throws": [
+        "Error Graph が失敗を返したとき(状態コードと本文の先頭を含める)"
+      ],
+      "example": "const graph = createMicrosoftGraphClient(authedFetch);\nawait graph.sendMail({ to: [\"taro@example.co.jp\"], subject: \"月次締め\", body: \"本日締めです\" });"
+    },
+    {
+      "name": "createMicrosoftTokenManager",
+      "kind": "function",
+      "summary": "有効なアクセストークンを返す(必要なら更新する)。 */ getAccessToken(): Promise<string>; /** 保持しているトークンを捨てる(401 を受けたときなど)。 */ invalidate(): void; } /** アクセストークンの取得と更新をまとめる。 同時に複数の呼び出しが来ても、**更新は 1 回だけ**にする (同時更新すると、片方のリフレッシュトークンが無効化されることがある)。",
+      "signature": "createMicrosoftTokenManager(config: MicrosoftTokenConfig): MicrosoftTokenManager",
+      "params": [
+        {
+          "name": "config",
+          "description": "クライアント情報とリフレッシュトークン"
+        }
+      ],
+      "returns": "トークンマネージャ",
+      "throws": [
+        "Error トークンの更新に失敗したとき(リフレッシュトークンの失効など)"
+      ]
+    },
+    {
+      "name": "GraphEvent",
+      "kind": "interface",
+      "summary": "既定は text。HTML で送るなら \"html\"。 */ contentType?: \"text\" | \"html\"; cc?: string[]; /** 送信箱に残すか(既定 true)。 */ saveToSentItems?: boolean; /** 差出人(共有メールボックスから送る場合。省略時はトークンの持ち主)。 */ fromUserId?: string; } /** 予定。"
+    },
+    {
+      "name": "GraphEventInput",
+      "kind": "interface",
+      "summary": "ISO 8601。 */ start: string; end: string; location?: string; attendees?: string[]; onlineMeetingUrl?: string; } /** 作成する予定。"
+    },
+    {
+      "name": "GraphFile",
+      "kind": "interface",
+      "summary": "埋まっている時間帯。 */ busy: { start: string; end: string; status: string }[]; /** 参照できたか(権限が無い相手は false)。 */ available: boolean; } /** 保存したファイル。"
+    },
+    {
+      "name": "GraphMailInput",
+      "kind": "interface",
+      "summary": "ブラウザで開けるリンク。 */ webUrl: string; } /** 送信するメール。"
+    },
+    {
+      "name": "GraphUser",
+      "kind": "interface",
+      "summary": "予定を入れる相手(省略時はトークンの持ち主)。 */ userId?: string; location?: string; attendees?: string[]; body?: string; /** Teams 会議のリンクを付けるか。 */ onlineMeeting?: boolean; /** タイムゾーン(既定 \"Asia/Tokyo\")。 */ timeZone?: string; } /** 利用者。"
+    },
+    {
+      "name": "MicrosoftAuthUrlParams",
+      "kind": "interface",
+      "summary": "Microsoft Entra ID(旧 Azure AD)の OAuth 2.0。 社内で Microsoft 365 を使っているなら、**認証を Entra ID に任せられる**。 その場合、2 要素認証やパスワード再設定は Entra 側の手続きになる(ADR 0016)。 Google と作りを揃えてある(`createGoogleTokenManager` と同じ考え方)。 違うのは **テナント** の概念があること: - `common` … 個人・組織どちらのアカウントも受け入れる - `organizations`… 組織アカウントのみ - `<テナントID>` … **自社のアカウントだけ**(社内システムはこれにする) 社内システムで `common` にすると、**他社のアカウントでもログインできてしまう**。 既定を自社テナントに寄せる意味で、tenantId は必須にしている。"
+    },
+    {
+      "name": "MicrosoftGraphClient",
+      "kind": "interface",
+      "summary": "Microsoft Graph の最小クライアント(メール送信・予定・利用者)。 Graph は 1 つの入口(`https://graph.microsoft.com/v1.0`)で、 Outlook・Teams・OneDrive・Entra の利用者情報まで扱える。 ここでは**社内システムで実際に使う 3 つ**だけを型付きで包む。 全部を包まないのは、包んだ分だけ相手の変更に追随する義務が増えるため。 必要になったら `graph.request()` で直接叩き、定着してから関数にする。"
+    },
+    {
+      "name": "MicrosoftTokenConfig",
+      "kind": "interface",
+      "summary": "再発行される場合がある(返らないこともある)。 */ refreshToken?: string; /** 失効時刻(ミリ秒)。 */ expiresAt: number; scope?: string; } /** トークンマネージャの設定。"
+    },
+    {
+      "name": "MicrosoftTokenManager",
+      "kind": "interface",
+      "summary": "失効の何ミリ秒前から更新するか(既定 5 分)。 */ expiryBufferMs?: number; /** 更新時に呼ばれる。**新しいリフレッシュトークンを保存する**ために使う。 */ onRefresh?: (result: MicrosoftTokenResult) => void | Promise<void>; fetchImpl?: typeof fetch; now?: () => number; } /** トークンマネージャ。"
+    },
+    {
+      "name": "MicrosoftTokenResult",
+      "kind": "interface",
+      "summary": "トークン取得・更新の結果。"
+    },
+    {
+      "name": "ScheduleAvailability",
+      "kind": "interface",
+      "summary": "任意のパスを叩く(未対応の API 用)。 */ request<T>(path: string, init?: RequestInit): Promise<T>; /** メールを送る。 */ sendMail(input: GraphMailInput): Promise<void>; /** 予定を作る。 */ createEvent(input: GraphEventInput): Promise<GraphEvent>; /** 期間内の予定を取る。 */ listEvents(params: { start: string; end: string; userId?: string }): Promise<GraphEvent[]>; /** 自分の情報を取る(疎通確認にも使う)。 */ me(): Promise<GraphUser>; /** 複数人の予定の埋まり具合を調べる(会議の調整)。 予定の中身は返らず、**空きか埋まりか**だけが分かる。 / getSchedule(params: { emails: string[]; start: string; end: string; intervalMinutes?: number }): Promise<ScheduleAvailability[]>; /** OneDrive / SharePoint にファイルを置く(帳票の保存先など)。 4MB を超える場合は分割アップロードが必要なため、ここでは受け付けない。 / uploadFile(params: { path: string; content: ArrayBuffer | Uint8Array | string; contentType?: string; userId?: string }): Promise<GraphFile>; /** 組織の利用者を引く(社員名簿の同期など)。 */ listUsers(params?: { filter?: string; top?: number }): Promise<GraphUser[]>; } /** 予定の埋まり具合。"
+    }
+  ],
   "@platform/mobile": [
     {
       "name": "BarcodeKind",
@@ -16380,6 +16920,44 @@
       "name": "Breakpoints",
       "kind": "type",
       "summary": "レスポンシブのブレークポイント判定(純ロジック)。 画面幅から現在のブレークポイント名を求める。Tailwind 既定に合わせている。"
+    },
+    {
+      "name": "buildServiceWorker",
+      "kind": "function",
+      "summary": "キャッシュの版。**変えると古いキャッシュが捨てられる**(更新時に必ず変える)。 */ version: string; /** 最初に読み込んでおくもの(オフラインでも出したい画面)。 */ precache?: string[]; /** オフライン時に出すページ。 */ offlineFallback?: string; /** URL ごとの扱い。 */ rules?: CacheRule[]; } /** Service Worker のコードを組み立てる。 **API の応答をキャッシュしない**のが既定。古い在庫数や承認状態を見せると、 オフラインで見えること以上の害になる。キャッシュするのは画面と静的ファイルだけにする。",
+      "signature": "buildServiceWorker()",
+      "params": [
+        {
+          "name": "config",
+          "description": "版・先読み・オフライン時のページ"
+        }
+      ],
+      "returns": "`/sw.js` として返す JavaScript",
+      "example": "// app/sw.js/route.ts\nexport function GET() {\n  return new Response(buildServiceWorker({\n    version: \"2026-07-23\",\n    precache: [\"/\", \"/offline\"],\n    offlineFallback: \"/offline\",\n  }), { headers: { \"Content-Type\": \"text/javascript\" } });\n}"
+    },
+    {
+      "name": "buildWebManifest",
+      "kind": "function",
+      "summary": "Web App Manifest を組み立てる。 手で JSON を書くと、**必須の項目やアイコンの抜け**でインストールできなくなる (しかも「インストールできない」としか出ないため原因が分かりにくい)。",
+      "signature": "buildWebManifest()",
+      "params": [
+        {
+          "name": "input",
+          "description": "アプリ名・アイコンなど"
+        }
+      ],
+      "returns": "manifest.json に書ける形",
+      "example": "// app/manifest.json/route.ts\nexport function GET() {\n  return Response.json(buildWebManifest({\n    name: \"社内システム\", shortName: \"社内\", themeColor: \"#1e40af\",\n    icons: [{ src: \"/icon-192.png\", sizes: \"192x192\", type: \"image/png\" },\n            { src: \"/icon-512.png\", sizes: \"512x512\", type: \"image/png\", purpose: \"any maskable\" }],\n  }));\n}"
+    },
+    {
+      "name": "CacheRule",
+      "kind": "interface",
+      "summary": "まずネットワーク。失敗したらキャッシュ。**更新が大事なもの**(一覧・詳細) */ | \"network-first\" /** まずキャッシュ。無ければネットワーク。**変わらないもの**(アイコン・フォント) */ | \"cache-first\" /** キャッシュを返しつつ裏で更新。**速さが大事なもの** */ | \"stale-while-revalidate\"; /** URL の型ごとの扱い。"
+    },
+    {
+      "name": "CacheStrategy",
+      "kind": "type",
+      "summary": "オフライン対応(Service Worker)とプッシュ通知。 倉庫・工場・外回りでは**電波が不安定**な場所で画面が開かれる。 「圏外になった瞬間に真っ白」を避けることが、現場での実用性を大きく変える。 Service Worker のコードは**文字列として生成**する。 ビルドの設定に手を入れず、`/sw.js` を返すルートを 1 本足すだけで済むようにするため。"
     },
     {
       "name": "cameraConstraints",
@@ -16443,6 +17021,19 @@
       "name": "CaptureOptions",
       "kind": "interface",
       "summary": "{@link captureFrame} の出力形式。"
+    },
+    {
+      "name": "checkInstallable",
+      "kind": "function",
+      "summary": "インストールできる条件を満たしているか調べる。 ブラウザは「インストールできない」としか言わないため、**何が足りないか**をここで示す。",
+      "signature": "checkInstallable(manifest: WebManifest): ManifestWarning[]",
+      "params": [
+        {
+          "name": "manifest",
+          "description": "組み立てた manifest"
+        }
+      ],
+      "returns": "足りないものの一覧(空なら条件を満たす)"
     },
     {
       "name": "classifyConnection",
@@ -16550,6 +17141,19 @@
       "name": "EffectiveType",
       "kind": "type",
       "summary": "effectiveType の型(NetworkInformation.effectiveType)。"
+    },
+    {
+      "name": "installGuidance",
+      "kind": "function",
+      "summary": "インストールを促す案内文を、端末に合わせて返す。 **iOS は「ホーム画面に追加」を手で選んでもらう必要がある**(インストールの確認が出ない)。 同じ案内を出すと、iOS の利用者は何をすればよいか分からない。",
+      "signature": "installGuidance(userAgent: string)",
+      "params": [
+        {
+          "name": "userAgent",
+          "description": "端末の userAgent"
+        }
+      ],
+      "returns": "案内文と、自動で促せるか"
     },
     {
       "name": "isBarcodeDetectorSupported",
@@ -16673,6 +17277,21 @@
       "returns": "カメラの一覧。**非対応なら空配列**"
     },
     {
+      "name": "ManifestIcon",
+      "kind": "interface",
+      "summary": "PWA(ホーム画面に置けるアプリ)の設定。 社内システムを **Android / iOS のホーム画面から開けるようにする**ための層。 ネイティブアプリを作らずに、次が得られる: - ホーム画面のアイコンから起動(ブラウザの URL バーが消える) - オフラインでも最低限の画面が出る - プッシュ通知(Android は可・iOS は 16.4 以降でホーム画面追加が必要) 倉庫や現場で使う画面は、**電波が不安定**な場所で開かれる。 「圏外になった瞬間に真っ白」を避けることが、実用上いちばん効く。"
+    },
+    {
+      "name": "ManifestShortcut",
+      "kind": "interface",
+      "summary": "\"192x192\" のような形。 */ sizes: string; type?: string; /** `maskable` を含めると Android で角丸に切られても見栄えが崩れない。 */ purpose?: \"any\" | \"maskable\" | \"any maskable\"; } /** ホーム画面から直接開けるショートカット。"
+    },
+    {
+      "name": "ManifestWarning",
+      "kind": "interface",
+      "summary": "アイコンが足りない、などの警告。"
+    },
+    {
       "name": "matchBreakpoint",
       "kind": "function",
       "summary": "画面幅からブレークポイント名を返す。",
@@ -16712,6 +17331,34 @@
       "returns": "`portrait` / `landscape`(**正方形は portrait**)"
     },
     {
+      "name": "pushAvailability",
+      "kind": "function",
+      "summary": "プッシュ通知が使えるかを判定する。 **iOS は 16.4 以降、かつホーム画面に追加していないと使えない。** ブラウザのタブで開いている状態では、許可を求めても失敗する。",
+      "signature": "pushAvailability(options: { userAgent: string; /** ホーム画面から起動しているか(`display-mode: standalone`)。 */ isStandalone: boolean; /** Notification…)",
+      "params": [
+        {
+          "name": "options",
+          "description": "端末の状況"
+        }
+      ],
+      "returns": "使えるかと、使えない理由"
+    },
+    {
+      "name": "PushPayload",
+      "kind": "interface",
+      "summary": "プッシュ通知の中身。"
+    },
+    {
+      "name": "PushPermission",
+      "kind": "type",
+      "summary": "押したときに開く URL。 */ url?: string; icon?: string; badge?: string; /** 同じ tag の通知は上書きされる(同じ件で何度も鳴らさない)。 */ tag?: string; /** 利用者が閉じるまで残す(重要な通知のみ)。 */ requireInteraction?: boolean; } /** 通知の許可の状態。"
+    },
+    {
+      "name": "ServiceWorkerConfig",
+      "kind": "interface",
+      "summary": "対象の URL に含まれる文字列、または正規表現の元になる文字列。 */ pattern: string; strategy: CacheStrategy; /** キャッシュの名前(分けておくと後から消しやすい)。 */ cacheName?: string; } /** Service Worker の設定。"
+    },
+    {
       "name": "share",
       "kind": "function",
       "summary": "ネイティブの共有シートを開く(Web Share API)。非対応なら false を返す。",
@@ -16723,6 +17370,19 @@
         }
       ],
       "returns": "成功したか。**利用者がキャンセルしても false**(エラーではない)"
+    },
+    {
+      "name": "shouldAskPushPermission",
+      "kind": "function",
+      "summary": "ホーム画面から起動しているか(`display-mode: standalone`)。 */ isStandalone: boolean; /** Notification API があるか。 */ hasNotificationApi: boolean; }): { available: boolean; reason?: string } { if (!options.hasNotificationApi) { return { available: false, reason: \"この端末は通知に対応していません\" }; } const ua = options.userAgent.toLowerCase(); const isIos = /iphone|ipad|ipod/.test(ua); if (isIos && !options.isStandalone) { return { available: false, reason: \"iOS では、ホーム画面に追加してから開くと通知を受け取れます\", }; } return { available: true }; } /** 通知の許可を求めるべきタイミングかを判断する。 **開いた直後に求めない。** 何のための通知か分からないまま拒否されると、 その後は設定画面から変えてもらうしかなくなる(拒否は覚えられる)。",
+      "signature": "shouldAskPushPermission(state: { permission: PushPermission; /** 利用者が通知を要する操作をしたか(承認依頼を出した、など)。 */ didRelevantAction: boolean; /** 前回尋ねてからの日数。 *…): boolean",
+      "params": [
+        {
+          "name": "state",
+          "description": "現在の状況"
+        }
+      ],
+      "returns": "求めてよいか"
     },
     {
       "name": "shouldSaveData",
@@ -16876,6 +17536,16 @@
         }
       ],
       "returns": "成功したか。**非対応なら false**"
+    },
+    {
+      "name": "WebManifest",
+      "kind": "interface",
+      "summary": "アプリ名(インストール時の確認に出る)。 */ name: string; /** ホーム画面のアイコン下に出る短い名前(12 文字程度まで)。 */ shortName: string; description?: string; /** 起動時に開く URL。 */ startUrl?: string; /** アプリの範囲。ここから外れた URL はブラウザで開く。 */ scope?: string; /** 表示のしかた。 `standalone` … URL バーを消す(社内システムはこれ) `browser` … 通常のタブ / display?: \"standalone\" | \"fullscreen\" | \"minimal-ui\" | \"browser\"; /** 起動画面とテーマの色。 */ themeColor?: string; backgroundColor?: string; /** 画面の向きを固定する(現場の端末で回転させたくない場合)。 */ orientation?: \"portrait\" | \"landscape\" | \"any\"; icons?: ManifestIcon[]; shortcuts?: ManifestShortcut[]; lang?: string; } /** 出力する manifest(そのまま JSON にできる形)。"
+    },
+    {
+      "name": "WebManifestInput",
+      "kind": "interface",
+      "summary": "manifest の入力。"
     }
   ],
   "@platform/net": [
@@ -16908,19 +17578,6 @@
       "name": "BackoffOptions",
       "kind": "interface",
       "summary": "リトライ・指数バックオフ・タイムアウト(純 + 非同期)。"
-    },
-    {
-      "name": "buildQuery",
-      "kind": "function",
-      "summary": "オブジェクトをクエリ文字列にする。 **`undefined` / `null` は除外**(`?a=undefined` という文字列を送らない)。 **キー順にソート**するので、同じ内容なら常に同じ文字列になる。",
-      "signature": "buildQuery(params: Record<string, string | number | boolean | null | undefined>): string",
-      "params": [
-        {
-          "name": "params",
-          "description": "キー → 値"
-        }
-      ],
-      "returns": "クエリ文字列"
     },
     {
       "name": "connectFramed",
@@ -17133,19 +17790,6 @@
       "returns": "妥当なら true"
     },
     {
-      "name": "joinUrl",
-      "kind": "function",
-      "summary": "URL 組み立て・クエリ操作(純)。",
-      "signature": "joinUrl(base: string, ...segments: string[]): string",
-      "params": [
-        {
-          "name": "segments",
-          "description": "結合するセグメント"
-        }
-      ],
-      "returns": "結合した URL"
-    },
-    {
       "name": "LengthPrefixedDecoder",
       "kind": "class",
       "summary": "長さ接頭辞フレームのデコーダ。断片化・複数連結どちらでも、`push` で 完成したペイロードだけを配列で返す(内部で余りをバッファリング)。"
@@ -17157,7 +17801,7 @@
       "params": [
         {
           "name": "maxFrameBytes",
-          "description": "上限(DoS 防止・既定 16MB)。 */ constructor(maxFrameBytes = 16 * 1024 * 1024) { this.maxFrameBytes = maxFrameBytes; } push(chunk: Uint8Array): Uint8Array[] { const merged = new Uint8Array(this.buf.length + chunk.length); merged.set(this.buf); merged.set(chunk, this.buf.length); this.buf = merged; const out: Uint8Array[] = []; while (this.buf.length >= 4) { const len = new DataView(this.buf.buffer, this.buf.byteOffset, 4).getUint32(0, false); if (len > this.maxFrameBytes) throw new Error(`フレームが大きすぎます: ${len}`); if (this.buf.length < 4 + len) break; out.push(this.buf.slice(4, 4 + len)); this.buf = this.buf.slice(4 + len); } return out; } /** 未処理バイト数。 */ get pending(): number { return this.buf.length; } } const NL = 0x0a; /** 改行区切りのデコーダ(行単位のプロトコル用)。"
+          "description": "上限(DoS 防止・既定 16MB)。 */ constructor(maxFrameBytes = 16 * 1024 * 1024) { this.maxFrameBytes = maxFrameBytes; } push(chunk: Uint8Array): Uint8Array[] { const merged = new Uint8Array(this.buf.length + chunk.length); merged.set(this.buf); merged.set(chunk, this.buf.length); this.buf = merged; const out: Uint8Array[] = []; while (this.buf.length >= 4) { const len = new DataView(this.buf.buffer, this.buf.byteOffset, 4).getUint32(0, false); if (len > this.maxFrameBytes) throw new Error(`フレームが大きすぎます: ${len}`); if (this.buf.length < 4 + len) break; out.push(this.buf.slice(4, 4 + len)); this.buf = this.buf.slice(4 + len); } return out; } /** 未処理バイト数。 */ get pending(): number { return this.buf.length; } } /** 改行区切りのデコーダ(行単位のプロトコル用)。"
         }
       ]
     },
@@ -17186,19 +17830,6 @@
         }
       ],
       "returns": "ネットワークアドレスとマスク。**不正なら null**"
-    },
-    {
-      "name": "parseQuery",
-      "kind": "function",
-      "summary": "クエリ文字列をオブジェクトにする。",
-      "signature": "parseQuery(qs: string): Record<string, string>",
-      "params": [
-        {
-          "name": "query",
-          "description": "クエリ文字列(**先頭の `?` はあってもなくてもよい**)"
-        }
-      ],
-      "returns": "キー → 値"
     },
     {
       "name": "poll",
@@ -17272,23 +17903,6 @@
       "name": "UdpSocket",
       "kind": "interface",
       "summary": "UDP データグラム ソケット(node:dgram)。"
-    },
-    {
-      "name": "withQuery",
-      "kind": "function",
-      "summary": "URL にクエリを追加・マージする。",
-      "signature": "withQuery(url: string, params: Record<string, string | number | boolean | null | undefined>): string",
-      "params": [
-        {
-          "name": "url",
-          "description": "URL"
-        },
-        {
-          "name": "params",
-          "description": "追加するパラメータ"
-        }
-      ],
-      "returns": "新しい URL(**既存のクエリは保持**)"
     },
     {
       "name": "withTimeout",
@@ -17832,6 +18446,49 @@
         }
       ],
       "returns": "ラップしたチャネル"
+    }
+  ],
+  "@platform/notion": [
+    {
+      "name": "createNotionClient",
+      "kind": "function",
+      "summary": "任意のパスを叩く(未対応の API 用)。 */ request<T>(path: string, init?: RequestInit): Promise<T>; /** データベースを照会する。 */ queryDatabase(params: { databaseId: string; filter?: Record<string, unknown>; sorts?: Record<string, unknown>[]; pageSize?: number; /** 続きを取るためのカーソル。 */ startCursor?: string; }): Promise<{ pages: NotionPage[]; nextCursor: string | null }>; /** ページを作る。 */ createPage(params: { databaseId: string; properties: Record<string, NotionPropertyInput>; body?: string }): Promise<NotionPage>; /** ページのプロパティを更新する。 */ updatePage(params: { pageId: string; properties: Record<string, NotionPropertyInput> }): Promise<NotionPage>; /** ページ本文を平文で取る(整形は落ちる)。 */ getPageText(pageId: string): Promise<string>; /** データベースを**全件**取る(ページ送りを自動でたどる)。 `queryDatabase` は 1 回分(既定 100 件)しか返さないため、 件数が増えたときに**黙って一部だけ処理する**事故が起きる。 / queryAll(params: { databaseId: string; filter?: Record<string, unknown>; sorts?: Record<string, unknown>[]; maxPages?: number }): Promise<NotionPage[]>; /** ページの末尾に段落を足す(議事録の追記など)。 */ appendParagraphs(params: { pageId: string; lines: string[] }): Promise<void>; /** 語句でページを探す(共有されているものだけが対象)。 */ search(params: { query: string; pageSize?: number }): Promise<NotionPage[]>; } interface RawProperty { type: string; title?: { plain_text: string }[]; rich_text?: { plain_text: string }[]; number?: number | null; select?: { name: string } | null; multi_select?: { name: string }[]; date?: { start: string } | null; checkbox?: boolean; url?: string | null; people?: { id: string }[]; status?: { name: string } | null; } interface RawPage { id: string; url: string; created_time: string; last_edited_time: string; properties: Record<string, RawProperty>; } /** 入れ子の値を素直な形に直す。 */ function flatten(p: RawProperty): string | number | boolean | string[] | null { switch (p.type) { case \"title\": return p.title?.map((t) => t.plain_text).join(\"\") ?? \"\"; case \"rich_text\": return p.rich_text?.map((t) => t.plain_text).join(\"\") ?? \"\"; case \"number\": return p.number ?? null; case \"select\": return p.select?.name ?? null; case \"status\": return p.status?.name ?? null; case \"multi_select\": return p.multi_select?.map((s) => s.name) ?? []; case \"date\": return p.date?.start ?? null; case \"checkbox\": return p.checkbox ?? false; case \"url\": return p.url ?? null; case \"people\": return p.people?.map((x) => x.id) ?? []; default: return null; } } function toPage(raw: RawPage): NotionPage { const properties: NotionPage[\"properties\"] = {}; let title = \"\"; for (const [name, prop] of Object.entries(raw.properties)) { const v = flatten(prop); properties[name] = v; if (prop.type === \"title\" && typeof v === \"string\") title = v; } return { id: raw.id, title, url: raw.url, createdAt: raw.created_time, updatedAt: raw.last_edited_time, properties }; } /** 入力を Notion の形に戻す。 */ function toRawProperty(input: NotionPropertyInput): Record<string, unknown> { switch (input.type) { case \"title\": return { title: [{ text: { content: input.value } }] }; case \"rich_text\": return { rich_text: [{ text: { content: input.value } }] }; case \"number\": return { number: input.value }; case \"select\": return { select: { name: input.value } }; case \"multi_select\": return { multi_select: input.value.map((name) => ({ name })) }; case \"date\": return { date: { start: input.value } }; case \"checkbox\": return { checkbox: input.value }; case \"url\": return { url: input.value }; } } /** Notion クライアントを作る。 **連携したいページ/データベースを、Notion 側でこのインテグレーションに共有しておく**こと。 共有していないと、トークンが正しくても 404 が返る(最も多いつまずき)。",
+      "signature": "createNotionClient(token: string, fetchImpl?: typeof fetch): NotionClient",
+      "params": [
+        {
+          "name": "token",
+          "description": "内部インテグレーションのトークン(`ntn_` または `secret_` で始まる)"
+        },
+        {
+          "name": "fetchImpl",
+          "description": "テスト用に差し替え可能"
+        }
+      ],
+      "returns": "Notion クライアント",
+      "throws": [
+        "Error API が失敗したとき(404 は共有忘れの可能性を示唆する)"
+      ],
+      "example": "const notion = createNotionClient(process.env.NOTION_TOKEN);\nconst { pages } = await notion.queryDatabase({ databaseId, pageSize: 20 });"
+    },
+    {
+      "name": "NOTION_VERSION",
+      "kind": "const",
+      "summary": "`@platform/notion` — Notion のデータベースとページ。 社内では議事録・手順書・案件管理が Notion に置かれていることが多い。 それらを**業務システムから読む/書く**ための最小の層。 Notion の API は入れ子が深く(`properties.名前.title[0].plain_text`)、 そのまま扱うとアプリ側が読みにくくなる。ここで**平たい形に直して**返す。 対応するのは、実際に使う次の操作だけ: - データベースの照会(絞り込み・並べ替え) - ページの作成・更新 - ページ本文の取得 他は `notion.request()` で直接叩ける。"
+    },
+    {
+      "name": "NotionClient",
+      "kind": "interface",
+      "summary": "Notion クライアント。"
+    },
+    {
+      "name": "NotionPage",
+      "kind": "interface",
+      "summary": "平たくしたページ。"
+    },
+    {
+      "name": "NotionPropertyInput",
+      "kind": "type",
+      "summary": "タイトル(title 型のプロパティ)。 */ title: string; url: string; createdAt: string; updatedAt: string; /** プロパティを平たくしたもの(型ごとに素直な値へ変換)。 */ properties: Record<string, string | number | boolean | string[] | null>; } /** 作成・更新するプロパティ。"
     }
   ],
   "@platform/observability": [
@@ -19249,6 +19906,28 @@
       "returns": "暗号ヘルパー(`encrypt` / `decrypt`)"
     },
     {
+      "name": "decideErasure",
+      "kind": "function",
+      "summary": "消してよいか。 */ canErase: boolean; /** そう判断した理由(本人に説明する内容)。 */ reason: string; /** 消せない場合、いつになれば消せるか。 */ erasableFrom?: string; } /** 削除要求に対して、レコードごとに消してよいかを判断する。 **保存義務と削除要求は逆を向く。** 個人情報保護法は「利用目的の達成後は遅滞なく消去」を求め、 電子帳簿保存法は「7 年間の保存」を求める。どちらも守るには、 **法令の保存義務があるものは残し、その旨を本人に説明する**しかない。 「全部消す」も「全部残す」も、どちらかの違反になる。",
+      "signature": "decideErasure(records: readonly RetainableRecord[], holds: readonly LegalHold[], asOf: string,): ErasureDecision[]",
+      "params": [
+        {
+          "name": "records",
+          "description": "レコード(保持期間つき)"
+        },
+        {
+          "name": "holds",
+          "description": "法令による保存義務"
+        },
+        {
+          "name": "asOf",
+          "description": "基準日(YYYY-MM-DD)"
+        }
+      ],
+      "returns": "レコードごとの判断",
+      "example": "const decisions = decideErasure(records, [\n  { recordId: \"invoice-1\", basis: \"電子帳簿保存法 7年\", until: \"2033-03-31\" },\n], \"2026-07-23\");\nconst erasable = decisions.filter((d) => d.canErase).map((d) => d.recordId);"
+    },
+    {
       "name": "DisclosureHolding",
       "kind": "interface",
       "summary": "開示レポートの 1 項目。"
@@ -19279,6 +19958,11 @@
       "returns": "処理後レコードと、実際に消したフィールド"
     },
     {
+      "name": "ErasureDecision",
+      "kind": "interface",
+      "summary": "対象レコードの ID。 */ recordId: string; /** 根拠(例: \"電子帳簿保存法 7年\")。**空にしない**。後から説明できなくなる。 */ basis: string; /** 保存期限(この日を過ぎたら削除してよい)。 */ until: string; } /** 削除要求に対する判断。"
+    },
+    {
       "name": "ErasureMethod",
       "kind": "type",
       "summary": "削除の方式。anonymize=PII を伏字化して関連データは残す, delete=キー自体を除去。"
@@ -19287,6 +19971,19 @@
       "name": "ErasureReceipt",
       "kind": "interface",
       "summary": "削除受付の証跡(いつ・何を・どの方式で消したか)。"
+    },
+    {
+      "name": "explainErasure",
+      "kind": "function",
+      "summary": "本人へ返す説明文を組み立てる。 「消せません」だけでは納得が得られない。**根拠といつ消せるか**を必ず示す。",
+      "signature": "explainErasure(decisions: readonly ErasureDecision[]): string",
+      "params": [
+        {
+          "name": "decisions",
+          "description": "判断の一覧"
+        }
+      ],
+      "returns": "本人向けの説明(そのまま通知に使える)"
     },
     {
       "name": "FieldCipher",
@@ -19318,6 +20015,11 @@
         }
       ],
       "returns": "保持期間を過ぎていれば true(**過ぎたデータは消す義務がある**。持ち続けると法令違反)"
+    },
+    {
+      "name": "LegalHold",
+      "kind": "interface",
+      "summary": "法令で保存が義務づけられたデータ。 本人から削除を求められても、**法令の保存義務が優先する**。 例: 会計帳簿・証憑は 7 年(電子帳簿保存法・法人税法)、 労働者名簿と賃金台帳は 5 年(労働基準法)。"
     },
     {
       "name": "maskEmail",
@@ -19422,19 +20124,19 @@
     {
       "name": "recordsToErase",
       "kind": "function",
-      "summary": "保持期間を過ぎたレコードの ID を返す(定期削除バッチ用)。 個人情報は利用目的の達成後・保持期間経過後に遅滞なく消去する必要がある。",
+      "summary": "保持期間を過ぎたレコードの ID を返す(定期削除バッチ用)。 個人情報は利用目的の達成後・保持期間経過後に遅滞なく消去する必要がある。 **この関数は法令の保存義務を見ない。** 会計帳簿の 7 年保存のような義務があるものを 含めて消すと別の違反になるため、削除要求への対応には decideErasure を使うこと。",
       "signature": "recordsToErase(records: RetainableRecord[], now: number = Date.now()): string[]",
       "params": [
         {
-          "name": "subject",
-          "description": "本人"
+          "name": "records",
+          "description": "保持期間つきのレコード"
         },
         {
-          "name": "sources",
-          "description": "データの所在"
+          "name": "now",
+          "description": "現在時刻(ミリ秒)"
         }
       ],
-      "returns": "削除対象。**法令で保持が必要なものは除く**(会計帳簿は 7 年保存が義務。全部消すと別の違反になる)"
+      "returns": "保持期間を過ぎたレコードの ID"
     },
     {
       "name": "RetainableRecord",
@@ -19823,6 +20525,32 @@
       "name": "AccessControl",
       "kind": "interface",
       "summary": "RAG(検索拡張生成)の骨格。役割は「検索」(操作は MCP)。 このパッケージが持つもの: (1) 文書のチャンク分割 (2) 権限を継承した検索(管理者権限での全検索をしない) (3) embedding の差し込み口(未接続でも BM25 で動く) (4) 検索結果をプロンプト文脈に組む整形。 検索実体は @platform/search(BM25/Meilisearch)を注入。ベクトル検索は Embedder + VectorIndex を足すだけ。"
+    },
+    {
+      "name": "boostExactKeyword",
+      "kind": "function",
+      "summary": "検索結果の並べ替え(再ランク)。",
+      "signature": "boostExactKeyword(hits: readonly T[], query: string, keyOf: (hit: T) => string | undefined, factor = 3,): T[]",
+      "params": [
+        {
+          "name": "hits",
+          "description": "検索結果(score の降順である必要はない)"
+        },
+        {
+          "name": "query",
+          "description": "利用者が入力した文字列"
+        },
+        {
+          "name": "keyOf",
+          "description": "結果から目印を取り出す関数(無ければ undefined)"
+        },
+        {
+          "name": "factor",
+          "description": "一致したときに score へ掛ける倍率(既定 3)"
+        }
+      ],
+      "returns": "score 降順に並べ替えた新しい配列",
+      "example": "const ranked = boostExactKeyword(hits, \"CSV を出力したい\", (h) => h.pkg);\n// pkg === \"csv\" の結果が前に出る"
     },
     {
       "name": "buildContext",
@@ -22530,6 +23258,122 @@
       "returns": "表示対象のブロック(order 順)"
     }
   ],
+  "@platform/slack": [
+    {
+      "name": "ApprovalRequest",
+      "kind": "interface",
+      "summary": "承認・却下ボタン付き通知の内容。"
+    },
+    {
+      "name": "buildApprovalBlocks",
+      "kind": "function",
+      "summary": "見出し(例: \"経費申請の承認\")。 */ title: string; /** 本文(誰が・何を・いくら など)。 */ summary: string; /** 明細(ラベルと値。金額や日付を並べる)。 */ fields?: { label: string; value: string }[]; /** ボタンに埋め込む値。押されたときに戻ってくる(例: \"expense:123\")。 */ actionValue: string; /** 承認ボタンの文言(既定 \"承認する\")。 */ approveLabel?: string; /** 却下ボタンの文言(既定 \"却下する\")。 */ rejectLabel?: string; } /** 承認・却下ボタン付きのメッセージ(Block Kit)を組み立てる。 承認をチャットで回すと速いが、**押した人が誰かを必ず確かめる**こと。 押下時に届く payload の `userId` を、社内の利用者と突き合わせてから処理する。",
+      "signature": "buildApprovalBlocks(req: ApprovalRequest): unknown[]",
+      "params": [
+        {
+          "name": "req",
+          "description": "見出し・本文・ボタンに埋める値"
+        }
+      ],
+      "returns": "`postMessage` の `blocks` に渡す配列",
+      "example": "await slack.postMessage({\n  channel: \"#承認\",\n  text: \"経費申請の承認\",   // 通知欄に出る代替テキスト\n  blocks: buildApprovalBlocks({ title: \"経費申請の承認\", summary: \"山田太郎 / 12,000円\", actionValue: \"expense:123\" }),\n});"
+    },
+    {
+      "name": "createSlackClient",
+      "kind": "function",
+      "summary": "任意の Web API を叩く(未対応のメソッド用)。 */ call<T>(method: string, body?: Record<string, unknown>): Promise<T>; postMessage(message: SlackMessage): Promise<SlackPostResult>; updateMessage(params: { channel: string; ts: string; text: string; blocks?: unknown[] }): Promise<void>; deleteMessage(params: { channel: string; ts: string }): Promise<void>; /** メールアドレスから利用者を引く(社内の名寄せに使う)。 */ lookupUserByEmail(email: string): Promise<SlackUser | null>; } interface SlackApiResponse { ok: boolean; error?: string; channel?: string; ts?: string; user?: { id: string; name: string; real_name?: string; is_bot?: boolean; profile?: { email?: string } }; } /** Slack クライアントを作る。 Slack の Web API は**失敗しても HTTP 200 を返し、本文の `ok` が false になる**。 ステータスだけ見ていると失敗に気づけないため、ここで本文まで確認する。",
+      "signature": "createSlackClient(token: string, fetchImpl?: typeof fetch): SlackClient",
+      "params": [
+        {
+          "name": "token",
+          "description": "ボットトークン(`xoxb-` で始まる)"
+        },
+        {
+          "name": "fetchImpl",
+          "description": "テスト用に差し替え可能"
+        }
+      ],
+      "returns": "Slack クライアント",
+      "throws": [
+        "Error API が失敗したとき(HTTP 200 でも本文の ok が false なら失敗)"
+      ],
+      "example": "const slack = createSlackClient(process.env.SLACK_BOT_TOKEN);\nconst posted = await slack.postMessage({ channel: \"#経理\", text: \"月次締めを開始します\" });\nawait slack.postMessage({ channel: posted.channel, threadTs: posted.ts, text: \"完了しました\" });"
+    },
+    {
+      "name": "parseInteraction",
+      "kind": "function",
+      "summary": "押されたボタンの action_id(例: \"approve\")。 */ actionId: string; /** ボタンに埋めた値(例: \"expense:123\")。 */ value: string; /** 押した人。**この人が権限を持つかを必ず確かめる**。 */ userId: string; userName: string; channelId: string; /** 元メッセージの ts(更新して「承認済み」に差し替えるときに使う)。 */ messageTs: string; /** 一時的な応答先 URL(30 分有効)。 */ responseUrl: string; } /** ボタン押下の payload を解く。 Slack は `application/x-www-form-urlencoded` の `payload=` に JSON を入れて送ってくる。 **署名の検証は別途必ず行うこと**(`verifySlackSignature`)。ここは形を整えるだけ。",
+      "signature": "parseInteraction(body: string): SlackInteraction | null",
+      "params": [
+        {
+          "name": "body",
+          "description": "生ボディ"
+        }
+      ],
+      "returns": "押されたボタンの情報。想定外の形なら null"
+    },
+    {
+      "name": "parseSlashCommand",
+      "kind": "function",
+      "summary": "スラッシュコマンドの生ボディを解く。",
+      "signature": "parseSlashCommand(body: string): SlackSlashCommand",
+      "params": [
+        {
+          "name": "body",
+          "description": "生ボディ(`command=/deploy&text=...` の形)"
+        }
+      ],
+      "returns": "解いた内容"
+    },
+    {
+      "name": "SlackClient",
+      "kind": "interface",
+      "summary": "Slack クライアント。"
+    },
+    {
+      "name": "SlackInteraction",
+      "kind": "interface",
+      "summary": "ボタンが押されたときに届く内容。"
+    },
+    {
+      "name": "SlackMessage",
+      "kind": "interface",
+      "summary": "`@platform/slack` — Slack Web API と受信(イベント/スラッシュコマンド)。 **一方向に通知を送るだけなら `@platform/notify` の `createSlackChannel` で足りる** (Incoming Webhook)。こちらは、それでは足りない場合のためのもの: - スレッドに返信する / メッセージを更新・削除する - 利用者やチャンネルを引く - Slack からの**受信**(イベント・スラッシュコマンド)を検証する 受信で最も大事なのは**署名の検証**。URL さえ分かれば誰でも偽の通知を送れるため、 検証していない受信口は「社内システムを外部から操作できる穴」になる。"
+    },
+    {
+      "name": "SlackPostResult",
+      "kind": "interface",
+      "summary": "投稿先(チャンネル ID or `#名前`)。 */ channel: string; text: string; /** スレッドに返信する場合、親メッセージの ts。 */ threadTs?: string; /** Block Kit の構造(整形した表示にしたいとき)。 */ blocks?: unknown[]; /** スレッド内の投稿をチャンネルにも出すか。 */ replyBroadcast?: boolean; } /** 投稿結果。`ts` はスレッド返信や更新に使う。"
+    },
+    {
+      "name": "SlackSignatureInput",
+      "kind": "interface",
+      "summary": "署名検証の入力。"
+    },
+    {
+      "name": "SlackSlashCommand",
+      "kind": "interface",
+      "summary": "スラッシュコマンドの内容(`application/x-www-form-urlencoded` を解いたもの)。"
+    },
+    {
+      "name": "SlackUser",
+      "kind": "interface",
+      "summary": "Slack の利用者。"
+    },
+    {
+      "name": "verifySlackSignature",
+      "kind": "function",
+      "summary": "リクエストの**生ボディ**(パース前の文字列)。 */ body: string; /** `X-Slack-Signature` ヘッダ。 */ signature: string; /** `X-Slack-Request-Timestamp` ヘッダ(秒)。 */ timestamp: string; /** アプリの Signing Secret。 */ signingSecret: string; /** 許容する時刻のずれ(秒。既定 300 = 5 分)。 */ toleranceSeconds?: number; /** 現在時刻(秒。テスト用)。 */ now?: () => number; } /** Slack からの受信が本物かを検証する。 **必ず生ボディで検証する。** JSON にパースしてから文字列へ戻すと、 空白や順序が変わって一致しなくなる。 時刻を含めて署名するため、**古い要求の使い回し(リプレイ)も弾ける**。",
+      "signature": "verifySlackSignature(input: SlackSignatureInput): boolean",
+      "params": [
+        {
+          "name": "input",
+          "description": "生ボディ・署名・時刻・秘密"
+        }
+      ],
+      "returns": "本物なら true"
+    }
+  ],
   "@platform/sms": [
     {
       "name": "buildOtpSms",
@@ -23279,6 +24123,19 @@
       "returns": "画面の内容"
     },
     {
+      "name": "renderForbiddenPage",
+      "kind": "function",
+      "summary": "403 画面のプリセット(権限不足)。",
+      "signature": "renderForbiddenPage(options?: Partial<StatusPageOptions>): string",
+      "params": [
+        {
+          "name": "options",
+          "description": "上書きするオプション"
+        }
+      ],
+      "returns": "画面の内容"
+    },
+    {
       "name": "renderMaintenancePage",
       "kind": "function",
       "summary": "メンテナンス画面のプリセット(503 相当)。 **復旧予定を書く**(「しばらくお待ちください」だけでは、利用者は何度もリロードする)。",
@@ -23333,6 +24190,32 @@
         }
       ],
       "returns": "HTML。**外部依存なし**(CSS もインライン。障害時に CDN が死んでいても表示できる)"
+    },
+    {
+      "name": "renderTooManyRequestsPage",
+      "kind": "function",
+      "summary": "429 画面のプリセット(リクエスト過多・レート制限)。",
+      "signature": "renderTooManyRequestsPage(options?: Partial<StatusPageOptions>): string",
+      "params": [
+        {
+          "name": "options",
+          "description": "上書きするオプション"
+        }
+      ],
+      "returns": "画面の内容"
+    },
+    {
+      "name": "renderUnauthorizedPage",
+      "kind": "function",
+      "summary": "401 画面のプリセット(認証が必要)。",
+      "signature": "renderUnauthorizedPage(options?: Partial<StatusPageOptions>): string",
+      "params": [
+        {
+          "name": "options",
+          "description": "上書きするオプション"
+        }
+      ],
+      "returns": "画面の内容"
     },
     {
       "name": "stateToConfig",
@@ -24093,7 +24976,7 @@
     {
       "name": "checkThemeContrast",
       "kind": "function",
-      "summary": "1 つでも fail があれば false。 */ passesAA: boolean; /** 最小のコントラスト比(最も危ういペア)。 */ minRatio: number; } /** 検査する色ペア(テキスト系は最低 AA=4.5 が目安)。 */ const PAIRS: { label: string; fg: keyof Theme[\"modes\"][\"light\"]; bg: keyof Theme[\"modes\"][\"light\"] }[] = [ { label: \"本文テキスト / 背景\", fg: \"fg\", bg: \"bg\" }, { label: \"本文テキスト / サーフェス\", fg: \"fg\", bg: \"surface\" }, { label: \"補助テキスト / 背景\", fg: \"muted\", bg: \"bg\" }, { label: \"主ボタン文字 / 主色\", fg: \"primaryFg\", bg: \"primary\" }, ]; /** テーマ 1 モードのコントラストを検査する。 **テキスト系のペア**(背景と文字・主色と文字など)が基準を満たすかを見る。 ここを外すと、**見えるが読めない画面**ができる(薄いグレーの文字など)。",
+      "summary": "1 つでも fail があれば false。 */ passesAA: boolean; /** 最小のコントラスト比(最も危ういペア)。 */ minRatio: number; } /** 検査する色ペア(テキスト系は最低 AA=4.5 が目安)。 */ /** 対比を見る組み合わせ。 **必ず値がある項目だけ**を対象にする。サイドバーの色のような任意の項目は 未指定なら `undefined` になり、対比を計算できないため。 / type RequiredColorKey = { [K in keyof Theme[\"modes\"][\"light\"]]-?: undefined extends Theme[\"modes\"][\"light\"][K] ? never : K }[keyof Theme[\"modes\"][\"light\"]]; const PAIRS: { label: string; fg: RequiredColorKey; bg: RequiredColorKey }[] = [ { label: \"本文テキスト / 背景\", fg: \"fg\", bg: \"bg\" }, { label: \"本文テキスト / サーフェス\", fg: \"fg\", bg: \"surface\" }, { label: \"補助テキスト / 背景\", fg: \"muted\", bg: \"bg\" }, { label: \"主ボタン文字 / 主色\", fg: \"primaryFg\", bg: \"primary\" }, ]; /** テーマ 1 モードのコントラストを検査する。 **テキスト系のペア**(背景と文字・主色と文字など)が基準を満たすかを見る。 ここを外すと、**見えるが読めない画面**ができる(薄いグレーの文字など)。",
       "signature": "checkThemeContrast(theme: Theme, mode: ThemeMode): ThemeContrastReport",
       "params": [
         {
@@ -24201,6 +25084,11 @@
       "returns": "基準を満たさないテーマの検査結果。**問題が無ければ空配列**"
     },
     {
+      "name": "forestSidebarTheme",
+      "kind": "const",
+      "summary": "フォレストサイド(横の案内が深緑)。 落ち着いた緑で、長時間の作業でも目に負担が少ない。 製造・物流など、画面を開きっぱなしにする業務に向く。"
+    },
+    {
       "name": "highContrastTheme",
       "kind": "const",
       "summary": "ハイコントラスト(白黒・視認性最優先。アクセシビリティ向け)。"
@@ -24227,6 +25115,11 @@
       "name": "monochromeTheme",
       "kind": "const",
       "summary": "モノトーン(白黒グレー・無彩色・ミニマル)。"
+    },
+    {
+      "name": "navySidebarTheme",
+      "kind": "const",
+      "summary": "ネイビーサイド(横の案内だけ濃紺)。 本文は白のまま、**横の案内だけを濃い色にする**型。 本文と案内の境目がはっきりするので、画面の広い業務システムで迷いにくい。 長時間見ても疲れにくいよう、本文側は明るいままにしてある。"
     },
     {
       "name": "parseTheme",
@@ -24366,6 +25259,11 @@
       "name": "warmTheme",
       "kind": "const",
       "summary": "暖色系(オレンジ・活気・親しみ)。"
+    },
+    {
+      "name": "wineSidebarTheme",
+      "kind": "const",
+      "summary": "ワインサイド(横の案内が濃い赤紫)。 華やかで印象に残る配色。**社外の人が見る画面**や、 複数のシステムを見分けたいときに使う(色で「どのシステムか」が分かる)。"
     }
   ],
   "@platform/ui": [
@@ -28821,6 +29719,24 @@
         }
       ],
       "returns": "絶対 URL として解釈できれば true"
+    },
+    {
+      "name": "joinUrl",
+      "kind": "function",
+      "summary": "URL・パスの結合(純)。",
+      "signature": "joinUrl(base: string, ...segments: string[]): string",
+      "params": [
+        {
+          "name": "base",
+          "description": "先頭のセグメント"
+        },
+        {
+          "name": "segments",
+          "description": "続けて結合するセグメント"
+        }
+      ],
+      "returns": "結合した URL",
+      "example": "joinUrl(\"https://x.jp/\", \"/v1/\", \"/u\"); // \"https://x.jp/v1/u\""
     },
     {
       "name": "keepParams",

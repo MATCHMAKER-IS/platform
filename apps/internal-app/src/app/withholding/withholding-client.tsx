@@ -1,6 +1,7 @@
 "use client";
 /** 報酬の源泉徴収・支払調書。支払先ごとの年間集計と、報酬支払の記録（源泉税の自動計算）。 */
 import * as React from "react";
+import { Button, Input } from "@platform/ui";
 
 interface Report { payee: string; category: string; count: number; totalPayment: number; totalWithholding: number; }
 interface PaymentView { payee: string; category: string; base: number; paidAt: string; withholding: number; net: number; }
@@ -45,7 +46,7 @@ export function WithholdingClient({ fetchImpl, canWrite = true }: WithholdingCli
     <div className="mx-auto max-w-4xl p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">源泉徴収・支払調書</h1>
-        <input value={year} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setYear(e.target.value)} inputMode="numeric" className="w-24 rounded border border-neutral-300 px-2 py-1 text-sm" />
+        <Input value={year} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setYear(e.target.value)} inputMode="numeric" className="w-24 rounded border border-neutral-300 px-2 py-1 text-sm" />
       </div>
       <p className="mb-4 text-xs text-neutral-500">個人（士業・デザイナー等）への報酬に源泉徴収税を適用します。年間の支払調書を作成できます。</p>
       {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
@@ -54,11 +55,11 @@ export function WithholdingClient({ fetchImpl, canWrite = true }: WithholdingCli
         <div className="mb-6 rounded border border-neutral-200 p-4">
           <h2 className="mb-3 text-sm font-medium">報酬支払を記録</h2>
           <div className="flex flex-wrap items-end gap-2">
-            <label className="text-xs text-neutral-500">支払先<input value={form.payee} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, payee: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">区分<input value={form.category} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, category: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">報酬(税抜)<input value={form.base} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, base: e.target.value })} inputMode="numeric" className="mt-0.5 block w-28 rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">支払日<input type="date" value={form.paidAt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, paidAt: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <button onClick={submit} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">記録</button>
+            <label className="text-xs text-neutral-500">支払先<Input value={form.payee} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, payee: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-neutral-500">区分<Input value={form.category} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, category: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-neutral-500">報酬(税抜)<Input value={form.base} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, base: e.target.value })} inputMode="numeric" className="mt-0.5 block w-28 rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-neutral-500">支払日<Input type="date" value={form.paidAt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, paidAt: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <Button onClick={submit} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">記録</Button>
           </div>
           {Number(form.base) > 0 && <p className="mt-2 text-xs text-neutral-500">源泉税（概算）{yen(estWithholding(Number(form.base)))} → 差引支払 {yen(Number(form.base) - estWithholding(Number(form.base)))}</p>}
         </div>

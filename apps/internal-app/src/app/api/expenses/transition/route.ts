@@ -6,7 +6,7 @@ import { submitExpense, approveExpense, type ExpenseRecord } from "../../../../l
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
-  requirePermission(user, "expense:read");
+  requirePermission(user, "expense:create");  // 提出・承認の操作。参照だけの権限では通さない
 
   const body = (await req.json()) as { action: "submit" | "approve"; expense: ExpenseRecord };
   const actor = { id: user.id, roles: user.roles };

@@ -1,10 +1,10 @@
 /** 備品: 更新(PUT)・有効/無効(PATCH {active})。要ログイン。 */
-import { requireUser } from "../../../../server/guard";
+import { currentUser } from "../../../../server/guard";
 import { equipmentStore } from "../../../../server/services";
 import { validateEquipmentInput } from "../../../../server/equipment-repo";
 
 export async function PUT(req: Request, ctx: { params: Promise<{ code: string }> }): Promise<Response> {
-  if (!requireUser(req)) return Response.json({ error: "ログインが必要です" }, { status: 401 });
+  if (!currentUser(req)) return Response.json({ error: "ログインが必要です" }, { status: 401 });
   const { code } = await ctx.params;
   const cur = await equipmentStore.get(code);
   if (!cur) return Response.json({ error: "見つかりません" }, { status: 404 });
@@ -16,7 +16,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ code: string }>
 }
 
 export async function PATCH(req: Request, ctx: { params: Promise<{ code: string }> }): Promise<Response> {
-  if (!requireUser(req)) return Response.json({ error: "ログインが必要です" }, { status: 401 });
+  if (!currentUser(req)) return Response.json({ error: "ログインが必要です" }, { status: 401 });
   const { code } = await ctx.params;
   const body = (await req.json()) as { active?: boolean };
   const item = await equipmentStore.setActive(code, body.active ?? true);

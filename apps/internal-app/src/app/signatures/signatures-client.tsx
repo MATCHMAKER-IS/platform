@@ -1,6 +1,7 @@
 "use client";
 /** サインページ。対象（書類ID）に手書きサインを保存し、既存サインを一覧表示。 */
 import * as React from "react";
+import { Input } from "@platform/ui";
 import { SignaturePad } from "../../components/SignaturePad";
 
 interface Signature { id: string; signer: string; image: string; signedAt: string; }
@@ -27,7 +28,7 @@ export function SignaturesClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   return (
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="mb-4 text-2xl font-bold">サイン</h1>
-      <label className="text-xs text-neutral-500">対象書類ID<input value={docId} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDocId(e.target.value)} className="mt-0.5 mb-4 block w-48 rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+      <label className="text-xs text-neutral-500">対象書類ID<Input value={docId} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDocId(e.target.value)} className="mt-0.5 mb-4 block w-48 rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
       <p className="mb-2 text-sm text-neutral-600">下の枠内にサインしてください:</p>
       <SignaturePad onSave={onSave} />
       {msg && <p className="mt-2 text-sm text-neutral-600">{msg}</p>}

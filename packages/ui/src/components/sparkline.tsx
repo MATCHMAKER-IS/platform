@@ -19,6 +19,12 @@ export interface SparklineProps {
 }
 
 /** スパークライン。色は currentColor に従う。 */
+/**
+ * 極小の折れ線(数値の横に置く推移)。
+ *
+ * **傾向だけを見せる**もの。目盛りが無いので、正確な値は別に出す。
+ * 表の 1 列や `KpiCard` の中に置くと、数字だけより変化が伝わる。
+ */
 export function Sparkline({ values, width = 120, height = 32, strokeWidth = 1.5, showArea = false, showLastDot = false, className }: SparklineProps) {
   if (values.length === 0) return null;
   const min = Math.min(...values);

@@ -4,6 +4,12 @@
   --color-fg: #0f172a;
   --color-muted: #64748b;
   --color-border: #e2e8f0;
+
+  /* 薄い背景(ホバー・選択・区切り)。現在の文字色を薄く敷くので、
+     明るいテーマでは薄いグレー、暗いテーマでは薄い白になり、どちらでも馴染む。
+     色を直書きすると、テーマを切り替えても変わらない。 */
+  --color-subtle: color-mix(in srgb, currentColor 6%, transparent);
+  --color-subtle-strong: color-mix(in srgb, currentColor 12%, transparent);
   --color-primary: #0f766e;
   --color-primary-fg: #ffffff;
   --color-danger: #b91c1c;

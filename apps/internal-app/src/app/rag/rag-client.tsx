@@ -1,6 +1,7 @@
 "use client";
 /** 社内文書検索(RAG)。権限継承検索の実挙動(ロールで見える文書が変わる)を体感できる。管理者は文書登録も。 */
 import * as React from "react";
+import { Button, Input, Select, Textarea } from "@platform/ui";
 
 interface Hit { title: string; source?: string; text: string; score: number; }
 
@@ -44,8 +45,8 @@ export function RagClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
 
       <div style={{ ...card, marginTop: 12 }}>
         <div style={{ display: "flex", gap: 8 }}>
-          <input value={query} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)} placeholder="例: 賞与の計算方法 / 休業 / 経営計画" style={{ flex: 1, padding: "8px 12px", border: "1px solid #ddd", borderRadius: 8 }} />
-          <button onClick={search} disabled={busy || query.trim().length === 0} style={{ padding: "8px 20px", background: busy ? "#ccc" : "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>{busy ? "検索中…" : "検索"}</button>
+          <Input value={query} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)} placeholder="例: 賞与の計算方法 / 休業 / 経営計画" style={{ flex: 1, padding: "8px 12px", border: "1px solid #ddd", borderRadius: 8 }} />
+          <Button onClick={search} disabled={busy || query.trim().length === 0} style={{ padding: "8px 20px", background: busy ? "#ccc" : "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>{busy ? "検索中…" : "検索"}</Button>
         </div>
         {error && <p style={{ color: "var(--color-danger, #c00)", fontSize: 13, marginTop: 8 }}>{error}</p>}
         {normalization && normalization.changed && (
@@ -74,17 +75,13 @@ export function RagClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
       <details style={{ marginTop: 20 }}>
         <summary style={{ cursor: "pointer", fontSize: 13, color: "var(--color-muted, #666)" }}>文書を登録（管理者のみ）</summary>
         <div style={{ ...card, marginTop: 8 }}>
-          <input value={title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)} placeholder="タイトル" style={{ width: "100%", boxSizing: "border-box", padding: 8, border: "1px solid #ddd", borderRadius: 6, marginBottom: 8 }} />
-          <textarea value={body} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBody(e.target.value)} placeholder="本文" rows={4} style={{ width: "100%", boxSizing: "border-box", padding: 8, border: "1px solid #ddd", borderRadius: 6, fontFamily: "inherit" }} />
+          <Input value={title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)} placeholder="タイトル" style={{ width: "100%", boxSizing: "border-box", padding: 8, border: "1px solid #ddd", borderRadius: 6, marginBottom: 8 }} />
+          <Textarea value={body} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBody(e.target.value)} placeholder="本文" rows={4} style={{ width: "100%", boxSizing: "border-box", padding: 8, border: "1px solid #ddd", borderRadius: 6, fontFamily: "inherit" }} />
           <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 8 }}>
             <label style={{ fontSize: 13 }}>公開範囲:
-              <select value={visibility} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setVisibility(e.target.value as "public" | "hr" | "admin")} style={{ marginLeft: 6, padding: 4 }}>
-                <option value="public">全員</option>
-                <option value="hr">人事・管理者</option>
-                <option value="admin">管理者のみ</option>
-              </select>
+              <Select value={visibility} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setVisibility(e.target.value as "public" | "hr" | "admin")} style={{ marginLeft: 6, padding: 4 }} options={[{ label: "全員", value: "public" }, { label: "人事・管理者", value: "hr" }, { label: "管理者のみ", value: "admin" }]} />
             </label>
-            <button onClick={ingest} disabled={title.trim().length === 0 || body.trim().length === 0} style={{ marginLeft: "auto", padding: "6px 16px" }}>登録</button>
+            <Button onClick={ingest} disabled={title.trim().length === 0 || body.trim().length === 0} style={{ marginLeft: "auto", padding: "6px 16px" }}>登録</Button>
           </div>
           {ingestMsg && <p style={{ fontSize: 12, color: ingestMsg.includes("登録しました") ? "var(--color-success, #16a34a)" : "var(--color-danger, #c00)", marginTop: 8 }}>{ingestMsg}</p>}
         </div>

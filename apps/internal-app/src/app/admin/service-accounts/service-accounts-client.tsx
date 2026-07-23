@@ -1,6 +1,7 @@
 "use client";
 /** APIキー（サービスアカウント）管理。外部システム連携用の鍵を発行・失効する。平文キーは発行直後のみ表示。 */
 import * as React from "react";
+import { Button, Checkbox, Input } from "@platform/ui";
 
 interface Account { id: string; name: string; displayPrefix: string; scopes: string[]; active: boolean; createdAt: string; }
 const SCOPE_OPTIONS = ["invoice:read", "invoice:write", "partner:read", "accounting:read", "inventory:read"];
@@ -40,12 +41,12 @@ export function ServiceAccountsClient({ fetchImpl }: { fetchImpl?: typeof fetch 
       {msg && <p className="mb-3 text-sm text-red-600">{msg}</p>}
 
       <div className="mb-6 rounded border border-neutral-200 p-4">
-        <label className="text-xs text-neutral-500">名前<input value={name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)} placeholder="例: 経費精算バッチ" className="mt-0.5 mb-3 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+        <label className="text-xs text-neutral-500">名前<Input value={name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)} placeholder="例: 経費精算バッチ" className="mt-0.5 mb-3 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
         <p className="mb-1 text-xs text-neutral-500">スコープ（権限）</p>
         <div className="mb-3 flex flex-wrap gap-2">
-          {SCOPE_OPTIONS.map((s) => <label key={s} className="flex items-center gap-1 rounded border border-neutral-300 px-2 py-1 text-xs"><input type="checkbox" checked={scopes.includes(s)} onChange={() => toggleScope(s)} />{s}</label>)}
+          {SCOPE_OPTIONS.map((s) => <label key={s} className="flex items-center gap-1 rounded border border-neutral-300 px-2 py-1 text-xs"><Checkbox  checked={scopes.includes(s)} onCheckedChange={() => toggleScope(s)} />{s}</label>)}
         </div>
-        <button onClick={create} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">キーを発行</button>
+        <Button onClick={create} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">キーを発行</Button>
       </div>
 
       <div className="divide-y divide-neutral-100 rounded border border-neutral-200">
@@ -55,7 +56,7 @@ export function ServiceAccountsClient({ fetchImpl }: { fetchImpl?: typeof fetch 
               <p className="text-sm font-medium">{a.name} <span className={`ml-1 rounded px-1.5 py-0.5 text-xs ${a.active ? "bg-green-100 text-green-800" : "bg-neutral-200 text-neutral-600"}`}>{a.active ? "有効" : "失効"}</span></p>
               <p className="text-xs text-neutral-500"><code>{a.displayPrefix}…</code> [{a.scopes.join(", ")}]</p>
             </div>
-            <button onClick={() => setActive(a.id, !a.active)} className="text-xs text-blue-600 hover:underline">{a.active ? "失効させる" : "再有効化"}</button>
+            <Button onClick={() => setActive(a.id, !a.active)} className="text-xs text-blue-600 hover:underline">{a.active ? "失効させる" : "再有効化"}</Button>
           </div>
         ))}
         {accounts.length === 0 && <p className="px-3 py-6 text-center text-sm text-neutral-500">APIキーはありません。</p>}

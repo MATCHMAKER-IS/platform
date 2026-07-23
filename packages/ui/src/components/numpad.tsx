@@ -21,6 +21,21 @@ export interface NumericKeypadProps {
 }
 
 /** オンスクリーン数値キーパッド。 */
+/**
+ * 数字キーパッド(画面上のテンキー)。
+ *
+ * **タブレットや端末で、キーボードが無い場面**に使う
+ * (倉庫の棚卸し、店頭の入力)。パソコンでは邪魔になるので出さない。
+ *
+ * - `allowDecimal` は既定で不可。個数や本数には小数が要らない
+ * - `maxLength` で桁を制限すると、入れ間違いに気づける
+ * - 手袋をした指でも押せるよう、ボタンは大きめに保つ
+ *
+ * @example
+ * ```tsx
+ * <NumericKeypad value={qty} onChange={setQty} maxLength={4} />
+ * ```
+ */
 export function NumericKeypad({ value, onChange, allowDecimal = false, maxLength, className }: NumericKeypadProps) {
   const press = (key: string) => {
     if (key === "back") return onChange(value.slice(0, -1));
@@ -39,7 +54,7 @@ export function NumericKeypad({ value, onChange, allowDecimal = false, maxLength
           key={k}
           type="button"
           onClick={() => press(k)}
-          className="flex h-14 items-center justify-center rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg)] text-lg font-medium hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+          className="flex h-14 items-center justify-center rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg)] text-lg font-medium hover:bg-[var(--color-subtle-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
         >
           {k === "back" ? <Delete className="h-5 w-5" /> : k === "clear" ? "C" : k}
         </button>

@@ -18,6 +18,12 @@ export interface BoxPlotProps {
 }
 
 /** 箱ひげ図。 */
+/**
+ * 箱ひげ図(中央値と外れ値)。
+ *
+ * 平均では隠れる**極端な値**を見せる。処理時間や単価のばらつきを比べるのに向く。
+ * 読み方を知らない人が多いので、**社内向けなら凡例か説明を添える**。
+ */
 export function BoxPlot({ values, width = 320, height = 64, domain, outlierK = 1.5, className }: BoxPlotProps) {
   if (values.length === 0) return null;
   const q = quartiles(values);

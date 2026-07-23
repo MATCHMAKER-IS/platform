@@ -16,7 +16,24 @@ export interface DashboardGridProps extends React.HTMLAttributes<HTMLDivElement>
   gap?: number;
 }
 
-/** ダッシュボードのグリッド枠。`.platform-dashboard`(tokens.css)で狭幅時に 1 カラム化。 */
+/**
+ * ダッシュボードの枠(格子)。中に `DashboardWidget` を並べる。
+ *
+ * 既定は **12 列**。ウィジェット側の `colSpan` で幅を決める
+ * (12 = 全幅、6 = 半分、4 = 3 分の 1、3 = 4 分の 1)。
+ *
+ * **狭い画面では自動で 1 列**になる(`tokens.css` の `.platform-dashboard`)。
+ * スマートフォンでの見え方を個別に書く必要はない。
+ *
+ * @example
+ * ```tsx
+ * <DashboardGrid>
+ *   <DashboardWidget title="売上" colSpan={6}><LineChart … /></DashboardWidget>
+ *   <DashboardWidget title="未処理" colSpan={3}><StatCard … /></DashboardWidget>
+ *   <DashboardWidget title="期限切れ" colSpan={3}><StatCard … /></DashboardWidget>
+ * </DashboardGrid>
+ * ```
+ */
 export function DashboardGrid({ columns = 12, gap = 16, className, style, children, ...props }: DashboardGridProps) {
   return (
     <div
@@ -42,7 +59,24 @@ export interface DashboardWidgetProps extends Omit<React.HTMLAttributes<HTMLElem
   bare?: boolean;
 }
 
-/** ダッシュボードのウィジェット(タイル)。`colSpan` で幅を指定。 */
+/**
+ * ダッシュボードの 1 枚(タイル)。
+ *
+ * - `colSpan` … 12 列のうち何列分か(既定 12 = 全幅)
+ * - `rowSpan` … 縦に何段分か。グラフを大きく見せたいときに使う
+ * - `actions` … 見出しの右に置く操作(期間の切替・再読み込みなど)
+ * - `bare` … 枠と見出しを描かない。**中身が自前の枠を持つとき**に使う(二重の枠を防ぐ)
+ *
+ * 1 枚に詰め込みすぎない。指標が多いなら `colSpan` を小さくして枚数を増やす方が読みやすい。
+ *
+ * @example
+ * ```tsx
+ * <DashboardWidget title="月次推移" colSpan={8} rowSpan={2}
+ *   actions={<Button size="sm" variant="ghost" onClick={reload}>更新</Button>}>
+ *   <LineChart … />
+ * </DashboardWidget>
+ * ```
+ */
 export function DashboardWidget({ title, colSpan = 12, rowSpan, actions, bare, className, style, children, ...props }: DashboardWidgetProps) {
   return (
     <section

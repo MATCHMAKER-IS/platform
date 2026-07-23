@@ -4,6 +4,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
+import { Button, Checkbox, Input, Select, Textarea } from "@platform/ui";
 import { nl2br, linkify } from "@platform/html";
 import { filterPosts, diffRevisions } from "@platform/cms";
 
@@ -203,55 +204,52 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
     <div className="mx-auto max-w-4xl p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">記事管理</h1>
-        <button onClick={startNew} className="rounded bg-[var(--color-primary)] px-4 py-2 text-sm text-white">新規記事</button>
+        <Button onClick={startNew} className="rounded bg-[var(--color-primary)] px-4 py-2 text-sm text-white">新規記事</Button>
       </div>
 
       {editing ? (
         <div className="flex flex-col gap-3 rounded border border-[var(--color-border)] p-4">
           <h2 className="text-lg font-semibold">{originalSlug ? "記事を編集" : "新規記事"}</h2>
           {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-          <label className="text-sm">slug<input value={editing.slug} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ slug: e.target.value })} placeholder="my-post" className="mt-1 w-full rounded border border-[var(--color-border)] px-2 py-1" /></label>
-          <label className="text-sm">タイトル<input value={editing.title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ title: e.target.value })} className="mt-1 w-full rounded border border-[var(--color-border)] px-2 py-1" /></label>
+          <label className="text-sm">slug<Input value={editing.slug} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ slug: e.target.value })} placeholder="my-post" className="mt-1 w-full rounded border border-[var(--color-border)] px-2 py-1" /></label>
+          <label className="text-sm">タイトル<Input value={editing.title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ title: e.target.value })} className="mt-1 w-full rounded border border-[var(--color-border)] px-2 py-1" /></label>
           <label className="text-sm">カテゴリ
-            <select value={editing.categoryId} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set({ categoryId: e.target.value })} className="mt-1 block w-full rounded border border-[var(--color-border)] px-2 py-1">
-              <option value="">（未分類）</option>
-              {categoryOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <Select value={editing.categoryId} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set({ categoryId: e.target.value })} className="mt-1 block w-full rounded border border-[var(--color-border)] px-2 py-1" options={[{ label: "（未分類）", value: "" }, ...categoryOptions.map((c) => ({ label: c.name, value: String(c.id) }))]} />
           </label>
-          <label className="text-sm">アイキャッチ URL<input value={editing.eyecatch} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ eyecatch: e.target.value })} className="mt-1 w-full rounded border border-[var(--color-border)] px-2 py-1" /></label>
-          <label className="text-sm">抜粋<input value={editing.excerpt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ excerpt: e.target.value })} className="mt-1 w-full rounded border border-[var(--color-border)] px-2 py-1" /></label>
-          <label className="text-sm">本文<textarea value={editing.body} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set({ body: e.target.value })} rows={8} className="mt-1 w-full rounded border border-[var(--color-border)] px-2 py-1" /></label>
-          <label className="text-sm">タグ（カンマ区切り）<input value={editing.tags} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ tags: e.target.value })} className="mt-1 w-full rounded border border-[var(--color-border)] px-2 py-1" /></label>
+          <label className="text-sm">アイキャッチ URL<Input value={editing.eyecatch} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ eyecatch: e.target.value })} className="mt-1 w-full rounded border border-[var(--color-border)] px-2 py-1" /></label>
+          <label className="text-sm">抜粋<Input value={editing.excerpt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ excerpt: e.target.value })} className="mt-1 w-full rounded border border-[var(--color-border)] px-2 py-1" /></label>
+          <label className="text-sm">本文<Textarea value={editing.body} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => set({ body: e.target.value })} rows={8} className="mt-1 w-full rounded border border-[var(--color-border)] px-2 py-1" /></label>
+          <label className="text-sm">タグ（カンマ区切り）<Input value={editing.tags} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ tags: e.target.value })} className="mt-1 w-full rounded border border-[var(--color-border)] px-2 py-1" /></label>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={editing.status === "published"} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ status: e.target.checked ? "published" : "draft" })} />
+            <Checkbox  checked={editing.status === "published"} onCheckedChange={(v) => set({ status: !!v ? "published" : "draft" })} />
             {canPublish ? "公開する" : "公開を申請する（承認後に公開）"}
           </label>
           <label className="text-sm">公開日時（未来にすると予約公開）
-            <input type="datetime-local" value={editing.publishedAt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ publishedAt: e.target.value })} className="mt-1 block rounded border border-[var(--color-border)] px-2 py-1" />
+            <Input type="datetime-local" value={editing.publishedAt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ publishedAt: e.target.value })} className="mt-1 block rounded border border-[var(--color-border)] px-2 py-1" />
           </label>
           <div className="flex items-center gap-2 text-sm">
             <label className="cursor-pointer rounded border border-[var(--color-border)] px-3 py-1">
               {uploading ? "アップロード中…" : "アイキャッチ画像を選択"}
               <input type="file" accept="image/*" className="hidden" onChange={(e: React.ChangeEvent<HTMLInputElement & { files: FileList }>) => { const f = e.target.files[0]; if (f) void uploadEyecatch(f); }} />
             </label>
-            <button type="button" onClick={openLibrary} className="rounded border border-[var(--color-border)] px-3 py-1">ライブラリから選択</button>
+            <Button type="button" onClick={openLibrary} className="rounded border border-[var(--color-border)] px-3 py-1">ライブラリから選択</Button>
             {editing.eyecatch && <img src={editing.eyecatch} alt="" className="h-10 w-16 rounded object-cover" />}
-            <button type="button" onClick={() => setPreview((v) => !v)} className="ml-auto rounded border border-[var(--color-border)] px-3 py-1">{preview ? "編集に戻る" : "プレビュー"}</button>
+            <Button type="button" onClick={() => setPreview((v) => !v)} className="ml-auto rounded border border-[var(--color-border)] px-3 py-1">{preview ? "編集に戻る" : "プレビュー"}</Button>
           </div>
           {showLibrary && (
             <div className="rounded border border-[var(--color-border)] p-3">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-sm font-medium">メディアライブラリ</span>
-                <button type="button" onClick={() => setShowLibrary(false)} className="text-sm text-[var(--color-muted)]">閉じる</button>
+                <Button type="button" onClick={() => setShowLibrary(false)} className="text-sm text-[var(--color-muted)]">閉じる</Button>
               </div>
               {library.length === 0 ? (
                 <p className="text-xs text-[var(--color-muted)]">画像がありません。</p>
               ) : (
                 <div className="grid grid-cols-4 gap-2">
                   {library.map((m) => (
-                    <button key={m.key} type="button" onClick={() => { set({ eyecatch: m.url }); setShowLibrary(false); }} className="overflow-hidden rounded border border-[var(--color-border)] hover:border-[var(--color-primary)]">
+                    <Button key={m.key} type="button" onClick={() => { set({ eyecatch: m.url }); setShowLibrary(false); }} className="overflow-hidden rounded border border-[var(--color-border)] hover:border-[var(--color-primary)]">
                       <img src={m.url} alt={m.name} className="h-16 w-full object-cover" loading="lazy" />
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}
@@ -265,17 +263,17 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
             </div>
           )}
           <div className="flex gap-2">
-            <button onClick={save} disabled={saving} className="rounded bg-[var(--color-primary)] px-4 py-2 text-sm text-white disabled:opacity-50">{saving ? "保存中…" : "保存"}</button>
-            <button onClick={() => { setEditing(null); setOriginalSlug(null); }} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">キャンセル</button>
-            {originalSlug && <button onClick={openHistory} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">変更履歴</button>}
-            {originalSlug && <button onClick={openPreview} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">公開サイトでプレビュー ↗</button>}
+            <Button onClick={save} disabled={saving} className="rounded bg-[var(--color-primary)] px-4 py-2 text-sm text-white disabled:opacity-50">{saving ? "保存中…" : "保存"}</Button>
+            <Button onClick={() => { setEditing(null); setOriginalSlug(null); }} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">キャンセル</Button>
+            {originalSlug && <Button onClick={openHistory} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">変更履歴</Button>}
+            {originalSlug && <Button onClick={openPreview} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">公開サイトでプレビュー ↗</Button>}
             {autoSaved && <span className="ml-auto self-center text-xs text-[var(--color-muted)]">自動保存しました（{autoSaved}）</span>}
           </div>
           {showHistory && (
             <div className="rounded border border-[var(--color-border)] p-3">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-sm font-medium">変更履歴</span>
-                <button type="button" onClick={() => setShowHistory(false)} className="text-sm text-[var(--color-muted)]">閉じる</button>
+                <Button type="button" onClick={() => setShowHistory(false)} className="text-sm text-[var(--color-muted)]">閉じる</Button>
               </div>
               {revisions.length === 0 ? (
                 <p className="text-xs text-[var(--color-muted)]">履歴がありません。</p>
@@ -285,8 +283,8 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
                     <li key={r.id} className="flex items-center justify-between rounded border border-[var(--color-border)] px-2 py-1 text-sm">
                       <span>v{r.version}・{r.title} <span className="text-xs text-[var(--color-muted)]">{r.savedAt.slice(0, 16).replace("T", " ")}・{r.savedBy}</span></span>
                       <span className="flex gap-3">
-                        <button type="button" onClick={() => showDiff(r)} className="text-blue-600 hover:underline">現在と比較</button>
-                        <button type="button" onClick={() => restoreRevision(r.id)} className="text-blue-600 hover:underline">この版に戻す</button>
+                        <Button type="button" onClick={() => showDiff(r)} className="text-blue-600 hover:underline">現在と比較</Button>
+                        <Button type="button" onClick={() => restoreRevision(r.id)} className="text-blue-600 hover:underline">この版に戻す</Button>
                       </span>
                     </li>
                   ))}
@@ -296,7 +294,7 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
                 <div className="mt-3 rounded border border-[var(--color-border)] p-2 text-sm">
                   <div className="mb-1 flex items-center justify-between">
                     <span className="font-medium">v{diff.version} → 現在の差分</span>
-                    <button type="button" onClick={() => setDiff(null)} className="text-xs text-[var(--color-muted)]">閉じる</button>
+                    <Button type="button" onClick={() => setDiff(null)} className="text-xs text-[var(--color-muted)]">閉じる</Button>
                   </div>
                   {diff.result.titleChanged && <p className="text-xs">タイトル: <span className="text-red-600 line-through">{diff.result.titleFrom}</span> → <span className="text-green-700">{diff.result.titleTo}</span></p>}
                   {diff.result.statusChanged && <p className="text-xs">状態: {diff.result.statusFrom} → {diff.result.statusTo}</p>}
@@ -319,19 +317,13 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
         <>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={tab === t ? "rounded bg-[var(--color-primary)] px-3 py-1 text-sm text-white" : "rounded border border-[var(--color-border)] px-3 py-1 text-sm"}>
+            <Button key={t} onClick={() => setTab(t)} className={tab === t ? "rounded bg-[var(--color-primary)] px-3 py-1 text-sm text-white" : "rounded border border-[var(--color-border)] px-3 py-1 text-sm"}>
               {TAB_LABELS[t]}
-            </button>
+            </Button>
           ))}
-          <input value={query} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)} placeholder="タイトル・本文・タグで検索" className="ml-auto w-56 rounded border border-[var(--color-border)] px-2 py-1 text-sm" />
-          <select value={filterCategory} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterCategory(e.target.value)} className="rounded border border-[var(--color-border)] px-2 py-1 text-sm">
-            <option value="">全カテゴリ</option>
-            {categoryOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-          <select value={filterTag} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterTag(e.target.value)} className="rounded border border-[var(--color-border)] px-2 py-1 text-sm">
-            <option value="">全タグ</option>
-            {allTagsFromPosts.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
+          <Input value={query} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)} placeholder="タイトル・本文・タグで検索" className="ml-auto w-56 rounded border border-[var(--color-border)] px-2 py-1 text-sm" />
+          <Select value={filterCategory} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterCategory(e.target.value)} className="rounded border border-[var(--color-border)] px-2 py-1 text-sm" options={[{ label: "全カテゴリ", value: "" }, ...categoryOptions.map((c) => ({ label: c.name, value: String(c.id) }))]} />
+          <Select value={filterTag} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterTag(e.target.value)} className="rounded border border-[var(--color-border)] px-2 py-1 text-sm" options={[{ label: "全タグ", value: "" }, ...allTagsFromPosts.map((t) => ({ label: t, value: String(t) }))]} />
         </div>
         <table className="w-full text-sm">
           <thead>
@@ -358,8 +350,8 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
                   </td>
                   <td className="px-2 py-2 text-xs text-[var(--color-muted)]">{p.updatedAt.slice(0, 10)}</td>
                   <td className="px-2 py-2 text-right">
-                    <button onClick={() => startEdit(p)} className="mr-2 text-blue-600 hover:underline">編集</button>
-                    <button onClick={() => remove(p.slug)} className="text-red-600 hover:underline">削除</button>
+                    <Button onClick={() => startEdit(p)} className="mr-2 text-blue-600 hover:underline">編集</Button>
+                    <Button onClick={() => remove(p.slug)} className="text-red-600 hover:underline">削除</Button>
                   </td>
                 </tr>
               );

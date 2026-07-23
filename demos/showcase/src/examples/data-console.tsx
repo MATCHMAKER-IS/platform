@@ -6,7 +6,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { queryRows, SearchInput, Pagination, EmptyState, Button, type TableQuery } from "@platform/ui";
+import { Button, EmptyState, Pagination, SearchInput, queryRows, type TableQuery } from "@platform/ui";
 
 /** 予約行(サンプル)。 */
 export interface BookingRow {
@@ -90,10 +90,10 @@ export function DataConsole({ rows }: DataConsoleProps) {
                 {columns.map((col) => (
                   <th key={col.key} className="px-3 py-2 font-medium">
                     {col.sortable ? (
-                      <button type="button" onClick={() => toggleSort(col.key)} className="inline-flex items-center gap-1 hover:text-[var(--color-fg)]">
+                      <Button type="button" onClick={() => toggleSort(col.key)} className="inline-flex items-center gap-1 hover:text-[var(--color-fg)]">
                         {col.label}
                         {sortKey === col.key && <span aria-hidden="true">{sortDir === "asc" ? "▲" : "▼"}</span>}
-                      </button>
+                      </Button>
                     ) : col.label}
                   </th>
                 ))}

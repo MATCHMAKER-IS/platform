@@ -13,7 +13,7 @@ pnpm docs:platform   # -> docs/platform/api/ に HTML を出力
 
 ## パッケージ一覧
 
-全 90 パッケージのカテゴリ別索引は [`CATALOG.md`](./CATALOG.md) にあります。
+全 113 パッケージのカテゴリ別索引は [`CATALOG.md`](./CATALOG.md) にあります。
 機械可読の要約は [`capabilities.json`](./capabilities.json)、公開 API のスナップショットは
 [`api-surface.json`](./api-surface.json) を参照してください。
 

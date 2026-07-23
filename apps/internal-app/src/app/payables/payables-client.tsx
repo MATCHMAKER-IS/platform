@@ -1,6 +1,7 @@
 "use client";
 /** 買掛金。エイジング（5区分）、支払予定一覧、発注への支払記録。 */
 import * as React from "react";
+import { Button } from "@platform/ui";
 
 interface Aging { current: number; d1_30: number; d31_60: number; d61_90: number; over90: number; total: number; }
 interface Due { number: string; supplier: string; dueDate: string; amountDue: number; overdueDays: number; }
@@ -64,7 +65,7 @@ export function PayablesClient({ fetchImpl, canPay = true }: PayablesClientProps
                   <td className="px-2 py-2">{d.supplier}</td>
                   <td className="px-2 py-2 text-xs">{d.dueDate}{d.overdueDays > 0 && <span className="ml-1 rounded bg-red-100 px-1.5 py-0.5 text-red-800">{d.overdueDays}日超過</span>}</td>
                   <td className="px-2 py-2 text-right font-medium">{yen(d.amountDue)}</td>
-                  <td className="px-2 py-2 text-right">{canPay && <button onClick={() => pay(d)} className="text-blue-600 hover:underline">支払記録</button>}</td>
+                  <td className="px-2 py-2 text-right">{canPay && <Button onClick={() => pay(d)} className="text-blue-600 hover:underline">支払記録</Button>}</td>
                 </tr>
               ))}
               {summary.upcoming.length === 0 && <tr><td colSpan={5} className="px-2 py-4 text-center text-sm text-neutral-500">未払の買掛金はありません。</td></tr>}

@@ -1,0 +1,10 @@
+{
+  "connector": "google",
+  "title": "Google OAuth トークン交換/更新",
+  "endpoint": "POST https://oauth2.googleapis.com/token",
+  "sourceFile": "packages/google/src/oauth.ts",
+  "requiredFields": ["access_token", "expires_in"],
+  "note": "refresh_token / scope / id_token は任意項目のため必須には含めない。",
+  "capturedAt": null,
+  "fixture": null
+}

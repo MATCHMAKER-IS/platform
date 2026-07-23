@@ -7,6 +7,7 @@
  * 自分がどこにいるか分からない)。
  */
 import * as React from "react";
+import { Button } from "@platform/ui";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SECTIONS } from "../lib/nav";
@@ -37,7 +38,7 @@ export function DemoSidebar() {
         const isOpen = open.includes(i);
         return (
           <div key={section.title} style={{ marginBottom: 4 }}>
-            <button
+            <Button
               onClick={() => toggle(i)}
               style={{
                 display: "flex", alignItems: "center", gap: 6, width: "100%",
@@ -48,7 +49,7 @@ export function DemoSidebar() {
               <span style={{ fontSize: 9 }}>{isOpen ? "▼" : "▶"}</span>
               {section.title}
               <span style={{ marginLeft: "auto", fontWeight: 400 }}>{section.items.length}</span>
-            </button>
+            </Button>
 
             {isOpen && (() => {
               // 用途グループごとに分ける(出現順を保つ)。group が無い区分(アプリデモ等)は 1 塊。

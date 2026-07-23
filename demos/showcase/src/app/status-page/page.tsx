@@ -1,7 +1,7 @@
 "use client";
 /** ステータスページのデモ: メンテナンス判定・バイパス・各種エラー画面の実物。 */
 import * as React from "react";
-import { Button, Checkbox } from "@platform/ui";
+import { Button, Checkbox, Input } from "@platform/ui";
 import {
   isInMaintenanceWindow,
   createMaintenanceGate,
@@ -316,7 +316,7 @@ export default function Page() {
             今
             {/* datetime-local に対応する部品が基盤に無いため生タグ。DatePicker は日付のみ。
                 時刻まで要る画面が増えたら基盤に DateTimePicker を足すこと。 */}
-            <input type="datetime-local" value={now} onChange={(e) => setNow(e.target.value)} style={{ ...field, width: 190 }} />
+            <Input type="datetime-local" value={now} onChange={(e) => setNow(e.target.value)} style={{ ...field, width: 190 }} />
           </label>
         </div>
         <div style={{ fontSize: 13, lineHeight: 1.9 }}>

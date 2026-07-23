@@ -4,6 +4,7 @@
  * 共有テンプレート(@platform/status-page)の HTML を使い、見た目を全画面で統一する。
  */
 import { renderErrorPage } from "@platform/status-page";
+import { Button } from "@platform/ui";
 
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   const html = renderErrorPage({
@@ -18,9 +19,9 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
       <head dangerouslySetInnerHTML={{ __html: headStyle }} />
       <body>
         <div dangerouslySetInnerHTML={{ __html: bodyInner }} />
-        <button style={{ position: "fixed", bottom: 16, right: 16, padding: "0.5rem 1rem" }} onClick={() => reset()}>
+        <Button style={{ position: "fixed", bottom: 16, right: 16, padding: "0.5rem 1rem" }} onClick={() => reset()}>
           再試行
-        </button>
+        </Button>
       </body>
     </html>
   );

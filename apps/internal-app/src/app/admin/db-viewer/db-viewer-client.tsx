@@ -1,6 +1,7 @@
 "use client";
 /** DB Viewer(phpMyAdmin 的)。テーブル閲覧・SQL 実行。管理者専用。危険操作は確認を挟む。 */
 import * as React from "react";
+import { Button, Checkbox, Input, Textarea } from "@platform/ui";
 
 interface Column { column: string; type: string; nullable: boolean; default: string | null; }
 interface TableInfo { name: string; rows: number; }
@@ -63,17 +64,17 @@ export function DbViewerClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
       <div style={sidebar}>
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>テーブル（{tables.length}）</div>
         {tables.map((t) => (
-          <div key={t.name} onClick={() => openTable(t.name)} style={{ padding: "5px 8px", borderRadius: 6, cursor: "pointer", fontSize: 13, background: active === t.name ? "#eef2ff" : "transparent", display: "flex", justifyContent: "space-between" }}>
+          <Button key={t.name} type="button" onClick={() => openTable(t.name)} aria-current={active === t.name ? "true" : undefined} style={{ width: "100%", border: "none", textAlign: "left", font: "inherit", padding: "5px 8px", borderRadius: 6, cursor: "pointer", fontSize: 13, background: active === t.name ? "#eef2ff" : "transparent", display: "flex", justifyContent: "space-between" }}>
             <span>{t.name}</span><span style={{ color: "var(--color-muted, #aaa)", fontSize: 11 }}>{t.rows}</span>
-          </div>
+          </Button>
         ))}
       </div>
 
       <div style={{ flex: 1, padding: 16, overflow: "auto" }}>
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          <button onClick={() => setTab("browse")} style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #ddd", background: tab === "browse" ? "var(--color-primary, #2563eb)" : "var(--color-surface, #fff)", color: tab === "browse" ? "var(--color-surface, #fff)" : "#333" }}>閲覧</button>
-          <button onClick={() => setTab("sql")} style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #ddd", background: tab === "sql" ? "var(--color-primary, #2563eb)" : "var(--color-surface, #fff)", color: tab === "sql" ? "var(--color-surface, #fff)" : "#333" }}>SQL 実行</button>
-          <button onClick={() => setTab("schema")} style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #ddd", background: tab === "schema" ? "var(--color-primary, #2563eb)" : "var(--color-surface, #fff)", color: tab === "schema" ? "var(--color-surface, #fff)" : "#333" }}>スキーマ操作</button>
+          <Button onClick={() => setTab("browse")} style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #ddd", background: tab === "browse" ? "var(--color-primary, #2563eb)" : "var(--color-surface, #fff)", color: tab === "browse" ? "var(--color-surface, #fff)" : "#333" }}>閲覧</Button>
+          <Button onClick={() => setTab("sql")} style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #ddd", background: tab === "sql" ? "var(--color-primary, #2563eb)" : "var(--color-surface, #fff)", color: tab === "sql" ? "var(--color-surface, #fff)" : "#333" }}>SQL 実行</Button>
+          <Button onClick={() => setTab("schema")} style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #ddd", background: tab === "schema" ? "var(--color-primary, #2563eb)" : "var(--color-surface, #fff)", color: tab === "schema" ? "var(--color-surface, #fff)" : "#333" }}>スキーマ操作</Button>
         </div>
 
         {tab === "browse" && (
@@ -92,10 +93,10 @@ export function DbViewerClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
 
         {tab === "sql" && (
           <div>
-            <textarea value={sql} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSql(e.target.value)} rows={5} style={{ width: "100%", boxSizing: "border-box", fontFamily: "monospace", fontSize: 13, padding: 10, border: "1px solid #ddd", borderRadius: 8 }} />
+            <Textarea value={sql} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSql(e.target.value)} rows={5} style={{ width: "100%", boxSizing: "border-box", fontFamily: "monospace", fontSize: 13, padding: 10, border: "1px solid #ddd", borderRadius: 8 }} />
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8 }}>
-              <button onClick={runSql} style={{ padding: "8px 20px", background: "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>実行</button>
-              <label style={{ fontSize: 12, color: "var(--color-warning, #b45309)" }}><input type="checkbox" checked={allowDanger} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAllowDanger(e.target.checked)} /> DROP/TRUNCATE 等の危険操作を許可</label>
+              <Button onClick={runSql} style={{ padding: "8px 20px", background: "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>実行</Button>
+              <label style={{ fontSize: 12, color: "var(--color-warning, #b45309)" }}><Checkbox  checked={allowDanger} onCheckedChange={(v) => setAllowDanger(!!v)} /> DROP/TRUNCATE 等の危険操作を許可</label>
             </div>
             {sqlResult && (
               <div style={{ marginTop: 12 }}>
@@ -117,34 +118,34 @@ export function DbViewerClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
           <div style={{ maxWidth: 640 }}>
             <div style={{ background: "var(--color-surface, #fff)", border: "1px solid #e8e8e8", borderRadius: 10, padding: 16, marginBottom: 16 }}>
               <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>テーブル作成</div>
-              <input value={newTable} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTable(e.target.value)} placeholder="テーブル名" style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 6, marginBottom: 8, width: 240 }} />
+              <Input value={newTable} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewTable(e.target.value)} placeholder="テーブル名" style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 6, marginBottom: 8, width: 240 }} />
               {newCols.map((c, i) => (
                 <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
-                  <input value={c.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCols(newCols.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} placeholder="カラム名" style={{ padding: "5px 8px", border: "1px solid #ddd", borderRadius: 6, flex: 1 }} />
-                  <input value={c.type} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCols(newCols.map((x, j) => j === i ? { ...x, type: e.target.value } : x))} placeholder="型（text, integer...）" style={{ padding: "5px 8px", border: "1px solid #ddd", borderRadius: 6, flex: 1 }} />
-                  <button onClick={() => setNewCols(newCols.filter((_, j) => j !== i))} style={{ color: "var(--color-danger, #c00)", background: "none", border: "none", cursor: "pointer" }}>×</button>
+                  <Input value={c.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCols(newCols.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} placeholder="カラム名" style={{ padding: "5px 8px", border: "1px solid #ddd", borderRadius: 6, flex: 1 }} />
+                  <Input value={c.type} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCols(newCols.map((x, j) => j === i ? { ...x, type: e.target.value } : x))} placeholder="型（text, integer...）" style={{ padding: "5px 8px", border: "1px solid #ddd", borderRadius: 6, flex: 1 }} />
+                  <Button aria-label="この列を削除" title="この列を削除" onClick={() => setNewCols(newCols.filter((_, j) => j !== i))} style={{ color: "var(--color-danger, #c00)", background: "none", border: "none", cursor: "pointer" }}>×</Button>
                 </div>
               ))}
-              <button onClick={() => setNewCols([...newCols, { name: "", type: "text" }])} style={{ fontSize: 12, background: "none", border: "1px dashed #ccc", borderRadius: 6, padding: "4px 12px", cursor: "pointer" }}>+ カラム追加</button>
-              <div style={{ marginTop: 12 }}><button onClick={createTable} disabled={newTable.trim().length === 0} style={{ padding: "8px 20px", background: "var(--color-success, #16a34a)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>テーブルを作成</button></div>
+              <Button onClick={() => setNewCols([...newCols, { name: "", type: "text" }])} style={{ fontSize: 12, background: "none", border: "1px dashed #ccc", borderRadius: 6, padding: "4px 12px", cursor: "pointer" }}>+ カラム追加</Button>
+              <div style={{ marginTop: 12 }}><Button onClick={createTable} disabled={newTable.trim().length === 0} style={{ padding: "8px 20px", background: "var(--color-success, #16a34a)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>テーブルを作成</Button></div>
             </div>
 
             {active !== "" && (
               <div style={{ background: "var(--color-surface, #fff)", border: "1px solid #e8e8e8", borderRadius: 10, padding: 16, marginBottom: 16 }}>
                 <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>{active} のカラム操作</div>
                 <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                  <input value={colName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setColName(e.target.value)} placeholder="新カラム名" style={{ padding: "5px 8px", border: "1px solid #ddd", borderRadius: 6, flex: 1 }} />
-                  <input value={colType} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setColType(e.target.value)} placeholder="型" style={{ padding: "5px 8px", border: "1px solid #ddd", borderRadius: 6, flex: 1 }} />
-                  <button onClick={addCol} disabled={colName.trim().length === 0} style={{ padding: "5px 14px", background: "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 6 }}>カラム追加</button>
+                  <Input value={colName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setColName(e.target.value)} placeholder="新カラム名" style={{ padding: "5px 8px", border: "1px solid #ddd", borderRadius: 6, flex: 1 }} />
+                  <Input value={colType} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setColType(e.target.value)} placeholder="型" style={{ padding: "5px 8px", border: "1px solid #ddd", borderRadius: 6, flex: 1 }} />
+                  <Button onClick={addCol} disabled={colName.trim().length === 0} style={{ padding: "5px 14px", background: "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 6 }}>カラム追加</Button>
                 </div>
                 {columns.map((c) => (
                   <div key={c.column} style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0", fontSize: 13 }}>
                     <code>{c.column}</code><span style={{ color: "var(--color-muted, #aaa)", fontSize: 11 }}>{c.type}</span>
-                    <button onClick={() => dropCol(c.column)} style={{ marginLeft: "auto", fontSize: 11, color: "var(--color-danger, #c00)", background: "none", border: "none", cursor: "pointer" }}>削除</button>
+                    <Button onClick={() => dropCol(c.column)} style={{ marginLeft: "auto", fontSize: 11, color: "var(--color-danger, #c00)", background: "none", border: "none", cursor: "pointer" }}>削除</Button>
                   </div>
                 ))}
                 <div style={{ marginTop: 12, borderTop: "1px solid #f0f0f0", paddingTop: 12 }}>
-                  <button onClick={() => dropTable(active)} style={{ padding: "6px 16px", background: "var(--color-surface, #fff)", color: "var(--color-danger, #c00)", border: "1px solid #fca5a5", borderRadius: 8 }}>このテーブルを削除</button>
+                  <Button onClick={() => dropTable(active)} style={{ padding: "6px 16px", background: "var(--color-surface, #fff)", color: "var(--color-danger, #c00)", border: "1px solid #fca5a5", borderRadius: 8 }}>このテーブルを削除</Button>
                 </div>
               </div>
             )}

@@ -1,3 +1,4 @@
+// public-api: デモの登録。ログイン前に呼ぶ
 /** 登録 API。CSRF 検証 → ハニーポット判定 → 受理。 */
 import { handleRoute } from "@platform/http";
 import { createCsrf, assertCsrf } from "@platform/security";

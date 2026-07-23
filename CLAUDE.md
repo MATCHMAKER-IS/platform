@@ -17,9 +17,9 @@
 ## AI向けドキュメント(まずここを読む)
 
 - `docs/ai/architecture.md` … 層のルール・ストアの作り方・検証手順・変更チェックリスト
-- `docs/ai/module-list.md` … 108 パッケージのカテゴリ別インデックス(自動生成: `node tools/gen-module-list.mjs`)
+- `docs/ai/module-list.md` … 113 パッケージのカテゴリ別インデックス(自動生成: `node tools/gen-module-list.mjs`)
 - `docs/ai/patterns.md` … ストア/route/スモーク/通知/UI の定型コード
-- 各 `packages/<name>/README.md` … 個別パッケージの用途・使い方(108/108 整備済み)
+- 各 `packages/<name>/README.md` … 個別パッケージの用途・使い方(113/113 整備済み)
 
 新機能の前に module-list で既存部品を確認し、車輪の再発明を避けること。
 
@@ -212,7 +212,7 @@ export function EnvSettingsTable({ rows, groupNotes, runtime }: EnvSettingsTable
 **リファレンスサイト**(`pnpm site`)は TSDoc から**引数・戻り値・例外・使用例**を自動生成する。
 書かなければサイトにも出ない = 使う人に伝わらない。
 
-> **全 1,691 関数・105 パッケージが完備**(2026-07 時点)。**この状態を保つ**: 新規の関数には必ず書き、
+> **全 1,752 関数・113 パッケージが完備**(2026-07 時点)。**この状態を保つ**: 新規の関数には必ず書き、
 > `node tools/check-tsdoc.mjs` で確認する
 > (**正規表現での一括処理は関数を壊す**ので、1 ファイルずつ意味を確認しながら書くこと)。
 
@@ -335,3 +335,51 @@ export function EnvSettingsTable({ rows, groupNotes, runtime }: EnvSettingsTable
 
 > **`pnpm changeset` は使わない。** バージョンを上げない方針(docs/adr/0011)。
 > `.changeset/` は将来 外部配布する日のために残してあるだけ。
+
+> **生タグの歯止め**: `<button>` / `<input>` / `<select>` / `<textarea>` の使用箇所数は
+> `tools/ui-raw-tag-limit.json` に上限として記録されている。**増やすと preflight が失敗する**。
+> 減らしたら `node tools/check-app-rules.mjs --set-limit` で上限を下げること。
+> 現在の残り(44)は、**機械的に置換すると壊れるもの**だけ:
+> - `<input type="file">` 11 … `FileInput` は自前のボタンを描画するため、hidden + ラベルで起動している箇所は見た目が変わる
+> - `<input type="radio">` 5 … `RadioGroup` + `RadioGroupItem` へ構造ごと組み替える必要がある
+> - `<select>` 26 … 数値 value(`value={3}`)や `.filter().map()` を含み、options への変換に人の判断が要る
+> - `<input type="checkbox">` 1 … 上記いずれにも当てはまらない特殊形
+>
+> これらは画面を動かして確かめながら、1つずつ置き換える。
+
+> **API の認可**: `apps/**/api/**/route.ts` は、認可（`requirePermission` / `requireUser` / API キー検証）を通すか、
+> 通さない理由をファイル冒頭に `// public-api: 理由` として書く。どちらも無い本数は
+> `tools/api-auth-limit.json` に上限として記録され、**増やすと preflight が失敗する**。
+> 「画面に出していないから大丈夫」は成立しない（URL は通信を見れば分かる）。
+
+> **名前は実際の振る舞いに合わせる**: `require〜` という名前の関数は、条件を満たさなければ
+> **必ず例外を投げる**こと。値を返すだけなら `current〜` にする。
+> 実際に `requireUser` が null を返すだけの実装になっており、
+> 呼び出し側が判定を書き忘れれば素通りする状態だった（現在は `currentUser` /
+> `requireUserOrThrow` に分けてある）。判定は**呼ぶ側に任せず、関数側に寄せる**。
+
+> **Cookie は手書きしない**: `set-cookie` を文字列で組み立てると、属性の付け忘れが必ず起きる。
+> 実際に **`Secure` が全 5 箇所で抜けており**、HTTPS 以外でもセッションが送られる状態だった。
+> `@platform/session` の `serializeCookie` / `clearCookie`（`Secure`・`HttpOnly`・`SameSite` が既定で付く）
+> か、`createSession` の `write` / `destroy` を使う。手書きは `check-app-rules` が検出する。
+
+> **読める大きさを保つ**: 1 ファイル 600 行・1 行 200 文字を目安にする。
+> 長い行は差分が読めないだけでなく、**文字列置換での編集が失敗する原因**になる
+> （実際に何度も起きた）。件数は `tools/maintainability-limit.json` に上限として記録され、
+> 増やすと preflight が失敗する。
+
+> **デモを足すときは** `docs/ops/ADD_DEMO.md` を見ること。画面・nav.ts・overviews.ts・
+> smoke の件数・資料の本数の **5 か所**を更新する。忘れても preflight が具体的に教える。
+
+> **色を直書きしない**: `bg-slate-100` のように書くと、**テーマを切り替えても変わらない**。
+> 実際、濃色サイドバーのテーマを足したとき、選択中の項目だけ白いまま残って読めなくなった。
+> 薄い背景は `bg-[var(--color-subtle)]` / `bg-[var(--color-subtle-strong)]` を使う
+> （現在の文字色を薄く敷くので、明るいテーマでも暗いテーマでも馴染む）。
+> 状態色（成功・警告・エラー）は**意味を固定したいので直書きしてよい**
+> — その場合は `tools/check-hardcoded-colors.mjs` の ALLOW に理由付きで登録する。
+
+> **文字列リテラルは広がる**: `type X = { kind: "A" | "B" }` の配列に
+> `setX((l) => [{ kind: "A" }, ...l])` と書くと、`"A"` が `string` に広がって
+> **ビルドの型検査だけで落ちる**（依存を入れずに動く検査では見つけにくい）。
+> `kind: "A" as const` にするか、`kind: X["kind"]` と型注釈のある引数を経由する。
+> `check-build-ready` が `[T]` として検出する。

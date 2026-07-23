@@ -19,6 +19,17 @@ interface ErrorBoundaryState {
 }
 
 /** 描画エラーを捕捉するエラー境界。 */
+/**
+ * 画面の一部が壊れたときの受け皿。
+ *
+ * 1 か所の例外で**全画面が白くなる**のを防ぐ。
+ * ダッシュボードのように独立した部品が並ぶ画面では、
+ * **タイルごとに囲む**と、1 つ壊れても他が見られる。
+ *
+ * 何が起きたかを見せ、再読み込みの手段を出すこと。
+ * 例外の内容は `@platform/observability` へ送り、利用者には見せない
+ * (内部の構造が漏れる)。
+ */
 export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);

@@ -4,6 +4,7 @@
  * 例: パターン "/blog/:year/:month/:slug" + 記事 → "/blog/2025/07/hello"。
  * @packageDocumentation
  */
+import { joinUrl } from "@platform/url";
 import { slugify } from "./slug";
 
 /** パーマリンク生成に使う記事フィールド。 */
@@ -79,20 +80,12 @@ export function buildPermalink(pattern: string, post: PermalinkPost, options: Pe
 }
 
 /**
- * ベース URL とパスを結合する。
+ * URL を結合する。
  *
- * **スラッシュの重複・欠落を吸収する**(`site.com/` + `/posts` が `site.com//posts` に
- * ならない)。手で結合すると必ずどこかで間違える。
- *
- * @param base ベース URL
- * @param path パス
- * @returns 結合した URL
+ * 実装は `@platform/url` に一本化した(ADR 0015: 同じ機能を 2 か所に持たない)。
+ * 以前はこのファイルに独自実装があり、`@platform/net` にも別実装があった。
  */
-export function joinUrl(base: string, path: string): string {
-  const b = base.replace(/\/+$/, "");
-  const p = path.replace(/^\/+/, "");
-  return p ? `${b}/${p}` : b;
-}
+export { joinUrl };
 
 /**
  * 記事の絶対 URL を作る。

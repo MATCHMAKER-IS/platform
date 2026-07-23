@@ -6,14 +6,17 @@
  * 画面が狭いとき・本文に集中したいときに畳める。
  */
 import * as React from "react";
+import { Button } from "@platform/ui";
 import { DemoSidebar } from "./demo-sidebar";
 
 export function CollapsibleSidebar() {
   const [collapsed, setCollapsed] = React.useState(false);
+  // 画面が狭い端末では初期状態で畳んでおく（本文の可読性を優先）
+  React.useEffect(() => { if (typeof window !== "undefined" && window.innerWidth < 768) setCollapsed(true); }, []);
 
   return (
     <>
-      <button
+      <Button
         type="button"
         onClick={() => setCollapsed((c) => !c)}
         aria-label={collapsed ? "メニューを開く" : "メニューを閉じる"}
@@ -38,7 +41,7 @@ export function CollapsibleSidebar() {
         }}
       >
         {collapsed ? "☰" : "◀"}
-      </button>
+      </Button>
 
       <aside
         style={{

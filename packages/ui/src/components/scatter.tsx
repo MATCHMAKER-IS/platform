@@ -22,6 +22,14 @@ export interface ScatterProps {
 }
 
 /** 散布図。 */
+/**
+ * 散布図(2 つの値の関係)。
+ *
+ * 「単価が高いほど数量が減るか」のような**関係の有無**を見る。
+ * 点が重なると分からなくなるので、件数が多いときは透明度か集計を検討する。
+ *
+ * **関係があるように見えても、原因とは限らない**。判断材料の 1 つとして扱う。
+ */
 export function Scatter({ points, width = 320, height = 200, showRegression = false, showCorrelation = false, className }: ScatterProps) {
   if (points.length === 0) return null;
   const xs = points.map((p) => p.x);

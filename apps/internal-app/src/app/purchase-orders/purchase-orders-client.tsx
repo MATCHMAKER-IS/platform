@@ -1,6 +1,7 @@
 "use client";
 /** 発注管理。発注書の一覧（入荷状況）、発注点割れからの起票、入荷記録（在庫へ入庫反映）。 */
 import * as React from "react";
+import { Button, Select } from "@platform/ui";
 
 interface Line { description: string; quantity: number; unitPrice: number; }
 interface LineStatus { lineIndex: number; ordered: number; received: number; outstanding: number; complete: boolean; }
@@ -68,12 +69,9 @@ export function PurchaseOrdersClient({ fetchImpl, canWrite = true }: PurchaseOrd
         {canWrite && (
           <span className="flex items-center gap-2">
             {suppliers.length > 0 && (
-              <select value={supplierCode} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSupplierCode(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-sm">
-                <option value="">仕入先を選択…</option>
-                {suppliers.map((sp) => <option key={sp.code} value={sp.code}>{sp.name}</option>)}
-              </select>
+              <Select value={supplierCode} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSupplierCode(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-sm" options={[{ label: "仕入先を選択…", value: "" }, ...suppliers.map((sp) => ({ label: sp.name, value: String(sp.code) }))]} />
             )}
-            <button onClick={createFromReorder} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">発注点割れから起票</button>
+            <Button onClick={createFromReorder} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">発注点割れから起票</Button>
           </span>
         )}
       </div>
@@ -92,8 +90,8 @@ export function PurchaseOrdersClient({ fetchImpl, canWrite = true }: PurchaseOrd
           {orders.map((o) => (
             <React.Fragment key={o.number}>
               <tr className="border-b border-neutral-100">
-                <td className="px-2 py-2 font-mono text-xs"><button onClick={() => setOpen(open === o.number ? null : o.number)} className="text-blue-600 hover:underline">{o.number}</button>{canWrite && <button onClick={() => submitApproval(o.number, o.order.totals.total)} className="ml-2 text-xs text-blue-600 hover:underline">承認申請</button>}</td>
-                <td className="px-2 py-2">{o.order.supplier}{(() => { const a = approvals[o.number]; if (!a) return canWrite ? <button onClick={() => submitApproval(o.number, o.order.totals.total)} className="ml-2 text-xs text-blue-600 hover:underline">承認申請</button> : null; const label = a.status === "approved" ? "承認済" : a.status === "rejected" ? "却下" : `承認待ち ${a.currentStep}/${a.totalSteps}`; const cls = a.status === "approved" ? "bg-green-100 text-green-800" : a.status === "rejected" ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"; return <span className={`ml-2 rounded px-1.5 py-0.5 text-xs ${cls}`}>{label}</span>; })()}</td>
+                <td className="px-2 py-2 font-mono text-xs"><Button onClick={() => setOpen(open === o.number ? null : o.number)} className="text-blue-600 hover:underline">{o.number}</Button>{canWrite && <Button onClick={() => submitApproval(o.number, o.order.totals.total)} className="ml-2 text-xs text-blue-600 hover:underline">承認申請</Button>}</td>
+                <td className="px-2 py-2">{o.order.supplier}{(() => { const a = approvals[o.number]; if (!a) return canWrite ? <Button onClick={() => submitApproval(o.number, o.order.totals.total)} className="ml-2 text-xs text-blue-600 hover:underline">承認申請</Button> : null; const label = a.status === "approved" ? "承認済" : a.status === "rejected" ? "却下" : `承認待ち ${a.currentStep}/${a.totalSteps}`; const cls = a.status === "approved" ? "bg-green-100 text-green-800" : a.status === "rejected" ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"; return <span className={`ml-2 rounded px-1.5 py-0.5 text-xs ${cls}`}>{label}</span>; })()}</td>
                 <td className="px-2 py-2 text-xs text-neutral-500">{o.order.orderDate}</td>
                 <td className="px-2 py-2 text-right">{o.outstanding}</td>
                 <td className="px-2 py-2"><span className={`rounded px-2 py-0.5 text-xs ${STATUS[o.status]?.cls ?? "bg-neutral-100"}`}>{STATUS[o.status]?.label ?? o.status}</span></td>
@@ -111,7 +109,7 @@ export function PurchaseOrdersClient({ fetchImpl, canWrite = true }: PurchaseOrd
                           <td className="px-2 py-1 text-right">{ls.ordered}</td>
                           <td className="px-2 py-1 text-right">{ls.received}</td>
                           <td className="px-2 py-1 text-right">{ls.outstanding}</td>
-                          <td className="px-2 py-1 text-right">{canWrite && !ls.complete && o.status !== "cancelled" && <button onClick={() => receive(o.number, ls.lineIndex, ls.outstanding)} className="text-blue-600 hover:underline">入荷</button>}</td>
+                          <td className="px-2 py-1 text-right">{canWrite && !ls.complete && o.status !== "cancelled" && <Button onClick={() => receive(o.number, ls.lineIndex, ls.outstanding)} className="text-blue-600 hover:underline">入荷</Button>}</td>
                         </tr>
                       ))}
                     </tbody>

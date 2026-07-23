@@ -1,6 +1,7 @@
 "use client";
 /** 予算実績。区分ごとの予算 vs 実績（経費）と差異・消化率。予算行の追加。 */
 import * as React from "react";
+import { Button, Input } from "@platform/ui";
 
 interface Row { category: string; period: string; budget: number; actual: number; variance: number; rate: number | null; }
 interface Data { period: string; rows: Row[]; }
@@ -38,7 +39,7 @@ export function BudgetsClient({ fetchImpl, canWrite = true }: BudgetsClientProps
     <div className="mx-auto max-w-3xl p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">予算実績</h1>
-        <input type="month" value={period} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPeriod(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-sm" />
+        <Input type="month" value={period} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPeriod(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-sm" />
       </div>
       <p className="mb-4 text-xs text-neutral-500">区分ごとの予算と、経費の実績を突き合わせた差異です。</p>
       {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
@@ -47,10 +48,10 @@ export function BudgetsClient({ fetchImpl, canWrite = true }: BudgetsClientProps
         <div className="mb-6 rounded border border-neutral-200 p-4">
           <h2 className="mb-3 text-sm font-medium">予算を追加（{period}）</h2>
           <div className="flex flex-wrap items-end gap-2">
-            <label className="text-xs text-neutral-500">部門<input value={form.department} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, department: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">区分<input value={form.category} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, category: e.target.value })} placeholder="旅費交通費" className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">予算額<input value={form.amount} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, amount: e.target.value })} inputMode="numeric" className="mt-0.5 block w-28 rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <button onClick={add} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">追加</button>
+            <label className="text-xs text-neutral-500">部門<Input value={form.department} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, department: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-neutral-500">区分<Input value={form.category} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, category: e.target.value })} placeholder="旅費交通費" className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-neutral-500">予算額<Input value={form.amount} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, amount: e.target.value })} inputMode="numeric" className="mt-0.5 block w-28 rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <Button onClick={add} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">追加</Button>
           </div>
         </div>
       )}

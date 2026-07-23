@@ -1,6 +1,7 @@
 "use client";
 /** お知らせ管理。メッセージ・表示期間・対象パス・CTA を編集する。 */
 import * as React from "react";
+import { Button, Input, Select } from "@platform/ui";
 
 interface Announcement {
   id: string;
@@ -79,32 +80,28 @@ export function AnnouncementClient({ fetchImpl }: AnnouncementClientProps) {
     <div className="mx-auto max-w-4xl p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">お知らせ管理</h1>
-        <button onClick={() => { setEditing({ ...EMPTY }); setEditId(null); setError(""); }} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">新規お知らせ</button>
+        <Button onClick={() => { setEditing({ ...EMPTY }); setEditId(null); setError(""); }} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">新規お知らせ</Button>
       </div>
 
       {editing && (
         <div className="mb-6 flex flex-col gap-3 rounded border border-neutral-200 p-4">
           {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-          <label className="text-sm">メッセージ<input value={editing.message} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ message: e.target.value })} className="mt-1 w-full rounded border border-neutral-300 px-2 py-1" /></label>
+          <label className="text-sm">メッセージ<Input value={editing.message} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ message: e.target.value })} className="mt-1 w-full rounded border border-neutral-300 px-2 py-1" /></label>
           <div className="flex gap-3">
-            <label className="flex-1 text-sm">開始<input type="datetime-local" value={editing.startAt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ startAt: e.target.value })} className="mt-1 w-full rounded border border-neutral-300 px-2 py-1" /></label>
-            <label className="flex-1 text-sm">終了<input type="datetime-local" value={editing.endAt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ endAt: e.target.value })} className="mt-1 w-full rounded border border-neutral-300 px-2 py-1" /></label>
+            <label className="flex-1 text-sm">開始<Input type="datetime-local" value={editing.startAt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ startAt: e.target.value })} className="mt-1 w-full rounded border border-neutral-300 px-2 py-1" /></label>
+            <label className="flex-1 text-sm">終了<Input type="datetime-local" value={editing.endAt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ endAt: e.target.value })} className="mt-1 w-full rounded border border-neutral-300 px-2 py-1" /></label>
           </div>
-          <label className="text-sm">対象パス（カンマ区切り・前方一致・空欄で全ページ）<input value={editing.paths} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ paths: e.target.value })} placeholder="/blog, /news" className="mt-1 w-full rounded border border-neutral-300 px-2 py-1" /></label>
+          <label className="text-sm">対象パス（カンマ区切り・前方一致・空欄で全ページ）<Input value={editing.paths} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ paths: e.target.value })} placeholder="/blog, /news" className="mt-1 w-full rounded border border-neutral-300 px-2 py-1" /></label>
           <div className="flex gap-3">
-            <label className="flex-1 text-sm">CTA ラベル<input value={editing.ctaLabel} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ ctaLabel: e.target.value })} className="mt-1 w-full rounded border border-neutral-300 px-2 py-1" /></label>
-            <label className="flex-1 text-sm">CTA リンク<input value={editing.ctaHref} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ ctaHref: e.target.value })} className="mt-1 w-full rounded border border-neutral-300 px-2 py-1" /></label>
+            <label className="flex-1 text-sm">CTA ラベル<Input value={editing.ctaLabel} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ ctaLabel: e.target.value })} className="mt-1 w-full rounded border border-neutral-300 px-2 py-1" /></label>
+            <label className="flex-1 text-sm">CTA リンク<Input value={editing.ctaHref} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ ctaHref: e.target.value })} className="mt-1 w-full rounded border border-neutral-300 px-2 py-1" /></label>
             <label className="text-sm">重要度
-              <select value={editing.level} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set({ level: e.target.value })} className="mt-1 block rounded border border-neutral-300 px-2 py-1">
-                <option value="info">info</option>
-                <option value="warning">warning</option>
-                <option value="critical">critical</option>
-              </select>
+              <Select value={editing.level} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set({ level: e.target.value })} className="mt-1 block rounded border border-neutral-300 px-2 py-1" options={[{ label: "info", value: "info" }, { label: "warning", value: "warning" }, { label: "critical", value: "critical" }]} />
             </label>
           </div>
           <div className="flex gap-2">
-            <button onClick={save} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">保存</button>
-            <button onClick={() => { setEditing(null); setEditId(null); }} className="rounded border border-neutral-300 px-4 py-2 text-sm">キャンセル</button>
+            <Button onClick={save} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">保存</Button>
+            <Button onClick={() => { setEditing(null); setEditId(null); }} className="rounded border border-neutral-300 px-4 py-2 text-sm">キャンセル</Button>
           </div>
         </div>
       )}
@@ -121,8 +118,8 @@ export function AnnouncementClient({ fetchImpl }: AnnouncementClientProps) {
               </p>
             </div>
             <div className="flex gap-2 text-sm">
-              <button onClick={() => { setEditing(toDraft(a)); setEditId(a.id); setError(""); }} className="text-blue-600 hover:underline">編集</button>
-              <button onClick={() => remove(a.id)} className="text-red-600 hover:underline">削除</button>
+              <Button onClick={() => { setEditing(toDraft(a)); setEditId(a.id); setError(""); }} className="text-blue-600 hover:underline">編集</Button>
+              <Button onClick={() => remove(a.id)} className="text-red-600 hover:underline">削除</Button>
             </div>
           </li>
         ))}

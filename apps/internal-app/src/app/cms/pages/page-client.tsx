@@ -1,7 +1,7 @@
 "use client";
 /** 固定ページ管理。BlockEditor でブロックを編集し、下書き/公開を切り替える。 */
 import * as React from "react";
-import { BlockEditor, type EditableBlock } from "@platform/ui";
+import { BlockEditor, Button, Checkbox, Input, type EditableBlock } from "@platform/ui";
 
 interface ManagedPage {
   slug: string;
@@ -68,26 +68,26 @@ export function PageClient({ fetchImpl }: PageClientProps) {
     <div className="mx-auto max-w-4xl p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">固定ページ管理</h1>
-        <button onClick={startNew} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">新規ページ</button>
+        <Button onClick={startNew} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">新規ページ</Button>
       </div>
 
       {editing ? (
         <div className="flex flex-col gap-3 rounded border border-neutral-200 p-4">
           <h2 className="text-lg font-semibold">{originalSlug !== null ? "ページを編集" : "新規ページ"}</h2>
           {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-          <label className="text-sm">slug（空欄でトップページ）<input value={editing.slug} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ slug: e.target.value })} placeholder="about" className="mt-1 w-full rounded border border-neutral-300 px-2 py-1" /></label>
-          <label className="text-sm">タイトル<input value={editing.title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ title: e.target.value })} className="mt-1 w-full rounded border border-neutral-300 px-2 py-1" /></label>
+          <label className="text-sm">slug（空欄でトップページ）<Input value={editing.slug} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ slug: e.target.value })} placeholder="about" className="mt-1 w-full rounded border border-neutral-300 px-2 py-1" /></label>
+          <label className="text-sm">タイトル<Input value={editing.title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ title: e.target.value })} className="mt-1 w-full rounded border border-neutral-300 px-2 py-1" /></label>
           <div>
             <p className="mb-2 text-sm font-medium">本文ブロック</p>
             <BlockEditor blocks={editing.blocks} onChange={(blocks: EditableBlock[]) => set({ blocks })} />
           </div>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={editing.status === "published"} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ status: e.target.checked ? "published" : "draft" })} />
+            <Checkbox  checked={editing.status === "published"} onCheckedChange={(v) => set({ status: !!v ? "published" : "draft" })} />
             公開する
           </label>
           <div className="flex gap-2">
-            <button onClick={save} disabled={saving} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white disabled:opacity-50">{saving ? "保存中…" : "保存"}</button>
-            <button onClick={() => { setEditing(null); setOriginalSlug(null); }} className="rounded border border-neutral-300 px-4 py-2 text-sm">キャンセル</button>
+            <Button onClick={save} disabled={saving} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white disabled:opacity-50">{saving ? "保存中…" : "保存"}</Button>
+            <Button onClick={() => { setEditing(null); setOriginalSlug(null); }} className="rounded border border-neutral-300 px-4 py-2 text-sm">キャンセル</Button>
           </div>
         </div>
       ) : (
@@ -107,8 +107,8 @@ export function PageClient({ fetchImpl }: PageClientProps) {
                 <td className="px-2 py-2 text-neutral-500">{p.slug === "" ? "(トップ)" : p.slug}</td>
                 <td className="px-2 py-2"><span className={p.status === "published" ? "rounded bg-green-100 px-1.5 py-0.5 text-xs text-green-700" : "rounded bg-neutral-100 px-1.5 py-0.5 text-xs text-neutral-600"}>{p.status === "published" ? "公開中" : "下書き"}</span></td>
                 <td className="px-2 py-2 text-right">
-                  <button onClick={() => startEdit(p)} className="mr-2 text-blue-600 hover:underline">編集</button>
-                  <button onClick={() => remove(p.slug)} className="text-red-600 hover:underline">削除</button>
+                  <Button onClick={() => startEdit(p)} className="mr-2 text-blue-600 hover:underline">編集</Button>
+                  <Button onClick={() => remove(p.slug)} className="text-red-600 hover:underline">削除</Button>
                 </td>
               </tr>
             ))}

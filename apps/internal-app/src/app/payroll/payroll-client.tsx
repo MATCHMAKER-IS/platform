@@ -1,6 +1,7 @@
 "use client";
 /** 給与。本人の月次給与明細（基本・割増・手当・控除・差引支給）を表示。管理者は時給・手当・控除を設定。 */
 import * as React from "react";
+import { Button, Input } from "@platform/ui";
 
 interface Item { name: string; amount: number; }
 interface Breakdown { base: number; overtimePremium: number; over60Premium: number; nightPremium: number; holidayPay: number; total: number; }
@@ -42,7 +43,7 @@ export function PayrollClient({ fetchImpl, canAdmin = false }: PayrollClientProp
     <div className="mx-auto max-w-3xl p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">給与</h1>
-        <input type="month" value={month} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMonth(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-sm" />
+        <Input type="month" value={month} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMonth(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-sm" />
       </div>
       {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
@@ -73,9 +74,9 @@ export function PayrollClient({ fetchImpl, canAdmin = false }: PayrollClientProp
         <div className="rounded border border-neutral-200 p-4">
           <h2 className="mb-3 text-sm font-medium">給与設定（管理）</h2>
           <div className="mb-3 flex flex-wrap items-end gap-2">
-            <label className="text-xs text-neutral-500">従業員ID（メール）<input value={wageForm.userId} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWageForm({ ...wageForm, userId: e.target.value })} placeholder="taro@example.com" className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">時給<input value={wageForm.hourlyWage} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWageForm({ ...wageForm, hourlyWage: e.target.value })} inputMode="numeric" className="mt-0.5 block w-24 rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <button onClick={saveWage} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">保存</button>
+            <label className="text-xs text-neutral-500">従業員ID（メール）<Input value={wageForm.userId} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWageForm({ ...wageForm, userId: e.target.value })} placeholder="taro@example.com" className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-neutral-500">時給<Input value={wageForm.hourlyWage} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWageForm({ ...wageForm, hourlyWage: e.target.value })} inputMode="numeric" className="mt-0.5 block w-24 rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <Button onClick={saveWage} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">保存</Button>
           </div>
           <table className="w-full text-sm">
             <thead><tr className="border-b border-neutral-200 text-left text-xs text-neutral-500"><th className="px-2 py-1">従業員</th><th className="px-2 py-1 text-right">時給</th></tr></thead>

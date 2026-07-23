@@ -3,11 +3,16 @@
  * `buildMonthlyReport` のシートを `@platform/xlsx` の writeWorkbook で書き出す。
  */
 import { writeWorkbook } from "@platform/xlsx";
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
 import { withApiObservability } from "../../../../server/instrument";
 import { buildMonthlyReport } from "../../../../lib/expense-report";
 import { SAMPLE_EXPENSES } from "../../../../lib/sample-expenses";
 
 async function handleGet(req: Request): Promise<Response> {
+  // 認可: この API を叩いてよいかを最初に判定する
+  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  requirePermission(user, "expense:read:any");
   const month = new URL(req.url).searchParams.get("month") ?? "";
   if (!/^\d{4}-\d{2}$/.test(month)) {
     return new Response("month は YYYY-MM 形式で指定してください", { status: 400 });

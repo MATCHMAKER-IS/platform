@@ -1,3 +1,4 @@
+// public-api: デモのログアウト
 /** ログアウト(セッションクッキーを失効)。 */
 import { session } from "../../../server/session";
 

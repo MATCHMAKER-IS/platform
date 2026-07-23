@@ -24,7 +24,7 @@ export const HamburgerButton = React.forwardRef<HTMLButtonElement, HamburgerButt
       aria-label={label}
       aria-expanded={open}
       className={cn(
-        "inline-flex h-10 w-10 items-center justify-center rounded-[var(--radius)] text-[var(--color-fg)] transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]",
+        "inline-flex h-10 w-10 items-center justify-center rounded-[var(--radius)] text-[var(--color-fg)] transition-colors hover:bg-[var(--color-subtle-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]",
         className,
       )}
       {...props}

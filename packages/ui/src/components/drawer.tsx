@@ -9,6 +9,13 @@ import { X } from "lucide-react";
 import { cn } from "../lib/cn";
 
 /** ドロワーのルート。 */
+/**
+ * 横から出る引き出し。
+ *
+ * 狭い画面での案内や、一覧の横に出す詳細に使う。
+ * **開いている間、背後の操作を止める**かどうかを決めること
+ * (止めないなら、閉じ忘れたまま操作できてしまう)。
+ */
 export const Drawer = Primitive.Root;
 /** 開くトリガー。 */
 export const DrawerTrigger = Primitive.Trigger;

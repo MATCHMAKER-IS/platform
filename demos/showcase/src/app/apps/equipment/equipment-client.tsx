@@ -5,6 +5,7 @@
  * **実物は `apps/equipment-app`**。ここはモックデータでの再現で、DB を持たない。
  */
 import * as React from "react";
+import { Button } from "@platform/ui";
 
 interface Item {
   id: string;
@@ -61,7 +62,7 @@ export function EquipmentDemo() {
 
         <div style={{ display: "flex", gap: 4, marginBottom: 8, flexWrap: "wrap" }}>
           {categories.map((c) => (
-            <button
+            <Button
               key={c}
               onClick={() => setFilter(c)}
               style={{
@@ -75,7 +76,7 @@ export function EquipmentDemo() {
               }}
             >
               {c}
-            </button>
+            </Button>
           ))}
         </div>
 

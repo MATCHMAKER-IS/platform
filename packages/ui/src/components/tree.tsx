@@ -30,6 +30,11 @@ export interface TreeProps extends Omit<React.HTMLAttributes<HTMLUListElement>, 
 }
 
 /** 階層ツリー。行クリックで選択、三角で展開/折りたたみ。 */
+/**
+ * 階層の表示(組織・分類)。
+ *
+ * 深くなりすぎると辿れない。**3 階層を超えるなら検索**を併せて用意する。
+ */
 export function Tree({ nodes, selectedId, onSelect, defaultExpandedIds, className, ...props }: TreeProps) {
   const [expanded, setExpanded] = React.useState<Set<string>>(() => new Set(defaultExpandedIds ?? []));
   const toggle = (id: string) => setExpanded((prev) => {
@@ -57,8 +62,8 @@ function TreeItem({ node, depth, expanded, toggle, selectedId, onSelect }: {
     <li role="treeitem" aria-expanded={hasChildren ? isOpen : undefined} aria-selected={isSelected}>
       <div
         className={cn(
-          "flex cursor-pointer items-center gap-1 rounded-md py-1 pr-2 hover:bg-slate-100",
-          isSelected && "bg-slate-100 font-medium",
+          "flex cursor-pointer items-center gap-1 rounded-md py-1 pr-2 hover:bg-[var(--color-subtle-strong)]",
+          isSelected && "bg-[var(--color-subtle-strong)] font-medium",
         )}
         style={{ paddingLeft: `${depth * 1.1 + 0.25}rem` }}
         onClick={() => onSelect?.(node)}

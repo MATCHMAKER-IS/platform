@@ -6,7 +6,7 @@
  */
 import * as React from "react";
 import { createThemeRegistry, builtInThemes, themeToCssVars, deriveTheme, checkTheme, type ThemeMode, type Theme } from "@platform/theme";
-import { SkinProvider, useSkin, SkinSelector } from "@platform/ui";
+import { Button, Input, Select, SkinProvider, SkinSelector, useSkin } from "@platform/ui";
 
 // 標準テーマを登録したレジストリ(アプリ起動時に1回作る。独自テーマはここに register で足せる)。
 const registry = createThemeRegistry({ themes: builtInThemes });
@@ -41,8 +41,8 @@ function Preview({ mode }: { mode: ThemeMode }) {
           <div style={{ fontSize: 11, color: "var(--color-muted)", marginBottom: 4 }}>件名</div>
           <div style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius)", padding: "6px 8px", fontSize: 12, background: "var(--color-bg)", marginBottom: 8 }}>備品購入の稟議</div>
           <div style={{ display: "flex", gap: 6 }}>
-            <button style={{ background: "var(--color-primary)", color: "var(--color-primary-fg)", border: "none", borderRadius: "var(--radius)", padding: "6px 14px", fontSize: 12 }}>申請する</button>
-            <button style={{ background: "transparent", color: "var(--color-primary)", border: "1px solid var(--color-primary)", borderRadius: "var(--radius)", padding: "6px 14px", fontSize: 12 }}>下書き保存</button>
+            <Button style={{ background: "var(--color-primary)", color: "var(--color-primary-fg)", border: "none", borderRadius: "var(--radius)", padding: "6px 14px", fontSize: 12 }}>申請する</Button>
+            <Button style={{ background: "transparent", color: "var(--color-primary)", border: "1px solid var(--color-primary)", borderRadius: "var(--radius)", padding: "6px 14px", fontSize: 12 }}>下書き保存</Button>
           </div>
         </div>
 
@@ -101,7 +101,7 @@ function CustomThemeMaker({ onCreated }: { onCreated: (id: string) => void }) {
   const swatch = (color: string, set: (v: string) => void, label: string) => (
     <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
       <span style={{ color: "var(--color-muted, #666)" }}>{label}</span>
-      <input type="color" value={color} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set(e.target.value)} style={{ width: 48, height: 32, border: "1px solid var(--color-border, #ddd)", borderRadius: 6, padding: 0, cursor: "pointer" }} />
+      <Input type="color" value={color} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set(e.target.value)} style={{ width: 48, height: 32, border: "1px solid var(--color-border, #ddd)", borderRadius: 6, padding: 0, cursor: "pointer" }} />
     </label>
   );
 
@@ -113,34 +113,30 @@ function CustomThemeMaker({ onCreated }: { onCreated: (id: string) => void }) {
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 12 }}>
         <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
           <span style={{ color: "var(--color-muted, #666)" }}>テーマ名</span>
-          <input value={name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)} style={{ padding: "6px 8px", border: "1px solid var(--color-border, #ddd)", borderRadius: 6, fontSize: 13 }} />
+          <Input value={name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)} style={{ padding: "6px 8px", border: "1px solid var(--color-border, #ddd)", borderRadius: 6, fontSize: 13 }} />
         </label>
         {swatch(primary, setPrimary, "主色")}
         {swatch(accent, setAccent, "アクセント")}
         <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
           <span style={{ color: "var(--color-muted, #666)" }}>ベース</span>
-          <select value={base} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setBase(e.target.value as "light" | "warm" | "cool")} style={{ padding: "6px 8px", border: "1px solid var(--color-border, #ddd)", borderRadius: 6, fontSize: 13 }}>
-            <option value="light">標準（白）</option>
-            <option value="warm">暖色（クリーム）</option>
-            <option value="cool">寒色（青み）</option>
-          </select>
+          <Select value={base} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setBase(e.target.value as "light" | "warm" | "cool")} style={{ padding: "6px 8px", border: "1px solid var(--color-border, #ddd)", borderRadius: 6, fontSize: 13 }} options={[{ label: "標準（白）", value: "light" }, { label: "暖色（クリーム）", value: "warm" }, { label: "寒色（青み）", value: "cool" }]} />
         </label>
         <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
           <span style={{ color: "var(--color-muted, #666)" }}>角丸 {radius}px</span>
-          <input type="range" min={0} max={24} value={radius} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRadius(Number(e.target.value))} />
+          <Input type="range" min={0} max={24} value={radius} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRadius(Number(e.target.value))} />
         </label>
       </div>
 
       {/* ミニプレビュー(生成テーマの色で) */}
       <div style={{ display: "flex", gap: 8, alignItems: "center", padding: 12, borderRadius: radius, background: lp.bg, border: `1px solid ${lp.border}`, marginBottom: 8 }}>
-        <button style={{ background: lp.primary, color: lp.primaryFg, border: "none", borderRadius: radius, padding: "6px 14px", fontSize: 13 }}>主ボタン</button>
+        <Button style={{ background: lp.primary, color: lp.primaryFg, border: "none", borderRadius: radius, padding: "6px 14px", fontSize: 13 }}>主ボタン</Button>
         <span style={{ background: lp.accent, color: "var(--color-surface, #fff)", borderRadius: 999, padding: "2px 10px", fontSize: 12 }}>アクセント</span>
         <span style={{ color: lp.fg, fontSize: 13 }}>本文テキスト</span>
         <span style={{ color: lp.muted, fontSize: 12 }}>補助テキスト</span>
       </div>
 
       <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-        <button onClick={() => void create()} style={{ background: "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, cursor: "pointer" }}>保存して適用</button>
+        <Button onClick={() => void create()} style={{ background: "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, cursor: "pointer" }}>保存して適用</Button>
         {btnFail && <span style={{ fontSize: 12, color: "var(--color-warning, #d97706)" }}>⚠ 主色と文字色のコントラストが低めです（読みにくい可能性）。</span>}
         {msg && <span style={{ fontSize: 12, color: "var(--color-success, #16a34a)" }}>{msg}</span>}
       </div>
@@ -187,12 +183,12 @@ function CustomThemeManager({ custom, onChanged }: { custom: Theme[]; onChanged:
           <span style={{ width: 16, height: 16, borderRadius: 4, background: t.modes.light.primary, border: "1px solid rgba(0,0,0,.15)" }} />
           <span style={{ fontSize: 13, fontWeight: 600 }}>{t.name}</span>
           <code style={{ fontSize: 11, color: "var(--color-muted, #999)" }}>{t.id}</code>
-          <button onClick={() => void remove(t.id)} style={{ ...btn, marginLeft: "auto", color: "var(--color-danger, #c00)", fontSize: 11 }}>削除</button>
+          <Button onClick={() => void remove(t.id)} style={{ ...btn, marginLeft: "auto", color: "var(--color-danger, #c00)", fontSize: 11 }}>削除</Button>
         </div>
       ))}
 
       <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
-        <button onClick={exportJson} style={btn}>JSON で書き出し</button>
+        <Button onClick={exportJson} style={btn}>JSON で書き出し</Button>
         <label style={{ ...btn, background: "var(--color-bg, #f9fafb)" }}>
           JSON を取り込み
           <input type="file" accept=".json,application/json" style={{ display: "none" }} onChange={(e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) void importJson(f); }} />
@@ -222,7 +218,7 @@ function ThemeHistory() {
     <div style={{ background: "var(--color-surface, #fff)", border: "1px solid var(--color-border, #e5e7eb)", borderRadius: "var(--radius, 10px)", padding: 16, marginTop: 12 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ fontSize: 15, fontWeight: 700 }}>変更履歴</div>
-        <button onClick={() => void load()} style={{ padding: "6px 12px", border: "1px solid var(--color-border, #ddd)", borderRadius: 8, background: "var(--color-surface, #fff)", color: "var(--color-fg, #111)", fontSize: 12, cursor: "pointer" }}>履歴を表示</button>
+        <Button onClick={() => void load()} style={{ padding: "6px 12px", border: "1px solid var(--color-border, #ddd)", borderRadius: 8, background: "var(--color-surface, #fff)", color: "var(--color-fg, #111)", fontSize: 12, cursor: "pointer" }}>履歴を表示</Button>
       </div>
       {shown && (
         <div style={{ marginTop: 8 }}>
@@ -287,7 +283,7 @@ function Inner() {
 
       <div style={{ marginTop: 20, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         <div style={{ fontSize: 13, color: "#444" }}>選択中: <strong>{skin.name}</strong>（フォント: {skin.shape.fontFamily.split(",")[0]} / 角丸 {skin.shape.radius}px）</div>
-        <button onClick={saveAsDefault} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #2563eb", background: "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", fontSize: 13, cursor: "pointer" }}>組織デフォルトに設定（管理者）</button>
+        <Button onClick={saveAsDefault} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #2563eb", background: "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", fontSize: 13, cursor: "pointer" }}>組織デフォルトに設定（管理者）</Button>
         {saveMsg && <span style={{ fontSize: 12, color: saveMsg.includes("設定しました") ? "var(--color-success, #16a34a)" : "var(--color-danger, #c00)" }}>{saveMsg}</span>}
       </div>
 

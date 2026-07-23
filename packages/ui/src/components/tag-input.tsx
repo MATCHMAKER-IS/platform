@@ -20,6 +20,22 @@ export interface TagInputProps {
 }
 
 /** タグ入力。 */
+/**
+ * タグの入力(複数の短い語を足していく)。
+ *
+ * 分類・キーワード・宛先のように**数が決まっていないもの**に使う。
+ * 選択肢が決まっているなら `Select` や `ToggleGroup` の方が速い
+ * (打ち間違いで表記がばらつかない)。
+ *
+ * - `allowDuplicates` は既定で不可。同じタグを 2 つ付けても意味が無いため
+ * - 入力後に Enter か区切り文字で確定する
+ * - 既存のタグを候補に出すと、表記のゆれ(「至急」と「大至急」)を防げる
+ *
+ * @example
+ * ```tsx
+ * <TagInput value={tags} onChange={setTags} placeholder="Enter で追加" />
+ * ```
+ */
 export function TagInput({ value, onChange, placeholder, allowDuplicates = false, className }: TagInputProps) {
   const [text, setText] = React.useState("");
 
@@ -34,7 +50,7 @@ export function TagInput({ value, onChange, placeholder, allowDuplicates = false
   return (
     <div className={cn("flex flex-wrap items-center gap-1.5 rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg)] p-1.5 focus-within:ring-2 focus-within:ring-[var(--color-primary)]", className)}>
       {value.map((tag) => (
-        <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-sm">
+        <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-[var(--color-subtle-strong)] px-2 py-0.5 text-sm">
           {tag}
           <button type="button" onClick={() => onChange(value.filter((t) => t !== tag))} aria-label={`${tag} を削除`} className="hover:text-[var(--color-danger)]">
             <X className="h-3 w-3" />

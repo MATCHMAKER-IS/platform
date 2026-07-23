@@ -6,6 +6,7 @@
  * ブラウザの DevTools はブラウザ側しか見えないが、ここはサーバの中が見える。
  */
 import * as React from "react";
+import { Button, Checkbox } from "@platform/ui";
 
 type Kind = "sql" | "api" | "ai" | "event" | "log" | "job";
 
@@ -97,12 +98,12 @@ export function DebugClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <label style={{ fontSize: 12, color: "var(--color-muted, #888)", display: "flex", alignItems: "center", gap: 4 }}>
-            <input type="checkbox" checked={auto} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAuto(e.target.checked)} />
+            <Checkbox  checked={auto} onCheckedChange={(v) => setAuto(!!v)} />
             自動更新
           </label>
-          <button onClick={() => void clear()} style={{ padding: "6px 12px", border: "1px solid var(--color-border, #ddd)", borderRadius: 8, background: "var(--color-surface, #fff)", fontSize: 12, cursor: "pointer" }}>
+          <Button onClick={() => void clear()} style={{ padding: "6px 12px", border: "1px solid var(--color-border, #ddd)", borderRadius: 8, background: "var(--color-surface, #fff)", fontSize: 12, cursor: "pointer" }}>
             記録を消す
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -117,7 +118,7 @@ export function DebugClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
             </p>
           )}
           {list?.map((r) => (
-            <button
+            <Button
               key={r.requestId}
               onClick={() => void open(r.requestId)}
               style={{
@@ -141,7 +142,7 @@ export function DebugClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
                 ))}
                 {r.issueCount > 0 && <span style={{ color: "var(--color-warning, #d97706)", marginLeft: "auto" }}>⚠ {r.issueCount}</span>}
               </div>
-            </button>
+            </Button>
           ))}
         </div>
 

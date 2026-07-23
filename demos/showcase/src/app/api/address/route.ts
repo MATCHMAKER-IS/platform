@@ -1,3 +1,4 @@
+// public-api: 郵便番号から住所を引くだけ(社内情報を含まない)
 /** 郵便番号→住所の逆引き API(@platform/address、サーバ側)。 */
 import { handleRoute } from "@platform/http";
 import { createAddressLookup, createZipcloudAdapter } from "@platform/address";

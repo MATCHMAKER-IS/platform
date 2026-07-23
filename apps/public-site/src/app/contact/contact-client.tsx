@@ -1,6 +1,7 @@
 "use client";
 /** 公開サイトのお問い合わせフォーム。送信は /api/contact 経由で社内の受信一覧へ集約される。 */
 import { useState, type ChangeEvent, type FormEvent } from "react";
+import { Button, Input, Select, Textarea } from "@platform/ui";
 
 const CATEGORIES = ["製品について", "料金・お見積り", "サポート", "採用", "その他"];
 
@@ -29,12 +30,12 @@ export function ContactClient() {
   return (
     <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: ".75rem" }}>
       {error && <p style={{ color: "#b91c1c", fontSize: ".9rem" }}>{error}</p>}
-      <label style={{ fontSize: ".85rem", color: "#444" }}>お名前 *<input value={form.name} onChange={set("name")} style={inputStyle} /></label>
-      <label style={{ fontSize: ".85rem", color: "#444" }}>メールアドレス *<input type="email" value={form.email} onChange={set("email")} style={inputStyle} /></label>
-      <label style={{ fontSize: ".85rem", color: "#444" }}>種別<select value={form.category} onChange={set("category")} style={inputStyle}>{CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
-      <label style={{ fontSize: ".85rem", color: "#444" }}>件名 *<input value={form.subject} onChange={set("subject")} style={inputStyle} /></label>
-      <label style={{ fontSize: ".85rem", color: "#444" }}>本文 *<textarea value={form.message} onChange={set("message")} rows={6} style={inputStyle} /></label>
-      <button type="submit" disabled={status === "sending"} style={{ padding: ".6rem 1.2rem", background: "#111", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", alignSelf: "flex-start" }}>{status === "sending" ? "送信中…" : "送信する"}</button>
+      <label style={{ fontSize: ".85rem", color: "#444" }}>お名前 *<Input value={form.name} onChange={set("name")} style={inputStyle} /></label>
+      <label style={{ fontSize: ".85rem", color: "#444" }}>メールアドレス *<Input type="email" value={form.email} onChange={set("email")} style={inputStyle} /></label>
+      <label style={{ fontSize: ".85rem", color: "#444" }}>種別<Select value={form.category} onChange={set("category")} style={inputStyle} options={[...CATEGORIES.map((c) => ({ label: c, value: String(c) }))]} /></label>
+      <label style={{ fontSize: ".85rem", color: "#444" }}>件名 *<Input value={form.subject} onChange={set("subject")} style={inputStyle} /></label>
+      <label style={{ fontSize: ".85rem", color: "#444" }}>本文 *<Textarea value={form.message} onChange={set("message")} rows={6} style={inputStyle} /></label>
+      <Button type="submit" disabled={status === "sending"} style={{ padding: ".6rem 1.2rem", background: "#111", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", alignSelf: "flex-start" }}>{status === "sending" ? "送信中…" : "送信する"}</Button>
     </form>
   );
 }

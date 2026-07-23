@@ -7,6 +7,12 @@ import { Avatar as Primitive } from "radix-ui";
 import { cn } from "../lib/cn";
 
 /** アバターのルート(円形)。 */
+/**
+ * 利用者の顔写真(無ければ頭文字)。
+ *
+ * 一覧で誰の行かを素早く見分けるためのもの。**名前を省略して顔だけにしない**
+ * (似た写真の人がいると分からなくなる)。
+ */
 export const Avatar = React.forwardRef<
   React.ElementRef<typeof Primitive.Root>,
   React.ComponentPropsWithoutRef<typeof Primitive.Root>
@@ -29,6 +35,6 @@ export const AvatarFallback = React.forwardRef<
   React.ElementRef<typeof Primitive.Fallback>,
   React.ComponentPropsWithoutRef<typeof Primitive.Fallback>
 >(({ className, ...props }, ref) => (
-  <Primitive.Fallback ref={ref} className={cn("flex h-full w-full items-center justify-center bg-slate-200 text-sm text-[var(--color-muted)]", className)} {...props} />
+  <Primitive.Fallback ref={ref} className={cn("flex h-full w-full items-center justify-center bg-[var(--color-subtle-strong)] text-sm text-[var(--color-muted)]", className)} {...props} />
 ));
 AvatarFallback.displayName = "AvatarFallback";

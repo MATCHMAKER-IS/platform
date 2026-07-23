@@ -1,0 +1,10 @@
+{
+  "connector": "freee",
+  "title": "freee OAuth トークン更新",
+  "endpoint": "POST https://accounts.secure.freee.co.jp/public_api/token",
+  "sourceFile": "packages/freee/src/token.ts",
+  "requiredFields": ["access_token", "refresh_token", "expires_in"],
+  "note": "この3つが欠けるとアクセストークンを更新できず、freee 連携が全面停止する。",
+  "capturedAt": null,
+  "fixture": null
+}

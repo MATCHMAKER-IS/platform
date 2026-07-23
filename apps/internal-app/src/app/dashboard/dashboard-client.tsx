@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { StatCard, FileList, AuditLogView, List, Card, type FileListItem, type AuditLogRow } from "@platform/ui";
+import { AuditLogView, Card, FileList, Input, List, StatCard, type AuditLogRow, type FileListItem } from "@platform/ui";
 
 interface DashboardData {
   unreadCount: number;
@@ -136,9 +136,9 @@ export function DashboardClient({ fetchImpl }: DashboardClientProps) {
           <div className="mb-2 flex items-center justify-between gap-2">
             <h2 className="text-sm font-medium">監査イベント</h2>
             <div className="flex items-center gap-1 text-xs">
-              <input type="date" value={from} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFrom(e.target.value)} className="rounded border border-[var(--color-border)] px-2 py-1" aria-label="開始日" />
+              <Input type="date" value={from} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFrom(e.target.value)} className="rounded border border-[var(--color-border)] px-2 py-1" aria-label="開始日" />
               <span>〜</span>
-              <input type="date" value={to} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTo(e.target.value)} className="rounded border border-[var(--color-border)] px-2 py-1" aria-label="終了日" />
+              <Input type="date" value={to} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTo(e.target.value)} className="rounded border border-[var(--color-border)] px-2 py-1" aria-label="終了日" />
             </div>
           </div>
           <AuditLogView rows={auditRows} verification={data.auditValid !== undefined ? { valid: data.auditValid, brokenAt: null } : undefined} />

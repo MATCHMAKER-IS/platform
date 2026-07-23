@@ -48,9 +48,15 @@ export interface LogViewerProps {
 const LEVEL_TEXT: Record<LogLevel, string> = { error: "text-red-600", warn: "text-amber-600", info: "text-blue-600", debug: "text-[var(--color-muted)]" };
 const LEVEL_BORDER: Record<LogLevel, string> = { error: "border-l-red-400", warn: "border-l-amber-400", info: "border-l-blue-400", debug: "border-l-slate-300" };
 const LEVEL_MARK: Record<LogLevel, string> = { error: "bg-red-200 text-red-900", warn: "bg-amber-200 text-amber-900", info: "bg-blue-200 text-blue-900", debug: "bg-yellow-200" };
-const LEVEL_BG: Record<LogLevel, string> = { error: "bg-red-400", warn: "bg-amber-400", info: "bg-blue-400", debug: "bg-slate-300" };
+const LEVEL_BG: Record<LogLevel, string> = { error: "bg-red-400", warn: "bg-amber-400", info: "bg-blue-400", debug: "bg-[var(--color-subtle-strong)]" };
 
 /** ログ/長文ビューア。 */
+/**
+ * ログの表示。
+ *
+ * 絞り込みと検索を必ず付ける(全部は読めない)。
+ * **秘密情報が混ざる**ことがあるため、表示前にマスクする(`@platform/pii`)。
+ */
 export function LogViewer({
   text, lines, wrapWidth = 0, showLineNumbers = true, highlightQuery,
   colorByLevel = true, showToolbar = false, showTimeline = false, showRelativeTime = false,

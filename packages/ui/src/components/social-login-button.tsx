@@ -104,7 +104,7 @@ export const SocialLoginButton = React.forwardRef<HTMLButtonElement, SocialLogin
     const base = cn(
       "inline-flex items-center justify-center gap-2.5 rounded-[var(--radius)] h-10 px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none",
       meta.style === "light"
-        ? "border border-[var(--color-border)] bg-white text-[#3c4043] hover:bg-slate-50"
+        ? "border border-[var(--color-border)] bg-white text-[#3c4043] hover:bg-[var(--color-subtle)]"
         : "border border-transparent hover:opacity-90",
       fullWidth && "w-full",
       className,

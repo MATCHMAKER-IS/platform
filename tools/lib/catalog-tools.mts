@@ -6,6 +6,7 @@ import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { textResult, errorResult, type McpToolDef } from "@platform/mcp";
 import { loadCatalog, searchCatalog, describePackage, listByCategory, loadDemos, searchDemos, type PackageEntry, type DemoEntry } from "./catalog.mjs";
+import { loadDocSections, buildDocIndex, searchDocs, excerpt, isGenerated } from "./doc-search.mjs";
 
 export interface CatalogToolDeps {
   /** リポジトリルート。 */
@@ -16,10 +17,14 @@ export interface CatalogToolDeps {
   demos?: DemoEntry[];
 }
 
-/** 基盤カタログのツール 3 種を組み立てる。 */
+/** 基盤カタログの MCP ツール一式を組み立てる。 */
 export function buildCatalogTools(deps: CatalogToolDeps): McpToolDef[] {
   const catalog = deps.catalog ?? loadCatalog({ root: deps.root });
   const demos = deps.demos ?? loadDemos({ root: deps.root });
+  // 資料は起動時に一度だけ索引化する(見出し単位)。更新したらサーバを再起動する。
+  const sections = loadDocSections(deps.root);
+  const docIndex = buildDocIndex(sections);
+  const sectionById = new Map(sections.map((x) => [x.id, x]));
   return [
     {
       name: "search_platform",
@@ -121,6 +126,45 @@ export function buildCatalogTools(deps: CatalogToolDeps): McpToolDef[] {
           .sort((a, b) => b[1].length - a[1].length)
           .map(([cat, pkgs]) => `## ${cat}（${pkgs.length}）\n${pkgs.join(", ")}`);
         return textResult(`基盤パッケージ ${catalog.length} 件:\n\n${lines.join("\n\n")}`);
+      },
+    },
+    {
+      name: "search_docs",
+      description:
+        "社内の手順書・規約・設計判断(ADR)を検索する。「どうやって〜するか」「なぜこうなっているか」に答えるときに呼ぶ。" +
+        "例: 'バックアップの復元手順' / 'なぜ db push なのか' / '本番デプロイ' / '生タグ 上限'。" +
+        "コード上の機能を探すときは search_platform を使う。",
+      inputSchema: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "調べたいこと(日本語可)" },
+          limit: { type: "number", description: "最大件数(既定 5)" },
+          full: { type: "boolean", description: "true にすると節の全文を返す(既定 false = 抜粋)" },
+        },
+        required: ["query"],
+      },
+      handler: (args) => {
+        const query = String(args.query ?? "").trim();
+        if (!query) return errorResult("query を指定してください");
+        const limit = Math.min(Math.max(Number(args.limit ?? 5) || 5, 1), 15);
+        const full = args.full === true;
+
+        const hits = searchDocs(docIndex, sectionById, query, limit);
+        if (hits.length === 0) {
+          return textResult(`「${query}」に該当する記述は資料に見つかりませんでした。別の言い回しか、search_platform(コード側)も試してください。`);
+        }
+        const blocks = hits.map((h) => {
+          const sec = sectionById.get(h.id);
+          if (!sec) return "";
+          const where = sec.breadcrumb && sec.breadcrumb !== sec.heading ? `${sec.breadcrumb}` : sec.heading;
+          const mark = isGenerated(sec.file) ? "（自動生成。直すなら生成元）" : "";
+          const text = full ? sec.body : excerpt(sec.body, query);
+          return `### ${sec.file} — ${where}${mark}\n${text}`;
+        }).filter((b) => b !== "");
+        return textResult(
+          `「${query}」に関係する記述 ${blocks.length} 件:\n\n${blocks.join("\n\n")}\n\n` +
+          `全文が要るときは full: true で呼び直してください。`,
+        );
       },
     },
   ];

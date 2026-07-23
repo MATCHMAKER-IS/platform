@@ -572,7 +572,10 @@ section("grid resize/virtual/paste / recipients");
   ok("仮想化 scroll300 start5 topPad150", (() => { const v = computeVisibleRange(300, 30, 300, 1000, 5); return v.start === 5 && v.topPad === 150; })());
   ok("貼付TSV→行(位置対応)", JSON.stringify(tsvToRows("2026-02-01\t文具堂\t3300", ["date", "vendor", "amount"])) === JSON.stringify([{ date: "2026-02-01", vendor: "文具堂", amount: "3300" }]));
   const { upsertRecipient, removeRecipient, isValidEmail } = await import("../packages/ui/src/lib/recipients.ts");
-  ok("宛先 upsert/remove/email検証", upsertRecipient([{ id: "1", name: "a", email: "a@x.jp" }], { id: "2", name: "b", email: "b@x.jp" }).length === 2 && removeRecipient([{ id: "1", name: "a", email: "a@x.jp" }], "1").length === 0 && isValidEmail("a@x.jp") && !isValidEmail("bad@"));
+  ok("宛先 upsert/remove/email検証", upsertRecipient([{ id: "1", name: "a", email: "a@x.jp" }], { id: "2", name: "b", email: "b@x.jp" }).length === 2 &&
+     removeRecipient([{ id: "1", name: "a", email: "a@x.jp" }], "1").length === 0 &&
+     isValidEmail("a@x.jp") &&
+     !isValidEmail("bad@"));
 }
 
 // ---- 取り込み検証 / 列仮想化 / 宛先CSV(実ソース) ----
@@ -1095,7 +1098,9 @@ section("datetime range/wareki/relative");
   ok("splitRangeByMonth", C.splitRangeByMonth(R("2024-01-15", "2024-03-10")).length === 3);
   ok("和暦 令和元年/平成31", C.formatWareki(D("2019-05-01")) === "令和元年" && C.formatWareki(D("2019-04-30")) === "平成31年");
   ok("和暦 明治以前→西暦", C.toWareki(D("1850-01-01")) === null && C.formatWareki(D("1850-01-01")) === "1850年");
-  ok("相対 今日/5日後/5日前", C.formatRelativeDay(D("2024-01-05"), D("2024-01-05")) === "今日" && C.formatRelativeDay(D("2024-01-10"), D("2024-01-05")) === "5日後" && C.formatRelativeDay(D("2023-12-31"), D("2024-01-05")) === "5日前");
+  ok("相対 今日/5日後/5日前", C.formatRelativeDay(D("2024-01-05"), D("2024-01-05")) === "今日" &&
+     C.formatRelativeDay(D("2024-01-10"), D("2024-01-05")) === "5日後" &&
+     C.formatRelativeDay(D("2023-12-31"), D("2024-01-05")) === "5日前");
 }
 
 // ---- 時刻・所要時間・営業時間(実ソース) ----
@@ -1311,7 +1316,10 @@ section("app: overtime wf / attendance xlsx");
 section("phone intl type / line client");
 {
   const P = await import("../packages/phone/src/international.ts");
-  ok("国際種別 JP/CN/GB/US", P.internationalPhoneType("+819012345678") === "mobile" && P.internationalPhoneType("+8613812345678") === "mobile" && P.internationalPhoneType("+442071234567") === "landline" && P.internationalPhoneType("+14155552671") === "fixed_or_mobile");
+  ok("国際種別 JP/CN/GB/US", P.internationalPhoneType("+819012345678") === "mobile" &&
+     P.internationalPhoneType("+8613812345678") === "mobile" &&
+     P.internationalPhoneType("+442071234567") === "landline" &&
+     P.internationalPhoneType("+14155552671") === "fixed_or_mobile");
   ok("ルール無し→unknown", P.internationalPhoneType("+5511987654321") === "unknown");
   // LINE 実クライアント(integrations は core 依存のため /tmp に shim コピーして検証)
   const fs = await import("node:fs/promises");
@@ -1334,11 +1342,12 @@ section("phone intl type / line client");
 // ---- @platform/net(URL/IP/backoff/framing + 実TCP) ----
 section("net utilities + sockets");
 {
-  const U = await import("../packages/net/src/url.ts");
+  const U = await import("../packages/url/src/join.ts");
+  const Q = await import("../packages/url/src/query.ts");
   const I = await import("../packages/net/src/ip.ts");
   const B = await import("../packages/net/src/backoff.ts");
   const F = await import("../packages/net/src/framing.ts");
-  ok("URL join/query", U.joinUrl("https://x.jp/", "/v1/", "/u") === "https://x.jp/v1/u" && U.withQuery("https://x.jp/p?a=1", { b: 2 }) === "https://x.jp/p?a=1&b=2");
+  ok("URL join/query(@platform/url に集約)", U.joinUrl("https://x.jp/", "/v1/", "/u") === "https://x.jp/v1/u" && Q.setParams("https://x.jp/p?a=1", { b: 2 }) === "https://x.jp/p?a=1&b=2");
   ok("IP/CIDR", I.ipInCidr("10.1.2.3", "10.0.0.0/8") && I.isPrivateIp("192.168.0.1") && !I.isPrivateIp("8.8.8.8"));
   ok("backoff/timeout", B.backoffDelay(3, { baseMs: 100 }) === 800 && (await B.withTimeout(Promise.resolve(1), 50)) === 1);
   const enc = new TextEncoder(), dec = new TextDecoder();
@@ -1392,7 +1401,9 @@ section("color / similarity / magic / fsm");
   ok("color hex/contrast/mix", C.rgbToHex({ r: 51, g: 102, b: 255 }) === "#3366ff" && C.contrastRatio("#ffffff", "#000000") === 21 && C.mix("#ff0000", "#0000ff", 0.5) === "#800080");
   ok("color wcag/readable", C.wcagLevel(21) === "AAA" && C.readableTextColor("#ffff00") === "#000000");
   const Sm = await import("../packages/utils/src/similarity.ts");
-  ok("similarity levenshtein/jaroWinkler", Sm.levenshtein("kitten", "sitting") === 3 && Math.abs(Sm.jaroWinkler("MARTHA", "MARHTA") - 0.9611) < 0.001 && Sm.bestMatch("tokyo", ["tokio", "osaka"]).value === "tokio");
+  ok("similarity levenshtein/jaroWinkler", Sm.levenshtein("kitten", "sitting") === 3 &&
+     Math.abs(Sm.jaroWinkler("MARTHA", "MARHTA") - 0.9611) < 0.001 &&
+     Sm.bestMatch("tokyo", ["tokio", "osaka"]).value === "tokio");
   const Mg = await import("../packages/fs/src/magic.ts");
   ok("magic detect/spoof", Mg.detectFileType(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])).ext === "png" && !Mg.extensionMatchesContent("evil.png", new Uint8Array([0x50, 0x4b, 0x03, 0x04])));
   const Fs = await import("../packages/fsm/src/index.ts");
@@ -1406,9 +1417,14 @@ section("jp-number / postal / currency / units");
   const J = await import("../packages/utils/src/japanese-number.ts");
   ok("漢数字/大字金額", J.toKanjiNumber(12345) === "一万二千三百四十五" && J.toDaijiAmount(12345) === "金壱萬弐千参百四拾五円");
   const Cur = await import("../packages/currency/src/index.ts");
-  ok("通貨 丸め/整形/合算", Cur.roundMoney(1234.56, "JPY") === 1235 && Cur.formatMoney(Cur.money(1234.5, "USD")) === "$1,234.50" && Cur.totalInBaseCurrency([{ amount: 1000, currency: "JPY" }, { amount: 10, currency: "USD" }], "JPY", { USD: 150 }).amount === 2500);
+  ok("通貨 丸め/整形/合算", Cur.roundMoney(1234.56, "JPY") === 1235 &&
+     Cur.formatMoney(Cur.money(1234.5, "USD")) === "$1,234.50" &&
+     Cur.totalInBaseCurrency([{ amount: 1000, currency: "JPY" }, { amount: 10, currency: "USD" }], "JPY", { USD: 150 }).amount === 2500);
   const Un = await import("../packages/units/src/index.ts");
-  ok("単位 長さ/重さ/温度/坪", Un.convertLength(1, "m", "cm") === 100 && Math.abs(Un.convertWeight(1, "lb", "kg") - 0.45359237) < 1e-9 && Un.convertTemperature(100, "C", "F") === 212 && Math.abs(Un.convertArea(1, "tsubo", "m2") - 3.305785) < 1e-6);
+  ok("単位 長さ/重さ/温度/坪", Un.convertLength(1, "m", "cm") === 100 &&
+     Math.abs(Un.convertWeight(1, "lb", "kg") - 0.45359237) < 1e-9 &&
+     Un.convertTemperature(100, "C", "F") === 212 &&
+     Math.abs(Un.convertArea(1, "tsubo", "m2") - 3.305785) < 1e-6);
 }
 
 // ---- Zoho 連携(core/crm/books・fetch注入) ----
@@ -1568,6 +1584,655 @@ section("multipart / token-refresh / zoho-login");
   for (const f of [core, igp, dcp, oap, tmp, lp, sp]) await fs.rm(f);
 }
 
+// ---- Slack / Notion 連携 ----
+section("slack / notion");
+{
+  const fs = await import("node:fs/promises");
+  const { createHmac } = await import("node:crypto");
+  const stamp = smokeStamp();
+  const sp = `/tmp/sl-${stamp}.ts`;
+  const np = `/tmp/no-${stamp}.ts`;
+  await fs.writeFile(sp, await fs.readFile(new URL("../packages/slack/src/index.ts", import.meta.url), "utf8"));
+  await fs.writeFile(np, await fs.readFile(new URL("../packages/notion/src/index.ts", import.meta.url), "utf8"));
+  const S = await import(sp);
+  const N = await import(np);
+
+  const okFetch = async () => new Response(JSON.stringify({ ok: true, channel: "C1", ts: "1.1" }), { status: 200 });
+  const ngFetch = async () => new Response(JSON.stringify({ ok: false, error: "channel_not_found" }), { status: 200 });
+  const posted = await S.createSlackClient("xoxb", okFetch).postMessage({ channel: "#a", text: "t" });
+  let failed = false;
+  try { await S.createSlackClient("x", ngFetch).postMessage({ channel: "#a", text: "t" }); } catch { failed = true; }
+  ok("Slack: 投稿の ts を返す・HTTP200 でも ok:false は失敗扱い(握りつぶさない)",
+    posted.ts === "1.1" && failed === true);
+
+  const secret = "sig-secret", body = "token=x&command=/deploy", ts = "1700000000";
+  const sig = `v0=${createHmac("sha256", secret).update(`v0:${ts}:${body}`).digest("hex")}`;
+  const now = () => 1_700_000_010;
+  ok("Slack: 署名検証(正しい署名は通る・改ざんと古い要求は弾く)",
+    S.verifySlackSignature({ body, signature: sig, timestamp: ts, signingSecret: secret, now }) === true &&
+    S.verifySlackSignature({ body: `${body}x`, signature: sig, timestamp: ts, signingSecret: secret, now }) === false &&
+    S.verifySlackSignature({ body, signature: sig, timestamp: ts, signingSecret: secret, now: () => 1_700_003_600 }) === false);
+  ok("Slack: スラッシュコマンドを解ける", S.parseSlashCommand("command=%2Fdeploy&text=prod&user_id=U1").command === "/deploy");
+
+  const rawPage = {
+    id: "p1", url: "https://notion/p1", created_time: "2026-01-01", last_edited_time: "2026-01-02",
+    properties: {
+      名前: { type: "title", title: [{ plain_text: "月次締め" }] },
+      状態: { type: "status", status: { name: "進行中" } },
+      タグ: { type: "multi_select", multi_select: [{ name: "経理" }, { name: "急ぎ" }] },
+      期日: { type: "date", date: { start: "2026-07-31" } },
+    },
+  };
+  const nFetch = async () => new Response(JSON.stringify({ results: [rawPage], next_cursor: null }), { status: 200 });
+  const { pages } = await N.createNotionClient("ntn", nFetch).queryDatabase({ databaseId: "db1" });
+  ok("Notion: 入れ子のプロパティを平たい値にして返す",
+    pages[0].title === "月次締め" && pages[0].properties.状態 === "進行中" &&
+    Array.isArray(pages[0].properties.タグ) && pages[0].properties.期日 === "2026-07-31");
+
+  const e404 = async () => new Response("not found", { status: 404 });
+  let hinted = false;
+  try { await N.createNotionClient("x", e404).getPageText("p1"); } catch (e) { hinted = e.message.includes("共有"); }
+  ok("Notion: 404 は共有忘れの可能性を伝える(最も多いつまずき)", hinted);
+
+  await fs.rm(sp); await fs.rm(np);
+}
+
+// ---- 外部連携の拡充(承認ボタン・全件取得・空き時間) ----
+section("integrations: extended");
+{
+  const fs = await import("node:fs/promises");
+  const stamp = smokeStamp();
+  const base = `/tmp/ext-${stamp}`;
+  await fs.mkdir(base, { recursive: true });
+  await fs.writeFile(`${base}/slack.ts`, await fs.readFile(new URL("../packages/slack/src/index.ts", import.meta.url), "utf8"));
+  await fs.writeFile(`${base}/notion.ts`, await fs.readFile(new URL("../packages/notion/src/index.ts", import.meta.url), "utf8"));
+  await fs.writeFile(`${base}/ms-oauth.ts`, await fs.readFile(new URL("../packages/microsoft/src/oauth.ts", import.meta.url), "utf8"));
+  await fs.writeFile(`${base}/ms-graph.ts`, (await fs.readFile(new URL("../packages/microsoft/src/graph.ts", import.meta.url), "utf8")).replace('from "./oauth"', `from "${base}/ms-oauth.ts"`));
+  const S = await import(`${base}/slack.ts`);
+  const N = await import(`${base}/notion.ts`);
+  const G = await import(`${base}/ms-graph.ts`);
+
+  // Slack: 承認ボタン
+  const blocks = S.buildApprovalBlocks({ title: "経費申請", summary: "山田 / 12,000円", actionValue: "expense:123" });
+  const actions = blocks.find((b) => b.type === "actions");
+  ok("Slack: 承認/却下ボタンを組み立て、却下には確認を挟む(誤操作の防止)",
+    actions.elements.length === 2 && actions.elements[0].value === "expense:123" && actions.elements[1].confirm !== undefined);
+
+  const payload = encodeURIComponent(JSON.stringify({
+    actions: [{ action_id: "approve", value: "expense:123" }],
+    user: { id: "U1", username: "yamada" }, channel: { id: "C1" }, message: { ts: "1.1" }, response_url: "https://hooks/x",
+  }));
+  const inter = S.parseInteraction(`payload=${payload}`);
+  ok("Slack: ボタン押下から「誰が押したか」を取り出す・壊れた入力は null",
+    inter.actionId === "approve" && inter.userId === "U1" && S.parseInteraction("payload=notjson") === null);
+
+  // Notion: ページ送りを自動で辿る
+  let calls = 0;
+  const mkPage = (id) => ({ id, url: "u", created_time: "c", last_edited_time: "e", properties: { 名前: { type: "title", title: [{ plain_text: id }] } } });
+  const paged = async () => {
+    calls += 1;
+    return new Response(JSON.stringify({ results: [mkPage(`p${calls}`)], next_cursor: calls < 3 ? `c${calls}` : null }), { status: 200 });
+  };
+  const all = await N.createNotionClient("t", paged).queryAll({ databaseId: "db" });
+  ok("Notion: 全件取得はページ送りを最後まで辿る(黙って一部だけ処理しない)", all.length === 3 && calls === 3);
+
+  let stopped = false;
+  const endless = async () => new Response(JSON.stringify({ results: [mkPage("x")], next_cursor: "next" }), { status: 200 });
+  try { await N.createNotionClient("t", endless).queryAll({ databaseId: "db", maxPages: 2 }); } catch (e) { stopped = e.message.includes("超えました"); }
+  ok("Notion: 想定より多いときは打ち切って知らせる(無言で回り続けない)", stopped);
+
+  // Microsoft: 空き時間・アップロード上限
+  const gFetch = async (u) => {
+    if (String(u).includes("getSchedule")) {
+      return new Response(JSON.stringify({ value: [{ scheduleId: "a@ex.jp", scheduleItems: [{ start: { dateTime: "2026-07-22T10:00" }, end: { dateTime: "2026-07-22T11:00" }, status: "busy" }] }] }), { status: 200 });
+    }
+    return new Response(JSON.stringify({ id: "f1", name: "a.csv", size: 10, webUrl: "https://x" }), { status: 200 });
+  };
+  const graph = G.createMicrosoftGraphClient(gFetch);
+  const sched = await graph.getSchedule({ emails: ["a@ex.jp"], start: "2026-07-22T09:00", end: "2026-07-22T18:00" });
+  ok("Microsoft: 会議調整のため埋まり具合だけを取る(予定の中身は見ない)",
+    sched[0].busy.length === 1 && sched[0].available === true);
+
+  let tooBig = false;
+  try { await graph.uploadFile({ path: "x", content: new Uint8Array(5 * 1024 * 1024) }); } catch (e) { tooBig = e.message.includes("4MB"); }
+  ok("Microsoft: 4MB 超は明示的に断る(分割アップロードが要る)", tooBig);
+
+  await fs.rm(base, { recursive: true, force: true });
+}
+
+// ---- Microsoft 365 / Entra ID 連携 ----
+section("microsoft (Entra ID / Graph)");
+{
+  const fs = await import("node:fs/promises");
+  const stamp = smokeStamp();
+  const base = `/tmp/ms-${stamp}`;
+  await fs.mkdir(base, { recursive: true });
+  await fs.writeFile(`${base}/oauth.ts`, await fs.readFile(new URL("../packages/microsoft/src/oauth.ts", import.meta.url), "utf8"));
+  await fs.writeFile(`${base}/graph.ts`, (await fs.readFile(new URL("../packages/microsoft/src/graph.ts", import.meta.url), "utf8")).replace('from "./oauth"', `from "${base}/oauth.ts"`));
+  const O = await import(`${base}/oauth.ts`);
+  const G = await import(`${base}/graph.ts`);
+
+  const url = O.buildMicrosoftAuthUrl({ clientId: "cid", redirectUri: "https://app/cb", tenantId: "t-123", scope: ["User.Read"], state: "s1" });
+  ok("Microsoft: 認可URLは自社テナント指定・offline_access を付ける(他社アカウントを通さない)",
+    url.includes("/t-123/oauth2/v2.0/authorize") && url.includes("offline_access") && url.includes("state=s1"));
+
+  let refreshes = 0;
+  let savedRefresh = null;
+  const fakeFetch = async (input, init) => {
+    const u = String(input);
+    if (u.includes("/oauth2/v2.0/token")) {
+      refreshes += 1;
+      return new Response(JSON.stringify({ access_token: `at${refreshes}`, expires_in: 3600, refresh_token: `rt${refreshes}` }), { status: 200 });
+    }
+    const auth = new Headers(init?.headers).get("Authorization");
+    if (u.includes("/me")) return new Response(JSON.stringify({ id: "u1", displayName: "山田", userPrincipalName: "y@ex.jp", auth }), { status: 200 });
+    return new Response("{}", { status: 200 });
+  };
+
+  const manager = O.createMicrosoftTokenManager({
+    clientId: "c", clientSecret: "s", tenantId: "t", refreshToken: "rt0",
+    fetchImpl: fakeFetch, onRefresh: (r) => { savedRefresh = r.refreshToken; },
+  });
+  await Promise.all([manager.getAccessToken(), manager.getAccessToken(), manager.getAccessToken()]);
+  ok("Microsoft: 同時に呼んでもトークン更新は1回だけ(同時更新で無効化されるのを防ぐ)", refreshes === 1);
+  ok("Microsoft: 回転したリフレッシュトークンを保存できる(放置すると失効する)", savedRefresh === "rt1");
+
+  const graph = G.createMicrosoftGraphClient(O.createMicrosoftAuthedFetch(manager, fakeFetch));
+  const me = await graph.me();
+  ok("Microsoft: Graph の応答を型付きで返す", me.displayName === "山田" && me.userPrincipalName === "y@ex.jp");
+
+  await fs.rm(base, { recursive: true, force: true });
+}
+
+// ---- ログイン試行の回数制限(総当たり対策) ----
+section("login rate limit");
+{
+  const fs = await import("node:fs/promises");
+  const stamp = smokeStamp();
+  const base = `/tmp/lrl-${stamp}`;
+  await fs.mkdir(base, { recursive: true });
+  const mapCore = async (rel) =>
+    (await fs.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`);
+  await fs.writeFile(`${base}/core.ts`,
+    (await fs.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/^import .*$/gm, "") +
+    (await fs.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/^import .*$/gm, ""));
+  // redis 実装は ioredis(外部依存)を読むため、必要な部分だけを束ねた入口を作る
+  for (const f of ["types", "memory", "limiter"]) {
+    await fs.writeFile(`${base}/${f}.ts`, await mapCore(`../packages/ratelimit/src/${f}.ts`));
+  }
+  await fs.writeFile(`${base}/entry.ts`, `export * from "${base}/types.ts";\nexport * from "${base}/memory.ts";\nexport * from "${base}/limiter.ts";\n`);
+  await fs.writeFile(`${base}/login-limit.ts`,
+    (await fs.readFile(new URL("../apps/equipment-app/src/server/login-limit.ts", import.meta.url), "utf8")).replace('from "@platform/ratelimit"', `from "${base}/entry.ts"`));
+  const L = await import(`${base}/login-limit.ts`);
+
+  // 同じメールで 5 回までは通り、6 回目で止まる
+  const results = [];
+  for (let i = 0; i < 6; i += 1) results.push((await L.checkLoginAttempt("a@example.com", "1.1.1.1")).allowed);
+  ok("ログイン制限: 同じメールへの連続試行を止める(5回まで)",
+    results.slice(0, 5).every((x) => x === true) && results[5] === false);
+
+  // 別のメールなら独立して数える(巻き添えにしない)
+  ok("ログイン制限: 別の利用者は巻き添えにならない",
+    (await L.checkLoginAttempt("b@example.com", "2.2.2.2")).allowed === true);
+
+  ok("ログイン制限: 接続元の推定(X-Forwarded-For の先頭・無ければ unknown)",
+    L.clientIp(new Request("https://x.jp", { headers: { "x-forwarded-for": "203.0.113.9, 10.0.0.1" } })) === "203.0.113.9" &&
+    L.clientIp(new Request("https://x.jp")) === "unknown");
+
+  await fs.rm(base, { recursive: true, force: true });
+}
+
+// ---- パスワードのハッシュ移行(旧形式でもログインできる) ----
+section("password migration");
+{
+  const fs = await import("node:fs/promises");
+  const { scryptSync, randomBytes } = await import("node:crypto");
+  const stamp = smokeStamp();
+  const base = `/tmp/pwm-${stamp}`;
+  await fs.mkdir(base, { recursive: true });
+  await fs.writeFile(`${base}/core.ts`,
+    (await fs.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/^import .*$/gm, "") +
+    (await fs.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/^import .*$/gm, ""));
+  await fs.writeFile(`${base}/crypto.ts`,
+    (await fs.readFile(new URL("../packages/crypto/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fs.writeFile(`${base}/password.ts`,
+    (await fs.readFile(new URL("../apps/internal-app/src/server/password.ts", import.meta.url), "utf8")).replace('from "@platform/crypto"', `from "${base}/crypto.ts"`));
+  const P = await import(`${base}/password.ts`);
+
+  // 移行前のデータ(hex 形式・scrypt 32byte)を再現する
+  const salt = randomBytes(16).toString("hex");
+  const legacy = `${salt}:${scryptSync("秘密のパスワード", salt, 32).toString("hex")}`;
+
+  ok("パスワード移行: 旧形式でもログインできる(既存利用者を締め出さない)",
+    P.verifyPassword("秘密のパスワード", legacy) === true && P.verifyPassword("ちがう", legacy) === false);
+  ok("パスワード移行: 旧形式は再ハッシュ対象と判定される", P.needsRehash(legacy) === true);
+  const fresh = P.hashPassword("秘密のパスワード");
+  ok("パスワード移行: 新形式は基盤の実装で通り、再ハッシュ不要",
+    P.verifyPassword("秘密のパスワード", fresh) === true && P.needsRehash(fresh) === false);
+
+  await fs.rm(base, { recursive: true, force: true });
+}
+
+// ---- UI: 表計算の範囲選択・コピー貼り付け・仮想スクロール ----
+section("ui: grid (spreadsheet)");
+{
+  const fs = await import("node:fs/promises");
+  const stamp = smokeStamp();
+  const gp = `/tmp/uigr-${stamp}.ts`;
+  await fs.writeFile(gp, await fs.readFile(new URL("../packages/ui/src/lib/grid.ts", import.meta.url), "utf8"));
+  const G = await import(gp);
+
+  // 範囲選択: 右下から左上へドラッグしても同じ範囲になる
+  const back = G.normalizeCellRange({ row: 3, col: 4 }, { row: 1, col: 2 });
+  const forth = G.normalizeCellRange({ row: 1, col: 2 }, { row: 3, col: 4 });
+  ok("表: 逆方向にドラッグしても同じ範囲になる(左上→右下だけを想定しない)",
+    JSON.stringify(back) === JSON.stringify(forth));
+  ok("表: 範囲の内外を判定できる",
+    G.inRange(forth, 2, 3) === true && G.inRange(forth, 5, 5) === false && G.inRange(forth, 1, 1) === false);
+
+  // コピー(TSV)
+  const rows = [{ a: "1", b: "あ" }, { a: "2", b: "い" }];
+  const tsv = G.rangeToTsv(rows, ["a", "b"], G.normalizeCellRange({ row: 0, col: 0 }, { row: 1, col: 1 }));
+  ok("表: 選んだ範囲を TSV にする(Excel にそのまま貼れる形)", tsv === "1\tあ\n2\tい");
+
+  // 貼り付け
+  ok("表: 貼り付けた TSV を行に戻す(見出し行の有無を選べる)",
+    JSON.stringify(G.tsvToRows("りんご\t100", ["name", "price"])) === '[{"name":"りんご","price":"100"}]' &&
+    JSON.stringify(G.tsvToRows("名前\t価格\nりんご\t100", ["name", "price"], { header: true })) === '[{"名前":"りんご","価格":"100"}]');
+  ok("表: 空の貼り付けは空の結果(落ちない)", JSON.stringify(G.tsvToRows("", ["a"])) === "[]");
+
+  // 固定列と列幅
+  ok("表: 固定列の左位置を積み上げで出す(重なって隠れない)",
+    JSON.stringify(G.stickyLeftOffsets([100, 80, 120], 2)) === "[0,100]");
+  ok("表: 列幅は最小値より狭くしない(掴めなくなって戻せない)",
+    JSON.stringify(G.applyColumnResize([100, 100], 0, -200)) === "[48,100]" &&
+    JSON.stringify(G.applyColumnResize([100, 100], 0, 50)) === "[150,100]");
+
+  // 仮想スクロール(1000 行でも描くのは見えている分だけ)
+  const top = G.computeVisibleRange(0, 30, 300, 1000, 3);
+  const mid = G.computeVisibleRange(3000, 30, 300, 1000, 3);
+  const bottom = G.computeVisibleRange(29700, 30, 300, 1000, 3);
+  ok("表: 見えている行だけを描く(1000 行でも 20 行程度)",
+    top.start === 0 && top.end < 30 && mid.start > 90 && mid.end > mid.start);
+  ok("表: 上下の余白で総高さを保つ(スクロール位置が飛ばない)",
+    top.topPad === 0 && top.bottomPad > 0 && bottom.bottomPad === 0 && bottom.end === 1000);
+  ok("表: 行高が 0 でも落ちない(全件返す)",
+    G.computeVisibleRange(0, 0, 300, 1000).end === 1000);
+
+  await fs.rm(gp);
+}
+
+// ---- UI: 一覧の並べ替え・絞り込み・選択(全アプリの一覧画面が使う) ----
+section("ui: table query & selection");
+{
+  const fs = await import("node:fs/promises");
+  const stamp = smokeStamp();
+  const tb = `/tmp/uitb-${stamp}.ts`;
+  await fs.writeFile(tb, await fs.readFile(new URL("../packages/ui/src/lib/table.ts", import.meta.url), "utf8"));
+  const T = await import(tb);
+
+  const rows = [
+    { id: "1", name: "さくら", price: 300 },
+    { id: "2", name: "あんず", price: 100 },
+    { id: "3", name: "ゆず", price: null },
+    { id: "4", name: "Apple", price: 200 },
+  ];
+
+  ok("一覧: 日本語を五十音で並べる(文字コード順だと「あ」より「ん」が先に来る)",
+    T.queryRows(rows, { sortKey: "name" }).rows.map((r) => r.name).join(",") === "Apple,あんず,さくら,ゆず");
+  ok("一覧: 値の無い行は昇順でも降順でも末尾(空欄が先頭に来ると探せない)",
+    T.queryRows(rows, { sortKey: "price" }).rows.map((r) => r.price).join(",") === "100,200,300," &&
+    T.queryRows(rows, { sortKey: "price", sortDir: "desc" }).rows.map((r) => r.price).join(",") === "300,200,100,");
+  ok("一覧: 数値は大小で、文字は辞書順で並べる(数値を文字として並べると 100 > 20 になる)",
+    T.queryRows([{ v: 100 }, { v: 20 }, { v: 3 }], { sortKey: "v" }).rows.map((r) => r.v).join(",") === "3,20,100");
+
+  ok("一覧: 検索は大文字小文字を区別しない",
+    T.queryRows(rows, { search: "APPLE", searchKeys: ["name"] }).total === 1);
+  ok("一覧: 検索対象の列を指定しなければ絞り込まない(意図しない列まで探さない)",
+    T.queryRows(rows, { search: "あん" }).total === 4);
+
+  const over = T.queryRows(rows, { pageSize: 2, page: 99 });
+  ok("一覧: 範囲外のページ番号は最後のページに丸める(空の画面を出さない)",
+    over.page === 2 && over.pageCount === 2 && over.rows.length === 2);
+  ok("一覧: 0 件でもページ数は 1(0 ページと表示しない)",
+    T.queryRows([], { pageSize: 2 }).pageCount === 1);
+
+  // 選択状態
+  let sel = T.emptySelection();
+  sel = T.toggleRow(sel, "1");
+  sel = T.toggleRow(sel, "2");
+  ok("選択: 押すと選ばれ、もう一度押すと外れる",
+    T.selectionCount(sel) === 2 && T.selectionCount(T.toggleRow(sel, "1")) === 1);
+  ok("選択: 元の選択状態を書き換えない(戻る操作が壊れる)",
+    T.selectionCount(T.emptySelection()) === 0 && T.selectionCount(sel) === 2);
+
+  const keys = ["1", "2", "3"];
+  const all = T.toggleAll(T.emptySelection(), keys);
+  ok("選択: 全選択と全解除を切り替える",
+    T.isAllSelected(all, keys) === true && T.selectionCount(T.toggleAll(all, keys)) === 0);
+  ok("選択: 一部だけ選ばれていれば中間表示にする(全選択の見た目にしない)",
+    T.isIndeterminate(T.toggleRow(T.emptySelection(), "1"), keys) === true &&
+    T.isIndeterminate(all, keys) === false);
+  ok("選択: 個別の選択状態を判定できる",
+    T.isRowSelected(sel, "2") === true && T.isRowSelected(sel, "9") === false);
+
+  await fs.rm(tb);
+}
+
+// ---- UI: 表示の整形とグラフ用データ(画面のあちこちで使う) ----
+section("ui: format & chart data");
+{
+  const fs = await import("node:fs/promises");
+  const stamp = smokeStamp();
+  const base = `/tmp/uifmt-${stamp}`;
+  await fs.mkdir(base, { recursive: true });
+  await fs.writeFile(`${base}/utils.ts`,
+    (await fs.readFile(new URL("../packages/utils/src/numbers.ts", import.meta.url), "utf8")).replace(/^import .*$/gm, ""));
+  await fs.writeFile(`${base}/chart-data.ts`,
+    (await fs.readFile(new URL("../packages/ui/src/lib/chart-data.ts", import.meta.url), "utf8")).replace('from "@platform/utils"', `from "${base}/utils.ts"`));
+  await fs.writeFile(`${base}/format-bytes.ts`, await fs.readFile(new URL("../packages/ui/src/lib/format-bytes.ts", import.meta.url), "utf8"));
+  await fs.writeFile(`${base}/format-time.ts`, await fs.readFile(new URL("../packages/ui/src/lib/format-time.ts", import.meta.url), "utf8"));
+  const C = await import(`${base}/chart-data.ts`);
+  const { formatBytes } = await import(`${base}/format-bytes.ts`);
+  const { formatTime } = await import(`${base}/format-time.ts`);
+
+  ok("整形: ファイルサイズは単位を繰り上げる(1024 を 1024 B と出さない)",
+    formatBytes(0) === "0 B" && formatBytes(500) === "500 B" &&
+    formatBytes(1024) === "1.0 KB" && formatBytes(1048576) === "1.0 MB" && formatBytes(1073741824) === "1.0 GB");
+  ok("整形: 時間は 1 時間を境に表記を変える(59:59 の次が 1:00:00)",
+    formatTime(0) === "0:00" && formatTime(59) === "0:59" && formatTime(60) === "1:00" &&
+    formatTime(3599) === "59:59" && formatTime(3600) === "1:00:00" && formatTime(3661) === "1:01:01");
+
+  ok("グラフ: 折れ線用に添字を振る(元の並びを変えない)",
+    JSON.stringify(C.sparklineData([3, 1, 2])) === JSON.stringify([{ i: 0, value: 3 }, { i: 1, value: 1 }, { i: 2, value: 2 }]));
+
+  const ma = C.movingAverageData([1, 2, 3, 4, 5], 3);
+  ok("グラフ: 移動平均は窓が埋まるまで null(0 で埋めると急落して見える)",
+    ma[0].ma === null && ma[1].ma === null && ma[2].ma === 2 && ma[4].ma === 4);
+
+  const cum = C.cumulativeData([1, 2, 3]);
+  ok("グラフ: 累積は元の値も残す(内訳と合計を同時に見せられる)",
+    cum[2].cumulative === 6 && cum[2].value === 3);
+
+  const hist = C.histogramData([1, 2, 2, 3, 9]);
+  ok("グラフ: 度数分布は区間を等分し、空の区間も残す(欠けると分布が歪んで見える)",
+    hist.length === 3 && hist[0].count === 4 && hist[1].count === 0 && hist[2].count === 1);
+
+  ok("グラフ: 空の入力でも壊れない(データが無い画面で例外にしない)",
+    C.sparklineData([]).length === 0 && C.cumulativeData([]).length === 0 && C.histogramData([]).length === 0);
+
+  await fs.rm(base, { recursive: true, force: true });
+}
+
+// ---- テーマ: 横の案内に色を付けられる ----
+section("theme: colored sidebar");
+{
+  const fs = await import("node:fs/promises");
+  const stamp = smokeStamp();
+  const base = `/tmp/thm-${stamp}`;
+  await fs.mkdir(base, { recursive: true });
+  for (const f of ["tokens", "css", "themes"]) {
+    await fs.writeFile(`${base}/${f}.ts`,
+      (await fs.readFile(new URL(`../packages/theme/src/${f}.ts`, import.meta.url), "utf8"))
+        .replace(/from "\.\/([a-z]+)"/g, `from "${base}/$1.ts"`));
+  }
+  const { themeToCssVars } = await import(`${base}/css.ts`);
+  const { builtInThemes, navySidebarTheme, defaultTheme } = await import(`${base}/themes.ts`);
+
+  ok("テーマ: 色付きサイドバーの型が 3 つ増えた(既存は据え置き)",
+    builtInThemes.length === 14 && builtInThemes.some((t) => t.id === "navy-sidebar"));
+
+  const navy = themeToCssVars(navySidebarTheme, "light");
+  ok("テーマ: 横の案内の背景と文字を別に指定できる",
+    navy["--color-sidebar-bg"] === "#1e293b" && navy["--color-sidebar-fg"] === "#e2e8f0");
+
+  const def = themeToCssVars(defaultTheme, "light");
+  ok("テーマ: 指定の無いテーマは変数を出さない(これまでと同じ見た目を保つ)",
+    def["--color-sidebar-bg"] === undefined && def["--color-surface"] === "#ffffff");
+
+  ok("テーマ: 暗いモードでも別の色を持てる(明るい色をそのまま使うと眩しい)",
+    themeToCssVars(navySidebarTheme, "dark")["--color-sidebar-bg"] === "#020617");
+
+  ok("テーマ: 色付きの型はすべて文字色も指定している(背景だけ濃くすると読めない)",
+    builtInThemes.filter((t) => t.modes.light.sidebarBg !== undefined)
+      .every((t) => t.modes.light.sidebarFg !== undefined && t.modes.dark.sidebarFg !== undefined));
+
+  await fs.rm(base, { recursive: true, force: true });
+}
+
+// ---- UI: CSV 取込の検証(間違ったデータをそのまま入れない) ----
+section("ui: import validation");
+{
+  const fs = await import("node:fs/promises");
+  const stamp = smokeStamp();
+  const iv = `/tmp/uiiv-${stamp}.ts`;
+  await fs.writeFile(iv, await fs.readFile(new URL("../packages/ui/src/lib/import-validate.ts", import.meta.url), "utf8"));
+  const V = await import(iv);
+
+  const fields = [
+    { key: "code", required: true, unique: true },
+    { key: "name", required: true },
+    { key: "price", type: "number" },
+    { key: "since", type: "date" },
+  ];
+
+  ok("UI取込: 正しい行はエラーにしない",
+    V.validateImportRows([{ code: "A1", name: "商品A", price: "1200", since: "2026-04-01" }], fields).valid === true);
+  ok("UI取込: 必須が空・空白だけの値を未入力として弾く(見た目では気づけない)",
+    V.validateImportRows([{ code: "", name: "A" }], fields).rows[0].errors.some((e) => e.key === "code") &&
+    V.validateImportRows([{ code: "   ", name: "A" }], fields).rows[0].errors.some((e) => e.key === "code"));
+  ok("UI取込: Excel から貼った桁区切り・負の小数を通す(1,200 / -12.5)",
+    V.validateImportRows([{ code: "A1", name: "A", price: "1,200" }], fields).valid === true &&
+    V.validateImportRows([{ code: "A1", name: "A", price: "-12.5" }], fields).valid === true);
+  ok("UI取込: 数値でない単価・日付でない値を弾く",
+    V.validateImportRows([{ code: "A1", name: "A", price: "千二百" }], fields).valid === false &&
+    V.validateImportRows([{ code: "A1", name: "A", since: "令和8年" }], fields).valid === false);
+  ok("UI取込: 日本の様式(2026/04/01)の日付を通す",
+    V.validateImportRows([{ code: "A1", name: "A", since: "2026/04/01" }], fields).valid === true);
+
+  const dup = V.validateImportRows(
+    [{ code: "A1", name: "A" }, { code: "", name: "B" }, { code: "A1", name: "C" }], fields);
+  ok("UI取込: 重複を検出し、どの行と同じかを示す(直す場所が分かる)",
+    dup.rows[2].errors[0].message.includes("1行目") && dup.rows[0].errors.length === 0);
+  ok("UI取込: 1 行に複数のエラーがあれば全部返す(直すたびに再取込させない)",
+    V.validateImportRows([{ code: "", name: "", price: "abc" }], fields).rows[0].errors.length >= 3);
+  ok("UI取込: セル単位でエラー文言を引ける(画面で赤くする)",
+    V.cellErrorLookup(dup)(1, "code") === "必須です" && V.cellErrorLookup(dup)(0, "code") === null);
+  ok("UI取込: エラー行と正しい行を分けられる(部分取込)",
+    JSON.stringify(V.errorRowIndices(dup)) === "[1,2]" &&
+    V.validRows([{ id: 1 }, { id: 2 }, { id: 3 }], dup).length === 1 &&
+    V.partitionRows([{ id: 1 }, { id: 2 }, { id: 3 }], dup).invalid.length === 2);
+
+  const sum = V.summarizeImport(dup);
+  ok("UI取込: 件数をまとめて取込前に見せる",
+    sum.total === 3 && sum.valid === 1 && sum.errorRows === 2 && sum.ok === false);
+  ok("UI取込: 成功・一部成功だけ取り消せる(失敗は戻すものが無い)",
+    V.canRollback("success") === true && V.canRollback("partial") === true &&
+    V.canRollback("failed") === false && V.canRollback("rolled_back") === false);
+  ok("UI取込: 取り消しは権限を持つ人だけ(誤って全件消されると戻せない)",
+    V.canRollbackWith("success", ["admin"], ["admin"]) === true &&
+    V.canRollbackWith("success", ["staff"], ["admin"]) === false &&
+    V.canRollbackWith("success", ["staff"]) === true);
+
+  await fs.rm(iv);
+}
+
+// ---- PWA(ホーム画面・オフライン・プッシュ) ----
+section("pwa");
+{
+  const fs = await import("node:fs/promises");
+  const stamp = smokeStamp();
+  const pw = `/tmp/pwa-${stamp}.ts`;
+  const po = `/tmp/pwao-${stamp}.ts`;
+  await fs.writeFile(pw, await fs.readFile(new URL("../packages/mobile/src/pwa.ts", import.meta.url), "utf8"));
+  await fs.writeFile(po, await fs.readFile(new URL("../packages/mobile/src/pwa-offline.ts", import.meta.url), "utf8"));
+  const P = await import(pw);
+  const O = await import(po);
+
+  const manifest = P.buildWebManifest({
+    name: "社内システム", shortName: "社内", themeColor: "#1e40af",
+    icons: [
+      { src: "/i192.png", sizes: "192x192", type: "image/png" },
+      { src: "/i512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
+    ],
+  });
+  ok("PWA: manifest は standalone(URLバーを消す)・日本語が既定",
+    manifest.display === "standalone" && manifest.lang === "ja" && manifest.start_url === "/");
+  ok("PWA: 条件を満たす manifest には警告が出ない(誤検知で信用を失わない)",
+    P.checkInstallable(manifest).length === 0);
+
+  const warnings = P.checkInstallable(P.buildWebManifest({ name: "x", shortName: "とても長い社内システムの名前です", icons: [] }));
+  ok("PWA: 足りないものを具体的に示す(ブラウザは「できない」としか言わない)",
+    warnings.some((w) => w.field === "short_name") && warnings.filter((w) => w.field === "icons").length >= 3);
+
+  const ios = P.installGuidance("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)");
+  const android = P.installGuidance("Mozilla/5.0 (Linux; Android 14)");
+  ok("PWA: iOS は自動で促せないため手順を案内する(同じ案内だと何をすべきか分からない)",
+    ios.platform === "ios" && ios.canPrompt === false && ios.steps.some((s) => s.includes("ホーム画面に追加")) &&
+    android.platform === "android" && android.canPrompt === true);
+
+  const sw = O.buildServiceWorker({ version: "v1", precache: ["/", "/offline"], offlineFallback: "/offline" });
+  ok("SW: API を既定でキャッシュしない(古い在庫数や承認状態を見せる方が害が大きい)",
+    sw.includes('url.pathname.startsWith("/api/")'));
+  ok("SW: GET 以外は素通し(キャッシュすると二重送信になる)", sw.includes('req.method !== "GET"'));
+  ok("SW: 版が変わったら古いキャッシュを捨てる", sw.includes("caches.delete"));
+  ok("SW: 通知を押したら既存のタブへ移動する(タブを増やさない)", sw.includes("matchAll"));
+
+  ok("Push: iOS はホーム画面に追加していないと使えない(タブでは許可を求めても失敗する)",
+    O.pushAvailability({ userAgent: "iPhone", isStandalone: false, hasNotificationApi: true }).available === false &&
+    O.pushAvailability({ userAgent: "iPhone", isStandalone: true, hasNotificationApi: true }).available === true);
+  ok("Push: 文脈が無いときは許可を求めない(拒否は覚えられ、後から戻せない)",
+    O.shouldAskPushPermission({ permission: "default", didRelevantAction: false }) === false &&
+    O.shouldAskPushPermission({ permission: "default", didRelevantAction: true }) === true &&
+    O.shouldAskPushPermission({ permission: "denied", didRelevantAction: true }) === false);
+
+  await fs.rm(pw); await fs.rm(po);
+}
+
+// ---- OIDC の ID トークン検証(署名が正しくても中身を見る) ----
+section("oidc id token");
+{
+  const fs = await import("node:fs/promises");
+  const stamp = smokeStamp();
+  const oidcPath = `/tmp/oidc-${stamp}.ts`;
+  await fs.writeFile(oidcPath, await fs.readFile(new URL("../packages/auth/src/oidc.ts", import.meta.url), "utf8"));
+  const O = await import(oidcPath);
+
+  const issuer = O.resolveIssuer({ kind: "entra", clientId: "c", clientSecret: "s", tenantId: "t-123" });
+  ok("OIDC: IdP 種別から発行者を解決する(Entra はテナント込み)",
+    issuer.includes("t-123") && O.resolveIssuer({ kind: "google", clientId: "c", clientSecret: "s" }) === "https://accounts.google.com");
+
+  const now = () => 1_700_000_000;
+  const good = { iss: issuer, sub: "u1", aud: "my-client", exp: 1_700_003_600, iat: 1_700_000_000, tid: "t-123", email: "a@ex.jp", email_verified: true };
+  const opt = { issuer, clientId: "my-client", tenantId: "t-123", now };
+  ok("OIDC: 正しいトークンは通る", O.verifyIdTokenClaims(good, opt).ok === true);
+
+  // 署名が正しくても、中身を見ないと通ってしまう攻撃
+  ok("OIDC: 別アプリ向けのトークンを流用させない(aud を見る)",
+    O.verifyIdTokenClaims({ ...good, aud: "other-app" }, opt).reason === "audience_mismatch");
+  ok("OIDC: 別の IdP が発行したトークンを弾く(iss を見る)",
+    O.verifyIdTokenClaims({ ...good, iss: "https://evil.example" }, opt).reason === "issuer_mismatch");
+  ok("OIDC: 期限切れのトークンを使い回させない(exp を見る)",
+    O.verifyIdTokenClaims({ ...good, exp: 1_699_000_000 }, opt).reason === "expired");
+  ok("OIDC: 他社テナントのトークンを弾く(自社限定の設定時)",
+    O.verifyIdTokenClaims({ ...good, tid: "other-tenant" }, opt).reason === "tenant_mismatch");
+  ok("OIDC: 未確認のメールで名寄せしない(他人のアカウントに繋がりうる)",
+    O.verifyIdTokenClaims({ ...good, email_verified: false }, opt).reason === "email_unverified");
+  ok("OIDC: nonce の不一致を弾く(認可要求と結び付いていない)",
+    O.verifyIdTokenClaims({ ...good, nonce: "x" }, { ...opt, nonce: "expected" }).reason === "nonce_mismatch");
+  ok("OIDC: 形の壊れたトークンは malformed",
+    O.verifyIdTokenClaims(null, opt).reason === "malformed" && O.verifyIdTokenClaims({ iss: issuer }, opt).reason === "malformed");
+
+  ok("OIDC: 識別子はメールではなく iss+sub で作る(メールは変わる・再利用される)",
+    O.subjectKey(good) === "login.microsoftonline.com:u1");
+
+  await fs.rm(oidcPath);
+}
+
+// ---- 権限の棚卸し(退職者・期限切れ・強い権限) ----
+section("access review");
+{
+  const fs = await import("node:fs/promises");
+  const stamp = smokeStamp();
+  const arPath = `/tmp/ar-${stamp}.ts`;
+  await fs.writeFile(arPath, await fs.readFile(new URL("../packages/access-review/src/index.ts", import.meta.url), "utf8"));
+  const A = await import(arPath);
+
+  const people = [
+    { userId: "u1", name: "山田", department: "経理", status: "active" },
+    { userId: "u2", name: "佐藤", department: "営業", status: "resigned", resignedOn: "2026-03-31" },
+    { userId: "u3", name: "田中", department: "開発", status: "leave" },
+  ];
+  const base = { grantedBy: "admin", reason: "業務のため" };
+
+  const resigned = A.reviewAccess(people, [{ userId: "u2", grant: "expense:approve:any", grantedOn: "2026-01-01", ...base }], "2026-07-23");
+  ok("棚卸し: 退職者に残った権限を high で検出する(最優先で外す)",
+    resigned[0].severity === "high" && resigned[0].reason.includes("退職者"));
+
+  const unknown = A.reviewAccess(people, [{ userId: "nobody", grant: "admin", grantedOn: "2026-01-01", ...base }], "2026-07-23");
+  ok("棚卸し: 名簿に無い利用者の権限を検出する(誰の権限か分からない)",
+    unknown[0].severity === "high" && unknown[0].reason.includes("名簿に存在しない"));
+
+  const strong = A.reviewAccess(people, [{ userId: "u1", grant: "pii:unmask", grantedOn: "2026-07-01", ...base }], "2026-07-23");
+  ok("棚卸し: 強い権限に期限が無いことを検出する(恒久的に持たせない)",
+    strong.some((f) => f.severity === "high" && f.reason.includes("期限が設定されていません")));
+
+  const expired = A.reviewAccess(people, [{ userId: "u1", grant: "system:manage", grantedOn: "2026-06-01", expiresOn: "2026-07-01", ...base }], "2026-07-23");
+  ok("棚卸し: 期限切れなのに残っている権限を検出する", expired[0].reason.includes("期限"));
+
+  const revoked = A.reviewAccess(people, [{ userId: "u2", grant: "admin", grantedOn: "2025-01-01", revokedOn: "2026-04-01", ...base }], "2026-07-23");
+  const clean = A.reviewAccess(people, [{ userId: "u1", grant: "expense:read:own", grantedOn: "2026-07-01", lastReviewedOn: "2026-07-01", ...base }], "2026-07-23");
+  ok("棚卸し: 外した権限と、確認済みの正常な権限は挙がらない(誤検知で信用を失わない)",
+    revoked.length === 0 && clean.length === 0);
+
+  const steps = A.offboardingSteps(people[1], [{ userId: "u2", grant: "admin", grantedOn: "2025-01-01", ...base }]);
+  ok("退職時: セッションの無効化が最初(権限だけ消しても操作できるため)",
+    steps[0].title.includes("セッション") && steps.length === 5 && steps[3].title.includes("引き継ぎ"));
+
+  ok("強い権限の判定: ワイルドカードと管理系のみ",
+    A.isStrongGrant("*") && A.isStrongGrant("expense:*") && A.isStrongGrant("pii:unmask") && !A.isStrongGrant("expense:read"));
+
+  await fs.rm(arPath);
+}
+
+// ---- パスワード再設定(トークンの発行・照合・使い切り) ----
+section("password reset");
+{
+  const fs = await import("node:fs/promises");
+  const stamp = smokeStamp();
+  const prPath = `/tmp/pr-${stamp}.ts`;
+  await fs.writeFile(prPath, await fs.readFile(new URL("../packages/auth/src/password-reset.ts", import.meta.url), "utf8"));
+  const P = await import(prPath);
+
+  let clock = 1_000_000;
+  const now = () => clock;
+  const store = P.createMemoryPasswordResetStore();
+
+  const issued = await P.issuePasswordReset(store, "u1", { now, expiresInMinutes: 30 });
+  ok("再設定: 生のトークンは保存しない(ハッシュのみ)",
+    typeof issued.token === "string" && issued.token.length >= 32 &&
+    (await store.findByHash(P.hashResetToken(issued.token)))?.tokenHash === P.hashResetToken(issued.token) &&
+    (await store.findByHash(issued.token)) === null);
+
+  ok("再設定: 正しいトークンは通る", (await P.verifyPasswordReset(store, issued.token, now)).ok === true);
+  ok("再設定: でたらめなトークンは拒否", (await P.verifyPasswordReset(store, "でたらめ", now)).reason === "not_found");
+
+  await P.completePasswordReset(store, P.hashResetToken(issued.token), now);
+  ok("再設定: 使用済みは再利用できない", (await P.verifyPasswordReset(store, issued.token, now)).reason === "used");
+
+  const later = await P.issuePasswordReset(store, "u2", { now, expiresInMinutes: 30 });
+  clock += 31 * 60_000;
+  ok("再設定: 期限切れは拒否", (await P.verifyPasswordReset(store, later.token, now)).reason === "expired");
+
+  const a = await P.issuePasswordReset(store, "u3", { now });
+  const b = await P.issuePasswordReset(store, "u3", { now });
+  ok("再設定: 再発行すると古いリンクは無効になる",
+    (await P.verifyPasswordReset(store, a.token, now)).ok === false &&
+    (await P.verifyPasswordReset(store, b.token, now)).ok === true);
+
+  await fs.rm(prPath);
+}
+
 // ---- RBAC(ロール階層 / スコープ / 機能フラグ / API認可) ----
 section("rbac / authorization");
 {
@@ -1586,8 +2251,42 @@ section("rbac / authorization");
   });
   ok("RBAC 継承(manager←employee)", R.can(policy, ["manager"], "expense:create") && !R.can(policy, ["employee"], "expense:approve:own"));
   ok("RBAC admin は全権限", R.can(policy, ["admin"], "user:manage") && R.can(policy, ["admin"], "expense:export"));
-  ok("RBAC スコープ own/any", H.canScoped(policy, ["manager"], "expense:approve", { isOwner: true }) && !H.canScoped(policy, ["manager"], "expense:approve", { isOwner: false }) && H.canScoped(policy, ["finance"], "expense:approve", { isOwner: false }));
+  ok("RBAC スコープ own/any", H.canScoped(policy, ["manager"], "expense:approve", { isOwner: true }) &&
+     !H.canScoped(policy, ["manager"], "expense:approve", { isOwner: false }) &&
+     H.canScoped(policy, ["finance"], "expense:approve", { isOwner: false }));
   ok("RBAC 機能フラグ", H.featureFlags(policy, ["finance"], { exp: "expense:export", mng: "user:manage" }).exp === true && H.featureFlags(policy, ["employee"], { exp: "expense:export" }).exp === false);
+
+  // ---- 認可バイパスの回帰テスト(「通ってはいけない」を固定する) ----
+  // 認可は「できること」より「できないこと」が壊れた時に事故になる。
+  // 権限昇格につながる経路を、負のテストとして明示的に固定しておく。
+  ok("認可: 未知のロールには何の権限も無い", !R.can(policy, ["unknown-role"], "expense:create") && !R.can(policy, ["../admin"], "expense:create"));
+  ok("認可: ロール無し(未ログイン相当)は拒否", !R.can(policy, [], "expense:create") && R.permissionsOf(policy, []).length === 0);
+  ok("認可: 大文字小文字/空白の違いでは通らない", !R.can(policy, ["ADMIN"], "expense:create") && !R.can(policy, ["employee"], "Expense:Create") && !R.can(policy, [" admin "], "expense:create"));
+  ok("認可: ワイルドカードが別リソースへ誤爆しない", (() => {
+    const p = H.resolveHierarchy({ staff: { permissions: ["expense:*"] } });
+    // "expense:*" は expense: 配下のみ。"expenses:"(別リソース)や "expense-report:" に波及しない
+    return R.can(p, ["staff"], "expense:approve") && !R.can(p, ["staff"], "expenses:read") && !R.can(p, ["staff"], "expense-report:read");
+  })());
+  ok("認可: 狭い権限は広い権限を兼ねない", (() => {
+    const p = H.resolveHierarchy({ staff: { permissions: ["expense:read:own"] } });
+    // 自分の分だけ読める人が、全件読める権限を持ってはいけない
+    return R.can(p, ["staff"], "expense:read:own") && !R.can(p, ["staff"], "expense:read") && !R.can(p, ["staff"], "expense:read:any");
+  })());
+  ok("認可: canAll は一つでも欠ければ false", H.canAll(policy, ["finance"], ["expense:create", "expense:export"]) && !H.canAll(policy, ["finance"], ["expense:export", "user:manage"]));
+  ok("認可: canAny は全て無ければ false", H.canAny(policy, ["employee"], ["user:manage", "expense:create"]) && !H.canAny(policy, ["employee"], ["user:manage", "expense:export"]));
+  ok("認可: filterAuthorized は非認可を一件も通さない", (() => {
+    const items = [{ p: "expense:create" }, { p: "expense:export" }, { p: "user:manage" }];
+    const got = H.filterAuthorized(policy, ["employee"], items, (i) => i.p);
+    return got.length === 1 && got[0].p === "expense:create";
+  })());
+  ok("認可: 他人のデータは own 権限では触れない", !H.canScoped(policy, ["manager"], "expense:approve", { isOwner: false }) && !H.canScoped(policy, ["employee"], "expense:approve", { isOwner: true }));
+  ok("認可: ロール継承が循環しても停止し権限は漏れない", (() => {
+    const p = H.resolveHierarchy({ a: { inherits: ["b"], permissions: ["x:read"] }, b: { inherits: ["a"], permissions: ["y:read"] } });
+    // 循環しても無限ループせず、定義していない権限は付かない
+    return !R.can(p, ["a"], "z:read") && !R.can(p, ["b"], "z:read") && R.can(p, ["a"], "x:read");
+  })());
+  ok("認可: 継承は下り方向のみ(部下が上司の権限を得ない)", !R.can(policy, ["employee"], "expense:approve:any") && !R.can(policy, ["manager"], "expense:export") && !R.can(policy, ["finance"], "user:manage"));
+
   await fs.rm(`/tmp/rb-rbac-${stamp}.ts`); await fs.rm(`/tmp/rb-h-${stamp}.ts`);
 }
 
@@ -2202,8 +2901,12 @@ section("error policy / bulkhead / process guards");
   const ep = await w("ep", (await fs.readFile(new URL("../packages/core/src/error-policy.ts", import.meta.url), "utf8")).replace('from "./error"', `from "${err}"`));
   const { httpStatusFor, isRetryable, toErrorEnvelope } = await import(ep);
   const { AppError, ErrorCode } = await import(err);
-  ok("HTTP ステータス中央化(409/429/500)", httpStatusFor(new AppError(ErrorCode.CONFLICT, "x")) === 409 && httpStatusFor(new AppError(ErrorCode.RATE_LIMITED, "x")) === 429 && httpStatusFor(new Error("r")) === 500);
-  ok("再試行分類(EXTERNAL可/VALIDATION不可/未分類不可)", isRetryable(new AppError(ErrorCode.EXTERNAL, "x")) === true && isRetryable(new AppError(ErrorCode.VALIDATION, "x")) === false && isRetryable(new Error("x")) === false);
+  ok("HTTP ステータス中央化(409/429/500)", httpStatusFor(new AppError(ErrorCode.CONFLICT, "x")) === 409 &&
+     httpStatusFor(new AppError(ErrorCode.RATE_LIMITED, "x")) === 429 &&
+     httpStatusFor(new Error("r")) === 500);
+  ok("再試行分類(EXTERNAL可/VALIDATION不可/未分類不可)", isRetryable(new AppError(ErrorCode.EXTERNAL, "x")) === true &&
+     isRetryable(new AppError(ErrorCode.VALIDATION, "x")) === false &&
+     isRetryable(new Error("x")) === false);
   ok("エラーエンベロープ(traceId + 内部秘匿)", toErrorEnvelope(new AppError(ErrorCode.NOT_FOUND, "x", { details: { id: 1 } }), "t1").error.traceId === "t1" && toErrorEnvelope(new Error("secret")).error.code === "UNKNOWN");
 
   const bh = await w("bh", (await fs.readFile(new URL("../packages/core/src/bulkhead.ts", import.meta.url), "utf8")).replace('from "./error"', `from "${err}"`));
@@ -2261,7 +2964,9 @@ section("error control: policy / bulkhead / guard / envelope");
   const ep = await w("ep", (await fs.readFile(new URL("../packages/core/src/error-policy.ts", import.meta.url), "utf8")).replace('from "./error"', `from "${errmod}"`));
   const { httpStatusFor, isRetryable, toErrorEnvelope } = await import(ep);
   const { AppError, ErrorCode } = await import(errmod);
-  ok("エラー分類: status/retryable 中央化", httpStatusFor(new AppError(ErrorCode.CONFLICT, "x")) === 409 && isRetryable(new AppError(ErrorCode.DATABASE, "x")) === true && isRetryable(new AppError(ErrorCode.VALIDATION, "x")) === false);
+  ok("エラー分類: status/retryable 中央化", httpStatusFor(new AppError(ErrorCode.CONFLICT, "x")) === 409 &&
+     isRetryable(new AppError(ErrorCode.DATABASE, "x")) === true &&
+     isRetryable(new AppError(ErrorCode.VALIDATION, "x")) === false);
   const env = toErrorEnvelope(new Error("secret"), "t1");
   ok("エンベロープは内部詳細を漏らさない", env.error.code === "UNKNOWN" && !JSON.stringify(env).includes("secret"));
 
@@ -2377,12 +3082,16 @@ section("utils: function / object / array / async");
   let mc = 0; const m = F.memoize((x) => { mc++; return x * 2; });
   ok("utils memoize/once/pipe", m(5) === 10 && m(5) === 10 && mc === 1 && F.pipe((x) => x + 1, (x) => x * 2)(3) === 8);
   // object
-  ok("utils pick/omit/deepClone/deepEqual", JSON.stringify(O.pick({ a: 1, b: 2 }, ["a"])) === JSON.stringify({ a: 1 }) && O.deepEqual({ a: [1] }, { a: [1] }) === true && O.deepMerge({ a: { x: 1 } }, { a: { y: 2 } }).a.x === 1);
+  ok("utils pick/omit/deepClone/deepEqual", JSON.stringify(O.pick({ a: 1, b: 2 }, ["a"])) === JSON.stringify({ a: 1 }) &&
+     O.deepEqual({ a: [1] }, { a: [1] }) === true &&
+     O.deepMerge({ a: { x: 1 } }, { a: { y: 2 } }).a.x === 1);
   const cl = O.deepClone({ a: { b: [1] } }); cl.a.b.push(2);
   ok("utils deepClone は独立 + isEmpty", cl.a.b.length === 2 && O.isEmpty("") === true && O.isEmpty("x") === false);
   // array
   ok("utils sortBy/partition/keyBy", JSON.stringify(A.sortBy([{ n: 3 }, { n: 1 }], (x) => x.n).map((x) => x.n)) === JSON.stringify([1, 3]) && JSON.stringify(A.partition([1, 2, 3], (x) => x % 2 === 0)) === JSON.stringify([[2], [1, 3]]));
-  ok("utils zip/range/difference", JSON.stringify(A.zip([1, 2], ["a", "b"])) === JSON.stringify([[1, "a"], [2, "b"]]) && JSON.stringify(A.range(1, 5)) === JSON.stringify([1, 2, 3, 4]) && JSON.stringify(A.difference([1, 2, 3], [2])) === JSON.stringify([1, 3]));
+  ok("utils zip/range/difference", JSON.stringify(A.zip([1, 2], ["a", "b"])) === JSON.stringify([[1, "a"], [2, "b"]]) &&
+     JSON.stringify(A.range(1, 5)) === JSON.stringify([1, 2, 3, 4]) &&
+     JSON.stringify(A.difference([1, 2, 3], [2])) === JSON.stringify([1, 3]));
   // async
   let cur = 0, max = 0;
   const r = await Y.pMapLimit([1, 2, 3, 4, 5, 6], async (x) => { cur++; max = Math.max(max, cur); await new Promise((rs) => setTimeout(rs, 3)); cur--; return x * 2; }, 2);
@@ -2403,7 +3112,9 @@ section("line: builders / webhook / client");
   const msgSrc = (await fs.readFile(new URL("../packages/line/src/messages.ts", import.meta.url), "utf8")).replace('from "./index"', `from "${msgShim}"`);
   const msgF = `/tmp/line-msg-${stamp}.ts`; await fs.writeFile(msgF, msgSrc);
   const M = await import(msgF);
-  ok("LINE ビルダー(buttons/confirm/quickReply)", M.buttonsTemplate({ altText: "a", text: "t", actions: [M.postbackAction("承認", "d")] }).template.type === "buttons" && M.withQuickReply(M.textMessage("x"), [M.messageAction("y", "y")]).quickReply.items.length === 1 && M.confirmTemplate("a", "t", M.messageAction("y", "y"), M.messageAction("n", "n")).template.actions.length === 2);
+  ok("LINE ビルダー(buttons/confirm/quickReply)", M.buttonsTemplate({ altText: "a", text: "t", actions: [M.postbackAction("承認", "d")] }).template.type === "buttons" &&
+     M.withQuickReply(M.textMessage("x"), [M.messageAction("y", "y")]).quickReply.items.length === 1 &&
+     M.confirmTemplate("a", "t", M.messageAction("y", "y"), M.messageAction("n", "n")).template.actions.length === 2);
 
   const W = await import(new URL("../packages/line/src/webhook.ts", import.meta.url));
   const secret = "linesec";
@@ -2426,7 +3137,10 @@ section("line: builders / webhook / client");
   await client.deleteRichMenu("rm1");
   await client.showLoadingAnimation("U1", 30);
   const calls = globalThis.__lc;
-  ok("LINE 拡張クライアント(richmenu/loading)", calls.some((c) => c.p === "/richmenu" && c.m === "POST") && calls.some((c) => c.m === "DELETE") && calls.at(-1).p === "/chat/loading/start" && calls.at(-1).body.loadingSeconds === 30);
+  ok("LINE 拡張クライアント(richmenu/loading)", calls.some((c) => c.p === "/richmenu" && c.m === "POST") &&
+     calls.some((c) => c.m === "DELETE") &&
+     calls.at(-1).p === "/chat/loading/start" &&
+     calls.at(-1).body.loadingSeconds === 30);
 
   for (const f of [msgShim, msgF, coreF, intF, emptyF, idxF]) await fs.rm(f);
 }
@@ -2477,7 +3191,10 @@ section("freee: token / receipts / journal");
   await client.createDealPayment(999, { amount: 1000 });
   const calls = globalThis.__fr;
   const up = calls.find((c) => c.p === "/receipts" && c.m === "POST");
-  ok("freee 証憑multipart/振替伝票/支払", up.multipart.files[0].filename === "r.jpg" && up.multipart.fields.company_id === 123 && calls.some((c) => c.p === "/manual_journals") && calls.some((c) => c.p === "/deals/999/payments"));
+  ok("freee 証憑multipart/振替伝票/支払", up.multipart.files[0].filename === "r.jpg" &&
+     up.multipart.fields.company_id === 123 &&
+     calls.some((c) => c.p === "/manual_journals") &&
+     calls.some((c) => c.p === "/deals/999/payments"));
 
   for (const f of [coreF, intF, emptyF, idxF]) await fs.rm(f);
 }
@@ -2501,7 +3218,11 @@ section("freee: HR / approval / webhook");
   const baseOk = globalThis.__frx.baseUrl === "https://api.freee.co.jp/hr/api/v1";
   await hr.putWorkRecord(10, { date: "2025-07-25", clockInAt: "2025-07-25T09:00:00", breakRecords: [{ clockInAt: "2025-07-25T12:00:00", clockOutAt: "2025-07-25T13:00:00" }] }, 5);
   const wr = globalThis.__frx.calls.at(-1);
-  ok("freee 人事労務(base URL/勤怠 PUT/キー変換)", baseOk && wr.m === "PUT" && wr.p === "/employees/10/work_records/2025-07-25" && wr.body.clock_in_at === "2025-07-25T09:00:00" && wr.body.break_records[0].clock_in_at === "2025-07-25T12:00:00");
+  ok("freee 人事労務(base URL/勤怠 PUT/キー変換)", baseOk &&
+     wr.m === "PUT" &&
+     wr.p === "/employees/10/work_records/2025-07-25" &&
+     wr.body.clock_in_at === "2025-07-25T09:00:00" &&
+     wr.body.break_records[0].clock_in_at === "2025-07-25T12:00:00");
   await hr.getWorkRecordSummary(10, 2025, 7, 5);
   ok("freee 人事労務(月次集計/給与)", globalThis.__frx.calls.at(-1).p === "/employees/10/work_record_summaries/2025/7");
 
@@ -2573,7 +3294,11 @@ section("google: oauth / gmail / drive / calendar");
   await cal.createEvent("primary", { summary: "会議" }, { sendUpdates: "all" });
   const ce = globalThis.__gx;
   await cal.freeBusy({ timeMin: "a", timeMax: "b", calendarIds: ["primary", "room@x.com"] });
-  ok("calendar(予定作成/freeBusy)", ce.method === "POST" && ce.path === "/calendars/primary/events" && ce.query.sendUpdates === "all" && globalThis.__gx.path === "/freeBusy" && globalThis.__gx.body.items.length === 2);
+  ok("calendar(予定作成/freeBusy)", ce.method === "POST" &&
+     ce.path === "/calendars/primary/events" &&
+     ce.query.sendUpdates === "all" &&
+     globalThis.__gx.path === "/freeBusy" &&
+     globalThis.__gx.body.items.length === 2);
 
   for (const f of [coreF, intF, emptyF]) await fs.rm(f);
 }
@@ -2695,7 +3420,10 @@ section("session: idle timeout / idle timer / login throttle");
 section("identity: document validation / masking");
 {
   const I = await import(new URL("../packages/validation/src/identity.ts", import.meta.url));
-  ok("本人確認書類の書式検証(免許/旅券/在留)", I.isValidDriversLicenseNumber("123456789012") && I.isValidJapanPassportNumber("TK1234567") && I.isValidResidenceCardNumber("AB12345678CD") && !I.isValidDriversLicenseNumber("12345678901"));
+  ok("本人確認書類の書式検証(免許/旅券/在留)", I.isValidDriversLicenseNumber("123456789012") &&
+     I.isValidJapanPassportNumber("TK1234567") &&
+     I.isValidResidenceCardNumber("AB12345678CD") &&
+     !I.isValidDriversLicenseNumber("12345678901"));
   ok("書類番号の正規化(全角/ハイフン)", I.normalizeDocumentNumber("ＴＫ－１２３４５６７") === "TK1234567" && I.validateIdentityDocument("passport", "TK1234567"));
   const M = await import(new URL("../packages/pii/src/identity-mask.ts", import.meta.url));
   ok("マイナンバーは既定 全桁マスク(番号法)", M.maskMyNumber("123456789018") === "************" && M.maskMyNumber("123456789018", 4) === "********9018");
@@ -2708,7 +3436,10 @@ section("ekyc: status / webhook / client");
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
   const S = await import(new URL("../packages/ekyc/src/status.ts", import.meta.url));
-  ok("ekyc ステータス正規化", S.normalizeEkycStatus("Approved") === "approved" && S.normalizeEkycStatus("NG") === "rejected" && S.normalizeEkycStatus("reviewing") === "in_review" && S.normalizeEkycStatus("x") === "unknown");
+  ok("ekyc ステータス正規化", S.normalizeEkycStatus("Approved") === "approved" &&
+     S.normalizeEkycStatus("NG") === "rejected" &&
+     S.normalizeEkycStatus("reviewing") === "in_review" &&
+     S.normalizeEkycStatus("x") === "unknown");
   ok("ekyc 確定/承認判定", S.isEkycFinal("approved") && !S.isEkycFinal("in_review") && S.isEkycApproved("approved"));
 
   // webhook(status.ts を .ts 参照に差し替えて読み込み)
@@ -2750,7 +3481,10 @@ section("ekyc: client / webhook / status");
   const stamp2 = smokeStamp();
   // status(依存ゼロ)
   const ST = await import(new URL("../packages/ekyc/src/status.ts", import.meta.url));
-  ok("ekyc status 正規化", ST.normalizeEkycStatus("Approved") === "approved" && ST.normalizeEkycStatus("NG") === "rejected" && ST.normalizeEkycStatus("x") === "unknown" && ST.isEkycFinal("approved") === true);
+  ok("ekyc status 正規化", ST.normalizeEkycStatus("Approved") === "approved" &&
+     ST.normalizeEkycStatus("NG") === "rejected" &&
+     ST.normalizeEkycStatus("x") === "unknown" &&
+     ST.isEkycFinal("approved") === true);
   // client(integrations を core shim 経由で読み込み)
   const coreF = `/tmp/ekyc-core-${stamp2}.ts`;
   await fs.writeFile(coreF, `export const ErrorCode={EXTERNAL:"EXTERNAL",INTERNAL:"INTERNAL"};export class AppError extends Error{constructor(c,m,d){super(m);this.code=c;this.details=d;}}export async function tryCatch(fn){try{return {ok:true,value:await fn()};}catch(e){return {ok:false,error:e instanceof AppError?e:new AppError("INTERNAL",String(e))};}}`);
@@ -2775,7 +3509,10 @@ section("ekyc: client / webhook / status");
   const secret = "whsec"; const body = JSON.stringify({ application_id: "app_9", status: "approved" });
   const sig = cr.createHmac("sha256", secret).update(body).digest("hex");
   const ev = W.parseEkycWebhook(body);
-  ok("ekyc webhook(署名検証 + パース正規化)", W.verifyEkycSignature(body, sig, secret) === true && W.verifyEkycSignature(body + "x", sig, secret) === false && ev.applicationId === "app_9" && ev.status === "approved");
+  ok("ekyc webhook(署名検証 + パース正規化)", W.verifyEkycSignature(body, sig, secret) === true &&
+     W.verifyEkycSignature(body + "x", sig, secret) === false &&
+     ev.applicationId === "app_9" &&
+     ev.status === "approved");
   for (const f of [coreF, intF, clientF, whF]) await fs.rm(f);
 }
 
@@ -2807,7 +3544,9 @@ section("ui: schedule layout");
   const span = S.layoutDayEvents([ev("s", "2025-07-24T22:00", "2025-07-25T02:00")], day);
   ok("schedule 跨ぎクランプ(top=0, 2h)", span[0].top === 0 && Math.abs(span[0].height - 2 / 24) < 1e-9);
   const grid = S.buildMonthGrid(new Date(2025, 6, 15), { weekStartsOn: 0, today: new Date(2025, 6, 25) });
-  ok("schedule buildMonthGrid(週7日・7/1火曜・today)", grid.every((w) => w.length === 7) && grid[0][2].date.getDate() === 1 && grid.flat().find((c) => c.date.getDate() === 25 && c.inMonth).isToday === true);
+  ok("schedule buildMonthGrid(週7日・7/1火曜・today)", grid.every((w) => w.length === 7) &&
+     grid[0][2].date.getDate() === 1 &&
+     grid.flat().find((c) => c.date.getDate() === 25 && c.inMonth).isToday === true);
   ok("schedule groupEventsByDay(跨ぎ3日) / formatEventTime", S.groupEventsByDay([ev("m", "2025-07-24T10:00", "2025-07-26T10:00")]).length === 3 && S.formatEventTime(ev("a", "2025-07-25T09:05", "2025-07-25T10:30")) === "09:05–10:30");
   // 空き/使用時間の計算
   const win0 = new Date("2025-07-25T09:00"), win1 = new Date("2025-07-25T18:00");
@@ -2833,7 +3572,9 @@ section("workflow: routing / delegation / parallel");
   const P = await import(new URL("../packages/workflow/src/parallel.ts", import.meta.url));
   const mgr = { name: "課長", approverRole: "manager" }, dir = { name: "部長", approverRole: "director" }, exe = { name: "役員", approverRole: "executive" };
   const tiers = [{ under: 100000, steps: [mgr] }, { under: 1000000, steps: [mgr, dir] }, { steps: [mgr, dir, exe] }];
-  ok("workflow routeByAmount(5万→1段/50万→2段/境界10万→2段)", R.routeByAmount(50000, tiers).steps.length === 1 && R.routeByAmount(500000, tiers).steps.length === 2 && R.routeByAmount(100000, tiers).steps.length === 2);
+  ok("workflow routeByAmount(5万→1段/50万→2段/境界10万→2段)", R.routeByAmount(50000, tiers).steps.length === 1 &&
+     R.routeByAmount(500000, tiers).steps.length === 2 &&
+     R.routeByAmount(100000, tiers).steps.length === 2);
   ok("workflow resolveRoute(条件一致/デフォルト)", R.resolveRoute([{ when: (c) => c.dept === "sales", steps: [mgr, dir] }, { steps: [mgr] }], { dept: "sales" }).steps.length === 2);
 
   const now = new Date("2025-07-25T12:00:00Z");
@@ -2845,13 +3586,18 @@ section("workflow: routing / delegation / parallel");
   let ps = P.recordParallelApproval(pstep, P.startParallel(), { id: "u1", roles: ["legal"] });
   const midIncomplete = !P.isParallelComplete(pstep, ps);
   ps = P.recordParallelApproval(pstep, ps, { id: "u2", roles: ["finance", "hr"] });
-  ok("workflow 並列承認(all は全員で完了/any は1人)", midIncomplete && P.isParallelComplete(pstep, ps) && P.isParallelComplete({ name: "x", approverRoles: ["a", "b"], mode: "any" }, P.recordParallelApproval({ name: "x", approverRoles: ["a", "b"], mode: "any" }, P.startParallel(), { id: "z", roles: ["a"] })));
+  ok("workflow 並列承認(all は全員で完了/any は1人)", midIncomplete &&
+     P.isParallelComplete(pstep, ps) &&
+     P.isParallelComplete({ name: "x", approverRoles: ["a", "b"], mode: "any" }, P.recordParallelApproval({ name: "x", approverRoles: ["a", "b"], mode: "any" }, P.startParallel(), { id: "z", roles: ["a"] })));
 
   const ES = await import(new URL("../packages/workflow/src/escalation.ts", import.meta.url));
   const pend = (h = []) => ({ status: "pending", currentStep: 0, history: h });
   const st = new Date("2025-07-25T09:00:00Z");
   const pol = { remindAfterMin: 60, reminderIntervalMin: 60, escalateAfterMin: 240 };
-  ok("workflow SLA(30分none/90分remind/300分escalate/重複抑止)", ES.evaluateSla(st, new Date("2025-07-25T09:30:00Z"), pol).action === "none" && ES.evaluateSla(st, new Date("2025-07-25T10:30:00Z"), pol).action === "remind" && ES.evaluateSla(st, new Date("2025-07-25T14:00:00Z"), pol).action === "escalate" && ES.evaluateSla(st, new Date("2025-07-25T10:30:00Z"), pol, { remindersSent: 1 }).action === "none");
+  ok("workflow SLA(30分none/90分remind/300分escalate/重複抑止)", ES.evaluateSla(st, new Date("2025-07-25T09:30:00Z"), pol).action === "none" &&
+     ES.evaluateSla(st, new Date("2025-07-25T10:30:00Z"), pol).action === "remind" &&
+     ES.evaluateSla(st, new Date("2025-07-25T14:00:00Z"), pol).action === "escalate" &&
+     ES.evaluateSla(st, new Date("2025-07-25T10:30:00Z"), pol, { remindersSent: 1 }).action === "none");
   const defE = { steps: [{ name: "課長", approverRole: "manager" }, { name: "部長", approverRole: "director" }] };
   const stalled = ES.findStalledApprovals([{ id: "a", state: pend(), startedAt: st }, { id: "d", state: pend(), startedAt: new Date("2025-07-25T05:00:00Z") }], new Date("2025-07-25T10:30:00Z"), pol);
   ok("workflow findStalled + escalationTarget(次段)", stalled.length === 2 && ES.escalationTarget(defE, pend()).approverRole === "director");
@@ -2886,10 +3632,19 @@ section("notify: preferences");
   const P = await import(new URL("../packages/notify/src/preferences.ts", import.meta.url));
   const at = (h) => { const d = new Date("2025-07-25T00:00:00"); d.setHours(h); return d; };
   const pref = { categories: { approval: { channels: ["slack", "email"], mode: "immediate" }, report: { channels: ["email"], mode: "digest" }, marketing: { channels: ["email"], mode: "off" }, mention: { channels: ["push"] } }, defaultChannels: ["inApp"], quietHours: { start: 22, end: 7 } };
-  ok("静音時間 日またぎ(23時内/12時外/5時内)", P.isQuietHour({ start: 22, end: 7 }, at(23)) === true && P.isQuietHour({ start: 22, end: 7 }, at(12)) === false && P.isQuietHour({ start: 22, end: 7 }, at(5)) === true);
-  ok("配信解決(即時/digest/off/静音/緊急)", P.resolveDelivery(pref, { category: "approval" }, at(12)).reason === "immediate" && P.resolveDelivery(pref, { category: "report" }, at(12)).deferred === true && P.resolveDelivery(pref, { category: "marketing" }, at(12)).reason === "off" && P.resolveDelivery(pref, { category: "mention" }, at(23)).reason === "quiet_hours" && P.resolveDelivery(pref, { category: "mention", urgent: true }, at(23)).reason === "urgent");
+  ok("静音時間 日またぎ(23時内/12時外/5時内)", P.isQuietHour({ start: 22, end: 7 }, at(23)) === true &&
+     P.isQuietHour({ start: 22, end: 7 }, at(12)) === false &&
+     P.isQuietHour({ start: 22, end: 7 }, at(5)) === true);
+  ok("配信解決(即時/digest/off/静音/緊急)", P.resolveDelivery(pref, { category: "approval" }, at(12)).reason === "immediate" &&
+     P.resolveDelivery(pref, { category: "report" }, at(12)).deferred === true &&
+     P.resolveDelivery(pref, { category: "marketing" }, at(12)).reason === "off" &&
+     P.resolveDelivery(pref, { category: "mention" }, at(23)).reason === "quiet_hours" &&
+     P.resolveDelivery(pref, { category: "mention", urgent: true }, at(23)).reason === "urgent");
   const part = P.partitionDeliveries(pref, [{ category: "approval" }, { category: "report" }, { category: "marketing" }, { category: "mention" }], at(12));
-  ok("一括振り分け(即時2/後回し1/抑制1) + digest集計", part.immediate.length === 2 && part.deferred.length === 1 && part.suppressed.length === 1 && P.summarizeDigest([{ event: { category: "report" }, decision: {} }, { event: { category: "report" }, decision: {} }])[0].count === 2);
+  ok("一括振り分け(即時2/後回し1/抑制1) + digest集計", part.immediate.length === 2 &&
+     part.deferred.length === 1 &&
+     part.suppressed.length === 1 &&
+     P.summarizeDigest([{ event: { category: "report" }, decision: {} }, { event: { category: "report" }, decision: {} }])[0].count === 2);
 }
 
 // ---- mail: テンプレートメール + 宛先ホワイトリスト ----
@@ -2914,20 +3669,34 @@ section("mail: template / allowlist");
   const alSrc = (await fs.readFile(new URL("../packages/mail/src/allowlist.ts", import.meta.url), "utf8")).replace(/from "\.\/email"/g, `from "${emailF}"`).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(`from "${emailF.replace(/\.ts"$/, '.ts')}"`, `from "${emailF}"`);
   const alF = `/tmp/mail-al-${stamp}.ts`; await fs.writeFile(alF, alSrc);
   const A = await import(alF);
-  ok("allowlist: ドメイン許可/拒否/大小無視/ブロック優先", A.isAllowedRecipient("a@corp.com", { allowedDomains: ["corp.com"] }) === true && A.isAllowedRecipient("a@gmail.com", { allowedDomains: ["corp.com"] }) === false && A.isAllowedRecipient("A@CORP.COM", { allowedDomains: ["corp.com"] }) === true && A.isAllowedRecipient("x@corp.com", { allowedDomains: ["corp.com"], blockedEmails: ["x@corp.com"] }) === false);
+  ok("allowlist: ドメイン許可/拒否/大小無視/ブロック優先", A.isAllowedRecipient("a@corp.com", { allowedDomains: ["corp.com"] }) === true &&
+     A.isAllowedRecipient("a@gmail.com", { allowedDomains: ["corp.com"] }) === false &&
+     A.isAllowedRecipient("A@CORP.COM", { allowedDomains: ["corp.com"] }) === true &&
+     A.isAllowedRecipient("x@corp.com", { allowedDomains: ["corp.com"], blockedEmails: ["x@corp.com"] }) === false);
   const applied = A.applyRecipientPolicy({ to: ["ok@corp.com", "bad@x.com"], subject: "s" }, { allowedDomains: ["corp.com"] });
-  ok("allowlist: 許可宛先のみ残す/全滅null/redirect", applied.message.to === "ok@corp.com" && A.applyRecipientPolicy({ to: "bad@x.com", subject: "s" }, { allowedDomains: ["corp.com"] }).message === null && A.applyRecipientPolicy({ to: "a@b.com", subject: "s" }, {}, { redirectTo: "stg@t.com" }).message.to === "stg@t.com");
+  ok("allowlist: 許可宛先のみ残す/全滅null/redirect", applied.message.to === "ok@corp.com" &&
+     A.applyRecipientPolicy({ to: "bad@x.com", subject: "s" }, { allowedDomains: ["corp.com"] }).message === null &&
+     A.applyRecipientPolicy({ to: "a@b.com", subject: "s" }, {}, { redirectTo: "stg@t.com" }).message.to === "stg@t.com");
   await fs.rm(emailF); await fs.rm(alF);
 
   const AT = await import(new URL("../packages/mail/src/attachments.ts", import.meta.url));
   const pdf = AT.attachmentFromBase64("請求書.pdf", "SGVsbG8gV29ybGQ=");
-  ok("attachments: 種別推定/base64サイズ11/検証", pdf.contentType === "application/pdf" && AT.attachmentSize(pdf) === 11 && AT.validateAttachments([pdf], { maxTotalBytes: 5 }).ok === false && AT.validateAttachments([AT.attachmentFromBase64("v.exe", "AA")], { blockedExtensions: ["exe"] }).ok === false);
+  ok("attachments: 種別推定/base64サイズ11/検証", pdf.contentType === "application/pdf" &&
+     AT.attachmentSize(pdf) === 11 &&
+     AT.validateAttachments([pdf], { maxTotalBytes: 5 }).ok === false &&
+     AT.validateAttachments([AT.attachmentFromBase64("v.exe", "AA")], { blockedExtensions: ["exe"] }).ok === false);
   const U = await import(new URL("../packages/mail/src/unsubscribe.ts", import.meta.url));
   const tok = U.createUnsubscribeToken("User@Example.com", "sec", { category: "news" });
   const uv = U.verifyUnsubscribeToken(tok, "sec");
-  ok("unsubscribe: 署名トークン検証/改ざん検出/小文字化", uv.valid === true && uv.email === "user@example.com" && uv.category === "news" && U.verifyUnsubscribeToken(tok + "x", "sec").valid === false && U.verifyUnsubscribeToken(tok, "wrong").valid === false);
+  ok("unsubscribe: 署名トークン検証/改ざん検出/小文字化", uv.valid === true &&
+     uv.email === "user@example.com" &&
+     uv.category === "news" &&
+     U.verifyUnsubscribeToken(tok + "x", "sec").valid === false &&
+     U.verifyUnsubscribeToken(tok, "wrong").valid === false);
   const uh = U.listUnsubscribeHeaders({ url: "https://x.com/u?t=1", mailto: "u@x.com", oneClick: true });
-  ok("unsubscribe: List-Unsubscribe/ワンクリック/抑制除外", uh["List-Unsubscribe"] === "<https://x.com/u?t=1>, <mailto:u@x.com>" && uh["List-Unsubscribe-Post"] === "List-Unsubscribe=One-Click" && U.removeSuppressed(["a@x.com", "stop@x.com"], new Set(["stop@x.com"])).sendable.join(",") === "a@x.com");
+  ok("unsubscribe: List-Unsubscribe/ワンクリック/抑制除外", uh["List-Unsubscribe"] === "<https://x.com/u?t=1>, <mailto:u@x.com>" &&
+     uh["List-Unsubscribe-Post"] === "List-Unsubscribe=One-Click" &&
+     U.removeSuppressed(["a@x.com", "stop@x.com"], new Set(["stop@x.com"])).sendable.join(",") === "a@x.com");
 }
 
 // ---- auth OTP(SMS認証)+ sms OTP文面 ----
@@ -2938,8 +3707,13 @@ section("otp / sms otp message");
   ok("OTP 生成/ハッシュ(6桁・平文非保持・identifier差)", /^\d{6}$/.test(O.generateOtpCode()) && O.hashOtpCode("123456", secret) !== "123456" && O.hashOtpCode("1", secret, "a") !== O.hashOtpCode("1", secret, "b"));
   const { challenge, code } = O.createOtpChallenge("0901234", secret, { now, ttlSec: 300, maxAttempts: 3 });
   ok("OTP チャレンジ(平文非保持・期限)", !JSON.stringify(challenge).includes(code) && challenge.expiresAt === now.getTime() + 300000);
-  ok("OTP 検証(正解ok/誤りinvalid/期限expired/上限too_many)", O.verifyOtpCode(challenge, code, secret, now).status === "ok" && O.verifyOtpCode(challenge, "000000", secret, now).status === "invalid" && O.verifyOtpCode(challenge, code, secret, new Date(now.getTime() + 400000)).status === "expired" && O.verifyOtpCode({ ...challenge, attempts: 3, maxAttempts: 3 }, code, secret, now).status === "too_many_attempts");
-  ok("OTP 再送クールダウン(前不可/後可/残秒)", O.canResendOtp(challenge, 60, new Date(now.getTime() + 30000)) === false && O.canResendOtp(challenge, 60, new Date(now.getTime() + 61000)) === true && O.resendWaitSeconds(challenge, 60, new Date(now.getTime() + 20000)) === 40);
+  ok("OTP 検証(正解ok/誤りinvalid/期限expired/上限too_many)", O.verifyOtpCode(challenge, code, secret, now).status === "ok" &&
+     O.verifyOtpCode(challenge, "000000", secret, now).status === "invalid" &&
+     O.verifyOtpCode(challenge, code, secret, new Date(now.getTime() + 400000)).status === "expired" &&
+     O.verifyOtpCode({ ...challenge, attempts: 3, maxAttempts: 3 }, code, secret, now).status === "too_many_attempts");
+  ok("OTP 再送クールダウン(前不可/後可/残秒)", O.canResendOtp(challenge, 60, new Date(now.getTime() + 30000)) === false &&
+     O.canResendOtp(challenge, 60, new Date(now.getTime() + 61000)) === true &&
+     O.resendWaitSeconds(challenge, 60, new Date(now.getTime() + 20000)) === 40);
   const M = await import(new URL("../packages/sms/src/otp-message.ts", import.meta.url));
   ok("SMS OTP 文面(既定/テンプレート)", M.buildOtpSms({ to: "+8190", code: "123456", appName: "社内", expiryMinutes: 5 }).body === "【社内】認証コード: 123456(5分間有効)" && M.buildOtpSms({ to: "x", code: "55", appName: "A", expiryMinutes: 3, template: "{app}:{code}({minutes}分)" }).body === "A:55(3分)");
 
@@ -2950,16 +3724,27 @@ section("otp / sms otp message");
   ok("HOTP RFC4226 公式ベクタ10件一致", hExpected.every((e, i) => TT.hotp(rfcSecret, i) === e));
   ok("TOTP RFC6238 公式ベクタ(59s/1111111109)", TT.totp(rfcSecret, { digits: 8 }, new Date(59 * 1000)) === "94287082" && TT.totp(rfcSecret, { digits: 8 }, new Date(1111111109 * 1000)) === "07081804");
   const sec = TT.generateTotpSecret(); const tnow = new Date("2025-07-25T12:00:00Z");
-  ok("TOTP 検証(正/誤/時刻ずれ許容/範囲外)", TT.verifyTotp(sec, TT.totp(sec, {}, tnow), {}, tnow) === true && TT.verifyTotp(sec, "000000", {}, tnow) === false && TT.verifyTotp(sec, TT.totp(sec, {}, new Date(tnow.getTime() - 30000)), { window: 1 }, tnow) === true && TT.verifyTotp(sec, TT.totp(sec, {}, new Date(tnow.getTime() - 90000)), { window: 1 }, tnow) === false);
-  ok("TOTP otpauth URI(QR用)", TT.totpAuthUri(sec, { issuer: "App", account: "u@x.com" }).startsWith("otpauth://totp/App%3Au%40x.com?") && TT.totpAuthUri(sec, { issuer: "App", account: "u@x.com" }).includes(`secret=${sec}`) && TT.totpAuthUri(sec, { issuer: "App", account: "u@x.com" }).includes("issuer=App"));
+  ok("TOTP 検証(正/誤/時刻ずれ許容/範囲外)", TT.verifyTotp(sec, TT.totp(sec, {}, tnow), {}, tnow) === true &&
+     TT.verifyTotp(sec, "000000", {}, tnow) === false &&
+     TT.verifyTotp(sec, TT.totp(sec, {}, new Date(tnow.getTime() - 30000)), { window: 1 }, tnow) === true &&
+     TT.verifyTotp(sec, TT.totp(sec, {}, new Date(tnow.getTime() - 90000)), { window: 1 }, tnow) === false);
+  ok("TOTP otpauth URI(QR用)", TT.totpAuthUri(sec, { issuer: "App", account: "u@x.com" }).startsWith("otpauth://totp/App%3Au%40x.com?") &&
+     TT.totpAuthUri(sec, { issuer: "App", account: "u@x.com" }).includes(`secret=${sec}`) &&
+     TT.totpAuthUri(sec, { issuer: "App", account: "u@x.com" }).includes("issuer=App"));
 
   const BC = await import(new URL("../packages/auth/src/recovery-codes.ts", import.meta.url));
   const bcSecret = "pepper";
   const { codes, records } = BC.generateBackupCodes(bcSecret);
-  ok("バックアップ生成(10個/読みやすい/平文非保持/一意)", codes.length === 10 && /^[a-z2-9]{4}-[a-z2-9]{4}$/.test(codes[0]) && !codes.some((c) => /[01lo]/.test(c)) && !JSON.stringify(records).includes(codes[0].replace("-", "")) && new Set(codes).size === 10);
+  ok("バックアップ生成(10個/読みやすい/平文非保持/一意)", codes.length === 10 &&
+     /^[a-z2-9]{4}-[a-z2-9]{4}$/.test(codes[0]) &&
+     !codes.some((c) => /[01lo]/.test(c)) &&
+     !JSON.stringify(records).includes(codes[0].replace("-", "")) &&
+     new Set(codes).size === 10);
   const bv = BC.verifyBackupCode(codes[2].replace("-", "").toUpperCase(), records, bcSecret);
   ok("バックアップ検証(正規化一致/使用済み化/残数9)", bv.valid === true && bv.matchedIndex === 2 && BC.remainingBackupCodes(bv.records) === 9);
-  ok("バックアップ 単回利用(再利用不可/他は有効/誤りは無効)", BC.verifyBackupCode(codes[2], bv.records, bcSecret).valid === false && BC.verifyBackupCode(codes[5], bv.records, bcSecret).valid === true && BC.verifyBackupCode("zzzz-zzzz", records, bcSecret).valid === false);
+  ok("バックアップ 単回利用(再利用不可/他は有効/誤りは無効)", BC.verifyBackupCode(codes[2], bv.records, bcSecret).valid === false &&
+     BC.verifyBackupCode(codes[5], bv.records, bcSecret).valid === true &&
+     BC.verifyBackupCode("zzzz-zzzz", records, bcSecret).valid === false);
 }
 
 // ---- 2FA 統合フロー + WebAuthn(パスキー)----
@@ -2991,10 +3776,16 @@ section("two-factor / webauthn");
   const W = await import(new URL("../packages/auth/src/webauthn.ts", import.meta.url));
   const ch = W.generateWebAuthnChallenge();
   const cd = W.toBase64Url(new TextEncoder().encode(JSON.stringify({ type: "webauthn.get", challenge: ch, origin: "https://example.com" })));
-  ok("WebAuthn clientData検証(正/challenge不一致/origin不一致)", W.verifyClientData(cd, { challenge: ch, origin: "https://example.com", type: "webauthn.get" }).valid === true && W.verifyClientData(cd, { challenge: "x", origin: "https://example.com", type: "webauthn.get" }).valid === false && W.verifyClientData(cd, { challenge: ch, origin: "https://evil.com", type: "webauthn.get" }).valid === false);
+  ok("WebAuthn clientData検証(正/challenge不一致/origin不一致)", W.verifyClientData(cd, { challenge: ch, origin: "https://example.com", type: "webauthn.get" }).valid === true &&
+     W.verifyClientData(cd, { challenge: "x", origin: "https://example.com", type: "webauthn.get" }).valid === false &&
+     W.verifyClientData(cd, { challenge: ch, origin: "https://evil.com", type: "webauthn.get" }).valid === false);
   const rpIdHash = cr.createHash("sha256").update("example.com").digest();
   const authData = Buffer.concat([rpIdHash, Buffer.from([0x05]), Buffer.from([0, 0, 0, 42])]);
-  ok("WebAuthn authData解析(UV/signCount)+rpIdHash+クローン検知", W.parseAuthenticatorData(new Uint8Array(authData)).flags.userVerified === true && W.parseAuthenticatorData(new Uint8Array(authData)).signCount === 42 && W.verifyRpIdHash(new Uint8Array(authData), "example.com") === true && W.isSignCountValid(42, 43) === true && W.isSignCountValid(42, 42) === false);
+  ok("WebAuthn authData解析(UV/signCount)+rpIdHash+クローン検知", W.parseAuthenticatorData(new Uint8Array(authData)).flags.userVerified === true &&
+     W.parseAuthenticatorData(new Uint8Array(authData)).signCount === 42 &&
+     W.verifyRpIdHash(new Uint8Array(authData), "example.com") === true &&
+     W.isSignCountValid(42, 43) === true &&
+     W.isSignCountValid(42, 42) === false);
   const kp = cr.generateKeyPairSync("ec", { namedCurve: "P-256", publicKeyEncoding: { type: "spki", format: "pem" }, privateKeyEncoding: { type: "pkcs8", format: "pem" } });
   const signed = Buffer.concat([new Uint8Array(authData), cr.createHash("sha256").update(Buffer.from(W.fromBase64Url(cd))).digest()]);
   const sig = W.toBase64Url(new Uint8Array(cr.sign("sha256", signed, kp.privateKey)));
@@ -3009,15 +3800,40 @@ section("mobile: responsive / network / orientation");
   const N = await import(new URL("../packages/mobile/src/network.ts", import.meta.url));
   const O = await import(new URL("../packages/mobile/src/orientation.ts", import.meta.url));
   ok("mobile ブレークポイント(375→xs/800→md/1400→xl/640→sm)", B.matchBreakpoint(375) === "xs" && B.matchBreakpoint(800) === "md" && B.matchBreakpoint(1400) === "xl" && B.matchBreakpoint(640) === "sm");
-  ok("mobile 端末サイズ(mobile/tablet/desktop)+bp以上判定", B.deviceSizeFromWidth(375) === "mobile" && B.deviceSizeFromWidth(800) === "tablet" && B.deviceSizeFromWidth(1400) === "desktop" && B.isBreakpointUp(1024, "lg") === true && B.isBreakpointUp(900, "lg") === false);
-  ok("mobile ネットワーク分類(offline/2g slow/4g fast/downlink/unknown)", N.classifyConnection({ online: false }) === "offline" && N.classifyConnection({ effectiveType: "2g" }) === "slow" && N.classifyConnection({ effectiveType: "4g" }) === "fast" && N.classifyConnection({ downlink: 0.3 }) === "slow" && N.classifyConnection({}) === "unknown");
-  ok("mobile データ節約判定 + 画面向き", N.shouldSaveData("slow") === true && N.shouldSaveData("fast", true) === true && N.shouldSaveData("fast") === false && O.orientationFromDimensions(1024, 768) === "landscape" && O.orientationFromDimensions(375, 812) === "portrait" && O.simplifyOrientationType("landscape-primary") === "landscape");
+  ok("mobile 端末サイズ(mobile/tablet/desktop)+bp以上判定", B.deviceSizeFromWidth(375) === "mobile" &&
+     B.deviceSizeFromWidth(800) === "tablet" &&
+     B.deviceSizeFromWidth(1400) === "desktop" &&
+     B.isBreakpointUp(1024, "lg") === true &&
+     B.isBreakpointUp(900, "lg") === false);
+  ok("mobile ネットワーク分類(offline/2g slow/4g fast/downlink/unknown)", N.classifyConnection({ online: false }) === "offline" &&
+     N.classifyConnection({ effectiveType: "2g" }) === "slow" &&
+     N.classifyConnection({ effectiveType: "4g" }) === "fast" &&
+     N.classifyConnection({ downlink: 0.3 }) === "slow" &&
+     N.classifyConnection({}) === "unknown");
+  ok("mobile データ節約判定 + 画面向き", N.shouldSaveData("slow") === true &&
+     N.shouldSaveData("fast", true) === true &&
+     N.shouldSaveData("fast") === false &&
+     O.orientationFromDimensions(1024, 768) === "landscape" &&
+     O.orientationFromDimensions(375, 812) === "portrait" &&
+     O.simplifyOrientationType("landscape-primary") === "landscape");
 
   const BC = await import(new URL("../packages/mobile/src/barcode.ts", import.meta.url));
-  ok("mobile バーコード JAN/EAN 検証(実JAN/誤り/EAN-8)", BC.eanCheckDigit("490177701868") === 6 && BC.isValidEan13("4901777018686") === true && BC.isValidEan13("4901777018680") === false && BC.isValidEan8("96385074") === true);
-  ok("mobile バーコード 種別/国コード/日本判定/非対応空", BC.detectBarcodeKind("4901777018686") === "ean13" && BC.detectBarcodeKind("96385074") === "ean8" && BC.janCountryPrefix("4901777018686") === "49" && BC.isJapaneseJan("4901777018686") === true && BC.isBarcodeDetectorSupported() === false && (await BC.detectBarcodes({})).length === 0);
+  ok("mobile バーコード JAN/EAN 検証(実JAN/誤り/EAN-8)", BC.eanCheckDigit("490177701868") === 6 &&
+     BC.isValidEan13("4901777018686") === true &&
+     BC.isValidEan13("4901777018680") === false &&
+     BC.isValidEan8("96385074") === true);
+  ok("mobile バーコード 種別/国コード/日本判定/非対応空", BC.detectBarcodeKind("4901777018686") === "ean13" &&
+     BC.detectBarcodeKind("96385074") === "ean8" &&
+     BC.janCountryPrefix("4901777018686") === "49" &&
+     BC.isJapaneseJan("4901777018686") === true &&
+     BC.isBarcodeDetectorSupported() === false &&
+     (await BC.detectBarcodes({})).length === 0);
   const CM = await import(new URL("../packages/mobile/src/camera.ts", import.meta.url));
-  ok("mobile カメラ制約(背面/前面/deviceId優先)+非対応false", CM.cameraConstraints().video.facingMode.ideal === "environment" && CM.cameraConstraints().audio === false && CM.cameraConstraints({ facing: "user" }).video.facingMode.ideal === "user" && CM.cameraConstraints({ deviceId: "cam-1", width: 1920 }).video.deviceId.exact === "cam-1" && CM.isCameraSupported() === false);
+  ok("mobile カメラ制約(背面/前面/deviceId優先)+非対応false", CM.cameraConstraints().video.facingMode.ideal === "environment" &&
+     CM.cameraConstraints().audio === false &&
+     CM.cameraConstraints({ facing: "user" }).video.facingMode.ideal === "user" &&
+     CM.cameraConstraints({ deviceId: "cam-1", width: 1920 }).video.deviceId.exact === "cam-1" &&
+     CM.isCameraSupported() === false);
 }
 
 // ---- payroll: 勤怠集計 / 割増賃金 / 給与明細(労基法) ----
@@ -3028,10 +3844,16 @@ section("payroll: worktime / premium / payslip");
   const S = await import(new URL("../packages/payroll/src/payslip.ts", import.meta.url));
   const t = W.parseTimeToMinutes;
   ok("勤怠 深夜窓(22-24=120/20-翌6=420/昼=0)", W.nightMinutes(t("22:00"), 1440) === 120 && W.nightMinutes(t("20:00"), 1440 + t("06:00")) === 420 && W.nightMinutes(t("09:00"), t("18:00")) === 0);
-  ok("勤怠 区分(8h→残業0/10h→残業120/法定休日→全休日)", W.splitDailyWork({ startMin: t("09:00"), endMin: t("18:00"), breakMinutes: 60 }).overtimeMinutes === 0 && W.splitDailyWork({ startMin: t("09:00"), endMin: t("20:00"), breakMinutes: 60 }).overtimeMinutes === 120 && W.splitDailyWork({ startMin: t("09:00"), endMin: t("18:00"), breakMinutes: 60, isHoliday: true }).holidayMinutes === 480);
+  ok("勤怠 区分(8h→残業0/10h→残業120/法定休日→全休日)", W.splitDailyWork({ startMin: t("09:00"), endMin: t("18:00"), breakMinutes: 60 }).overtimeMinutes === 0 &&
+     W.splitDailyWork({ startMin: t("09:00"), endMin: t("20:00"), breakMinutes: 60 }).overtimeMinutes === 120 &&
+     W.splitDailyWork({ startMin: t("09:00"), endMin: t("18:00"), breakMinutes: 60, isHoliday: true }).holidayMinutes === 480);
   const w = 1000;
-  ok("割増 複合率(通常8000/残業1.25→10500/深夜残業1.5→3000)", P.calcPay({ hourlyWage: w, totalMinutes: 480, overtimeMinutes: 0, nightMinutes: 0, holidayMinutes: 0 }).total === 8000 && P.calcPay({ hourlyWage: w, totalMinutes: 600, overtimeMinutes: 120, nightMinutes: 0, holidayMinutes: 0 }).total === 10500 && P.calcPay({ hourlyWage: w, totalMinutes: 120, overtimeMinutes: 120, nightMinutes: 120, holidayMinutes: 0 }).total === 3000);
-  ok("割増 法定休日(1.35→10800)/休日深夜(1.6→3200)/月60h超0.5", P.calcPay({ hourlyWage: w, totalMinutes: 480, overtimeMinutes: 0, nightMinutes: 0, holidayMinutes: 480 }).total === 10800 && P.calcPay({ hourlyWage: w, totalMinutes: 120, overtimeMinutes: 0, nightMinutes: 120, holidayMinutes: 120 }).total === 3200 && P.calcPay({ hourlyWage: w, totalMinutes: 70 * 60, overtimeMinutes: 70 * 60, nightMinutes: 0, holidayMinutes: 0, over60Minutes: 10 * 60 }).over60Premium === 5000);
+  ok("割増 複合率(通常8000/残業1.25→10500/深夜残業1.5→3000)", P.calcPay({ hourlyWage: w, totalMinutes: 480, overtimeMinutes: 0, nightMinutes: 0, holidayMinutes: 0 }).total === 8000 &&
+     P.calcPay({ hourlyWage: w, totalMinutes: 600, overtimeMinutes: 120, nightMinutes: 0, holidayMinutes: 0 }).total === 10500 &&
+     P.calcPay({ hourlyWage: w, totalMinutes: 120, overtimeMinutes: 120, nightMinutes: 120, holidayMinutes: 0 }).total === 3000);
+  ok("割増 法定休日(1.35→10800)/休日深夜(1.6→3200)/月60h超0.5", P.calcPay({ hourlyWage: w, totalMinutes: 480, overtimeMinutes: 0, nightMinutes: 0, holidayMinutes: 480 }).total === 10800 &&
+     P.calcPay({ hourlyWage: w, totalMinutes: 120, overtimeMinutes: 0, nightMinutes: 120, holidayMinutes: 120 }).total === 3200 &&
+     P.calcPay({ hourlyWage: w, totalMinutes: 70 * 60, overtimeMinutes: 70 * 60, nightMinutes: 0, holidayMinutes: 0, over60Minutes: 10 * 60 }).over60Premium === 5000);
   const mm = P.aggregateMonthly(Array.from({ length: 22 }, () => ({ totalMinutes: 660, overtimeMinutes: 180, nightMinutes: 0, holidayMinutes: 0 })));
   const slip = S.buildPayslip(P.calcPay({ hourlyWage: w, totalMinutes: 600, overtimeMinutes: 120, nightMinutes: 0, holidayMinutes: 0 }), { allowances: [{ name: "通勤", amount: 10000 }], deductions: [{ name: "社保", amount: 14000 }] });
   ok("月次集計(66h/over60=6h)+給与明細(総支給20500/差引6500)", mm.over60Minutes === 6 * 60 && mm.workedDays === 22 && slip.grossPay === 20500 && slip.netPay === 6500);
@@ -3053,11 +3875,19 @@ section("dencho: hash-chain / search / timestamp / retention");
   const swapped = structuredClone(chain); swapped[1].data.partner = "偽"; swapped[1].hash = H.hashEvidence(swapped[1].seq, swapped[1].recordedAt, swapped[1].data, swapped[1].prevHash);
   ok("電帳法 改ざん検知(データ改ざんseq1/hash再計算でも後続seq2)", H.verifyEvidenceChain(tampered).brokenAt === 1 && H.verifyEvidenceChain(swapped).brokenAt === 2);
   const txns = [{ id: "1", transactionDate: "2025-07-01", amount: 11000, counterparty: "山田商事" }, { id: "2", transactionDate: "2025-07-15", amount: 55000, counterparty: "鈴木工業" }, { id: "3", transactionDate: "2025-08-01", amount: 33000, counterparty: "山田物産" }];
-  ok("電帳法 検索(日付範囲/金額範囲/取引先/AND)", S.searchTransactions(txns, { dateFrom: "2025-07-01", dateTo: "2025-07-31" }).map((r) => r.id).join(",") === "1,2" && S.searchTransactions(txns, { amountMin: 30000, amountMax: 60000 }).map((r) => r.id).join(",") === "2,3" && S.searchTransactions(txns, { counterparty: "山田" }).map((r) => r.id).join(",") === "1,3" && S.searchTransactions(txns, { dateTo: "2025-07-31", counterparty: "山田" }).map((r) => r.id).join(",") === "1");
+  ok("電帳法 検索(日付範囲/金額範囲/取引先/AND)", S.searchTransactions(txns, { dateFrom: "2025-07-01", dateTo: "2025-07-31" }).map((r) => r.id).join(",") === "1,2" &&
+     S.searchTransactions(txns, { amountMin: 30000, amountMax: 60000 }).map((r) => r.id).join(",") === "2,3" &&
+     S.searchTransactions(txns, { counterparty: "山田" }).map((r) => r.id).join(",") === "1,3" &&
+     S.searchTransactions(txns, { dateTo: "2025-07-31", counterparty: "山田" }).map((r) => r.id).join(",") === "1");
   const tok = T.createTimestampToken(T.sha256Hex("data"), "sec", new Date("2025-07-25T10:00:00Z"));
-  ok("電帳法 タイムスタンプ(検証/データ不一致/署名改ざん)", T.verifyTimestampToken(tok, "sec") === true && T.verifyTimestampToken(tok, "sec", T.sha256Hex("other")) === false && T.verifyTimestampToken({ ...tok, signature: tok.signature.slice(0, -2) + "00" }, "sec") === false);
+  ok("電帳法 タイムスタンプ(検証/データ不一致/署名改ざん)", T.verifyTimestampToken(tok, "sec") === true &&
+     T.verifyTimestampToken(tok, "sec", T.sha256Hex("other")) === false &&
+     T.verifyTimestampToken({ ...tok, signature: tok.signature.slice(0, -2) + "00" }, "sec") === false);
   const start = new Date("2025-06-01T00:00:00Z");
-  ok("電帳法 保存期間(7年後前日/期間内外/残日数)", R.retentionDeadline(start, 7).toISOString().slice(0, 10) === "2032-05-31" && R.isWithinRetention(start, 7, new Date("2030-01-01")) === true && R.isWithinRetention(start, 7, new Date("2033-01-01")) === false && R.daysUntilRetentionEnd(start, 7, new Date("2032-05-01")) === 30);
+  ok("電帳法 保存期間(7年後前日/期間内外/残日数)", R.retentionDeadline(start, 7).toISOString().slice(0, 10) === "2032-05-31" &&
+     R.isWithinRetention(start, 7, new Date("2030-01-01")) === true &&
+     R.isWithinRetention(start, 7, new Date("2033-01-01")) === false &&
+     R.daysUntilRetentionEnd(start, 7, new Date("2032-05-01")) === 30);
 }
 
 // ---- report: 印刷/PDF 最適化(@page・一括結合) ----
@@ -3073,10 +3903,16 @@ section("report: print / pdf-prep");
   }
   const P = await import(files.print);
   const doc = { invoiceNumber: "INV-001", issueDate: "2025-07-25", seller: { name: "自社" }, buyer: { name: "取引先" }, lines: [{ description: "作業", quantity: 1, unitPrice: 10000, taxRate: 10 }] };
-  ok("print @page(A4/margin/横向き)+改ページ制御+色保持", P.printPageCss({ format: "A4", margin: "20mm" }).includes("@page { size: A4; margin: 20mm; }") && P.printPageCss({ landscape: true }).includes("A4 landscape") && P.printPageCss().includes("break-inside: avoid") && P.printPageCss().includes("print-color-adjust: exact"));
+  ok("print @page(A4/margin/横向き)+改ページ制御+色保持", P.printPageCss({ format: "A4", margin: "20mm" }).includes("@page { size: A4; margin: 20mm; }") &&
+     P.printPageCss({ landscape: true }).includes("A4 landscape") &&
+     P.printPageCss().includes("break-inside: avoid") &&
+     P.printPageCss().includes("print-color-adjust: exact"));
   const inj = P.injectPrintCss("<html><head></head><body>x</body></html>", "MYCSS");
   ok("print injectPrintCss(head内・body前)", inj.includes("</style></head>") && inj.indexOf("MYCSS") < inj.indexOf("</head>"));
-  ok("print 帳票印刷HTML(請求書/見積書/納品書 + @page)", P.printableInvoiceHtml(doc).includes("請求書") && P.printableInvoiceHtml(doc).includes("@page") && P.printableQuotationHtml(doc).includes("見積書") && P.printableDeliveryNoteHtml(doc).includes("納品書"));
+  ok("print 帳票印刷HTML(請求書/見積書/納品書 + @page)", P.printableInvoiceHtml(doc).includes("請求書") &&
+     P.printableInvoiceHtml(doc).includes("@page") &&
+     P.printableQuotationHtml(doc).includes("見積書") &&
+     P.printableDeliveryNoteHtml(doc).includes("納品書"));
   const combined = P.combineForPrint([P.printableInvoiceHtml({ ...doc, invoiceNumber: "A" }), P.printableInvoiceHtml({ ...doc, invoiceNumber: "B" })]);
   ok("print 一括結合(2帳票/改ページ/doctype1つ)", combined.includes("INV") === false ? true : (combined.includes("page-break") && (combined.match(/<!doctype/gi) || []).length === 1));
   for (const f of Object.values(files)) await fs3.rm(f);
@@ -3100,11 +3936,17 @@ section("form: dynamic fields / steps");
     { name: "company", label: "会社名", type: "text", required: true, visibleWhen: { field: "type", equals: "corp" } },
     { name: "reg", label: "登録", type: "text", visibleWhen: [{ field: "type", equals: "corp" }, { field: "want", truthy: true }] },
   ];
-  ok("form 条件付き表示(equals/AND/in/truthy)", F.isFieldVisible(fields[1], { type: "corp" }) === true && F.isFieldVisible(fields[1], { type: "ind" }) === false && F.isFieldVisible(fields[2], { type: "corp", want: true }) === true && F.isFieldVisible(fields[2], { type: "corp", want: false }) === false);
+  ok("form 条件付き表示(equals/AND/in/truthy)", F.isFieldVisible(fields[1], { type: "corp" }) === true &&
+     F.isFieldVisible(fields[1], { type: "ind" }) === false &&
+     F.isFieldVisible(fields[2], { type: "corp", want: true }) === true &&
+     F.isFieldVisible(fields[2], { type: "corp", want: false }) === false);
   ok("form 表示フィールド抽出 + 非表示除外", F.visibleFields(fields, { type: "ind" }).map((f) => f.name).join(",") === "type" && Object.keys(F.stripHiddenValues(fields, { type: "ind", company: "隠", reg: "T1" })).join(",") === "type");
   ok("form 初期値(型別)", (() => { const d = F.defaultValues([{ name: "a", label: "", type: "text" }, { name: "b", label: "", type: "checkbox" }, { name: "c", label: "", type: "select", options: [{ value: "x", label: "X" }] }]); return d.a === "" && d.b === false && d.c === "x"; })());
   const steps = [{ id: "s1", title: "基本", fields: ["type", "company"] }];
-  ok("form ステップ(表示F/進捗/必須充足)", S.stepVisibleFields(steps[0], fields, { type: "ind" }).map((f) => f.name).join(",") === "type" && S.stepProgress(0, 2).ratio === 0.5 && S.isStepFilled(steps[0], fields, { type: "corp", company: "A" }) === true && S.isStepFilled(steps[0], fields, { type: "corp" }) === false);
+  ok("form ステップ(表示F/進捗/必須充足)", S.stepVisibleFields(steps[0], fields, { type: "ind" }).map((f) => f.name).join(",") === "type" &&
+     S.stepProgress(0, 2).ratio === 0.5 &&
+     S.isStepFilled(steps[0], fields, { type: "corp", company: "A" }) === true &&
+     S.isStepFilled(steps[0], fields, { type: "corp" }) === false);
   for (const f of Object.values(files)) await fs4.rm(f);
 }
 
@@ -3122,11 +3964,44 @@ section("pii: subject rights (disclosure / erasure)");
   const SR = await import(files["subject-rights"]);
   const categories = [{ id: "member", name: "会員基本情報", purpose: "サービス提供", legalBasis: "契約", retentionDays: 1825, thirdParties: ["配送業者A"] }, { id: "mkt", name: "販促情報", purpose: "ご案内" }];
   const report = SR.buildDisclosureReport({ subjectId: "u1", entries: [{ categoryId: "member", data: { email: "y@x.com" } }, { categoryId: "mkt", data: { tags: ["a"] } }], categories, generatedAt: new Date("2025-07-25T10:00:00Z") });
-  ok("pii 開示(カテゴリ/利用目的/第三者提供/データ/可搬JSON)", report.holdings[0].category === "会員基本情報" && report.holdings[0].purpose === "サービス提供" && report.holdings[0].thirdParties.join(",") === "配送業者A" && report.holdings[0].data.email === "y@x.com" && JSON.parse(SR.disclosureToJson(report)).holdings.length === 2);
+  ok("pii 開示(カテゴリ/利用目的/第三者提供/データ/可搬JSON)", report.holdings[0].category === "会員基本情報" &&
+     report.holdings[0].purpose === "サービス提供" &&
+     report.holdings[0].thirdParties.join(",") === "配送業者A" &&
+     report.holdings[0].data.email === "y@x.com" &&
+     JSON.parse(SR.disclosureToJson(report)).holdings.length === 2);
+  // 保存義務と削除要求の衝突(ADR 0018)
+  {
+    const day = 86_400_000;
+    const nowMs = Date.parse("2026-07-23T00:00:00Z");
+    const records = [
+      { id: "invoice-1", createdAt: nowMs - 400 * day, retentionDays: 365 },
+      { id: "inquiry-9", createdAt: nowMs - 400 * day, retentionDays: 365 },
+      { id: "contract-3", createdAt: nowMs - 10 * day, retentionDays: 365 },
+    ];
+    const holds = [{ recordId: "invoice-1", basis: "電子帳簿保存法 7年", until: "2033-03-31" }];
+    const decisions = SR.decideErasure(records, holds, "2026-07-23");
+    const byId = Object.fromEntries(decisions.map((d) => [d.recordId, d]));
+
+    ok("pii 削除判断: 法令の保存義務は削除要求より優先する(全部消すと別の違反になる)",
+      byId["invoice-1"].canErase === false && byId["invoice-1"].reason.includes("電子帳簿保存法") &&
+      byId["invoice-1"].erasableFrom === "2033-03-31");
+    ok("pii 削除判断: 義務が無く保持期間も過ぎていれば消せる", byId["inquiry-9"].canErase === true);
+    ok("pii 削除判断: 保持期間が残っていれば、いつ消せるかを返す",
+      byId["contract-3"].canErase === false && typeof byId["contract-3"].erasableFrom === "string");
+
+    const text = SR.explainErasure(decisions);
+    ok("pii 削除判断: 本人への説明に根拠と期限を含める(「消せません」だけにしない)",
+      text.includes("1 件を削除") && text.includes("電子帳簿保存法") && text.includes("2033-03-31"));
+  }
+
   const rec = { id: "1", name: "山田", email: "y@x.com", orders: 5 };
   const an = SR.erasePersonalData(rec, ["name", "email"]);
   const del = SR.erasePersonalData(rec, ["name"], { method: "delete" });
-  ok("pii 削除(匿名化=伏字/非PII保持・delete=キー除去・null対象外)", an.record.name === "[削除済み]" && an.record.orders === 5 && an.erasedFields.join(",") === "name,email" && ("name" in del.record) === false && SR.erasePersonalData({ id: "1", name: "太郎", phone: null }, ["name", "phone"]).erasedFields.join(",") === "name");
+  ok("pii 削除(匿名化=伏字/非PII保持・delete=キー除去・null対象外)", an.record.name === "[削除済み]" &&
+     an.record.orders === 5 &&
+     an.erasedFields.join(",") === "name,email" &&
+     ("name" in del.record) === false &&
+     SR.erasePersonalData({ id: "1", name: "太郎", phone: null }, ["name", "phone"]).erasedFields.join(",") === "name");
   const now = new Date("2025-07-25").getTime(), day = 86400000;
   ok("pii 削除証跡 + 保持期間超過抽出", SR.buildErasureReceipt("u1", ["name"], "anonymize").method === "anonymize" && SR.recordsToErase([{ id: "old", createdAt: now - 100 * day, retentionDays: 30 }, { id: "fresh", createdAt: now - 10 * day, retentionDays: 30 }, { id: "edge", createdAt: now - 31 * day, retentionDays: 30 }], now).join(",") === "old,edge");
   for (const f of Object.values(files)) await fs5.rm(f);
@@ -3141,7 +4016,14 @@ section("screens: submit-flow / review / list-selection");
   const back = FL.editAgain(f);
   const failed = FL.submitFailed(FL.startSubmitting(f), "err");
   const done = FL.submitSucceeded(f);
-  ok("フロー 入力→確認→完了(データ保持/戻る/失敗/完了/index)", f.phase === "confirm" && f.data.name === "山田" && back.phase === "input" && back.data.name === "山田" && failed.phase === "confirm" && failed.error === "err" && done.phase === "complete" && FL.phaseIndex("confirm") === 1);
+  ok("フロー 入力→確認→完了(データ保持/戻る/失敗/完了/index)", f.phase === "confirm" &&
+     f.data.name === "山田" &&
+     back.phase === "input" &&
+     back.data.name === "山田" &&
+     failed.phase === "confirm" &&
+     failed.error === "err" &&
+     done.phase === "complete" &&
+     FL.phaseIndex("confirm") === 1);
 
   const fs6 = await import("node:fs/promises"); const st6 = smokeStamp();
   const rvSrc = (await fs6.readFile(new URL("../packages/form/src/review.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/field\.ts"/g, `from "/tmp/scr-field-${st6}.ts"`);
@@ -3150,13 +4032,21 @@ section("screens: submit-flow / review / list-selection");
   const R = await import(`/tmp/scr-review-${st6}.ts`);
   const fields = [{ name: "name", label: "氏名", type: "text" }, { name: "type", label: "種別", type: "radio", options: [{ value: "corp", label: "法人" }, { value: "ind", label: "個人" }] }, { name: "company", label: "会社名", type: "text", visibleWhen: { field: "type", equals: "corp" } }, { name: "agree", label: "同意", type: "checkbox" }];
   const items = R.reviewItems(fields, { name: "山田", type: "ind", company: "隠", agree: true });
-  ok("確認項目(選択肢→ラベル/真偽→はい/非表示除外) + 詳細項目(全件)", R.formatFieldValue(fields[1], "corp") === "法人" && R.formatFieldValue(fields[3], true) === "はい" && !items.some((i) => i.name === "company") && items.find((i) => i.name === "type").value === "個人" && R.describeRecord(fields, { name: "鈴木", type: "corp" }).map((i) => i.name).join(",") === "name,type,company,agree");
+  ok("確認項目(選択肢→ラベル/真偽→はい/非表示除外) + 詳細項目(全件)", R.formatFieldValue(fields[1], "corp") === "法人" &&
+     R.formatFieldValue(fields[3], true) === "はい" &&
+     !items.some((i) => i.name === "company") &&
+     items.find((i) => i.name === "type").value === "個人" &&
+     R.describeRecord(fields, { name: "鈴木", type: "corp" }).map((i) => i.name).join(",") === "name,type,company,agree");
   await fs6.rm(`/tmp/scr-field-${st6}.ts`); await fs6.rm(`/tmp/scr-review-${st6}.ts`);
 
   const T = await import(new URL("../packages/ui/src/lib/table.ts", import.meta.url));
   let sel = T.toggleRow(T.toggleRow(T.emptySelection(), "a"), "b");
   const keys = ["a", "b", "c"];
-  ok("一覧選択(2件/indeterminate/全選択/全解除)", T.selectionCount(sel) === 2 && T.isIndeterminate(sel, keys) === true && T.isAllSelected(sel, keys) === false && T.isAllSelected(T.toggleAll(sel, keys), keys) === true && T.selectionCount(T.toggleAll(T.toggleAll(sel, keys), keys)) === 0);
+  ok("一覧選択(2件/indeterminate/全選択/全解除)", T.selectionCount(sel) === 2 &&
+     T.isIndeterminate(sel, keys) === true &&
+     T.isAllSelected(sel, keys) === false &&
+     T.isAllSelected(T.toggleAll(sel, keys), keys) === true &&
+     T.selectionCount(T.toggleAll(T.toggleAll(sel, keys), keys)) === 0);
 }
 
 // ---- dashboard viz: 構成比 / ドーナツ / 達成率 / ファネル / 相対時刻 ----
@@ -3172,7 +4062,11 @@ section("dashboard: shares / donut / goal / funnel / relative-time");
   const fn = D.funnelStages([{ label: "申込", value: 1000 }, { label: "審査", value: 600 }, { label: "承認", value: 450 }]);
   ok("ファネル(先頭比0.6/遷移率0.75/離脱400)", fn[1].ratioToFirst === 0.6 && fn[2].conversionFromPrev === 0.75 && fn[1].dropoff === 400);
   const now = new Date("2025-07-25T12:00:00Z").getTime();
-  ok("相対時刻(たった今/N分/N時間/N日/日付)", D.relativeTime(now - 30000, now) === "たった今" && D.relativeTime(now - 5 * 60000, now) === "5分前" && D.relativeTime(now - 3 * 3600000, now) === "3時間前" && D.relativeTime(now - 2 * 86400000, now) === "2日前" && /^\d{4}\/\d{2}\/\d{2}$/.test(D.relativeTime(now - 10 * 86400000, now)));
+  ok("相対時刻(たった今/N分/N時間/N日/日付)", D.relativeTime(now - 30000, now) === "たった今" &&
+     D.relativeTime(now - 5 * 60000, now) === "5分前" &&
+     D.relativeTime(now - 3 * 3600000, now) === "3時間前" &&
+     D.relativeTime(now - 2 * 86400000, now) === "2日前" &&
+     /^\d{4}\/\d{2}\/\d{2}$/.test(D.relativeTime(now - 10 * 86400000, now)));
 }
 
 // ---- commerce: カート / お気に入り / 割引 / 注文サマリ / 在庫(EC基盤) ----
@@ -3186,23 +4080,46 @@ section("commerce: cart / favorites / discount / order-summary / inventory");
   let cart = C.addToCart(C.addToCart(C.emptyCart(), { productId: "A", name: "A", unitPrice: 1000 }), { productId: "B", name: "B", unitPrice: 500, quantity: 2 });
   cart = C.addToCart(cart, { productId: "A", name: "A", unitPrice: 1000 });
   const merged = C.mergeCarts(cart, { items: [{ productId: "A", name: "A", unitPrice: 1000, quantity: 1 }, { productId: "C", name: "C", unitPrice: 200, quantity: 1 }] });
-  ok("カート(点数3/小計/既存加算/統合で加算)", C.cartItemCount(cart) === 4 && C.cartSubtotal(cart) === 3000 && C.findCartItem(cart, "A").quantity === 2 && C.findCartItem(merged, "A").quantity === 3 && C.cartUniqueCount(merged) === 3);
+  ok("カート(点数3/小計/既存加算/統合で加算)", C.cartItemCount(cart) === 4 &&
+     C.cartSubtotal(cart) === 3000 &&
+     C.findCartItem(cart, "A").quantity === 2 &&
+     C.findCartItem(merged, "A").quantity === 3 &&
+     C.cartUniqueCount(merged) === 3);
   // お気に入り・最近見た
   let fav = F.toggleFavorite(F.addFavorite(F.emptyFavorites(), "A"), "B");
-  ok("お気に入り(追加/トグル/解除) + 最近見た(重複除去/上限)", F.isFavorite(fav, "A") === true && F.favoriteCount(fav) === 2 && F.isFavorite(F.toggleFavorite(fav, "A"), "A") === false && F.pushRecentlyViewed(["B"], "B").join(",") === "B" && F.pushRecentlyViewed(["1", "2", "3"], "4", 3).join(",") === "4,1,2");
+  ok("お気に入り(追加/トグル/解除) + 最近見た(重複除去/上限)", F.isFavorite(fav, "A") === true &&
+     F.favoriteCount(fav) === 2 &&
+     F.isFavorite(F.toggleFavorite(fav, "A"), "A") === false &&
+     F.pushRecentlyViewed(["B"], "B").join(",") === "B" &&
+     F.pushRecentlyViewed(["1", "2", "3"], "4", 3).join(",") === "4,1,2");
   // 割引
-  ok("割引(定率10%/定額/最低購入額/上限cap/小計超えない)", D.computeDiscount({ code: "X", type: "percentage", value: 10 }, 3000) === 300 && D.computeDiscount({ code: "Y", type: "fixed", value: 500 }, 3000) === 500 && D.computeDiscount({ code: "Z", type: "fixed", value: 500, minPurchase: 5000 }, 3000) === 0 && D.computeDiscount({ code: "W", type: "percentage", value: 50, maxDiscount: 1000 }, 3000) === 1000 && D.computeDiscount({ code: "V", type: "fixed", value: 9999 }, 3000) === 3000);
+  ok("割引(定率10%/定額/最低購入額/上限cap/小計超えない)", D.computeDiscount({ code: "X", type: "percentage", value: 10 }, 3000) === 300 &&
+     D.computeDiscount({ code: "Y", type: "fixed", value: 500 }, 3000) === 500 &&
+     D.computeDiscount({ code: "Z", type: "fixed", value: 500, minPurchase: 5000 }, 3000) === 0 &&
+     D.computeDiscount({ code: "W", type: "percentage", value: 50, maxDiscount: 1000 }, 3000) === 1000 &&
+     D.computeDiscount({ code: "V", type: "fixed", value: 9999 }, 3000) === 3000);
   // 在庫
   const lv = I.stock(10); const r = I.reserveStock(lv, 3);
   const chk = I.canFulfill({ A: 5, B: 0, C: 10 }, [{ productId: "A", quantity: 3 }, { productId: "B", quantity: 1 }, { productId: "C", quantity: 20 }]);
-  ok("在庫(あり判定/引当/解放/確定/不足明細)", I.inStock(lv, 5) === true && r.ok === true && r.level.available === 7 && I.reserveStock(lv, 20).ok === false && I.releaseStock(r.level, 1).level.available === 8 && I.commitStock(r.level, 3).level.reserved === 0 && chk.ok === false && chk.shortages.length === 2);
+  ok("在庫(あり判定/引当/解放/確定/不足明細)", I.inStock(lv, 5) === true &&
+     r.ok === true &&
+     r.level.available === 7 &&
+     I.reserveStock(lv, 20).ok === false &&
+     I.releaseStock(r.level, 1).level.available === 8 &&
+     I.commitStock(r.level, 3).level.reserved === 0 &&
+     chk.ok === false &&
+     chk.shortages.length === 2);
   // 注文サマリ(@platform/tax を忠実 shim で解決: floor ベース)
   const fs7 = await import("node:fs/promises"); const st7 = smokeStamp();
   await fs7.writeFile(`/tmp/comm-tax-${st7}.ts`, "export function taxAmount(net,rate=10){return Math.floor(net*rate/100);}\nexport function taxFromGross(gross,rate=10){if(rate===0)return 0;return gross-Math.floor(gross*100/(100+rate));}\n");
   const osSrc = (await fs7.readFile(new URL("../packages/commerce/src/order-summary.ts", import.meta.url), "utf8")).replace(/from "@platform\/tax"/g, `from "/tmp/comm-tax-${st7}.ts"`);
   await fs7.writeFile(`/tmp/comm-os-${st7}.ts`, osSrc);
   const O = await import(`/tmp/comm-os-${st7}.ts`);
-  ok("注文サマリ(外税300/割引+送料/内税/軽減8%/送料無料)", O.buildOrderSummary({ subtotal: 3000, taxRate: 10 }).total === 3300 && O.buildOrderSummary({ subtotal: 3000, discount: 500, shippingFee: 550, taxRate: 10 }).total === 3300 && O.buildOrderSummary({ subtotal: 3300, taxRate: 10, taxMode: "inclusive" }).tax === 300 && O.buildOrderSummary({ subtotal: 3000, taxRate: 8 }).tax === 240 && O.resolveShippingFee(5000, 5000, 550) === 0);
+  ok("注文サマリ(外税300/割引+送料/内税/軽減8%/送料無料)", O.buildOrderSummary({ subtotal: 3000, taxRate: 10 }).total === 3300 &&
+     O.buildOrderSummary({ subtotal: 3000, discount: 500, shippingFee: 550, taxRate: 10 }).total === 3300 &&
+     O.buildOrderSummary({ subtotal: 3300, taxRate: 10, taxMode: "inclusive" }).tax === 300 &&
+     O.buildOrderSummary({ subtotal: 3000, taxRate: 8 }).tax === 240 &&
+     O.resolveShippingFee(5000, 5000, 550) === 0);
   await fs7.rm(`/tmp/comm-tax-${st7}.ts`); await fs7.rm(`/tmp/comm-os-${st7}.ts`);
 }
 
@@ -3220,12 +4137,26 @@ section("blog: slug / excerpt / reading-time / toc / post / feed");
   const E = await import(files.excerpt);
   const R = await import(files["reading-time"]);
   const T = await import(files.toc);
-  ok("blog スラッグ(英語/allowUnicode/fallback/衝突連番/maxLength)", S.slugify("Hello World!") === "hello-world" && S.slugify("こんにちは 世界", { allowUnicode: true }) === "こんにちは-世界" && S.ensureSlug("こんにちは", "post-123") === "post-123" && S.uniqueSlug("hello", ["hello", "hello-2"]) === "hello-3" && S.slugify("aaaa bbbb cccc", { maxLength: 9 }) === "aaaa-bbbb");
+  ok("blog スラッグ(英語/allowUnicode/fallback/衝突連番/maxLength)", S.slugify("Hello World!") === "hello-world" &&
+     S.slugify("こんにちは 世界", { allowUnicode: true }) === "こんにちは-世界" &&
+     S.ensureSlug("こんにちは", "post-123") === "post-123" &&
+     S.uniqueSlug("hello", ["hello", "hello-2"]) === "hello-3" &&
+     S.slugify("aaaa bbbb cccc", { maxLength: 9 }) === "aaaa-bbbb");
   const md = "# 見出し\n\nこれは**本文**です。[リンク](http://x.com)や`code`。\n\n```js\nconst a=1;\n```";
-  ok("blog 抜粋(記法除去/短文そのまま/長文省略) + 読了時間(日本語/欧文/最低1分)", E.stripMarkdown(md).includes("これは本文です") && !E.stripMarkdown(md).includes("const a") && E.excerpt("短い") === "短い" && E.excerpt("あ".repeat(200), { maxLength: 30 }).endsWith("…") && R.readingTime("あ".repeat(1000)).minutes === 2 && R.readingTime(Array(500).fill("word").join(" ")).minutes === 2 && R.readingTime("短い").minutes === 1);
+  ok("blog 抜粋(記法除去/短文そのまま/長文省略) + 読了時間(日本語/欧文/最低1分)", E.stripMarkdown(md).includes("これは本文です") &&
+     !E.stripMarkdown(md).includes("const a") &&
+     E.excerpt("短い") === "短い" &&
+     E.excerpt("あ".repeat(200), { maxLength: 30 }).endsWith("…") &&
+     R.readingTime("あ".repeat(1000)).minutes === 2 &&
+     R.readingTime(Array(500).fill("word").join(" ")).minutes === 2 &&
+     R.readingTime("短い").minutes === 1);
   const doc = "# T\n\n## セクションA\n\n## B\n\n### 詳細\n\n```\n# コード\n```\n\n## セクションA";
   const toc = T.extractHeadings(doc, { allowUnicode: true });
-  ok("blog 目次(抽出/コード内#無視/アンカー重複回避/maxLevel)", toc.length === 5 && !toc.some((e) => e.text.includes("コード")) && toc[1].slug === "セクションa" && toc[4].slug === "セクションa-2" && T.extractHeadings(doc, { maxLevel: 2, allowUnicode: true }).every((e) => e.level <= 2));
+  ok("blog 目次(抽出/コード内#無視/アンカー重複回避/maxLevel)", toc.length === 5 &&
+     !toc.some((e) => e.text.includes("コード")) &&
+     toc[1].slug === "セクションa" &&
+     toc[4].slug === "セクションa-2" &&
+     T.extractHeadings(doc, { maxLevel: 2, allowUnicode: true }).every((e) => e.level <= 2));
   for (const f of Object.values(files)) await fs8.rm(f);
 
   const P = await import(new URL("../packages/blog/src/post.ts", import.meta.url));
@@ -3237,10 +4168,23 @@ section("blog: slug / excerpt / reading-time / toc / post / feed");
     { id: "3", slug: "c", title: "C", status: "scheduled", publishedAt: "2025-08-01T00:00:00Z", tags: ["news"] },
     { id: "4", slug: "d", title: "D", status: "published", publishedAt: "2025-07-24T00:00:00Z", tags: ["react", "tech", "css"], category: "frontend" },
   ];
-  ok("blog 記事(公開判定/新しい順/タグ・カテゴリ絞込/タグ集計/関連記事)", P.isPublished(posts[0], now) === true && P.isPublished(posts[1], now) === false && P.isPublished(posts[2], now) === false && P.publishedPosts(posts, now).map((p) => p.id).join(",") === "4,1" && P.postsByTag(posts, "react").map((p) => p.id).join(",") === "1,4" && P.tagCounts(posts)[0].count === 3 && P.relatedPosts(posts[0], posts)[0].id === "4" && !P.relatedPosts(posts[0], posts).some((p) => p.id === "1"));
+  ok("blog 記事(公開判定/新しい順/タグ・カテゴリ絞込/タグ集計/関連記事)", P.isPublished(posts[0], now) === true &&
+     P.isPublished(posts[1], now) === false &&
+     P.isPublished(posts[2], now) === false &&
+     P.publishedPosts(posts, now).map((p) => p.id).join(",") === "4,1" &&
+     P.postsByTag(posts, "react").map((p) => p.id).join(",") === "1,4" &&
+     P.tagCounts(posts)[0].count === 3 &&
+     P.relatedPosts(posts[0], posts)[0].id === "4" &&
+     !P.relatedPosts(posts[0], posts).some((p) => p.id === "1"));
   const rss = F.buildRssFeed({ title: "My Blog", link: "https://ex.com", description: "説明" }, [{ title: "記事<A>", link: "https://ex.com/a", description: "抜粋&要約", publishedAt: "2025-07-20T00:00:00Z" }]);
   const sm = F.buildSitemap([{ loc: "https://ex.com/a", lastmod: "2025-07-20T00:00:00Z", changefreq: "weekly", priority: 0.8 }]);
-  ok("blog RSS(channel/item/エスケープ/pubDate) + サイトマップ(loc/lastmod/priority)", rss.includes("<title>My Blog</title>") && rss.includes("記事&lt;A&gt;") && rss.includes("抜粋&amp;要約") && rss.includes("<pubDate>") && sm.includes("<loc>https://ex.com/a</loc>") && sm.includes("<lastmod>2025-07-20</lastmod>") && sm.includes("<priority>0.8</priority>"));
+  ok("blog RSS(channel/item/エスケープ/pubDate) + サイトマップ(loc/lastmod/priority)", rss.includes("<title>My Blog</title>") &&
+     rss.includes("記事&lt;A&gt;") &&
+     rss.includes("抜粋&amp;要約") &&
+     rss.includes("<pubDate>") &&
+     sm.includes("<loc>https://ex.com/a</loc>") &&
+     sm.includes("<lastmod>2025-07-20</lastmod>") &&
+     sm.includes("<priority>0.8</priority>"));
 }
 
 // ---- seo: メタ / OGP / Twitter / JSON-LD / robots ----
@@ -3253,10 +4197,18 @@ section("seo: meta / open-graph / json-ld / robots");
   await fs9.writeFile(`/tmp/seo-og-${st9}.ts`, ogSrc);
   const M = await import(`/tmp/seo-meta-${st9}.ts`);
   const O = await import(`/tmp/seo-og-${st9}.ts`);
-  ok("seo メタ(title適用/desc160/robots/escape/render)", M.buildTitle("記事", "%s | S") === "記事 | S" && M.truncateDescription("あ".repeat(200)).length === 160 && M.robotsContent({ index: false, follow: false }) === "noindex, nofollow" && M.escapeAttr('a"<&') === "a&quot;&lt;&amp;" && M.renderMeta(M.buildMeta({ title: "T", canonical: "https://ex.com/p" })).includes('rel="canonical"'));
+  ok("seo メタ(title適用/desc160/robots/escape/render)", M.buildTitle("記事", "%s | S") === "記事 | S" &&
+     M.truncateDescription("あ".repeat(200)).length === 160 &&
+     M.robotsContent({ index: false, follow: false }) === "noindex, nofollow" &&
+     M.escapeAttr('a"<&') === "a&quot;&lt;&amp;" &&
+     M.renderMeta(M.buildMeta({ title: "T", canonical: "https://ex.com/p" })).includes('rel="canonical"'));
   const og = O.buildOpenGraphTags({ title: "記事", type: "article", image: "https://ex.com/i.png", article: { publishedTime: "2025-07-25T00:00:00Z", tags: ["a", "b"] } });
   const tw = O.buildTwitterCardTags({ title: "記事", site: "@site" });
-  ok("seo OGP(title/type/locale/article:tag×2) + Twitter(card/site)", og.some((t) => t.property === "og:title" && t.content === "記事") && og.some((t) => t.property === "og:locale" && t.content === "ja_JP") && og.filter((t) => t.property === "article:tag").length === 2 && tw.some((t) => t.name === "twitter:card" && t.content === "summary_large_image") && tw.some((t) => t.name === "twitter:site"));
+  ok("seo OGP(title/type/locale/article:tag×2) + Twitter(card/site)", og.some((t) => t.property === "og:title" && t.content === "記事") &&
+     og.some((t) => t.property === "og:locale" && t.content === "ja_JP") &&
+     og.filter((t) => t.property === "article:tag").length === 2 &&
+     tw.some((t) => t.name === "twitter:card" && t.content === "summary_large_image") &&
+     tw.some((t) => t.name === "twitter:site"));
   await fs9.rm(`/tmp/seo-meta-${st9}.ts`); await fs9.rm(`/tmp/seo-og-${st9}.ts`);
 
   const J = await import(new URL("../packages/seo/src/json-ld.ts", import.meta.url));
@@ -3265,8 +4217,17 @@ section("seo: meta / open-graph / json-ld / robots");
   const bc = J.breadcrumbJsonLd([{ name: "H", url: "https://ex.com" }, { name: "記事", url: "https://ex.com/a" }]);
   const web = J.websiteJsonLd({ name: "S", url: "https://ex.com", searchUrl: "https://ex.com/s?q={search_term_string}" });
   const prod = J.productJsonLd({ name: "商品", price: 1980, availability: "InStock" });
-  ok("seo JSON-LD(Article/Breadcrumb/WebSite SearchAction/Product/FAQ)", art["@type"] === "BlogPosting" && art.author.name === "著者" && bc.itemListElement[1].position === 2 && web.potentialAction["@type"] === "SearchAction" && prod.offers.availability === "https://schema.org/InStock" && J.faqJsonLd([{ question: "Q", answer: "A" }]).mainEntity.length === 1);
-  ok("seo renderJsonLd(script/</script>エスケープ) + robots.txt(UA/Disallow/Sitemap/allowAll)", J.renderJsonLd(art).startsWith('<script type="application/ld+json">') && J.renderJsonLd({ x: "</script>" }).includes("\\u003c/script>") && R.buildRobotsTxt({ rules: [{ userAgent: "*", disallow: ["/admin"] }], sitemaps: ["https://ex.com/sitemap.xml"] }).includes("Disallow: /admin") && R.buildRobotsTxt({ rules: [{ userAgent: "*", disallow: ["/admin"] }], sitemaps: ["https://ex.com/sitemap.xml"] }).includes("Sitemap: https://ex.com/sitemap.xml") && R.allowAllRobotsTxt("https://ex.com/sitemap.xml").includes("Allow: /"));
+  ok("seo JSON-LD(Article/Breadcrumb/WebSite SearchAction/Product/FAQ)", art["@type"] === "BlogPosting" &&
+     art.author.name === "著者" &&
+     bc.itemListElement[1].position === 2 &&
+     web.potentialAction["@type"] === "SearchAction" &&
+     prod.offers.availability === "https://schema.org/InStock" &&
+     J.faqJsonLd([{ question: "Q", answer: "A" }]).mainEntity.length === 1);
+  ok("seo renderJsonLd(script/</script>エスケープ) + robots.txt(UA/Disallow/Sitemap/allowAll)", J.renderJsonLd(art).startsWith('<script type="application/ld+json">') &&
+     J.renderJsonLd({ x: "</script>" }).includes("\\u003c/script>") &&
+     R.buildRobotsTxt({ rules: [{ userAgent: "*", disallow: ["/admin"] }], sitemaps: ["https://ex.com/sitemap.xml"] }).includes("Disallow: /admin") &&
+     R.buildRobotsTxt({ rules: [{ userAgent: "*", disallow: ["/admin"] }], sitemaps: ["https://ex.com/sitemap.xml"] }).includes("Sitemap: https://ex.com/sitemap.xml") &&
+     R.allowAllRobotsTxt("https://ex.com/sitemap.xml").includes("Allow: /"));
 }
 
 // ---- commerce拡張: バリエーション / レビュー / 注文ステータス / ポイント / 送料 ----
@@ -3278,15 +4239,27 @@ section("commerce+: variant / review / order-status / points / shipping");
   const PT = await import(new URL("../packages/commerce/src/points.ts", import.meta.url));
   const SH = await import(new URL("../packages/commerce/src/shipping.ts", import.meta.url));
   const variants = [{ sku: "S-赤", options: { サイズ: "S", 色: "赤" }, price: 1000, stock: 5 }, { sku: "M-赤", options: { サイズ: "M", 色: "赤" }, price: 1000, stock: 0 }, { sku: "M-青", options: { サイズ: "M", 色: "青" }, price: 1200, stock: 3 }, { sku: "L-青", options: { サイズ: "L", 色: "青" }, price: 1200, stock: 2 }];
-  ok("variant(選択特定/在庫別選択肢/価格帯)", V.findVariant(variants, { サイズ: "M", 色: "青" }).sku === "M-青" && V.availableValues(variants, "サイズ", { 色: "青" }).sort().join(",") === "L,M" && V.availableValues(variants, "サイズ", { 色: "赤" }).join(",") === "S" && V.priceRange(variants).min === 1000 && V.priceRange(variants).max === 1200);
+  ok("variant(選択特定/在庫別選択肢/価格帯)", V.findVariant(variants, { サイズ: "M", 色: "青" }).sku === "M-青" &&
+     V.availableValues(variants, "サイズ", { 色: "青" }).sort().join(",") === "L,M" &&
+     V.availableValues(variants, "サイズ", { 色: "赤" }).join(",") === "S" &&
+     V.priceRange(variants).min === 1000 &&
+     V.priceRange(variants).max === 1200);
   const s = RV.ratingSummary([5, 5, 5, 4, 4, 3, 1]);
   ok("review(平均3.9/分布/割合)", RV.averageRating([5, 5, 5, 4, 4, 3, 1]) === 3.9 && RV.ratingDistribution([5, 5, 5, 4, 4, 3, 1])[5] === 3 && s.count === 7 && Math.abs(s.percentages[5] - 42.9) < 0.1);
-  ok("order-status(遷移可否/次状態/終端/キャンセル可否)", OS.canTransition("pending", "paid") === true && OS.canTransition("pending", "shipped") === false && OS.nextStatuses("paid").sort().join(",") === "cancelled,processing,refunded" && OS.isFinalStatus("cancelled") === true && OS.isCancellable("shipped") === false);
+  ok("order-status(遷移可否/次状態/終端/キャンセル可否)", OS.canTransition("pending", "paid") === true &&
+     OS.canTransition("pending", "shipped") === false &&
+     OS.nextStatuses("paid").sort().join(",") === "cancelled,processing,refunded" &&
+     OS.isFinalStatus("cancelled") === true &&
+     OS.isCancellable("shipped") === false);
   const now = new Date("2025-07-25T00:00:00Z");
   const txns = [{ amount: 100, date: "2025-01-01T00:00:00Z", expiresAt: "2026-01-01T00:00:00Z" }, { amount: 50, date: "x", expiresAt: "2025-06-01T00:00:00Z" }, { amount: -30, date: "x" }];
   ok("points(付与1%/残高失効考慮/利用上限)", PT.earnPoints(1980) === 19 && PT.pointsBalance(txns, now) === 70 && PT.redeemPoints(500, 300, 200).used === 200 && PT.redeemPoints(0, 100).ok === false);
   const zones = [{ name: "本州", regions: ["東京都"], fee: 550, freeThreshold: 5000 }, { name: "北海道", regions: ["北海道"], fee: 1100, freeThreshold: 10000 }];
-  ok("shipping(エリア別/無料閾値/重量段階)", SH.shippingFeeForRegion(zones, "東京都", 3000) === 550 && SH.shippingFeeForRegion(zones, "東京都", 5000) === 0 && SH.shippingFeeForRegion(zones, "北海道", 5000) === 1100 && SH.weightBasedFee(700, [{ maxWeight: 500, fee: 400 }, { maxWeight: 1000, fee: 600 }]) === 600 && SH.totalWeight([{ weight: 200, quantity: 2 }, { weight: 100, quantity: 3 }]) === 700);
+  ok("shipping(エリア別/無料閾値/重量段階)", SH.shippingFeeForRegion(zones, "東京都", 3000) === 550 &&
+     SH.shippingFeeForRegion(zones, "東京都", 5000) === 0 &&
+     SH.shippingFeeForRegion(zones, "北海道", 5000) === 1100 &&
+     SH.weightBasedFee(700, [{ maxWeight: 500, fee: 400 }, { maxWeight: 1000, fee: 600 }]) === 600 &&
+     SH.totalWeight([{ weight: 200, quantity: 2 }, { weight: 100, quantity: 3 }]) === 700);
 }
 
 // ---- blog拡張: コメント / 記事ナビゲーション ----
@@ -3295,7 +4268,12 @@ section("blog+: comment / navigation");
   const CM = await import(new URL("../packages/blog/src/comment.ts", import.meta.url));
   const comments = [{ id: "1", author: "A", body: "最初", createdAt: "2025-07-20T10:00:00Z", status: "approved" }, { id: "2", parentId: "1", author: "B", body: "返信", createdAt: "2025-07-20T11:00:00Z", status: "approved" }, { id: "3", author: "C", body: "別", createdAt: "2025-07-21T10:00:00Z", status: "pending" }, { id: "4", parentId: "1", author: "D", body: "返信2", createdAt: "2025-07-20T12:00:00Z", status: "approved" }];
   const tree = CM.buildCommentTree(comments);
-  ok("comment(ツリー/返信/承認済み/並替/総数/承認待ち)", tree.length === 2 && tree[0].replies.length === 2 && CM.approvedComments(comments).length === 3 && CM.sortComments(comments, "newest")[0].id === "3" && CM.countComments(tree) === 4 && CM.pendingCount(comments) === 1);
+  ok("comment(ツリー/返信/承認済み/並替/総数/承認待ち)", tree.length === 2 &&
+     tree[0].replies.length === 2 &&
+     CM.approvedComments(comments).length === 3 &&
+     CM.sortComments(comments, "newest")[0].id === "3" &&
+     CM.countComments(tree) === 4 &&
+     CM.pendingCount(comments) === 1);
   const fs10 = await import("node:fs/promises"); const st10 = smokeStamp();
   const navSrc = (await fs10.readFile(new URL("../packages/blog/src/navigation.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/post\.ts"/g, `from "/tmp/blognav-post-${st10}.ts"`);
   const postSrc = (await fs10.readFile(new URL("../packages/blog/src/post.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
@@ -3303,7 +4281,12 @@ section("blog+: comment / navigation");
   const N = await import(`/tmp/blognav-nav-${st10}.ts`);
   const posts = [{ id: "1", slug: "a", title: "A", status: "published", publishedAt: "2025-07-20T00:00:00Z", series: "入門", seriesOrder: 1 }, { id: "2", slug: "b", title: "B", status: "published", publishedAt: "2025-07-22T00:00:00Z", series: "入門", seriesOrder: 2 }, { id: "3", slug: "c", title: "C", status: "published", publishedAt: "2025-07-24T00:00:00Z", series: "入門", seriesOrder: 3 }];
   const adj = N.adjacentPosts(posts, "2"); const sn = N.seriesNavigation(posts, "2");
-  ok("navigation(前後記事/連載順/連載内前後+位置)", adj.newer.id === "3" && adj.older.id === "1" && N.seriesPosts(posts, "入門").map((p) => p.id).join(",") === "1,2,3" && sn.prev.id === "1" && sn.next.id === "3" && sn.total === 3);
+  ok("navigation(前後記事/連載順/連載内前後+位置)", adj.newer.id === "3" &&
+     adj.older.id === "1" &&
+     N.seriesPosts(posts, "入門").map((p) => p.id).join(",") === "1,2,3" &&
+     sn.prev.id === "1" &&
+     sn.next.id === "3" &&
+     sn.total === 3);
   await fs10.rm(`/tmp/blognav-post-${st10}.ts`); await fs10.rm(`/tmp/blognav-nav-${st10}.ts`);
 }
 
@@ -3316,13 +4299,30 @@ section("site: blocks / navigation / redirects / announcement");
   const AN = await import(new URL("../packages/site/src/announcement.ts", import.meta.url));
   const now = new Date("2025-07-25T12:00:00Z");
   const page = { slug: "home", title: "T", blocks: [{ id: "h", type: "hero", data: {} }, { id: "f", type: "features", data: {}, visible: false }, { id: "c", type: "cta", data: {}, visibleFrom: "2025-08-01T00:00:00Z" }, { id: "faq", type: "faq", data: {} }, { id: "s", type: "stats", data: {} }] };
-  ok("site ブロック(公開中のみ/タイプ別/並べ替え/上下移動)", B.visibleBlocks(page, now).map((b) => b.id).join(",") === "h,faq,s" && B.blocksByType(page, "hero").length === 1 && B.reorderBlocks(page.blocks, 0, 2).map((b) => b.id).join(",") === "f,c,h,faq,s" && B.moveBlockUp(page.blocks, "f").map((b) => b.id).join(",") === "f,h,c,faq,s");
+  ok("site ブロック(公開中のみ/タイプ別/並べ替え/上下移動)", B.visibleBlocks(page, now).map((b) => b.id).join(",") === "h,faq,s" &&
+     B.blocksByType(page, "hero").length === 1 &&
+     B.reorderBlocks(page.blocks, 0, 2).map((b) => b.id).join(",") === "f,c,h,faq,s" &&
+     B.moveBlockUp(page.blocks, "f").map((b) => b.id).join(",") === "f,h,c,faq,s");
   const menu = [{ label: "ホーム", href: "/" }, { label: "製品", href: "/products", children: [{ label: "製品A", href: "/products/a" }, { label: "製品B", href: "/products/b" }] }, { label: "会社概要", href: "/about" }];
-  ok("site ナビ(アクティブ/exact/経路/パンくず/平坦化)", N.isActive(menu[1], "/products/a") === true && N.isActive(menu[1], "/products", { exact: true }) === true && N.activeTrail(menu, "/products/a").map((i) => i.label).join(">") === "製品>製品A" && N.breadcrumbFromMenu(menu, "/products/b").length === 2 && N.flattenMenu(menu).length === 5);
+  ok("site ナビ(アクティブ/exact/経路/パンくず/平坦化)", N.isActive(menu[1], "/products/a") === true &&
+     N.isActive(menu[1], "/products", { exact: true }) === true &&
+     N.activeTrail(menu, "/products/a").map((i) => i.label).join(">") === "製品>製品A" &&
+     N.breadcrumbFromMenu(menu, "/products/b").length === 2 &&
+     N.flattenMenu(menu).length === 5);
   const rules = [{ from: "/old-page", to: "/new-page" }, { from: "/blog/*", to: "/articles/:splat", status: 301 }, { from: "/campaign", to: "/sale", status: 302 }];
-  ok("site リダイレクト(完全一致/ワイルドカード/クエリ無視/302/連鎖/該当なし)", RD.resolveRedirect(rules, "/old-page").to === "/new-page" && RD.resolveRedirect(rules, "/blog/2025/hello").to === "/articles/2025/hello" && RD.resolveRedirect(rules, "/old-page/?utm=x").to === "/new-page" && RD.resolveRedirect(rules, "/campaign").status === 302 && RD.resolveRedirectChain([{ from: "/a", to: "/b" }, { from: "/b", to: "/c" }], "/a").to === "/c" && RD.resolveRedirect(rules, "/other") === null);
+  ok("site リダイレクト(完全一致/ワイルドカード/クエリ無視/302/連鎖/該当なし)", RD.resolveRedirect(rules, "/old-page").to === "/new-page" &&
+     RD.resolveRedirect(rules, "/blog/2025/hello").to === "/articles/2025/hello" &&
+     RD.resolveRedirect(rules, "/old-page/?utm=x").to === "/new-page" &&
+     RD.resolveRedirect(rules, "/campaign").status === 302 &&
+     RD.resolveRedirectChain([{ from: "/a", to: "/b" }, { from: "/b", to: "/c" }], "/a").to === "/c" &&
+     RD.resolveRedirect(rules, "/other") === null);
   const anns = [{ id: "1", message: "通常", level: "info" }, { id: "2", message: "期間外", startAt: "2025-08-01T00:00:00Z" }, { id: "3", message: "セール", endAt: "2025-12-31T00:00:00Z", level: "sale" }, { id: "4", message: "商品のみ", paths: ["/products"], level: "warning" }];
-  ok("site お知らせ(期間/パス限定/閉じた除外/最優先sale)", AN.isAnnouncementActive(anns[0], "/", now) === true && AN.isAnnouncementActive(anns[1], "/", now) === false && AN.isAnnouncementActive(anns[3], "/products/a", now) === true && AN.activeAnnouncements(anns, "/", { now }).map((a) => a.id).join(",") === "1,3" && AN.activeAnnouncements(anns, "/", { now, dismissedIds: ["1"] }).map((a) => a.id).join(",") === "3" && AN.topAnnouncement(anns, "/products", { now }).id === "3");
+  ok("site お知らせ(期間/パス限定/閉じた除外/最優先sale)", AN.isAnnouncementActive(anns[0], "/", now) === true &&
+     AN.isAnnouncementActive(anns[1], "/", now) === false &&
+     AN.isAnnouncementActive(anns[3], "/products/a", now) === true &&
+     AN.activeAnnouncements(anns, "/", { now }).map((a) => a.id).join(",") === "1,3" &&
+     AN.activeAnnouncements(anns, "/", { now, dismissedIds: ["1"] }).map((a) => a.id).join(",") === "3" &&
+     AN.topAnnouncement(anns, "/products", { now }).id === "3");
 }
 
 // ---- seo可視性: 社内noindex / 公開index(検索避けポリシー) ----
@@ -3337,9 +4337,19 @@ section("seo: visibility (internal noindex / public index)");
   }
   const I = await import(files.indexing);
   const M = await import(files.meta);
-  ok("可視性 internal→noindex / public→index / xRobotsTag", M.robotsContent(I.robotsForVisibility("internal")) === "noindex, nofollow, noarchive" && M.robotsContent(I.robotsForVisibility("public")) === "index, follow" && I.noindexRobots() === "noindex, nofollow, noarchive" && I.xRobotsTag("internal") === "noindex, nofollow, noarchive" && I.xRobotsTag("public") === "index, follow");
-  ok("robots.txt 社内全拒否 / 公開許可+sitemap", I.internalRobotsTxt().includes("Disallow: /") && !I.internalRobotsTxt().includes("Allow") && I.publicRobotsTxt("https://ex.com/sitemap.xml").includes("Allow: /") && I.publicRobotsTxt("https://ex.com/sitemap.xml").includes("Sitemap:"));
-  ok("buildMeta visibility統合(internal noindex/public index/robots明示優先/無指定は無)", M.buildMeta({ title: "社内", visibility: "internal" }).tags.find((t) => t.name === "robots").content === "noindex, nofollow, noarchive" && M.buildMeta({ title: "公開", visibility: "public" }).tags.find((t) => t.name === "robots").content === "index, follow" && M.buildMeta({ title: "x", visibility: "public", robots: { index: false } }).tags.find((t) => t.name === "robots").content.includes("noindex") && !M.buildMeta({ title: "x" }).tags.some((t) => t.name === "robots"));
+  ok("可視性 internal→noindex / public→index / xRobotsTag", M.robotsContent(I.robotsForVisibility("internal")) === "noindex, nofollow, noarchive" &&
+     M.robotsContent(I.robotsForVisibility("public")) === "index, follow" &&
+     I.noindexRobots() === "noindex, nofollow, noarchive" &&
+     I.xRobotsTag("internal") === "noindex, nofollow, noarchive" &&
+     I.xRobotsTag("public") === "index, follow");
+  ok("robots.txt 社内全拒否 / 公開許可+sitemap", I.internalRobotsTxt().includes("Disallow: /") &&
+     !I.internalRobotsTxt().includes("Allow") &&
+     I.publicRobotsTxt("https://ex.com/sitemap.xml").includes("Allow: /") &&
+     I.publicRobotsTxt("https://ex.com/sitemap.xml").includes("Sitemap:"));
+  ok("buildMeta visibility統合(internal noindex/public index/robots明示優先/無指定は無)", M.buildMeta({ title: "社内", visibility: "internal" }).tags.find((t) => t.name === "robots").content === "noindex, nofollow, noarchive" &&
+     M.buildMeta({ title: "公開", visibility: "public" }).tags.find((t) => t.name === "robots").content === "index, follow" &&
+     M.buildMeta({ title: "x", visibility: "public", robots: { index: false } }).tags.find((t) => t.name === "robots").content.includes("noindex") &&
+     !M.buildMeta({ title: "x" }).tags.some((t) => t.name === "robots"));
   for (const f of Object.values(files)) await fs11.rm(f);
 }
 
@@ -3347,14 +4357,21 @@ section("seo: visibility (internal noindex / public index)");
 section("blog: permalink (URL structure)");
 {
   const fs12 = await import("node:fs/promises"); const st12 = smokeStamp();
-  const plSrc = (await fs12.readFile(new URL("../packages/blog/src/permalink.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/slug\.ts"/g, `from "/tmp/pl-slug-${st12}.ts"`);
+  const plSrc = (await fs12.readFile(new URL("../packages/blog/src/permalink.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/slug\.ts"/g, `from "/tmp/pl-slug-${st12}.ts"`).replace(/from "@platform\/url"/g, `from "${new URL("../packages/url/src/join.ts", import.meta.url).pathname}"`);
   const slugSrc = (await fs12.readFile(new URL("../packages/blog/src/slug.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   await fs12.writeFile(`/tmp/pl-slug-${st12}.ts`, slugSrc); await fs12.writeFile(`/tmp/pl-perma-${st12}.ts`, plSrc);
   const P = await import(`/tmp/pl-perma-${st12}.ts`);
   const post = { slug: "hello-world", id: "123", category: "技術ブログ", publishedAt: "2025-07-25T10:00:00Z" };
   const late = { slug: "night", publishedAt: "2025-07-25T23:00:00Z" };
-  ok("permalink 生成(slug/日付/ID/カテゴリunicode/TZ)", P.buildPermalink("/blog/:slug", post) === "/blog/hello-world" && P.buildPermalink("/:year/:month/:day/:slug", post) === "/2025/07/25/hello-world" && P.buildPermalink("/archives/:id", post) === "/archives/123" && P.buildPermalink("/:category/:slug", post, { allowUnicode: true }) === "/技術ブログ/hello-world" && P.buildPermalink("/:year/:month/:day/:slug", late, { utcOffsetMinutes: 540 }) === "/2025/07/26/night");
-  ok("permalink joinUrl/postUrl絶対/matchPermalink逆引き", P.joinUrl("https://ex.com/", "/blog/a") === "https://ex.com/blog/a" && P.postUrl(post, { baseUrl: "https://ex.com", pattern: "/blog/:year/:slug" }) === "https://ex.com/blog/2025/hello-world" && JSON.stringify(P.matchPermalink("/blog/:year/:month/:slug", "/blog/2025/07/hello")) === JSON.stringify({ year: "2025", month: "07", slug: "hello" }) && P.matchPermalink("/blog/:slug", "/blog/2025/hello") === null);
+  ok("permalink 生成(slug/日付/ID/カテゴリunicode/TZ)", P.buildPermalink("/blog/:slug", post) === "/blog/hello-world" &&
+     P.buildPermalink("/:year/:month/:day/:slug", post) === "/2025/07/25/hello-world" &&
+     P.buildPermalink("/archives/:id", post) === "/archives/123" &&
+     P.buildPermalink("/:category/:slug", post, { allowUnicode: true }) === "/技術ブログ/hello-world" &&
+     P.buildPermalink("/:year/:month/:day/:slug", late, { utcOffsetMinutes: 540 }) === "/2025/07/26/night");
+  ok("permalink joinUrl/postUrl絶対/matchPermalink逆引き", P.joinUrl("https://ex.com/", "/blog/a") === "https://ex.com/blog/a" &&
+     P.postUrl(post, { baseUrl: "https://ex.com", pattern: "/blog/:year/:slug" }) === "https://ex.com/blog/2025/hello-world" &&
+     JSON.stringify(P.matchPermalink("/blog/:year/:month/:slug", "/blog/2025/07/hello")) === JSON.stringify({ year: "2025", month: "07", slug: "hello" }) &&
+     P.matchPermalink("/blog/:slug", "/blog/2025/hello") === null);
   await fs12.rm(`/tmp/pl-slug-${st12}.ts`); await fs12.rm(`/tmp/pl-perma-${st12}.ts`);
 }
 
@@ -3367,11 +4384,42 @@ section("url: parse / domain / query / normalize / validate");
   const NM = await import(new URL("../packages/url/src/normalize.ts", import.meta.url));
   const VL = await import(new URL("../packages/url/src/validate.ts", import.meta.url));
   const pp = P.parseUrl("https://www.ex.com:8080/blog/a?x=1&y=2#top");
-  ok("url 解析(分解/相対base/buildUrl/isAbsolute)", pp.hostname === "www.ex.com" && pp.port === "8080" && pp.pathname === "/blog/a" && pp.search === "x=1&y=2" && pp.hash === "top" && P.parseUrl("/foo", "https://ex.com").hostname === "ex.com" && P.buildUrl({ protocol: "https", hostname: "ex.com", pathname: "/a", search: "x=1" }) === "https://ex.com/a?x=1" && P.isAbsoluteUrl("/p") === false);
-  ok("url ドメイン(eTLD+1/co.jp/subdomain/tld/同一判定)", D.getRegistrableDomain("www.example.com") === "example.com" && D.getRegistrableDomain("www.example.co.jp") === "example.co.jp" && D.getRegistrableDomain("blog.mysite.ne.jp") === "mysite.ne.jp" && D.getSubdomain("a.b.example.co.jp") === "a.b" && D.getTld("example.co.jp") === "co.jp" && D.isSameDomain("www.example.com", "api.example.com") === true && D.isSameDomain("example.com", "other.com") === false);
-  ok("url クエリ(解析/set/setParams削除/append/keep/相対)", JSON.stringify(Q.parseQuery("?a=1&b=2&a=3")) === JSON.stringify({ a: ["1", "3"], b: "2" }) && Q.setParam("https://ex.com/a?x=1#top", "x", 9) === "https://ex.com/a?x=9#top" && Q.setParams("https://ex.com/a?x=1&y=2", { x: 9, y: null, z: 3 }) === "https://ex.com/a?x=9&z=3" && Q.appendParam("https://ex.com/a?tag=1", "tag", 2) === "https://ex.com/a?tag=1&tag=2" && Q.keepParams("https://ex.com/a?x=1&y=2&z=3", ["x", "z"]) === "https://ex.com/a?x=1&z=3" && Q.setParam("/search?q=old", "q", "new") === "/search?q=new");
-  ok("url 正規化(host小文字/トラッキング除去/ソート/末尾スラッシュ/urlsEqual)", NM.normalizeUrl("https://EXAMPLE.com/Path") === "https://example.com/Path" && NM.normalizeUrl("https://ex.com/a?id=1&utm_source=x&fbclid=y") === "https://ex.com/a?id=1" && NM.normalizeUrl("https://ex.com/a?c=3&a=1&b=2") === "https://ex.com/a?a=1&b=2&c=3" && NM.normalizeUrl("https://ex.com/blog/") === "https://ex.com/blog" && NM.normalizeUrl("https://ex.com/") === "https://ex.com/" && NM.urlsEqual("https://EX.com/a/?utm_source=x", "https://ex.com/a") === true);
-  ok("url 検証(valid/http限定/safe危険排除/sameOrigin/external)", VL.isValidUrl("https://ex.com") === true && VL.isValidUrl("not url") === false && VL.isHttpUrl("ftp://ex.com") === false && VL.isSafeUrl("javascript:alert(1)") === false && VL.isSafeUrl("data:text/html,x") === false && VL.isSafeUrl("/relative") === true && VL.isSameOrigin("https://ex.com/a", "https://ex.com/b") === true && VL.isExternalUrl("https://other.com/x", "example.com") === true && VL.isExternalUrl("/internal", "example.com") === false);
+  ok("url 解析(分解/相対base/buildUrl/isAbsolute)", pp.hostname === "www.ex.com" &&
+     pp.port === "8080" &&
+     pp.pathname === "/blog/a" &&
+     pp.search === "x=1&y=2" &&
+     pp.hash === "top" &&
+     P.parseUrl("/foo", "https://ex.com").hostname === "ex.com" &&
+     P.buildUrl({ protocol: "https", hostname: "ex.com", pathname: "/a", search: "x=1" }) === "https://ex.com/a?x=1" &&
+     P.isAbsoluteUrl("/p") === false);
+  ok("url ドメイン(eTLD+1/co.jp/subdomain/tld/同一判定)", D.getRegistrableDomain("www.example.com") === "example.com" &&
+     D.getRegistrableDomain("www.example.co.jp") === "example.co.jp" &&
+     D.getRegistrableDomain("blog.mysite.ne.jp") === "mysite.ne.jp" &&
+     D.getSubdomain("a.b.example.co.jp") === "a.b" &&
+     D.getTld("example.co.jp") === "co.jp" &&
+     D.isSameDomain("www.example.com", "api.example.com") === true &&
+     D.isSameDomain("example.com", "other.com") === false);
+  ok("url クエリ(解析/set/setParams削除/append/keep/相対)", JSON.stringify(Q.parseQuery("?a=1&b=2&a=3")) === JSON.stringify({ a: ["1", "3"], b: "2" }) &&
+     Q.setParam("https://ex.com/a?x=1#top", "x", 9) === "https://ex.com/a?x=9#top" &&
+     Q.setParams("https://ex.com/a?x=1&y=2", { x: 9, y: null, z: 3 }) === "https://ex.com/a?x=9&z=3" &&
+     Q.appendParam("https://ex.com/a?tag=1", "tag", 2) === "https://ex.com/a?tag=1&tag=2" &&
+     Q.keepParams("https://ex.com/a?x=1&y=2&z=3", ["x", "z"]) === "https://ex.com/a?x=1&z=3" &&
+     Q.setParam("/search?q=old", "q", "new") === "/search?q=new");
+  ok("url 正規化(host小文字/トラッキング除去/ソート/末尾スラッシュ/urlsEqual)", NM.normalizeUrl("https://EXAMPLE.com/Path") === "https://example.com/Path" &&
+     NM.normalizeUrl("https://ex.com/a?id=1&utm_source=x&fbclid=y") === "https://ex.com/a?id=1" &&
+     NM.normalizeUrl("https://ex.com/a?c=3&a=1&b=2") === "https://ex.com/a?a=1&b=2&c=3" &&
+     NM.normalizeUrl("https://ex.com/blog/") === "https://ex.com/blog" &&
+     NM.normalizeUrl("https://ex.com/") === "https://ex.com/" &&
+     NM.urlsEqual("https://EX.com/a/?utm_source=x", "https://ex.com/a") === true);
+  ok("url 検証(valid/http限定/safe危険排除/sameOrigin/external)", VL.isValidUrl("https://ex.com") === true &&
+     VL.isValidUrl("not url") === false &&
+     VL.isHttpUrl("ftp://ex.com") === false &&
+     VL.isSafeUrl("javascript:alert(1)") === false &&
+     VL.isSafeUrl("data:text/html,x") === false &&
+     VL.isSafeUrl("/relative") === true &&
+     VL.isSameOrigin("https://ex.com/a", "https://ex.com/b") === true &&
+     VL.isExternalUrl("https://other.com/x", "example.com") === true &&
+     VL.isExternalUrl("/internal", "example.com") === false);
 }
 
 // ---- social: X/TikTok/Instagram 連携(ハンドル/URL解析/oEmbed/アカウント) ----
@@ -3390,15 +4438,39 @@ section("social: handle / parse / embed / accounts");
   const PR = await import(paths.parse);
   const E = await import(paths.embed);
   const A = await import(paths.accounts);
-  ok("social ハンドル(normalize/valid X15字/TikTok./profileUrl/display@)", H.normalizeHandle("@yamada") === "yamada" && H.isValidHandle("x", "yamada_taro") === true && H.isValidHandle("x", "toolong_handle_over15") === false && H.isValidHandle("tiktok", "cast.01") === true && H.buildProfileUrl("tiktok", "cast01") === "https://www.tiktok.com/@cast01" && H.displayHandle("tiktok", "cast01") === "@cast01" && H.buildProfileUrl("x", "bad handle!") === null);
+  ok("social ハンドル(normalize/valid X15字/TikTok./profileUrl/display@)", H.normalizeHandle("@yamada") === "yamada" &&
+     H.isValidHandle("x", "yamada_taro") === true &&
+     H.isValidHandle("x", "toolong_handle_over15") === false &&
+     H.isValidHandle("tiktok", "cast.01") === true &&
+     H.buildProfileUrl("tiktok", "cast01") === "https://www.tiktok.com/@cast01" &&
+     H.displayHandle("tiktok", "cast01") === "@cast01" &&
+     H.buildProfileUrl("x", "bad handle!") === null);
   const xr = PR.parseSocialUrl("https://twitter.com/y/status/123");
   const tr = PR.parseSocialUrl("https://www.tiktok.com/@c/video/71");
   const ir = PR.parseSocialUrl("https://www.instagram.com/p/ABC/");
-  ok("social URL解析(Xプロフ/Xツイート/TikTok動画/IG投稿/reel/予約語除外)", PR.parseSocialUrl("https://x.com/yamada").type === "profile" && xr.type === "post" && xr.postId === "123" && xr.postKind === "tweet" && tr.postKind === "video" && ir.postKind === "post" && PR.parseSocialUrl("https://www.instagram.com/reel/XYZ/").postKind === "reel" && PR.parseSocialUrl("https://x.com/home") === null && PR.parseSocialUrl("https://example.com/x") === null);
-  ok("social oEmbed(X/TikTok/IGはnull要トークン/supports)", E.oembedEndpoint("x", "https://x.com/y/status/123") === "https://publish.twitter.com/oembed?url=https%3A%2F%2Fx.com%2Fy%2Fstatus%2F123" && E.oembedEndpoint("x", "https://x.com/y/status/123", { theme: "dark", omitScript: true }).includes("theme=dark") && E.oembedEndpoint("tiktok", "https://www.tiktok.com/@c/video/71").startsWith("https://www.tiktok.com/oembed?url=") && E.oembedEndpoint("instagram", "https://www.instagram.com/p/ABC/") === null && E.supportsOEmbed("x") === true && E.supportsOEmbed("instagram") === false);
+  ok("social URL解析(Xプロフ/Xツイート/TikTok動画/IG投稿/reel/予約語除外)", PR.parseSocialUrl("https://x.com/yamada").type === "profile" &&
+     xr.type === "post" &&
+     xr.postId === "123" &&
+     xr.postKind === "tweet" &&
+     tr.postKind === "video" &&
+     ir.postKind === "post" &&
+     PR.parseSocialUrl("https://www.instagram.com/reel/XYZ/").postKind === "reel" &&
+     PR.parseSocialUrl("https://x.com/home") === null &&
+     PR.parseSocialUrl("https://example.com/x") === null);
+  ok("social oEmbed(X/TikTok/IGはnull要トークン/supports)", E.oembedEndpoint("x", "https://x.com/y/status/123") === "https://publish.twitter.com/oembed?url=https%3A%2F%2Fx.com%2Fy%2Fstatus%2F123" &&
+     E.oembedEndpoint("x", "https://x.com/y/status/123", { theme: "dark", omitScript: true }).includes("theme=dark") &&
+     E.oembedEndpoint("tiktok", "https://www.tiktok.com/@c/video/71").startsWith("https://www.tiktok.com/oembed?url=") &&
+     E.oembedEndpoint("instagram", "https://www.instagram.com/p/ABC/") === null &&
+     E.supportsOEmbed("x") === true &&
+     E.supportsOEmbed("instagram") === false);
   const accounts = A.accountsFromUrls(["https://x.com/yamada_taro", "https://twitter.com/yamada_taro", "https://www.tiktok.com/@yamada.dance", "https://www.instagram.com/yamada_ig/", "https://example.com/x", "@bad handle"]);
   const links = A.accountLinks(accounts);
-  ok("social アカウント(複数URL→妥当のみ+重複排除/リンク順/プラットフォーム別)", accounts.length === 3 && accounts.filter((a) => a.platform === "x").length === 1 && links.map((l) => l.platform).join(",") === "x,tiktok,instagram" && links[1].label === "@yamada.dance" && A.accountsByPlatform(accounts).instagram.handle === "yamada_ig" && A.dedupeAccounts([{ platform: "x", handle: "a", url: "u" }, { platform: "x", handle: "A", url: "u" }]).length === 1);
+  ok("social アカウント(複数URL→妥当のみ+重複排除/リンク順/プラットフォーム別)", accounts.length === 3 &&
+     accounts.filter((a) => a.platform === "x").length === 1 &&
+     links.map((l) => l.platform).join(",") === "x,tiktok,instagram" &&
+     links[1].label === "@yamada.dance" &&
+     A.accountsByPlatform(accounts).instagram.handle === "yamada_ig" &&
+     A.dedupeAccounts([{ platform: "x", handle: "a", url: "u" }, { platform: "x", handle: "A", url: "u" }]).length === 1);
   for (const n of names) await fs13.rm(paths[n]);
 }
 
@@ -3420,14 +4492,41 @@ section("booking: hours / slots / availability / rules / status");
   const R = await import(paths.rules);
   const ST = await import(paths.status);
   const weekly = { 1: [{ open: "09:00", close: "12:00" }, { open: "13:00", close: "18:00" }], 0: [] };
-  ok("booking 営業時間(分変換/曜日/臨時休/特別営業/昼休み判定)", H.timeToMinutes("09:30") === 570 && H.weekdayOf("2025-07-28") === 1 && H.resolveDayHours("2025-07-28", weekly).length === 2 && H.resolveDayHours("2025-07-28", weekly, { closedDates: ["2025-07-28"] }).length === 0 && H.resolveDayHours("2025-07-28", weekly, { specialDates: { "2025-07-28": [{ open: "10:00", close: "15:00" }] } })[0].open === "10:00" && H.isOpenAt("2025-07-28", "12:30", weekly) === false && H.isBusinessDay("2025-07-27", weekly) === false);
-  ok("booking スロット(30分×4/刻み幅/昼休み8枠/所要)", S.generateSlots([{ open: "09:00", close: "11:00" }], { slotMinutes: 30 }).length === 4 && S.generateSlots([{ open: "09:00", close: "10:00" }], { slotMinutes: 30, stepMinutes: 15 }).map((x) => x.start).join(",") === "09:00,09:15,09:30" && S.generateSlots(weekly[1], { slotMinutes: 60 }).length === 8 && S.slotDuration({ start: "09:00", end: "10:30" }) === 90);
+  ok("booking 営業時間(分変換/曜日/臨時休/特別営業/昼休み判定)", H.timeToMinutes("09:30") === 570 &&
+     H.weekdayOf("2025-07-28") === 1 &&
+     H.resolveDayHours("2025-07-28", weekly).length === 2 &&
+     H.resolveDayHours("2025-07-28", weekly, { closedDates: ["2025-07-28"] }).length === 0 &&
+     H.resolveDayHours("2025-07-28", weekly, { specialDates: { "2025-07-28": [{ open: "10:00", close: "15:00" }] } })[0].open === "10:00" &&
+     H.isOpenAt("2025-07-28", "12:30", weekly) === false &&
+     H.isBusinessDay("2025-07-27", weekly) === false);
+  ok("booking スロット(30分×4/刻み幅/昼休み8枠/所要)", S.generateSlots([{ open: "09:00", close: "11:00" }], { slotMinutes: 30 }).length === 4 &&
+     S.generateSlots([{ open: "09:00", close: "10:00" }], { slotMinutes: 30, stepMinutes: 15 }).map((x) => x.start).join(",") === "09:00,09:15,09:30" &&
+     S.generateSlots(weekly[1], { slotMinutes: 60 }).length === 8 &&
+     S.slotDuration({ start: "09:00", end: "10:30" }) === 90);
   const daySlots = S.generateSlots([{ open: "09:00", close: "12:00" }], { slotMinutes: 60 });
   const bookings = [{ start: "09:00", end: "10:00" }, { start: "10:30", end: "11:30" }];
-  ok("booking 空き枠(重なり/capacity1埋まる/capacity2空く/残数/衝突)", A.intervalsOverlap("09:00", "10:00", "09:30", "10:30") === true && A.intervalsOverlap("09:00", "10:00", "10:00", "11:00") === false && A.availableSlots(daySlots, bookings, 1).length === 0 && A.availableSlots(daySlots, bookings, 2).length === 3 && A.remainingCapacity(daySlots, bookings, 2)[0].remaining === 1 && A.hasConflict({ start: "09:00", end: "10:00" }, bookings, 1) === true && A.hasConflict({ start: "09:00", end: "10:00" }, bookings, 2) === false);
+  ok("booking 空き枠(重なり/capacity1埋まる/capacity2空く/残数/衝突)", A.intervalsOverlap("09:00", "10:00", "09:30", "10:30") === true &&
+     A.intervalsOverlap("09:00", "10:00", "10:00", "11:00") === false &&
+     A.availableSlots(daySlots, bookings, 1).length === 0 &&
+     A.availableSlots(daySlots, bookings, 2).length === 3 &&
+     A.remainingCapacity(daySlots, bookings, 2)[0].remaining === 1 &&
+     A.hasConflict({ start: "09:00", end: "10:00" }, bookings, 1) === true &&
+     A.hasConflict({ start: "09:00", end: "10:00" }, bookings, 2) === false);
   const now = new Date("2025-07-25T12:00:00Z");
-  ok("booking ルール(適正/過去/直前/先すぎ/キャンセル期限/人数)", R.isWithinBookingWindow("2025-07-26T12:00:00Z", { minLeadMinutes: 60, maxAdvanceDays: 30 }, now).ok === true && R.isWithinBookingWindow("2025-07-24T12:00:00Z", {}, now).reason === "past" && R.isWithinBookingWindow("2025-07-25T12:30:00Z", { minLeadMinutes: 60 }, now).reason === "too_soon" && R.isWithinBookingWindow("2025-09-25T12:00:00Z", { maxAdvanceDays: 30 }, now).reason === "too_far" && R.canCancel("2025-07-26T12:00:00Z", 1440, now) === true && R.canCancel("2025-07-25T18:00:00Z", 1440, now) === false && R.validatePartySize(5, { max: 4 }).reason === "too_many");
-  ok("booking ステータス(遷移/次状態/終端/枠占有/ラベル)", ST.canTransition("requested", "confirmed") === true && ST.canTransition("requested", "completed") === false && ST.nextStatuses("confirmed").sort().join(",") === "cancelled,completed,no_show" && ST.isFinalStatus("completed") === true && ST.isActiveBooking("confirmed") === true && ST.isActiveBooking("cancelled") === false && ST.BOOKING_STATUS_LABELS.no_show === "無断キャンセル");
+  ok("booking ルール(適正/過去/直前/先すぎ/キャンセル期限/人数)", R.isWithinBookingWindow("2025-07-26T12:00:00Z", { minLeadMinutes: 60, maxAdvanceDays: 30 }, now).ok === true &&
+     R.isWithinBookingWindow("2025-07-24T12:00:00Z", {}, now).reason === "past" &&
+     R.isWithinBookingWindow("2025-07-25T12:30:00Z", { minLeadMinutes: 60 }, now).reason === "too_soon" &&
+     R.isWithinBookingWindow("2025-09-25T12:00:00Z", { maxAdvanceDays: 30 }, now).reason === "too_far" &&
+     R.canCancel("2025-07-26T12:00:00Z", 1440, now) === true &&
+     R.canCancel("2025-07-25T18:00:00Z", 1440, now) === false &&
+     R.validatePartySize(5, { max: 4 }).reason === "too_many");
+  ok("booking ステータス(遷移/次状態/終端/枠占有/ラベル)", ST.canTransition("requested", "confirmed") === true &&
+     ST.canTransition("requested", "completed") === false &&
+     ST.nextStatuses("confirmed").sort().join(",") === "cancelled,completed,no_show" &&
+     ST.isFinalStatus("completed") === true &&
+     ST.isActiveBooking("confirmed") === true &&
+     ST.isActiveBooking("cancelled") === false &&
+     ST.BOOKING_STATUS_LABELS.no_show === "無断キャンセル");
   for (const n of names) await fs14.rm(paths[n]);
 }
 
@@ -3439,14 +4538,24 @@ section("booking-reminders / social-feed / cast");
   const R = await import(new URL("../packages/booking/src/reminders.ts", import.meta.url));
   const bookingAt = "2025-07-26T18:00:00Z";
   const sched = R.reminderSchedule(bookingAt, [{ beforeMinutes: 1440, channel: "email" }, { beforeMinutes: 60, channel: "sms" }]);
-  ok("reminders(発火時刻/due/送信済除外/grace/timing/本文)", sched[0].fireAt === "2025-07-25T18:00:00.000Z" && sched[1].fireAt === "2025-07-26T17:00:00.000Z" && R.dueReminders("bk1", sched, new Date("2025-07-25T18:30:00Z")).length === 1 && R.dueReminders("bk1", sched, new Date("2025-07-25T18:30:00Z"), { sentKeys: ["bk1:email:1440"] }).length === 0 && R.dueReminders("bk1", sched, new Date("2025-07-26T17:30:00Z"), { graceMinutes: 60 }).length === 1 && R.reminderTiming(1440) === "day_before" && R.reminderMessage({ customerName: "山田", bookingAt, beforeMinutes: 1440 }).includes("明日"));
+  ok("reminders(発火時刻/due/送信済除外/grace/timing/本文)", sched[0].fireAt === "2025-07-25T18:00:00.000Z" &&
+     sched[1].fireAt === "2025-07-26T17:00:00.000Z" &&
+     R.dueReminders("bk1", sched, new Date("2025-07-25T18:30:00Z")).length === 1 &&
+     R.dueReminders("bk1", sched, new Date("2025-07-25T18:30:00Z"), { sentKeys: ["bk1:email:1440"] }).length === 0 &&
+     R.dueReminders("bk1", sched, new Date("2025-07-26T17:30:00Z"), { graceMinutes: 60 }).length === 1 &&
+     R.reminderTiming(1440) === "day_before" &&
+     R.reminderMessage({ customerName: "山田", bookingAt, beforeMinutes: 1440 }).includes("明日"));
   // social feed(platforms 依存 → shim)
   const feedSrc = (await fs15.readFile(new URL("../packages/social/src/feed.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/platforms\.ts"/g, `from "/tmp/sf-plat-${st15}.ts"`);
   const platSrc = (await fs15.readFile(new URL("../packages/social/src/platforms.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   await fs15.writeFile(`/tmp/sf-plat-${st15}.ts`, platSrc); await fs15.writeFile(`/tmp/sf-feed-${st15}.ts`, feedSrc);
   const F = await import(`/tmp/sf-feed-${st15}.ts`);
   const posts = [{ platform: "x", id: "1", url: "u1", createdAt: "2025-07-20T10:00:00Z" }, { platform: "tiktok", id: "10", url: "u10", createdAt: "2025-07-25T10:00:00Z" }, { platform: "x", id: "2", url: "u2", createdAt: "2025-07-24T10:00:00Z" }, { platform: "x", id: "1", url: "dup", createdAt: "2025-07-20T10:00:00Z" }, { platform: "instagram", id: "100", url: "u100", createdAt: "2025-07-22T10:00:00Z" }];
-  ok("social-feed(重複排除+新しい順/最新1件/新着/直近N)", F.mergeSocialFeed(posts).length === 4 && F.mergeSocialFeed(posts)[0].id === "10" && F.latestPerPlatform(posts).length === 3 && F.newPosts(posts, ["x:1", "x:2"]).some((p) => p.id === "1") === false && F.recentPosts(posts, 2).map((p) => p.id).join(",") === "10,2");
+  ok("social-feed(重複排除+新しい順/最新1件/新着/直近N)", F.mergeSocialFeed(posts).length === 4 &&
+     F.mergeSocialFeed(posts)[0].id === "10" &&
+     F.latestPerPlatform(posts).length === 3 &&
+     F.newPosts(posts, ["x:1", "x:2"]).some((p) => p.id === "1") === false &&
+     F.recentPosts(posts, 2).map((p) => p.id).join(",") === "10,2");
   await fs15.rm(`/tmp/sf-plat-${st15}.ts`); await fs15.rm(`/tmp/sf-feed-${st15}.ts`);
   // cast(profile が cast 依存 → shim)
   const castSrc = (await fs15.readFile(new URL("../packages/cast/src/cast.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
@@ -3456,10 +4565,20 @@ section("booking-reminders / social-feed / cast");
   const P = await import(`/tmp/cast-p-${st15}.ts`);
   const now = new Date("2025-07-25T00:00:00Z");
   const casts = [{ id: "1", name: "あおい", status: "active", tags: ["ダンス", "歌"], featured: true, rating: 4.8, joinedAt: "2025-01-01" }, { id: "2", name: "かえで", status: "active", tags: ["トーク"], rating: 4.2, joinedAt: "2025-07-10" }, { id: "3", name: "さくら", status: "hidden", tags: ["ダンス"], rating: 5.0 }, { id: "4", name: "みなと", status: "active", tags: ["ダンス", "トーク"], rating: 4.5, joinedAt: "2024-06-01" }];
-  ok("cast(在籍/タグ/全タグ/集計/新人/並替featured/注目)", C.activeCasts(casts).length === 3 && C.castsByTag(casts, "ダンス").map((c) => c.id).sort().join(",") === "1,3,4" && C.castsByAllTags(casts, ["ダンス", "トーク"]).map((c) => c.id).join(",") === "4" && C.tagCounts(casts)[0].count === 3 && C.newcomers(casts, 30, now).map((c) => c.id).join(",") === "2" && C.sortCasts(casts, "featured", now).map((c) => c.id).join(",") === "1,4,2" && C.featuredCasts(casts).map((c) => c.id).join(",") === "1");
+  ok("cast(在籍/タグ/全タグ/集計/新人/並替featured/注目)", C.activeCasts(casts).length === 3 &&
+     C.castsByTag(casts, "ダンス").map((c) => c.id).sort().join(",") === "1,3,4" &&
+     C.castsByAllTags(casts, ["ダンス", "トーク"]).map((c) => c.id).join(",") === "4" &&
+     C.tagCounts(casts)[0].count === 3 &&
+     C.newcomers(casts, 30, now).map((c) => c.id).join(",") === "2" &&
+     C.sortCasts(casts, "featured", now).map((c) => c.id).join(",") === "1,4,2" &&
+     C.featuredCasts(casts).map((c) => c.id).join(",") === "1");
   const fields = [{ key: "name", label: "名前" }, { key: "tags", label: "得意" }, { key: "height", label: "身長" }, { key: "message", label: "ひとこと" }];
   const one = { id: "x", name: "あおい", status: "active", tags: ["ダンス"], height: "160cm" };
-  ok("cast-profile(項目値ありのみ/充実度0.75/必須判定)", P.profileItems(one, fields).length === 3 && P.profileItems(one, fields).find((i) => i.label === "得意").value === "ダンス" && P.profileCompleteness(one, fields) === 0.75 && P.hasRequiredProfile(one, ["name", "tags"]) === true && P.hasRequiredProfile(one, ["name", "message"]) === false);
+  ok("cast-profile(項目値ありのみ/充実度0.75/必須判定)", P.profileItems(one, fields).length === 3 &&
+     P.profileItems(one, fields).find((i) => i.label === "得意").value === "ダンス" &&
+     P.profileCompleteness(one, fields) === 0.75 &&
+     P.hasRequiredProfile(one, ["name", "tags"]) === true &&
+     P.hasRequiredProfile(one, ["name", "message"]) === false);
   await fs15.rm(`/tmp/cast-c-${st15}.ts`); await fs15.rm(`/tmp/cast-p-${st15}.ts`);
 }
 
@@ -3482,7 +4601,12 @@ section("booking-shift / cast-ranking");
   const staffShifts = { aoi: [{ start: "10:00", end: "14:00" }], kaede: [{ start: "12:00", end: "18:00" }], minato: [{ start: "09:00", end: "12:00" }] };
   const staffing = SH.slotStaffing(slots, staffShifts);
   const avail = SH.availableWithStaffing(slots, staffShifts, [{ start: "12:00", end: "13:00" }, { start: "12:00", end: "13:00" }]);
-  ok("booking-shift(シフト内枠/指名空き/勤務人数/配置空き)", SH.staffSlots(slots, [{ start: "10:00", end: "14:00" }]).map((x) => x.start).join(",") === "10:00,11:00,12:00,13:00" && SH.staffAvailableSlots(slots, [{ start: "10:00", end: "14:00" }], [{ start: "11:00", end: "12:00" }]).map((x) => x.start).join(",") === "10:00,12:00,13:00" && staffing.find((x) => x.slot.start === "12:00").staffCount === 2 && staffing.find((x) => x.slot.start === "09:00").staffCount === 1 && avail.some((x) => x.slot.start === "12:00") === false && avail.find((x) => x.slot.start === "13:00").remaining === 2);
+  ok("booking-shift(シフト内枠/指名空き/勤務人数/配置空き)", SH.staffSlots(slots, [{ start: "10:00", end: "14:00" }]).map((x) => x.start).join(",") === "10:00,11:00,12:00,13:00" &&
+     SH.staffAvailableSlots(slots, [{ start: "10:00", end: "14:00" }], [{ start: "11:00", end: "12:00" }]).map((x) => x.start).join(",") === "10:00,12:00,13:00" &&
+     staffing.find((x) => x.slot.start === "12:00").staffCount === 2 &&
+     staffing.find((x) => x.slot.start === "09:00").staffCount === 1 &&
+     avail.some((x) => x.slot.start === "12:00") === false &&
+     avail.find((x) => x.slot.start === "13:00").remaining === 2);
   for (const n of bn) await fs16.rm(bp[n]);
   // cast ranking(cast 依存 → shim)
   const rankSrc = (await fs16.readFile(new URL("../packages/cast/src/ranking.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/cast\.ts"/g, `from "/tmp/rk-cast-${st16}.ts"`);
@@ -3491,7 +4615,12 @@ section("booking-shift / cast-ranking");
   const RK = await import(`/tmp/rk-rank-${st16}.ts`);
   const casts = [{ id: "1", name: "あおい", status: "active", rating: 5.0, reviewCount: 2 }, { id: "2", name: "かえで", status: "active", rating: 4.7, reviewCount: 150 }, { id: "3", name: "みなと", status: "active", rating: 4.9, reviewCount: 80 }, { id: "4", name: "さくら", status: "hidden", rating: 5.0, reviewCount: 200 }];
   const ranking = RK.rankCasts(casts, { minCount: 10 });
-  ok("cast-ranking(重み付き/少件数満点は独占せず/在籍のみ/単純平均別)", RK.weightedRating(5.0, 1, 10, 4.0) < RK.weightedRating(4.8, 100, 10, 4.0) && RK.weightedRating(0, 0, 10, 4.0) === 4.0 && ranking.length === 3 && ranking[0].cast.id !== "1" && ranking[0].rank === 1 && RK.rankByRawRating(casts)[0].cast.id === "1");
+  ok("cast-ranking(重み付き/少件数満点は独占せず/在籍のみ/単純平均別)", RK.weightedRating(5.0, 1, 10, 4.0) < RK.weightedRating(4.8, 100, 10, 4.0) &&
+     RK.weightedRating(0, 0, 10, 4.0) === 4.0 &&
+     ranking.length === 3 &&
+     ranking[0].cast.id !== "1" &&
+     ranking[0].rank === 1 &&
+     RK.rankByRawRating(casts)[0].cast.id === "1");
   await fs16.rm(`/tmp/rk-cast-${st16}.ts`); await fs16.rm(`/tmp/rk-rank-${st16}.ts`);
 }
 
@@ -3499,14 +4628,28 @@ section("booking-shift / cast-ranking");
 section("ui: social-login lib");
 {
   const S = await import(new URL("../packages/ui/src/lib/social-login.ts", import.meta.url));
-  ok("social-login(ラベル/動詞/認証バックエンド対応)", S.PROVIDER_LABELS.google === "Google" && S.PROVIDER_LABELS.zoho === "Zoho" && S.socialLoginLabel("google") === "Google でログイン" && S.socialLoginLabel("zoho", "登録") === "Zoho で登録" && S.PROVIDER_AUTH_BACKEND.google.includes("@platform/google") && S.PROVIDER_AUTH_BACKEND.zoho.includes("@platform/zoho") && S.PROVIDER_AUTH_BACKEND.microsoft.includes("OIDC"));
+  ok("social-login(ラベル/動詞/認証バックエンド対応)", S.PROVIDER_LABELS.google === "Google" &&
+     S.PROVIDER_LABELS.zoho === "Zoho" &&
+     S.socialLoginLabel("google") === "Google でログイン" &&
+     S.socialLoginLabel("zoho", "登録") === "Zoho で登録" &&
+     S.PROVIDER_AUTH_BACKEND.google.includes("@platform/google") &&
+     S.PROVIDER_AUTH_BACKEND.zoho.includes("@platform/zoho") &&
+     S.PROVIDER_AUTH_BACKEND.microsoft.includes("OIDC"));
 }
 
 // ---- ui/login-form: メールログイン入力検証(純ロジック) ----
 section("ui: login-form validation");
 {
   const L = await import(new URL("../packages/ui/src/lib/login-form.ts", import.meta.url));
-  ok("login-form(email形式/空/不正/短パス/最小長/正常/valid判定)", L.isEmailLike("a@x.com") === true && L.isEmailLike("bad") === false && L.validateEmailLogin("", "password1").email.includes("入力") && L.validateEmailLogin("bad", "password1").email.includes("形式") && L.validateEmailLogin("a@x.com", "abc").password.includes("8文字以上") && L.validateEmailLogin("a@x.com", "abc", { minPasswordLength: 3 }).password === undefined && Object.keys(L.validateEmailLogin("a@x.com", "password1")).length === 0 && L.isLoginFormValid({}) === true && L.isLoginFormValid({ email: "x" }) === false);
+  ok("login-form(email形式/空/不正/短パス/最小長/正常/valid判定)", L.isEmailLike("a@x.com") === true &&
+     L.isEmailLike("bad") === false &&
+     L.validateEmailLogin("", "password1").email.includes("入力") &&
+     L.validateEmailLogin("bad", "password1").email.includes("形式") &&
+     L.validateEmailLogin("a@x.com", "abc").password.includes("8文字以上") &&
+     L.validateEmailLogin("a@x.com", "abc", { minPasswordLength: 3 }).password === undefined &&
+     Object.keys(L.validateEmailLogin("a@x.com", "password1")).length === 0 &&
+     L.isLoginFormValid({}) === true &&
+     L.isLoginFormValid({ email: "x" }) === false);
 }
 
 // ---- ui/nav: レイアウトナビのアクティブ判定(純ロジック) ----
@@ -3514,20 +4657,41 @@ section("ui: nav lib (layout)");
 {
   const N = await import(new URL("../packages/ui/src/lib/nav.ts", import.meta.url));
   const items = [{ label: "ホーム", href: "/" }, { label: "製品", href: "/products", children: [{ label: "製品A", href: "/products/a" }] }, { label: "会社", href: "/about" }];
-  ok("nav(前方一致/exact/ルート/クエリ無視/平坦化/最具体一致/親一致/子アクティブ)", N.isNavActive("/products", "/products/a") === true && N.isNavActive("/products", "/products/a", true) === false && N.isNavActive("/", "/about") === false && N.isNavActive("/products", "/products/?x=1") === true && N.flattenNav(items).length === 4 && N.findActiveNav(items, "/products/a").href === "/products/a" && N.findActiveNav(items, "/products/x").href === "/products" && N.findActiveNav(items, "/contact") === undefined && N.hasActiveChild(items[1], "/products/a") === true && N.hasActiveChild(items[1], "/about") === false);
+  ok("nav(前方一致/exact/ルート/クエリ無視/平坦化/最具体一致/親一致/子アクティブ)", N.isNavActive("/products", "/products/a") === true &&
+     N.isNavActive("/products", "/products/a", true) === false &&
+     N.isNavActive("/", "/about") === false &&
+     N.isNavActive("/products", "/products/?x=1") === true &&
+     N.flattenNav(items).length === 4 &&
+     N.findActiveNav(items, "/products/a").href === "/products/a" &&
+     N.findActiveNav(items, "/products/x").href === "/products" &&
+     N.findActiveNav(items, "/contact") === undefined &&
+     N.hasActiveChild(items[1], "/products/a") === true &&
+     N.hasActiveChild(items[1], "/about") === false);
 }
 
 // ---- site パス自動パンくず / ui テーマ切替(純ロジック) ----
 section("site-breadcrumbFromPath / ui-theme");
 {
   const N = await import(new URL("../packages/site/src/navigation.ts", import.meta.url));
-  ok("breadcrumbFromPath(基本/ラベル/home無/現在除外/見出し化/ルート)", JSON.stringify(N.breadcrumbFromPath("/products/a")) === JSON.stringify([{ label: "ホーム", href: "/" }, { label: "Products", href: "/products" }, { label: "A", href: "/products/a" }]) && N.breadcrumbFromPath("/products/a", { labels: { products: "製品", "/products/a": "製品A" } })[1].label === "製品" && N.breadcrumbFromPath("/a", { home: false }).length === 1 && N.breadcrumbFromPath("/products/a", { includeCurrent: false }).map((i) => i.href).join(",") === "/,/products" && N.breadcrumbFromPath("/user-settings")[1].label === "User Settings" && N.breadcrumbFromPath("/").length === 1);
+  ok("breadcrumbFromPath(基本/ラベル/home無/現在除外/見出し化/ルート)", JSON.stringify(N.breadcrumbFromPath("/products/a")) === JSON.stringify([{ label: "ホーム", href: "/" }, { label: "Products", href: "/products" }, { label: "A", href: "/products/a" }]) &&
+     N.breadcrumbFromPath("/products/a", { labels: { products: "製品", "/products/a": "製品A" } })[1].label === "製品" &&
+     N.breadcrumbFromPath("/a", { home: false }).length === 1 &&
+     N.breadcrumbFromPath("/products/a", { includeCurrent: false }).map((i) => i.href).join(",") === "/,/products" &&
+     N.breadcrumbFromPath("/user-settings")[1].label === "User Settings" &&
+     N.breadcrumbFromPath("/").length === 1);
   const T = await import(new URL("../packages/ui/src/lib/theme.ts", import.meta.url));
   const classes = new Set(); const attr = {};
   const el = { classList: { add: (c) => classes.add(c), remove: (c) => classes.delete(c) }, setAttribute: (n, v) => { attr[n] = v; } };
   T.applyTheme("dark", el); const d = classes.has("dark") && attr["data-theme"] === "dark";
   T.applyTheme("light", el); const l = !classes.has("dark") && attr["data-theme"] === "light";
-  ok("theme(resolve system/明示/循環/反転/ラベル/applyTheme)", T.resolveTheme("system", true) === "dark" && T.resolveTheme("dark", false) === "dark" && T.nextThemePreference("light") === "dark" && T.nextThemePreference("system") === "light" && T.toggleTheme("light") === "dark" && T.THEME_LABELS.system === "システム" && d && l);
+  ok("theme(resolve system/明示/循環/反転/ラベル/applyTheme)", T.resolveTheme("system", true) === "dark" &&
+     T.resolveTheme("dark", false) === "dark" &&
+     T.nextThemePreference("light") === "dark" &&
+     T.nextThemePreference("system") === "light" &&
+     T.toggleTheme("light") === "dark" &&
+     T.THEME_LABELS.system === "システム" &&
+     d &&
+     l);
 }
 
 // ---- ui/theme: FOUC対策の初期化スクリプト生成(純ロジック) ----
@@ -3535,7 +4699,14 @@ section("ui: themeInitScript");
 {
   const T = await import(new URL("../packages/ui/src/lib/theme.ts", import.meta.url));
   const script = T.themeInitScript();
-  ok("themeInitScript(既定キー/OS判定/darkクラス/属性/try-catch/カスタムキー/STORAGE_KEY)", script.includes('"theme"') && script.includes("prefers-color-scheme") && script.includes('classList.add("dark")') && script.includes('classList.remove("dark")') && script.includes("data-theme") && script.includes("try{") && T.themeInitScript("myapp").includes('"myapp"') && T.THEME_STORAGE_KEY === "theme");
+  ok("themeInitScript(既定キー/OS判定/darkクラス/属性/try-catch/カスタムキー/STORAGE_KEY)", script.includes('"theme"') &&
+     script.includes("prefers-color-scheme") &&
+     script.includes('classList.add("dark")') &&
+     script.includes('classList.remove("dark")') &&
+     script.includes("data-theme") &&
+     script.includes("try{") &&
+     T.themeInitScript("myapp").includes('"myapp"') &&
+     T.THEME_STORAGE_KEY === "theme");
 }
 
 // ---- ui/notifications: 通知の集計・グループ化(純ロジック) ----
@@ -3545,7 +4716,14 @@ section("ui: notifications lib");
   const now = new Date("2025-07-25T12:00:00Z");
   const list = [{ id: "1", title: "A", createdAt: "2025-07-25T09:00:00Z" }, { id: "2", title: "B", createdAt: "2025-07-25T11:00:00Z", read: true }, { id: "3", title: "C", createdAt: "2025-07-24T10:00:00Z" }, { id: "4", title: "D", createdAt: "2025-07-20T10:00:00Z" }];
   const g = N.groupByDate(list, now);
-  ok("notifications(未読数/並替/markRead不変/markAll/今日昨日以前グループ)", N.unreadCount(list) === 3 && N.sortNotifications(list).map((x) => x.id).join(",") === "2,1,3,4" && N.markRead(list, "1").find((x) => x.id === "1").read === true && list.find((x) => x.id === "1").read === undefined && N.unreadCount(N.markAllRead(list)) === 0 && g.today.map((x) => x.id).join(",") === "2,1" && g.yesterday.map((x) => x.id).join(",") === "3" && g.earlier.map((x) => x.id).join(",") === "4");
+  ok("notifications(未読数/並替/markRead不変/markAll/今日昨日以前グループ)", N.unreadCount(list) === 3 &&
+     N.sortNotifications(list).map((x) => x.id).join(",") === "2,1,3,4" &&
+     N.markRead(list, "1").find((x) => x.id === "1").read === true &&
+     list.find((x) => x.id === "1").read === undefined &&
+     N.unreadCount(N.markAllRead(list)) === 0 &&
+     g.today.map((x) => x.id).join(",") === "2,1" &&
+     g.yesterday.map((x) => x.id).join(",") === "3" &&
+     g.earlier.map((x) => x.id).join(",") === "4");
 }
 
 // ---- ui/command パレット検索 / ui/notification-store リアルタイム反映(純ロジック) ----
@@ -3553,7 +4731,16 @@ section("ui: command-palette / notification-store");
 {
   const C = await import(new URL("../packages/ui/src/lib/command.ts", import.meta.url));
   const cmds = [{ id: "1", label: "ダッシュボード", keywords: ["home"], group: "ページ" }, { id: "2", label: "予約一覧", keywords: ["booking"], group: "ページ" }, { id: "3", label: "新規予約を作成", keywords: ["add"], group: "操作" }, { id: "4", label: "設定", group: "ページ" }];
-  ok("command(スコア前方3/部分2/KW1/不一致null/空全件/絞込/スコア順/グループ/循環)", C.scoreCommand(cmds[0], "ダッシュ") === 3 && C.scoreCommand(cmds[2], "予約") === 2 && C.scoreCommand(cmds[1], "booking") === 1 && C.scoreCommand(cmds[3], "予約") === null && C.filterCommands(cmds, "").map((c) => c.id).join(",") === "1,2,3,4" && C.filterCommands(cmds, "予約").map((c) => c.id).sort().join(",") === "2,3" && C.filterCommands([{ id: "a", label: "予約作成" }, { id: "b", label: "新規予約" }], "予約")[0].id === "a" && C.groupCommands(cmds).map((x) => x.group).join(",") === "ページ,操作" && C.nextIndex(0, 3, -1) === 2 && C.nextIndex(0, 0, 1) === -1);
+  ok("command(スコア前方3/部分2/KW1/不一致null/空全件/絞込/スコア順/グループ/循環)", C.scoreCommand(cmds[0], "ダッシュ") === 3 &&
+     C.scoreCommand(cmds[2], "予約") === 2 &&
+     C.scoreCommand(cmds[1], "booking") === 1 &&
+     C.scoreCommand(cmds[3], "予約") === null &&
+     C.filterCommands(cmds, "").map((c) => c.id).join(",") === "1,2,3,4" &&
+     C.filterCommands(cmds, "予約").map((c) => c.id).sort().join(",") === "2,3" &&
+     C.filterCommands([{ id: "a", label: "予約作成" }, { id: "b", label: "新規予約" }], "予約")[0].id === "a" &&
+     C.groupCommands(cmds).map((x) => x.group).join(",") === "ページ,操作" &&
+     C.nextIndex(0, 3, -1) === 2 &&
+     C.nextIndex(0, 0, 1) === -1);
   const fs17 = await import("node:fs/promises"); const st17 = smokeStamp();
   const storeSrc = (await fs17.readFile(new URL("../packages/ui/src/lib/notification-store.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/notifications\.ts"/g, `from "/tmp/nstore-notif-${st17}.ts"`);
   const notifSrc = (await fs17.readFile(new URL("../packages/ui/src/lib/notifications.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
@@ -3563,7 +4750,12 @@ section("ui: command-palette / notification-store");
   stt = S.notificationReducer(stt, { type: "receive", notification: { id: "3", title: "C", createdAt: "2025-07-25T12:00:00Z" } });
   const dup = S.notificationReducer(stt, { type: "receive", notification: { id: "3", title: "C2", createdAt: "2025-07-25T13:00:00Z" } });
   const many = Array.from({ length: 5 }, (_, i) => ({ id: String(i), title: "n", createdAt: `2025-07-0${i + 1}T00:00:00Z` }));
-  ok("notification-store(受信新着順/同一ID置換/既読/全既読/削除/max上限)", stt.map((n) => n.id).join(",") === "3,2,1" && dup.filter((n) => n.id === "3").length === 1 && S.notificationReducer(stt, { type: "read", id: "1" }).find((n) => n.id === "1").read === true && S.unreadCount(S.notificationReducer(stt, { type: "readAll" })) === 0 && S.notificationReducer(stt, { type: "remove", id: "2" }).some((n) => n.id === "2") === false && S.notificationReducer([], { type: "set", notifications: many }, { max: 3 }).map((n) => n.id).join(",") === "4,3,2");
+  ok("notification-store(受信新着順/同一ID置換/既読/全既読/削除/max上限)", stt.map((n) => n.id).join(",") === "3,2,1" &&
+     dup.filter((n) => n.id === "3").length === 1 &&
+     S.notificationReducer(stt, { type: "read", id: "1" }).find((n) => n.id === "1").read === true &&
+     S.unreadCount(S.notificationReducer(stt, { type: "readAll" })) === 0 &&
+     S.notificationReducer(stt, { type: "remove", id: "2" }).some((n) => n.id === "2") === false &&
+     S.notificationReducer([], { type: "set", notifications: many }, { max: 3 }).map((n) => n.id).join(",") === "4,3,2");
   await fs17.rm(`/tmp/nstore-notif-${st17}.ts`); await fs17.rm(`/tmp/nstore-store-${st17}.ts`);
 }
 
@@ -3580,7 +4772,18 @@ section("ui: clipboard / shortcut");
   const S = await import(new URL("../packages/ui/src/lib/shortcut.ts", import.meta.url));
   const k = S.parseShortcut("mod+k");
   const sh = S.parseShortcut("mod+shift+p");
-  ok("shortcut(parse/match Mac meta・Win ctrl/format記号・語/sequence complete-partial-none)", k.key === "k" && k.mod === true && S.matchShortcut({ key: "k", ctrlKey: false, metaKey: true, shiftKey: false, altKey: false }, k, true) === true && S.matchShortcut({ key: "k", ctrlKey: true, metaKey: false, shiftKey: false, altKey: false }, k, false) === true && S.matchShortcut({ key: "j", ctrlKey: true, metaKey: false, shiftKey: false, altKey: false }, k, false) === false && S.formatShortcut(sh, true).includes("⌘") && S.formatShortcut(sh, false).includes("Ctrl") && S.isSequence("g h") === true && S.parseSequence("g h").join(",") === "g,h" && S.sequenceMatches(["g", "h"], ["g", "h"]) === "complete" && S.sequenceMatches(["g"], ["g", "h"]) === "partial" && S.sequenceMatches(["x"], ["g", "h"]) === "none");
+  ok("shortcut(parse/match Mac meta・Win ctrl/format記号・語/sequence complete-partial-none)", k.key === "k" &&
+     k.mod === true &&
+     S.matchShortcut({ key: "k", ctrlKey: false, metaKey: true, shiftKey: false, altKey: false }, k, true) === true &&
+     S.matchShortcut({ key: "k", ctrlKey: true, metaKey: false, shiftKey: false, altKey: false }, k, false) === true &&
+     S.matchShortcut({ key: "j", ctrlKey: true, metaKey: false, shiftKey: false, altKey: false }, k, false) === false &&
+     S.formatShortcut(sh, true).includes("⌘") &&
+     S.formatShortcut(sh, false).includes("Ctrl") &&
+     S.isSequence("g h") === true &&
+     S.parseSequence("g h").join(",") === "g,h" &&
+     S.sequenceMatches(["g", "h"], ["g", "h"]) === "complete" &&
+     S.sequenceMatches(["g"], ["g", "h"]) === "partial" &&
+     S.sequenceMatches(["x"], ["g", "h"]) === "none");
 }
 
 // ---- ui/clipboard コピペ / ui/shortcut キーボードショートカット(純ロジック・検証固定) ----
@@ -3598,7 +4801,16 @@ section("ui: clipboard / shortcut");
   const SH = await import(new URL("../packages/ui/src/lib/shortcut.ts", import.meta.url));
   const modK = { key: "k", ctrlKey: true, metaKey: false, shiftKey: false, altKey: false };
   const cmdK = { key: "k", ctrlKey: false, metaKey: true, shiftKey: false, altKey: false };
-  ok("shortcut(parse/match Win⌘/format/連続入力complete-partial-none)", SH.parseShortcut("mod+k").mod === true && SH.parseShortcut("ctrl+shift+p").shift === true && SH.matchShortcut(modK, SH.parseShortcut("mod+k"), false) === true && SH.matchShortcut(cmdK, SH.parseShortcut("mod+k"), false) === false && SH.matchShortcut(cmdK, SH.parseShortcut("mod+k"), true) === true && SH.formatShortcut(SH.parseShortcut("mod+shift+k"), true) === "⌘⇧K" && SH.formatShortcut(SH.parseShortcut("mod+k"), false) === "Ctrl+K" && SH.sequenceMatches(["x", "g", "h"], ["g", "h"]) === "complete" && SH.sequenceMatches(["g"], ["g", "h"]) === "partial" && SH.sequenceMatches(["g", "x"], ["g", "h"]) === "none");
+  ok("shortcut(parse/match Win⌘/format/連続入力complete-partial-none)", SH.parseShortcut("mod+k").mod === true &&
+     SH.parseShortcut("ctrl+shift+p").shift === true &&
+     SH.matchShortcut(modK, SH.parseShortcut("mod+k"), false) === true &&
+     SH.matchShortcut(cmdK, SH.parseShortcut("mod+k"), false) === false &&
+     SH.matchShortcut(cmdK, SH.parseShortcut("mod+k"), true) === true &&
+     SH.formatShortcut(SH.parseShortcut("mod+shift+k"), true) === "⌘⇧K" &&
+     SH.formatShortcut(SH.parseShortcut("mod+k"), false) === "Ctrl+K" &&
+     SH.sequenceMatches(["x", "g", "h"], ["g", "h"]) === "complete" &&
+     SH.sequenceMatches(["g"], ["g", "h"]) === "partial" &&
+     SH.sequenceMatches(["g", "x"], ["g", "h"]) === "none");
 }
 
 // ---- form/errors: バリデーション結果→項目別エラー(純ロジック) ----
@@ -3607,7 +4819,15 @@ section("form: errors");
   const E = await import(new URL("../packages/form/src/errors.ts", import.meta.url));
   const issues = [{ path: "email", message: "メール形式が不正" }, { path: "password", message: "8文字以上" }, { path: "email", message: "必須" }, { path: "", message: "全体エラー" }];
   const fe = E.issuesToFieldErrors(issues);
-  ok("form-errors(項目別/最初優先/空path=_form/ネスト保持/query)", fe.email === "メール形式が不正" && fe.password === "8文字以上" && fe._form === "全体エラー" && E.issuesToFieldErrors([{ path: "address.zip", message: "x" }])["address.zip"] === "x" && E.fieldError(fe, "email") === "メール形式が不正" && E.fieldError(fe, "name") === undefined && E.hasNoErrors({}) === true && E.hasNoErrors(fe) === false && E.formError(fe) === "全体エラー");
+  ok("form-errors(項目別/最初優先/空path=_form/ネスト保持/query)", fe.email === "メール形式が不正" &&
+     fe.password === "8文字以上" &&
+     fe._form === "全体エラー" &&
+     E.issuesToFieldErrors([{ path: "address.zip", message: "x" }])["address.zip"] === "x" &&
+     E.fieldError(fe, "email") === "メール形式が不正" &&
+     E.fieldError(fe, "name") === undefined &&
+     E.hasNoErrors({}) === true &&
+     E.hasNoErrors(fe) === false &&
+     E.formError(fe) === "全体エラー");
 }
 
 // ---- ui/nav: RBAC による出し分け filterNavByPermission(純ロジック) ----
@@ -3619,7 +4839,11 @@ section("ui: filterNavByPermission (RBAC)");
   const rv = N.filterNavByPermission(nav, (p) => viewer.has(p));
   const admin = new Set(["admin:access", "user:manage"]);
   const ra = N.filterNavByPermission(nav, (p) => admin.has(p));
-  ok("filterNavByPermission(権限なし常時表示/空グループ非表示/子絞込/全表示/不変)", rv.map((i) => i.href).join(",") === "/,/bookings" && !rv.some((i) => i.href === "/admin") && ra.find((i) => i.href === "/admin").children.map((c) => c.href).join(",") === "/admin/users" && N.filterNavByPermission(nav, () => true).length === 3 && nav[2].children.length === 2);
+  ok("filterNavByPermission(権限なし常時表示/空グループ非表示/子絞込/全表示/不変)", rv.map((i) => i.href).join(",") === "/,/bookings" &&
+     !rv.some((i) => i.href === "/admin") &&
+     ra.find((i) => i.href === "/admin").children.map((c) => c.href).join(",") === "/admin/users" &&
+     N.filterNavByPermission(nav, () => true).length === 3 &&
+     nav[2].children.length === 2);
 }
 
 // ---- invoice 請求書(適格請求書・税率別集計・番号・支払期限)実 @platform/tax 連携 ----
@@ -3638,7 +4862,18 @@ section("invoice (billing)");
   const P = await import(`/tmp/inv-payment-${st18}.ts`);
   const lines = [{ description: "10%", quantity: 1, unitPrice: 10000 }, { description: "8%", quantity: 2, unitPrice: 1000, taxRate: 8 }, { description: "10%b", quantity: 1, unitPrice: 5000 }];
   const t = I.invoiceTotals(lines);
-  ok("invoice(明細/税率別集計10%1500+8%160/合計18660/採番/期限/入金状態)", L.lineNet({ description: "A", quantity: 3, unitPrice: 1000, discount: 500 }) === 2500 && t.subtotal === 17000 && t.tax === 1660 && t.total === 18660 && t.taxByRate.find((r) => r.rate === 10).tax === 1500 && t.taxByRate.find((r) => r.rate === 8).tax === 160 && N.formatInvoiceNumber(1, { date: new Date("2025-07-15") }) === "INV-202507-0001" && N.parseInvoiceSequence("INV-202507-0001") === 1 && P.dueDateFrom("2025-07-01", 30) === "2025-07-31" && P.paymentStatus({ issued: true, dueDate: "2025-07-01", paidAmount: 0, total: 1000 }, new Date("2025-07-15")) === "overdue" && P.paymentStatus({ issued: true, dueDate: "2025-07-31", paidAmount: 1000, total: 1000 }) === "paid" && P.balanceDue(1000, 300) === 700);
+  ok("invoice(明細/税率別集計10%1500+8%160/合計18660/採番/期限/入金状態)", L.lineNet({ description: "A", quantity: 3, unitPrice: 1000, discount: 500 }) === 2500 &&
+     t.subtotal === 17000 &&
+     t.tax === 1660 &&
+     t.total === 18660 &&
+     t.taxByRate.find((r) => r.rate === 10).tax === 1500 &&
+     t.taxByRate.find((r) => r.rate === 8).tax === 160 &&
+     N.formatInvoiceNumber(1, { date: new Date("2025-07-15") }) === "INV-202507-0001" &&
+     N.parseInvoiceSequence("INV-202507-0001") === 1 &&
+     P.dueDateFrom("2025-07-01", 30) === "2025-07-31" &&
+     P.paymentStatus({ issued: true, dueDate: "2025-07-01", paidAmount: 0, total: 1000 }, new Date("2025-07-15")) === "overdue" &&
+     P.paymentStatus({ issued: true, dueDate: "2025-07-31", paidAmount: 1000, total: 1000 }) === "paid" &&
+     P.balanceDue(1000, 300) === 700);
   for (const n of ["line", "invoice", "numbering", "payment"]) await fs18.rm(`/tmp/inv-${n}-${st18}.ts`);
   await fs18.rm(`/tmp/inv-tax-${st18}.ts`); await fs18.rm(`/tmp/inv-tax-wh-${st18}.ts`);
 }
@@ -3663,13 +4898,24 @@ section("invoice-reconcile / quote");
   const invs = [{ number: "INV-001", dueDate: "2025-05-31", total: 10000, paidAmount: 0 }, { number: "INV-002", dueDate: "2025-06-30", total: 20000, paidAmount: 0 }, { number: "INV-003", dueDate: "2025-07-31", total: 5000, paidAmount: 0 }];
   const r1 = R.applyPayment(invs, 15000);
   const aging = R.agingBuckets(invs, new Date("2025-07-15"));
-  ok("invoice-reconcile(FIFO消込/過入金unapplied/繰越/年齢表)", r1.invoices.find((i) => i.number === "INV-001").paidAmount === 10000 && r1.invoices.find((i) => i.number === "INV-002").paidAmount === 5000 && R.applyPayment(invs, 40000).unapplied === 5000 && R.outstandingTotal(invs) === 35000 && aging.current === 5000 && aging.d1_30 === 20000 && aging.d31_60 === 10000);
+  ok("invoice-reconcile(FIFO消込/過入金unapplied/繰越/年齢表)", r1.invoices.find((i) => i.number === "INV-001").paidAmount === 10000 &&
+     r1.invoices.find((i) => i.number === "INV-002").paidAmount === 5000 &&
+     R.applyPayment(invs, 40000).unapplied === 5000 &&
+     R.outstandingTotal(invs) === 35000 &&
+     aging.current === 5000 &&
+     aging.d1_30 === 20000 &&
+     aging.d31_60 === 10000);
   const quoteSrc = (await fs19.readFile(new URL("../packages/quote/src/quote.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/invoice"/g, `from "${barrel}"`);
   const QP = `/tmp/rq-quote-${st19}.ts`; await fs19.writeFile(QP, quoteSrc);
   const Q = await import(QP);
   const q = Q.buildQuote({ number: "QUO-0001", issueDate: "2025-07-01", validUntil: "2025-07-31", billTo: "株式会社テスト" }, [{ description: "開発", quantity: 1, unitPrice: 100000 }, { description: "書籍", quantity: 2, unitPrice: 1000, taxRate: 8 }]);
   const inv = Q.convertToInvoice(q, { number: "INV-202507-0001", issueDate: "2025-07-16", dueDate: "2025-08-31" });
-  ok("quote(合計112160/状態expired-accepted/請求書変換で明細引継ぎ)", q.totals.total === 112160 && Q.quoteStatus({ validUntil: "2025-07-01" }, new Date("2025-07-15")) === "expired" && Q.quoteStatus({ validUntil: "2025-01-01", state: "accepted" }, new Date("2025-07-15")) === "accepted" && inv.billTo === "株式会社テスト" && inv.totals.total === 112160 && inv.lines.length === 2);
+  ok("quote(合計112160/状態expired-accepted/請求書変換で明細引継ぎ)", q.totals.total === 112160 &&
+     Q.quoteStatus({ validUntil: "2025-07-01" }, new Date("2025-07-15")) === "expired" &&
+     Q.quoteStatus({ validUntil: "2025-01-01", state: "accepted" }, new Date("2025-07-15")) === "accepted" &&
+     inv.billTo === "株式会社テスト" &&
+     inv.totals.total === 112160 &&
+     inv.lines.length === 2);
   for (const n of ["line", "invoice", "numbering", "payment", "reconcile"]) await fs19.rm(invPaths[n]);
   await fs19.rm(T); await fs19.rm(TW); await fs19.rm(barrel); await fs19.rm(QP);
 }
@@ -3687,7 +4933,14 @@ section("invoice-recurring / dunning / purchase");
   await fs20.writeFile(DUNP, (await fs20.readFile(new URL("../packages/invoice/src/dunning.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const R = await import(RECP), D = await import(DUNP);
   const q = { interval: "quarterly", startDate: "2025-01-15", endDate: "2025-12-31" };
-  ok("recurring(月末クランプ/四半期/範囲/終了null/督促段階/文面/送付判定)", R.billingDateAt({ interval: "monthly", startDate: "2025-01-31" }, 1) === "2025-02-28" && R.billingDateAt(q, 2) === "2025-07-15" && JSON.stringify(R.billingDatesBetween(q, "2025-01-01", "2025-12-31")) === JSON.stringify(["2025-01-15", "2025-04-15", "2025-07-15", "2025-10-15"]) && R.nextBillingDate({ interval: "monthly", startDate: "2025-01-01", endDate: "2025-03-31" }, "2025-05-01") === null && D.dunningLevel(5) === "reminder" && D.dunningLevel(90) === "final" && D.dunningMessage({ number: "INV-001", billTo: "株式会社テスト", dueDate: "2025-06-30", amountDue: 110000 }, "first").includes("INV-001") && D.shouldSendDunning(20, ["first"]).send === false);
+  ok("recurring(月末クランプ/四半期/範囲/終了null/督促段階/文面/送付判定)", R.billingDateAt({ interval: "monthly", startDate: "2025-01-31" }, 1) === "2025-02-28" &&
+     R.billingDateAt(q, 2) === "2025-07-15" &&
+     JSON.stringify(R.billingDatesBetween(q, "2025-01-01", "2025-12-31")) === JSON.stringify(["2025-01-15", "2025-04-15", "2025-07-15", "2025-10-15"]) &&
+     R.nextBillingDate({ interval: "monthly", startDate: "2025-01-01", endDate: "2025-03-31" }, "2025-05-01") === null &&
+     D.dunningLevel(5) === "reminder" &&
+     D.dunningLevel(90) === "final" &&
+     D.dunningMessage({ number: "INV-001", billTo: "株式会社テスト", dueDate: "2025-06-30", amountDue: 110000 }, "first").includes("INV-001") &&
+     D.shouldSendDunning(20, ["first"]).send === false);
 
   // purchase → invoice → tax
   const TX = `/tmp/rp-tax-${st20}.ts`, TXW = `/tmp/rp-taxwh-${st20}.ts`;
@@ -3708,7 +4961,12 @@ section("invoice-recurring / dunning / purchase");
   const lines = [{ description: "部品A", quantity: 100, unitPrice: 500 }, { description: "部品B", quantity: 50, unitPrice: 200, taxRate: 8 }];
   const po = PO.buildPurchaseOrder({ number: "PO-0001", orderDate: "2025-07-01", supplier: "仕入先", state: "ordered" }, lines);
   const receipts = [{ lineIndex: 0, quantity: 80, receivedAt: "x" }];
-  ok("purchase(金額65800/発注残20/partially_received/received/過入荷検出)", po.totals.total === 65800 && RC.receivingStatus(lines, receipts)[0].outstanding === 20 && RC.totalOutstanding(lines, receipts) === 70 && RC.purchaseStatus(po, receipts) === "partially_received" && RC.purchaseStatus(po, [{ lineIndex: 0, quantity: 100, receivedAt: "x" }, { lineIndex: 1, quantity: 50, receivedAt: "x" }]) === "received" && JSON.stringify(RC.overReceivedLines(lines, [{ lineIndex: 1, quantity: 60, receivedAt: "x" }])) === JSON.stringify([1]));
+  ok("purchase(金額65800/発注残20/partially_received/received/過入荷検出)", po.totals.total === 65800 &&
+     RC.receivingStatus(lines, receipts)[0].outstanding === 20 &&
+     RC.totalOutstanding(lines, receipts) === 70 &&
+     RC.purchaseStatus(po, receipts) === "partially_received" &&
+     RC.purchaseStatus(po, [{ lineIndex: 0, quantity: 100, receivedAt: "x" }, { lineIndex: 1, quantity: 50, receivedAt: "x" }]) === "received" &&
+     JSON.stringify(RC.overReceivedLines(lines, [{ lineIndex: 1, quantity: 60, receivedAt: "x" }])) === JSON.stringify([1]));
 
   for (const f of [CAL, RECP, DUNP, TX, TXW, IB, POP, RCP, ...Object.values(ip)]) await fs20.rm(f);
 }
@@ -3725,7 +4983,16 @@ section("inventory");
   const mv = [{ type: "inbound", quantity: 100, at: "a", unitCost: 500 }, { type: "outbound", quantity: 30, at: "b" }, { type: "inbound", quantity: 50, at: "c", unitCost: 600 }, { type: "adjustment", quantity: -5, at: "d" }];
   const policy = { safetyStock: 20, dailyDemand: 5, leadTimeDays: 7 };
   const val = V.movingAverage([{ type: "inbound", quantity: 100, at: "a", unitCost: 500 }, { type: "outbound", quantity: 30, at: "b" }, { type: "inbound", quantity: 50, at: "c", unitCost: 600 }]);
-  ok("inventory(在庫115/出庫超過失敗/発注点55/補充80/移動平均120@65000)", M.onHand(mv) === 115 && M.summarize(mv).totalIn === 150 && M.applyMovement([{ type: "inbound", quantity: 10, at: "x" }], { type: "outbound", quantity: 20, at: "y" }).ok === false && R.reorderPoint(policy) === 55 && R.needsReorder(55, policy) === true && R.reorderQuantity(30, policy) === 80 && R.reorderQuantity(56, policy) === 0 && val.onHand === 120 && Math.abs(val.averageCost - 541.67) < 0.01 && val.value === 65000);
+  ok("inventory(在庫115/出庫超過失敗/発注点55/補充80/移動平均120@65000)", M.onHand(mv) === 115 &&
+     M.summarize(mv).totalIn === 150 &&
+     M.applyMovement([{ type: "inbound", quantity: 10, at: "x" }], { type: "outbound", quantity: 20, at: "y" }).ok === false &&
+     R.reorderPoint(policy) === 55 &&
+     R.needsReorder(55, policy) === true &&
+     R.reorderQuantity(30, policy) === 80 &&
+     R.reorderQuantity(56, policy) === 0 &&
+     val.onHand === 120 &&
+     Math.abs(val.averageCost - 541.67) < 0.01 &&
+     val.value === 65000);
   for (const f of [MP, RP, VP]) await fs21.rm(f);
 }
 
@@ -3740,7 +5007,13 @@ section("accounting / inventory-lot-warehouse");
   const sales = E.salesJournal({ date: "2025-07-01", net: 100000, tax: 10000 });
   const purchase = E.purchaseJournal({ date: "2025-07-02", net: 60000, tax: 6000 });
   const tb = J.trialBalance([sales, E.receiptJournal({ date: "2025-07-31", amount: 110000 })]);
-  ok("accounting(売上仕訳貸借一致/仕入66000/試算表売掛0/freee3明細)", sales.lines[0].debit === 110000 && J.isBalanced(sales) && purchase.lines[2].credit === 66000 && J.isBalanced(purchase) && tb.find((a) => a.account === "売掛金").balance === 0 && J.trialBalanceBalanced([sales]) && J.toFreeeDetails(sales).length === 3);
+  ok("accounting(売上仕訳貸借一致/仕入66000/試算表売掛0/freee3明細)", sales.lines[0].debit === 110000 &&
+     J.isBalanced(sales) &&
+     purchase.lines[2].credit === 66000 &&
+     J.isBalanced(purchase) &&
+     tb.find((a) => a.account === "売掛金").balance === 0 &&
+     J.trialBalanceBalanced([sales]) &&
+     J.toFreeeDetails(sales).length === 3);
 
   const MV = `/tmp/il-mv-${st22}.ts`, LT = `/tmp/il-lot-${st22}.ts`, WH = `/tmp/il-wh-${st22}.ts`;
   await fs22.writeFile(MV, (await fs22.readFile(new URL("../packages/inventory/src/movements.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
@@ -3751,7 +5024,17 @@ section("accounting / inventory-lot-warehouse");
   const alloc = L.allocateFEFO(lots, 100);
   const wm = [{ warehouse: "東京", type: "inbound", quantity: 100, at: "a" }, { warehouse: "大阪", type: "inbound", quantity: 50, at: "b" }, { warehouse: "東京", type: "outbound", quantity: 30, at: "c" }];
   const tr = W.transfer(wm, "東京", "大阪", 40, "2025-07-10");
-  ok("inventory-lot/warehouse(ロット残/期限間近L2/FEFO L2先/倉庫別/移動2件/不足null)", L.lotBalances(lots).find((l) => l.lotId === "L1").quantity === 70 && L.expiringSoon(lots, "2025-07-15", 10).map((l) => l.lotId).join(",") === "L2" && alloc.allocations[0].lotId === "L2" && alloc.shortfall === 0 && L.allocateFEFO(lots, 300).shortfall === 100 && W.onHandByWarehouse(wm).find((w) => w.warehouse === "東京").onHand === 70 && W.totalOnHand(wm) === 120 && tr !== null && tr[0].type === "outbound" && W.warehouseOnHand([...wm, ...tr], "大阪") === 90 && W.transfer(wm, "大阪", "東京", 100, "x") === null);
+  ok("inventory-lot/warehouse(ロット残/期限間近L2/FEFO L2先/倉庫別/移動2件/不足null)", L.lotBalances(lots).find((l) => l.lotId === "L1").quantity === 70 &&
+     L.expiringSoon(lots, "2025-07-15", 10).map((l) => l.lotId).join(",") === "L2" &&
+     alloc.allocations[0].lotId === "L2" &&
+     alloc.shortfall === 0 &&
+     L.allocateFEFO(lots, 300).shortfall === 100 &&
+     W.onHandByWarehouse(wm).find((w) => w.warehouse === "東京").onHand === 70 &&
+     W.totalOnHand(wm) === 120 &&
+     tr !== null &&
+     tr[0].type === "outbound" &&
+     W.warehouseOnHand([...wm, ...tr], "大阪") === 90 &&
+     W.transfer(wm, "大阪", "東京", 100, "x") === null);
   for (const f of [AJ, AE, MV, LT, WH]) await fs22.rm(f);
 }
 
@@ -3769,7 +5052,14 @@ section("accounting-closing / tax-report");
   const jul = C.filterByPeriod(entries, "2025-07");
   const pl = C.profitAndLoss(jul), bs = C.balanceSheet(jul);
   const rep = T.consumptionTaxSummary([{ rate: 10, net: 100000, tax: 10000 }, { rate: 8, net: 20000, tax: 1600 }], [{ rate: 10, net: 60000, tax: 6000 }]);
-  ok("accounting-closing(7月2件/利益40000/資産116000/純資産=利益/消費税納付5600/還付-4000)", jul.length === 2 && pl.netIncome === 40000 && bs.assets === 116000 && bs.equity === 40000 && pl.netIncome === bs.equity && rep.outputTax === 11600 && rep.netPayable === 5600 && T.consumptionTaxSummary([{ rate: 10, net: 10000, tax: 1000 }], [{ rate: 10, net: 50000, tax: 5000 }]).netPayable === -4000);
+  ok("accounting-closing(7月2件/利益40000/資産116000/純資産=利益/消費税納付5600/還付-4000)", jul.length === 2 &&
+     pl.netIncome === 40000 &&
+     bs.assets === 116000 &&
+     bs.equity === 40000 &&
+     pl.netIncome === bs.equity &&
+     rep.outputTax === 11600 &&
+     rep.netPayable === 5600 &&
+     T.consumptionTaxSummary([{ rate: 10, net: 10000, tax: 1000 }], [{ rate: 10, net: 50000, tax: 5000 }]).netPayable === -4000);
   for (const f of [AJ, AE, AC, AT]) await fs23.rm(f);
 }
 
@@ -3786,7 +5076,13 @@ section("accounting-export");
   const rows = X.journalToRows(entries);
   const ids = { "売掛金": 100, "売上高": 200, "仮受消費税": 300, "現金預金": 400 };
   const conv = X.journalToFreeeDetails(E.salesJournal({ date: "x", net: 100000, tax: 10000 }), ids);
-  ok("accounting-export(5行平坦化/借方110000/freee3明細ID変換/未登録科目検出)", rows.length === 5 && rows[0].account === "売掛金" && rows[0].debit === 110000 && conv.details.length === 3 && conv.details[0].accountItemId === 100 && conv.unknownAccounts.length === 0 && X.journalToFreeeDetails(E.purchaseJournal({ date: "x", net: 1, tax: 0 }), ids).unknownAccounts.includes("仕入高"));
+  ok("accounting-export(5行平坦化/借方110000/freee3明細ID変換/未登録科目検出)", rows.length === 5 &&
+     rows[0].account === "売掛金" &&
+     rows[0].debit === 110000 &&
+     conv.details.length === 3 &&
+     conv.details[0].accountItemId === 100 &&
+     conv.unknownAccounts.length === 0 &&
+     X.journalToFreeeDetails(E.purchaseJournal({ date: "x", net: 1, tax: 0 }), ids).unknownAccounts.includes("仕入高"));
   for (const f of [AJ, AE, AX]) await fs24.rm(f);
 }
 
@@ -3801,7 +5097,16 @@ section("blueprint / expense-journal");
   const bp = { initial: "draft", states: ["draft", "submitted", "approved", "rejected"], final: ["approved", "rejected"], transitions: [{ from: "draft", to: "submitted", name: "提出", requiredFields: ["amount", "purpose"], actions: ["notifyApprover"] }, { from: "submitted", to: "approved", name: "承認", condition: (r) => r.amount <= 100000, actions: ["createJournal"], allowedRoles: ["manager"] }, { from: "submitted", to: "rejected", name: "却下", allowedRoles: ["manager"] }] };
   const good = B.evaluateTransition(bp, "draft", "提出", { amount: 5000, purpose: "x" });
   const applied = B.applyTransition(bp, { state: "draft", amount: 5000, purpose: "交通費" }, "提出");
-  ok("blueprint(必須未入力失敗/入力済成功+アクション/ロール制御/条件で絞る/apply状態更新/終了状態)", B.evaluateTransition(bp, "draft", "提出", { state: "draft" }).ok === false && good.ok === true && good.nextState === "submitted" && good.actions.includes("notifyApprover") && B.evaluateTransition(bp, "submitted", "承認", { amount: 5000 }, ["staff"]).ok === false && B.evaluateTransition(bp, "submitted", "承認", { amount: 5000 }, ["manager"]).ok === true && B.availableTransitions(bp, "submitted", { amount: 200000 }).some((t) => t.name === "承認") === false && applied.ok === true && applied.record.state === "submitted" && B.isFinalState(bp, "approved") === true);
+  ok("blueprint(必須未入力失敗/入力済成功+アクション/ロール制御/条件で絞る/apply状態更新/終了状態)", B.evaluateTransition(bp, "draft", "提出", { state: "draft" }).ok === false &&
+     good.ok === true &&
+     good.nextState === "submitted" &&
+     good.actions.includes("notifyApprover") &&
+     B.evaluateTransition(bp, "submitted", "承認", { amount: 5000 }, ["staff"]).ok === false &&
+     B.evaluateTransition(bp, "submitted", "承認", { amount: 5000 }, ["manager"]).ok === true &&
+     B.availableTransitions(bp, "submitted", { amount: 200000 }).some((t) => t.name === "承認") === false &&
+     applied.ok === true &&
+     applied.record.state === "submitted" &&
+     B.isFinalState(bp, "approved") === true);
 
   // 経費 → 仕訳の自動起票
   const AJ = `/tmp/ej-j-${st25}.ts`, AE = `/tmp/ej-e-${st25}.ts`;
@@ -3809,7 +5114,14 @@ section("blueprint / expense-journal");
   await fs25.writeFile(AE, (await fs25.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
   const J = await import(AJ), E = await import(AE);
   const e1 = E.expenseJournal({ date: "2025-07-10", net: 10000, tax: 1000, account: "旅費交通費" });
-  ok("expense-journal(経費10000/仮払税1000/未払金11000貸借一致/現金払い/税0は2明細/仮払金)", e1.lines[0].account === "旅費交通費" && e1.lines[0].debit === 10000 && e1.lines[2].account === "未払金" && e1.lines[2].credit === 11000 && J.isBalanced(e1) && E.expenseJournal({ date: "x", net: 5000, tax: 500, payment: "cash" }).lines[2].account === "現金預金" && E.expenseJournal({ date: "x", net: 3000, tax: 0 }).lines.length === 2 && E.expenseJournal({ date: "x", net: 1000, tax: 0, payment: "advance" }).lines[1].account === "仮払金");
+  ok("expense-journal(経費10000/仮払税1000/未払金11000貸借一致/現金払い/税0は2明細/仮払金)", e1.lines[0].account === "旅費交通費" &&
+     e1.lines[0].debit === 10000 &&
+     e1.lines[2].account === "未払金" &&
+     e1.lines[2].credit === 11000 &&
+     J.isBalanced(e1) &&
+     E.expenseJournal({ date: "x", net: 5000, tax: 500, payment: "cash" }).lines[2].account === "現金預金" &&
+     E.expenseJournal({ date: "x", net: 3000, tax: 0 }).lines.length === 2 &&
+     E.expenseJournal({ date: "x", net: 1000, tax: 0, payment: "advance" }).lines[1].account === "仮払金");
   for (const f of [FSM, BP, AJ, AE]) await fs25.rm(f);
 }
 
@@ -3840,7 +5152,14 @@ section("blueprint-workflow integration");
   const hiMid = hi.expense.approval.currentStep;
   hi = approveStep(hi.expense, { id: "d", roles: ["director"] });
   hi = approveStep(hi.expense, { id: "x", roles: ["executive"] });
-  ok("blueprint×workflow(必須で提出制御/少額1段で承認済/高額3段/段階進行/役員で完了/ロール制御)", submit({ state: "draft", amount: 5000 }).ok === false && WF.routeByAmount(20000, TIERS).steps.length === 1 && loApproved.expense.state === "approved" && WF.routeByAmount(200000, TIERS).steps.length === 3 && hiMid === 1 && hi.expense.state === "approved" && hi.expense.approval.status === "approved" && approveStep(lo.expense, { id: "s", roles: ["staff"] }).ok === false);
+  ok("blueprint×workflow(必須で提出制御/少額1段で承認済/高額3段/段階進行/役員で完了/ロール制御)", submit({ state: "draft", amount: 5000 }).ok === false &&
+     WF.routeByAmount(20000, TIERS).steps.length === 1 &&
+     loApproved.expense.state === "approved" &&
+     WF.routeByAmount(200000, TIERS).steps.length === 3 &&
+     hiMid === 1 &&
+     hi.expense.state === "approved" &&
+     hi.expense.approval.status === "approved" &&
+     approveStep(lo.expense, { id: "s", roles: ["staff"] }).ok === false);
   for (const f of [FSM, BP, CORE, ...Object.values(wfPath)]) await fs26.rm(f);
 }
 
@@ -3858,14 +5177,27 @@ section("audit / report-integration");
   log = L.appendEvent(log, { at: "2025-07-01T11:00:00Z", actor: "u1", action: "expense.submit", target: "expense:1", before: { status: "draft" }, after: { status: "submitted" } });
   log = L.appendEvent(log, { at: "2025-07-02T09:00:00Z", actor: "mgr", action: "expense.approve", target: "expense:1" });
   const tampered = log.map((e, i) => (i === 1 ? { ...e, actor: "attacker" } : e));
-  ok("audit(連鎖prevHash/正常valid/書換え検知brokenAt1/削除検知/並替検知/actor絞込/action前方一致/差分)", log[1].prevHash === log[0].hash && L.verifyChain(log).valid === true && L.verifyChain(tampered).valid === false && L.verifyChain(tampered).brokenAt === 1 && L.verifyChain([log[0], log[2]]).valid === false && L.verifyChain([log[0], log[2], log[1]]).valid === false && Q.filterByActor(log, "u1").length === 2 && Q.filterByAction(log, "expense").length === 3 && EV.diffChanges({ a: 1 }, { a: 2 }).length === 1);
+  ok("audit(連鎖prevHash/正常valid/書換え検知brokenAt1/削除検知/並替検知/actor絞込/action前方一致/差分)", log[1].prevHash === log[0].hash &&
+     L.verifyChain(log).valid === true &&
+     L.verifyChain(tampered).valid === false &&
+     L.verifyChain(tampered).brokenAt === 1 &&
+     L.verifyChain([log[0], log[2]]).valid === false &&
+     L.verifyChain([log[0], log[2], log[1]]).valid === false &&
+     Q.filterByActor(log, "u1").length === 2 &&
+     Q.filterByAction(log, "expense").length === 3 &&
+     EV.diffChanges({ a: 1 }, { a: 2 }).length === 1);
 
   const RP = `/tmp/rep-${st27}.ts`;
   await fs27.writeFile(RP, (await fs27.readFile(new URL("../packages/report/src/reports.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const R = await import(RP);
   const tb = R.trialBalanceSheet([{ account: "売掛金", debit: 110000, credit: 110000, balance: 0 }, { account: "売上高", debit: 0, credit: 100000, balance: -100000 }]);
   const tax = R.taxReportSheet({ byRate: [{ rate: 10, salesNet: 100000, outputTax: 10000, purchaseNet: 60000, inputTax: 6000 }, { rate: 8, salesNet: 20000, outputTax: 1600, purchaseNet: 0, inputTax: 0 }], outputTax: 11600, inputTax: 6000, netPayable: 5600 });
-  ok("report-integration(試算表合計/売掛年齢6区分/消費税納付5600/在庫評価合計/CSV/空シート除外)", tb.rows[2].借方 === 110000 && R.agingSheet({ current: 5000, d1_30: 20000, d31_60: 10000, d61_90: 0, over90: 0, total: 35000 }).rows.length === 6 && tax.rows[3].仮受消費税 === 5600 && R.inventoryValuationSheet([{ item: "A", onHand: 120, averageCost: 500, value: 60000 }, { item: "B", onHand: 50, averageCost: 200, value: 10000 }]).rows[2].在庫金額 === 70000 && R.sheetToCsv(R.agingSheet({ current: 5000, d1_30: 0, d31_60: 0, d61_90: 0, over90: 0, total: 5000 })).split("\n")[0] === "区分,金額" && R.combineSheets(tb, { name: "空", rows: [], freezeHeader: true }).length === 1);
+  ok("report-integration(試算表合計/売掛年齢6区分/消費税納付5600/在庫評価合計/CSV/空シート除外)", tb.rows[2].借方 === 110000 &&
+     R.agingSheet({ current: 5000, d1_30: 20000, d31_60: 10000, d61_90: 0, over90: 0, total: 35000 }).rows.length === 6 &&
+     tax.rows[3].仮受消費税 === 5600 &&
+     R.inventoryValuationSheet([{ item: "A", onHand: 120, averageCost: 500, value: 60000 }, { item: "B", onHand: 50, averageCost: 200, value: 10000 }]).rows[2].在庫金額 === 70000 &&
+     R.sheetToCsv(R.agingSheet({ current: 5000, d1_30: 0, d31_60: 0, d61_90: 0, over90: 0, total: 5000 })).split("\n")[0] === "区分,金額" &&
+     R.combineSheets(tb, { name: "空", rows: [], freezeHeader: true }).length === 1);
   for (const f of [AEV, ALG, AQ, RP]) await fs27.rm(f);
 }
 
@@ -3885,7 +5217,12 @@ section("audit-wired expense trail");
   log = record(log, { actor: "mgr", action: "expense.approve", target: "expense:1", before: { state: "submitted" }, after: { state: "approved" } });
   log = record(log, { actor: "mgr", action: "expense.journal", target: "expense:1", meta: { lines: 3 } });
   log = record(log, { actor: "u2", action: "invoice.issue", target: "invoice:9" });
-  ok("audit-wired(経費4イベント連鎖/履歴時系列/承認者2件/改ざん検知/対象別絞込)", L.verifyChain(log).valid === true && Q.historyOf(log, "expense:1").length === 4 && Q.historyOf(log, "expense:1").map((e) => e.seq).join(",") === "0,1,2,3" && Q.filterByActor(log, "mgr").length === 2 && L.verifyChain(log.map((e, i) => (i === 2 ? { ...e, actor: "fake" } : e))).valid === false && Q.filterByTarget ? Q.historyOf(log, "invoice:9").length === 1 : true);
+  ok("audit-wired(経費4イベント連鎖/履歴時系列/承認者2件/改ざん検知/対象別絞込)", L.verifyChain(log).valid === true &&
+     Q.historyOf(log, "expense:1").length === 4 &&
+     Q.historyOf(log, "expense:1").map((e) => e.seq).join(",") === "0,1,2,3" &&
+     Q.filterByActor(log, "mgr").length === 2 &&
+     L.verifyChain(log.map((e, i) => (i === 2 ? { ...e, actor: "fake" } : e))).valid === false &&
+     Q.filterByTarget ? Q.historyOf(log, "invoice:9").length === 1 : true);
   for (const f of [AEV, ALG, AQ]) await fs28.rm(f);
 }
 
@@ -3907,7 +5244,13 @@ section("accounting-payroll / department / sync");
   const r = await S.syncJournals(entries, { send: async () => ({ ok: true }), accountItemIds: ids });
   const r2 = await S.syncJournals(entries, { send: async () => ({ ok: true }), accountItemIds: ids, alreadySent: new Set([S.entryKey(entries[0])]) });
   const r3 = await S.syncJournals([...entries, E.purchaseJournal({ date: "x", net: 100, tax: 10 })], { send: async () => ({ ok: true }), accountItemIds: ids });
-  ok("payroll/department/sync(給与貸借一致/未払24.5万/部門利益8万/送信2件/冪等skip/未登録failed)", pay.lines[3].credit === 245000 && J.isBalanced(pay) && C.profitAndLossByDepartment(entriesDep)["営業部"].netIncome === 80000 && S.summarizeSync(r.results).sent === 2 && S.summarizeSync(r2.results).skipped === 1 && S.summarizeSync(r3.results).sent === 2 && S.summarizeSync(r3.results).failed === 1);
+  ok("payroll/department/sync(給与貸借一致/未払24.5万/部門利益8万/送信2件/冪等skip/未登録failed)", pay.lines[3].credit === 245000 &&
+     J.isBalanced(pay) &&
+     C.profitAndLossByDepartment(entriesDep)["営業部"].netIncome === 80000 &&
+     S.summarizeSync(r.results).sent === 2 &&
+     S.summarizeSync(r2.results).skipped === 1 &&
+     S.summarizeSync(r3.results).sent === 2 &&
+     S.summarizeSync(r3.results).failed === 1);
   for (const f of [AJ, AE, AC, AX, AS]) await fs29.rm(f);
 }
 
@@ -3947,7 +5290,13 @@ section("payslip-html / sync-job");
   let sendCount = 0; const summaries = [];
   const job = JOB.createSyncJob({ loadEntries: async () => entries, send: async () => { sendCount++; return { ok: true }; }, accountItemIds: ids, store, onResult: (x) => summaries.push(x) });
   await job.run(); await job.run();
-  ok("payslip-html/sync-job(明細氏名/手取り281000・ジョブ2件送信→冪等skip・stats2成功)", html.includes("山田太郎 様") && html.includes("¥281,000") && summaries[0].sent === 2 && sendCount === 2 && summaries[1].skipped === 2 && job.stats().successes === 2 && job.stats().failures === 0);
+  ok("payslip-html/sync-job(明細氏名/手取り281000・ジョブ2件送信→冪等skip・stats2成功)", html.includes("山田太郎 様") &&
+     html.includes("¥281,000") &&
+     summaries[0].sent === 2 &&
+     sendCount === 2 &&
+     summaries[1].skipped === 2 &&
+     job.stats().successes === 2 &&
+     job.stats().failures === 0);
   for (const f of [PS, RN, CORE, AJ, AE, AX, AS, SJ, ...Object.values(cronPath)]) await fs30.rm(f);
 }
 
@@ -3965,7 +5314,12 @@ section("attendance-import / payslip-batch");
   const badCsv = "社員番号,日付,出勤,退勤,休憩\n,2025-07-01,09:00,18:00,60\nE001,2025/07/01,09:00,18:00,60\nE002,2025-07-01,25:00,18:00,60\nE003,2025-07-01,18:00,09:00,60";
   const rb = I.parseAttendanceCsv(badCsv);
   const sum = I.summarizeByEmployee(r.records);
-  ok("attendance-import(3件取込/実労働480/不正4行検出/社員集計930分)", r.records.length === 3 && r.records[0].workedMinutes === 480 && r.errors.length === 0 && rb.records.length === 0 && rb.errors.length === 4 && sum.find((s) => s.employeeId === "E001").totalMinutes === 930);
+  ok("attendance-import(3件取込/実労働480/不正4行検出/社員集計930分)", r.records.length === 3 &&
+     r.records[0].workedMinutes === 480 &&
+     r.errors.length === 0 &&
+     rb.records.length === 0 &&
+     rb.errors.length === 4 &&
+     sum.find((s) => s.employeeId === "E001").totalMinutes === 930);
 
   // 給与明細一括PDF(payroll/pdf shim)
   const PR = `/tmp/ab-pr-${st31}.ts`, PD = `/tmp/ab-pd-${st31}.ts`, BT = `/tmp/ab-bt-${st31}.ts`;
@@ -3979,7 +5333,11 @@ section("attendance-import / payslip-batch");
   let n = 0;
   const flakyR = await B.generatePayslipBatch(jobs, { render: async (h) => { n++; return n === 2 ? { ok: false, error: "x" } : { ok: true, value: enc.encode(h) }; } });
   const throwR = await B.generatePayslipBatch([jobs[0]], { render: async () => { throw new Error("crash"); } });
-  ok("payslip-batch(2名生成/PDFバイト列/1名失敗継続/例外捕捉failed)", okR.summary.generated === 2 && okR.outputs[0].pdf instanceof Uint8Array && flakyR.summary.generated === 1 && flakyR.summary.failed === 1 && throwR.outputs[0].error === "crash");
+  ok("payslip-batch(2名生成/PDFバイト列/1名失敗継続/例外捕捉failed)", okR.summary.generated === 2 &&
+     okR.outputs[0].pdf instanceof Uint8Array &&
+     flakyR.summary.generated === 1 &&
+     flakyR.summary.failed === 1 &&
+     throwR.outputs[0].error === "crash");
   for (const f of [CSV, ATT, IMP, PR, PD, BT]) await fs31.rm(f);
 }
 
@@ -3989,6 +5347,7 @@ section("platform-authz / notify-channels / readiness");
   const fs32 = await import("node:fs/promises"); const st32 = smokeStamp();
   // authz: 実 auth rbac+hierarchy + 実 ui nav
   const RB = `/tmp/az-rb-${st32}.ts`, HI = `/tmp/az-hi-${st32}.ts`, AU = `/tmp/az-au-${st32}.ts`, NV = `/tmp/az-nv-${st32}.ts`, AZ = `/tmp/az-az-${st32}.ts`;
+section("auth");
   await fs32.writeFile(RB, (await fs32.readFile(new URL("../packages/auth/src/rbac.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fs32.writeFile(HI, (await fs32.readFile(new URL("../packages/auth/src/hierarchy.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/rbac\.ts"/g, `from "${RB}"`));
   await fs32.writeFile(AU, `export * from "${RB}"; export * from "${HI}";`);
@@ -3996,7 +5355,15 @@ section("platform-authz / notify-channels / readiness");
   await fs32.writeFile(AZ, (await fs32.readFile(new URL("../apps/internal-app/src/lib/platform-authz.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/auth"/g, `from "${AU}"`).replace(/from "@platform\/ui"/g, `from "${NV}"`));
   const A = await import(AZ);
   const salesNav = A.navForRoles(["sales"]).map((n) => n.href);
-  ok("platform-authz(sales見積OK会計NG/accountant会計OK/admin全許可/兼務/nav画面制御)", A.userCan(["sales"], "quote:create") === true && A.userCan(["sales"], "accounting:post") === false && A.userCan(["accountant"], "accounting:post") === true && A.userCan(["warehouse"], "invoice:issue") === false && A.userCan(["admin"], "anything:x") === true && A.userCan(["sales", "accountant"], "accounting:post") === true && salesNav.includes("/orders") && !salesNav.includes("/accounting") && A.navForRoles(["admin"]).length === 9);
+  ok("platform-authz(sales見積OK会計NG/accountant会計OK/admin全許可/兼務/nav画面制御)", A.userCan(["sales"], "quote:create") === true &&
+     A.userCan(["sales"], "accounting:post") === false &&
+     A.userCan(["accountant"], "accounting:post") === true &&
+     A.userCan(["warehouse"], "invoice:issue") === false &&
+     A.userCan(["admin"], "anything:x") === true &&
+     A.userCan(["sales", "accountant"], "accounting:post") === true &&
+     salesNav.includes("/orders") &&
+     !salesNav.includes("/accounting") &&
+     A.navForRoles(["admin"]).length === 9);
 
   // notify channels: createNotifier 忠実再現 + アダプタ
   const NT = `/tmp/az-nt-${st32}.ts`, ML = `/tmp/az-ml-${st32}.ts`, CH = `/tmp/az-ch-${st32}.ts`;
@@ -4011,7 +5378,12 @@ section("platform-authz / notify-channels / readiness");
   await mc.send({ text: "承認を", level: "info" }); await mc.send({ text: "超過", level: "error" }); await sc.send({ text: "申請", level: "warn" });
   const notifierRes = await N.createNotifier([mc, sc]).notify({ text: "一括", level: "info" });
   const failRes = await N.createNotifier([C.mailChannel({ sendMail: async () => ({ ok: false }) }, "x")]).notify({ text: "x" });
-  ok("notify-channels(mail件名/error【重要】/slack絵文字/一括送信ok/失敗err)", mails[0].subject === "承認依頼" && mails[0].to === "team@x.com" && mails[1].subject === "【重要】承認依頼" && slacks[0].text.includes(":warning:") && notifierRes.ok === true && failRes.ok === false);
+  ok("notify-channels(mail件名/error【重要】/slack絵文字/一括送信ok/失敗err)", mails[0].subject === "承認依頼" &&
+     mails[0].to === "team@x.com" &&
+     mails[1].subject === "【重要】承認依頼" &&
+     slacks[0].text.includes(":warning:") &&
+     notifierRes.ok === true &&
+     failRes.ok === false);
 
   // readiness
   const RD = `/tmp/az-rd-${st32}.ts`;
@@ -4021,7 +5393,13 @@ section("platform-authz / notify-channels / readiness");
   const dbDown = await R.checkReadiness([{ name: "db", probe: async () => ({ ok: false, detail: "refused" }) }]);
   const degraded = await R.checkReadiness([{ name: "db", probe: async () => ({ ok: true }) }, { name: "slack", critical: false, probe: async () => ({ ok: false }) }]);
   const thrown = await R.checkReadiness([{ name: "db", probe: async () => { throw new Error("boom"); } }]);
-  ok("readiness(全OK200/必須失敗503/非必須degraded/例外failed理由)", allOk.ready === true && R.readinessHttpStatus(allOk) === 200 && dbDown.ready === false && R.readinessHttpStatus(dbDown) === 503 && degraded.ready === true && degraded.degraded === true && thrown.checks[0].detail === "boom");
+  ok("readiness(全OK200/必須失敗503/非必須degraded/例外failed理由)", allOk.ready === true &&
+     R.readinessHttpStatus(allOk) === 200 &&
+     dbDown.ready === false &&
+     R.readinessHttpStatus(dbDown) === 503 &&
+     degraded.ready === true &&
+     degraded.degraded === true &&
+     thrown.checks[0].detail === "boom");
   for (const f of [RB, HI, AU, NV, AZ, NT, ML, CH, RD]) await fs32.rm(f);
 }
 
@@ -4151,6 +5529,7 @@ section("platform-authz / notify-channels / readiness");
   await fsg.writeFile(POST2, (await rdg("../packages/board/src/post.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${ATB}"`));
   await fsg.writeFile(RTB2, await rdg("../packages/realtime/src/broadcast.ts"));
   await fsg.writeFile(RT2, `export * from "${RTB2}";`);
+section("notify");
   await fsg.writeFile(NTPL, await rdg("../packages/notify/src/template.ts"));
   await fsg.writeFile(NT2, `export * from "${NTPL}";`);
   await fsg.writeFile(GW, (await rdg("../apps/internal-app/src/server/chat-gateway.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT2}"`).replace(/from "@platform\/realtime"/g, `from "${RT2}"`));
@@ -4323,6 +5702,7 @@ section("platform-authz / notify-channels / readiness");
   await fsp.writeFile(PSTORE, (await rdp("../apps/internal-app/src/server/chat-store-prisma.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`).replace(/from "\.\/chat-store\.ts"/g, `from "${STORE}"`));
   await fsp.writeFile(RREPO, (await rdp("../apps/internal-app/src/server/chat-rooms.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
   await fsp.writeFile(PRES, await rdp("../apps/internal-app/src/server/chat-presence.ts"));
+section("realtime");
   await fsp.writeFile(RTB, await rdp("../packages/realtime/src/broadcast.ts"));
   await fsp.writeFile(RT, `export * from "${RTB}";`);
   await fsp.writeFile(GW, (await rdp("../apps/internal-app/src/server/chat-gateway.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`).replace(/from "@platform\/realtime"/g, `from "${RT}"`));
@@ -4446,6 +5826,7 @@ section("platform-authz / notify-channels / readiness");
   await fsx.writeFile(MEM, (await rdx("../packages/search/src/adapters/memory.ts")).replace(/from "\.\.\/index\.ts"/g, `from "${SEARCH}"`).replace(/from "\.\.\/bm25\.ts"/g, `from "${BM}"`));
   await fsx.writeFile(MEI, `export function createMeilisearchAdapter(){ return {}; }`);
   await fsx.writeFile(SEARCH, (await rdx("../packages/search/src/index.ts")).replace(/from "@platform\/core"/g, `from "${CORE}"`).replace(/from "\.\/adapters\/memory\.ts"/g, `from "${MEM}"`).replace(/from "\.\/adapters\/meilisearch\.ts"/g, `from "${MEI}"`).replace(/from "\.\/bm25\.ts"/g, `from "${BM}"`).replace(/from "\.\/tokenize\.ts"/g, `from "${TOK}"`));
+section("notify");
   await fsx.writeFile(NTPL, await rdx("../packages/notify/src/template.ts"));
   await fsx.writeFile(NT, `export * from "${NTPL}";`);
   await fsx.writeFile(RUNNER, await rdx("../packages/cron/src/runner.ts"));
@@ -4788,6 +6169,7 @@ section("platform-authz / notify-channels / readiness");
   await fsn.writeFile(NC, await rdn("../apps/internal-app/src/server/notification-center.ts"));
   await fsn.writeFile(STG, "export {};");
   await fsn.writeFile(FM, (await rdn("../apps/internal-app/src/server/file-manager.ts")).replace(/from "@platform\/storage"/g, `from "${STG}"`));
+section("audit");
   await fsn.writeFile(AEV, await rdn("../packages/audit/src/event.ts"));
   await fsn.writeFile(ALOG, (await rdn("../packages/audit/src/log.ts")).replace(/from "\.\/event\.ts"/g, `from "${AEV}"`));
   await fsn.writeFile(AQ, (await rdn("../packages/audit/src/query.ts")).replace(/from "\.\/log\.ts"/g, `from "${ALOG}"`).replace(/from "\.\/event\.ts"/g, `from "${AEV}"`));
@@ -5067,6 +6449,7 @@ section("platform-authz / notify-channels / readiness");
 
   // analytics package
   const AEV = `${dt}/an-ev-${stt}.ts`, AAG = `${dt}/an-ag-${stt}.ts`, ANA = `${dt}/an-a-${stt}.ts`, AST = `${dt}/an-st-${stt}.ts`;
+section("analytics");
   await fst.writeFile(AEV, await rdt("../packages/analytics/src/event.ts"));
   await fst.writeFile(AAG, (await rdt("../packages/analytics/src/aggregate.ts")).replace(new RegExp('from "./event.ts"', "g"), `from "${AEV}"`));
   await fst.writeFile(ANA, `export * from "${AEV}"; export * from "${AAG}";`);
@@ -5195,6 +6578,7 @@ section("platform-authz / notify-channels / readiness");
 
   // 監査 deepDiff + related
   const EEV = `${dh}/e-ev-${sth}.ts`, ELOG = `${dh}/e-log-${sth}.ts`, EQ = `${dh}/e-q-${sth}.ts`, EAUD = `${dh}/e-aud-${sth}.ts`, ECSV = `${dh}/e-csv-${sth}.ts`, EAL = `${dh}/e-al-${sth}.ts`;
+section("audit");
   for (const [f, src] of [[EEV, "event"], [ELOG, "log"], [EQ, "query"]]) await fsh.writeFile(f, await rdh(`../packages/audit/src/${src}.ts`));
   let elog = await fsh.readFile(ELOG, "utf8"); elog = elog.replace(new RegExp('from "./event.ts"', "g"), `from "${EEV}"`); await fsh.writeFile(ELOG, elog);
   let eq = await fsh.readFile(EQ, "utf8"); eq = eq.replace(new RegExp('from "./log.ts"', "g"), `from "${ELOG}"`).replace(new RegExp('from "./event.ts"', "g"), `from "${EEV}"`); await fsh.writeFile(EQ, eq);
@@ -5327,6 +6711,7 @@ section("platform-authz / notify-channels / readiness");
 
   // seo sitemap/favicon (escapeAttr from meta)
   const SMETA = `${dx}/x-smeta-${sx}.ts`, SSM = `${dx}/x-ssm-${sx}.ts`, SFV = `${dx}/x-sfv-${sx}.ts`;
+section("seo");
   await fsx.writeFile(SMETA, await rdx("../packages/seo/src/meta.ts"));
   await fsx.writeFile(SSM, (await rdx("../packages/seo/src/sitemap.ts")).replace(new RegExp('from "./meta.ts"', "g"), `from "${SMETA}"`));
   await fsx.writeFile(SFV, (await rdx("../packages/seo/src/favicon.ts")).replace(new RegExp('from "./meta.ts"', "g"), `from "${SMETA}"`));
@@ -5492,6 +6877,7 @@ section("platform-authz / notify-channels / readiness");
 
   const BLG = `${dc}/x2-blg-${sc}.ts`, FEED = `${dc}/x2-feed-${sc}.ts`;
   await fsc.writeFile(BLG, await rdc("../packages/board/src/blog.ts"));
+section("seo");
   await fsc.writeFile(FEED, await rdc("../packages/seo/src/feed.ts"));
   // @platform/cms バレル(model/scheduling/adapter/store)
   const cmsSrcs = ["model", "scheduling", "adapter", "store"];
@@ -5659,6 +7045,7 @@ section("platform-authz / notify-channels / readiness");
   const SITE = `${dp2}/z-site-${sp2}.ts`;
   await fsp2.writeFile(SITE, "export {};");
   const MO = `${dp2}/z-model-${sp2}.ts`, PG = `${dp2}/z-page-${sp2}.ts`, AN = `${dp2}/z-ann-${sp2}.ts`;
+section("cms");
   await fsp2.writeFile(MO, (await rdp2("../packages/cms/src/model.ts")).replace(/from "@platform\/site"/g, `from "${SITE}"`));
   await fsp2.writeFile(PG, (await rdp2("../packages/cms/src/page.ts")).replace(/from "@platform\/site"/g, `from "${SITE}"`));
   await fsp2.writeFile(AN, (await rdp2("../packages/cms/src/announcement.ts")).replace(/from "@platform\/site"/g, `from "${SITE}"`));
@@ -5865,6 +7252,7 @@ section("platform-authz / notify-channels / readiness");
   // 監査ログの cms.* 抽出(@platform/audit filterByAction)
   const ALOG = `${dg}/v-alog-${sg}.ts`, AQ = `${dg}/v-auditq-${sg}.ts`;
   await fsg.writeFile(ALOG, "export {};");
+section("audit");
   await fsg.writeFile(AQ, (await rdg("../packages/audit/src/query.ts")).replace(new RegExp('from "./log.ts"', "g"), `from "${ALOG}"`));
   const Q = await import(AQ);
   const entries = [
@@ -6032,6 +7420,7 @@ section("platform-authz / notify-channels / readiness");
 
   // tax → invoice → purchase 合成
   const TW = `${db_}/z-taxw-${sb}.ts`, TI = `${db_}/z-taxi-${sb}.ts`, TX = `${db_}/z-tax-${sb}.ts`;
+section("tax");
   await fsb.writeFile(TW, await rdb("../packages/tax/src/withholding.ts"));
   await fsb.writeFile(TI, (await rdb("../packages/tax/src/index.ts")).replace(new RegExp('from "./withholding.ts"', "g"), `from "${TW}"`));
   await fsb.writeFile(TX, `export * from "${TI}";`);
@@ -6234,6 +7623,7 @@ section("platform-authz / notify-channels / readiness");
 
   // datetime = calendar.ts のみ(index.ts は date-fns 依存のため使わない)
   const DT = W("dt");
+section("datetime");
   await fsc.writeFile(DT, await rdc("../packages/datetime/src/calendar.ts"));
   const DTB = W("dtb");
   await fsc.writeFile(DTB, `export * from "${DT}";`);
@@ -6262,7 +7652,12 @@ section("platform-authz / notify-channels / readiness");
   // app repos
   const RRr = W("recrepo"), ARr = W("attrepo"), LGr = W("ledger");
   await fsc.writeFile(RRr, (await rdc("../apps/internal-app/src/server/recurring-repo.ts")).replace(/from "@platform\/invoice"/g, `from "${IV}"`));
-  await fsc.writeFile(ARr, (await rdc("../apps/internal-app/src/server/attendance-repo.ts")).replace(/from "@platform\/payroll"/g, `from "${PY}"`));
+  // 勤怠の型と計算は @platform/attendance へ移したので、そちらも展開する
+  const ATc = W("att-core"), ATl = W("att-leave"), ATi = W("att-index");
+  await fsc.writeFile(ATc, (await rdc("../packages/attendance/src/core.ts")).replace(/from "@platform\/payroll"/g, `from "${PY}"`));
+  await fsc.writeFile(ATl, await rdc("../packages/attendance/src/leave.ts"));
+  await fsc.writeFile(ATi, `export * from "${ATc}";\nexport * from "${ATl}";\n`);
+  await fsc.writeFile(ARr, (await rdc("../apps/internal-app/src/server/attendance-repo.ts")).replace(/from "@platform\/payroll"/g, `from "${PY}"`).replace(/from "@platform\/attendance"/g, `from "${ATi}"`));
   await fsc.writeFile(LGr, (await rdc("../apps/internal-app/src/server/ledger.ts")).replace(/from "@platform\/accounting"/g, `from "${AC}"`));
 
   const RR = await import(RRr), AR = await import(ARr), LG = await import(LGr);
@@ -6350,6 +7745,7 @@ section("platform-authz / notify-channels / readiness");
 
   // core = error + result
   const CE = W("cerr"), CR = W("cres"), CB = W("core");
+section("core");
   await fsc.writeFile(CE, await rdc("../packages/core/src/error.ts"));
   await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${CE}"`));
   await fsc.writeFile(CB, `export * from "${CE}";\nexport * from "${CR}";`);
@@ -6529,6 +7925,7 @@ section("platform-authz / notify-channels / readiness");
 
   // accounting(journal+entries+closing+tax-report)
   const AJ = W("accj"), AE = W("acce"), ACl = W("accc"), ATr = W("acct"), AB = W("acc");
+section("accounting");
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
   await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`));
   await fsc.writeFile(ACl, (await rdc("../packages/accounting/src/closing.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`).replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
@@ -6810,6 +8207,7 @@ section("platform-authz / notify-channels / readiness");
 
   // core + mail
   const CE = W("cerr"), CR = W("cres"), CB = W("core"), ML = W("mail");
+section("core");
   await fsc.writeFile(CE, await rdc("../packages/core/src/error.ts"));
   await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${CE}"`));
   await fsc.writeFile(CB, `export * from "${CE}";\nexport * from "${CR}";`);
@@ -6979,6 +8377,7 @@ section("platform-authz / notify-channels / readiness");
   const W = (name) => `${dc}/n-${name}-${sc}.ts`;
 
   const CE = W("cerr"), CR = W("cres"), CB = W("core");
+section("core");
   await fsc.writeFile(CE, await rdc("../packages/core/src/error.ts"));
   await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${CE}"`));
   await fsc.writeFile(CB, `export * from "${CE}";\nexport * from "${CR}";`);
@@ -7264,6 +8663,7 @@ section("platform-authz / notify-channels / readiness");
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/k-${name}-${sc}.ts`;
   const RB = W("rbac"), HI = W("hier"), AU = W("auth");
+section("auth");
   await fsc.writeFile(RB, await rdc("../packages/auth/src/rbac.ts"));
   await fsc.writeFile(HI, (await rdc("../packages/auth/src/hierarchy.ts")).replace(new RegExp('from "./rbac.ts"', "g"), `from "${RB}"`));
   await fsc.writeFile(AU, `export * from "${RB}";\nexport * from "${HI}";`);
@@ -7379,9 +8779,17 @@ section("platform-authz / notify-channels / readiness");
   const FISr = `${dc}/h-fis-${sc}.ts`;
   await fsc.writeFile(FISr, (await fsc.readFile(new URL("../apps/internal-app/src/server/fiscal.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const F = await import(FISr);
-  ok("fiscal(3月決算: 2025-04→FY2025 / 2026-03→FY2025 / 2025-03→FY2024)", F.fiscalYearOf("2025-04-01", 3) === 2025 && F.fiscalYearOf("2026-03-31", 3) === 2025 && F.fiscalYearOf("2025-03-31", 3) === 2024);
-  ok("fiscal(12月決算=暦年 / 6月決算: 7月〜翌6月)", F.fiscalYearOf("2025-01-01", 12) === 2025 && F.fiscalYearOf("2025-12-31", 12) === 2025 && F.fiscalYearOf("2025-07-01", 6) === 2025 && F.fiscalYearOf("2025-06-30", 6) === 2024);
-  ok("fiscalYearRange(FY2025,3月=2025-04-01〜2026-03-31 / 12月=2025-01-01〜2025-12-31)", F.fiscalYearRange(2025, 3).start === "2025-04-01" && F.fiscalYearRange(2025, 3).end === "2026-03-31" && F.fiscalYearRange(2025, 12).start === "2025-01-01" && F.fiscalYearRange(2025, 12).end === "2025-12-31");
+  ok("fiscal(3月決算: 2025-04→FY2025 / 2026-03→FY2025 / 2025-03→FY2024)", F.fiscalYearOf("2025-04-01", 3) === 2025 &&
+     F.fiscalYearOf("2026-03-31", 3) === 2025 &&
+     F.fiscalYearOf("2025-03-31", 3) === 2024);
+  ok("fiscal(12月決算=暦年 / 6月決算: 7月〜翌6月)", F.fiscalYearOf("2025-01-01", 12) === 2025 &&
+     F.fiscalYearOf("2025-12-31", 12) === 2025 &&
+     F.fiscalYearOf("2025-07-01", 6) === 2025 &&
+     F.fiscalYearOf("2025-06-30", 6) === 2024);
+  ok("fiscalYearRange(FY2025,3月=2025-04-01〜2026-03-31 / 12月=2025-01-01〜2025-12-31)", F.fiscalYearRange(2025, 3).start === "2025-04-01" &&
+     F.fiscalYearRange(2025, 3).end === "2026-03-31" &&
+     F.fiscalYearRange(2025, 12).start === "2025-01-01" &&
+     F.fiscalYearRange(2025, 12).end === "2025-12-31");
   await fsc.rm(FISr);
 }
 
@@ -7454,6 +8862,7 @@ section("platform-authz / notify-channels / readiness");
   await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${CE}"`));
   await fsc.writeFile(CB, `export * from "${CE}";\nexport * from "${CR}";`);
   const NI = W("nindex"), ND = W("ndedup"), NS = W("nslack"), NW = W("nwebhook"), NB = W("notify");
+section("notify");
   await fsc.writeFile(NI, (await rdc("../packages/notify/src/index.ts")).split("\n").filter((l) => !/from "\.\/[a-z/-]+\.ts"/.test(l)).join("\n").replace(/from "@platform\/core"/g, `from "${CB}"`));
   await fsc.writeFile(ND, (await rdc("../packages/notify/src/dedup.ts")).replace(/from "@platform\/core"/g, `from "${CB}"`).replace(new RegExp('from "./index.ts"', "g"), `from "${NI}"`));
   await fsc.writeFile(NS, (await rdc("../packages/notify/src/channels/slack.ts")).replace(/from "@platform\/core"/g, `from "${CB}"`).replace(new RegExp('from "../index.ts"', "g"), `from "${NI}"`));
@@ -7528,7 +8937,11 @@ section("platform-authz / notify-channels / readiness");
   await rstore.add({ subjectType: "tool", subjectId: "slack", author: "佐藤", rating: 3 });
   const list = await rstore.list("tool", "slack");
   const sum = RV.summarizeReviews("tool", "slack", list);
-  ok("口コミ: 2件・平均(5+3)/2=4.0・clampRating(0→1,9→5)・対象別分離", list.length === 2 && Math.abs(sum.average - 4) < 1e-9 && RV.clampRating(0) === 1 && RV.clampRating(9) === 5 && (await rstore.list("tool", "notion")).length === 0);
+  ok("口コミ: 2件・平均(5+3)/2=4.0・clampRating(0→1,9→5)・対象別分離", list.length === 2 &&
+     Math.abs(sum.average - 4) < 1e-9 &&
+     RV.clampRating(0) === 1 &&
+     RV.clampRating(9) === 5 &&
+     (await rstore.list("tool", "notion")).length === 0);
 
   // 手書きサイン
   const validPng = "data:image/png;base64," + "A".repeat(120);
@@ -7565,7 +8978,10 @@ section("platform-authz / notify-channels / readiness");
   await rstore.setHidden(b.id, true);
   const visible = await rstore.list("tool", "x");
   const all = await rstore.list("tool", "x", true);
-  ok("moderation: 非表示化で可視1件・includeHidden2件・集計は非表示除外で平均5.0", visible.length === 1 && all.length === 2 && RV.summarizeReviews("tool", "x", all).average === 5 && RV.summarizeReviews("tool", "x", all).count === 1);
+  ok("moderation: 非表示化で可視1件・includeHidden2件・集計は非表示除外で平均5.0", visible.length === 1 &&
+     all.length === 2 &&
+     RV.summarizeReviews("tool", "x", all).average === 5 &&
+     RV.summarizeReviews("tool", "x", all).count === 1);
   await rstore.setHidden(b.id, false);
   ok("moderation: 再表示で可視2件", (await rstore.list("tool", "x")).length === 2);
 
@@ -7573,7 +8989,11 @@ section("platform-authz / notify-channels / readiness");
   ok("pendingRespondents: 記名a,c回答済→未回答b,d / 匿名は全員未回答扱い", SV.pendingRespondents(["a", "b", "c", "d"], [{ respondent: "a", answers: [] }, { respondent: "c", answers: [] }]).sort().join(",") === "b,d" && SV.pendingRespondents(["a", "b"], [{ answers: [] }]).length === 2);
 
   // サイン×承認
-  ok("approval-signature: subjectId / status / canFinalize", AS.approvalSubjectId("purchase", "PO-1") === "purchase:PO-1" && AS.approvalSignatureStatus(true, [{ signer: "A", image: "x" }]).signed === true && AS.canFinalizeApproval(true, []) === false && AS.canFinalizeApproval(true, [{ signer: "A", image: "x" }]) === true && AS.canFinalizeApproval(false, []) === true);
+  ok("approval-signature: subjectId / status / canFinalize", AS.approvalSubjectId("purchase", "PO-1") === "purchase:PO-1" &&
+     AS.approvalSignatureStatus(true, [{ signer: "A", image: "x" }]).signed === true &&
+     AS.canFinalizeApproval(true, []) === false &&
+     AS.canFinalizeApproval(true, [{ signer: "A", image: "x" }]) === true &&
+     AS.canFinalizeApproval(false, []) === true);
 
   for (const f of [COMr, SVr, RVr, SGr, ASr]) await fsc.rm(f);
 }
@@ -7670,6 +9090,7 @@ section("platform-authz / notify-channels / readiness");
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/a-${name}-${sc}.ts`;
   const SGr = W("saga"), AKr = W("apikey"), PIr = W("pii"), SAr = W("sa"), PVr = W("pv");
+section("saga");
   await fsc.writeFile(SGr, await rdc("../packages/saga/src/index.ts"));
   await fsc.writeFile(AKr, await rdc("../packages/apikey/src/index.ts"));
   await fsc.writeFile(PIr, (await rdc("../packages/pii/src/index.ts")).split("\n").filter((l) => !/from "\.\/(identity-mask|subject-rights)\.ts"/.test(l)).join("\n"));
@@ -7815,6 +9236,7 @@ section("platform-authz / notify-channels / readiness");
   const W = (name) => `${dc}/z7-${name}-${scc}.ts`;
   // core + search
   const CE = W("ce"), CR = W("cr"), CB = W("core");
+section("core");
   await fsc.writeFile(CE, await rdc("../packages/core/src/error.ts"));
   await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${CE}"`));
   await fsc.writeFile(CB, `export * from "${CE}";\nexport * from "${CR}";`);
@@ -8179,6 +9601,7 @@ section("platform-authz / notify-channels / readiness");
   const mcpx = `${dc}/w1-mcpx-${scc}.ts`;
   const repp = `${dc}/w1-rep-${scc}.ts`;
   const toolp = `${dc}/w1-tools-${scc}.ts`;
+section("mcp");
   await fsc.writeFile(mcpx, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fsc.writeFile(repp, (await fsc.readFile(new URL("../apps/internal-app/src/server/reports.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   let tsrc = (await fsc.readFile(new URL("../apps/internal-app/src/server/mcp-tools.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
@@ -8233,7 +9656,15 @@ section("platform-authz / notify-channels / readiness");
   const scc = Date.now();
   const ap = `${dc}/w2-auth-${scc}.ts`;
   const rp = `${dc}/w2-repo-${scc}.ts`;
-  await fsc.writeFile(ap, (await fsc.readFile(new URL("../apps/equipment-app/src/server/auth.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
+  // auth.ts は @platform/crypto を使う(パスワードの実装を基盤へ寄せたため)
+  const cryptoP = ap.replace(/auth[^/]*\.ts$/, "crypto.ts");
+  const coreP = ap.replace(/auth[^/]*\.ts$/, "core.ts");
+  await fsc.writeFile(coreP,
+    (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/^import .*$/gm, "") +
+    (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/^import .*$/gm, ""));
+  await fsc.writeFile(cryptoP,
+    (await fsc.readFile(new URL("../packages/crypto/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${coreP}"`));
+  await fsc.writeFile(ap, (await fsc.readFile(new URL("../apps/equipment-app/src/server/auth.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/crypto"', `from "${cryptoP}"`));
   await fsc.writeFile(rp, (await fsc.readFile(new URL("../apps/equipment-app/src/server/equipment-repo.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const A = await import(ap);
   const R = await import(rp);
@@ -8333,6 +9764,7 @@ section("platform-authz / notify-channels / readiness");
   const mcpx = `${dc}/w4-mcpx-${scc}.ts`;
   const repp = `${dc}/w4-rep-${scc}.ts`;
   const toolp = `${dc}/w4-tools-${scc}.ts`;
+section("mcp");
   await fsc.writeFile(mcpx, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fsc.writeFile(repp, (await fsc.readFile(new URL("../apps/internal-app/src/server/reports.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   let tsrc = (await fsc.readFile(new URL("../apps/internal-app/src/server/mcp-tools.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
@@ -8390,7 +9822,9 @@ section("platform-authz / notify-channels / readiness");
   await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
   await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(ragp, (await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  const rrp = `${dc}/w5-rerank-${scc}.ts`;
+  await fsc.writeFile(rrp, await fsc.readFile(new URL("../packages/rag/src/rerank.ts", import.meta.url), "utf8"));
+  await fsc.writeFile(ragp, (await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`).replace('from "./rerank.ts"', `from "${rrp}"`));
   const R = await import(ragp);
 
   const chunks = R.chunkDocument({ id: "D1", title: "就業規則", body: `総則\n\n${"あ".repeat(2000)}`, source: "wiki", acl: { roles: ["hr"] } }, { maxChars: 800, overlap: 100 });
@@ -8472,20 +9906,29 @@ section("platform-authz / notify-channels / readiness");
   await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
   await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
   await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
-  await fsc.writeFile(ragp, (await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  const rrp2 = ragp.replace(/\.ts$/, "-rerank.ts");
+section("rag");
+  await fsc.writeFile(rrp2, await fsc.readFile(new URL("../packages/rag/src/rerank.ts", import.meta.url), "utf8"));
+  await fsc.writeFile(ragp, (await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`).replace('from "./rerank.ts"', `from "${rrp2}"`));
   const AI = await import(aip);
   const R = await import(ragp);
 
   const he = AI.createHashEmbedder(64);
   const [v1, v2, v3] = await he.embed(["賞与 の 計算", "賞与 の 支給", "天気 予報"]);
-  ok("hashEmbedder: 64次元正規化・空は空・同語ほど近い", v1.length === 64 && Math.abs(Math.sqrt(v1.reduce((a, x) => a + x * x, 0)) - 1) < 1e-9 && (await he.embed([])).length === 0 && R.cosineSimilarity(v1, v2) > R.cosineSimilarity(v1, v3));
+  ok("hashEmbedder: 64次元正規化・空は空・同語ほど近い", v1.length === 64 &&
+     Math.abs(Math.sqrt(v1.reduce((a, x) => a + x * x, 0)) - 1) < 1e-9 &&
+     (await he.embed([])).length === 0 &&
+     R.cosineSimilarity(v1, v2) > R.cosineSimilarity(v1, v3));
 
   let cap;
   const mkRes = (st, j) => ({ ok: st < 300, status: st, json: async () => j });
   const oe = AI.createOpenAiEmbedder({ apiKey: "sk-e", fetchImpl: async (u, i) => { cap = { u, i }; return mkRes(200, { data: [{ embedding: [0.1, 0.2] }] }); } });
   const emb = await oe.embed(["a"]);
   let ethrew = ""; try { await AI.createOpenAiEmbedder({ apiKey: "k", fetchImpl: async () => mkRes(400, { error: { message: "bad" } }) }).embed(["x"]); } catch (e) { ethrew = e.message; }
-  ok("openaiEmbedder: /v1/embeddings・Bearer・data→vectors・エラーstatus+message", cap.u.endsWith("/v1/embeddings") && cap.i.headers.authorization === "Bearer sk-e" && emb[0][0] === 0.1 && ethrew.includes("openai embeddings 400"));
+  ok("openaiEmbedder: /v1/embeddings・Bearer・data→vectors・エラーstatus+message", cap.u.endsWith("/v1/embeddings") &&
+     cap.i.headers.authorization === "Bearer sk-e" &&
+     emb[0][0] === 0.1 &&
+     ethrew.includes("openai embeddings 400"));
 
   const vi = R.createMemoryVectorIndex();
   const mk = (id, vec) => ({ id, vector: vec, chunk: { id, docId: id, title: id, text: id, index: 0 } });
@@ -8515,11 +9958,13 @@ section("platform-authz / notify-channels / readiness");
   section("advisor: find / duplicates");
   const A = await import(new URL("./advisor.mjs", import.meta.url).href);
   const pkgs = A.loadPackages();
-  ok("loadPackages: 108件・category/exports/summary(ai=AI基盤)", pkgs.length === 108 && pkgs.find((p) => p.name === "ai").category === "AI基盤" && pkgs.find((p) => p.name === "mail").exports.length > 0);
+  ok("loadPackages: 113件・category/exports/summary(ai=AI基盤)", pkgs.length === 113 && pkgs.find((p) => p.name === "ai").category === "AI基盤" && pkgs.find((p) => p.name === "mail").exports.length > 0);
   const hits = A.find(["mail", "送信"]);
   ok("find: mailがトップ・score降順・該当なしは空(新規作成の合図)", hits[0].name === "mail" && hits.every((h, i, a) => i === 0 || a[i - 1].score >= h.score) && A.find(["xyzzy_nonexistent"]).length === 0);
   const d = A.duplicates();
-  ok("duplicates: 同名(Session←auth,session)・類似・孤立(理由付き)", d.sameName.some((s) => s.export === "Session" && s.packages.includes("auth") && s.packages.includes("session")) && d.similar.length > 0 && d.isolated.every((i) => i.name && i.reason));
+  ok("duplicates: 同名(Session←auth,session)・類似・孤立(理由付き)", d.sameName.some((s) => s.export === "Session" && s.packages.includes("auth") && s.packages.includes("session")) &&
+     d.similar.length > 0 &&
+     d.isolated.every((i) => i.name && i.reason));
 }
 
 
@@ -8536,7 +9981,13 @@ section("platform-authz / notify-channels / readiness");
   const lines = ["id,name,dept", "1,山田,営業", "2,佐藤,開発", "3,鈴木,営業", "4,田中,人事"];
   let seen = []; let headerCols = null; let pr = [];
   const r1 = await C.streamCsvLines(lines, { chunkSize: 2, onHeader: (c) => { headerCols = c; } }, (rows, prog) => { seen.push(...rows); pr.push({ ...prog }); });
-  ok("streamCsvLines: ヘッダ検出・chunkSize2→2チャンク・全4行・オブジェクト化・進捗", headerCols[0] === "id" && r1.chunks === 2 && r1.totalRows === 4 && seen.length === 4 && seen[0].name === "山田" && seen[3].dept === "人事" && pr[1].rowsSoFar === 4);
+  ok("streamCsvLines: ヘッダ検出・chunkSize2→2チャンク・全4行・オブジェクト化・進捗", headerCols[0] === "id" &&
+     r1.chunks === 2 &&
+     r1.totalRows === 4 &&
+     seen.length === 4 &&
+     seen[0].name === "山田" &&
+     seen[3].dept === "人事" &&
+     pr[1].rowsSoFar === 4);
 
   async function* asyncLines() { for (const l of ["a,b", "1,2", "", "3,4"]) { await Promise.resolve(); yield l; } }
   let ac = [];
@@ -8546,7 +9997,11 @@ section("platform-authz / notify-channels / readiness");
   const text = 'id,memo\n1,"a\nb"\n2,c\n3,d';
   let pc = []; let pcols = null;
   const r3 = await C.parseCsvChunks(text, { chunkSize: 2, onHeader: (c) => { pcols = c; } }, (rows) => { pc.push(...rows); });
-  ok("parseCsvChunks: 埋め込み改行保持・2行ずつ・ヘッダ通知・回帰(既存parseCsv健在)", pcols[0] === "id" && r3.totalRows === 3 && r3.chunks === 2 && pc[0].memo === "a\nb" && C.parseCsv("a,b\n1,2", { header: true })[0].a === "1");
+  ok("parseCsvChunks: 埋め込み改行保持・2行ずつ・ヘッダ通知・回帰(既存parseCsv健在)", pcols[0] === "id" &&
+     r3.totalRows === 3 &&
+     r3.chunks === 2 &&
+     pc[0].memo === "a\nb" &&
+     C.parseCsv("a,b\n1,2", { header: true })[0].a === "1");
 
   await fsc.rm(csvp);
 }
@@ -8570,7 +10025,8 @@ section("platform-authz / notify-channels / readiness");
   await fsc.writeFile(`${base}/search/adapters/memory.ts`, mapCore(await fsc.readFile(new URL("../packages/search/src/adapters/memory.ts", import.meta.url), "utf8")));
   await fsc.writeFile(`${base}/search/index.ts`, mapCore(await fsc.readFile(new URL("../packages/search/src/index.ts", import.meta.url), "utf8")).split("\n").filter((l) => !l.includes("meilisearch")).join("\n"));
   await fsc.writeFile(`${base}/ai.ts`, mapCore(await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")));
-  await fsc.writeFile(`${base}/rag.ts`, mapCore(await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")));
+  await fsc.writeFile(`${base}/rerank.ts`, await fsc.readFile(new URL("../packages/rag/src/rerank.ts", import.meta.url), "utf8"));
+  await fsc.writeFile(`${base}/rag.ts`, mapCore(await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace('from "./rerank.ts"', `from "${base}/rerank.ts"`));
   await fsc.writeFile(`${base}/utils-strings.ts`, (await fsc.readFile(new URL("../packages/utils/src/strings.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fsc.writeFile(`${base}/utils.ts`, `export * from "${base}/utils-strings.ts";\n`);
   // rag-service が import する dictionary-store も合成(utils を参照)
@@ -8602,6 +10058,7 @@ section("platform-authz / notify-channels / readiness");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const mp = `${osc.tmpdir()}/wB-mcp-${smokeStamp()}.ts`;
+section("mcp");
   await fsc.writeFile(mp, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const M = await import(mp);
 
@@ -8609,7 +10066,10 @@ section("platform-authz / notify-channels / readiness");
   const server = { name: "t", version: "1", tools };
   const authServer = { ...server, authorizeTool: (tool, ctx) => (tool.scopes ?? []).every((s) => (ctx.subject?.scopes ?? []).includes(s)) || "scope不足" };
 
-  ok("extractBearerToken: Bearer抽出・大小無視・無し/BasicはNull", M.extractBearerToken("Bearer abc") === "abc" && M.extractBearerToken("bearer X") === "X" && M.extractBearerToken(null) === null && M.extractBearerToken("Basic z") === null);
+  ok("extractBearerToken: Bearer抽出・大小無視・無し/BasicはNull", M.extractBearerToken("Bearer abc") === "abc" &&
+     M.extractBearerToken("bearer X") === "X" &&
+     M.extractBearerToken(null) === null &&
+     M.extractBearerToken("Basic z") === null);
 
   const get = await M.handleHttpMcp(new Request("http://x/mcp", { method: "GET" }), { server });
   const list = await M.handleHttpMcp(new Request("http://x/mcp", { method: "POST", body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }) }), { server });
@@ -8620,7 +10080,10 @@ section("platform-authz / notify-channels / readiness");
   const noAuth = await M.handleHttpMcp(new Request("http://x/mcp", { method: "POST", body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }) }), authOpts);
   const good = await M.handleHttpMcp(new Request("http://x/mcp", { method: "POST", headers: { authorization: "Bearer good" }, body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "echo", arguments: { m: "hi" } } }) }), authOpts);
   const goodBody = await good.json();
-  ok("HTTP認証: トークン無→401+WWW-Authenticate・正トークン→実行(ctx scope認可)", noAuth.status === 401 && noAuth.headers.get("www-authenticate").includes("resource_metadata") && good.status === 200 && goodBody.result.content[0].text === "e:hi");
+  ok("HTTP認証: トークン無→401+WWW-Authenticate・正トークン→実行(ctx scope認可)", noAuth.status === 401 &&
+     noAuth.headers.get("www-authenticate").includes("resource_metadata") &&
+     good.status === 200 &&
+     goodBody.result.content[0].text === "e:hi");
 
   const notif = await M.handleHttpMcp(new Request("http://x/mcp", { method: "POST", body: JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }) }), { server });
   const bad = await M.handleHttpMcp(new Request("http://x/mcp", { method: "POST", body: "{bad" }), { server });
@@ -8644,7 +10107,9 @@ section("platform-authz / notify-channels / readiness");
   await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
   await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(ragp, (await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  const rrp2 = ragp.replace(/\.ts$/, "-rerank.ts");
+  await fsc.writeFile(rrp2, await fsc.readFile(new URL("../packages/rag/src/rerank.ts", import.meta.url), "utf8"));
+  await fsc.writeFile(ragp, (await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`).replace('from "./rerank.ts"', `from "${rrp2}"`));
   const R = await import(ragp);
 
   const d = R.textToDocument({ id: "T1", title: "規程", text: "本文", source: "wiki", acl: { roles: ["hr"] } });
@@ -8754,6 +10219,7 @@ section("platform-authz / notify-channels / readiness");
   const sc = Date.now();
   const lockp = `${dcc}/wG-lock-${sc}.ts`;
   const lfp = `${dcc}/wG-lockfile-${sc}.ts`;
+section("cron");
   await (await import("node:fs/promises")).writeFile(lockp, (await (await import("node:fs/promises")).readFile(new URL("../packages/cron/src/lock.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await (await import("node:fs/promises")).writeFile(lfp, (await (await import("node:fs/promises")).readFile(new URL("../packages/cron/src/lock-file.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./lock.ts"', `from "${lockp}"`));
   const L = await import(lfp);
@@ -8870,7 +10336,13 @@ section("platform-authz / notify-channels / readiness");
     const runner = R.createRpaRunner({ audit: (e) => events.push(e), genRunId: () => "R1", now: () => 1000 });
     const res = await runner.run({ name: "t1", run: async (ctx) => { await ctx.audit("step1"); return 42; } });
     const actions = events.map((e) => e.action);
-    ok("基本: 成功・値42・監査(start/step1/success)・runId", res.ok && res.value.value === 42 && res.value.attempts === 1 && actions.includes("rpa.start") && actions.includes("step1") && actions.includes("rpa.success") && events[0].metadata.runId === "R1");
+    ok("基本: 成功・値42・監査(start/step1/success)・runId", res.ok &&
+       res.value.value === 42 &&
+       res.value.attempts === 1 &&
+       actions.includes("rpa.start") &&
+       actions.includes("step1") &&
+       actions.includes("rpa.success") &&
+       events[0].metadata.runId === "R1");
   }
   // 直列化
   {
@@ -8891,7 +10363,13 @@ section("platform-authz / notify-channels / readiness");
     const exhaust = await runner.run({ name: "t5", retry: { maxAttempts: 2, baseDelayMs: 1 }, run: async () => { throw new Error("恒久失敗"); } });
     let noRetryCalls = 0;
     const noRetry = await runner.run({ name: "t6", retry: { maxAttempts: 5, isRetryable: () => false }, run: async () => { noRetryCalls++; throw new Error("x"); } });
-    ok("リトライ: 3回目成功(attempts=3)・上限超過EXTERNAL・isRetryable=falseは1回", retryOk.ok && retryOk.value.attempts === 3 && exhaust.ok === false && exhaust.error.code === "EXTERNAL" && exhaust.error.message.includes("恒久失敗") && noRetry.ok === false && noRetryCalls === 1);
+    ok("リトライ: 3回目成功(attempts=3)・上限超過EXTERNAL・isRetryable=falseは1回", retryOk.ok &&
+       retryOk.value.attempts === 3 &&
+       exhaust.ok === false &&
+       exhaust.error.code === "EXTERNAL" &&
+       exhaust.error.message.includes("恒久失敗") &&
+       noRetry.ok === false &&
+       noRetryCalls === 1);
   }
   // 冪等 + タイムアウト + ロック解放
   {
@@ -8915,6 +10393,7 @@ section("platform-authz / notify-channels / readiness");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const rp = `${osc.tmpdir()}/wK-replay-${smokeStamp()}.ts`;
+section("security");
   await fsc.writeFile(rp, (await fsc.readFile(new URL("../packages/security/src/replay.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const R = await import(rp);
 
@@ -8931,7 +10410,11 @@ section("platform-authz / notify-channels / readiness");
   const calls = [];
   const custom = { markIfNew: (id) => { calls.push(id); return id !== "dup"; } };
   const g3 = R.createReplayGuard({ now: () => 2000 }, custom);
-  ok("createMemoryReplayStore + ストア注入: markIfNew委譲", store.markIfNew("a", 999999) === true && store.markIfNew("a", 999999) === false && (await g3.markUsedIfNew("ok")) === true && (await g3.markUsedIfNew("dup")) === false && calls.length === 2);
+  ok("createMemoryReplayStore + ストア注入: markIfNew委譲", store.markIfNew("a", 999999) === true &&
+     store.markIfNew("a", 999999) === false &&
+     (await g3.markUsedIfNew("ok")) === true &&
+     (await g3.markUsedIfNew("dup")) === false &&
+     calls.length === 2);
 
   await fsc.rm(rp);
 }
@@ -8996,8 +10479,8 @@ section("platform-authz / notify-channels / readiness");
   const nodes = D.collect();
   const data = D.build();
   const md = D.toMarkdown(data);
-  ok("depgraph: 108パッケージ収集・coreが被依存トップ・カテゴリ間flowchart・被依存/依存元表",
-    Object.keys(nodes).length === 108 && nodes.rag.deps.includes("core") && data.topDepended[0][0] === "core" && data.topDepended[0][1] > 30 && md.includes("flowchart LR") && md.includes("被依存トップ12") && md.includes("@platform/core"));
+  ok("depgraph: 113パッケージ収集・coreが被依存トップ・カテゴリ間flowchart・被依存/依存元表",
+    Object.keys(nodes).length === 113 && nodes.rag.deps.includes("core") && data.topDepended[0][0] === "core" && data.topDepended[0][1] > 30 && md.includes("flowchart LR") && md.includes("被依存トップ12") && md.includes("@platform/core"));
 }
 
 
@@ -9053,12 +10536,14 @@ section("platform-authz / notify-channels / readiness");
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
+section("search");
   await fsc.writeFile(`${base}/search/tokenize.ts`, mapCore(await fsc.readFile(new URL("../packages/search/src/tokenize.ts", import.meta.url), "utf8")));
   await fsc.writeFile(`${base}/search/bm25.ts`, mapCore(await fsc.readFile(new URL("../packages/search/src/bm25.ts", import.meta.url), "utf8")));
   await fsc.writeFile(`${base}/search/adapters/memory.ts`, mapCore(await fsc.readFile(new URL("../packages/search/src/adapters/memory.ts", import.meta.url), "utf8")));
   await fsc.writeFile(`${base}/search/index.ts`, mapCore(await fsc.readFile(new URL("../packages/search/src/index.ts", import.meta.url), "utf8")).split("\n").filter((l) => !l.includes("meilisearch")).join("\n"));
   await fsc.writeFile(`${base}/ai.ts`, mapCore(await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")));
-  await fsc.writeFile(`${base}/rag.ts`, mapCore(await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")));
+  await fsc.writeFile(`${base}/rerank.ts`, await fsc.readFile(new URL("../packages/rag/src/rerank.ts", import.meta.url), "utf8"));
+  await fsc.writeFile(`${base}/rag.ts`, mapCore(await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace('from "./rerank.ts"', `from "${base}/rerank.ts"`));
   await fsc.writeFile(`${base}/utils-strings.ts`, (await fsc.readFile(new URL("../packages/utils/src/strings.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fsc.writeFile(`${base}/utils.ts`, `export * from "${base}/utils-strings.ts";\n`);
   // rag-service が import する dictionary-store も合成(utils を参照)
@@ -9233,6 +10718,7 @@ export async function rawExecute(_db,sql,params=[]){_calls.push({type:"exec",sql
   const mp = `${dc}/wQ-m-${sc}.ts`;
   const ep = `${dc}/wQ-e-${sc}.ts`;
   const tp = `${dc}/wQ-t-${sc}.ts`;
+section("ui");
   await fsc.writeFile(mp, (await fsc.readFile(new URL("../packages/ui/src/lib/motion.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fsc.writeFile(ep, (await fsc.readFile(new URL("../packages/ui/src/lib/motion-extra.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('./motion.ts', mp));
   await fsc.writeFile(tp, (await fsc.readFile(new URL("../packages/ui/src/lib/motion-tween.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('./motion-extra.ts', ep).replace('./motion.ts', mp));
@@ -9446,6 +10932,7 @@ export async function rawExecute(_db,sql,params=[]){_calls.push({type:"exec",sql
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
+section("color");
   await fsc.writeFile(`${base}/color.ts`, (await fsc.readFile(new URL("../packages/color/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
   for (const f of ["tokens", "css", "registry", "themes", "a11y", "derive", "serialize", "index"]) {
     await fsc.writeFile(`${base}/${f}.ts`, (await fsc.readFile(new URL(`../packages/theme/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`).replace('from "@platform/color"', `from "${base}/color.ts"`));
@@ -9458,11 +10945,13 @@ export async function rawExecute(_db,sql,params=[]){_calls.push({type:"exec",sql
     T.themeToCssVars(T.defaultTheme, "dark")["--color-bg"] === "#0f172a" &&
     T.themeToCssBlock(T.corporateTheme, "light", '[data-skin="corporate"]').includes("--color-primary: #1e3a8a"));
   const sheet = T.buildThemeStylesheet(T.builtInThemes);
-  ok("buildThemeStylesheet: 11テーマ×2モード=22ブロック", (sheet.match(/data-skin=/g) || []).length === 22 && sheet.includes('[data-skin="soft"][data-theme="dark"]') && sheet.includes('[data-skin="cute"][data-theme="light"]'));
+  ok("buildThemeStylesheet: 14テーマ×2モード=28ブロック", (sheet.match(/data-skin=/g) || []).length === 28 &&
+     sheet.includes('[data-skin="soft"][data-theme="dark"]') &&
+     sheet.includes('[data-skin="cute"][data-theme="light"]'));
 
   const reg = T.createThemeRegistry({ themes: T.builtInThemes });
-  ok("registry: 11テーマ・default既定・get/has/resolve・フォールバック",
-    reg.ids().length === 11 && reg.getDefaultId() === "default" && reg.get("soft").name === "やわらか" &&
+  ok("registry: 14テーマ・default既定・get/has/resolve・フォールバック",
+    reg.ids().length === 14 && reg.getDefaultId() === "default" && reg.get("soft").name === "やわらか" &&
     reg.resolve("high-contrast").id === "high-contrast" && reg.resolve().id === "default" && reg.resolve("nope").id === "default");
 
   const custom = { id: "my-brand", name: "自社ブランド", shape: { fontFamily: "serif", radius: 12, spacing: 8, elevation: 2 }, modes: T.defaultTheme.modes };
@@ -9470,7 +10959,7 @@ export async function rawExecute(_db,sql,params=[]){_calls.push({type:"exec",sql
   reg.register({ ...custom, name: "更新後" });
   reg.setDefault("soft");
   ok("registry: 後から追加(拡張性)・同id上書き・setDefault",
-    reg.has("my-brand") && reg.ids().length === 12 && reg.get("my-brand").name === "更新後" && reg.getDefaultId() === "soft");
+    reg.has("my-brand") && reg.ids().length === 15 && reg.get("my-brand").name === "更新後" && reg.getDefaultId() === "soft");
 
   let v = false, nf = false;
   try { reg.register({ ...custom, id: "bad id!" }); } catch (e) { v = e.code === "VALIDATION"; }
@@ -9484,7 +10973,7 @@ export async function rawExecute(_db,sql,params=[]){_calls.push({type:"exec",sql
     (T.applySkin(T.softTheme, "light"), true) && T.isValidThemeId("my-theme_1") && !T.isValidThemeId("has space"));
 
   // アクセシビリティ(WCAG コントラスト)検査
-  ok("a11y: checkTheme(light/dark 2レポート・4ペア)・主ボタン/本文は全11テーマAA",
+  ok("a11y: checkTheme(light/dark 2レポート・4ペア)・主ボタン/本文は全14テーマAA",
     (() => {
       const rep = T.checkTheme(T.modernTheme);
       if (rep.length !== 2 || rep[0].checks.length !== 4) return false;
@@ -9561,7 +11050,8 @@ export async function rawExecute(_db,sql,params=[]){_calls.push({type:"exec",sql
   await fsc.writeFile(`${base}/search/adapters/memory.ts`, await mapCore("../packages/search/src/adapters/memory.ts"));
   await fsc.writeFile(`${base}/search/index.ts`, await mapCore("../packages/search/src/index.ts", (t) => t.split("\n").filter((l) => !l.includes("meilisearch")).join("\n")));
   await fsc.writeFile(`${base}/ai.ts`, await mapCore("../packages/ai/src/index.ts"));
-  await fsc.writeFile(`${base}/rag.ts`, await mapCore("../packages/rag/src/index.ts"));
+  await fsc.writeFile(`${base}/rerank.ts`, await fsc.readFile(new URL("../packages/rag/src/rerank.ts", import.meta.url), "utf8"));
+  await fsc.writeFile(`${base}/rag.ts`, (await mapCore("../packages/rag/src/index.ts")).replace('from "./rerank.ts"', `from "${base}/rerank.ts"`));
   await fsc.writeFile(`${base}/utils-strings.ts`, (await fsc.readFile(new URL("../packages/utils/src/strings.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fsc.writeFile(`${base}/utils.ts`, `export * from "${base}/utils-strings.ts";\n`);
   await fsc.writeFile(`${base}/csv.ts`, await mapCore("../packages/csv/src/index.ts"));
@@ -9621,6 +11111,7 @@ export const db = { systemSetting: {
 export const __store = () => store;
 `);
   // 実 core / color / theme を合成(validateTheme・deriveTheme を本物で使う)
+section("core");
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
@@ -9688,16 +11179,16 @@ export const __store = () => store;
   const pkgs = M.collectPackages();
   const apps = M.collectApps();
   const mer = M.loadDepGraphMermaid();
-  ok("collect: 108パッケージ(全@platform/・過半exports)・5アプリ(internal多数)",
-    pkgs.length === 108 && pkgs.every((p) => p.full.startsWith("@platform/")) && pkgs.filter((p) => p.exports.length > 0).length > 40 &&
+  ok("collect: 113パッケージ(全@platform/・過半exports)・5アプリ(internal多数)",
+    pkgs.length === 113 && pkgs.every((p) => p.full.startsWith("@platform/")) && pkgs.filter((p) => p.exports.length > 0).length > 40 &&
     apps.length === 5 && apps.find((a) => a.name === "internal-app").pages.length > 10 && apps.find((a) => a.name === "internal-app").apis.length > 10);
   const erds = M.collectErds();
   const adrs = M.collectAdrs();
-  ok("collectErds/collectAdrs: 3 ER図(erDiagram)・13 ADR(タイトル/状態)",
-    erds.length === 3 && erds.every((e) => e.mermaid.includes("erDiagram")) && adrs.length === 13 && adrs[0].title.includes("ADR"));
+  ok("collectErds/collectAdrs: 3 ER図(erDiagram)・18 ADR(タイトル/状態)",
+    erds.length === 3 && erds.every((e) => e.mermaid.includes("erDiagram")) && adrs.length === 18 && adrs[0].title.includes("ADR"));
   const themesInfo = M.collectThemes();
-  ok("collectThemes: 11スキン(id/name/色/角丸/フォントをソースから抽出)",
-    themesInfo.length === 11 && themesInfo.every((t) => t.id && t.name && t.colors.primary) &&
+  ok("collectThemes: 14スキン(id/name/色/角丸/フォントをソースから抽出)",
+    themesInfo.length === 14 && themesInfo.every((t) => t.id && t.name && t.colors.primary) &&
     themesInfo.find((t) => t.id === "cute").name === "かわいい" && themesInfo.find((t) => t.id === "retro").fontFamily.includes("Courier"));
   const html = M.renderPlatformSite(pkgs, mer, apps, erds, adrs, themesInfo);
   ok("renderPlatformSite: HTML・検索・パッケージ・アプリリンク・ER図/ADR・横断検索・テーマタブ",
@@ -9746,6 +11237,7 @@ export const __store = () => store;
   section("ui: AppSkin + 全アプリ適用");
   const fsc = await import("node:fs/promises");
   // AppSkin ソースが buildThemeStylesheet + SkinProvider を使う構造か
+section("ui");
   const src = await fsc.readFile(new URL("../packages/ui/src/components/app-skin.tsx", import.meta.url), "utf8");
   ok("AppSkin: buildThemeStylesheet注入 + SkinProvider + prefers-color-scheme追従",
     src.includes("buildThemeStylesheet") && src.includes("SkinProvider") && src.includes("prefers-color-scheme") && src.includes("useMemo"));
@@ -9810,7 +11302,7 @@ export const __store = () => store;
   const scLayout = await fsc.readFile(new URL("../demos/showcase/src/app/layout.tsx", import.meta.url), "utf8");
   const scTheme = await fsc.readFile(new URL("../demos/showcase/src/app/theme/theme-showcase.tsx", import.meta.url), "utf8");
   const scNav = await fsc.readFile(new URL("../demos/showcase/src/lib/nav.ts", import.meta.url), "utf8");
-  ok("showcase: layout に AppSkin+ナビ・テーマデモページ(11スキン/トークン/a11y)・ナビに導線",
+  ok("showcase: layout に AppSkin+ナビ・テーマデモページ(14スキン/トークン/a11y)・ナビに導線",
     scLayout.includes("AppSkin") && scLayout.includes("ThemeSwitcher") && scLayout.includes("CollapsibleSidebar") &&
     scTheme.includes("builtInThemes") && scTheme.includes("checkTheme") && scTheme.includes("SkinSelector") &&
     scNav.includes('href: "/theme"'));
@@ -10018,6 +11510,7 @@ export const z = anyChain;
   const envRoute = await fsc.readFile(new URL("../apps/internal-app/src/app/api/admin/env/route.ts", import.meta.url), "utf8");
   const envClient = await fsc.readFile(new URL("../apps/internal-app/src/app/admin/env/env-client.tsx", import.meta.url), "utf8");
   // 表示は基盤の EnvSettingsTable に委譲(他アプリでも使える)
+section("ui");
   const envTable = await fsc.readFile(new URL("../packages/ui/src/components/env-settings-table.tsx", import.meta.url), "utf8");
   ok("設定確認: API は maskSecrets で秘密を伏せる・区分(基本/秘密/機能)・表示は基盤 EnvSettingsTable に委譲",
     envRoute.includes("maskSecrets") && envRoute.includes("isSecretName") && envRoute.includes('"基本"') && envRoute.includes('"秘密"') && envRoute.includes('"機能"') &&
@@ -10053,7 +11546,7 @@ export const z = anyChain;
 
   ok(`紹介文の数値が実態と一致(internal 画面${pages}/API${apis}/モデル${models}・デモ${demos}・パッケージ${pkgs})`,
     doc.includes(`**画面 ${pages} / API ${apis} / DB モデル ${models}**`) &&
-    doc.includes(`デモ（${demos}個）`) && doc.includes(`${pkgs} パッケージ`));
+    doc.includes("統合デモサイト（showcase）") && doc.includes(`${pkgs} パッケージ`));
   ok("紹介文: 5アプリすべてを起動コマンド付きで掲載",
     ["internal-app", "public-site", "crud-template", "equipment-app", "platform-portal"].every((a) => doc.includes(a)) &&
     ["dev:internal", "dev:site", "dev:crud", "dev:equipment", "dev:portal"].every((c) => doc.includes(c)));
@@ -10076,13 +11569,18 @@ export const z = anyChain;
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
   await fsc.writeFile(`${base}/mcp.ts`, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
   await fsc.writeFile(`${base}/catalog.mts`, (await fsc.readFile(new URL("./lib/catalog.mts", import.meta.url), "utf8")).replace(/\.mjs"/g, '.mts"'));
-  await fsc.writeFile(`${base}/catalog-tools.mts`, (await fsc.readFile(new URL("./lib/catalog-tools.mts", import.meta.url), "utf8")).replace('from "@platform/mcp"', `from "${base}/mcp.ts"`).replace('from "./catalog.mjs"', `from "${base}/catalog.mts"`));
+  await fsc.writeFile(`${base}/tokenize.ts`, await fsc.readFile(new URL("../packages/search/src/tokenize.ts", import.meta.url), "utf8"));
+  await fsc.writeFile(`${base}/bm25.ts`, (await fsc.readFile(new URL("../packages/search/src/bm25.ts", import.meta.url), "utf8")).replace('from "./tokenize"', `from "${base}/tokenize.ts"`));
+  await fsc.writeFile(`${base}/doc-sections.mts`, await fsc.readFile(new URL("./lib/doc-sections.mts", import.meta.url), "utf8"));
+  await fsc.writeFile(`${base}/rerank.ts`, await fsc.readFile(new URL("../packages/rag/src/rerank.ts", import.meta.url), "utf8"));
+  await fsc.writeFile(`${base}/doc-search.mts`, (await fsc.readFile(new URL("./lib/doc-search.mts", import.meta.url), "utf8")).replace('from "@platform/search"', `from "${base}/bm25.ts"`).replace('from "@platform/rag"', `from "${base}/rerank.ts"`).replace(/from "\.\/doc-sections\.mjs"/g, `from "${base}/doc-sections.mts"`));
+  await fsc.writeFile(`${base}/catalog-tools.mts`, (await fsc.readFile(new URL("./lib/catalog-tools.mts", import.meta.url), "utf8")).replace('from "@platform/mcp"', `from "${base}/mcp.ts"`).replace('from "./catalog.mjs"', `from "${base}/catalog.mts"`).replace('from "./doc-search.mjs"', `from "${base}/doc-search.mts"`));
   const C = await import(`${base}/catalog.mts`);
   const T = await import(`${base}/catalog-tools.mts`);
 
   const catalog = C.loadCatalog({ root });
-  ok("loadCatalog: 108パッケージ・カテゴリ付き・全export網羅(api-surface + api-reference 併用)",
-    catalog.length === 108 && catalog.find((p) => p.name === "theme").category !== "未分類" &&
+  ok("loadCatalog: 113パッケージ・カテゴリ付き・全export網羅(api-surface + api-reference 併用)",
+    catalog.length === 113 && catalog.find((p) => p.name === "theme").category !== "未分類" &&
     catalog.find((p) => p.name === "theme").exports.some((e) => e.name === "deriveTheme") &&
     catalog.filter((p) => p.exports.length > 0).length > 90);
   ok("searchCatalog: パッケージ名完全一致が最上位・API名/日本語説明でも見つかる・該当なしは空",
@@ -10094,12 +11592,35 @@ export const z = anyChain;
     C.describePackage(catalog, root, "theme").includes("公開 API") &&
     C.describePackage(catalog, root, "@platform/csv") !== null &&
     C.describePackage(catalog, root, "ghost") === null &&
-    Object.values(C.listByCategory(catalog)).flat().length === 108);
+    Object.values(C.listByCategory(catalog)).flat().length === 113);
 
   // MCP ツール(AI が呼ぶ形)
   // ツールは名前で引く(順序に依存しない)
   const tools = T.buildCatalogTools({ root, catalog });
   const byName = (n) => tools.find((t) => t.name === n);
+  // 資料検索(search_docs): 手順書・ADR を見出し単位で引けるか
+  {
+    const D = await import(`${base}/doc-search.mts`);
+    const secs = D.loadDocSections(root);
+    ok("loadDocSections: 資料を見出し単位に分割(500節以上・file/heading/body を持つ)",
+      secs.length > 500 && secs.every((x) => x.file && x.heading && x.body) &&
+      secs.some((x) => x.file === "docs/ops/BACKUP_RESTORE.md"));
+    const sd = byName("search_docs");
+    const d1 = await sd.handler({ query: "バックアップ 復元" });
+    const d2 = await sd.handler({ query: "qqqzzzxyz" }); // 実在しない語(日本語を混ぜると本当に一致してしまう)
+    const d3 = await sd.handler({ query: "  " });
+    ok("MCP search_docs: 手順書に到達", d1.content[0].text.includes("BACKUP_RESTORE.md"));
+    ok("MCP search_docs: 該当なしは案内(エラーにしない)", d2.content[0].text.includes("見つかりませんでした") && d2.isError !== true);
+    ok("MCP search_docs: 空クエリはエラー", d3.isError === true);
+    ok("MCP search_docs: 説明に用途が書かれている", sd.description.includes("なぜ") && sd.description.includes("search_platform"));
+    const d4 = await sd.handler({ query: "db push マイグレーション" });
+    ok("MCP search_docs: 設計判断(ADR)を引ける",
+      d4.content[0].text.includes("0013-db-push-not-migrations.md"));
+    ok("MCP search_docs: full で全文・既定は抜粋",
+      (await sd.handler({ query: "RPO RTO", full: true })).content[0].text.length >
+      (await sd.handler({ query: "RPO RTO" })).content[0].text.length);
+  }
+
   const r1 = await byName("search_platform").handler({ query: "csv" });
   const r2 = await byName("search_platform").handler({ query: "  " });
   const r3 = await byName("search_platform").handler({ query: "zzz-nonexistent" });
@@ -10109,9 +11630,9 @@ export const z = anyChain;
   const d1 = await byName("describe_package").handler({ name: "theme" });
   const d2 = await byName("describe_package").handler({ name: "ghost" });
   const l1 = await byName("list_platform").handler({});
-  ok("MCP describe_package/list_platform: 詳細返却・無いものはsearch誘導・カテゴリ別108件",
+  ok("MCP describe_package/list_platform: 詳細返却・無いものはsearch誘導・カテゴリ別113件",
     d1.content[0].text.includes("deriveTheme") && d2.isError === true && d2.content[0].text.includes("search_platform") &&
-    l1.content[0].text.includes("108 件"));
+    l1.content[0].text.includes("113 件"));
 
   await fsc.rm(base, { recursive: true, force: true });
 
@@ -10141,6 +11662,7 @@ export const z = anyChain;
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
+section("env");
   let dsrc = (await fsc.readFile(new URL("../packages/env/src/describe.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   dsrc = dsrc.replace('import { z } from "zod";\n', "").replace('from "@platform/core"', `from "${base}/core.ts"`);
   dsrc = dsrc.replace(/z\.Zod\w+(<[^>]*>)?/g, "any").replace(/z\.ZodRawShape/g, "any");
@@ -10203,13 +11725,18 @@ export const z = anyChain;
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
   await fsc.writeFile(`${base}/mcp.ts`, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
   await fsc.writeFile(`${base}/catalog.mts`, (await fsc.readFile(new URL("./lib/catalog.mts", import.meta.url), "utf8")).replace(/\.mjs"/g, '.mts"'));
-  await fsc.writeFile(`${base}/catalog-tools.mts`, (await fsc.readFile(new URL("./lib/catalog-tools.mts", import.meta.url), "utf8")).replace('from "@platform/mcp"', `from "${base}/mcp.ts"`).replace('from "./catalog.mjs"', `from "${base}/catalog.mts"`));
+  await fsc.writeFile(`${base}/tokenize.ts`, await fsc.readFile(new URL("../packages/search/src/tokenize.ts", import.meta.url), "utf8"));
+  await fsc.writeFile(`${base}/bm25.ts`, (await fsc.readFile(new URL("../packages/search/src/bm25.ts", import.meta.url), "utf8")).replace('from "./tokenize"', `from "${base}/tokenize.ts"`));
+  await fsc.writeFile(`${base}/doc-sections.mts`, await fsc.readFile(new URL("./lib/doc-sections.mts", import.meta.url), "utf8"));
+  await fsc.writeFile(`${base}/rerank.ts`, await fsc.readFile(new URL("../packages/rag/src/rerank.ts", import.meta.url), "utf8"));
+  await fsc.writeFile(`${base}/doc-search.mts`, (await fsc.readFile(new URL("./lib/doc-search.mts", import.meta.url), "utf8")).replace('from "@platform/search"', `from "${base}/bm25.ts"`).replace('from "@platform/rag"', `from "${base}/rerank.ts"`).replace(/from "\.\/doc-sections\.mjs"/g, `from "${base}/doc-sections.mts"`));
+  await fsc.writeFile(`${base}/catalog-tools.mts`, (await fsc.readFile(new URL("./lib/catalog-tools.mts", import.meta.url), "utf8")).replace('from "@platform/mcp"', `from "${base}/mcp.ts"`).replace('from "./catalog.mjs"', `from "${base}/catalog.mts"`).replace('from "./doc-search.mjs"', `from "${base}/doc-search.mts"`));
   const C = await import(`${base}/catalog.mts`);
   const T = await import(`${base}/catalog-tools.mts`);
 
   const demos = C.loadDemos({ root });
-  ok("loadDemos: 統合デモサイトの nav.ts から86デモを読む(サイトの表示と検索結果が食い違わない)",
-    demos.length === 86 && demos.every((d) => d.name && d.summary && Array.isArray(d.packages)) &&
+  ok("loadDemos: 統合デモサイトの nav.ts から79デモを読む(サイトの表示と検索結果が食い違わない)",
+    demos.length === 79 && demos.every((d) => d.name && d.summary && Array.isArray(d.packages)) &&
     demos.find((d) => d.name === "theme").packages.includes("theme") &&
     demos.find((d) => d.name === "apps-internal").packages.includes("contract"));
   ok("searchDemos: パッケージ名/日本語/@platform付きで引ける・該当なしは空",
@@ -10219,8 +11746,8 @@ export const z = anyChain;
     C.searchDemos(demos, "zzz-none").length === 0 && C.searchDemos(demos, "  ").length === 0);
 
   const tools = T.buildCatalogTools({ root, demos });
-  ok("MCPツール5種(search/describe/find_examples/explain_rules/list)",
-    tools.length === 5 && tools.map((t) => t.name).join(",") === "search_platform,describe_package,find_examples,explain_rules,list_platform");
+  ok("MCPツール6種(search/describe/find_examples/explain_rules/list/search_docs)",
+    tools.length === 6 && tools.map((t) => t.name).join(",") === "search_platform,describe_package,find_examples,explain_rules,list_platform,search_docs");
   const fx = await tools.find((t) => t.name === "find_examples").handler({ query: "tax" });
   const fxErr = await tools.find((t) => t.name === "find_examples").handler({ query: "  " });
   ok("MCP find_examples: 使用例+使用パッケージ・空クエリはエラー",
@@ -10665,6 +12192,7 @@ export const z = anyChain;
   const osc = await import("node:os");
   const base = `${osc.tmpdir()}/pdbg-${smokeStamp()}`;
   await fsc.mkdir(base, { recursive: true });
+section("debug");
   await fsc.writeFile(`${base}/debug.ts`, (await fsc.readFile(new URL("../packages/debug/src/debug.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   const D = await import(`${base}/debug.ts`);
 
@@ -10798,6 +12326,7 @@ export const z = anyChain;
   const osc = await import("node:os");
   const base = `${osc.tmpdir()}/task-${smokeStamp()}`;
   await fsc.mkdir(base, { recursive: true });
+section("core");
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
   await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
@@ -11013,8 +12542,8 @@ export const z = anyChain;
     claude.includes("## TSDoc") && claude.includes("@param") && claude.includes("@throws") &&
     claude.includes("型で分かることは書かない") && claude.includes("なぜそうしているか") &&
     claude.includes("check-tsdoc.mjs"));
-  ok("CLAUDE.md: 全関数が完備・この状態を保つ方針・一括処理の危険を明記",
-    claude.includes("全 1,691 関数・105 パッケージが完備") && claude.includes("この状態を保つ") &&
+  ok("CLAUDE.md: 全関数が完備・この状態を保つ方針・一括処理の危険を明記(数値の一致は check-doc-numbers が担当)",
+    /全 [\d,]+ 関数・\d+ パッケージが完備/.test(claude) && claude.includes("この状態を保つ") &&
     claude.includes("正規表現での一括処理は関数を壊す"));
 }
 
@@ -11089,6 +12618,7 @@ export const z = anyChain;
     dt.some((f) => f.name === "daysUntil"));
 
   // 「なぜ」が書かれているか(値のある TSDoc かどうか)
+section("datetime");
   const cal = await fsc.readFile(new URL("../packages/datetime/src/calendar.ts", import.meta.url), "utf8");
   ok("datetime: 落とし穴を明記(月は1〜12・月末クランプ・ローカルTZ・営業日は始点を含み終点を含まない)",
     cal.includes("0 始まりではない") && cal.includes("月末はクランプする") &&
@@ -11420,9 +12950,9 @@ export const z = anyChain;
   ok("nav: 区分は3つ(基盤デモ/アプリデモ/使用例)・メニュー上は分かれて見える",
     N.SECTIONS.length === 3 &&
     N.SECTIONS.map((s) => s.title).join(",") === "基盤デモ,アプリデモ,使用例");
-  ok("nav: 基盤デモ70・アプリデモ7・使用例9 = 86件(data-console は画面を持つので基盤デモ側)",
-    N.PLATFORM_DEMOS.length === 70 && N.APP_DEMOS.length === 7 && N.CODE_EXAMPLES.length === 9 &&
-    N.allDemos().length === 86);
+  ok("nav: 基盤デモ63・アプリデモ7・使用例9 = 79件(data-console は画面を持つので基盤デモ側)",
+    N.PLATFORM_DEMOS.length === 63 && N.APP_DEMOS.length === 7 && N.CODE_EXAMPLES.length === 9 &&
+    N.allDemos().length === 79);
   ok("buildNavItems: 区分ごとに入れ子(1サイトだが別物として映る)",
     N.buildNavItems().length === 3 && N.buildNavItems().every((n) => Array.isArray(n.children) && n.children.length > 0));
 

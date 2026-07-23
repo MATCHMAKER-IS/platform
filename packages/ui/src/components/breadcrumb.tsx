@@ -28,6 +28,12 @@ export interface BreadcrumbProps {
  * <Breadcrumb items={[{ label: "ホーム", href: "/" }, { label: "設定" }]} />
  * ```
  */
+/**
+ * パンくず(今いる場所の階層)。
+ *
+ * 深い階層で「どこから来たか」を示す。
+ * **階層が 2 段までなら不要**(戻るボタンで足りる)。
+ */
 export function Breadcrumb({ items, separator, className }: BreadcrumbProps) {
   const t = useT();
   return (

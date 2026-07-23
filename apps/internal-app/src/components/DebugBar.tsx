@@ -9,6 +9,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
+import { Button } from "@platform/ui";
 
 type Kind = "sql" | "api" | "ai" | "event" | "log" | "job";
 
@@ -100,7 +101,7 @@ export function DebugBar({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         </div>
       )}
 
-      <button
+      <Button
         onClick={() => setOpen((v) => !v)}
         title="Platform Debugger（開発時のみ表示）"
         style={{
@@ -120,7 +121,7 @@ export function DebugBar({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         ) : (
           <span>Debugger</span>
         )}
-      </button>
+      </Button>
     </div>
   );
 }

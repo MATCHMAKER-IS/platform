@@ -22,6 +22,12 @@ export interface ImageCropperProps {
 }
 
 /** ドラッグで範囲選択して切り抜くコンポーネント。 */
+/**
+ * 画像の切り抜き。
+ *
+ * 顔写真やロゴの位置を合わせるのに使う。
+ * **縦横比を固定**すると、後の表示が崩れない。
+ */
 export function ImageCropper({ src, onCrop, format = "png", quality, className }: ImageCropperProps) {
   const url = React.useMemo(() => (typeof src === "string" ? src : URL.createObjectURL(src)), [src]);
   React.useEffect(() => () => { if (typeof src !== "string") URL.revokeObjectURL(url); }, [src, url]);

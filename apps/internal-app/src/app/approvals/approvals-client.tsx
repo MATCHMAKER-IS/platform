@@ -1,6 +1,7 @@
 "use client";
 /** 承認インボックス。発注・請求の承認待ちを一覧し、段ごとに承認/却下する。 */
 import * as React from "react";
+import { Button } from "@platform/ui";
 import { ApprovalSignaturePanel } from "../../components/ApprovalSignaturePanel";
 
 interface Event { step: string; action: string; actor: string; at: string; }
@@ -57,8 +58,8 @@ export function ApprovalsClient({ fetchImpl }: ApprovalsClientProps) {
             )}
             <ApprovalSignaturePanel docType={a.docType} docNumber={a.docNumber} required={a.amount >= 1000000} />
             <div className="mt-3 flex gap-2">
-              <button onClick={() => decide(a, "approve")} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">承認</button>
-              <button onClick={() => decide(a, "reject")} className="rounded border border-red-300 px-4 py-1.5 text-sm text-red-700">却下</button>
+              <Button onClick={() => decide(a, "approve")} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">承認</Button>
+              <Button onClick={() => decide(a, "reject")} className="rounded border border-red-300 px-4 py-1.5 text-sm text-red-700">却下</Button>
             </div>
           </div>
         ))}

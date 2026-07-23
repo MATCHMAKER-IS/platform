@@ -1,6 +1,7 @@
 "use client";
 /** AI 文書要約 + 利用状況(コスト)。AI Gateway 経由で、実行のたびにコストが計上される様子を見せる。 */
 import * as React from "react";
+import { Button, Textarea } from "@platform/ui";
 
 interface Usage { inputTokens: number; outputTokens: number; }
 interface SummarizeResult { summary: string; usage: Usage; costJpy: number | null; model: string; mock: boolean; }
@@ -41,11 +42,11 @@ export function AiClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
       {usage?.mock && <p style={{ fontSize: 12, color: "var(--color-warning, #b45309)", background: "#fffbeb", padding: "8px 12px", borderRadius: 8 }}>モックモードで動作中です（ANTHROPIC_API_KEY 未設定）。要約はダミー文言ですが、コスト集計の流れは同じです。</p>}
 
       <div style={{ ...card, marginTop: 16 }}>
-        <textarea value={text} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setText(e.target.value)} placeholder="要約したい文章を貼り付けてください" rows={8} style={{ width: "100%", boxSizing: "border-box", padding: 10, border: "1px solid #ddd", borderRadius: 8, fontFamily: "inherit" }} />
+        <Textarea value={text} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setText(e.target.value)} placeholder="要約したい文章を貼り付けてください" rows={8} style={{ width: "100%", boxSizing: "border-box", padding: 10, border: "1px solid #ddd", borderRadius: 8, fontFamily: "inherit" }} />
         <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 8 }}>
           <label style={{ fontSize: 13 }}><input type="radio" checked={style === "short"} onChange={() => setStyle("short")} /> 短文</label>
           <label style={{ fontSize: 13 }}><input type="radio" checked={style === "bullet"} onChange={() => setStyle("bullet")} /> 箇条書き</label>
-          <button onClick={summarize} disabled={busy || text.trim().length === 0} style={{ marginLeft: "auto", padding: "8px 20px", background: busy ? "#ccc" : "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8, cursor: busy ? "default" : "pointer" }}>{busy ? "要約中…" : "要約する"}</button>
+          <Button onClick={summarize} disabled={busy || text.trim().length === 0} style={{ marginLeft: "auto", padding: "8px 20px", background: busy ? "#ccc" : "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8, cursor: busy ? "default" : "pointer" }}>{busy ? "要約中…" : "要約する"}</Button>
         </div>
         {error && <p style={{ color: "var(--color-danger, #c00)", fontSize: 13, marginTop: 8 }}>{error}</p>}
       </div>

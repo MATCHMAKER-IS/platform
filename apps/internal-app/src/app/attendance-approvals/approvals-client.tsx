@@ -1,6 +1,7 @@
 "use client";
 /** 勤怠承認。上長が部下の月次勤怠申請を承認・却下する。 */
 import * as React from "react";
+import { Button } from "@platform/ui";
 
 interface Event { step: string; action: string; actor: string; at: string; }
 interface Approval { userId: string; month: string; status: string; submittedAt: string; history: Event[]; }
@@ -51,8 +52,8 @@ export function ApprovalsClient({ fetchImpl }: ApprovalsClientProps) {
               <td className="px-2 py-2 text-xs text-neutral-500">{a.submittedAt.slice(0, 16).replace("T", " ")}</td>
               <td className="px-2 py-2 text-right">
                 <span className="flex justify-end gap-2">
-                  <button onClick={() => decide(a, "approve")} className="rounded bg-green-600 px-3 py-1 text-xs text-white">承認</button>
-                  <button onClick={() => decide(a, "reject")} className="rounded border border-neutral-300 px-3 py-1 text-xs">却下</button>
+                  <Button onClick={() => decide(a, "approve")} className="rounded bg-green-600 px-3 py-1 text-xs text-white">承認</Button>
+                  <Button onClick={() => decide(a, "reject")} className="rounded border border-neutral-300 px-3 py-1 text-xs">却下</Button>
                 </span>
               </td>
             </tr>

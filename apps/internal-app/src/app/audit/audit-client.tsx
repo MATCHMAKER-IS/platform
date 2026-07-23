@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { AuditLogView, AuditEntryDetail, SearchInput, type AuditLogRow, type AuditVerification, type FieldChangeView } from "@platform/ui";
+import { AuditEntryDetail, AuditLogView, Button, Input, SearchInput, type AuditLogRow, type AuditVerification, type FieldChangeView } from "@platform/ui";
 
 interface AuditDetail {
   seq: number;
@@ -72,9 +72,9 @@ export function AuditClient({ fetchImpl }: AuditClientProps) {
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-end gap-2">
         <SearchInput value={actor} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setActor(e.target.value)} placeholder="操作者で絞り込み" />
-        <input value={action} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAction(e.target.value)} placeholder="操作で絞り込み（例 invoice.create）" className="rounded-[var(--radius)] border border-[var(--color-border)] px-2 py-1.5 text-sm" />
-        <label className="text-xs text-[var(--color-muted)]">From<input type="date" value={from} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFrom(e.target.value)} className="ml-1 rounded-[var(--radius)] border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
-        <label className="text-xs text-[var(--color-muted)]">To<input type="date" value={to} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTo(e.target.value)} className="ml-1 rounded-[var(--radius)] border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+        <Input value={action} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAction(e.target.value)} placeholder="操作で絞り込み（例 invoice.create）" className="rounded-[var(--radius)] border border-[var(--color-border)] px-2 py-1.5 text-sm" />
+        <label className="text-xs text-[var(--color-muted)]">From<Input type="date" value={from} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFrom(e.target.value)} className="ml-1 rounded-[var(--radius)] border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+        <label className="text-xs text-[var(--color-muted)]">To<Input type="date" value={to} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTo(e.target.value)} className="ml-1 rounded-[var(--radius)] border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
         <a href={exportUrl} className="rounded-[var(--radius)] border border-[var(--color-border)] px-4 py-1.5 text-sm">CSVエクスポート</a>
       </div>
       <AuditLogView rows={rows} verification={verification} onSelect={loadDetail} />
@@ -82,7 +82,7 @@ export function AuditClient({ fetchImpl }: AuditClientProps) {
         <div className="rounded-[var(--radius)] border border-[var(--color-border)] p-4">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-sm font-medium">エントリ詳細</h2>
-            <button className="text-xs text-[var(--color-muted)]" onClick={() => setDetail(null)}>閉じる</button>
+            <Button className="text-xs text-[var(--color-muted)]" onClick={() => setDetail(null)}>閉じる</Button>
           </div>
           <AuditEntryDetail entry={detail} onJump={loadDetail} />
         </div>

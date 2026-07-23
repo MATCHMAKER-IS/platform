@@ -20,6 +20,12 @@ export interface CalendarHeatmapProps {
 const MS_PER_DAY = 86_400_000;
 
 /** カレンダーヒートマップ。 */
+/**
+ * カレンダー型の濃淡(日ごとの多さ)。
+ *
+ * 曜日や時期の**偏り**が一目で分かる(月末に集中している、金曜が多い)。
+ * 正確な数は読めないので、押したときに実数を出せるようにする。
+ */
 export function CalendarHeatmap({ counts, start, end, cellSize = 12, className }: CalendarHeatmapProps) {
   const gridStart = startOfWeek(start, 0); // 日曜始まり
   const startDn = dayNumber(gridStart);

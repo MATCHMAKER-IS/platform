@@ -28,6 +28,12 @@ const GROUP_LABELS: { key: "today" | "yesterday" | "earlier"; label: string }[] 
 ];
 
 /** ヘッダー用の通知ベル。 */
+/**
+ * 通知のベル(未読の数つき)。
+ *
+ * **未読が 0 のときは数字を出さない**。常に何か出ていると、見なくなる。
+ * 押したら既読にするか、開いただけでは既読にしないかを決める。
+ */
 export function NotificationBell({ notifications, onNotificationClick, onMarkAllRead, viewAllHref, className }: NotificationBellProps) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
@@ -50,7 +56,7 @@ export function NotificationBell({ notifications, onNotificationClick, onMarkAll
         aria-label={unread > 0 ? `通知 ${unread}件の未読` : "通知"}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="relative inline-flex h-10 w-10 items-center justify-center rounded-[var(--radius)] text-[var(--color-fg)] transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-[var(--radius)] text-[var(--color-fg)] transition-colors hover:bg-[var(--color-subtle-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
       >
         <Bell size={18} aria-hidden="true" />
         {unread > 0 && (
@@ -75,11 +81,11 @@ export function NotificationBell({ notifications, onNotificationClick, onMarkAll
             ) : (
               GROUP_LABELS.filter((g) => groups[g.key].length > 0).map((g) => (
                 <div key={g.key}>
-                  <div className="bg-slate-50 px-4 py-1.5 text-xs font-medium text-[var(--color-muted)]">{g.label}</div>
+                  <div className="bg-[var(--color-subtle)] px-4 py-1.5 text-xs font-medium text-[var(--color-muted)]">{g.label}</div>
                   <ul>
                     {groups[g.key].map((n) => {
                       const inner = (
-                        <div className={cn("flex gap-3 px-4 py-3 transition-colors hover:bg-slate-50", !n.read && "bg-blue-50/50")}>
+                        <div className={cn("flex gap-3 px-4 py-3 transition-colors hover:bg-[var(--color-subtle)]", !n.read && "bg-blue-50/50")}>
                           {!n.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--color-primary)]" aria-hidden="true" />}
                           <div className={cn("min-w-0 flex-1", n.read && "pl-5")}>
                             <p className="truncate text-sm font-medium text-[var(--color-fg)]">{n.title}</p>
@@ -104,7 +110,7 @@ export function NotificationBell({ notifications, onNotificationClick, onMarkAll
           </div>
 
           {viewAllHref && (
-            <a href={viewAllHref} className="block border-t border-[var(--color-border)] px-4 py-2.5 text-center text-sm text-[var(--color-primary)] hover:bg-slate-50" onClick={() => setOpen(false)}>
+            <a href={viewAllHref} className="block border-t border-[var(--color-border)] px-4 py-2.5 text-center text-sm text-[var(--color-primary)] hover:bg-[var(--color-subtle)]" onClick={() => setOpen(false)}>
               すべて見る
             </a>
           )}

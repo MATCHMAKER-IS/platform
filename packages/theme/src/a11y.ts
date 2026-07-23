@@ -32,7 +32,17 @@ export interface ThemeContrastReport {
 }
 
 /** 検査する色ペア(テキスト系は最低 AA=4.5 が目安)。 */
-const PAIRS: { label: string; fg: keyof Theme["modes"]["light"]; bg: keyof Theme["modes"]["light"] }[] = [
+/**
+ * 対比を見る組み合わせ。
+ *
+ * **必ず値がある項目だけ**を対象にする。サイドバーの色のような任意の項目は
+ * 未指定なら `undefined` になり、対比を計算できないため。
+ */
+type RequiredColorKey = {
+  [K in keyof Theme["modes"]["light"]]-?: undefined extends Theme["modes"]["light"][K] ? never : K
+}[keyof Theme["modes"]["light"]];
+
+const PAIRS: { label: string; fg: RequiredColorKey; bg: RequiredColorKey }[] = [
   { label: "本文テキスト / 背景", fg: "fg", bg: "bg" },
   { label: "本文テキスト / サーフェス", fg: "fg", bg: "surface" },
   { label: "補助テキスト / 背景", fg: "muted", bg: "bg" },

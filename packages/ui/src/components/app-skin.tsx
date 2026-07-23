@@ -33,6 +33,30 @@ export interface AppSkinProps {
   defaultMode?: "light" | "dark" | "system";
 }
 
+/**
+ * アプリ全体の見た目(配色・明暗)を包む。
+ *
+ * **レイアウトの一番外側に 1 つだけ置く。** 配色の切り替えと、
+ * 明るい/暗いの追従をここが受け持つ。
+ *
+ * | props | 使いどころ |
+ * |---|---|
+ * | `themes` | 使える配色の一覧。組み込みと自作を合わせて渡す |
+ * | `defaultSkinId` | 組織の既定の配色(サーバの設定から渡す) |
+ * | `defaultMode` | 明暗の初期値。**既定の `"system"` は端末設定に追従** |
+ *
+ * 利用者が選んだ配色は保存され、次に開いたときも残る。
+ * サーバ側で配色を決めたい場合だけ `defaultSkinId` を渡す。
+ *
+ * @example
+ * ```tsx
+ * // app/layout.tsx
+ * <AppSkin themes={[...builtInThemes, ...customThemes]} defaultSkinId={setting.skinId}>
+ *   <AppNav />
+ *   {children}
+ * </AppSkin>
+ * ```
+ */
 export function AppSkin({ children, themes, defaultSkinId, defaultMode = "system" }: AppSkinProps) {
   // レジストリはここで作る。server から渡させない(渡せない)。
   const registry = React.useMemo(() => {
@@ -48,12 +72,17 @@ export function AppSkin({ children, themes, defaultSkinId, defaultMode = "system
 
   const css = React.useMemo(() => buildThemeStylesheet(registry.list()), [registry]);
   const [mode, setMode] = React.useState<"light" | "dark">(defaultMode === "dark" ? "dark" : "light");
+  const manualRef = React.useRef(false);
+  const handleSetMode = React.useCallback((m: "light" | "dark") => {
+    manualRef.current = true; // 手動で切り替えたら、以降はシステム追従を止める
+    setMode(m);
+  }, []);
 
   React.useEffect(() => {
     if (defaultMode !== "system" || typeof window === "undefined" || !window.matchMedia) return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    setMode(mq.matches ? "dark" : "light");
-    const onChange = (e: MediaQueryListEvent) => setMode(e.matches ? "dark" : "light");
+    if (!manualRef.current) setMode(mq.matches ? "dark" : "light");
+    const onChange = (e: MediaQueryListEvent) => { if (!manualRef.current) setMode(e.matches ? "dark" : "light"); };
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
   }, [defaultMode]);
@@ -76,7 +105,7 @@ export function AppSkin({ children, themes, defaultSkinId, defaultMode = "system
           }catch(e){}})();`,
         }}
       />
-      <SkinProvider registry={registry} mode={mode} {...(defaultSkinId ? { defaultSkinId } : {})}>
+      <SkinProvider registry={registry} mode={mode} setMode={handleSetMode} {...(defaultSkinId ? { defaultSkinId } : {})}>
         {children}
       </SkinProvider>
     </>

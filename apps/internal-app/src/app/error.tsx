@@ -4,6 +4,7 @@
  * 制御されたフォールバック UI を表示する。error.digest はサーバ側ログの相関に使える。
  */
 import { useEffect } from "react";
+import { Button } from "@platform/ui";
 
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
@@ -22,9 +23,9 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
           お問い合わせの際はこの ID をお伝えください: <code>{error.digest}</code>
         </p>
       )}
-      <button onClick={reset} style={{ padding: "0.5rem 1.5rem", borderRadius: 6, border: "1px solid #ccc", cursor: "pointer" }}>
+      <Button onClick={reset} style={{ padding: "0.5rem 1.5rem", borderRadius: 6, border: "1px solid #ccc", cursor: "pointer" }}>
         再試行
-      </button>
+      </Button>
     </div>
   );
 }

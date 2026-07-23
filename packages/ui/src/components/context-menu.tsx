@@ -26,6 +26,12 @@ export interface ContextMenuProps {
 }
 
 /** 右クリックでメニューを出すラッパー。 */
+/**
+ * 右クリックの menu。
+ *
+ * 補助的な操作に使う。**触っただけでは気づけない**ので、
+ * 主要な操作は必ず画面上のボタンにも置く。
+ */
 export function ContextMenu({ items, children, className }: ContextMenuProps) {
   const [pos, setPos] = React.useState<{ x: number; y: number } | null>(null);
 
@@ -67,7 +73,7 @@ export function ContextMenu({ items, children, className }: ContextMenuProps) {
               onClick={() => { setPos(null); item.onSelect?.(); }}
               className={cn(
                 "flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-sm transition-colors disabled:opacity-40",
-                item.danger ? "text-[var(--color-danger)] hover:bg-red-50" : "text-[var(--color-fg)] hover:bg-slate-50",
+                item.danger ? "text-[var(--color-danger)] hover:bg-red-50" : "text-[var(--color-fg)] hover:bg-[var(--color-subtle)]",
                 item.separated && "mt-1 border-t border-[var(--color-border)] pt-2",
               )}
             >

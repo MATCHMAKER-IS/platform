@@ -6,6 +6,7 @@
  * この画面は「表示」と「操作を API に渡すこと」だけを行う。
  */
 import * as React from "react";
+import { Button, Input } from "@platform/ui";
 import type { Task, TaskStatus, TaskProgress } from "@platform/task";
 
 interface Kanban { status: TaskStatus; tasks: Task[] }
@@ -111,12 +112,12 @@ export function TasksClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
       {/* 追加 */}
       <div style={card}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <input value={title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)} placeholder="やること" style={{ ...input, flex: 1, minWidth: 200 }} />
-          <input value={assignee} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAssignee(e.target.value)} placeholder="担当（任意）" style={{ ...input, width: 120 }} />
-          <input type="date" value={dueDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDueDate(e.target.value)} style={{ ...input, width: 150 }} />
-          <button onClick={() => void add()} style={{ ...input, background: "var(--color-primary, #2563eb)", color: "var(--color-primary-fg, #fff)", border: "none", cursor: "pointer", fontWeight: 600 }}>
+          <Input value={title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)} placeholder="やること" style={{ ...input, flex: 1, minWidth: 200 }} />
+          <Input value={assignee} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAssignee(e.target.value)} placeholder="担当（任意）" style={{ ...input, width: 120 }} />
+          <Input type="date" value={dueDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDueDate(e.target.value)} style={{ ...input, width: 150 }} />
+          <Button onClick={() => void add()} style={{ ...input, background: "var(--color-primary, #2563eb)", color: "var(--color-primary-fg, #fff)", border: "none", cursor: "pointer", fontWeight: 600 }}>
             追加
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -148,12 +149,12 @@ export function TasksClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
                     )}
                   </div>
                   {NEXT[t.status] && (
-                    <button
+                    <Button
                       onClick={() => void move(t.id, NEXT[t.status]!)}
                       style={{ marginTop: 6, width: "100%", padding: "3px 0", fontSize: 10, border: "1px solid var(--color-border, #ddd)", borderRadius: 6, background: "var(--color-surface, #fff)", color: "var(--color-fg, #111)", cursor: "pointer" }}
                     >
                       {STATUS_LABEL[NEXT[t.status]!]}へ →
-                    </button>
+                    </Button>
                   )}
                 </div>
               );

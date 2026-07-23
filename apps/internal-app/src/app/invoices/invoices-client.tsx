@@ -1,6 +1,7 @@
 "use client";
 /** 請求書管理。一覧（入金状況つき）、作成（明細入力）、入金記録。 */
 import * as React from "react";
+import { Button, Input, Select } from "@platform/ui";
 
 interface Line { description: string; quantity: number; unitPrice: number; taxRate?: 10 | 8 | 0; }
 interface Totals { subtotal: number; tax: number; total: number; }
@@ -81,7 +82,7 @@ export function InvoicesClient({ fetchImpl, canWrite = true }: InvoicesClientPro
     <div className="mx-auto max-w-5xl p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">請求書</h1>
-        {canWrite && <button onClick={() => setCreating((v) => !v)} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">{creating ? "閉じる" : "新規作成"}</button>}
+        {canWrite && <Button onClick={() => setCreating((v) => !v)} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">{creating ? "閉じる" : "新規作成"}</Button>}
       </div>
       {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
@@ -102,7 +103,7 @@ export function InvoicesClient({ fetchImpl, canWrite = true }: InvoicesClientPro
                 {rcv.dunning.map((d) => (
                   <li key={d.number} className="flex items-center justify-between">
                     <span><span className="rounded bg-red-100 px-1.5 py-0.5 text-red-800">{DUNNING_LABEL[d.level] ?? d.level}</span> {d.number}・{d.billTo}（{d.overdueDays}日超過・{yen(d.amountDue)}）</span>
-                    <button onClick={() => setDunningOpen(d)} className="text-blue-600 hover:underline">文面</button>
+                    <Button onClick={() => setDunningOpen(d)} className="text-blue-600 hover:underline">文面</Button>
                   </li>
                 ))}
               </ul>
@@ -115,7 +116,7 @@ export function InvoicesClient({ fetchImpl, canWrite = true }: InvoicesClientPro
         <div className="mb-6 rounded border border-neutral-300 p-4">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm font-medium">督促文面（{dunningOpen.number}）</span>
-            <button onClick={() => setDunningOpen(null)} className="text-xs text-neutral-500">閉じる</button>
+            <Button onClick={() => setDunningOpen(null)} className="text-xs text-neutral-500">閉じる</Button>
           </div>
           <pre className="whitespace-pre-wrap rounded bg-neutral-50 p-3 text-xs leading-relaxed">{dunningOpen.message}</pre>
         </div>
@@ -124,41 +125,36 @@ export function InvoicesClient({ fetchImpl, canWrite = true }: InvoicesClientPro
       {creating && (
         <div className="mb-6 rounded border border-neutral-200 p-4">
           <div className="mb-3 grid gap-2 md:grid-cols-2">
-            <input value={header.number} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHeader({ ...header, number: e.target.value })} placeholder="請求書番号" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
+            <Input value={header.number} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHeader({ ...header, number: e.target.value })} placeholder="請求書番号" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
             {customers.length > 0 && (
-              <select value="" onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { const c = customers.find((x) => x.code === e.target.value); if (c) setHeader({ ...header, billTo: c.name }); }} className="rounded border border-neutral-300 px-2 py-1 text-sm">
-                <option value="">取引先から選択…</option>
-                {customers.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
-              </select>
+              <Select value="" onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { const c = customers.find((x) => x.code === e.target.value); if (c) setHeader({ ...header, billTo: c.name }); }} className="rounded border border-neutral-300 px-2 py-1 text-sm" options={[{ label: "取引先から選択…", value: "" }, ...customers.map((c) => ({ label: c.name, value: String(c.code) }))]} />
             )}
-            <input value={header.billTo} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHeader({ ...header, billTo: e.target.value })} placeholder="宛先" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
-            <label className="text-xs text-neutral-500">発行日<input type="date" value={header.issueDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHeader({ ...header, issueDate: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">支払期限<input type="date" value={header.dueDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHeader({ ...header, dueDate: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <input value={header.registrationNumber} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHeader({ ...header, registrationNumber: e.target.value })} placeholder="登録番号 T+13桁（任意）" className="rounded border border-neutral-300 px-2 py-1 text-sm md:col-span-2" />
+            <Input value={header.billTo} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHeader({ ...header, billTo: e.target.value })} placeholder="宛先" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
+            <label className="text-xs text-neutral-500">発行日<Input type="date" value={header.issueDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHeader({ ...header, issueDate: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-neutral-500">支払期限<Input type="date" value={header.dueDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHeader({ ...header, dueDate: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <Input value={header.registrationNumber} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHeader({ ...header, registrationNumber: e.target.value })} placeholder="登録番号 T+13桁（任意）" className="rounded border border-neutral-300 px-2 py-1 text-sm md:col-span-2" />
           </div>
           <table className="mb-2 w-full text-sm">
             <thead><tr className="text-left text-xs text-neutral-500"><th className="px-1 py-1">摘要</th><th className="px-1 py-1 w-20">数量</th><th className="px-1 py-1 w-28">単価</th><th className="px-1 py-1 w-20">税率</th><th></th></tr></thead>
             <tbody>
               {lines.map((l, i) => (
                 <tr key={i}>
-                  <td className="px-1 py-1"><input value={l.description} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { description: e.target.value })} className="w-full rounded border border-neutral-300 px-2 py-1" /></td>
-                  <td className="px-1 py-1"><input value={String(l.quantity)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { quantity: Number(e.target.value) || 0 })} inputMode="numeric" className="w-full rounded border border-neutral-300 px-2 py-1" /></td>
-                  <td className="px-1 py-1"><input value={String(l.unitPrice)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { unitPrice: Number(e.target.value) || 0 })} inputMode="numeric" className="w-full rounded border border-neutral-300 px-2 py-1" /></td>
+                  <td className="px-1 py-1"><Input value={l.description} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { description: e.target.value })} className="w-full rounded border border-neutral-300 px-2 py-1" /></td>
+                  <td className="px-1 py-1"><Input value={String(l.quantity)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { quantity: Number(e.target.value) || 0 })} inputMode="numeric" className="w-full rounded border border-neutral-300 px-2 py-1" /></td>
+                  <td className="px-1 py-1"><Input value={String(l.unitPrice)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { unitPrice: Number(e.target.value) || 0 })} inputMode="numeric" className="w-full rounded border border-neutral-300 px-2 py-1" /></td>
                   <td className="px-1 py-1">
-                    <select value={String(l.taxRate ?? 10)} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setLine(i, { taxRate: Number(e.target.value) as 10 | 8 | 0 })} className="w-full rounded border border-neutral-300 px-1 py-1">
-                      <option value="10">10%</option><option value="8">8%</option><option value="0">0%</option>
-                    </select>
+                    <Select value={String(l.taxRate ?? 10)} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setLine(i, { taxRate: Number(e.target.value) as 10 | 8 | 0 })} className="w-full rounded border border-neutral-300 px-1 py-1" options={[{ label: "10%", value: "10" }, { label: "8%", value: "8" }, { label: "0%", value: "0" }]} />
                   </td>
-                  <td className="px-1 py-1">{lines.length > 1 && <button onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))} className="text-neutral-400">×</button>}</td>
+                  <td className="px-1 py-1">{lines.length > 1 && <Button aria-label="この明細行を削除" title="この明細行を削除" onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))} className="text-neutral-400">×</Button>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           <div className="flex items-center justify-between">
-            <button onClick={() => setLines((ls) => [...ls, { description: "", quantity: 1, unitPrice: 0, taxRate: 10 }])} className="text-sm text-blue-600">＋ 明細を追加</button>
+            <Button onClick={() => setLines((ls) => [...ls, { description: "", quantity: 1, unitPrice: 0, taxRate: 10 }])} className="text-sm text-blue-600">＋ 明細を追加</Button>
             <span className="text-sm text-neutral-500">税抜計 {yen(preview)}</span>
           </div>
-          <button onClick={submit} className="mt-3 rounded bg-neutral-900 px-4 py-2 text-sm text-white">請求書を作成</button>
+          <Button onClick={submit} className="mt-3 rounded bg-neutral-900 px-4 py-2 text-sm text-white">請求書を作成</Button>
         </div>
       )}
 
@@ -173,7 +169,7 @@ export function InvoicesClient({ fetchImpl, canWrite = true }: InvoicesClientPro
           {invoices.map((inv) => (
             <tr key={inv.number} className="border-b border-neutral-100">
               <td className="px-2 py-2 font-mono text-xs">{inv.number}</td>
-              <td className="px-2 py-2">{inv.billTo}{(() => { const a = approvals[inv.number]; if (!a) return canWrite ? <button onClick={() => submitApproval(inv.number, inv.totals.total)} className="ml-2 text-xs text-blue-600 hover:underline">承認申請</button> : null; const label = a.status === "approved" ? "承認済" : a.status === "rejected" ? "却下" : `承認待ち ${a.currentStep}/${a.totalSteps}`; const cls = a.status === "approved" ? "bg-green-100 text-green-800" : a.status === "rejected" ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"; return <span className={`ml-2 rounded px-1.5 py-0.5 text-xs ${cls}`}>{label}</span>; })()}</td>
+              <td className="px-2 py-2">{inv.billTo}{(() => { const a = approvals[inv.number]; if (!a) return canWrite ? <Button onClick={() => submitApproval(inv.number, inv.totals.total)} className="ml-2 text-xs text-blue-600 hover:underline">承認申請</Button> : null; const label = a.status === "approved" ? "承認済" : a.status === "rejected" ? "却下" : `承認待ち ${a.currentStep}/${a.totalSteps}`; const cls = a.status === "approved" ? "bg-green-100 text-green-800" : a.status === "rejected" ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"; return <span className={`ml-2 rounded px-1.5 py-0.5 text-xs ${cls}`}>{label}</span>; })()}</td>
               <td className="px-2 py-2 text-xs text-neutral-500">{inv.dueDate}</td>
               <td className="px-2 py-2 text-right font-medium">{yen(inv.totals.total)}</td>
               <td className="px-2 py-2 text-right">{yen(inv.balance)}</td>
@@ -182,8 +178,8 @@ export function InvoicesClient({ fetchImpl, canWrite = true }: InvoicesClientPro
                 <span className="flex gap-3">
                   <a href={`/api/invoices/${inv.number}/html`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">HTML</a>
                   <a href={`/api/invoices/${inv.number}/pdf`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">PDF</a>
-                  {canWrite && <button onClick={() => submitApproval(inv.number, inv.totals.total)} className="text-blue-600 hover:underline">承認申請</button>}
-                  {canWrite && !inv.cancelled && inv.balance > 0 && <button onClick={() => pay(inv.number)} className="text-blue-600 hover:underline">入金記録</button>}
+                  {canWrite && <Button onClick={() => submitApproval(inv.number, inv.totals.total)} className="text-blue-600 hover:underline">承認申請</Button>}
+                  {canWrite && !inv.cancelled && inv.balance > 0 && <Button onClick={() => pay(inv.number)} className="text-blue-600 hover:underline">入金記録</Button>}
                 </span>
               </td>
             </tr>

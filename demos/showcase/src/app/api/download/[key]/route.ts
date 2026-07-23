@@ -1,3 +1,4 @@
+// public-api: デモ用。推測しにくい鍵を知っている人だけが取得できる
 /** ダウンロード API。storage のキーからファイルを配信。 */
 import { downloadFromStorage } from "@platform/upload";
 import { createStorage, createLocalStorage } from "@platform/storage";

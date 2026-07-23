@@ -1,6 +1,7 @@
 "use client";
 /** アンケート回答フォーム。設問種別に応じた入力を出し、回答を送信する。 */
 import * as React from "react";
+import { Button, Textarea } from "@platform/ui";
 
 interface Question { id: string; text: string; type: "single" | "multi" | "text" | "rating"; options?: string[]; }
 interface Survey { id: string; title: string; description: string; questions: Question[]; status: string; }
@@ -42,12 +43,12 @@ export function RespondClient({ surveyId, fetchImpl }: { surveyId: string; fetch
             <p className="mb-2 text-sm font-medium">{q.text}</p>
             {q.type === "single" && (q.options ?? []).map((o) => <label key={o} className="mr-3 text-sm"><input type="radio" name={q.id} onChange={() => setSingle(q.id, o)} className="mr-1" />{o}</label>)}
             {q.type === "multi" && (q.options ?? []).map((o) => <label key={o} className="mr-3 text-sm"><input type="checkbox" onChange={() => toggleMulti(q.id, o)} className="mr-1" />{o}</label>)}
-            {q.type === "text" && <textarea onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setText(q.id, e.target.value)} rows={3} className="block w-full rounded border border-neutral-300 px-2 py-1 text-sm" />}
-            {q.type === "rating" && <div className="flex gap-2">{[1, 2, 3, 4, 5].map((n) => <button key={n} onClick={() => setRating(q.id, n)} className={`h-8 w-8 rounded-full border text-sm ${answers[q.id]?.rating === n ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-300"}`}>{n}</button>)}</div>}
+            {q.type === "text" && <Textarea onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setText(q.id, e.target.value)} rows={3} className="block w-full rounded border border-neutral-300 px-2 py-1 text-sm" />}
+            {q.type === "rating" && <div className="flex gap-2">{[1, 2, 3, 4, 5].map((n) => <Button key={n} onClick={() => setRating(q.id, n)} className={`h-8 w-8 rounded-full border text-sm ${answers[q.id]?.rating === n ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-300"}`}>{n}</Button>)}</div>}
           </div>
         ))}
       </div>
-      <button onClick={submit} className="mt-4 rounded bg-neutral-900 px-6 py-2 text-sm text-white">送信</button>
+      <Button onClick={submit} className="mt-4 rounded bg-neutral-900 px-6 py-2 text-sm text-white">送信</Button>
     </div>
   );
 }

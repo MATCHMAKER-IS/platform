@@ -145,10 +145,130 @@ export interface RetainableRecord {
  * 保持期間を過ぎたレコードの ID を返す(定期削除バッチ用)。
  * 個人情報は利用目的の達成後・保持期間経過後に遅滞なく消去する必要がある。
  *
- * @param subject 本人
- * @param sources データの所在
- * @returns 削除対象。**法令で保持が必要なものは除く**(会計帳簿は 7 年保存が義務。全部消すと別の違反になる)
+ * **この関数は法令の保存義務を見ない。** 会計帳簿の 7 年保存のような義務があるものを
+ * 含めて消すと別の違反になるため、削除要求への対応には decideErasure を使うこと。
+ *
+ * @param records 保持期間つきのレコード
+ * @param now     現在時刻(ミリ秒)
+ * @returns 保持期間を過ぎたレコードの ID
  */
 export function recordsToErase(records: RetainableRecord[], now: number = Date.now()): string[] {
   return records.filter((r) => isRetentionExpired(r.createdAt, r.retentionDays, now)).map((r) => r.id);
+}
+
+/**
+ * 法令で保存が義務づけられたデータ。
+ *
+ * 本人から削除を求められても、**法令の保存義務が優先する**。
+ * 例: 会計帳簿・証憑は 7 年(電子帳簿保存法・法人税法)、
+ *     労働者名簿と賃金台帳は 5 年(労働基準法)。
+ */
+export interface LegalHold {
+  /** 対象レコードの ID。 */
+  recordId: string;
+  /** 根拠(例: "電子帳簿保存法 7年")。**空にしない**。後から説明できなくなる。 */
+  basis: string;
+  /** 保存期限(この日を過ぎたら削除してよい)。 */
+  until: string;
+}
+
+/** 削除要求に対する判断。 */
+export interface ErasureDecision {
+  recordId: string;
+  /** 消してよいか。 */
+  canErase: boolean;
+  /** そう判断した理由(本人に説明する内容)。 */
+  reason: string;
+  /** 消せない場合、いつになれば消せるか。 */
+  erasableFrom?: string;
+}
+
+/**
+ * 削除要求に対して、レコードごとに消してよいかを判断する。
+ *
+ * **保存義務と削除要求は逆を向く。** 個人情報保護法は「利用目的の達成後は遅滞なく消去」を求め、
+ * 電子帳簿保存法は「7 年間の保存」を求める。どちらも守るには、
+ * **法令の保存義務があるものは残し、その旨を本人に説明する**しかない。
+ *
+ * 「全部消す」も「全部残す」も、どちらかの違反になる。
+ *
+ * @param records レコード(保持期間つき)
+ * @param holds   法令による保存義務
+ * @param asOf    基準日(YYYY-MM-DD)
+ * @returns レコードごとの判断
+ *
+ * @example
+ * ```ts
+ * const decisions = decideErasure(records, [
+ *   { recordId: "invoice-1", basis: "電子帳簿保存法 7年", until: "2033-03-31" },
+ * ], "2026-07-23");
+ * const erasable = decisions.filter((d) => d.canErase).map((d) => d.recordId);
+ * ```
+ */
+export function decideErasure(
+  records: readonly RetainableRecord[],
+  holds: readonly LegalHold[],
+  asOf: string,
+): ErasureDecision[] {
+  const now = Date.parse(`${asOf}T00:00:00Z`);
+  const byId = new Map(holds.map((h) => [h.recordId, h]));
+
+  return records.map((r) => {
+    const hold = byId.get(r.id);
+    // 法令の保存義務が生きているなら、削除要求より優先する
+    if (hold && hold.until > asOf) {
+      return {
+        recordId: r.id,
+        canErase: false,
+        reason: `法令により保存義務があります(${hold.basis})`,
+        erasableFrom: hold.until,
+      };
+    }
+    // 義務が切れていれば、自社の保持期間で判断する
+    if (!isRetentionExpired(r.createdAt, r.retentionDays, now)) {
+      const from = new Date(r.createdAt + r.retentionDays * 86_400_000).toISOString().slice(0, 10);
+      return {
+        recordId: r.id,
+        canErase: false,
+        reason: "保持期間が残っています(利用目的の達成前)",
+        erasableFrom: from,
+      };
+    }
+    return {
+      recordId: r.id,
+      canErase: true,
+      reason: hold ? `保存義務が終了しています(${hold.basis}・${hold.until}まで)` : "保持期間を過ぎています",
+    };
+  });
+}
+
+/**
+ * 本人へ返す説明文を組み立てる。
+ *
+ * 「消せません」だけでは納得が得られない。**根拠といつ消せるか**を必ず示す。
+ *
+ * @param decisions 判断の一覧
+ * @returns 本人向けの説明(そのまま通知に使える)
+ */
+export function explainErasure(decisions: readonly ErasureDecision[]): string {
+  const erased = decisions.filter((d) => d.canErase);
+  const kept = decisions.filter((d) => !d.canErase);
+  const lines: string[] = [];
+
+  if (erased.length > 0) {
+    lines.push(`${erased.length} 件を削除しました。`);
+  }
+  if (kept.length > 0) {
+    lines.push(`${kept.length} 件は、次の理由により削除できませんでした。`);
+    // 同じ理由はまとめる(件数が多いと読めなくなる)
+    const grouped = new Map<string, { count: number; from?: string }>();
+    for (const k of kept) {
+      const cur = grouped.get(k.reason) ?? { count: 0, from: k.erasableFrom };
+      grouped.set(k.reason, { count: cur.count + 1, from: cur.from });
+    }
+    for (const [reason, { count, from }] of grouped) {
+      lines.push(`・${reason}（${count} 件${from ? `／${from} 以降に削除できます` : ""}）`);
+    }
+  }
+  return lines.join("\n");
 }

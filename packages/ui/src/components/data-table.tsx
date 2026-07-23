@@ -40,7 +40,38 @@ export interface DataTableProps<T extends Record<string, unknown>> {
   className?: string;
 }
 
-/** 検索・ソート・ページング・CSV出力つきの一覧テーブル。 */
+/**
+ * 検索・並べ替え・頁送り・CSV 出力が付いた一覧表。
+ *
+ * **一覧画面はこれで作る。** 自前で `<table>` を組むと、並べ替えの
+ * 日本語順や空欄の扱い(`@platform/ui` の `queryRows` が面倒を見ている)を
+ * 画面ごとに書き直すことになる。
+ *
+ * | props | 使いどころ |
+ * |---|---|
+ * | `searchKeys` | 検索の対象列。**指定しないと検索が効かない** |
+ * | `highlightSearch` | 一致部分を強調する。件数が多い一覧で効く |
+ * | `pageSize` | 1 頁の件数(既定 20)。行が高いなら小さく |
+ * | `csvFilename` | **指定すると CSV 出力ボタンが出る**。無指定なら出ない |
+ *
+ * 列の `render` を使うと自由に描けるが、**その列は検索の強調が効かない**
+ * (中身を基盤側が知らないため)。
+ *
+ * @example
+ * ```tsx
+ * <DataTable
+ *   rows={invoices}
+ *   columns={[
+ *     { key: "code", header: "番号" },
+ *     { key: "customer", header: "取引先" },
+ *     { key: "amount", header: "金額", format: (v) => `${Number(v).toLocaleString()} 円` },
+ *     { key: "status", header: "状態", render: (r) => <Badge variant="success">{r.status}</Badge> },
+ *   ]}
+ *   searchKeys={["code", "customer"]}
+ *   csvFilename="請求一覧.csv"
+ * />
+ * ```
+ */
 export function DataTable<T extends Record<string, unknown>>({ rows, columns, searchKeys, highlightSearch, pageSize = 10, csvFilename, className }: DataTableProps<T>) {
   const [query, setQuery] = React.useState<TableQuery>({ page: 1, pageSize, sortDir: "asc" });
   const i18n = useI18n();

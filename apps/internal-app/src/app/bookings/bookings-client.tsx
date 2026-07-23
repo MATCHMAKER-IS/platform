@@ -4,6 +4,7 @@
  * 対象を選ぶ → 日付を選ぶ → 空き枠をクリック → 用件を入れて予約。
  */
 import * as React from "react";
+import { Button, Input } from "@platform/ui";
 
 interface Resource { id: string; name: string; kind: "room" | "equipment" | "event"; capacity: number; note?: string }
 interface SlotInfo { start: string; end: string; available: boolean; remaining: number }
@@ -107,7 +108,7 @@ export function BookingsClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>何を予約しますか</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8 }}>
           {resources.map((r) => (
-            <button
+            <Button
               key={r.id}
               onClick={() => { setSelected(r.id); setPicked(null); }}
               style={{
@@ -119,7 +120,7 @@ export function BookingsClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
               <div style={{ fontSize: 10, color: "var(--color-muted, #888)" }}>{KIND_LABEL[r.kind]}{r.capacity > 1 && ` ・定員${r.capacity}`}</div>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{r.name}</div>
               {r.note && <div style={{ fontSize: 11, color: "var(--color-muted, #888)" }}>{r.note}</div>}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -142,7 +143,7 @@ export function BookingsClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
           {slots.map((s) => {
             const isPicked = picked?.start === s.start;
             return (
-              <button
+              <Button
                 key={s.start}
                 disabled={!s.available}
                 onClick={() => setPicked(s)}
@@ -158,7 +159,7 @@ export function BookingsClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
                 {resource && resource.capacity > 1 && (
                   <div style={{ fontSize: 9, color: "var(--color-muted, #888)" }}>残 {s.remaining}</div>
                 )}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -169,18 +170,18 @@ export function BookingsClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
               {date} {picked.start.slice(11, 16)}〜{picked.end.slice(11, 16)} を予約
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <input
+              <Input
                 value={title}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
                 placeholder="用件（例: 定例会議）"
                 style={{ flex: 1, minWidth: 180, padding: "6px 8px", border: "1px solid var(--color-border, #ddd)", borderRadius: 6, fontSize: 13 }}
               />
-              <button onClick={() => void book()} style={{ padding: "6px 16px", border: "none", borderRadius: 6, background: "var(--color-primary, #2563eb)", color: "var(--color-primary-fg, #fff)", fontSize: 13, cursor: "pointer" }}>
+              <Button onClick={() => void book()} style={{ padding: "6px 16px", border: "none", borderRadius: 6, background: "var(--color-primary, #2563eb)", color: "var(--color-primary-fg, #fff)", fontSize: 13, cursor: "pointer" }}>
                 予約する
-              </button>
-              <button onClick={() => setPicked(null)} style={{ padding: "6px 12px", border: "1px solid var(--color-border, #ddd)", borderRadius: 6, background: "transparent", fontSize: 13, cursor: "pointer" }}>
+              </Button>
+              <Button onClick={() => setPicked(null)} style={{ padding: "6px 12px", border: "1px solid var(--color-border, #ddd)", borderRadius: 6, background: "transparent", fontSize: 13, cursor: "pointer" }}>
                 やめる
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -199,9 +200,9 @@ export function BookingsClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
             {b.status === "cancelled" ? (
               <span style={{ color: "var(--color-muted, #bbb)" }}>取消済</span>
             ) : (
-              <button onClick={() => void cancel(b.id)} style={{ padding: "3px 10px", border: "1px solid var(--color-border, #ddd)", borderRadius: 6, background: "transparent", color: "var(--color-danger, #c00)", fontSize: 11, cursor: "pointer" }}>
+              <Button onClick={() => void cancel(b.id)} style={{ padding: "3px 10px", border: "1px solid var(--color-border, #ddd)", borderRadius: 6, background: "transparent", color: "var(--color-danger, #c00)", fontSize: 11, cursor: "pointer" }}>
                 取り消す
-              </button>
+              </Button>
             )}
           </div>
         ))}

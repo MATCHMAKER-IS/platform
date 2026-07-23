@@ -1,6 +1,7 @@
 "use client";
 /** 右下に常駐するヘルプ・チャットボット。質問を投げると関連画面リンクつきの回答を返す。 */
 import * as React from "react";
+import { Button, Input } from "@platform/ui";
 
 interface BotLink { label: string; href: string; }
 interface Turn { role: "user" | "bot"; text: string; links?: BotLink[]; escalate?: boolean; }
@@ -39,7 +40,7 @@ export function ChatbotWidget({ fetchImpl }: ChatbotWidgetProps) {
         <div className="mb-2 flex h-96 w-80 flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-xl">
           <div className="flex items-center justify-between border-b border-neutral-100 bg-neutral-900 px-3 py-2 text-white">
             <span className="text-sm font-medium">ヘルプボット</span>
-            <button onClick={() => setOpen(false)} aria-label="閉じる" className="text-neutral-300 hover:text-white">×</button>
+            <Button onClick={() => setOpen(false)} aria-label="閉じる" className="text-neutral-300 hover:text-white">×</Button>
           </div>
           <div className="flex-1 space-y-2 overflow-y-auto p-3">
             {turns.map((t, i) => (
@@ -53,12 +54,12 @@ export function ChatbotWidget({ fetchImpl }: ChatbotWidgetProps) {
                 {t.role === "bot" && t.escalate && !sentInquiry && (
                   <div className="mt-1">
                     {!escalating ? (
-                      <button onClick={() => setEscalating(true)} className="rounded border border-amber-400 bg-amber-50 px-2 py-0.5 text-xs text-amber-800 hover:bg-amber-100">担当者に問い合わせる</button>
+                      <Button onClick={() => setEscalating(true)} className="rounded border border-amber-400 bg-amber-50 px-2 py-0.5 text-xs text-amber-800 hover:bg-amber-100">担当者に問い合わせる</Button>
                     ) : (
                       <div className="mt-1 flex flex-col gap-1 rounded border border-neutral-200 p-2 text-left">
-                        <input value={contact.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setContact({ ...contact, name: e.target.value })} placeholder="お名前" className="rounded border border-neutral-300 px-2 py-1 text-xs" />
-                        <input value={contact.email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setContact({ ...contact, email: e.target.value })} placeholder="メールアドレス" className="rounded border border-neutral-300 px-2 py-1 text-xs" />
-                        <button onClick={submitInquiry} className="self-start rounded bg-neutral-900 px-2 py-1 text-xs text-white">この質問を担当者に送る</button>
+                        <Input value={contact.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setContact({ ...contact, name: e.target.value })} placeholder="お名前" className="rounded border border-neutral-300 px-2 py-1 text-xs" />
+                        <Input value={contact.email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setContact({ ...contact, email: e.target.value })} placeholder="メールアドレス" className="rounded border border-neutral-300 px-2 py-1 text-xs" />
+                        <Button onClick={submitInquiry} className="self-start rounded bg-neutral-900 px-2 py-1 text-xs text-white">この質問を担当者に送る</Button>
                       </div>
                     )}
                   </div>
@@ -67,12 +68,12 @@ export function ChatbotWidget({ fetchImpl }: ChatbotWidgetProps) {
             ))}
           </div>
           <div className="flex gap-2 border-t border-neutral-100 p-2">
-            <input value={input} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)} onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") void send(); }} placeholder="質問を入力…" className="flex-1 rounded border border-neutral-300 px-2 py-1 text-sm" />
-            <button onClick={send} className="rounded bg-neutral-900 px-3 py-1 text-sm text-white">送信</button>
+            <Input value={input} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)} onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") void send(); }} placeholder="質問を入力…" className="flex-1 rounded border border-neutral-300 px-2 py-1 text-sm" />
+            <Button onClick={send} className="rounded bg-neutral-900 px-3 py-1 text-sm text-white">送信</Button>
           </div>
         </div>
       )}
-      <button onClick={() => setOpen((v) => !v)} className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-900 text-xl text-white shadow-lg hover:bg-neutral-800" aria-label="ヘルプボットを開く">{open ? "×" : "?"}</button>
+      <Button onClick={() => setOpen((v) => !v)} className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-900 text-xl text-white shadow-lg hover:bg-neutral-800" aria-label="ヘルプボットを開く">{open ? "×" : "?"}</Button>
     </div>
   );
 }

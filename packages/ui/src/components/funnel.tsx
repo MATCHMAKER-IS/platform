@@ -27,6 +27,13 @@ export interface FunnelProps {
 const defaultFormat = (n: number) => n.toLocaleString("ja-JP");
 
 /** ファネル。先頭を 100% とした幅で各段を描画し、遷移率・離脱を示す。 */
+/**
+ * 漏斗図(段階ごとに減っていく様子)。
+ *
+ * 応募 → 面接 → 内定、閲覧 → 申込 → 契約のように、
+ * **前の段階を通った人だけが次に進む**流れに使う。
+ * 各段階が独立しているなら棒グラフの方が正確に伝わる。
+ */
 export function Funnel({ steps, format = defaultFormat, barColor = "var(--color-primary)", showConversion = true, className }: FunnelProps) {
   if (steps.length === 0) return null;
   const stages = funnelStages(steps);

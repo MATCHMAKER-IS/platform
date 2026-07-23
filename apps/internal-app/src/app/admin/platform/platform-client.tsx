@@ -1,6 +1,7 @@
 "use client";
 /** 管理: 秘密情報（暗号化保存）とフィーチャーフラグ（キルスイッチ/割合/バリアント）を設定。 */
 import * as React from "react";
+import { Button, Input, Textarea } from "@platform/ui";
 
 interface SecretMeta { name: string; updatedAt: string; }
 type FlagRule = boolean | { enabled?: boolean; rolloutPercent?: number; variants?: { name: string; weight: number }[] };
@@ -37,7 +38,7 @@ export function PlatformClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
     <div className="mx-auto max-w-3xl p-6">
       <h1 className="mb-1 text-2xl font-bold">秘密情報・フラグ</h1>
       <div className="mb-4 flex gap-1 border-b border-neutral-200">
-        {[["secrets", "秘密情報"], ["flags", "フィーチャーフラグ"]].map(([k, l]) => <button key={k} onClick={() => setTab(k!)} className={`px-3 py-2 text-sm ${tab === k ? "border-b-2 border-neutral-900 font-medium" : "text-neutral-500"}`}>{l}</button>)}
+        {[["secrets", "秘密情報"], ["flags", "フィーチャーフラグ"]].map(([k, l]) => <Button key={k} onClick={() => setTab(k!)} className={`px-3 py-2 text-sm ${tab === k ? "border-b-2 border-neutral-900 font-medium" : "text-neutral-500"}`}>{l}</Button>)}
       </div>
       {msg && <p className="mb-3 rounded bg-neutral-100 px-3 py-2 text-sm text-neutral-700">{msg}</p>}
 
@@ -46,9 +47,9 @@ export function PlatformClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
           <div className="mb-4 rounded border border-neutral-200 p-4">
             <p className="mb-2 text-xs text-neutral-500">外部API資格情報やWebhook secretを暗号化して保存します（値は保存後に表示できません）。同名で保存するとローテーションになります。</p>
             <div className="grid grid-cols-3 gap-2">
-              <input value={sName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSName(e.target.value)} placeholder="名前 (例 STRIPE_KEY)" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
-              <input value={sValue} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSValue(e.target.value)} placeholder="値" type="password" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
-              <button onClick={saveSecret} className="rounded bg-neutral-900 px-3 py-1 text-sm text-white">保存/ローテーション</button>
+              <Input value={sName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSName(e.target.value)} placeholder="名前 (例 STRIPE_KEY)" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
+              <Input value={sValue} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSValue(e.target.value)} placeholder="値" type="password" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
+              <Button onClick={saveSecret} className="rounded bg-neutral-900 px-3 py-1 text-sm text-white">保存/ローテーション</Button>
             </div>
           </div>
           <ul className="divide-y divide-neutral-100 rounded border border-neutral-200">
@@ -61,8 +62,8 @@ export function PlatformClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
       {tab === "flags" && (
         <div className="rounded border border-neutral-200 p-4">
           <p className="mb-2 text-xs text-neutral-500">フラグ定義（JSON）。<code>{'{ "flag": { "enabled": true, "rolloutPercent": 20 } }'}</code> の形式。enabled:false で緊急停止、rolloutPercent で段階的ロールアウト、variants で A/B。</p>
-          <textarea value={flagJson} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFlagJson(e.target.value)} rows={12} className="block w-full rounded border border-neutral-300 px-2 py-1 font-mono text-xs" />
-          <button onClick={saveFlags} className="mt-2 rounded bg-neutral-900 px-4 py-2 text-sm text-white">フラグを更新</button>
+          <Textarea value={flagJson} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFlagJson(e.target.value)} rows={12} className="block w-full rounded border border-neutral-300 px-2 py-1 font-mono text-xs" />
+          <Button onClick={saveFlags} className="mt-2 rounded bg-neutral-900 px-4 py-2 text-sm text-white">フラグを更新</Button>
         </div>
       )}
     </div>

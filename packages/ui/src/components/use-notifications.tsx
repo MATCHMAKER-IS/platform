@@ -34,6 +34,13 @@ export interface UseNotificationsResult {
 }
 
 /** 通知状態 + リアルタイム購読を管理するフック。 */
+/**
+ * 通知の購読と表示。
+ *
+ * 未読の管理と、届いたときの表示をまとめる。
+ * **開いた直後に許可を求めない**(`@platform/mobile` の `shouldAskPushPermission`)。
+ * 通知が要る操作の後に求めると、承諾されやすい。
+ */
 export function useNotifications(options: UseNotificationsOptions = {}): UseNotificationsResult {
   const { initial = [], subscribe, max } = options;
 

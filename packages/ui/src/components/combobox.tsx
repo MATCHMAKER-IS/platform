@@ -98,7 +98,7 @@ export function Combobox({
                     onChange?.(o.value);
                     setOpen(false);
                   }}
-                  className="flex cursor-pointer items-center gap-2 rounded-[calc(var(--radius)-2px)] px-2 py-1.5 text-sm text-[var(--color-fg)] data-[selected=true]:bg-slate-100"
+                  className="flex cursor-pointer items-center gap-2 rounded-[calc(var(--radius)-2px)] px-2 py-1.5 text-sm text-[var(--color-fg)] data-[selected=true]:bg-[var(--color-subtle-strong)]"
                 >
                   <Check className={cn("h-4 w-4", value === o.value ? "opacity-100" : "opacity-0")} />
                   {o.label}

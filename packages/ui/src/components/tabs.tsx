@@ -6,7 +6,29 @@ import * as React from "react";
 import { Tabs as Primitive } from "radix-ui";
 import { cn } from "../lib/cn";
 
-/** タブのルート。 */
+/**
+ * タブ(内容の切り替え)。
+ *
+ * **同じ対象についての別の見方**を並べるのに使う。
+ * 手順(申請 → 承認 → 完了)には使わない。順序があるものはタブだと戻れる印象になり、
+ * どこまで進んだか分からなくなる。
+ *
+ * - タブは 2〜5 枚まで。増えるなら画面を分ける
+ * - 見出しは短く(「一覧」「設定」)。長いと狭い画面で折り返す
+ * - 既定で開くタブは `defaultValue` で指定する
+ *
+ * @example
+ * ```tsx
+ * <Tabs defaultValue="list">
+ *   <TabsList>
+ *     <TabsTrigger value="list">一覧</TabsTrigger>
+ *     <TabsTrigger value="chart">グラフ</TabsTrigger>
+ *   </TabsList>
+ *   <TabsContent value="list"><DataTable … /></TabsContent>
+ *   <TabsContent value="chart"><LineChart … /></TabsContent>
+ * </Tabs>
+ * ```
+ */
 export const Tabs = Primitive.Root;
 
 /** タブの並び。 */

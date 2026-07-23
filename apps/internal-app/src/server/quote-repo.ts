@@ -2,7 +2,8 @@
  * 見積リポジトリ。合計計算・状態・請求書化は @platform/quote に委譲する。
  * @packageDocumentation
  */
-import { buildQuote, quoteStatus, daysUntilExpiry, convertToInvoice, type Quote, type QuoteStatus, type Invoice, type InvoiceLine } from "@platform/quote";
+import { buildQuote, quoteStatus, daysUntilExpiry, type Quote, type QuoteStatus, convertToInvoice } from "@platform/quote";
+import type { Invoice, InvoiceLine } from "@platform/invoice";
 
 /** 見積の状態遷移で受け付ける値。 */
 export type QuoteState = "draft" | "sent" | "accepted" | "rejected";

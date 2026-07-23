@@ -174,3 +174,54 @@ export function renderNotFoundPage(options?: Partial<StatusPageOptions>): string
     ...options,
   });
 }
+
+/**
+ * 401 画面のプリセット(認証が必要)。
+ *
+ * @param options 上書きするオプション
+ * @returns 画面の内容
+ */
+export function renderUnauthorizedPage(options?: Partial<StatusPageOptions>): string {
+  return renderStatusPage({
+    title: "ログインが必要です",
+    message: options?.message ?? ["このページを表示するにはログインが必要です。"],
+    action: options?.action ?? { label: "ログインへ", href: "/login" },
+    ...options,
+  });
+}
+
+/**
+ * 403 画面のプリセット(権限不足)。
+ *
+ * @param options 上書きするオプション
+ * @returns 画面の内容
+ */
+export function renderForbiddenPage(options?: Partial<StatusPageOptions>): string {
+  return renderStatusPage({
+    title: "アクセス権限がありません",
+    message: options?.message ?? [
+      "このページを表示する権限がありません。",
+      "権限が必要な場合は管理者にお問い合わせください。",
+    ],
+    action: options?.action ?? { label: "トップへ戻る", href: "/" },
+    ...options,
+  });
+}
+
+/**
+ * 429 画面のプリセット(リクエスト過多・レート制限)。
+ *
+ * @param options 上書きするオプション
+ * @returns 画面の内容
+ */
+export function renderTooManyRequestsPage(options?: Partial<StatusPageOptions>): string {
+  return renderStatusPage({
+    title: "アクセスが多すぎます",
+    message: options?.message ?? [
+      "短時間に多くのリクエストが送られました。",
+      "少し時間をおいてから再度お試しください。",
+    ],
+    showReload: true,
+    ...options,
+  });
+}

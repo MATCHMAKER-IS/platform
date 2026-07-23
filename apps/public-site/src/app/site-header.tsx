@@ -1,7 +1,7 @@
 "use client";
 /** サイト共通ヘッダー。ナビ（ドロップダウン対応）＋検索窓。 */
 import * as React from "react";
-import { NavDropdown, type NavItem } from "@platform/ui";
+import { Button, Input, NavDropdown, type NavItem } from "@platform/ui";
 
 export function SiteHeader({ siteName, nav }: { siteName: string; nav: NavItem[] }) {
   const [q, setQ] = React.useState("");
@@ -15,7 +15,7 @@ export function SiteHeader({ siteName, nav }: { siteName: string; nav: NavItem[]
         <a href="/" className="text-lg font-bold">{siteName}</a>
         <NavDropdown items={nav} />
         <div className="flex items-center gap-1">
-          <input
+          <Input
             value={q}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQ(e.target.value)}
             onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") onSubmit(); }}
@@ -23,7 +23,7 @@ export function SiteHeader({ siteName, nav }: { siteName: string; nav: NavItem[]
             className="w-32 rounded border border-neutral-300 px-2 py-1 text-sm sm:w-48"
             aria-label="サイト内検索"
           />
-          <button onClick={onSubmit} className="rounded bg-neutral-900 px-3 py-1 text-sm text-white">検索</button>
+          <Button onClick={onSubmit} className="rounded bg-neutral-900 px-3 py-1 text-sm text-white">検索</Button>
         </div>
       </div>
     </header>

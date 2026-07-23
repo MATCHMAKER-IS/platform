@@ -1,5 +1,7 @@
 # 検証手順(ビルド・型・テスト・起動)
 
+> 検査の一覧（preflight が見ている 30 個）は `docs/ops/CHECKS.md` にまとめてある。
+
 ## 前提
 外部依存(React / Radix / zod / Prisma / TipTap 等)の取得に **npm レジストリへの
 ネットワークアクセスが必要**です。オフライン/レジストリ遮断環境では `pnpm install`

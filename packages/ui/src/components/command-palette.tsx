@@ -23,6 +23,12 @@ export interface CommandPaletteProps {
 }
 
 /** ⌘K で開く検索/コマンドパレット。 */
+/**
+ * コマンド一覧(⌘K で開く検索)。
+ *
+ * 慣れた人が速く動くための入口。**これだけに頼らない**
+ * (存在を知らない人には無いのと同じ)。
+ */
 export function CommandPalette({ open, onOpenChange, commands, onSelect, placeholder = "コマンドやページを検索…", limit = 50 }: CommandPaletteProps) {
   const [query, setQuery] = React.useState("");
   const [active, setActive] = React.useState(0);
@@ -105,13 +111,13 @@ export function CommandPalette({ open, onOpenChange, commands, onSelect, placeho
                           onClick={() => choose(command)}
                           className={cn(
                             "flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm transition-colors disabled:opacity-40",
-                            isActive ? "bg-[var(--color-primary)] text-[var(--color-primary-fg)]" : "text-[var(--color-fg)] hover:bg-slate-50",
+                            isActive ? "bg-[var(--color-primary)] text-[var(--color-primary-fg)]" : "text-[var(--color-fg)] hover:bg-[var(--color-subtle)]",
                           )}
                         >
                           {command.icon != null && <span className="shrink-0">{command.icon as React.ReactNode}</span>}
                           <span className="flex-1 truncate">{command.label}</span>
                           {command.shortcut != null && (
-                            <kbd className={cn("rounded px-1.5 py-0.5 text-xs", isActive ? "bg-white/20" : "bg-slate-100 text-[var(--color-muted)]")}>{command.shortcut}</kbd>
+                            <kbd className={cn("rounded px-1.5 py-0.5 text-xs", isActive ? "bg-white/20" : "bg-[var(--color-subtle-strong)] text-[var(--color-muted)]")}>{command.shortcut}</kbd>
                           )}
                         </button>
                       </li>

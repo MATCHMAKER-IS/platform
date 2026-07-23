@@ -1,6 +1,6 @@
 # @platform/mail
 
-メール送信の共通部品(Adapter パターン)。アプリは送信基盤を意識せず `sendMail()` を呼びます。
+メール送信の共通部品(Adapter パターン)。`createMailer()` で作った Mailer の `sendMail` を呼ぶだけで、送信基盤(SMTP / Resend)を意識せずに済みます。
 
 - `createSmtpTransport` … 本番/ローカル(MailHog/Mailpit)向け SMTP
 - `createMemoryTransport` … テスト・デバッグ用(送信内容を配列に記録)

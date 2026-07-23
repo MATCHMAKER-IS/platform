@@ -13,6 +13,10 @@ const COLOR_VARS: Record<keyof ThemeTokens, string> = {
   border: "--color-border",
   primary: "--color-primary",
   primaryFg: "--color-primary-fg",
+  sidebarBg: "--color-sidebar-bg",
+  sidebarFg: "--color-sidebar-fg",
+  sidebarActiveBg: "--color-sidebar-active-bg",
+  sidebarActiveFg: "--color-sidebar-active-fg",
   accent: "--color-accent",
   success: "--color-success",
   warning: "--color-warning",
@@ -37,7 +41,11 @@ export function themeToCssVars(theme: Theme, mode: ThemeMode): Record<string, st
   const shape: ThemeShape = theme.shape;
   const vars: Record<string, string> = {};
   for (const key of Object.keys(COLOR_VARS) as (keyof ThemeTokens)[]) {
-    vars[COLOR_VARS[key]] = tokens[key];
+    const value = tokens[key];
+    // 任意の色(サイドバー等)は未指定なら変数自体を出さない。
+    // 空文字を入れると CSS 側の既定値(var(--x, 既定) の第2引数)が効かなくなる。
+    if (value === undefined || value === "") continue;
+    vars[COLOR_VARS[key]] = value;
   }
   vars["--font-family"] = shape.fontFamily;
   vars["--font-heading"] = shape.headingFontFamily ?? shape.fontFamily;

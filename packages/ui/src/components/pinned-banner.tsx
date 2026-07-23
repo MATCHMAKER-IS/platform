@@ -26,6 +26,12 @@ export interface PinnedBannerProps {
 }
 
 /** ピン留めバナー。 */
+/**
+ * 上部に固定する告知。
+ *
+ * システム停止の予告など、**見逃されると困る連絡**に使う。
+ * 常時出しておくと背景になるので、期間を決めて外す。
+ */
 export function PinnedBanner({ items, onJump, onUnpin, className }: PinnedBannerProps) {
   const [open, setOpen] = React.useState(false);
   if (items.length === 0) return null;

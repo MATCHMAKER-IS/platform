@@ -23,6 +23,12 @@ export interface AppHeaderProps extends React.HTMLAttributes<HTMLElement> {
 }
 
 /** アプリのトップバー。 */
+/**
+ * 画面上部の帯(アプリ名・検索・利用者メニュー)。
+ *
+ * ここに置くのは**どの画面からも使うもの**だけ。
+ * 画面ごとの操作は本文側に置く(上に集めると探しにくくなる)。
+ */
 export const AppHeader = React.forwardRef<HTMLElement, AppHeaderProps>(
   ({ logo, nav, actions, leading, sticky = false, className, ...props }, ref) => (
     <header
@@ -64,7 +70,7 @@ export function HeaderNav({ items, currentPath = "", className }: HeaderNavProps
               aria-current={active ? "page" : undefined}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-[var(--radius)] px-3 py-2 text-sm font-medium transition-colors",
-                active ? "bg-slate-100 text-[var(--color-fg)]" : "text-[var(--color-muted)] hover:bg-slate-50 hover:text-[var(--color-fg)]",
+                active ? "bg-[var(--color-subtle-strong)] text-[var(--color-fg)]" : "text-[var(--color-muted)] hover:bg-[var(--color-subtle)] hover:text-[var(--color-fg)]",
               )}
             >
               {item.label}

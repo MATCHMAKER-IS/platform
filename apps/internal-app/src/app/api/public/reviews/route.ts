@@ -1,3 +1,4 @@
+// public-api: 社外向けの公開レビュー(read only)
 /** 公開: 可視の口コミと集計を返す(GET ?subjectType=&subjectId=)。認証不要（公開サイト掲載用）。非表示は返さない。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { reviewStore } from "../../../../server/platform-services";

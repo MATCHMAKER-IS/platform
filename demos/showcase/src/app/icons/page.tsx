@@ -11,7 +11,7 @@
  * packages/ui/README.md が「アプリは lucide を直接依存に持たない」と定めている)。
  */
 import * as React from "react";
-import { Icon, iconNames, hasIcon } from "@platform/ui";
+import { Button, Icon, Input, hasIcon, iconNames } from "@platform/ui";
 
 /**
  * 業務アプリでよく使うアイコンの候補(カテゴリ別)。
@@ -31,7 +31,8 @@ const CANDIDATES: Record<string, string[]> = {
   ],
   "業務": ["Calendar", "CalendarDays", "Building2", "Briefcase", "Receipt", "CreditCard", "Wallet", "Banknote", "ShoppingCart", "Package", "Truck", "ClipboardList"],
   "データ・分析": [
-    "BarChart3", "ChartColumn", "LineChart", "ChartLine", "PieChart", "ChartPie",
+    // lucide の新しい名前に統一(BarChart3 などの旧名は削除された)
+    "ChartColumn", "LineChart", "ChartLine", "PieChart", "ChartPie",
     "TrendingUp", "TrendingDown", "Table", "Database", "Filter", "ArrowUpDown", "ListFilter", "Calculator", "Percent",
   ],
   "通信": ["Mail", "MessageSquare", "Phone", "Share2", "Link", "Wifi", "Rss", "AtSign"],
@@ -98,7 +99,7 @@ export default function Page() {
 
       <div style={box}>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <input
+          <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="名前で絞り込み（例: chart, user, file）"
@@ -116,7 +117,7 @@ export default function Page() {
           />
           <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--color-muted)" }}>
             サイズ
-            <input type="range" min={14} max={40} value={size} onChange={(e) => setSize(Number(e.target.value))} />
+            <Input type="range" min={14} max={40} value={size} onChange={(e) => setSize(Number(e.target.value))} />
             <span style={{ width: 34, textAlign: "right", fontFamily: "monospace" }}>{size}px</span>
           </label>
           <span style={{ fontSize: 12, color: "var(--color-muted)" }}>{hitCount} 件</span>
@@ -139,7 +140,7 @@ export default function Page() {
             </h2>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))", gap: 6 }}>
               {c.names.map((n) => (
-                <button
+                <Button
                   key={n}
                   onClick={() => void copy(n)}
                   title={`<Icon name="${n}" /> をコピー`}
@@ -162,7 +163,7 @@ export default function Page() {
                   <span style={{ fontSize: 10, color: "var(--color-muted)", wordBreak: "break-all", lineHeight: 1.3, textAlign: "center" }}>
                     {copied === n ? "コピーしました" : n}
                   </span>
-                </button>
+                </Button>
               ))}
             </div>
           </div>

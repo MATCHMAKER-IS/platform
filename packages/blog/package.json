@@ -14,7 +14,9 @@
     "test": "vitest run",
     "lint": "eslint src"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@platform/url": "workspace:*"
+  },
   "devDependencies": {
     "@platform/config": "workspace:*",
     "typescript": "^5.7.3",

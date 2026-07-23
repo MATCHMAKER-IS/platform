@@ -44,7 +44,7 @@ export function Block({ icon, label, onSelect, selected, className, children, ..
       onKeyDown={onSelect ? (e: React.KeyboardEvent) => (e.key === "Enter" || e.key === " ") && onSelect() : undefined}
       className={cn(
         "flex aspect-square flex-col items-center justify-center gap-2 rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg)] p-3 text-center text-sm",
-        onSelect && "cursor-pointer transition-colors hover:border-[var(--color-primary)] hover:bg-slate-50",
+        onSelect && "cursor-pointer transition-colors hover:border-[var(--color-primary)] hover:bg-[var(--color-subtle)]",
         selected && "border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]",
         className,
       )}

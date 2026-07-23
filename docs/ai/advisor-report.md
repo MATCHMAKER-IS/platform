@@ -1,16 +1,16 @@
 # Advisor レポート(自動生成)
 
-> 再生成: `node tools/advisor.mjs report`。生成日: 2026-07-21
+> 再生成: `node tools/advisor.mjs report`。生成日: 2026-07-23
 
 重複や似た API は「わざと(層が違う)」の場合もあります。這は**再利用の当たりを付ける入口**であり、機械的な指摘です。
 
-## 同名 export(83 組)
+## 同名 export(82 組)
 
 | export | 提供パッケージ |
 |---|---|
 | `AccountType` | @platform/accounting, @platform/zengin |
 | `filterByPeriod` | @platform/accounting, @platform/audit |
-| `summarize` | @platform/analytics, @platform/board, @platform/inventory, @platform/task |
+| `summarize` | @platform/analytics, @platform/attendance, @platform/board, @platform/inventory, @platform/task |
 | `AuditEntry` | @platform/audit, @platform/db |
 | `ChainVerification` | @platform/audit, @platform/dencho |
 | `DiffOptions` | @platform/audit, @platform/db |
@@ -23,7 +23,7 @@
 | `adjacentPosts` | @platform/blog, @platform/board |
 | `buildRssFeed` | @platform/blog, @platform/seo |
 | `buildSitemap` | @platform/blog, @platform/seo |
-| `joinUrl` | @platform/blog, @platform/net |
+| `joinUrl` | @platform/blog, @platform/url |
 | `postsByTag` | @platform/blog, @platform/board |
 | `relatedPosts` | @platform/blog, @platform/board |
 | `slugify` | @platform/blog, @platform/utils |
@@ -76,7 +76,6 @@
 | `POST` | @platform/mcp, @platform/upload |
 | `copyToClipboard` | @platform/mobile, @platform/ui |
 | `backoffDelay` | @platform/net, @platform/realtime |
-| `parseQuery` | @platform/net, @platform/url |
 | `retry` | @platform/net, @platform/utils |
 | `Alert` | @platform/observability, @platform/ui |
 | `maskPhone` | @platform/phone, @platform/pii |
@@ -115,7 +114,7 @@
 | sequence | @platform/sequence:SequenceOptions / @platform/sequence:SequenceStore / @platform/ui:isSequence / @platform/ui:parseSequence / @platform/utils:sequence |
 | throttle | @platform/session:ThrottleStore / @platform/utils:throttle |
 | kanban | @platform/task:toKanban / @platform/ui:Kanban |
-| theme | @platform/theme:parseTheme / @platform/ui:ThemeProvider / @platform/ui:useTheme |
+| theme | @platform/theme:Theme / @platform/theme:parseTheme / @platform/ui:ThemeProvider / @platform/ui:useTheme |
 
 ## 孤立パッケージ(1)
 

@@ -168,7 +168,11 @@ export function SheetGrid<T extends Record<string, unknown>>({
               const errMsg = cellError?.(r, col.key) ?? null;
               return (
                 <td key={col.key} onPointerDown={onCellDown(r, c)} onPointerEnter={onCellEnter(r, c)} title={errMsg ?? undefined}
-                  className={cn(cellCls(col.align), range && inRange(range, r, c) && "bg-[var(--color-primary)]/15", errMsg && "bg-[var(--color-danger)]/15 outline outline-1 outline-[var(--color-danger)]")}
+                  className={cn(
+                    cellCls(col.align),
+                    range && inRange(range, r, c) && "bg-[var(--color-primary)]/15",
+                    errMsg && "bg-[var(--color-danger)]/15 outline outline-1 outline-[var(--color-danger)]",
+                  )}
                   style={{ width: widths[c], minWidth: widths[c], ...stickyColBody(c) }}>
                   {formatCell(col, row)}
                 </td>

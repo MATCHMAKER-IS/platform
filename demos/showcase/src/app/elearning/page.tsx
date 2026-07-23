@@ -5,7 +5,7 @@
  * UI は **@platform/ui の部品だけ**で組む(CLAUDE.md「UI 部品は @platform/ui を使う」)。
  */
 import * as React from "react";
-import { Button, Badge, Alert, Separator, Checkbox, RadioGroup, RadioGroupItem } from "@platform/ui";
+import { Alert, Badge, Button, Checkbox, RadioGroup, RadioGroupItem, Separator } from "@platform/ui";
 import { Countdown } from "../../components/countdown";
 import {
   gradeQuiz,
@@ -109,7 +109,7 @@ function SlideViewer({ slides }: { slides: Slide[] }) {
         <Button size="sm" variant="secondary" disabled={i === 0} onClick={() => go(-1)}>← 前へ</Button>
         <div style={{ display: "flex", gap: 6 }}>
           {slides.map((_, k) => (
-            <button
+            <Button
               key={k}
               type="button"
               aria-label={`スライド ${k + 1}`}

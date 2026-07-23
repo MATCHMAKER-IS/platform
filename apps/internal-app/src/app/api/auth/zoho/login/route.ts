@@ -1,3 +1,4 @@
+// public-api: 外部認証への入口。ログイン前に呼ぶ
 import { withApiObservability } from "../../../../../server/instrument";
 import { NextResponse, type NextRequest } from "next/server";
 import { randomBytes } from "node:crypto";

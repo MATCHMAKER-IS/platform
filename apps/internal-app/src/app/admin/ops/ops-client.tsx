@@ -4,6 +4,7 @@
  * 稼働状況・エラー率・設定の要点を 1 画面に集約し、次にどこを見るかまで示す。
  */
 import * as React from "react";
+import { Checkbox } from "@platform/ui";
 
 interface Section { name: string; ok: boolean; detail?: string }
 interface Metric { name: string; value: string; warn?: boolean }
@@ -60,7 +61,7 @@ export function OpsClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <h1 style={{ fontSize: 22, margin: 0 }}>運用ダッシュボード</h1>
         <label style={{ fontSize: 12, color: "var(--color-muted, #888)", display: "flex", alignItems: "center", gap: 6 }}>
-          <input type="checkbox" checked={auto} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAuto(e.target.checked)} />
+          <Checkbox  checked={auto} onCheckedChange={(v) => setAuto(!!v)} />
           10秒ごとに自動更新
         </label>
       </div>

@@ -33,7 +33,21 @@ function pageList(current: number, total: number): (number | "…")[] {
   return out;
 }
 
-/** ページネーション。 */
+/**
+ * 頁送り。
+ *
+ * `DataTable` を使っていれば自前で置く必要はない(内側に入っている)。
+ * **自前で一覧を組んだとき**に使う。
+ *
+ * - 総頁数が分からない(次があるかだけ分かる)場合は `SimplePagination`
+ * - 頁数が多いと番号が並びきらないので、この部品が自動で省略する
+ * - 頁を変えたら**一覧の先頭へ戻す**こと(下の方を見たまま次頁に行くと迷子になる)
+ *
+ * @example
+ * ```tsx
+ * <Pagination page={page} totalPages={pageCount} onPageChange={(p) => { setPage(p); scrollTo(0, 0); }} />
+ * ```
+ */
 export function Pagination({ page, totalPages, onPageChange, className }: PaginationProps) {
   const t = useT();
   const cellClass = "flex h-8 min-w-8 items-center justify-center rounded-[calc(var(--radius)-2px)] border border-[var(--color-border)] px-2 text-sm disabled:opacity-40";

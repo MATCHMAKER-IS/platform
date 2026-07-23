@@ -39,16 +39,18 @@
 - **@platform/secrets** — シークレット取得の抽象。環境変数の平文直読みを避け、取得元(env / AWS Secrets Manager / Vault)を
   - 主なexport: SecretProvider, SecretStore, SecretStoreOptions, createChainProvider, createEnvProvider, createFetchProvider, …(全7)
 - **@platform/pii** — 個人情報(PII)の保護ヘルパー。マスキング・検索可能暗号(blind index)・フィールド暗号・匿名化。
-  - 主なexport: DisclosureHolding, DisclosureReport, ErasureMethod, ErasureReceipt, FieldCipher, FieldCipherDeps, …(全25)
+  - 主なexport: DisclosureHolding, DisclosureReport, ErasureDecision, ErasureMethod, ErasureReceipt, FieldCipher, …(全29)
 - **@platform/apikey** — API キー / マシン間(M2M)認証。サービス間連携・外部システム向けのキー発行・検証・スコープ制御。
   - 主なexport: ApiKeyRecord, ApiKeyStore, AuthResult, GenerateApiKeyOptions, GeneratedApiKey, authenticateApiKey, …(全11)
 - **@platform/ratelimit** — レート制限(固定ウィンドウ)。ログイン試行や API 濫用の抑止に使います。
-  - 主なexport: RateLimiter, RateLimiterConfig, createMemoryStore, createRateLimiter, createRedisStore
+  - 主なexport: RateLimitResult, RateLimitStore, RateLimiter, RateLimiterConfig, createMemoryStore, createRateLimiter, …(全7)
+- **@platform/access-review** — 権限の棚卸し（アクセスレビュー）と、退職・異動時の停止手順。
+  - 主なexport: AccessGrant, EmploymentStatus, OffboardingStep, Person, ReviewFinding, ReviewOptions, …(全12)
 
 ## 認証・認可
 
 - **@platform/auth** — 認証・認可の共通部品。
-  - 主なexport: AuthUser, AuthenticationOptionsInput, AuthenticatorData, AuthenticatorFlags, BackupCodeRecord, BackupCodeVerifyResult, …(全72)
+  - 主なexport: AuthUser, AuthenticationOptionsInput, AuthenticatorData, AuthenticatorFlags, BackupCodeRecord, BackupCodeVerifyResult, …(全89)
 - **@platform/session** — セッション・クッキー処理の共通部品。
   - 主なexport: ActivityTarget, AttemptRecord, CookieOptions, IDLE_ACTIVITY_EVENTS, IdleTimer, IdleTimerConfig, …(全35)
 
@@ -74,8 +76,8 @@
 - **@platform/http** — HTTP 層の共通規約。`AppError` を HTTP ステータスへ変換し、
   - 主なexport: HttpErrorBody, STATUS_BY_CODE, handleRoute, resultToResponse, toHttpError
 - **@platform/net** — ネットワークユーティリティ。URL 操作・指数バックオフ・タイムアウト・IP/CIDR 判定に加え、
-  - 主なexport: BackoffOptions, FramedConnection, FramedServer, LengthPrefixedDecoder, LineDecoder, PollOptions, …(全35)
-- **@platform/mail** — メール送信の共通部品(Adapter パターン)。アプリは送信基盤を意識せず `sendMail()` を呼びます。
+  - 主なexport: BackoffOptions, FramedConnection, FramedServer, LengthPrefixedDecoder, LineDecoder, PollOptions, …(全31)
+- **@platform/mail** — メール送信の共通部品(Adapter パターン)。`createMailer()` で作った Mailer の `sendMail` を呼ぶだけで、送信基盤(SMTP / Resend)を意識せずに済みます。
   - 主なexport: ApplyPolicyOptions, AttachmentLimits, EmailAddress, EmailTemplate, HtmlEmailLayoutOptions, MailAttachment, …(全53)
 - **@platform/sms** — SMS 送信の共通部品(Adapter パターン)。`mail` と同じ構造です。
   - 主なexport: MemorySmsTransport, OtpSmsOptions, Sms, SmsEncoding, SmsFallbackOptions, SmsInfo, …(全21)
@@ -95,22 +97,28 @@
 - **@platform/ai** — **AI Gateway**。アプリから AI プロバイダ(Anthropic / OpenAI 等)を直接呼ばず、必ずここを経由します(開発ルール)。Gateway が一括で担うもの:
   - 主なexport: AiCallLog, AiChatRequest, AiChatSuccess, AiEmbedder, AiGateway, AiGatewayOptions, …(全24)
 - **@platform/rag** — **RAG(検索拡張生成)の骨格**。役割は「検索」(操作は @platform/mcp)。以下を提供します:
-  - 主なexport: AccessControl, ChunkOptions, Embedder, PgVectorDb, Principal, RagChunk, …(全22)
+  - 主なexport: AccessControl, ChunkOptions, Embedder, PgVectorDb, Principal, RagChunk, …(全23)
 - **@platform/mcp** — **MCP(Model Context Protocol)サーバの最小実装**。JSON-RPC 2.0 上で `initialize` / `tools/list` / `tools/call` を提供し、Claude Desktop / Claude Code などの MCP クライアントから社内基盤の機能を「ツール」として呼び出せるようにします。
   - 主なexport: HttpMcpOptions, JsonRpcRequest, JsonRpcResponse, McpCallContext, McpPromptDef, McpResourceDef, …(全20)
 
 ## 外部SaaS連携
 
 - **@platform/zoho** — Zoho CRM API(v8)クライアント。Leads / Contacts / Deals などのレコード CRUD。
-  - 主なexport: ZohoAnalyticsClient, ZohoBookingsClient, ZohoBooksClient, ZohoCampaignsClient, ZohoCliqClient, ZohoCreatorClient, …(全29)
+  - 主なexport: AuthorizationUrlInput, CodeExchangeResult, TokenManagerConfig, TokenResult, ZOHO_DATA_CENTERS, ZohoAnalyticsClient, …(全49)
 - **@platform/google** — Google Workspace 連携の総合クライアント。**ログイン(OAuth)/ ユーザー情報 / Sheets /
   - 主なexport: GmailClient, GmailMessageInput, GoogleAuthUrlParams, GoogleCalendarClient, GoogleDriveClient, GoogleMapsClient, …(全22)
+- **@platform/microsoft** — Microsoft 365 / Entra ID(旧 Azure AD)との連携。OAuth と Microsoft Graph を型付きで扱います。
+  - 主なexport: GraphEvent, GraphEventInput, GraphFile, GraphMailInput, GraphUser, MicrosoftAuthUrlParams, …(全15)
+- **@platform/slack** — Slack の Web API と、Slack **からの受信**（イベント・スラッシュコマンド）の署名検証。
+  - 主なexport: ApprovalRequest, SlackClient, SlackInteraction, SlackMessage, SlackPostResult, SlackSignatureInput, …(全13)
+- **@platform/notion** — Notion のデータベース照会・ページ作成/更新・本文取得。
+  - 主なexport: NOTION_VERSION, NotionClient, NotionPage, NotionPropertyInput, createNotionClient
 - **@platform/line** — LINE Messaging API の総合クライアント + メッセージビルダー + Webhook 受信。
   - 主なexport: CarouselColumn, LineAction, LineClient, LineEventBase, LineEventSource, LineMessage, …(全31)
 - **@platform/freee** — freee 会計 API クライアント + OAuth トークン管理 + 証憑・振替伝票。
   - 主なexport: DealDetail, DealType, FreeeClient, FreeeHrClient, FreeePaging, FreeeTokenConfig, …(全24)
 - **@platform/stripe** — Stripe 決済クライアント(公式 `stripe` SDK ラッパー)。
-  - 主なexport: StripeClient, createStripeClient
+  - 主なexport: Stripe, StripeClient, createStripeClient
 - **@platform/paypal** — PayPal 決済クライアント(Orders v2)。client_id / client_secret から
   - 主なexport: PayPalClient, PayPalConfig, createPayPalClient
 - **@platform/ekyc** — eKYC(オンライン本人確認)ベンダー連携コネクタ。TRUSTDOCK 等の API を型付きで扱い、
@@ -156,7 +164,7 @@
 - **@platform/html** — HTML/テキストのヘルパー（すべて純関数）。
   - 主なexport: collapseWhitespace, embedAsText, embedHtml, embedIframe, embedScript, escapeAttribute, …(全22)
 - **@platform/theme** — デザインテーマ（スキン）機構。WordPress のテーマのように、色・フォント・角丸・余白・影を 1 セットにした「スキン」を切り替えられます。明暗（light/dark）とは直交し、後からテーマを追加できる拡張性を持ちます。React 非依存の純ロジックです（UI 連携は `@platform/ui` の `SkinProvider` / `SkinSelector`）。
-  - 主なexport: ContrastCheck, CreateThemeRegistryOptions, ThemeContrastReport, ThemeRegistry, ThemeSeed, ThemeValidationIssue, …(全34)
+  - 主なexport: ContrastCheck, CreateThemeRegistryOptions, Theme, ThemeContrastReport, ThemeMode, ThemeRegistry, …(全41)
 
 ## メディア・デバイス
 
@@ -171,11 +179,11 @@
 - **@platform/device** — 端末・ブラウザ・OS・ネットワーク等のクライアント情報取得。
   - 主なexport: ClientInfo, DeviceType, GeoPosition, UserAgentInfo, getClientInfo, parseUserAgent, …(全7)
 - **@platform/mobile** — タブレット・スマホなどモバイル端末向けの処理。レスポンシブ判定・ネットワーク状態・画面向きの
-  - 主なexport: BarcodeKind, Breakpoints, CameraConstraintsInput, CameraDevice, CameraFacing, CaptureOptions, …(全50)
+  - 主なexport: BarcodeKind, Breakpoints, CacheRule, CacheStrategy, CameraConstraintsInput, CameraDevice, …(全67)
 - **@platform/bluetooth** — Web Bluetooth(BLE 機器連携)の共通部品。ブラウザ専用(Chrome/Edge、HTTPS または localhost、
-  - 主なexport: BluetoothConnection, ConnectOptions, DeviceInformation, GATT, connectBluetooth, encodeText, …(全13)
+  - 主なexport: BluetoothConnection, BluetoothUUID, ConnectOptions, DeviceFilter, DeviceInformation, GATT, …(全16)
 - **@platform/hid** — WebHID(PC 周辺機器連携)。キーボード・バーコードリーダー・カードリーダー・独自 HID 機器と
-  - 主なexport: HidConnection, connectHid, isHidSupported, reportBytes
+  - 主なexport: HidConnection, HidFilter, connectHid, isHidSupported, reportBytes
 
 ## 業務ドメイン
 
@@ -225,6 +233,8 @@
   - 主なexport: Task, TaskFilter, TaskPriority, TaskProgress, TaskSort, TaskStatus, …(全15)
 - **@platform/contract** — 期間・自動更新・解約通知・更新期限アラートの純ロジック。
   - 主なexport: Contract, ContractAlert, ContractAlertLevel, ContractStatus, ContractSummary, RenewalType, …(全13)
+- **@platform/attendance** — 勤怠の記録・集計と、年次有給休暇の計算。
+  - 主なexport: AttendanceDay, AttendanceEntry, AttendanceStore, AttendanceSummary, LeaveBalance, LeaveGrant, …(全15)
 
 ## コンテンツ・サイト
 
@@ -237,7 +247,7 @@
 - **@platform/site** — 公式サイト・LP のための基盤処理。ページ構成(セクションブロック)・ナビゲーションメニュー・
   - 主なexport: Announcement, Banner, BlockType, BreadcrumbFromPathOptions, CopyrightOptions, MenuItem, …(全32)
 - **@platform/url** — URL・ドメインの汎用処理。URL の解析/組み立て、クエリパラメータ操作、ドメイン抽出(eTLD+1)、
-  - 主なexport: NormalizeOptions, TRACKING_PARAMS, UrlParts, appendParam, buildUrl, getHostname, …(全32)
+  - 主なexport: NormalizeOptions, TRACKING_PARAMS, UrlParts, appendParam, buildUrl, getHostname, …(全33)
 - **@platform/social** — ソーシャル(X / TikTok / Instagram)連携の基盤処理。キャストの SNS アカウントを扱うための、
   - 主なexport: ALL_PLATFORMS, OEmbedOptions, PLATFORMS, ParsedSocialUrl, PlatformSpec, SHARE_LABELS, …(全38)
 - **@platform/board** — 掲示板の純ロジック（スレッド・投稿・返信・リアクション）。
@@ -252,7 +262,7 @@
 - **@platform/observability** — 依存ゼロの軽量トレーシング・メトリクス・耐障害プリミティブ。外部連携の可視化と保護に。
   - 主なexport: ActiveSpan, Alert, AlertManager, AlertRule, AsyncIdempotencyStore, CheckResult, …(全49)
 - **@platform/status-page** — メンテナンス/システムエラー/停止/404 の画面テンプレートと、メンテナンス切り替えゲート。
-  - 主なexport: MaintenanceConfig, MaintenanceDecision, MaintenanceRequestInfo, MaintenanceState, MaintenanceStore, StatusPageOptions, …(全17)
+  - 主なexport: MaintenanceConfig, MaintenanceDecision, MaintenanceRequestInfo, MaintenanceState, MaintenanceStore, StatusPageOptions, …(全20)
 - **@platform/analytics** — サイト/アプリのアクセス解析(純ロジック)。イベント(ページビュー等)の記録形式と、集計関数を提供します。保存や送信は呼び出し側(アプリ/adapter)の責務です。
   - 主なexport: AnalyticsEvent, AnalyticsEventType, AnalyticsSummary, Beacon, BeaconDeps, BeaconPayload, …(全22)
 - **@platform/loadtest** — 簡易負荷試験の基盤(純ロジック)。シナリオ定義・実行・レイテンシ統計を提供します。HTTP実行自体は fetch を注入するため、テストではモックできます。

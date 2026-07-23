@@ -1,3 +1,4 @@
+// public-api: デモ用の疑似データ。本番では公開しない
 /**
  * Platform Debugger の API。開発時のみ有効。
  *

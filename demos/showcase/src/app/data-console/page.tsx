@@ -1,28 +1,21 @@
-import { DataConsole, type BookingRow } from "../../examples/data-console";
-
-export const metadata = { title: "データ管理画面" };
-
-/** デモ用のサンプル(実アプリでは DB から取る)。 */
-const ROWS: BookingRow[] = [
-  { id: "B-001", customer: "山田太郎", cast: "佐藤", status: "confirmed", date: "2026-07-16" },
-  { id: "B-002", customer: "鈴木花子", cast: "田中", status: "requested", date: "2026-07-16" },
-  { id: "B-003", customer: "高橋一郎", cast: "佐藤", status: "completed", date: "2026-07-15" },
-  { id: "B-004", customer: "伊藤二郎", cast: "鈴木", status: "cancelled", date: "2026-07-15" },
-  { id: "B-005", customer: "渡辺三郎", cast: "田中", status: "confirmed", date: "2026-07-17" },
-  { id: "B-006", customer: "中村四郎", cast: "佐藤", status: "requested", date: "2026-07-17" },
-  { id: "B-007", customer: "小林五郎", cast: "鈴木", status: "completed", date: "2026-07-14" },
-  { id: "B-008", customer: "加藤六郎", cast: "田中", status: "confirmed", date: "2026-07-18" },
-];
-
+"use client";
+/** データ一覧・表示切替 の統合デモ（タブでまとめたもの）。 */
+import * as React from "react";
+import { Button } from "@platform/ui";
+import { ConsoleDemo } from "./console-demo";
+import { ViewsDemo } from "./views-demo";
+const TABS = [{ id: "a", label: "データコンソール", Comp: ConsoleDemo }, { id: "b", label: "表示切替(カード/リスト)", Comp: ViewsDemo }] as const;
 export default function Page() {
+  const [tab, setTab] = React.useState<string>("a");
+  const Active = (TABS.find((t) => t.id === tab) ?? TABS[0]).Comp;
   return (
-    <div style={{ padding: 16, maxWidth: 1000 }}>
-      <h2 style={{ fontSize: 18, margin: "0 0 6px" }}>データ管理画面</h2>
-      <p style={{ fontSize: 13, color: "var(--color-muted)", margin: "0 0 16px", lineHeight: 1.8 }}>
-        検索 + 外部フィルタ + ソート + ページャの完成形。<strong>一覧画面を作るときのコピー元</strong>です。
-        DataTable の組み込み検索では足りない「状態フィルタ」を外部で足す構成を示します。
-      </p>
-      <DataConsole rows={ROWS} />
-    </div>
+    <main style={{ maxWidth: 1000, margin: "2rem auto", padding: "0 1rem" }}>
+      <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: 12 }}>データ一覧・表示切替</h1>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12, borderBottom: "1px solid var(--color-border)", paddingBottom: 10 }}>
+        {TABS.map((t) => (<Button key={t.id} type="button" onClick={() => setTab(t.id)}
+          style={{ fontSize: 13, padding: "6px 14px", borderRadius: 8, cursor: "pointer", border: "1px solid var(--color-border)", background: tab === t.id ? "var(--color-primary)" : "var(--color-bg)", color: tab === t.id ? "var(--color-primary-fg)" : "var(--color-fg)" }}>{t.label}</Button>))}
+      </div>
+      <Active />
+    </main>
   );
 }

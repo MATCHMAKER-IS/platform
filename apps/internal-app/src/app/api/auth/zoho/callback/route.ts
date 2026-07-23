@@ -1,3 +1,4 @@
+// public-api: 外部認証からの戻り先。ログイン前に呼ばれる
 import { withApiObservability } from "../../../../../server/instrument";
 import { NextResponse, type NextRequest } from "next/server";
 import { zohoAuthConfigFromEnv, handleZohoCallback } from "../../../../../server/zoho-auth";

@@ -1,9 +1,14 @@
 /** 経費申請の作成 API(POST)。 */
+import { currentUser, requirePermission } from "../../../../server/authorize";
+import { serverEnv } from "../../../../server/env";
 import { withApiObservability } from "../../../../server/instrument";
 import { createRequest } from "../../../../server/approval-repo";
 import { auditActions } from "../../../../server/platform-services";
 
 async function handlePOST(req: Request): Promise<Response> {
+  // 認可: この API を叩いてよいかを最初に判定する
+  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  requirePermission(user, "expense:create");
   let body: { applicant?: string; expenseId?: string };
   try {
     body = (await req.json()) as { applicant?: string; expenseId?: string };

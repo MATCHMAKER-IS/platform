@@ -19,6 +19,12 @@ export interface AudioRecorderProps {
 }
 
 /** マイク録音コンポーネント。 */
+/**
+ * 音声の録音。
+ *
+ * 端末の許可が要る。**録音していることを画面で分かるように示す**
+ * (気づかず録られていた、が最も避けたい)。
+ */
 export function AudioRecorder({ onRecorded, className }: AudioRecorderProps) {
   const r = useMediaRecorder({ audio: true });
   React.useEffect(() => { if (r.blob) onRecorded?.(r.blob); }, [r.blob]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -6,6 +6,7 @@
  * サーバ側の失効は @platform/session の idleTimeoutSec が担う(本コンポーネントは UX)。
  */
 import { useEffect, useRef, useState } from "react";
+import { Button } from "@platform/ui";
 import { createIdleTimer, bindActivityListeners } from "@platform/session/idle-timer";
 
 export interface IdleLogoutProps {
@@ -64,10 +65,10 @@ export function IdleLogout({ timeoutMinutes = 0, warnSeconds = 60, onLogout }: I
         <p style={{ color: "var(--color-muted, #6b7280)", margin: ".25rem 0 1rem" }}>
           無操作が続いています。あと <strong>{remaining}</strong> 秒で自動的にログアウトします。
         </p>
-        <button onClick={() => { /* activity は listener が拾うが、明示クリックも活動として扱う */ setRemaining(null); }}
+        <Button onClick={() => { /* activity は listener が拾うが、明示クリックも活動として扱う */ setRemaining(null); }}
           style={{ padding: ".5rem 1.25rem", borderRadius: 8, background: "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", cursor: "pointer" }}>
           継続する
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 /** 公開申請の承認画面。承認者(cms:publish)が申請を承認/却下する。 */
 import * as React from "react";
+import { Button } from "@platform/ui";
 
 interface PublishRequest {
   id: string;
@@ -39,8 +40,8 @@ export function PublishRequestClient({ fetchImpl }: PublishRequestClientProps) {
     <div className="mx-auto max-w-4xl p-6">
       <h1 className="mb-4 text-2xl font-bold">公開申請の承認</h1>
       <div className="mb-3 flex gap-1">
-        <button onClick={() => setTab("pending")} className={tab === "pending" ? "rounded bg-neutral-900 px-3 py-1 text-sm text-white" : "rounded border border-neutral-300 px-3 py-1 text-sm"}>承認待ち</button>
-        <button onClick={() => setTab("all")} className={tab === "all" ? "rounded bg-neutral-900 px-3 py-1 text-sm text-white" : "rounded border border-neutral-300 px-3 py-1 text-sm"}>すべて</button>
+        <Button onClick={() => setTab("pending")} className={tab === "pending" ? "rounded bg-neutral-900 px-3 py-1 text-sm text-white" : "rounded border border-neutral-300 px-3 py-1 text-sm"}>承認待ち</Button>
+        <Button onClick={() => setTab("all")} className={tab === "all" ? "rounded bg-neutral-900 px-3 py-1 text-sm text-white" : "rounded border border-neutral-300 px-3 py-1 text-sm"}>すべて</Button>
       </div>
       {requests.length === 0 ? (
         <p className="text-sm text-neutral-500">{tab === "pending" ? "承認待ちの申請はありません。" : "申請はありません。"}</p>
@@ -59,8 +60,8 @@ export function PublishRequestClient({ fetchImpl }: PublishRequestClientProps) {
               </div>
               {r.status === "pending" && (
                 <div className="flex gap-2 text-sm">
-                  <button onClick={() => decide(r.id, "approved")} className="rounded bg-green-600 px-3 py-1 text-white">承認して公開</button>
-                  <button onClick={() => decide(r.id, "rejected")} className="rounded border border-neutral-300 px-3 py-1">却下</button>
+                  <Button onClick={() => decide(r.id, "approved")} className="rounded bg-green-600 px-3 py-1 text-white">承認して公開</Button>
+                  <Button onClick={() => decide(r.id, "rejected")} className="rounded border border-neutral-300 px-3 py-1">却下</Button>
                 </div>
               )}
             </li>

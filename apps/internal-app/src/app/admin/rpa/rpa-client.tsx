@@ -1,6 +1,7 @@
 "use client";
 /** RPA ランナーのデモ。実行すると直列化・リトライ・冪等・監査の挙動が監査イベントに出る。 */
 import * as React from "react";
+import { Button } from "@platform/ui";
 
 interface Ev { action: string; target?: string; at: string; metadata?: Record<string, unknown>; }
 
@@ -35,9 +36,9 @@ export function RpaDemoClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
       <h1 style={{ fontSize: 22 }}>RPA ランナー（デモ）</h1>
       <p style={{ fontSize: 13, color: "var(--color-muted, #666)", lineHeight: 1.6 }}>基盤は RPA 本体を持ちません（API {">"} MCP {">"} RPA）。ここでは「安全に実行する枠組み」——直列化・リトライ・冪等・タイムアウト・監査——の挙動を確認できます。</p>
       <div style={{ ...card, marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button onClick={() => run({})} disabled={busy} style={btn}>通常実行</button>
-        <button onClick={() => run({ fail: true })} disabled={busy} style={btn}>1回失敗させる（リトライ確認）</button>
-        <button onClick={() => run({ idempotencyKey: "daily-demo" })} disabled={busy} style={btn}>冪等キー付き実行（2回目はskip）</button>
+        <Button onClick={() => run({})} disabled={busy} style={btn}>通常実行</Button>
+        <Button onClick={() => run({ fail: true })} disabled={busy} style={btn}>1回失敗させる（リトライ確認）</Button>
+        <Button onClick={() => run({ idempotencyKey: "daily-demo" })} disabled={busy} style={btn}>冪等キー付き実行（2回目はskip）</Button>
       </div>
       {msg && <p style={{ fontSize: 13, marginTop: 8, color: msg.startsWith("成功") ? "var(--color-success, #16a34a)" : "var(--color-warning, #b45309)" }}>{msg}</p>}
       <div style={{ ...card, marginTop: 12 }}>

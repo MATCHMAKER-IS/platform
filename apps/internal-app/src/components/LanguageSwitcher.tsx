@@ -1,6 +1,7 @@
 "use client";
 /** 言語切替。/api/i18n から利用可能ロケールを取得し、選択言語の文言を親へ渡す。 */
 import * as React from "react";
+import { Select } from "@platform/ui";
 
 interface I18nData { locale: string; locales: { code: string; label: string }[]; messages: Record<string, string>; }
 
@@ -11,8 +12,6 @@ export function LanguageSwitcher({ fetchImpl, onChange }: { fetchImpl?: typeof f
   React.useEffect(() => { void load("ja"); }, [load]);
   if (!data) return null;
   return (
-    <select value={data.locale} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => void load(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-xs" aria-label="言語">
-      {data.locales.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
-    </select>
+    <Select value={data.locale} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => void load(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-xs" aria-label="言語" options={[...data.locales.map((l) => ({ label: l.label, value: String(l.code) }))]} />
   );
 }
