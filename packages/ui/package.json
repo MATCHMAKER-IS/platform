@@ -28,7 +28,7 @@
     "@platform/print": "workspace:*",
     "@platform/realtime": "workspace:*",
     "@platform/utils": "workspace:*",
-    "@tiptap/core": "^2.11.0",
+    "@tiptap/core": "^3.27.4",
     "@tiptap/extension-color": "^2.11.0",
     "@tiptap/extension-text-style": "^2.11.0",
     "@tiptap/react": "^2.11.0",
