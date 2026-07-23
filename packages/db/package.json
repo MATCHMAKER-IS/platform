@@ -21,14 +21,14 @@
   },
   "dependencies": {
     "@platform/core": "workspace:*",
-    "@prisma/adapter-pg": "^7.2.0",
-    "@prisma/client": "^7.2.0",
+    "@prisma/adapter-pg": "^7.9.0",
+    "@prisma/client": "^7.9.0",
     "zod": "^4.0.0",
     "@platform/cache": "workspace:*"
   },
   "devDependencies": {
     "@platform/config": "workspace:*",
-    "prisma": "^7.2.0",
+    "prisma": "^7.9.0",
     "testcontainers": "^10.16.0",
     "typescript": "^5.7.3",
     "vitest": "^3.0.4"

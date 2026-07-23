@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@platform/core": "workspace:*",
-    "bullmq": "^5.34.0"
+    "bullmq": "^5.80.11"
   },
   "devDependencies": {
     "@platform/config": "workspace:*",
