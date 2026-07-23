@@ -17,7 +17,14 @@ const buttonVariants = cva(
         ghost: "text-[var(--color-fg)] hover:bg-[var(--color-subtle-strong)]",
         danger: "bg-[var(--color-danger)] text-white hover:opacity-90",
       },
-      size: { sm: "h-7 px-2.5 text-xs", md: "h-9 px-3.5 text-sm", lg: "h-10 px-5 text-sm" },
+      // 高さは**最小値**にする。固定(h-*)にすると、中身が増えたときに
+      // はみ出した部分が見えなくなる(アイコン + 名前を縦に並べた画面で実際に起きた)。
+      // 文字だけのボタンでは見た目は変わらない。
+      size: {
+        sm: "min-h-7 py-1 px-2.5 text-xs",
+        md: "min-h-9 py-1.5 px-3.5 text-sm",
+        lg: "min-h-10 py-2 px-5 text-sm",
+      },
     },
     defaultVariants: { variant: "primary", size: "md" },
   },

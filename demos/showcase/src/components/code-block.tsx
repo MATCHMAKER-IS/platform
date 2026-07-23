@@ -28,6 +28,9 @@ const COLOR: Record<Tok["t"], string> = { comment: "#6b7280", string: "#c2410c",
 
 export function CodeBlock({ code, lang = "ts" }: { code: string; lang?: string }) {
   const [copied, setCopied] = React.useState(false);
+  // マウスを乗せた行。何行目を見ているかが分かるようにする
+  // (長いソースでは「この行」を人に伝えるのが難しい)
+  const [hover, setHover] = React.useState<number | null>(null);
   const copy = async () => { try { await navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 1200); } catch { /* noop */ } };
   const lines = code.replace(/\n$/, "").split("\n");
   return (
@@ -41,8 +44,18 @@ export function CodeBlock({ code, lang = "ts" }: { code: string; lang?: string }
       <pre style={{ margin: 0, overflowX: "auto", fontSize: 12.5, lineHeight: 1.7, fontFamily: "ui-monospace, monospace", padding: "10px 0" }}>
         <code>
           {lines.map((line, i) => (
-            <div key={i} style={{ display: "flex", paddingRight: 12 }}>
-              <span style={{ width: 40, flexShrink: 0, textAlign: "right", paddingRight: 12, color: "var(--color-muted)", userSelect: "none", opacity: 0.6 }}>{i + 1}</span>
+            <div
+              key={i}
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover((h) => (h === i ? null : h))}
+              style={{
+                display: "flex",
+                paddingRight: 12,
+                // 乗せている行だけ薄く敷く。テーマに追従する色を使う
+                background: hover === i ? "var(--color-subtle-strong)" : undefined,
+              }}
+            >
+              <span style={{ width: 40, flexShrink: 0, textAlign: "right", paddingRight: 12, color: hover === i ? "var(--color-fg)" : "var(--color-muted)", fontWeight: hover === i ? 600 : 400, userSelect: "none", opacity: 0.6 }}>{i + 1}</span>
               <span style={{ whiteSpace: "pre" }}>{tokenizeLine(line).map((tok, j) => (<span key={j} style={{ color: COLOR[tok.t] }}>{tok.v}</span>))}</span>
             </div>
           ))}

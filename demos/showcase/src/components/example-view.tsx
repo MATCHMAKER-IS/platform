@@ -34,6 +34,23 @@ export function ExampleView({ title, intro, packages, code, output, notes }: Exa
       <h2 style={{ fontSize: 18, margin: "0 0 6px" }}>{title}</h2>
       <p style={{ fontSize: 13, color: "var(--color-muted)", margin: "0 0 10px", lineHeight: 1.8 }}>{intro}</p>
 
+      {/* この節が「使用例」であることと、なぜ画面ではなくコードなのかを毎回示す。
+          トップページの説明は、個別ページを直接開いた人には見えないため。 */}
+      <div style={{
+        display: "flex", gap: 8, alignItems: "flex-start",
+        padding: "10px 12px", marginBottom: 14,
+        border: "1px solid var(--color-border)", borderRadius: "var(--radius)",
+        background: "var(--color-subtle)",
+      }}>
+        <span style={{ fontSize: 14, lineHeight: 1.4 }}>📄</span>
+        <p style={{ fontSize: 11.5, color: "var(--color-muted)", lineHeight: 1.9, margin: 0 }}>
+          これは<strong>使用例</strong>（動く画面ではなくコードで見せるもの）です。
+          外部サービスの鍵と実データが要る、実行に時間がかかる、画面は別にあって組み立て方だけを見せたい——
+          といった理由で、画面にしていません。
+          <strong>下の「気をつけること」が本体</strong>で、画面を見ても分からない判断を残しています。
+        </p>
+      </div>
+
       <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 16 }}>
         {packages.map((p) => (
           <code

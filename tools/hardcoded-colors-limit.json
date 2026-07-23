@@ -1,5 +1,5 @@
 {
   "_comment": "UI 部品の中に直書きされた色クラスの数。テーマを切り替えても変わらないため、増やさない。状態色など意図的なものは check-hardcoded-colors.mjs の ALLOW へ理由付きで登録する。",
-  "limit": 68,
+  "limit": 67,
   "updatedAt": "2026-07-23"
 }

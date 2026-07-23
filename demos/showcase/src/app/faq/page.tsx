@@ -87,7 +87,7 @@ export default function Page() {
               return (
                 <div key={k} style={{ border: "1px solid var(--color-border)", borderRadius: 10, background: "var(--color-surface)", overflow: "hidden" }}>
                   <Button type="button" onClick={() => toggle(k)}
-                    style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", padding: "12px 14px", border: "none", background: "transparent", color: "var(--color-fg)", cursor: "pointer", fontSize: 14, fontWeight: 600 }}>
+                    style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 10, width: "100%", textAlign: "left", padding: "12px 14px", border: "none", background: "transparent", color: "var(--color-fg)", cursor: "pointer", fontSize: 14, fontWeight: 600 }}>
                     <span style={{ flexShrink: 0, transform: isOpen ? "rotate(90deg)" : "none", transition: "transform .15s", color: "var(--color-muted)" }}>▶</span>
                     {it.q}
                   </Button>

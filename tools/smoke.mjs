@@ -1964,6 +1964,24 @@ section("ui: format & chart data");
   await fs.rm(base, { recursive: true, force: true });
 }
 
+// ---- UI: 部品の中身がはみ出さないか ----
+section("ui: button sizing");
+{
+  const fs = await import("node:fs/promises");
+  const src = await fs.readFile(new URL("../packages/ui/src/components/button.tsx", import.meta.url), "utf8");
+
+  // 高さを固定(h-9)にすると、アイコン + 文字を縦に並べたときに
+  // はみ出した部分が見えなくなる(アイコン一覧の画面で実際に起きた)
+  ok("Button: 高さは最小値で指定する(中身が増えても隠れない)",
+    /min-h-\d/.test(src) && !/["'\s]h-\d+\s/.test(src));
+
+  const icon = await fs.readFile(new URL("../packages/ui/src/components/icon.tsx", import.meta.url), "utf8");
+  ok("Icon: lucide の形が変わっても動く(icons が無い版に備える)",
+    icon.includes("buildRegistry") && icon.includes("名前付き export から拾う"));
+  ok("Icon: 見つからない名前でも画面を壊さない(null を返す)",
+    icon.includes("if (!Cmp) return null;"));
+}
+
 // ---- テーマ: 横の案内に色を付けられる ----
 section("theme: colored sidebar");
 {

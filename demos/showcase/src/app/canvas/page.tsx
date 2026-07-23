@@ -18,13 +18,28 @@ const lb: React.CSSProperties = { display: "grid", gap: 4, fontSize: 12, color: 
 const KEY = "demo-canvas-positions-v2";
 const W = 96, H = 44;
 
-type Obj = { id: string; label: string; color: string; x: number; y: number };
+/** 置ける形。用途で選べるようにする(四角だけだと図が単調になる)。 */
+type Shape = "rect" | "round" | "circle" | "diamond" | "note" | "pill";
+
+type Obj = { id: string; label: string; color: string; x: number; y: number; shape: Shape };
+
+/** 形ごとの見た目。角丸や回転で作るので、画像を持たなくてよい。 */
+const SHAPES: { id: Shape; name: string; style: React.CSSProperties }[] = [
+  { id: "rect", name: "四角", style: { borderRadius: 4 } },
+  { id: "round", name: "角丸", style: { borderRadius: 14 } },
+  { id: "pill", name: "丸帯", style: { borderRadius: 999 } },
+  { id: "circle", name: "円", style: { borderRadius: "50%" } },
+  // ひし形は本体を回し、中の文字を戻して読めるようにする
+  { id: "diamond", name: "ひし形", style: { borderRadius: 6, transform: "rotate(45deg)" } },
+  // 付箋は右上を折ったように見せる
+  { id: "note", name: "付箋", style: { borderRadius: 2, clipPath: "polygon(0 0, 100% 0, 100% 72%, 82% 100%, 0 100%)" } },
+];
 const COLORS = ["#2563eb", "#16a34a", "#d97706", "#dc2626", "#7c3aed"];
 const DEFAULT: Obj[] = [
-  { id: "a", label: "タスクA", color: "#2563eb", x: 20, y: 20 },
-  { id: "b", label: "タスクB", color: "#16a34a", x: 180, y: 60 },
-  { id: "c", label: "メモ", color: "#d97706", x: 90, y: 150 },
-  { id: "d", label: "承認待ち", color: "#dc2626", x: 260, y: 180 },
+  { id: "a", label: "タスクA", color: "#2563eb", x: 20, y: 20 , shape: "round" },
+  { id: "b", label: "タスクB", color: "#16a34a", x: 180, y: 60 , shape: "round" },
+  { id: "c", label: "メモ", color: "#d97706", x: 90, y: 150 , shape: "note" },
+  { id: "d", label: "承認待ち", color: "#dc2626", x: 260, y: 180 , shape: "circle" },
 ];
 
 export default function Page() {
@@ -32,7 +47,10 @@ export default function Page() {
   const [selected, setSelected] = React.useState<string | null>(null);
   const [snap, setSnap] = React.useState("20");
   const [saved, setSaved] = React.useState(false);
+  const [shape, setShape] = React.useState<Shape>("round");
+  const [color, setColor] = React.useState(COLORS[0]!);
   const [label, setLabel] = React.useState("新しいカード");
+  const selectedObj = objs.find((o) => o.id === selected) ?? null;
   const canvasRef = React.useRef<HTMLDivElement>(null);
   const drag = React.useRef<{ id: string; dx: number; dy: number } | null>(null);
 
@@ -85,7 +103,7 @@ export default function Page() {
 
   const add = () => {
     const id = `o${Date.now()}`;
-    update([...objs, { id, label: label.trim() || "無題", color: COLORS[objs.length % COLORS.length]!, x: fit(20), y: fit(20) }]);
+    update([...objs, { id, label: label.trim() || "新しい図形", color, shape, x: fit(20), y: fit(20) }]);
     setSelected(id);
   };
   const alignLeft = () => update(objs.map((o) => ({ ...o, x: fit(20) })));
@@ -105,6 +123,27 @@ export default function Page() {
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 12 }}>
           <label style={lb}>ラベル<Input value={label} onChange={(e) => setLabel(e.target.value)} style={{ width: 160 }} /></label>
           <Button size="sm" onClick={add}>カードを追加</Button>
+          <label style={lb}>形
+            <Select value={shape} onChange={(e) => setShape(e.target.value as Shape)}
+              options={SHAPES.map((x) => ({ label: x.name, value: x.id }))} />
+          </label>
+          <label style={lb}>色
+            <div style={{ display: "flex", gap: 4 }}>
+              {COLORS.map((c) => (
+                <Button
+                  key={c}
+                  type="button"
+                  variant="ghost"
+                  aria-label={`色 ${c}`}
+                  onClick={() => setColor(c)}
+                  style={{
+                    width: 22, height: 22, minHeight: 0, padding: 0, borderRadius: 6, background: c,
+                    border: color === c ? "2px solid var(--color-fg)" : "2px solid transparent",
+                  }}
+                />
+              ))}
+            </div>
+          </label>
           <label style={lb}>グリッド吸着
             <Select value={snap} onChange={(e) => setSnap(e.target.value)}
               options={[{ label: "なし", value: "0" }, { label: "10px", value: "10" }, { label: "20px", value: "20" }, { label: "40px", value: "40" }]} />
@@ -128,13 +167,67 @@ export default function Page() {
               onPointerDown={(e) => onPointerDown(e, o.id)}
               onKeyDown={(e) => onKeyDown(e, o.id)}
               onFocus={() => setSelected(o.id)}
-              style={{ position: "absolute", left: o.x, top: o.y, width: W, height: H, borderRadius: 8, background: o.color, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, cursor: "grab", userSelect: "none", boxShadow: selected === o.id ? "0 0 0 3px var(--color-primary)" : "0 2px 8px rgba(0,0,0,0.2)", touchAction: "none", border: "none" }}
+              style={{
+                position: "absolute", left: o.x, top: o.y,
+                // 円とひし形は縦横を揃えないと歪む
+                width: o.shape === "circle" || o.shape === "diamond" ? H + 12 : W,
+                height: H,
+                background: o.color, color: "#fff",
+                border: selected === o.id ? "2px solid var(--color-fg)" : "2px solid transparent",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 12, cursor: "grab", padding: 4, minHeight: 0,
+                ...(SHAPES.find((x) => x.id === o.shape)?.style ?? {}),
+              }}
             >
-              {o.label}
+              <span style={{ transform: o.shape === "diamond" ? "rotate(-45deg)" : undefined, pointerEvents: "none" }}>
+                {o.label}
+              </span>
             </Button>
           ))}
         </div>
       </div>
+      {selectedObj && (
+        <div style={{ ...box, marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>選んだ図形を変える</div>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+            <label style={lb}>文字
+              <Input
+                value={selectedObj.label}
+                onChange={(e) => update(objs.map((o) => (o.id === selectedObj.id ? { ...o, label: e.target.value } : o)))}
+                style={{ width: 160 }}
+              />
+            </label>
+            <label style={lb}>形
+              <Select
+                value={selectedObj.shape}
+                onChange={(e) => update(objs.map((o) => (o.id === selectedObj.id ? { ...o, shape: e.target.value as Shape } : o)))}
+                options={SHAPES.map((x) => ({ label: x.name, value: x.id }))}
+              />
+            </label>
+            <label style={lb}>色
+              <div style={{ display: "flex", gap: 4 }}>
+                {COLORS.map((c) => (
+                  <Button
+                    key={c}
+                    type="button"
+                    variant="ghost"
+                    aria-label={`色を ${c} にする`}
+                    onClick={() => update(objs.map((o) => (o.id === selectedObj.id ? { ...o, color: c } : o)))}
+                    style={{
+                      width: 22, height: 22, minHeight: 0, padding: 0, borderRadius: 6, background: c,
+                      border: selectedObj.color === c ? "2px solid var(--color-fg)" : "2px solid transparent",
+                    }}
+                  />
+                ))}
+              </div>
+            </label>
+          </div>
+          <p style={{ fontSize: 11.5, color: "var(--color-muted)", margin: "10px 0 0", lineHeight: 1.8 }}>
+            図形を押すと選べます。<strong>文字は打った瞬間に反映</strong>され、位置と同じく保存されます。
+          </p>
+        </div>
+      )}
+
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
         <Button size="sm" variant="secondary" onClick={() => { update(DEFAULT); setSelected(null); }}>初期配置に戻す</Button>

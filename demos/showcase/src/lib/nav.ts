@@ -57,12 +57,12 @@ export const PLATFORM_DEMOS: DemoEntry[] = [
   { href: "/widgets", title: "時計・タイマー・プロパティ", desc: "リアルタイム時計・カウントダウン・選択項目のプロパティ表示（インスペクタ）",
     packages: ["ui"], group: "画面の部品" },
 
-  { href: "/canvas", title: "自由配置キャンバス", desc: "ドラッグ配置・グリッド吸着・整列・矢印キー操作・座標保存",
+  { href: "/canvas", title: "自由配置キャンバス", desc: "6種類の形と色・文字を変えられる図形をドラッグ配置・位置を保存",
     packages: ["ui"], group: "画面の部品" },
   { href: "/kanban", title: "タスクボード(Kanban)", desc: "列間ドラッグ・追加/編集・WIP制限・期限の色分け・担当/キーワード絞り込み",
     packages: ["ui"], group: "画面の部品" },
-  { href: "/code", title: "ソースコード表示", desc: "シンタックスハイライト・行番号・コピー。TS/TSX/JSON対応",
-    packages: ["ui"], group: "画面の部品" },
+  { href: "/code", title: "ソース表示・差分", desc: "強調表示/行番号/コピー・変更の比較(+緑/-ピンク・1列/左右)",
+    packages: ["ui", "cms"], group: "画面の部品" },
   // ── 入力・フォーム ──
   { href: "/inquiries", title: "フォーム(問い合わせ/登録/検証)", desc: "入力検証→受付→確認メール→一覧→Excel出力の縦一本",
     packages: ["validation", "ui", "http", "datetime", "mail", "xlsx"] , group: "入力・フォーム" },
@@ -236,15 +236,26 @@ export const SECTIONS: NavSection[] = [
   },
   {
     title: "アプリデモ",
-    description: "業務アプリの画面です。実物は apps/ にあり、ここではモックデータで再現しています。",
+    description:
+      "業務アプリの画面です。**5 つは apps/ にある実物の再現**（internal-app / equipment-app / " +
+      "public-site / crud-template / platform-portal）で、DB なしで動くようモックデータに置き換えてあります。" +
+      "コードは実物とは別で、画面の見え方と作りを掴むためのものです。" +
+      "残る 2 つ（EC カート・ランディングページ）は apps/ に実物が無く、" +
+      "「こういう画面も作れる」を示す見本です。",
     items: APP_DEMOS,
   },
   {
     title: "使用例",
-    description: "画面を持たない、コードで見せるデモです。",
+    description:
+      "**画面では見せられないもの**を、コードで見せます。" +
+      "外部サービスの鍵と実データが要るもの（会計連携）、実行に時間がかかるもの（負荷試験）、" +
+      "画面は別にあって組み立て方だけを見せたいもの（チャット・掲示板のロジック）が対象です。" +
+      "各例には**注意点**を添えてあり、そちらが本体です" +
+      "（例:「冪等キーで送信済みを判定する。バッチが再実行されても重複しない」）。",
     items: CODE_EXAMPLES,
   },
 ];
+
 
 /**
  * サイドバー用のナビ項目を作る。

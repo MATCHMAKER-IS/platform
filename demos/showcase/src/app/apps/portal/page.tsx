@@ -6,6 +6,7 @@
  */
 import { PORTAL_REFERENCE, PORTAL_TOTALS } from "../../../lib/portal-reference.generated";
 import { PortalIndex } from "./portal-index";
+import { AppDemoNote } from "../../../components/app-demo-note";
 
 export const metadata = { title: "基盤ポータル(デモ)" };
 
@@ -18,5 +19,12 @@ export default function Page() {
     functions: p.functions,
     types: p.types,
   }));
-  return <PortalIndex packages={packages} totals={PORTAL_TOTALS} />;
+  return (
+    <>
+      <div style={{ maxWidth: 900, margin: "16px auto 0", padding: "0 16px" }}>
+        <AppDemoNote source="apps/platform-portal" usedFor="基盤の目録（何があるかを探す場所）" />
+      </div>
+      <PortalIndex packages={packages} totals={PORTAL_TOTALS} />
+    </>
+  );
 }

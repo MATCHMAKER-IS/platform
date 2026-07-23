@@ -5,6 +5,7 @@
  * UI は **@platform/ui の部品だけ**で組む(CLAUDE.md「UI 部品は @platform/ui を使う」)。
  */
 import * as React from "react";
+import { AppDemoNote } from "../../../components/app-demo-note";
 import { Button, Badge, Alert, Separator, Switch, DatePicker } from "@platform/ui";
 import {
   visibleBlocks,
@@ -126,6 +127,7 @@ export default function Page() {
 
   return (
     <main style={{ maxWidth: 900, margin: "2.5rem auto", padding: "0 1rem" }}>
+      <AppDemoNote />
       <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: 4 }}>ランディングページ</h1>
       <p style={{ fontSize: 13, color: "var(--color-muted)", lineHeight: 1.8, marginBottom: 20 }}>
         自社サイトの商品 LP を<strong>ブロックの並び替えだけ</strong>で作ります。

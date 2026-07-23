@@ -57,6 +57,8 @@ export default function Page() {
   const catalog = React.useMemo(() => {
     const out: { category: string; names: string[] }[] = [];
     for (const [category, candidates] of Object.entries(CANDIDATES)) {
+      // hasIcon で実在を確かめる。ここが 0 件になるときは
+      // lucide の取り込みに失敗している(版によって形が変わるため)
       const names = candidates.filter((n) => hasIcon(n));
       if (names.length > 0) out.push({ category, names });
     }
@@ -149,6 +151,10 @@ export default function Page() {
                     flexDirection: "column",
                     alignItems: "center",
                     gap: 6,
+                    // Button は既定で高さが固定(h-9 = 36px)。
+                    // アイコンと名前を縦に並べると入りきらず、**アイコンが見えなくなる**。
+                    height: "auto",
+                    minHeight: 0,
                     padding: "12px 4px",
                     borderRadius: "var(--radius)",
                     border: "1px solid",

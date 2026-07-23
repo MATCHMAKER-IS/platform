@@ -48,7 +48,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   zIndex: 10,
                 }}
               >
-                <DemoMeta />
+                {/* ホームでは DemoMeta が何も描かないため、space-between だけだと
+                    右側の道具が左に寄ってしまう。空でも場所を取らせて右寄せを保つ */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <DemoMeta />
+                </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
                   <CommandPalette />
                   <LiveClock compact />
