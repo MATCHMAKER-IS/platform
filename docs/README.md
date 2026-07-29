@@ -10,6 +10,7 @@
 
 | 知りたいこと | 読むもの |
 |---|---|
+| **引き継ぐ人へ**（いまどこまでできているか・何が残っているか） | [ops/HANDOVER.md](ops/HANDOVER.md) |
 | **環境を作りたい**（何も入っていない PC から） | [ops/GETTING_STARTED.md](ops/GETTING_STARTED.md) |
 | 開発〜テスト〜公開の流れを知りたい | [ops/GETTING_STARTED_2.md](ops/GETTING_STARTED_2.md) |
 | **Git / GitHub が初めて** | [ops/GIT_GUIDE.md](ops/GIT_GUIDE.md) |
@@ -31,6 +32,7 @@
 | **開発の全体像**（設計から公開まで） | [DEVELOPMENT.md](DEVELOPMENT.md) |
 | **検査は何を見ているか**（preflight の 21 個） | [ops/CHECKS.md](ops/CHECKS.md) |
 | **デモを 1 本足す**（5 か所の更新） | [ops/ADD_DEMO.md](ops/ADD_DEMO.md) |
+| **利用者からの問い合わせに答える**（ログインできない・権限がない等） | [ops/SUPPORT_GUIDE.md](ops/SUPPORT_GUIDE.md) |
 | 新しい画面・機能の雛形を作る | [platform/SCAFFOLD.md](platform/SCAFFOLD.md) |
 | Prisma の書き方の実例 | [platform/PRISMA_EXAMPLES.md](platform/PRISMA_EXAMPLES.md) |
 | 生タグを @platform/ui へ置き換える | [ops/UI_MIGRATION.md](ops/UI_MIGRATION.md) |

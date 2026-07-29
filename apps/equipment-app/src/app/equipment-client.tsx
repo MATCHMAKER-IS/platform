@@ -41,7 +41,6 @@ export function EquipmentClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   };
   const doLogout = async () => { await doFetch("/api/auth/logout", { method: "POST" }); setNeedLogin(true); setAuthed(null); };
 
-  const err = (field: string) => errors.find((e) => e.field === field)?.message;
   const add = async () => {
     setErrors([]); setOpError("");
     const r = await doFetch("/api/equipment", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(form) });

@@ -60,6 +60,43 @@ crud-template には次が入っています。不要なら消し、必要なら
 }
 ```
 
+## 5.5 雛形が持っているもの（消さないこと）
+
+`apps/crud-template` をコピーすると、次が最初から入っています。
+**どれも後から足すのが難しい**ので、消さずに中身を差し替えてください。
+
+| ファイル | 役割 | 消すとどうなるか |
+|---|---|---|
+| `server/authorize.ts` | 認可（ロールと権限） | 画面と API が増えてから足すと、**必ずどこかで漏れる** |
+| `server/instrument.ts` | 観測・監査・エラー整形を `withApi` にまとめる | 認可の失敗が 500 になる。誰が何を変えたか追えない |
+| `app/error.tsx` | 例外時の画面 | **既定の白い画面**が出て「壊れた」としか伝わらない |
+| `app/not-found.tsx` | 404 の画面 | URL 違いか障害か、利用者が判断できない |
+| `app/api/health/route.ts` | 死活監視 | **落ちても誰も気づけない** |
+| `app/api/ready/route.ts` | 受け入れ可否 | 起動中に振り分けられ、利用者がエラーを見る |
+
+`node tools/check-build-ready.mjs` が、これらの有無を確認します。
+
+### API はこの形で書く
+
+```ts
+export const GET = withApi("/api/items", async (req) => {
+  requirePermission(currentUser(req), "item:read");   // 1. 認可
+  return Response.json({ items: await itemStore.list() });
+});
+```
+
+変更系では `recordAudit` で「誰が・いつ・何を・どう変えたか」を残します
+（参照は記録しません。量が増えるだけで、後から説明する役に立たないため）。
+
+### 最初に書き換えるところ
+
+| 場所 | 何をする |
+|---|---|
+| `server/authorize.ts` の `APP_POLICY` | このアプリのロールと権限を定義する |
+| `server/authorize.ts` の `currentUser` | 固定値をやめ、セッションから取り出す |
+| `server/instrument.ts` の監査の保存先 | メモリ配列をやめ、**DB に差し替える**（消えては意味がない） |
+| `app/api/health/route.ts` | このアプリで「落ちている」と判断すべき条件に変える |
+
 ## 6. ドキュメントを更新
 
 - `docs/APPS_AND_DEMOS.md` — ポート一覧の表と、アプリの紹介（規模・できること）

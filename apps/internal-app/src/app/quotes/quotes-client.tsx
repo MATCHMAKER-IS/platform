@@ -87,7 +87,14 @@ export function QuotesClient({ fetchImpl, canWrite = true }: QuotesClientProps) 
                   <td className="px-1 py-1"><Input value={String(l.quantity)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { quantity: Number(e.target.value) || 0 })} inputMode="numeric" className="w-full rounded border border-neutral-300 px-2 py-1" /></td>
                   <td className="px-1 py-1"><Input value={String(l.unitPrice)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { unitPrice: Number(e.target.value) || 0 })} inputMode="numeric" className="w-full rounded border border-neutral-300 px-2 py-1" /></td>
                   <td className="px-1 py-1">
-                    <Select value={String(l.taxRate ?? 10)} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setLine(i, { taxRate: Number(e.target.value) as 10 | 8 | 0 })} className="w-full rounded border border-neutral-300 px-1 py-1" options={[{ label: "10%", value: "10" }, { label: "8%", value: "8" }, { label: "0%", value: "0" }]} />
+                    <Select
+                      value={String(l.taxRate ?? 10)} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setLine(i, { taxRate: Number(e.target.value) as 10 | 8 | 0 })} className="w-full rounded border border-neutral-300 px-1 py-1"
+                      options={[
+                        { label: "10%", value: "10"},
+                        {label: "8%", value: "8"},
+                        {label: "0%", value: "0" },
+                      ]}
+                    />
                   </td>
                   <td className="px-1 py-1">{lines.length > 1 && <Button aria-label="この明細行を削除" title="この明細行を削除" onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))} className="text-neutral-400">×</Button>}</td>
                 </tr>

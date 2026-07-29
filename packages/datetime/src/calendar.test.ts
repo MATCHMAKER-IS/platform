@@ -3,10 +3,10 @@ import {
   isLeapYear, daysInMonth, addDays, addMonths, addYears, daysBetween, daysUntil,
   isPast, isFuture, isSameDay, isToday, age, weekdayNameJa, isWeekend, quarter,
   startOfMonth, endOfMonth, startOfWeek, formatDate, parseDate,
-  isHoliday, holidayName, holidaysInYear, isBusinessDay, addBusinessDays, businessDaysBetween,
+  holidayName, holidaysInYear, isBusinessDay, addBusinessDays, businessDaysBetween,
   rangeContains, rangesOverlap, rangeIntersection, rangeDays, eachDayOfRange, splitRangeByMonth, clampDate,
   toWareki, formatWareki, formatRelativeDay,
-  addMinutes, roundToNearestMinutes, floorToMinutes, ceilToMinutes, formatDuration, parseDuration, businessMinutesBetween,
+  roundToNearestMinutes, floorToMinutes, ceilToMinutes, formatDuration, parseDuration, businessMinutesBetween,
 } from "./calendar";
 
 const D = (s: string) => new Date(s + "T00:00:00Z");

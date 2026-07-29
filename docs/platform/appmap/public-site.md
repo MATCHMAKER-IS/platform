@@ -1,6 +1,6 @@
 # public-site 画面・API 一覧(自動生成）
 
-> 再生成: `node tools/gen-app-map.mjs public-site`。画面 10 / API 3。手で編集しない。
+> 再生成: `node tools/gen-app-map.mjs public-site`。画面 10 / API 5。手で編集しない。
 
 ## 画面(10)
 
@@ -26,10 +26,12 @@ flowchart LR
   P_blog_category__slug --> P_blog
 ```
 
-## API(3)
+## API(5)
 
 | エンドポイント | メソッド |
 |---|---|
 | `/api/contact` | POST |
+| `/api/health` | GET |
+| `/api/ready` | GET |
 | `/feed.xml` | GET |
 | `/sitemap.xml` | GET |

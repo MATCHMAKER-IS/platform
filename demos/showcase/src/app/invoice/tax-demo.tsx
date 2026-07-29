@@ -104,7 +104,13 @@ export function TaxDemo() {
                     <Input value={r.label} onChange={(e) => update(i, { label: e.target.value })} style={cell} />
                   </td>
                   <td style={{ padding: 4, width: 80 }}>
-                    <Select value={r.basis} onChange={(e) => update(i, { basis: e.target.value === "gross" ? "gross" : "net" })} style={cell} options={[{ label: "税抜", value: "net" }, { label: "税込", value: "gross" }]} />
+                    <Select
+                      value={r.basis} onChange={(e) => update(i, { basis: e.target.value === "gross" ? "gross" : "net" })} style={cell}
+                      options={[
+                        { label: "税抜", value: "net"},
+                        {label: "税込", value: "gross" },
+                      ]}
+                    />
                   </td>
                   <td style={{ padding: 4, width: 100 }}>
                     <Input
@@ -115,11 +121,14 @@ export function TaxDemo() {
                     />
                   </td>
                   <td style={{ padding: 4, width: 80 }}>
-                    <select value={r.rate} onChange={(e) => update(i, { rate: Number(e.target.value) as TaxRate })} style={cell}>
-                      <option value={10}>10%</option>
-                      <option value={8}>8%（軽減）</option>
-                      <option value={0}>0%（非課税）</option>
-                    </select>
+                    <Select
+                      value={String(r.rate)} onChange={(e) => update(i, { rate: Number(e.target.value) as TaxRate })} style={cell}
+                      options={[
+                        { label: "10%", value: "10"},
+                        {label: "8%（軽減）", value: "8"},
+                        {label: "0%（非課税）", value: "0" },
+                      ]}
+                    />
                   </td>
                   <td style={{ padding: 4, textAlign: "right", color: "var(--color-muted)", whiteSpace: "nowrap" }}>
                     {yen(net)} / {yen(tax)} / <b style={{ color: "var(--color-fg)" }}>{yen(gross)}</b>

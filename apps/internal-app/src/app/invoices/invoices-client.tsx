@@ -85,6 +85,7 @@ export function InvoicesClient({ fetchImpl, canWrite = true }: InvoicesClientPro
         {canWrite && <Button onClick={() => setCreating((v) => !v)} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">{creating ? "閉じる" : "新規作成"}</Button>}
       </div>
       {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {approvalMsg !== "" && <p className="mb-3 rounded bg-blue-50 px-3 py-2 text-sm text-blue-800">{approvalMsg}</p>}
 
       {rcv && rcv.outstanding > 0 && (
         <div className="mb-6 rounded border border-neutral-200 p-4">
@@ -127,7 +128,12 @@ export function InvoicesClient({ fetchImpl, canWrite = true }: InvoicesClientPro
           <div className="mb-3 grid gap-2 md:grid-cols-2">
             <Input value={header.number} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHeader({ ...header, number: e.target.value })} placeholder="請求書番号" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
             {customers.length > 0 && (
-              <Select value="" onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { const c = customers.find((x) => x.code === e.target.value); if (c) setHeader({ ...header, billTo: c.name }); }} className="rounded border border-neutral-300 px-2 py-1 text-sm" options={[{ label: "取引先から選択…", value: "" }, ...customers.map((c) => ({ label: c.name, value: String(c.code) }))]} />
+              <Select
+                value="" onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { const c = customers.find((x) => x.code === e.target.value); if (c) setHeader({ ...header, billTo: c.name }); }} className="rounded border border-neutral-300 px-2 py-1 text-sm"
+                options={[
+                  { label: "取引先から選択…", value: "" }, ...customers.map((c) => ({ label: c.name, value: String(c.code) })),
+                ]}
+              />
             )}
             <Input value={header.billTo} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHeader({ ...header, billTo: e.target.value })} placeholder="宛先" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
             <label className="text-xs text-neutral-500">発行日<Input type="date" value={header.issueDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHeader({ ...header, issueDate: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
@@ -143,7 +149,14 @@ export function InvoicesClient({ fetchImpl, canWrite = true }: InvoicesClientPro
                   <td className="px-1 py-1"><Input value={String(l.quantity)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { quantity: Number(e.target.value) || 0 })} inputMode="numeric" className="w-full rounded border border-neutral-300 px-2 py-1" /></td>
                   <td className="px-1 py-1"><Input value={String(l.unitPrice)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { unitPrice: Number(e.target.value) || 0 })} inputMode="numeric" className="w-full rounded border border-neutral-300 px-2 py-1" /></td>
                   <td className="px-1 py-1">
-                    <Select value={String(l.taxRate ?? 10)} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setLine(i, { taxRate: Number(e.target.value) as 10 | 8 | 0 })} className="w-full rounded border border-neutral-300 px-1 py-1" options={[{ label: "10%", value: "10" }, { label: "8%", value: "8" }, { label: "0%", value: "0" }]} />
+                    <Select
+                      value={String(l.taxRate ?? 10)} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setLine(i, { taxRate: Number(e.target.value) as 10 | 8 | 0 })} className="w-full rounded border border-neutral-300 px-1 py-1"
+                      options={[
+                        { label: "10%", value: "10"},
+                        {label: "8%", value: "8"},
+                        {label: "0%", value: "0" },
+                      ]}
+                    />
                   </td>
                   <td className="px-1 py-1">{lines.length > 1 && <Button aria-label="この明細行を削除" title="この明細行を削除" onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))} className="text-neutral-400">×</Button>}</td>
                 </tr>

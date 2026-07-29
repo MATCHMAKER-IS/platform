@@ -158,7 +158,10 @@ export function createPrismaNotificationStore(db: NotificationStoreDb): Notifica
       return db.notificationRow.count({ where: { userId, read: false } });
     },
     async markRead(userId, id) {
-      await db.notificationRow.update({ where: { id }, data: { read: true } });
+      // **userId で必ず絞る**。id だけで更新すると、他人の通知 ID を知っていれば
+      // 既読にできてしまう(メモリ実装は userId で絞っており、実装間で挙動が食い違っていた)。
+      // 該当が無ければ 0 件更新で何も起きない、が正しい振る舞い。
+      await db.notificationRow.updateMany({ where: { id, userId }, data: { read: true } });
     },
     async markAllRead(userId) {
       await db.notificationRow.updateMany({ where: { userId, read: false }, data: { read: true } });

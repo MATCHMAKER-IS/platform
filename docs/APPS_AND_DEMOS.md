@@ -16,6 +16,7 @@
 | 3003 | equipment-app（備品管理） | `pnpm dev:equipment` |
 | 3004 | public-site（公開サイト） | `pnpm dev:site` |
 | 3005 | platform-portal（基盤ポータル） | `pnpm dev:portal` |
+| 3006 | `balance-app` | 口座残高（freee 連携）| 残高の推移と入出金をグラフで見る。鍵が無ければ見本データで動く |
 
 ポートは各アプリの `package.json` の `dev` スクリプトで固定しています（`next dev --port XXXX`）。変更したらドキュメントも更新してください（不一致は `check-ports` が検出します）。
 

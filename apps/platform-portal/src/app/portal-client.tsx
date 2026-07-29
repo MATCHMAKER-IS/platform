@@ -70,7 +70,12 @@ export function PortalClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         <div>
           <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
             <Input value={q} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQ(e.target.value)} placeholder="名前・説明・export で検索（例: mail, retrieve, createDb）" style={{ flex: 1, minWidth: 240, padding: "8px 12px", border: "1px solid #ddd", borderRadius: 8 }} />
-            <Select value={cat} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCat(e.target.value)} style={{ padding: "8px 12px", border: "1px solid #ddd", borderRadius: 8 }} options={[{ label: "全カテゴリ", value: "" }, ...catalog.categories.map((c) => ({ label: `${c.name} (${c.count})`, value: String(c.name) }))]} />
+            <Select
+              value={cat} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setCat(e.target.value)} style={{ padding: "8px 12px", border: "1px solid #ddd", borderRadius: 8 }}
+              options={[
+                { label: "全カテゴリ", value: "" }, ...catalog.categories.map((c) => ({ label: `${c.name} (${c.count})`, value: String(c.name) })),
+              ]}
+            />
           </div>
           <p style={{ color: "var(--color-muted, #888)", fontSize: 12, margin: "0 0 12px" }}>{filtered.length} 件</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12 }}>

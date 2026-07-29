@@ -13,14 +13,32 @@
     {
       "name": "isActiveGrant",
       "kind": "function",
-      "summary": "有効な(まだ外されておらず、期限も切れていない)権限か。",
-      "signature": "isActiveGrant(g: AccessGrant, asOf: string): boolean"
+      "summary": "まだ有効な権限か。 外した日・期限のどちらかを過ぎていれば false。 **付与日より前の基準日でも false** にする(遡って有効にしない)。",
+      "signature": "isActiveGrant(g: AccessGrant, asOf: string): boolean",
+      "params": [
+        {
+          "name": "g",
+          "description": "権限の付与記録"
+        },
+        {
+          "name": "asOf",
+          "description": "基準日(YYYY-MM-DD)"
+        }
+      ],
+      "returns": "有効なら true"
     },
     {
       "name": "isStrongGrant",
       "kind": "function",
-      "summary": "強い権限か。前方一致も見る(`expense:*` のようなワイルドカード)。",
-      "signature": "isStrongGrant(grant: string): boolean"
+      "summary": "強い権限か。 ワイルドカード(`*` や `expense:*`)も対象にする。 これらは**恒久的に付けない**運用にしているため、期限の有無を検査する側で使う。",
+      "signature": "isStrongGrant(grant: string): boolean",
+      "params": [
+        {
+          "name": "grant",
+          "description": "ロール名または権限名"
+        }
+      ],
+      "returns": "強い権限なら true"
     },
     {
       "name": "OffboardingStep",
@@ -12356,6 +12374,47 @@
   ],
   "@platform/freee": [
     {
+      "name": "BalancePoint",
+      "kind": "interface",
+      "summary": "口座残高の集計。 freee から取れるのは**口座の一覧（今の残高）**と**明細**です。 「先月末はいくらだったか」「この 3 か月でどう動いたか」は、 明細から**逆算**する必要があります。 逆算するときの注意: - **入金・出金は符号ではなく `entry_side` で判断する**（freee は amount を正で返す） - 今の残高から過去へ遡る（明細の `balance` は欠けることがある） - 明細が無い日は**前日の残高を引き継ぐ**（0 にすると急落して見える）"
+    },
+    {
+      "name": "BalanceSnapshot",
+      "kind": "interface",
+      "summary": "残高の記録を溜めて、古いものを間引く。 1 日に数回取ると、1 年で 1 口座あたり千件を超えます。 ただし**過去を振り返るときに日単位は要りません**（月ごとの推移が分かれば足りる）。 そこで「**その月が終わったら、月末の 1 件だけ残す**」ようにします。 - 今月ぶんは全部残す（日々の動きを見たい） - 先月以前は月末の 1 件だけ（推移が分かればよい） **消す前に必ず「残すもの」を決めます。** 「消すもの」を選ぶ形にすると、 条件の書き間違いで全部消えます。"
+    },
+    {
+      "name": "BalanceSummary",
+      "kind": "interface",
+      "summary": "残高の要約。"
+    },
+    {
+      "name": "buildBalanceHistory",
+      "kind": "function",
+      "summary": "日付の昇順。 */ points: BalancePoint[]; } /** 日付を 1 日進める。 */ function nextDay(date: string): string { const d = new Date(`${date}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); } /** 明細から、日ごとの残高の推移を作る。 **今の残高から過去へ遡って計算します。** 明細に載っている `balance` は 欠けることがあるため、それには頼りません。",
+      "signature": "buildBalanceHistory(wallet: FreeeWalletable, txns: readonly FreeeWalletTxn[], from: string, to: string,): WalletBalanceHistory",
+      "params": [
+        {
+          "name": "wallet",
+          "description": "口座（今の残高を持つ）"
+        },
+        {
+          "name": "txns",
+          "description": "その口座の明細（期間内のすべて）"
+        },
+        {
+          "name": "from",
+          "description": "開始日（YYYY-MM-DD）"
+        },
+        {
+          "name": "to",
+          "description": "終了日（YYYY-MM-DD）"
+        }
+      ],
+      "returns": "日付昇順の推移",
+      "example": "const history = buildBalanceHistory(wallet, txns, \"2026-04-01\", \"2026-06-30\");\n// → [{ date: \"2026-04-01\", balance: 1_200_000, income: 0, expense: 0 }, …]"
+    },
+    {
       "name": "buildDeal",
       "kind": "function",
       "summary": "取引(deal)の作成ペイロードを組み立てる。 **明細の合計が総額と一致するか検証する**。ずれたまま送ると freee 側で エラーになるが、原因が分かりにくい。手元で弾く方が親切。",
@@ -12423,7 +12482,7 @@
     {
       "name": "createFreeeClient",
       "kind": "function",
-      "summary": "認証中ユーザー情報。 */ getMe(): Promise<Result<unknown>>; /** 利用可能な事業所一覧。 */ getCompanies(): Promise<Result<unknown>>; // ── 取引(deals) ── /** 取引(収入・支出)一覧。 */ getDeals(companyId: number, params?: FreeePaging): Promise<Result<unknown>>; /** 取引詳細。 */ getDeal(companyId: number, dealId: number): Promise<Result<unknown>>; /** 取引を作成する(body に company_id を含める)。 */ createDeal(body: Record<string, unknown>): Promise<Result<unknown>>; /** 取引を更新する。 */ updateDeal(dealId: number, body: Record<string, unknown>): Promise<Result<unknown>>; /** 取引を削除する。 */ deleteDeal(companyId: number, dealId: number): Promise<Result<unknown>>; // ── 証憑(receipts / ファイルボックス) ── /** 証憑ファイル(領収書等)をアップロードする。経費精算での添付に。 */ uploadReceipt(companyId: number, file: { filename: string; data: Uint8Array | Blob; contentType?: string }, description?: string): Promise<Result<unknown>>; /** 証憑一覧を取得する。 */ getReceipts(companyId: number, p?: { startDate?: string; endDate?: string; limit?: number; offset?: number }): Promise<Result<unknown>>; /** 証憑を1件取得する。 */ getReceipt(companyId: number, receiptId: number): Promise<Result<unknown>>; // ── 振替伝票(manual_journals) ── /** 振替伝票を作成する。 */ createManualJournal(body: unknown): Promise<Result<unknown>>; /** 振替伝票一覧を取得する。 */ getManualJournals(companyId: number, p?: FreeePaging): Promise<Result<unknown>>; // ── 仕訳帳(journals) ── ※非同期ダウンロード /** 仕訳帳のダウンロードを要求する(ダウンロード用 ID を返す)。 */ requestJournals(companyId: number, p?: { downloadType?: string; startDate?: string; endDate?: string }): Promise<Result<unknown>>; // ── 支払(deal payments) ── /** 取引に支払行を登録する(入金・出金の消し込み)。 */ createDealPayment(dealId: number, body: unknown): Promise<Result<unknown>>; // ── セグメント / タグ作成 ── /** セグメントタグ一覧を取得する。 */ getSegments(companyId: number, segmentId: number): Promise<Result<unknown>>; /** メモタグを作成する。 */ createTag(body: unknown): Promise<Result<unknown>>; // ── 取引先(partners) ── /** 取引先一覧。 */ getPartners(companyId: number, params?: FreeePaging): Promise<Result<unknown>>; /** 取引先を作成する。 */ createPartner(body: Record<string, unknown>): Promise<Result<unknown>>; /** 取引先を更新する。 */ updatePartner(partnerId: number, body: Record<string, unknown>): Promise<Result<unknown>>; // ── マスタ ── /** 勘定科目一覧。 */ getAccountItems(companyId: number): Promise<Result<unknown>>; /** 部門一覧。 */ getSections(companyId: number): Promise<Result<unknown>>; /** 品目一覧。 */ getItems(companyId: number): Promise<Result<unknown>>; /** メモタグ一覧。 */ getTags(companyId: number): Promise<Result<unknown>>; /** 税区分一覧。 */ getTaxes(companyId: number): Promise<Result<unknown>>; /** 口座(登録済みウォレット)一覧。 */ getWalletables(companyId: number): Promise<Result<unknown>>; // ── 請求書・見積書 ── /** 請求書一覧。 */ getInvoices(companyId: number, params?: FreeePaging): Promise<Result<unknown>>; /** 請求書を作成する。 */ createInvoice(body: Record<string, unknown>): Promise<Result<unknown>>; /** 見積書一覧。 */ getQuotations(companyId: number, params?: FreeePaging): Promise<Result<unknown>>; /** 見積書を作成する。 */ createQuotation(body: Record<string, unknown>): Promise<Result<unknown>>; // ── 経費申請(expense_applications) ── /** 経費申請一覧。 */ getExpenseApplications(companyId: number, params?: FreeePaging): Promise<Result<unknown>>; /** 経費申請を作成する。 */ createExpenseApplication(body: Record<string, unknown>): Promise<Result<unknown>>; // ── 口座明細・レポート ── /** 口座明細(入出金)一覧。 */ getWalletTxns(companyId: number, params?: FreeePaging & { walletableType?: string; walletableId?: number }): Promise<Result<unknown>>; /** 試算表(貸借対照表 bs / 損益計算書 pl)。 */ getTrialBalance(companyId: number, report: \"trial_bs\" | \"trial_pl\", params?: { fiscalYear?: number; startMonth?: number; endMonth?: number }): Promise<Result<unknown>>; /** セグメント一覧(セグメント1/2/3 のタグ)。 */ getSegmentTags(companyId: number, segmentId: 1 | 2 | 3): Promise<Result<unknown>>; // ── 承認ワークフロー ── /** 経費申請を承認/却下/差戻しする(申請の承認フロー操作)。 */ actionExpenseApplication(companyId: number, expenseApplicationId: number, action: \"approve\" | \"reject\" | \"cancel\" | \"feedback\", params?: { approvalStep?: number; comment?: string }): Promise<Result<unknown>>; /** 各種申請(承認依頼)の一覧。 */ getApprovalRequests(companyId: number, params?: FreeePaging & { applicationType?: string }): Promise<Result<unknown>>; /** 申請(承認依頼)を承認/却下する。 */ actionApprovalRequest(companyId: number, approvalRequestId: number, action: \"approve\" | \"reject\" | \"cancel\", params?: { approvalStep?: number; comment?: string }): Promise<Result<unknown>>; } /** freee クライアントを作る。",
+      "summary": "認証中ユーザー情報。 */ getMe(): Promise<Result<unknown>>; /** 利用可能な事業所一覧。 */ getCompanies(): Promise<Result<unknown>>; // ── 取引(deals) ── /** 取引(収入・支出)一覧。 */ getDeals(companyId: number, params?: FreeePaging): Promise<Result<unknown>>; /** 取引詳細。 */ getDeal(companyId: number, dealId: number): Promise<Result<unknown>>; /** 取引を作成する(body に company_id を含める)。 */ createDeal(body: Record<string, unknown>): Promise<Result<unknown>>; /** 取引を更新する。 */ updateDeal(dealId: number, body: Record<string, unknown>): Promise<Result<unknown>>; /** 取引を削除する。 */ deleteDeal(companyId: number, dealId: number): Promise<Result<unknown>>; // ── 証憑(receipts / ファイルボックス) ── /** 証憑ファイル(領収書等)をアップロードする。経費精算での添付に。 */ uploadReceipt(companyId: number, file: { filename: string; data: Uint8Array | Blob; contentType?: string }, description?: string): Promise<Result<unknown>>; /** 証憑一覧を取得する。 */ getReceipts(companyId: number, p?: { startDate?: string; endDate?: string; limit?: number; offset?: number }): Promise<Result<unknown>>; /** 証憑を1件取得する。 */ getReceipt(companyId: number, receiptId: number): Promise<Result<unknown>>; // ── 振替伝票(manual_journals) ── /** 振替伝票を作成する。 */ createManualJournal(body: unknown): Promise<Result<unknown>>; /** 振替伝票一覧を取得する。 */ getManualJournals(companyId: number, p?: FreeePaging): Promise<Result<unknown>>; // ── 仕訳帳(journals) ── ※非同期ダウンロード /** 仕訳帳のダウンロードを要求する(ダウンロード用 ID を返す)。 */ requestJournals(companyId: number, p?: { downloadType?: string; startDate?: string; endDate?: string }): Promise<Result<unknown>>; // ── 支払(deal payments) ── /** 取引に支払行を登録する(入金・出金の消し込み)。 */ createDealPayment(dealId: number, body: unknown): Promise<Result<unknown>>; // ── セグメント / タグ作成 ── /** セグメントタグ一覧を取得する。 */ getSegments(companyId: number, segmentId: number): Promise<Result<unknown>>; /** メモタグを作成する。 */ createTag(body: unknown): Promise<Result<unknown>>; // ── 取引先(partners) ── /** 取引先一覧。 */ getPartners(companyId: number, params?: FreeePaging): Promise<Result<unknown>>; /** 取引先を作成する。 */ createPartner(body: Record<string, unknown>): Promise<Result<unknown>>; /** 取引先を更新する。 */ updatePartner(partnerId: number, body: Record<string, unknown>): Promise<Result<unknown>>; // ── マスタ ── /** 勘定科目一覧。 */ getAccountItems(companyId: number): Promise<Result<unknown>>; /** 部門一覧。 */ getSections(companyId: number): Promise<Result<unknown>>; /** 品目一覧。 */ getItems(companyId: number): Promise<Result<unknown>>; /** メモタグ一覧。 */ getTags(companyId: number): Promise<Result<unknown>>; /** 税区分一覧。 */ getTaxes(companyId: number): Promise<Result<unknown>>; /** 口座(登録済みウォレット)一覧。 */ getWalletables(companyId: number): Promise<Result<FreeeWalletablesResponse>>; // ── 請求書・見積書 ── /** 請求書一覧。 */ getInvoices(companyId: number, params?: FreeePaging): Promise<Result<unknown>>; /** 請求書を作成する。 */ createInvoice(body: Record<string, unknown>): Promise<Result<unknown>>; /** 見積書一覧。 */ getQuotations(companyId: number, params?: FreeePaging): Promise<Result<unknown>>; /** 見積書を作成する。 */ createQuotation(body: Record<string, unknown>): Promise<Result<unknown>>; // ── 経費申請(expense_applications) ── /** 経費申請一覧。 */ getExpenseApplications(companyId: number, params?: FreeePaging): Promise<Result<unknown>>; /** 経費申請を作成する。 */ createExpenseApplication(body: Record<string, unknown>): Promise<Result<unknown>>; // ── 口座明細・レポート ── /** 口座明細(入出金)一覧。 */ getWalletTxns(companyId: number, params?: FreeePaging & { walletableType?: string; walletableId?: number }): Promise<Result<FreeeWalletTxnsResponse>>; /** 試算表(貸借対照表 bs / 損益計算書 pl)。 */ getTrialBalance(companyId: number, report: \"trial_bs\" | \"trial_pl\", params?: { fiscalYear?: number; startMonth?: number; endMonth?: number }): Promise<Result<unknown>>; /** セグメント一覧(セグメント1/2/3 のタグ)。 */ getSegmentTags(companyId: number, segmentId: 1 | 2 | 3): Promise<Result<unknown>>; // ── 承認ワークフロー ── /** 経費申請を承認/却下/差戻しする(申請の承認フロー操作)。 */ actionExpenseApplication(companyId: number, expenseApplicationId: number, action: \"approve\" | \"reject\" | \"cancel\" | \"feedback\", params?: { approvalStep?: number; comment?: string }): Promise<Result<unknown>>; /** 各種申請(承認依頼)の一覧。 */ getApprovalRequests(companyId: number, params?: FreeePaging & { applicationType?: string }): Promise<Result<unknown>>; /** 申請(承認依頼)を承認/却下する。 */ actionApprovalRequest(companyId: number, approvalRequestId: number, action: \"approve\" | \"reject\" | \"cancel\", params?: { approvalStep?: number; comment?: string }): Promise<Result<unknown>>; } /** freee クライアントを作る。",
       "signature": "createFreeeClient(config: { accessToken: string; fetchImpl?: typeof fetch }): FreeeClient",
       "params": [
         {
@@ -12532,7 +12591,7 @@
     {
       "name": "FreeePaging",
       "kind": "interface",
-      "summary": "`@platform/freee` — freee 会計 API クライアント。 事業所・取引・取引先・勘定科目に加え、請求書・見積書・経費申請・各種マスタ(部門/品目/ メモタグ/税区分)・口座明細・試算表を型付きで扱う。多くのエンドポイントで company_id が必須。 OAuth トークンの取得・更新はアプリ側の責務(fetchImpl 注入で耐障害ラッパーと合成可能)。"
+      "summary": ""
     },
     {
       "name": "FreeeTokenConfig",
@@ -12548,6 +12607,26 @@
       "name": "FreeeTokenResult",
       "kind": "interface",
       "summary": "freee OAuth2 トークン管理。freee のアクセストークンは約6時間で失効するため、 リフレッシュトークンで自動更新する。401 時の自動リトライつき authed fetch も提供する。 トークンの永続化(DB 保存等)は onRefresh コールバックでアプリ側に委ねる。"
+    },
+    {
+      "name": "FreeeWalletable",
+      "kind": "interface",
+      "summary": "`@platform/freee` — freee 会計 API クライアント。 事業所・取引・取引先・勘定科目に加え、請求書・見積書・経費申請・各種マスタ(部門/品目/ メモタグ/税区分)・口座明細・試算表を型付きで扱う。多くのエンドポイントで company_id が必須。 OAuth トークンの取得・更新はアプリ側の責務(fetchImpl 注入で耐障害ラッパーと合成可能)。"
+    },
+    {
+      "name": "FreeeWalletablesResponse",
+      "kind": "interface",
+      "summary": "口座の種類。 */ type: \"bank_account\" | \"credit_card\" | \"wallet\"; /** 帳簿上の残高（円）。同期が遅れていると実際とずれる。 */ walletable_balance?: number; /** 同期して取り込んだ残高（円）。銀行と繋いでいる場合のみ。 */ last_balance?: number; bank_id?: number; } /** 口座一覧の応答。"
+    },
+    {
+      "name": "FreeeWalletTxn",
+      "kind": "interface",
+      "summary": "口座の明細 1 件。"
+    },
+    {
+      "name": "FreeeWalletTxnsResponse",
+      "kind": "interface",
+      "summary": "日付（YYYY-MM-DD）。 */ date: string; /** 金額（円）。入金は正、出金は負ではなく `entry_side` で判断する。 */ amount: number; /** `income`(入金) か `expense`(出金)。**符号ではなくこれで判断する**。 */ entry_side: \"income\" | \"expense\"; /** 残高（この明細の時点）。 */ balance?: number; description?: string; } /** 明細一覧の応答。"
     },
     {
       "name": "FreeeWebhookEvent",
@@ -12594,6 +12673,59 @@
       "returns": "イベントの配列。**解析できなければ空配列**"
     },
     {
+      "name": "planRetention",
+      "kind": "function",
+      "summary": "残すもの。 */ keep: BalanceSnapshot[]; /** 消してよいもの。 */ remove: BalanceSnapshot[]; /** 判断の内訳（記録に残す用）。 */ reason: { /** 今月ぶんとして残した数。 */ currentMonth: number; /** 月末として残した数。 */ monthEnd: number; /** 消した数。 */ removed: number; }; } /** その日が月の最終日か。 */ function isLastDayOfMonth(date: string): boolean { const d = new Date(`${date}T00:00:00Z`); const next = new Date(d); next.setUTCDate(next.getUTCDate() + 1); return next.getUTCMonth() !== d.getUTCMonth(); } /** ISO 8601 から日付（YYYY-MM-DD）を取り出す。 */ function dateOf(takenAt: string): string { return takenAt.slice(0, 10); } /** 残す記録と消す記録を決める。 **消さずに返すだけ**です。実際に消すのは呼び出し側の責任にしています （間違いに気づいたときに、実行前で止められるように）。",
+      "signature": "planRetention(snapshots: readonly BalanceSnapshot[], asOf: string,): RetentionPlan",
+      "params": [
+        {
+          "name": "snapshots",
+          "description": "対象の記録（口座はまたいでよい）"
+        },
+        {
+          "name": "asOf",
+          "description": "基準日（YYYY-MM-DD）。この月が「今月」になる"
+        }
+      ],
+      "returns": "残すもの・消すもの・その理由",
+      "example": "const plan = planRetention(all, \"2026-07-23\");\nlogger.info({ ...plan.reason }, \"残高記録の間引き\");\nawait store.removeMany(plan.remove.map((s) => s.takenAt));"
+    },
+    {
+      "name": "RetentionPlan",
+      "kind": "interface",
+      "summary": "口座 ID。 */ walletableId: number; /** 取得した時刻（ISO 8601）。 */ takenAt: string; /** その時点の残高（円）。 */ balance: number; /** 口座名（後から口座が消えても分かるように残す）。 */ walletableName?: string; } /** 間引きの判断。"
+    },
+    {
+      "name": "summarizeBalance",
+      "kind": "function",
+      "summary": "期間の最後の残高。 */ latest: number; /** 期間の最初からの増減。 */ change: number; /** 期間中の最小。 */ min: number; /** 期間中の最大。 */ max: number; /** 残高が最も少なかった日。**資金繰りで最初に見る**。 */ minDate: string; } /** 推移から要約を出す。 **最小と、それがいつだったか**を必ず返します。 平均や最新だけでは、月末に資金が足りなくなる兆候を見逃します。",
+      "signature": "summarizeBalance(points: readonly BalancePoint[]): BalanceSummary | null",
+      "params": [
+        {
+          "name": "points",
+          "description": "日付昇順の推移"
+        }
+      ],
+      "returns": "要約（空なら null）"
+    },
+    {
+      "name": "totalBalance",
+      "kind": "function",
+      "summary": "複数の口座を合算する。 **クレジットカードは負債**なので、単純に足すと実際より多く見えます。 合算するかどうかを `includeCreditCard` で選べるようにしてあります。",
+      "signature": "totalBalance(histories: readonly WalletBalanceHistory[], options: { includeCreditCard?: boolean } = {},): BalancePoint[]",
+      "params": [
+        {
+          "name": "histories",
+          "description": "口座ごとの推移（同じ期間であること）"
+        },
+        {
+          "name": "options",
+          "description": "クレジットカードを含めるか（既定 false）"
+        }
+      ],
+      "returns": "合算した推移"
+    },
+    {
       "name": "verifyFreeeSignature",
       "kind": "function",
       "summary": "freee Webhook の署名検証。freee は Webhook 本文の HMAC-SHA256(hex)を送る。 アプリ登録時に発行される署名シークレットで検証する。",
@@ -12613,6 +12745,24 @@
         }
       ],
       "returns": "署名が正当なら true。**必ず検証すること**(しないと誰でも偽の通知を送れる)"
+    },
+    {
+      "name": "verifyRetention",
+      "kind": "function",
+      "summary": "間引いた結果が妥当かを確かめる。 **月末の記録が消えていないか**を見ます。 条件の書き間違いで過去が消えると、元に戻せません。",
+      "signature": "verifyRetention(plan: RetentionPlan): string[]",
+      "params": [
+        {
+          "name": "plan",
+          "description": "間引きの判断"
+        }
+      ],
+      "returns": "問題があればその説明（無ければ空）"
+    },
+    {
+      "name": "WalletBalanceHistory",
+      "kind": "interface",
+      "summary": "日付（YYYY-MM-DD）。 */ date: string; /** その日の終わりの残高（円）。 */ balance: number; /** その日の入金合計（円）。 */ income: number; /** その日の出金合計（円）。 */ expense: number; } /** 口座ごとの推移。"
     },
     {
       "name": "WorkRecordInput",

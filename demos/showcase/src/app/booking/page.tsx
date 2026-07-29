@@ -12,6 +12,7 @@
  *  - 同一人物の二重予約を断る／予約一覧・キャンセル・localStorage 保存
  */
 import * as React from "react";
+import { UsesPackages } from "../../components/uses-packages";
 import {
   generateSlots, availableSlots, hasConflict, isWithinBookingWindow, canCancel,
   type Slot, type BookingInterval,
@@ -178,6 +179,15 @@ export default function Page() {
         スロット生成・空き枠計算・二重予約・受付期間・キャンセル期限は <code>@platform/booking</code> の純ロジック。
         「同じ人が同じ枠を二重に取れない」のような業務ルールはアプリ側に置いています。日時計算は <code>@platform/datetime</code>。
       </Alert>
+          <UsesPackages
+        packages={["booking"]}
+        imports={{ booking: ["availableSlots", "canCancel", "countOverlapping"] }}
+        snippet={`// 空きは「重なっている数」から出す。予約表を直接見ない
+const slots = availableSlots({ date, opening, duration: 30, existing });
+
+// 取消できるかは規程で決まる(前日まで、など)
+if (!canCancel(reservation, { hoursBefore: 24 }, now)) return showPolicy();`}
+      />
     </main>
   );
 }

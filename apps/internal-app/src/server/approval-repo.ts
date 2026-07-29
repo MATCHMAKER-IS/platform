@@ -52,7 +52,6 @@ export async function applyAction(
   reason?: string,
 ): Promise<Result<WorkflowState>> {
   let prevState: WorkflowState | null = null;
-  let applicant = "";
   const committed = await withTransaction(db, async (tx) => {
     const row = (await tx.expenseRequest.findUnique({ where: { id: requestId } })) as ExpenseRequestRow | null;
     if (!row) throw new Error("申請が見つかりません");
@@ -61,7 +60,6 @@ export async function applyAction(
     const placeholder: Expense = { id: row.expenseId, date: "", category: "", amount: 0 };
     const request: ExpenseRequest = { id: row.id, applicant: row.applicant, expense: placeholder, state: rowToState(row) };
     prevState = request.state;
-    applicant = row.applicant;
     const result = actOn(request, actor, action, reason);
     if (result.error) throw new Error(result.error);
 

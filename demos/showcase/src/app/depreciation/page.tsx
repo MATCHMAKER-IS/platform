@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react";
+import { UsesPackages } from "../../components/uses-packages";
 import { Button } from "@platform/ui";
 import { DepreciationDemo } from "./dep-demo";
 import { SequenceDemo } from "./seq-demo";
@@ -15,6 +16,15 @@ export default function Page() {
           style={{ fontSize: 13, padding: "6px 14px", borderRadius: 8, cursor: "pointer", border: "1px solid var(--color-border)", background: tab === t.id ? "var(--color-primary)" : "var(--color-bg)", color: tab === t.id ? "var(--color-primary-fg)" : "var(--color-fg)" }}>{t.label}</Button>))}
       </div>
       <Active />
+          <UsesPackages
+        packages={["depreciation", "tax"]}
+        imports={{ depreciation: ["depreciationSchedule", "bookValueAt"] }}
+        snippet={`// 定額法・定率法の年次表を出す。端数の扱いは法令に合わせてある
+const schedule = depreciationSchedule({
+  cost: 1_200_000, usefulLife: 5, method: "straight-line", startDate: "2026-04-01",
+});
+const value = bookValueAt(schedule, "2028-03-31");   // 期末の簿価`}
+      />
     </main>
   );
 }

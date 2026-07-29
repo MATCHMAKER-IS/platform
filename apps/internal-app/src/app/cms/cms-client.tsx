@@ -214,7 +214,12 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
           <label className="text-sm">slug<Input value={editing.slug} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ slug: e.target.value })} placeholder="my-post" className="mt-1 w-full rounded border border-[var(--color-border)] px-2 py-1" /></label>
           <label className="text-sm">タイトル<Input value={editing.title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ title: e.target.value })} className="mt-1 w-full rounded border border-[var(--color-border)] px-2 py-1" /></label>
           <label className="text-sm">カテゴリ
-            <Select value={editing.categoryId} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set({ categoryId: e.target.value })} className="mt-1 block w-full rounded border border-[var(--color-border)] px-2 py-1" options={[{ label: "（未分類）", value: "" }, ...categoryOptions.map((c) => ({ label: c.name, value: String(c.id) }))]} />
+            <Select
+              value={editing.categoryId} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set({ categoryId: e.target.value })} className="mt-1 block w-full rounded border border-[var(--color-border)] px-2 py-1"
+              options={[
+                { label: "（未分類）", value: "" }, ...categoryOptions.map((c) => ({ label: c.name, value: String(c.id) })),
+              ]}
+            />
           </label>
           <label className="text-sm">アイキャッチ URL<Input value={editing.eyecatch} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ eyecatch: e.target.value })} className="mt-1 w-full rounded border border-[var(--color-border)] px-2 py-1" /></label>
           <label className="text-sm">抜粋<Input value={editing.excerpt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ excerpt: e.target.value })} className="mt-1 w-full rounded border border-[var(--color-border)] px-2 py-1" /></label>
@@ -322,8 +327,18 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
             </Button>
           ))}
           <Input value={query} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)} placeholder="タイトル・本文・タグで検索" className="ml-auto w-56 rounded border border-[var(--color-border)] px-2 py-1 text-sm" />
-          <Select value={filterCategory} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterCategory(e.target.value)} className="rounded border border-[var(--color-border)] px-2 py-1 text-sm" options={[{ label: "全カテゴリ", value: "" }, ...categoryOptions.map((c) => ({ label: c.name, value: String(c.id) }))]} />
-          <Select value={filterTag} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterTag(e.target.value)} className="rounded border border-[var(--color-border)] px-2 py-1 text-sm" options={[{ label: "全タグ", value: "" }, ...allTagsFromPosts.map((t) => ({ label: t, value: String(t) }))]} />
+          <Select
+            value={filterCategory} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterCategory(e.target.value)} className="rounded border border-[var(--color-border)] px-2 py-1 text-sm"
+            options={[
+              { label: "全カテゴリ", value: "" }, ...categoryOptions.map((c) => ({ label: c.name, value: String(c.id) })),
+            ]}
+          />
+          <Select
+            value={filterTag} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilterTag(e.target.value)} className="rounded border border-[var(--color-border)] px-2 py-1 text-sm"
+            options={[
+              { label: "全タグ", value: "" }, ...allTagsFromPosts.map((t) => ({ label: t, value: String(t) })),
+            ]}
+          />
         </div>
         <table className="w-full text-sm">
           <thead>

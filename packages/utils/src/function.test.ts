@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { debounce, memoize, once, pipe, compose } from "./function";
 describe("function utils", () => {
   it("debounce collapses calls", async () => {

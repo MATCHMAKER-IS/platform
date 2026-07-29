@@ -41,12 +41,12 @@ a{color:var(--primary)}
 <header><h1>public-site リファレンス</h1></header>
 <div class="wrap">
 <div class="tabs"><a class="tab" href="index.html">← 基盤に戻る</a></div>
-<p class="count">画面 12 / API 1</p>
+<p class="count">画面 12 / API 3</p>
 <input class="search" placeholder="パス・タイトルで検索…" oninput="filterCards(this.value)">
 <h2>画面（12）</h2>
 <div class="card"><table><thead><tr><th>パス</th><th>タイトル</th></tr></thead><tbody><tr data-search="/ "><td><code>/</code></td><td></td></tr><tr data-search="/:slug "><td><code>/:slug</code></td><td></td></tr><tr data-search="/blog ブログ"><td><code>/blog</code></td><td>ブログ</td></tr><tr data-search="/blog/:slug "><td><code>/blog/:slug</code></td><td></td></tr><tr data-search="/blog/category/:slug "><td><code>/blog/category/:slug</code></td><td></td></tr><tr data-search="/blog/tag/:tag #${decodeURIComponent(tag)} の記事"><td><code>/blog/tag/:tag</code></td><td>#${decodeURIComponent(tag)} の記事</td></tr><tr data-search="/contact お問い合わせ"><td><code>/contact</code></td><td>お問い合わせ</td></tr><tr data-search="/preview/:slug プレビュー"><td><code>/preview/:slug</code></td><td>プレビュー</td></tr><tr data-search="/reviews お客様の声"><td><code>/reviews</code></td><td>お客様の声</td></tr><tr data-search="/search 検索結果"><td><code>/search</code></td><td>検索結果</td></tr><tr data-search="/feed.xml GET"><td><code>/feed.xml</code></td><td>GET</td></tr><tr data-search="/sitemap.xml GET"><td><code>/sitemap.xml</code></td><td>GET</td></tr></tbody></table></div>
-<h2>API（1）</h2>
-<div class="card"><table><thead><tr><th>パス</th><th>タイトル</th></tr></thead><tbody><tr data-search="/api/contact POST"><td><code>/api/contact</code></td><td>POST</td></tr></tbody></table></div>
+<h2>API（3）</h2>
+<div class="card"><table><thead><tr><th>パス</th><th>タイトル</th></tr></thead><tbody><tr data-search="/api/contact POST"><td><code>/api/contact</code></td><td>POST</td></tr><tr data-search="/api/health GET"><td><code>/api/health</code></td><td>GET</td></tr><tr data-search="/api/ready GET"><td><code>/api/ready</code></td><td>GET</td></tr></tbody></table></div>
 </div>
 <script>
 function filterCards(q){

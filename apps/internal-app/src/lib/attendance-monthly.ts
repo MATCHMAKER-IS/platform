@@ -2,8 +2,8 @@
  * 勤怠の月次集計(営業日・出勤率・有給)。`@platform/datetime` の営業日/祝日判定を活用。
  * @packageDocumentation
  */
-import { utcDate, daysInMonth, isBusinessDay, dayNumber } from "@platform/datetime";
-import { summarizeAttendance, workedMinutes, type AttendanceRecord } from "./attendance";
+import { utcDate, daysInMonth, isBusinessDay } from "@platform/datetime";
+import { summarizeAttendance, type AttendanceRecord } from "./attendance";
 
 /** 指定月(year, month=1〜12)の営業日数(土日・祝日を除く)。 */
 export function expectedWorkdays(year: number, month: number): number {

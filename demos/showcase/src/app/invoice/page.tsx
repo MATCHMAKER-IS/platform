@@ -1,6 +1,7 @@
 "use client";
 /** 請求・インボイス・税の統合デモ（請求書帳票・インボイス作成・消費税計算をタブでまとめたもの）。 */
 import * as React from "react";
+import { UsesPackages } from "../../components/uses-packages";
 import { Button } from "@platform/ui";
 import { InvoiceDemo } from "./invoice-demo";
 import { InvoiceBuilderDemo } from "./builder-demo";
@@ -23,6 +24,15 @@ export default function Page() {
           style={{ fontSize: 13, padding: "6px 14px", borderRadius: 8, cursor: "pointer", border: "1px solid var(--color-border)", background: tab === t.id ? "var(--color-primary)" : "var(--color-bg)", color: tab === t.id ? "var(--color-primary-fg)" : "var(--color-fg)" }}>{t.label}</Button>))}
       </div>
       <Active />
+          <UsesPackages
+        packages={["invoice", "tax"]}
+        imports={{ invoice: ["buildInvoice", "balanceDue", "agingBuckets"] }}
+        snippet={`const inv = buildInvoice({ number: "INV-001", issueDate, dueDate, lines });
+const rest = balanceDue(inv, payments);          // 入金を差し引いた残額
+
+// 滞留の把握。30/60/90 日で区切って督促の優先度を決める
+const aging = agingBuckets(invoices, today);`}
+      />
     </main>
   );
 }

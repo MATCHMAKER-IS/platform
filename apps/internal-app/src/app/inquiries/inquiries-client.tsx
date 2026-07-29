@@ -34,7 +34,15 @@ export function InquiriesClient({ fetchImpl }: InquiriesClientProps) {
     <div className="mx-auto max-w-4xl p-6">
       <div className="mb-1 flex items-center justify-between">
         <h1 className="text-2xl font-bold">お問い合わせ管理 {open > 0 && <span className="ml-1 rounded-full bg-red-600 px-2 py-0.5 text-sm text-white">{open}</span>}</h1>
-        <Select value={filter} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilter(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-sm" options={[{ label: "すべて", value: "" }, { label: "未対応", value: "new" }, { label: "対応中", value: "in_progress" }, { label: "完了", value: "closed" }]} />
+        <Select
+          value={filter} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilter(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-sm"
+          options={[
+            { label: "すべて", value: ""},
+            {label: "未対応", value: "new"},
+            {label: "対応中", value: "in_progress"},
+            {label: "完了", value: "closed" },
+          ]}
+        />
       </div>
       <p className="mb-4 text-xs text-neutral-500">未対応 {open} 件。行をクリックで詳細、状況を切り替えられます。</p>
 

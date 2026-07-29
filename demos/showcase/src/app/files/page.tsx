@@ -1,6 +1,7 @@
 "use client";
 /** ファイル・画像の統合デモ（アップロード/DL・画像編集をタブでまとめたもの）。 */
 import * as React from "react";
+import { UsesPackages } from "../../components/uses-packages";
 import { Button } from "@platform/ui";
 import { FilesDemo } from "./files-demo";
 import { ImageDemo } from "./image-demo";
@@ -21,6 +22,16 @@ export default function Page() {
           style={{ fontSize: 13, padding: "6px 14px", borderRadius: 8, cursor: "pointer", border: "1px solid var(--color-border)", background: tab === t.id ? "var(--color-primary)" : "var(--color-bg)", color: tab === t.id ? "var(--color-primary-fg)" : "var(--color-fg)" }}>{t.label}</Button>))}
       </div>
       <Active />
+          <UsesPackages
+        packages={["storage", "upload", "image"]}
+        imports={{ upload: ["validateUpload"] }}
+        snippet={`// 受け取る形式と上限を先に決める(選んでから断るのが最も不親切)
+const check = validateUpload(file, {
+  maxBytes: 10 * 1024 * 1024,
+  accept: ["image/png", "image/jpeg", "application/pdf"],
+});
+if (!check.ok) return showError(check.reason);`}
+      />
     </main>
   );
 }

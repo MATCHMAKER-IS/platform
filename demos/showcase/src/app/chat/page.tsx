@@ -1,6 +1,7 @@
 "use client";
 /** チャット・掲示板 の統合デモ（タブでまとめたもの）。 */
 import * as React from "react";
+import { UsesPackages } from "../../components/uses-packages";
 import { Button } from "@platform/ui";
 import { ChatDemo } from "./chat-demo";
 import { BoardThreadsDemo } from "./board-demo";
@@ -23,6 +24,15 @@ export default function Page() {
           style={{ fontSize: 13, padding: "6px 14px", borderRadius: 8, cursor: "pointer", border: "1px solid var(--color-border)", background: tab === t.id ? "var(--color-primary)" : "var(--color-bg)", color: tab === t.id ? "var(--color-primary-fg)" : "var(--color-fg)" }}>{t.label}</Button>))}
       </div>
       <Active />
+          <UsesPackages
+        packages={["chat", "realtime", "ui"]}
+        imports={{ chat: ["createRoom", "createMessage", "unreadCount"] }}
+        snippet={`const room = createRoom({ id: "r1", members: ["u1", "u2"] });
+const msg = createMessage({ roomId: room.id, authorId: "u1", text: "確認しました" });
+
+// 未読は「自分以外・最終既読より後」。本人の発言を数えない
+const unread = unreadCount(messages, { userId: "u2", lastReadAt });`}
+      />
     </main>
   );
 }

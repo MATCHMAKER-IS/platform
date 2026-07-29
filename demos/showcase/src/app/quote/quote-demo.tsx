@@ -127,11 +127,14 @@ export function QuoteDemo() {
                   <Input type="number" value={l.discount ?? 0} onChange={(e) => update(i, { discount: Number(e.target.value) })} style={{ ...cell, textAlign: "right" }} />
                 </td>
                 <td style={{ padding: 4, width: 75 }}>
-                  <select value={l.taxRate ?? 10} onChange={(e) => update(i, { taxRate: Number(e.target.value) as TaxRate })} style={cell}>
-                    <option value={10}>10%</option>
-                    <option value={8}>8%</option>
-                    <option value={0}>0%</option>
-                  </select>
+                  <Select
+                    value={String(l.taxRate ?? 10)} onChange={(e) => update(i, { taxRate: Number(e.target.value) as TaxRate })} style={cell}
+                    options={[
+                      { label: "10%", value: "10"},
+                      {label: "8%", value: "8"},
+                      {label: "0%", value: "0" },
+                    ]}
+                  />
                 </td>
                 <td style={{ padding: 4, textAlign: "right", fontWeight: 700 }}>{yen(lineNet(l))}</td>
               </tr>

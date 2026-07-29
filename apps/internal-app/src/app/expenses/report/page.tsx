@@ -30,10 +30,20 @@ export default function ReportPage() {
 
       <div style={{ display: "flex", gap: "1rem", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap" }}>
         <label>対象月:
-          <Select value={month} onChange={(e: ChangeEvent<HTMLSelectElement>) => setMonth(e.target.value)} style={{ marginLeft: ".5rem", padding: ".25rem .5rem" }} options={[...months.map((m) => ({ label: m, value: String(m) }))]} />
+          <Select
+            value={month} onChange={(e: ChangeEvent<HTMLSelectElement>) => setMonth(e.target.value)} style={{ marginLeft: ".5rem", padding: ".25rem .5rem" }}
+            options={[
+              ...months.map((m) => ({ label: m, value: String(m) })),
+            ]}
+          />
         </label>
         <label>言語:
-          <Select value={locale} onChange={(e: ChangeEvent<HTMLSelectElement>) => setLocale(e.target.value as ReportLocale)} style={{ marginLeft: ".5rem", padding: ".25rem .5rem" }} options={[...LOCALES.map((l) => ({ label: l, value: String(l) }))]} />
+          <Select
+            value={locale} onChange={(e: ChangeEvent<HTMLSelectElement>) => setLocale(e.target.value as ReportLocale)} style={{ marginLeft: ".5rem", padding: ".25rem .5rem" }}
+            options={[
+              ...LOCALES.map((l) => ({ label: l, value: String(l) })),
+            ]}
+          />
         </label>
         <Button onClick={download}>HTML ダウンロード</Button>
         <a href={`/api/expenses/report?month=${month}`} style={{ textDecoration: "none" }}><Button>Excel ダウンロード</Button></a>

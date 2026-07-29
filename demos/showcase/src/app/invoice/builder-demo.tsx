@@ -141,11 +141,14 @@ export function InvoiceBuilderDemo() {
                   <Input type="number" value={l.discount ?? 0} onChange={(e) => update(i, { discount: Number(e.target.value) })} style={{ ...cell, textAlign: "right" }} />
                 </td>
                 <td style={{ padding: 4, width: 80 }}>
-                  <select value={l.taxRate ?? 10} onChange={(e) => update(i, { taxRate: Number(e.target.value) as TaxRate })} style={cell}>
-                    <option value={10}>10%</option>
-                    <option value={8}>8%</option>
-                    <option value={0}>0%</option>
-                  </select>
+                  <Select
+                    value={String(l.taxRate ?? 10)} onChange={(e) => update(i, { taxRate: Number(e.target.value) as TaxRate })} style={cell}
+                    options={[
+                      { label: "10%", value: "10"},
+                      {label: "8%", value: "8"},
+                      {label: "0%", value: "0" },
+                    ]}
+                  />
                 </td>
                 <td style={{ padding: 4, textAlign: "right", fontWeight: 700 }}>{yen(lineNet(l))}</td>
               </tr>
@@ -175,7 +178,14 @@ export function InvoiceBuilderDemo() {
           </label>
           <label style={{ fontSize: 12 }}>
             <div style={{ marginBottom: 4, color: "var(--color-muted)" }}>端数処理</div>
-            <Select value={rounding} onChange={(e) => setRounding(e.target.value as Rounding)} style={{ ...cell, width: 110 }} options={[{ label: "切り捨て", value: "floor" }, { label: "四捨五入", value: "round" }, { label: "切り上げ", value: "ceil" }]} />
+            <Select
+              value={rounding} onChange={(e) => setRounding(e.target.value as Rounding)} style={{ ...cell, width: 110 }}
+              options={[
+                { label: "切り捨て", value: "floor"},
+                {label: "四捨五入", value: "round"},
+                {label: "切り上げ", value: "ceil" },
+              ]}
+            />
           </label>
           <label style={{ fontSize: 12 }}>
             <div style={{ marginBottom: 4, color: "var(--color-muted)" }}>入金額</div>

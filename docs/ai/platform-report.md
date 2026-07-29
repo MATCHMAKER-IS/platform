@@ -9,9 +9,9 @@
 | パッケージ数 | 113 |
 | README 整備率 | 113/113(100%) |
 | ユニットテスト保有パッケージ | 99/113(88%)・テストファイル 285 |
-| 実装行数(packages/src, テスト除く) | 68,689 行 |
-| 公開 API(export) | 3462(api-surface 追跡) |
-| スモーク検証 | 1441 チェック / 368 セクション(実測は `pnpm verify:offline`) |
+| 実装行数(packages/src, テスト除く) | 69,196 行 |
+| 公開 API(export) | 3476(api-surface 追跡) |
+| スモーク検証 | 1444 チェック / 369 セクション(実測は `pnpm verify:offline`) |
 | ADR | 18 件 / デモ | 1 本 |
 
 ## アプリ
@@ -19,9 +19,9 @@
 | アプリ | API route | client コンポーネント | Prisma モデル |
 |---|---|---|---|
 | internal-app | 215 | 103 | 65 |
-| public-site | 4 | 5 | 0 |
-| crud-template | 2 | 1 | 1 |
-| equipment-app | 7 | 1 | 2 |
+| public-site | 6 | 6 | 0 |
+| crud-template | 4 | 2 | 1 |
+| equipment-app | 9 | 2 | 2 |
 
 ## カテゴリ分布(packages)
 

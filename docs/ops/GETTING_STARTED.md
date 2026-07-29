@@ -292,6 +292,7 @@ pnpm dev
 | http://localhost:3003 | 備品管理 |
 | http://localhost:3004 | 公開サイト |
 | http://localhost:3005 | 基盤ポータル（部品カタログ） |
+| http://localhost:3006 | 口座残高（freee 連携・鍵が無ければ見本データ） |
 
 止めるときは、ターミナルで `Ctrl + C`。
 

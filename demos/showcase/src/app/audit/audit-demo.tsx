@@ -1,7 +1,7 @@
 "use client";
 /** 監査ログのデモ: 差分抽出・redact・ハッシュチェーン・絞り込み。 */
 import * as React from "react";
-import { Button } from "@platform/ui";
+import { Button, Select } from "@platform/ui";
 import {
   diffChanges,
   describeEvent,
@@ -132,24 +132,27 @@ export function AuditDemo() {
       <div style={box}>
         <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>② 絞り込み</h2>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-          <select value={actor} onChange={(e) => setActor(e.target.value)} style={{ padding: "5px 8px", borderRadius: 4, border: "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-fg)", fontSize: 12 }}>
-            <option value="">操作者: すべて</option>
-            {actors.map((a) => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </select>
-          <select value={action} onChange={(e) => setAction(e.target.value)} style={{ padding: "5px 8px", borderRadius: 4, border: "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-fg)", fontSize: 12 }}>
-            <option value="">操作: すべて</option>
-            {actions.map((a) => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </select>
-          <select value={target} onChange={(e) => setTarget(e.target.value)} style={{ padding: "5px 8px", borderRadius: 4, border: "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-fg)", fontSize: 12 }}>
-            <option value="">対象: すべて</option>
-            {targets.map((a) => (
-              <option key={a} value={a}>{a}</option>
-            ))}
-          </select>
+          <Select
+            value={actor} onChange={(e) => setActor(e.target.value)} style={{ padding: "5px 8px", borderRadius: 4, border: "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-fg)", fontSize: 12 }}
+            options={[
+              { label: "操作者: すべて", value: "" },
+              ...actors.map((a) => ({ label: a, value: a })),
+            ]}
+          />
+          <Select
+            value={action} onChange={(e) => setAction(e.target.value)} style={{ padding: "5px 8px", borderRadius: 4, border: "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-fg)", fontSize: 12 }}
+            options={[
+              { label: "操作: すべて", value: "" },
+              ...actions.map((a) => ({ label: a, value: a })),
+            ]}
+          />
+          <Select
+            value={target} onChange={(e) => setTarget(e.target.value)} style={{ padding: "5px 8px", borderRadius: 4, border: "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-fg)", fontSize: 12 }}
+            options={[
+              { label: "対象: すべて", value: "" },
+              ...targets.map((t) => ({ label: t, value: t })),
+            ]}
+          />
           <span style={{ fontSize: 12, color: "var(--color-muted)", alignSelf: "center" }}>
             {log.length} 件中 {filtered.length} 件
           </span>

@@ -12,7 +12,7 @@ class FakeWs {
 describe("createLogStream", () => {
   it("splits and dispatches lines", () => {
     let ws!: FakeWs;
-    const stream = createLogStream({ url: "ws://x", wsFactory: (u) => (ws = new FakeWs()) });
+    const stream = createLogStream({ url: "ws://x", wsFactory: (_u) => (ws = new FakeWs()) });
     const got: string[] = [];
     const unsub = stream.subscribe((ls) => got.push(...ls));
     ws.emit("a\nb"); ws.emit("c");

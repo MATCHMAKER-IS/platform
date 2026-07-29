@@ -75,7 +75,13 @@ export function DepreciationDemo() {
           </label>
           <label style={{ fontSize: 12 }}>
             <div style={{ marginBottom: 4, color: "var(--color-muted)" }}>償却方法</div>
-            <Select value={method} onChange={(e) => setMethod(e.target.value === "straight_line" ? "straight_line" : "declining_balance")} style={{ ...field, width: 130 }} options={[{ label: "定額法", value: "straight_line" }, { label: "定率法", value: "declining_balance" }]} />
+            <Select
+              value={method} onChange={(e) => setMethod(e.target.value === "straight_line" ? "straight_line" : "declining_balance")} style={{ ...field, width: 130 }}
+              options={[
+                { label: "定額法", value: "straight_line"},
+                {label: "定率法", value: "declining_balance" },
+              ]}
+            />
           </label>
         </div>
 

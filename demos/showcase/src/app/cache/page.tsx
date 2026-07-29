@@ -1,6 +1,7 @@
 "use client";
 /** キャッシュ・レート制限 の統合デモ（タブでまとめたもの）。 */
 import * as React from "react";
+import { UsesPackages } from "../../components/uses-packages";
 import { Button } from "@platform/ui";
 import { CacheDemo } from "./cache-demo";
 import { RateLimitDemo } from "./ratelimit-demo";
@@ -16,6 +17,13 @@ export default function Page() {
           style={{ fontSize: 13, padding: "6px 14px", borderRadius: 8, cursor: "pointer", border: "1px solid var(--color-border)", background: tab === t.id ? "var(--color-primary)" : "var(--color-bg)", color: tab === t.id ? "var(--color-primary-fg)" : "var(--color-fg)" }}>{t.label}</Button>))}
       </div>
       <Active />
+          <UsesPackages
+        packages={["cache"]}
+        imports={{ cache: ["createMemoryCache"] }}
+        snippet={`const cache = createMemoryCache({ ttlMs: 60_000 });
+const value = await cache.getOrSet("key", async () => fetchExpensive());
+// 本番は createRedisCache に差し替える(サーバが複数台だとメモリでは共有できない)`}
+      />
     </main>
   );
 }

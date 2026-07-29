@@ -1,6 +1,7 @@
 "use client";
 /** 在庫のデモ: 入出庫の履歴から現在庫を導出・発注点・発注量。 */
 import * as React from "react";
+import { UsesPackages } from "../../components/uses-packages";
 import { Button, Input } from "@platform/ui";
 import {
   onHand,
@@ -201,6 +202,16 @@ export default function Page() {
           <code>PO-2026-0001</code> は <code>/purchase</code> の発注書で、そのまま繋がります。
         </p>
       </div>
+          <UsesPackages
+        packages={["inventory"]}
+        imports={{ inventory: ["applyMovement", "lotBalances", "expiringSoon"] }}
+        snippet={`// 入出庫は「動き」として記録し、残高は毎回そこから出す
+// (残高を直接書き換えると、合わない原因を追えなくなる)
+const next = applyMovement(state, { type: "out", sku, qty: 3, at });
+
+const balances = lotBalances(movements);
+const soon = expiringSoon(lots, today, 30);      // 30 日以内に切れるもの`}
+      />
     </main>
   );
 }

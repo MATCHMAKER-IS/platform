@@ -1,6 +1,7 @@
 "use client";
 /** 記事管理・多言語の統合デモ（タブでまとめたもの）。 */
 import * as React from "react";
+import { UsesPackages } from "../../components/uses-packages";
 import { Button } from "@platform/ui";
 import { CmsDemo } from "./cms-demo";
 import { I18nDemo } from "./i18n-demo";
@@ -16,6 +17,15 @@ export default function Page() {
           style={{ fontSize: 13, padding: "6px 14px", borderRadius: 8, cursor: "pointer", border: "1px solid var(--color-border)", background: tab === t.id ? "var(--color-primary)" : "var(--color-bg)", color: tab === t.id ? "var(--color-primary-fg)" : "var(--color-fg)" }}>{t.label}</Button>))}
       </div>
       <Active />
+          <UsesPackages
+        packages={["cms", "html"]}
+        imports={{ cms: ["diffRevisions", "buildPreviewUrl"] }}
+        snippet={`// 公開前に「何が変わるか」を見せる。差分は行単位(LCS)
+const diff = diffRevisions(before, after);
+
+// 下書きの確認用 URL。期限つきにして拡散を防ぐ
+const url = buildPreviewUrl({ slug, token, expiresAt });`}
+      />
     </main>
   );
 }

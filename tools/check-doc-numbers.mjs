@@ -62,7 +62,11 @@ export function measure() {
 const RULES = [
   { file: "CLAUDE.md", pattern: /(\d+)\s*パッケージのカテゴリ別インデックス/, expect: (m) => m.packages, label: "CLAUDE.md のパッケージ数" },
   // 統合により demos は 1 サイトのみ(以前の「コンポーネント型 26」は showcase に取り込み済み)
-  { file: "demos/README.md", pattern: /\*\*統合デモサイト\*\*\s*\|\s*\*\*(\d+)\*\*/, expect: (m) => m.demos, label: "demos/README.md の統合デモサイト数" },
+    // ルートの README も見る。ここは「初めて見る人が最初に読む」場所なので、
+  // 数値が古いと基盤の規模を誤解させる（実際に 99 と 90 のまま残っていた）。
+  { file: "README.md", pattern: /\*\*(\d+) の再利用可能なパッケージ\*\*/, expect: (m) => m.packages, label: "README のパッケージ数" },
+  { file: "README.md", pattern: /基盤 (\d+) パッケージ/, expect: (m) => m.packages, label: "README のディレクトリ説明" },
+{ file: "demos/README.md", pattern: /\*\*統合デモサイト\*\*\s*\|\s*\*\*(\d+)\*\*/, expect: (m) => m.demos, label: "demos/README.md の統合デモサイト数" },
   { file: "CLAUDE.md", pattern: /個別パッケージの用途・使い方\((\d+)\/(\d+) 整備済み\)/, expect: (m) => m.readmes, label: "CLAUDE.md の README 整備数", second: (m) => m.packages },
   { file: "docs/ai/architecture.md", pattern: /基盤\((\d+)\s*個/, expect: (m) => m.packages, label: "architecture.md のパッケージ数" },
 ];
@@ -160,14 +164,26 @@ function checkExportCountEverywhere(actual, issues) {
   });
 }
 
+/** 自動生成されるフォルダ。中身は生成側が正しさを保つ。 */
+const GENERATED_DIRS = ["platform", "erd", "appmap"];
+
+/** 自動生成されるファイル。 */
+const GENERATED_FILES = ["docs/ai/module-list.md", "docs/ai/mcp-catalog.md"];
+
 function checkPackageCountEverywhere(actual, issues) {
   const targets = [];
   const walk = (dir) => {
     for (const e of readdirSync(dir, { withFileTypes: true })) {
       if (e.name === "node_modules") continue;
       const fp = path.join(dir, e.name);
-      if (e.isDirectory()) walk(fp);
-      else if (e.name.endsWith(".md")) targets.push(fp);
+      if (e.isDirectory()) {
+        // 自動生成物は check-generated が守る。ここで見ると、
+        // 生成側が正しくても「古い」と誤って指摘してしまう
+        if (GENERATED_DIRS.includes(e.name)) continue;
+        walk(fp);
+      } else if (e.name.endsWith(".md") && !GENERATED_FILES.includes(path.relative(ROOT, fp).replace(/\\/g, "/"))) {
+        targets.push(fp);
+      }
     }
   };
   walk(path.join(ROOT, "docs"));

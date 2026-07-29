@@ -3,7 +3,7 @@
  * 追記のみ。検証結果（valid/brokenAt）とフィルタ済み一覧を返す。
  * @packageDocumentation
  */
-import { appendEvent, verifyChain, filterByActor, filterByAction, filterByTarget, filterByPeriod, historyOf, describeEvent, diffChanges, deepDiffChanges, type AuditEvent, type AuditEntry, type ChainVerification, type FieldChange } from "@platform/audit";
+import { appendEvent, verifyChain, filterByActor, filterByAction, filterByTarget, filterByPeriod, historyOf, describeEvent, deepDiffChanges, type AuditEvent, type AuditEntry, type ChainVerification, type FieldChange } from "@platform/audit";
 import { toCsv } from "@platform/csv";
 
 /** 検索条件。 */

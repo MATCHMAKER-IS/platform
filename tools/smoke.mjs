@@ -3251,7 +3251,9 @@ section("line: builders / webhook / client");
     .replace('from "@platform/integrations"', `from "${intF}"`)
     .replace('from "@platform/core"', `from "${coreF}"`)
     .replace('from "./messages"', `from "${emptyF}"`)
-    .replace('from "./webhook"', `from "${emptyF}"`);
+    .replace('from "./webhook"', `from "${emptyF}"`)
+    .replace('from "./balance"', `from "${emptyF}"`)
+    .replace('from "./retention"', `from "${emptyF}"`);
   const idxF = `/tmp/line-index-${stamp}.ts`; await fs.writeFile(idxF, idxSrc);
   const L = await import(idxF);
   const client = L.createLineClient({ channelAccessToken: "t" });
@@ -3310,6 +3312,8 @@ section("freee: token / receipts / journal");
     .replace('from "./token"', `from "${emptyF}"`)
     .replace('from "./builders"', `from "${emptyF}"`)
     .replace('from "./webhook"', `from "${emptyF}"`)
+    .replace('from "./balance"', `from "${emptyF}"`)
+    .replace('from "./retention"', `from "${emptyF}"`)
     .replace('from "./hr"', `from "${emptyF}"`);
   const idxF = `/tmp/fr-index-${stamp}.ts`; await fs.writeFile(idxF, idxSrc);
   const F = await import(idxF);
@@ -3364,6 +3368,8 @@ section("freee: HR / approval / webhook");
     .replace('from "./token"', `from "${emptyF}"`)
     .replace('from "./builders"', `from "${emptyF}"`)
     .replace('from "./webhook"', `from "${emptyF}"`)
+    .replace('from "./balance"', `from "${emptyF}"`)
+    .replace('from "./retention"', `from "${emptyF}"`)
     .replace('from "./hr"', `from "${emptyF}"`);
   const idxF = await w("idx", idxSrc);
   const F = await import(idxF);
@@ -6388,7 +6394,12 @@ section("audit");
     async findMany({ where, orderBy, take }) { let r = rows.filter(x => x.userId === where.userId && (where.read === undefined || x.read === where.read)).slice().sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()); if (take !== undefined) r = r.slice(0, take); return r; },
     async count({ where }) { return rows.filter(x => x.userId === where.userId && x.read === where.read).length; },
     async update({ where, data }) { const n = rows.find(x => x.id === where.id); if (n) Object.assign(n, data); },
-    async updateMany({ where, data }) { for (const x of rows.filter(x => x.userId === where.userId && x.read === where.read)) Object.assign(x, data); },
+    async updateMany({ where, data }) {
+      const match = (x) => (where.id === undefined || x.id === where.id)
+        && (where.userId === undefined || x.userId === where.userId)
+        && (where.read === undefined || x.read === where.read);
+      for (const x of rows.filter(match)) Object.assign(x, data);
+    },
   } }; };
   const pstore = N.createPrismaNotificationStore(fakeNDb());
   const pc = N.createNotificationCenter(pstore, (() => { let i = 0; return () => "p" + (++i); })());
@@ -6396,6 +6407,7 @@ section("audit");
   await new Promise(r => setTimeout(r, 2));
   await pc.notify("alice", { title: "B", body: "本文" });
   await pstore.markRead("alice", "p1");
+  await pstore.markRead("bob", "p2");  // 他人の通知 ID を指定 → 何も起きないのが正しい(unreadCount が 1 のままであることで検証)
   ok("notification-center(notify/未読/markRead/markAllRead/limit・prisma memory一致)",
     (await mstore.list("alice")).length === 2 && (await mstore.unreadCount("alice")) === 1 && (await mstore.list("alice", { unreadOnly: true })).length === 1 &&
     (await mstore.list("alice", { limit: 1 })).length === 1 && (await mstore.list("bob")).length === 1 &&
@@ -11527,13 +11539,13 @@ section("core");
   const pkgs = M.collectPackages();
   const apps = M.collectApps();
   const mer = M.loadDepGraphMermaid();
-  ok("collect: 113パッケージ(全@platform/・過半exports)・5アプリ(internal多数)",
+  ok("collect: 113パッケージ(全@platform/・過半exports)・6アプリ(internal多数)",
     pkgs.length === 113 && pkgs.every((p) => p.full.startsWith("@platform/")) && pkgs.filter((p) => p.exports.length > 0).length > 40 &&
-    apps.length === 5 && apps.find((a) => a.name === "internal-app").pages.length > 10 && apps.find((a) => a.name === "internal-app").apis.length > 10);
+    apps.length === 6 && apps.find((a) => a.name === "internal-app").pages.length > 10 && apps.find((a) => a.name === "internal-app").apis.length > 10);
   const erds = M.collectErds();
   const adrs = M.collectAdrs();
-  ok("collectErds/collectAdrs: 3 ER図(erDiagram)・18 ADR(タイトル/状態)",
-    erds.length === 3 && erds.every((e) => e.mermaid.includes("erDiagram")) && adrs.length === 18 && adrs[0].title.includes("ADR"));
+  ok("collectErds/collectAdrs: 4 ER図(erDiagram)・18 ADR(タイトル/状態)",
+    erds.length === 4 && erds.every((e) => e.mermaid.includes("erDiagram")) && adrs.length === 18 && adrs[0].title.includes("ADR"));
   const themesInfo = M.collectThemes();
   ok("collectThemes: 14スキン(id/name/色/角丸/フォントをソースから抽出)",
     themesInfo.length === 14 && themesInfo.every((t) => t.id && t.name && t.colors.primary) &&
@@ -12065,11 +12077,11 @@ section("env");
   // ポート: 重複なし・全アプリ明記・ドキュメント一致
   const P = await import(new URL("./check-ports.mjs", import.meta.url).href);
   const { entries, issues } = P.check();
-  ok(`ポート: 6アプリすべて --port 明記・重複なし・docs と一致(${entries.map((e) => e.port).join("/")})`,
-    issues.length === 0 && entries.length === 6 && entries.every((e) => e.port !== null) &&
-    new Set(entries.map((e) => e.port)).size === 6);
-  ok("ポート: pnpm dev(一斉起動)で衝突しない範囲 3000〜3005",
-    entries.every((e) => e.port >= 3000 && e.port <= 3005));
+  ok(`ポート: 7アプリすべて --port 明記・重複なし・docs と一致(${entries.map((e) => e.port).join("/")})`,
+    issues.length === 0 && entries.length === 7 && entries.every((e) => e.port !== null) &&
+    new Set(entries.map((e) => e.port)).size === 7);
+  ok("ポート: pnpm dev(一斉起動)で衝突しない範囲 3000〜3006",
+    entries.every((e) => e.port >= 3000 && e.port <= 3006));
 
   // デモ検索 + 設計ルール(MCP)
   const base = `${osc.tmpdir()}/dm-${smokeStamp()}`;
@@ -12206,7 +12218,7 @@ section("env");
   const P = await import(new URL("./check-ports.mjs", import.meta.url).href);
   const ports = P.collectPorts();
   const allPortsInGuide = ports.every((e) => guide.includes(`localhost:${e.port}`));
-  ok(`導入ガイド: 全6アプリのURL(localhost:3000〜3005)を掲載`, allPortsInGuide);
+  ok(`導入ガイド: 全7アプリのURL(localhost:3000〜3006)を掲載`, allPortsInGuide);
 
   // 4. Windows/Mac 両対応(片方だけだと詰む)
   ok("導入ガイド: Windows(winget/PowerShell) と Mac(Homebrew/ターミナル) の両方を記載",

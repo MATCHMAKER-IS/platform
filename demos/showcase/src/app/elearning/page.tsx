@@ -5,6 +5,7 @@
  * UI は **@platform/ui の部品だけ**で組む(CLAUDE.md「UI 部品は @platform/ui を使う」)。
  */
 import * as React from "react";
+import { UsesPackages } from "../../components/uses-packages";
 import { Alert, Badge, Button, Checkbox, RadioGroup, RadioGroupItem, Separator } from "@platform/ui";
 import { Countdown } from "../../components/countdown";
 import {
@@ -416,6 +417,15 @@ export default function Page() {
           <strong>この 1 行がもめる部分</strong>なので、コースのデータに持たせてあります。
         </p>
       </div>
+          <UsesPackages
+        packages={["elearning"]}
+        imports={{ elearning: ["courseProgress", "gradeQuiz", "issueCertificate"] }}
+        snippet={`const progress = courseProgress(course, completedLessonIds);
+const result = gradeQuiz(quiz, answers);          // 合否と、間違えた設問
+
+// 修了証は合格してから。日付と発行者を必ず残す(後から証明を求められる)
+if (result.passed) issueCertificate({ userId, courseId, at: today });`}
+      />
     </main>
   );
 }

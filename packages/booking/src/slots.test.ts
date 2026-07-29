@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { generateSlots, slotsForRange, slotDuration } from "./slots";
+import { generateSlots, slotDuration } from "./slots";
 describe("booking slots", () => {
   it("generates slots", () => {
     const s = generateSlots([{ open: "09:00", close: "11:00" }], { slotMinutes: 30 });

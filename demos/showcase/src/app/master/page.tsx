@@ -5,7 +5,8 @@
  * 各マスタは localStorage に個別保存（リロード復元）。
  */
 import * as React from "react";
-import { Badge, Button, Checkbox, Input } from "@platform/ui";
+import { UsesPackages } from "../../components/uses-packages";
+import { Badge, Button, Checkbox, FileInput, Input, Select } from "@platform/ui";
 
 const box: React.CSSProperties = { border: "1px solid var(--color-border)", borderRadius: "var(--radius)", background: "var(--color-surface)", padding: 16, marginBottom: 16 };
 type FieldType = "text" | "number" | "select" | "bool" | "ref" | "date";
@@ -102,7 +103,6 @@ export default function Page() {
   const [isNew, setIsNew] = React.useState(false);
   const [confirmDel, setConfirmDel] = React.useState<Row | null>(null);
   const [related, setRelated] = React.useState<Row | null>(null);
-  const fileRef = React.useRef<HTMLInputElement>(null);
   const [history, setHistory] = React.useState<{ at: string; text: string }[]>([]);
   const [showHistory, setShowHistory] = React.useState(false);
   React.useEffect(() => { try { const r = localStorage.getItem("demo-master-history"); if (r) setHistory(JSON.parse(r)); } catch { /* noop */ } }, []);
@@ -202,8 +202,7 @@ export default function Page() {
         <div style={{ flex: 1, minWidth: 200 }}><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="検索" /></div>
         <Button onClick={() => { setEditing(blankRow(master)); setIsNew(true); }}>＋ 新規登録</Button>
         <Button variant="secondary" onClick={exportCsv}>CSV出力</Button>
-        <Button variant="secondary" onClick={() => fileRef.current?.click()}>CSV取込</Button>
-        <input ref={fileRef} type="file" accept=".csv" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) importCsv(f); e.target.value = ""; }} />
+        <FileInput variant="secondary" label="CSV取込" accept=".csv" onSelect={(files) => { const f = files[0]; if (f) importCsv(f); }} />
         <Button variant="secondary" onClick={() => persist(master.seed)}>初期化</Button>
         <Button variant="secondary" onClick={() => setShowHistory(true)}>履歴{history.length ? `(${history.length})` : ""}</Button>
       </div>
@@ -242,10 +241,15 @@ export default function Page() {
                   {f.type === "bool" ? (<><Checkbox  checked={!!editing[f.key]} onCheckedChange={(v) => setEditing({ ...editing, [f.key]: !!v })} />{f.label}</>)
                     : (<>{f.label}{f.required && " *"}
                       {f.type === "ref" ? (
-                        <select value={String(editing[f.key] ?? "")} onChange={(e) => setEditing({ ...editing, [f.key]: e.target.value })} style={sel}>
-                          <option value="">（未選択）</option>
-                          {refRows(f.refMaster).map((x) => <option key={String(x.id)} value={String(x.id)}>{String(x.name ?? x.code ?? x.id)}</option>)}
-                        </select>
+                        <Select
+                          value={String(editing[f.key] ?? "")}
+                          onChange={(e) => setEditing({ ...editing, [f.key]: e.target.value })}
+                          style={sel}
+                          options={[
+                            { label: "（未選択）", value: "" },
+                            ...refRows(f.refMaster).map((x) => ({ label: String(x.name ?? x.code), value: String(x.id) })),
+                          ]}
+                        />
                       ) : f.type === "date" ? (
                         <Input type="date" value={String(editing[f.key] ?? "")} onChange={(e) => setEditing({ ...editing, [f.key]: e.target.value })} style={sel} />
                       ) : f.type === "select" ? (
@@ -313,10 +317,18 @@ export default function Page() {
               <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>一括付け替え</div>
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                 <span style={{ fontSize: 12, color: "var(--color-muted)" }}>参照先を</span>
-                <select value={reassignTo} onChange={(e) => setReassignTo(e.target.value)} style={sel}>
-                  <option value="">（選択）</option>
-                  {rows.filter((r) => r.id !== related.id).map((r) => <option key={String(r.id)} value={String(r.id)}>{String(r.name ?? r.code)}</option>)}
-                </select>
+                <Select
+                  value={reassignTo}
+                  onChange={(e) => setReassignTo(e.target.value)}
+                  style={sel}
+                  options={[
+                    { label: "（選択）", value: "" },
+                    // 自分自身へは付け替えられない
+                    ...refRows(master.id)
+                      .filter((x) => String(x.id) !== String(related.id))
+                      .map((x) => ({ label: String(x.name ?? x.code), value: String(x.id) })),
+                  ]}
+                />
                 <span style={{ fontSize: 12, color: "var(--color-muted)" }}>にまとめて変更</span>
                 <Button size="sm" onClick={reassignAll} disabled={!reassignTo || selectedRefs.size === 0}>選択を付け替え</Button>
               </div>
@@ -353,6 +365,15 @@ export default function Page() {
           </div>
         </div>
       )}
+      <UsesPackages
+        packages={["ui", "csv"]}
+        imports={{ csv: ["toCsv", "downloadCsv", "parseCsv"] }}
+        snippet={`// 書き出し(Excel で開く前提なら BOM 付き。基盤が付ける)
+downloadCsv("取引先.csv", rows);
+
+// 取込は検証してから。1 行に複数の誤りがあれば全部返す
+const parsed = parseCsv(text, { header: true });`}
+      />
     </main>
   );
 }

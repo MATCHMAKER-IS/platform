@@ -1,7 +1,7 @@
 "use client";
 /** 取引先マスタ。得意先・仕入先・報酬支払先を一元管理（1社が複数区分可）。区分で絞込、登録・更新。 */
 import * as React from "react";
-import { Button, Checkbox, Input, Textarea } from "@platform/ui";
+import { Button, Checkbox, FileInput, Input, Textarea } from "@platform/ui";
 
 type Kind = "customer" | "supplier" | "payee";
 interface Partner { code: string; name: string; kinds: Kind[]; contact?: string; note?: string; }
@@ -44,8 +44,10 @@ export function PartnersClient({ fetchImpl, canWrite = true }: PartnersClientPro
 
   const edit = (p: Partner) => setForm({ code: p.code, name: p.name, kinds: p.kinds, contact: p.contact ?? "" });
 
-  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files && e.target.files[0];
+  // FileInput は選ばれたファイルの配列を渡す。
+  // 生の <input> と違い、**同じファイルを選び直せる**(値のリセットを基盤が行う)
+  const onFile = (files: File[]) => {
+    const file = files[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => setCsvText(String(reader.result ?? ""));
@@ -105,7 +107,7 @@ export function PartnersClient({ fetchImpl, canWrite = true }: PartnersClientPro
         <div className="mb-6 rounded border border-neutral-200 p-4">
           <h2 className="mb-2 text-sm font-medium">取引先を CSV で取り込み</h2>
           <p className="mb-2 text-xs text-neutral-500">見出し「コード,名称,区分,連絡先」。区分は customer/supplier/payee をカンマ区切りで。既存コードは上書きされます。</p>
-          <input type="file" accept=".csv,text/csv" onChange={onFile} className="mb-2 block text-sm" />
+          <FileInput accept=".csv,text/csv" onSelect={onFile} className="mb-2 block text-sm" />
           <Textarea value={csvText} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCsvText(e.target.value)} rows={5} placeholder="コード,名称,区分,連絡先&#10;P001,甲商事,&quot;customer,supplier&quot;,03-1234" className="block w-full rounded border border-neutral-300 px-2 py-1 font-mono text-xs" />
           <div className="mt-2 flex items-center gap-3">
             <Button onClick={runImport} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">取り込む</Button>

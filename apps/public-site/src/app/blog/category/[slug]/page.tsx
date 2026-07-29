@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { content, siteConfig } from "../../../../server/content";
+import { content } from "../../../../server/content";
 import { SiteSidebar } from "../../../site-sidebar";
 import { BeaconClient } from "../../../beacon-client";
 

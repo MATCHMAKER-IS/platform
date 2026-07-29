@@ -148,9 +148,21 @@ export function InventoryClient({ fetchImpl, canWrite = true }: InventoryClientP
           <div className="rounded border border-neutral-200 p-4">
             <h2 className="mb-3 text-sm font-medium">入出庫の記録</h2>
             <div className="flex flex-col gap-2">
-              <Select value={move.sku} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setMove({ ...move, sku: e.target.value })} className="rounded border border-neutral-300 px-2 py-1 text-sm" options={[{ label: "商品を選択", value: "" }, ...rows.map((r) => ({ label: `${r.product.sku}・${r.product.name}`, value: String(r.product.sku) }))]} />
+              <Select
+                value={move.sku} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setMove({ ...move, sku: e.target.value })} className="rounded border border-neutral-300 px-2 py-1 text-sm"
+                options={[
+                  { label: "商品を選択", value: "" }, ...rows.map((r) => ({ label: `${r.product.sku}・${r.product.name}`, value: String(r.product.sku) })),
+                ]}
+              />
               <div className="flex gap-2">
-                <Select value={move.type} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setMove({ ...move, type: e.target.value as typeof move.type })} className="rounded border border-neutral-300 px-2 py-1 text-sm" options={[{ label: "入庫", value: "inbound" }, { label: "出庫", value: "outbound" }, { label: "調整", value: "adjustment" }]} />
+                <Select
+                  value={move.type} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setMove({ ...move, type: e.target.value as typeof move.type })} className="rounded border border-neutral-300 px-2 py-1 text-sm"
+                  options={[
+                    { label: "入庫", value: "inbound"},
+                    {label: "出庫", value: "outbound"},
+                    {label: "調整", value: "adjustment" },
+                  ]}
+                />
                 <Input value={move.quantity} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMove({ ...move, quantity: e.target.value })} placeholder="数量" inputMode="numeric" className="w-24 rounded border border-neutral-300 px-2 py-1 text-sm" />
                 <Input value={move.ref} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMove({ ...move, ref: e.target.value })} placeholder="参照（発注/出荷番号）" className="flex-1 rounded border border-neutral-300 px-2 py-1 text-sm" />
               </div>

@@ -33,7 +33,14 @@ export function TranscriptClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         <Textarea value={text} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setText(e.target.value)} placeholder="文字起こしテキストを貼り付け" rows={6} style={{ width: "100%", boxSizing: "border-box", padding: 8, border: "1px solid #ddd", borderRadius: 6, fontFamily: "inherit" }} />
         <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 8 }}>
           <label style={{ fontSize: 13 }}>公開範囲:
-            <Select value={visibility} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setVisibility(e.target.value as "public" | "hr" | "admin")} style={{ marginLeft: 6, padding: 4 }} options={[{ label: "全員", value: "public" }, { label: "人事・管理者", value: "hr" }, { label: "管理者のみ", value: "admin" }]} />
+            <Select
+              value={visibility} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setVisibility(e.target.value as "public" | "hr" | "admin")} style={{ marginLeft: 6, padding: 4 }}
+              options={[
+                { label: "全員", value: "public"},
+                {label: "人事・管理者", value: "hr"},
+                {label: "管理者のみ", value: "admin" },
+              ]}
+            />
           </label>
           <Button onClick={submit} disabled={busy || title.trim().length === 0 || text.trim().length === 0} style={{ marginLeft: "auto", padding: "8px 20px", background: busy ? "#ccc" : "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>{busy ? "取り込み中…" : "補正して取り込む"}</Button>
         </div>

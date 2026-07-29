@@ -1,6 +1,7 @@
 "use client";
 /** 承認フロー・状態遷移の統合デモ（タブでまとめたもの）。 */
 import * as React from "react";
+import { UsesPackages } from "../../components/uses-packages";
 import { Button } from "@platform/ui";
 import { ApprovalDemo } from "./approval-demo";
 import { FsmDemo } from "./fsm-demo";
@@ -21,6 +22,17 @@ export default function Page() {
           style={{ fontSize: 13, padding: "6px 14px", borderRadius: 8, cursor: "pointer", border: "1px solid var(--color-border)", background: tab === t.id ? "var(--color-primary)" : "var(--color-bg)", color: tab === t.id ? "var(--color-primary-fg)" : "var(--color-fg)" }}>{t.label}</Button>))}
       </div>
       <Active />
+          <UsesPackages
+        packages={["workflow", "fsm"]}
+        imports={{ workflow: ["approve", "currentStep", "escalationTarget"] }}
+        snippet={`// 承認は「今どの段でだれの番か」を毎回計算する
+// (状態を持ち回すと、差し戻しのたびにずれる)
+const step = currentStep(flow, request);
+const next = approve(flow, request, { by: user.id });
+
+// 期限を過ぎたら上位者へ回す
+const escalateTo = escalationTarget(flow, request, today);`}
+      />
     </main>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 /** 掲示板のデモ: スレッド・返信・タグ・検索・ピン留め・並び替え。 */
 import * as React from "react";
-import { Button, Input, Textarea } from "@platform/ui";
+import { Button, Input, Select, Textarea } from "@platform/ui";
 import {
   createThread,
   createPost,
@@ -190,12 +190,7 @@ export function BoardThreadsDemo() {
       <div style={box}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <Input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="タイトル・本文を検索" style={{ ...field, flex: 1, minWidth: 180 }} />
-          <select value={tag} onChange={(e) => setTag(e.target.value)} style={{ ...field, width: 140 }}>
-            <option value="">タグ: すべて</option>
-            {allTags.map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
+          <Select value={tag} onChange={(e) => setTag(e.target.value)} style={{ ...field, width: 140 }} options={[{ label: "タグ: すべて", value: "" }, ...allTags.map((t) => ({ label: t, value: t }))]} />
           <span style={{ fontSize: 12, color: "var(--color-muted)" }}>{visible.length} / {threads.length} 件</span>
         </div>
         <p style={{ fontSize: 11, color: "var(--color-muted)", marginTop: 8 }}>

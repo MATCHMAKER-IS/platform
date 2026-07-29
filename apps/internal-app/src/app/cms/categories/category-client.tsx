@@ -1,7 +1,7 @@
 "use client";
 /** カテゴリ・タグ管理。カテゴリは CRUD + 並べ替え、タグはリネーム/削除。 */
 import * as React from "react";
-import { Button, Input, SortableList } from "@platform/ui";
+import { Button, Input, Select, SortableList } from "@platform/ui";
 
 interface Category { id: string; name: string; slug: string; parentId?: string; order?: number; }
 interface TagCount { tag: string; count: number; }
@@ -78,10 +78,13 @@ export function CategoryClient({ fetchImpl }: CategoryClientProps) {
             {error && <p className="rounded bg-red-50 px-2 py-1 text-xs text-red-700">{error}</p>}
             <Input value={editing.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ name: e.target.value })} placeholder="カテゴリ名" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
             <Input value={editing.slug} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ slug: e.target.value })} placeholder="slug" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
-            <select value={editing.parentId} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set({ parentId: e.target.value })} className="rounded border border-neutral-300 px-2 py-1 text-sm">
-              <option value="">（親なし）</option>
-              {cats.filter((c) => c.id !== editId).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <Select
+              value={editing.parentId} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set({ parentId: e.target.value })} className="rounded border border-neutral-300 px-2 py-1 text-sm"
+              options={[
+                { label: "（親なし）", value: "" },
+                ...cats.filter((c) => c.id !== editId).map((c) => ({ label: c.name, value: c.id })),
+              ]}
+            />
             <div className="flex gap-2">
               <Button onClick={save} className="rounded bg-neutral-900 px-3 py-1 text-sm text-white">保存</Button>
               <Button onClick={() => { setEditing(null); setEditId(null); }} className="rounded border border-neutral-300 px-3 py-1 text-sm">キャンセル</Button>

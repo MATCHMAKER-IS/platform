@@ -18,7 +18,7 @@ import { createMemoryRoomRepo, type RoomRepository } from "./chat-rooms";
 import { createPresenceTracker, type PresenceTracker } from "./chat-presence";
 import { createChatSearch, type ChatSearch } from "./chat-search";
 import { buildUnreadDigest } from "./chat-digest";
-import { notificationCenter, auditActions, preferenceStore } from "./platform-services";
+import { notificationCenter, preferenceStore } from "./platform-services";
 import { decideDelivery, hasChannel } from "./notification-prefs";
 import { createMemoryReactionStore, createPrismaReactionStore, type ReactionStore, type ReactionStoreDb } from "./chat-reactions";
 import { createMemoryPinStore, createPrismaPinStore, type PinStore, type PinStoreDb } from "./chat-pins";

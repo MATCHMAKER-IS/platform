@@ -25,7 +25,7 @@ describe("sql outbox", () => {
       insert: async (m) => { rows.push({ ...m }); },
       selectPending: async (limit, now) => rows.filter((r) => r.status === "pending" && (r.nextAttemptAt === undefined || r.nextAttemptAt <= now)).slice(0, limit),
       updateSent: async (id) => { const r = rows.find((x) => x.id === id); if (r) r.status = "sent"; },
-      updateFailed: async (id, err, att, next, status) => { const r = rows.find((x) => x.id === id); if (r) { r.attempts = att; r.status = status; r.nextAttemptAt = next; } },
+      updateFailed: async (id, _err, att, next, status) => { const r = rows.find((x) => x.id === id); if (r) { r.attempts = att; r.status = status; r.nextAttemptAt = next; } },
     };
     let seq = 0; const store = createSqlOutboxStore(c, () => `id-${++seq}`, () => 0);
     await store.add("t", { a: 1 });

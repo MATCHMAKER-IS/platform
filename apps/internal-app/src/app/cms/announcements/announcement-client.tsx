@@ -96,7 +96,14 @@ export function AnnouncementClient({ fetchImpl }: AnnouncementClientProps) {
             <label className="flex-1 text-sm">CTA ラベル<Input value={editing.ctaLabel} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ ctaLabel: e.target.value })} className="mt-1 w-full rounded border border-neutral-300 px-2 py-1" /></label>
             <label className="flex-1 text-sm">CTA リンク<Input value={editing.ctaHref} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ ctaHref: e.target.value })} className="mt-1 w-full rounded border border-neutral-300 px-2 py-1" /></label>
             <label className="text-sm">重要度
-              <Select value={editing.level} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set({ level: e.target.value })} className="mt-1 block rounded border border-neutral-300 px-2 py-1" options={[{ label: "info", value: "info" }, { label: "warning", value: "warning" }, { label: "critical", value: "critical" }]} />
+              <Select
+                value={editing.level} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set({ level: e.target.value })} className="mt-1 block rounded border border-neutral-300 px-2 py-1"
+                options={[
+                  { label: "info", value: "info"},
+                  {label: "warning", value: "warning"},
+                  {label: "critical", value: "critical" },
+                ]}
+              />
             </label>
           </div>
           <div className="flex gap-2">

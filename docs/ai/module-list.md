@@ -5,7 +5,7 @@
 
 ## 基礎(型・共通)
 
-- **@platform/core** — 基盤全体で共有する **エラー規約(`AppError` / `ErrorCode`)** と **`Result` 型** を提供します。
+- **@platform/core** — **失敗の形を全体で揃える**ための土台です。112 パッケージのうち 54 がこれに依存しています。
   - 主なexport: AppError, Bulkhead, BulkheadOptions, ERROR_POLICY, Err, ErrorCode, …(全25)
 - **@platform/logger** — pino をラップした構造化ロガー。`console.log` の代わりにこれを使います。
   - 主なexport: ContextStore, DEFAULT_REDACT_PATHS, LogContext, LogLevel, Logger, LoggerOptions, …(全8)
@@ -116,7 +116,7 @@
 - **@platform/line** — LINE Messaging API の総合クライアント + メッセージビルダー + Webhook 受信。
   - 主なexport: CarouselColumn, LineAction, LineClient, LineEventBase, LineEventSource, LineMessage, …(全31)
 - **@platform/freee** — freee 会計 API クライアント + OAuth トークン管理 + 証憑・振替伝票。
-  - 主なexport: DealDetail, DealType, FreeeClient, FreeeHrClient, FreeePaging, FreeeTokenConfig, …(全24)
+  - 主なexport: BalancePoint, BalanceSnapshot, BalanceSummary, DealDetail, DealType, FreeeClient, …(全38)
 - **@platform/stripe** — Stripe 決済クライアント(公式 `stripe` SDK ラッパー)。
   - 主なexport: Stripe, StripeClient, createStripeClient
 - **@platform/paypal** — PayPal 決済クライアント(Orders v2)。client_id / client_secret から
@@ -221,7 +221,7 @@
   - 主なexport: AccountBalance, AccountNames, AccountType, AccountTypeMap, BalanceSheet, DEFAULT_ACCOUNTS, …(全45)
 - **@platform/audit** — 「誰が・いつ・何を・どう変えたか」を追記専用で記録し、**ハッシュチェーンで改ざんを検知**します。
   - 主なexport: AuditEntry, AuditEvent, ChainVerification, DiffOptions, FieldChange, HashFn, …(全18)
-- **@platform/depreciation** — 固定資産の減価償却計算。定額法・定率法（200%定率法、定額法への切替つき）で、
+- **@platform/depreciation** — 固定資産の減価償却を計算します。**帳簿と申告に使う数字**なので、端数の扱いを法令に合わせてあります。
   - 主なexport: DepreciableAsset, DepreciationMethod, MEMORANDUM_VALUE, ScheduleRow, bookValueAt, decliningBalanceRate, …(全12)
 - **@platform/booking** — 予約サイトの基盤処理。営業時間・スロット生成・空き枠計算(キャパシティ考慮)・予約ルール・
   - 主なexport: BOOKING_STATUS_LABELS, BOOKING_TRANSITIONS, BookingInterval, BookingStatus, BookingWindow, HoursOverrides, …(全51)

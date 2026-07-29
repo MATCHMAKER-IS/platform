@@ -69,7 +69,12 @@ export function PurchaseOrdersClient({ fetchImpl, canWrite = true }: PurchaseOrd
         {canWrite && (
           <span className="flex items-center gap-2">
             {suppliers.length > 0 && (
-              <Select value={supplierCode} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSupplierCode(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-sm" options={[{ label: "仕入先を選択…", value: "" }, ...suppliers.map((sp) => ({ label: sp.name, value: String(sp.code) }))]} />
+              <Select
+                value={supplierCode} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSupplierCode(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-sm"
+                options={[
+                  { label: "仕入先を選択…", value: "" }, ...suppliers.map((sp) => ({ label: sp.name, value: String(sp.code) })),
+                ]}
+              />
             )}
             <Button onClick={createFromReorder} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">発注点割れから起票</Button>
           </span>

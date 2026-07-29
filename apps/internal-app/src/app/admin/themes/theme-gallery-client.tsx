@@ -119,7 +119,14 @@ function CustomThemeMaker({ onCreated }: { onCreated: (id: string) => void }) {
         {swatch(accent, setAccent, "アクセント")}
         <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
           <span style={{ color: "var(--color-muted, #666)" }}>ベース</span>
-          <Select value={base} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setBase(e.target.value as "light" | "warm" | "cool")} style={{ padding: "6px 8px", border: "1px solid var(--color-border, #ddd)", borderRadius: 6, fontSize: 13 }} options={[{ label: "標準（白）", value: "light" }, { label: "暖色（クリーム）", value: "warm" }, { label: "寒色（青み）", value: "cool" }]} />
+          <Select
+            value={base} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setBase(e.target.value as "light" | "warm" | "cool")} style={{ padding: "6px 8px", border: "1px solid var(--color-border, #ddd)", borderRadius: 6, fontSize: 13 }}
+            options={[
+              { label: "標準（白）", value: "light"},
+              {label: "暖色（クリーム）", value: "warm"},
+              {label: "寒色（青み）", value: "cool" },
+            ]}
+          />
         </label>
         <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
           <span style={{ color: "var(--color-muted, #666)" }}>角丸 {radius}px</span>

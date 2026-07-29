@@ -1,6 +1,6 @@
 # 検査の一覧（preflight は何を見ているか）
 
-`node tools/preflight.mjs` は **依存をインストールせずに 31 個の検査**をまとめて実行する。
+`node tools/preflight.mjs` は **依存をインストールせずに 32 個の検査**をまとめて実行する。
 「手元で `pnpm install` する前に、壊れているかどうかを知る」ための入口。
 
 ```bash
@@ -19,6 +19,7 @@ node tools/<検査名>.mjs        # 1 つだけ実行する
 | `api-surface` | 公開 API の破壊的変更（削除・シグネチャ変更） | 利用側が壊れる |
 | `check-core-signatures` | **依存の多い基盤**（core など）の引数・戻り値・型の形 | 型検査でしか気づけず、多数のパッケージに波及する |
 | `check-env-example` | コードが読む環境変数が `.env.example` にあるか | 設定漏れで起動しない |
+| `check-generated` | 生成物（目録・API 一覧・資料索引）が最新か | 古い情報を見て判断される |
 | `check-doc-numbers` | 手書き資料の数値が実態と合っているか | 資料の数字が嘘になる |
 | `check-ports` | アプリのポート重複 | 同時起動できない |
 | `check-package-shape` | パッケージ構成が規約どおりか | 解決できない import |
@@ -27,13 +28,15 @@ node tools/<検査名>.mjs        # 1 つだけ実行する
 | `check-docs-orphans` | どこからも辿り着けない資料が無いか | 書いたのに読まれない |
 | `check-doc-apis` | 資料のコード例が実在する API を使っているか | 真似したら動かない |
 | `check-e2e-quality` | E2E テストの質（意味のある検証か） | 通るだけのテスト |
+| `check-package-rules` | **基盤自身**が作法（logger / env）を守っているか | 基盤が破ると、使う側にも同じ書き方が広がる |
 | `check-app-rules` | アプリが基盤の役割を侵していないか。**生タグの上限**と**手書き Cookie** も見る | 属人化・作法の崩壊・Secure の付け忘れ |
 | `check-api-auth` | 認可も公開宣言も無い API が増えていないか | URL を知っていれば誰でも叩ける |
 | `check-permissions` | 使っている権限がポリシーに定義されているか | 誰も通れず 403 になる |
 | `check-reimplementation` | 基盤にある機能をアプリで作り直していないか | 直す場所が増え、強度もばらつく |
 | `check-showcase-deps` | デモの依存と `transpilePackages` の整合 | ビルド失敗 |
 | `check-app-transpile` | 各アプリの `transpilePackages` の網羅 | ビルド失敗 |
-| `check-jsx-tags` | JSX の閉じ忘れ | ビルドが構文エラーで落ちる |
+| `check-syntax` | **全 .ts/.tsx を本物のパーサ（TypeScript）にかける** | **ビルドが構文エラーで落ちる**。これが無い間、他の検査が全部グリーンのまま `next build` が落ちた |
+| `check-jsx-tags` | JSX の閉じ忘れ（数え上げによる一次検知） | ビルドが構文エラーで落ちる |
 | `check-a11y` | 画像の alt・キーボード操作・読み上げ名 | 一部の人が操作できない画面 |
 | `check-pwa` | ホーム画面追加・オフラインの設定が揃っているか | 現場から言われるまで気づけない |
 | `check-maintainability` | ファイルの大きさ・1 行の長さ | 次に触る人が読めない・編集を失敗する |
@@ -41,7 +44,7 @@ node tools/<検査名>.mjs        # 1 つだけ実行する
 | `check-contract` | 外部 SaaS の契約（依存フィールド）と実装のズレ | 相手の変更に気づけない |
 | `check-drill` | 復元訓練の鮮度 | 戻せないバックアップ |
 | `check-imports` | `@platform/*` から取り込む名前が実在するか | **ビルドが落ちる**（型検査まで気づけない） |
-| `check-build-ready` | `next build` が通る前提（entry・重複 export・import 解決・**リテラル型の広がり**） | ビルド失敗 |
+| `check-build-ready` | `next build` が通る前提（entry・重複 export・import 解決・リテラル型の広がり・**例外/404 の受け皿**） | ビルド失敗・白い画面 |
 | `advisor` | 重複コードの検出 | 同じものが増える |
 | `setup.sh 構文` | セットアップスクリプトの構文 | 初日に詰まる |
 | `Windows setup 検査` | Windows 環境の手順 | Windows で動かない |

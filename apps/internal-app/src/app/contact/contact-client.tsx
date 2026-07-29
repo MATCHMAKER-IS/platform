@@ -41,7 +41,12 @@ export function ContactClient({ fetchImpl }: ContactClientProps) {
         <label className="text-sm">氏名<Input value={form.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm" /></label>
         <label className="text-sm">メールアドレス<Input value={form.email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm" /></label>
         <label className="text-sm"><span className="inline-flex items-center gap-1">カテゴリ <InfoTip text="お問い合わせの種類を選ぶと、担当部署へ振り分けられます。急ぎの不具合は「システム不具合」を選んでください。" /></span>
-          <Select value={form.category} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setForm({ ...form, category: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm" options={[...CATEGORIES.map((c) => ({ label: c, value: String(c) }))]} />
+          <Select
+            value={form.category} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setForm({ ...form, category: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm"
+            options={[
+              ...CATEGORIES.map((c) => ({ label: c, value: String(c) })),
+            ]}
+          />
         </label>
         <label className="text-sm">件名<Input value={form.subject} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, subject: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm" /></label>
         <label className="text-sm">本文<Textarea value={form.message} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setForm({ ...form, message: e.target.value })} rows={6} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm" /></label>

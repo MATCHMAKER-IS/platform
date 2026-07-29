@@ -1156,6 +1156,9 @@
     "visibleFields"
   ],
   "@platform/freee": [
+    "BalancePoint",
+    "BalanceSnapshot",
+    "BalanceSummary",
     "DealDetail",
     "DealType",
     "FreeeClient",
@@ -1164,10 +1167,17 @@
     "FreeeTokenConfig",
     "FreeeTokenManager",
     "FreeeTokenResult",
+    "FreeeWalletTxn",
+    "FreeeWalletTxnsResponse",
+    "FreeeWalletable",
+    "FreeeWalletablesResponse",
     "FreeeWebhookEvent",
     "InvoiceLine",
     "ManualJournalDetail",
+    "RetentionPlan",
+    "WalletBalanceHistory",
     "WorkRecordInput",
+    "buildBalanceHistory",
     "buildDeal",
     "buildInvoice",
     "buildManualJournal",
@@ -1179,7 +1189,11 @@
     "fetchAllPages",
     "invoiceLine",
     "parseFreeeWebhook",
-    "verifyFreeeSignature"
+    "planRetention",
+    "summarizeBalance",
+    "totalBalance",
+    "verifyFreeeSignature",
+    "verifyRetention"
   ],
   "@platform/fs": [
     "FileTypeInfo",

@@ -7,6 +7,7 @@
  * テストの期待値としても使える。
  */
 import * as React from "react";
+import { UsesPackages } from "../../components/uses-packages";
 import { setSeed, seedMany, japaneseName, companyName, email, phoneNumber, address, zipCode } from "@platform/faker";
 import { Button, Input, Select, Badge } from "@platform/ui";
 
@@ -112,6 +113,14 @@ export default function Page() {
           本番データのコピーは、たとえ社内でも個人情報の持ち出しにあたります。ダミーデータで足りる場面では、そちらを使ってください。
         </p>
       </div>
+          <UsesPackages
+        packages={["faker"]}
+        imports={{ faker: ["japaneseName", "companyName", "address"] }}
+        snippet={`// 開発中の画面確認用。実在しそうな日本語のデータを作る
+const rows = Array.from({ length: 20 }, () => ({
+  name: japaneseName(), company: companyName(), address: address(),
+}));`}
+      />
     </main>
   );
 }

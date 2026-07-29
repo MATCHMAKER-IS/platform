@@ -267,13 +267,14 @@ export function EnvSettingsTable({ rows, groupNotes, runtime }: EnvSettingsTable
 |---|---|---|
 | `pnpm smoke` | ロジック 1100+ 項目(DB 不要・10 秒) | — |
 | `pnpm typecheck` | 型 | — |
+| `pnpm build` | **型検査 → next build** の順。型検査を先に置いているのは、`next build` が**型エラーを最初の1件で打ち切る**ため。`tsc --noEmit` なら全件まとめて出るので、1件直しては 30 秒待つ往復が消える | — |
 | `pnpm lint` | 書き方(依存境界も含む) | `--fix` で自動修正 |
 | `pnpm test` | ユニットテスト(vitest) | — |
 | `pnpm test:watch` | 変更を監視して自動テスト | — |
 | `pnpm test:pkg <pkg> test` | 特定パッケージだけ | 例: `pnpm test:pkg @platform/tax test` |
 | `pnpm e2e` | ブラウザで実操作(Playwright。DB 必要) | — |
 | `pnpm e2e:ui` | E2E を UI モードで(失敗箇所が見える) | — |
-| **`pnpm verify:offline`** | **preflight 全 17 項目 + 生成物 drift**。PR 前 | — |
+| **`pnpm verify:offline`** | **preflight 全 37 項目 + 生成物 drift**。PR 前 | — |
 | `pnpm loadtest` | 負荷テスト | `-- --url <URL> --concurrency 20 --duration 10000`(`--dry` でネットワーク不要) |
 
 ### 基盤(packages/)を作る・変える
@@ -396,3 +397,13 @@ export function EnvSettingsTable({ rows, groupNotes, runtime }: EnvSettingsTable
 > `check-core-signatures` が形を記録しており、変えると preflight が止まる。
 > 意図した変更なら `node tools/check-core-signatures.mjs --update` で記録を更新し、
 > **なぜ変えたかをコミットメッセージに書く**。
+
+> **例外と 404 の受け皿を必ず置く**: `src/app/error.tsx` と `not-found.tsx` が無いと、
+> **既定の白い画面**が出て「壊れた」としか伝わらない。ビルドは通るため、
+> 実際に例外が起きるまで気づけない（`check-build-ready` が `[E]` として検出する）。
+>
+> 例外の**中身は利用者に見せない**（内部の作りや値が漏れる）。
+> 直す人が追えるよう `digest` だけを示し、詳細は `@platform/observability` へ送る。
+
+> **引き継ぐとき / 引き継いだとき**は `docs/ops/HANDOVER.md` を最初に読むこと。
+> 何ができていて、何が残っていて、どこが危ないかを 1 枚にまとめてある。

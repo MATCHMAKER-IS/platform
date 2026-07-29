@@ -12,14 +12,13 @@ export function PlatformClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   const [secrets, setSecrets] = React.useState<SecretMeta[]>([]);
   const [sName, setSName] = React.useState("");
   const [sValue, setSValue] = React.useState("");
-  const [flags, setFlags] = React.useState<Record<string, FlagRule>>({});
   const [flagJson, setFlagJson] = React.useState("");
   const [msg, setMsg] = React.useState("");
 
   const loadSecrets = React.useCallback(async () => { const r = await doFetch("/api/admin/secrets"); if (r.ok) setSecrets(((await r.json()) as { secrets: SecretMeta[] }).secrets); }, [doFetch]);
   const loadFlags = React.useCallback(async () => {
     const r = await doFetch("/api/admin/flags");
-    if (r.ok) { const d = (await r.json()) as { flags: Record<string, FlagRule> }; setFlags(d.flags); setFlagJson(JSON.stringify(d.flags, null, 2)); }
+    if (r.ok) { const d = (await r.json()) as { flags: Record<string, FlagRule> }; setFlagJson(JSON.stringify(d.flags, null, 2)); }
   }, [doFetch]);
   React.useEffect(() => { if (tab === "secrets") void loadSecrets(); else void loadFlags(); }, [tab, loadSecrets, loadFlags]);
 

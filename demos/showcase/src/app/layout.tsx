@@ -4,6 +4,7 @@ import { Toaster, AppSkin, ThemeSwitcher, BackToTop } from "@platform/ui";
 import { CollapsibleSidebar } from "../components/collapsible-sidebar";
 import { DemoMeta } from "../components/demo-meta";
 import { DemoIntro } from "../components/demo-intro";
+import { NextDemos } from "../components/next-demos";
 import { LiveClock } from "../components/live-clock";
 import { ModeToggle } from "../components/mode-toggle";
 import { CommandPalette } from "../components/command-palette";
@@ -63,6 +64,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <main style={{ flex: 1 }}>
                 <DemoIntro />
                 {children}
+                {/* 関連するデモへの導線。63 デモあっても、示さないと 1 つ見て終わる */}
+                <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 16px 32px" }}>
+                  <NextDemos />
+                </div>
               </main>
             </div>
           </div>

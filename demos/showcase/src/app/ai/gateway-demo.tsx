@@ -93,7 +93,13 @@ export function AiGatewayDemo() {
 
       <div style={box}>
         <label style={{ display: "block", fontSize: 12, marginBottom: 6 }}>モデル</label>
-        <Select value={model} onChange={(e) => setModel(e.target.value)} style={{ ...field, marginBottom: 12 }} options={[{ label: "claude-demo（このプロバイダは故障中 → fallback で openai へ）", value: "claude-demo" }, { label: "gpt-demo", value: "gpt-demo" }]} />
+        <Select
+          value={model} onChange={(e) => setModel(e.target.value)} style={{ ...field, marginBottom: 12 }}
+          options={[
+            { label: "claude-demo（このプロバイダは故障中 → fallback で openai へ）", value: "claude-demo"},
+            {label: "gpt-demo", value: "gpt-demo" },
+          ]}
+        />
         <Textarea
           value={text}
           onChange={(e) => setText(e.target.value)}

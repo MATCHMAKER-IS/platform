@@ -5,6 +5,7 @@
  * UI は **@platform/ui の部品だけ**で組む(CLAUDE.md「UI 部品は @platform/ui を使う」)。
  */
 import * as React from "react";
+import { UsesPackages } from "../../components/uses-packages";
 import { DataTable, Button, Textarea, Badge, Alert, Separator, downloadBlob, type DataTableColumn } from "@platform/ui";
 import {
   extractReceiptFields,
@@ -86,7 +87,8 @@ const PAYMENT_LABEL: Record<ExpensePayment, string> = {
 };
 
 const columns: DataTableColumn<(typeof EXPENSES)[number]>[] = [
-  { key: "date", header: "日付", sortable: true },
+  // 横に長い表では、左端を固定すると「どの行を見ているか」を見失わない
+  { key: "date", header: "日付", sortable: true, sticky: true },
   { key: "vendor", header: "支払先", sortable: true },
   { key: "category", header: "科目", sortable: true },
   { key: "net", header: "税抜", sortable: true, align: "right", render: (r) => `¥${r.net.toLocaleString()}` },
@@ -378,6 +380,16 @@ export default function Page() {
           <strong>「全部自動」を謳うと現場が破綻します</strong>。
         </p>
       </div>
+          <UsesPackages
+        packages={["accounting", "ocr", "tax"]}
+        imports={{ accounting: ["buildJournal"] }}
+        snippet={`// 領収書から読み取った内容を、貸借の合った仕訳にする
+// 勘定科目は推定できないものを「人が選ぶ」に回す(勝手に費用扱いしない)
+const journal = buildJournal({
+  date, debit: { account: "旅費交通費", amount },
+  credit: { account: "未払金", amount },
+});`}
+      />
     </main>
   );
 }

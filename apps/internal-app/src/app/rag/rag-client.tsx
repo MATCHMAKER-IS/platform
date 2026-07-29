@@ -79,7 +79,14 @@ export function RagClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
           <Textarea value={body} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBody(e.target.value)} placeholder="本文" rows={4} style={{ width: "100%", boxSizing: "border-box", padding: 8, border: "1px solid #ddd", borderRadius: 6, fontFamily: "inherit" }} />
           <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 8 }}>
             <label style={{ fontSize: 13 }}>公開範囲:
-              <Select value={visibility} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setVisibility(e.target.value as "public" | "hr" | "admin")} style={{ marginLeft: 6, padding: 4 }} options={[{ label: "全員", value: "public" }, { label: "人事・管理者", value: "hr" }, { label: "管理者のみ", value: "admin" }]} />
+              <Select
+                value={visibility} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setVisibility(e.target.value as "public" | "hr" | "admin")} style={{ marginLeft: 6, padding: 4 }}
+                options={[
+                  { label: "全員", value: "public"},
+                  {label: "人事・管理者", value: "hr"},
+                  {label: "管理者のみ", value: "admin" },
+                ]}
+              />
             </label>
             <Button onClick={ingest} disabled={title.trim().length === 0 || body.trim().length === 0} style={{ marginLeft: "auto", padding: "6px 16px" }}>登録</Button>
           </div>

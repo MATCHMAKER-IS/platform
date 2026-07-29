@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toDay, summarize, createMemoryAttendanceStore } from "./core";
+import { toDay, createMemoryAttendanceStore } from "./core";
 import { statutoryLeaveDays, grantsSinceHire, leaveBalance, mandatoryLeaveStatus } from "./leave";
 
 describe("toDay", () => {

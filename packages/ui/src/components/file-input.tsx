@@ -4,6 +4,19 @@
  *
  * 生の `<input type="file">` はブラウザごとに見た目が違い、CSS でもほぼ変えられない。
  * `<label>` で隠してボタン風にするのが定石だが、**各画面で書くと揃わない**。
+ *
+ * @remarks
+ * **`ref` は受け取りません(forwardRef ではありません)。**
+ * 「別のボタンを押したら隠しファイル選択を開く」ために `ref` を渡したくなるが、
+ * それは生 `<input type="file">` 時代のパターン。この部品では **`label` を渡せば
+ * それ自体がボタンになる**ので、外側のボタンも `ref` も不要:
+ * ```tsx
+ * // ✗ 古いやり方(ref は効かない・型エラーになる)
+ * <Button onClick={() => fileRef.current?.click()}>取込</Button>
+ * <FileInput ref={fileRef} style={{ display: "none" }} onSelect={...} />
+ * // ✓ この部品の使い方
+ * <FileInput label="取込" onSelect={...} />
+ * ```
  * @packageDocumentation
  */
 import * as React from "react";

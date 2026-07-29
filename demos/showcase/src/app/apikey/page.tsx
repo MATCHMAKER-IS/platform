@@ -3,6 +3,7 @@
  * 基盤を直接呼ぶ(/security と同じ作り)。
  */
 import { generateApiKey, hashApiKey, verifyApiKey, hasScope, hasAllScopes, authenticateApiKey, type ApiKeyRecord, type ApiKeyStore } from "@platform/apikey";
+import { UsesPackages } from "../../components/uses-packages";
 
 const box: React.CSSProperties = {
   border: "1px solid var(--color-border)",
@@ -180,6 +181,16 @@ export default async function Page() {
           <code>/mcp</code> のツール認可も同じ考え方です（書き込み系のツールにスコープを付ける）。
         </p>
       </div>
+          <UsesPackages
+        packages={["apikey"]}
+        imports={{ apikey: ["generateApiKey", "hashApiKey", "authenticateApiKey"] }}
+        snippet={`// 発行時だけ生の鍵を見せ、保存はハッシュのみ(漏れても使えない)
+const { key, hash } = generateApiKey();
+await store.save({ hash, scopes: ["invoice:read"] });
+
+// 受け取り側
+const result = authenticateApiKey(bearer, await store.list());`}
+      />
     </main>
   );
 }

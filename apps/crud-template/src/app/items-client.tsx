@@ -21,7 +21,6 @@ export function ItemsClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   }, [doFetch, showInactive]);
   React.useEffect(() => { void load(); }, [load]);
 
-  const err = (field: string) => errors.find((e) => e.field === field)?.message;
 
   const add = async () => {
     setErrors([]);

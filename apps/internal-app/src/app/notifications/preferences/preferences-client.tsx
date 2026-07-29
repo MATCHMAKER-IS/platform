@@ -56,7 +56,14 @@ export function PreferencesClient({ fetchImpl }: PreferencesClientProps) {
       <div className="mx-auto mt-6 max-w-xl rounded border border-neutral-200 p-4">
         <h2 className="mb-1 text-sm font-semibold">ダイジェスト配信</h2>
         <p className="mb-2 text-xs text-neutral-500">未読通知のまとめを受け取る頻度を選びます。</p>
-        <Select value={digestFreq} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => void saveDigest(e.target.value as "off" | "daily" | "weekly")} className="rounded border border-neutral-300 px-2 py-1 text-sm" options={[{ label: "受け取らない", value: "off" }, { label: "毎日", value: "daily" }, { label: "毎週", value: "weekly" }]} />
+        <Select
+          value={digestFreq} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => void saveDigest(e.target.value as "off" | "daily" | "weekly")} className="rounded border border-neutral-300 px-2 py-1 text-sm"
+          options={[
+            { label: "受け取らない", value: "off"},
+            {label: "毎日", value: "daily"},
+            {label: "毎週", value: "weekly" },
+          ]}
+        />
         {digestSaved && <span className="ml-2 text-xs text-green-600">保存しました</span>}
       </div>
     </div>

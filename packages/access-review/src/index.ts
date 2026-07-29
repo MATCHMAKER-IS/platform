@@ -61,13 +61,30 @@ export interface ReviewFinding {
 /** 強い権限とみなすもの。ここに載るものは期限付きでのみ許す。 */
 export const STRONG_GRANTS = ["*", "admin", "pii:unmask", "system:manage", "period:lock", "user:manage"];
 
-/** 強い権限か。前方一致も見る(`expense:*` のようなワイルドカード)。 */
+/**
+ * 強い権限か。
+ *
+ * ワイルドカード(`*` や `expense:*`)も対象にする。
+ * これらは**恒久的に付けない**運用にしているため、期限の有無を検査する側で使う。
+ *
+ * @param grant ロール名または権限名
+ * @returns 強い権限なら true
+ */
 export function isStrongGrant(grant: string): boolean {
   if (STRONG_GRANTS.includes(grant)) return true;
   return grant.endsWith(":*") || grant === "*";
 }
 
-/** 有効な(まだ外されておらず、期限も切れていない)権限か。 */
+/**
+ * まだ有効な権限か。
+ *
+ * 外した日・期限のどちらかを過ぎていれば false。
+ * **付与日より前の基準日でも false** にする(遡って有効にしない)。
+ *
+ * @param g    権限の付与記録
+ * @param asOf 基準日(YYYY-MM-DD)
+ * @returns 有効なら true
+ */
 export function isActiveGrant(g: AccessGrant, asOf: string): boolean {
   if (g.revokedOn && g.revokedOn <= asOf) return false;
   if (g.expiresOn && g.expiresOn <= asOf) return false;

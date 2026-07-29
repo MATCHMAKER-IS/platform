@@ -39,8 +39,16 @@ for (const c of checks) {
   // (drift の有無にかかわらず、実行前後でファイルを同一に保つ。中断・失敗時に汚さない。
   //  更新は本来の担当 `gen-all.mjs` / `platform:sync` が行う)。
   if (after !== before) writeFileSync(fp, before);
-  // platform-report は生成日を含むので日付行を無視して比較
-  const norm = (s) => s.replace(/生成日: \d{4}-\d{2}-\d{2}/g, "生成日: DATE");
+  // 生成物には「いつ生成したか」が入るものがある。そこだけは差分から除いて比較する。
+  // これが無いと **コミットした翌日から毎日 CI が赤くなる**(内容は 1 バイトも変わっていないのに)。
+  // 恒常的に赤いゲートは「赤を無視する習慣」を作り、本物の drift を埋もれさせるので、
+  // 新しく時刻入りの生成物を足したときは、ここに正規化を追加すること。
+  //   - `生成日: 2026-07-24`      … advisor-report.md / platform-report.md(Markdown)
+  //   - `"generatedAt": "..."`    … docs-index.json(JSON。画面に表示するので消せない)
+  const norm = (s) =>
+    s
+      .replace(/生成日: \d{4}-\d{2}-\d{2}/g, "生成日: DATE")
+      .replace(/"generatedAt":\s*"[^"]*"/g, '"generatedAt": "DATE"');
   if (norm(before) !== norm(after)) {
     console.error(`❌ ${c.file} が古い可能性(生成し直すと差分)。\`node ${c.gen.join(" ")}\` を実行してコミットしてください`);
     ng += 1;

@@ -1,0 +1,35 @@
+// 口座残高の記録。
+//
+// **1 日に数回取り、月が終わったら月末の 1 件だけ残す**運用です
+// (@platform/freee の planRetention が判断します)。
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// 残高の記録（1 回の取得＝1 行）。
+model BalanceSnapshot {
+  id             String   @id @default(cuid())
+  /// freee の口座 ID。
+  walletableId   Int
+  /// 口座名。後から口座が消えても分かるように残す。
+  walletableName String
+  /// 口座の種類（bank_account / credit_card / wallet）。
+  walletableType String
+  /// 残高（円）。マイナスもあるので Int。
+  balance        Int
+  /// 取得した時刻。
+  takenAt        DateTime
+  /// 取得した日（YYYY-MM-DD）。間引きで日単位に絞るため、別に持つ。
+  takenOn        String
+
+  createdAt      DateTime @default(now())
+
+  // 「口座 × 日」で引くことが多い（間引き・グラフの両方）
+  @@index([walletableId, takenOn])
+  @@index([takenAt])
+}

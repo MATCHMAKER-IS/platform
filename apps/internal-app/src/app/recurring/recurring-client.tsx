@@ -4,7 +4,6 @@ import * as React from "react";
 import { Button, Input, Select } from "@platform/ui";
 
 interface Line { description: string; quantity: number; unitPrice: number; taxRate?: 10 | 8 | 0; }
-interface Totals { subtotal: number; tax: number; total: number; }
 interface PlanView { number: string; billTo: string; interval: string; startDate: string; endDate?: string; lines: Line[]; lastBilled?: string; active: boolean; nextDate: string | null; due: boolean; }
 
 const INTERVAL: Record<string, string> = { monthly: "毎月", quarterly: "四半期", yearly: "毎年" };
@@ -71,7 +70,14 @@ export function RecurringClient({ fetchImpl, canWrite = true }: RecurringClientP
             <Input value={header.number} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHeader({ ...header, number: e.target.value })} placeholder="プラン番号（例 SUB-001）" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
             <Input value={header.billTo} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHeader({ ...header, billTo: e.target.value })} placeholder="宛先" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
             <label className="text-xs text-neutral-500">周期
-              <Select value={header.interval} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setHeader({ ...header, interval: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" options={[{ label: "毎月", value: "monthly" }, { label: "四半期", value: "quarterly" }, { label: "毎年", value: "yearly" }]} />
+              <Select
+                value={header.interval} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setHeader({ ...header, interval: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm"
+                options={[
+                  { label: "毎月", value: "monthly"},
+                  {label: "四半期", value: "quarterly"},
+                  {label: "毎年", value: "yearly" },
+                ]}
+              />
             </label>
             <label className="text-xs text-neutral-500">開始日<Input type="date" value={header.startDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHeader({ ...header, startDate: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
           </div>

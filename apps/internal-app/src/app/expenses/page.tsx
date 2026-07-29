@@ -2,10 +2,10 @@
 /** 経費ダッシュボード。基盤(datetime/utils/ui)を結線したサンプル業務画面。 */
 import { useMemo } from "react";
 import {
-  KpiCard, MetricGrid, TimelineChart, Histogram, StatSummary, DataTable, Trend,
+  KpiCard, MetricGrid, TimelineChart, Histogram, StatSummary, DataTable,
   type DataTableColumn,
 } from "@platform/ui";
-import { formatManOku, formatNumber, formatPercent, movingAverage } from "@platform/utils";
+import { formatNumber, formatPercent, movingAverage } from "@platform/utils";
 import { formatWareki } from "@platform/datetime";
 import { summarize, type Expense } from "../../lib/expense";
 import { SAMPLE_EXPENSES } from "../../lib/sample-expenses";

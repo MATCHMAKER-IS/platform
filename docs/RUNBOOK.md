@@ -55,6 +55,11 @@ gunzip -c backup-YYYYMMDD.dump.gz | pg_restore -d "$NEW_DATABASE_URL" --clean --
 - **段階リリース**: `@platform/flags` の `rolloutPercent` で 10%→50%→100%。異常時は kill switch で即オフ。
 
 ## 5. 障害対応フロー
+
+> **その前に**: 利用者からの問い合わせの大半は障害ではありません
+> （ログインできない・権限がない・データが見当たらない）。
+> まず `docs/ops/SUPPORT_GUIDE.md` を見てください。
+
 1. **検知**: `@platform/observability` のアラート(`createAlertManager`)が発報 → Slack/PagerDuty。
 2. **一次対応**: `/api/health` と `/api/metrics`、トレース(OTLP 送信先の可視化ツール)で影響範囲を特定。同じ `traceId` でログを追跡。
 3. **緩和**: 外部依存障害ならサーキットブレーカーが自動遮断。必要なら該当機能を feature flag でオフ。
@@ -73,3 +78,20 @@ gunzip -c backup-YYYYMMDD.dump.gz | pg_restore -d "$NEW_DATABASE_URL" --clean --
 ## 7. 定期訓練
 - **四半期ごと**にリストア訓練(バックアップからの復旧を実施)。
 - **半期ごと**に DR 訓練(リージョン切替のドライラン)。
+
+## 稼働確認の口（全アプリ共通）
+
+| URL | 目的 | 落ちているとき |
+|---|---|---|
+| `/api/health` | **生きているか** | 503。再起動を検討する |
+| `/api/health?type=live` | 応答するか（依存は見ない） | 依存が落ちていても 200。**再起動しても直らない**と分かる |
+| `/api/ready` | **受け入れてよいか** | 503。振り分けを止める（起動中・設定読み込み中） |
+
+**health と ready を分ける理由**は、対応が変わるためです。
+health が落ちたら再起動、ready が落ちたら振り分けを止めて待つ。
+一緒にすると、起動中のアプリを何度も再起動する事故が起きます。
+
+どちらも**認可を通しません**（監視システムが認可なしで叩けることが要件）。
+代わりに内部の詳しい情報は返しません。
+
+`check-build-ready` が全アプリでの設置を確認しています。

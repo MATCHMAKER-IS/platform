@@ -25,6 +25,14 @@ export interface DataTableColumn<T> {
   format?: "currency" | "number" | "date";
   /** currency 時の通貨コード(既定 JPY)。 */
   currency?: string;
+  /**
+   * 横スクロールしても左に貼り付けたままにする。
+   *
+   * **左端の列（名前・コードなど）を固定すると、右へスクロールしても
+   * どの行を見ているか分からなくならない**。
+   * 固定するのは 1〜2 列まで。増やすと本文が狭くなる。
+   */
+  sticky?: boolean;
 }
 
 /** {@link DataTable} の props。 */
@@ -37,6 +45,11 @@ export interface DataTableProps<T extends Record<string, unknown>> {
   pageSize?: number;
   /** CSV 出力ファイル名(指定でエクスポートボタン表示)。 */
   csvFilename?: string;
+  /**
+   * 固定列の幅(px)。既定 160。
+   * 内容が収まらないと隠れるため、**いちばん長い値に合わせる**。
+   */
+  stickyWidth?: number;
   className?: string;
 }
 
@@ -53,6 +66,8 @@ export interface DataTableProps<T extends Record<string, unknown>> {
  * | `highlightSearch` | 一致部分を強調する。件数が多い一覧で効く |
  * | `pageSize` | 1 頁の件数(既定 20)。行が高いなら小さく |
  * | `csvFilename` | **指定すると CSV 出力ボタンが出る**。無指定なら出ない |
+ * | `sticky`（列側） | 横スクロールしても左に貼り付ける。**1〜2 列まで**（増やすと本文が狭い） |
+ * | `stickyWidth` | 固定列の幅（既定 160）。内容が収まらないと隠れる |
  *
  * 列の `render` を使うと自由に描けるが、**その列は検索の強調が効かない**
  * (中身を基盤側が知らないため)。
@@ -72,7 +87,41 @@ export interface DataTableProps<T extends Record<string, unknown>> {
  * />
  * ```
  */
-export function DataTable<T extends Record<string, unknown>>({ rows, columns, searchKeys, highlightSearch, pageSize = 10, csvFilename, className }: DataTableProps<T>) {
+/**
+ * 固定列の見た目を返す。
+ *
+ * **背景色を必ず付ける**。透明のままだと、下を流れる本文が透けて重なって見える。
+ * ヘッダは本文より前面に置く(縦横どちらにスクロールしても隠れないように)。
+ *
+ * @param col     この列
+ * @param columns 全列(左位置の積み上げに使う)
+ * @param width   固定列の幅
+ * @param isHead  ヘッダか
+ * @returns style(固定しない列では空)
+ */
+function stickyStyle<T>(
+  col: DataTableColumn<T>,
+  columns: DataTableColumn<T>[],
+  width: number,
+  isHead: boolean,
+): React.CSSProperties {
+  if (!col.sticky) return {};
+  const before = columns.slice(0, columns.indexOf(col)).filter((c) => c.sticky).length;
+  return {
+    position: "sticky",
+    left: before * width,
+    width,
+    minWidth: width,
+    // 透けると本文と重なって読めなくなる
+    background: "var(--color-surface)",
+    // ヘッダ(縦にも固定される)を前面に
+    zIndex: isHead ? 2 : 1,
+    // 固定列の右端に境目を出す。どこまでが固定か分かるように
+    boxShadow: "1px 0 0 var(--color-border)",
+  };
+}
+
+export function DataTable<T extends Record<string, unknown>>({ rows, columns, searchKeys, highlightSearch, pageSize = 10, csvFilename, className , stickyWidth = 160 }: DataTableProps<T>) {
   const [query, setQuery] = React.useState<TableQuery>({ page: 1, pageSize, sortDir: "asc" });
   const i18n = useI18n();
   const t = i18n.t;
@@ -98,7 +147,11 @@ export function DataTable<T extends Record<string, unknown>>({ rows, columns, se
           <thead>
             <tr className="bg-[var(--color-muted)]/10">
               {columns.map((c) => (
-                <th key={c.key} className={cn("px-3 py-2 font-semibold", c.align === "right" ? "text-right" : c.align === "center" ? "text-center" : "text-left")}>
+                <th
+                  key={c.key}
+                  style={stickyStyle(c, columns, stickyWidth, true)}
+                  className={cn("px-3 py-2 font-semibold", c.align === "right" ? "text-right" : c.align === "center" ? "text-center" : "text-left")}
+                >
                   {c.sortable ? (
                     <button type="button" onClick={() => toggleSort(c.key)} className="inline-flex items-center gap-1 hover:underline">
                       {c.header}<ArrowUpDown className="h-3 w-3" />
@@ -112,7 +165,11 @@ export function DataTable<T extends Record<string, unknown>>({ rows, columns, se
             {result.rows.map((row, i) => (
               <tr key={i} className="border-t border-[var(--color-border)]">
                 {columns.map((c) => (
-                  <td key={c.key} className={cn("px-3 py-2", c.align === "right" ? "text-right" : c.align === "center" ? "text-center" : "text-left")}>
+                  <td
+                    key={c.key}
+                    style={stickyStyle(c, columns, stickyWidth, false)}
+                    className={cn("px-3 py-2", c.align === "right" ? "text-right" : c.align === "center" ? "text-center" : "text-left")}
+                  >
                     {c.render ? c.render(row) : c.format ? fmtCell(i18n, c, row[c.key]) : (highlightSearch && query.search ? <Highlight text={String(row[c.key] ?? "")} query={query.search} /> : String(row[c.key] ?? ""))}
                   </td>
                 ))}

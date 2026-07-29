@@ -709,6 +709,39 @@ export function check() {
     }
   }
 
+  // ---- 例外と 404 の受け皿があるか ----
+  // 無いと**既定の白い画面**が出て、利用者には「壊れた」としか伝わらない。
+  // ビルドは通るため、実際に例外が起きるまで気づけない。
+  for (const area of ["apps", "demos"]) {
+    const areaDir = path.join(ROOT, area);
+    if (!existsSync(areaDir)) continue;
+    for (const app of readdirSync(areaDir)) {
+      const appDir = path.join(areaDir, app, "src/app");
+      if (!existsSync(appDir)) continue;
+      for (const [file, why] of [
+        ["error.tsx", "例外が起きたとき、既定の白い画面が出ます"],
+        ["not-found.tsx", "存在しない URL のとき、壊れたのか URL 違いか分かりません"],
+      ]) {
+        if (!existsSync(path.join(appDir, file))) {
+          issues.push(`[E] ${area}/${app}: src/app/${file} がありません — ${why}`);
+        }
+      }
+
+      // 稼働確認の口。無いと**落ちていることに誰も気づけない**。
+      // デモは監視の対象外なので、アプリだけを見る。
+      if (area === "apps") {
+        for (const [route, why] of [
+          ["health", "監視が死活を確認できません（落ちても気づけません）"],
+          ["ready", "起動中でも振り分けられ、利用者がエラーを見ます"],
+        ]) {
+          if (!existsSync(path.join(appDir, "api", route, "route.ts"))) {
+            issues.push(`[E] ${area}/${app}: src/app/api/${route}/route.ts がありません — ${why}`);
+          }
+        }
+      }
+    }
+  }
+
   return issues;
 }
 

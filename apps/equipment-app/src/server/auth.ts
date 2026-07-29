@@ -5,7 +5,7 @@
  * @packageDocumentation
  */
 import { hashPassword as hashNew, verifyPassword as verifyNew } from "@platform/crypto";
-import { createHmac, timingSafeEqual, scryptSync, randomBytes } from "node:crypto";
+import { createHmac, timingSafeEqual, scryptSync } from "node:crypto";
 
 /** セッションのペイロード。 */
 export interface SessionPayload {

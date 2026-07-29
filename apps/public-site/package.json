@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev --port 3004",
-    "build": "next build",
+    "build": "tsc -p tsconfig.json --noEmit && next build",
     "start": "next start",
     "lint": "eslint src",
     "typecheck": "tsc -p tsconfig.json --noEmit"
@@ -15,14 +15,15 @@
     "@platform/board": "workspace:*",
     "@platform/cms": "workspace:*",
     "@platform/html": "workspace:*",
+    "@platform/observability": "workspace:*",
     "@platform/search": "workspace:*",
     "@platform/seo": "workspace:*",
     "@platform/site": "workspace:*",
+    "@platform/theme": "workspace:*",
     "@platform/ui": "workspace:*",
     "next": "16.2.0",
     "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "@platform/theme": "workspace:*"
+    "react-dom": "19.2.0"
   },
   "devDependencies": {
     "@platform/config": "workspace:*",

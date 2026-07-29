@@ -10,6 +10,50 @@ import { createApiClient } from "@platform/integrations";
 import type { Result } from "@platform/core";
 
 /** 一覧のページング(freee は limit/offset、上限は概ね100)。 */
+/**
+ * 口座（freee でいう walletable）。
+ *
+ * `type` は `bank_account`(銀行) / `credit_card`(クレジットカード) / `wallet`(現金).
+ * **残高は同期のたびに変わる**ため、取得時刻とあわせて扱うこと。
+ */
+export interface FreeeWalletable {
+  id: number;
+  name: string;
+  /** 口座の種類。 */
+  type: "bank_account" | "credit_card" | "wallet";
+  /** 帳簿上の残高（円）。同期が遅れていると実際とずれる。 */
+  walletable_balance?: number;
+  /** 同期して取り込んだ残高（円）。銀行と繋いでいる場合のみ。 */
+  last_balance?: number;
+  bank_id?: number;
+}
+
+/** 口座一覧の応答。 */
+export interface FreeeWalletablesResponse {
+  walletables: FreeeWalletable[];
+}
+
+/** 口座の明細 1 件。 */
+export interface FreeeWalletTxn {
+  id: number;
+  walletable_id: number;
+  walletable_type: string;
+  /** 日付（YYYY-MM-DD）。 */
+  date: string;
+  /** 金額（円）。入金は正、出金は負ではなく `entry_side` で判断する。 */
+  amount: number;
+  /** `income`(入金) か `expense`(出金)。**符号ではなくこれで判断する**。 */
+  entry_side: "income" | "expense";
+  /** 残高（この明細の時点）。 */
+  balance?: number;
+  description?: string;
+}
+
+/** 明細一覧の応答。 */
+export interface FreeeWalletTxnsResponse {
+  wallet_txns: FreeeWalletTxn[];
+}
+
 export interface FreeePaging { limit?: number; offset?: number }
 
 /** freee クライアント。 */
@@ -80,7 +124,7 @@ export interface FreeeClient {
   /** 税区分一覧。 */
   getTaxes(companyId: number): Promise<Result<unknown>>;
   /** 口座(登録済みウォレット)一覧。 */
-  getWalletables(companyId: number): Promise<Result<unknown>>;
+  getWalletables(companyId: number): Promise<Result<FreeeWalletablesResponse>>;
 
   // ── 請求書・見積書 ──
   /** 請求書一覧。 */
@@ -100,7 +144,7 @@ export interface FreeeClient {
 
   // ── 口座明細・レポート ──
   /** 口座明細(入出金)一覧。 */
-  getWalletTxns(companyId: number, params?: FreeePaging & { walletableType?: string; walletableId?: number }): Promise<Result<unknown>>;
+  getWalletTxns(companyId: number, params?: FreeePaging & { walletableType?: string; walletableId?: number }): Promise<Result<FreeeWalletTxnsResponse>>;
   /** 試算表(貸借対照表 bs / 損益計算書 pl)。 */
   getTrialBalance(companyId: number, report: "trial_bs" | "trial_pl", params?: { fiscalYear?: number; startMonth?: number; endMonth?: number }): Promise<Result<unknown>>;
 
@@ -224,3 +268,5 @@ export * from "./token";
 export * from "./webhook";
 export * from "./hr";
 export * from "./builders";
+export * from "./balance";
+export * from "./retention";
