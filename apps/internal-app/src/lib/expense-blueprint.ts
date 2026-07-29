@@ -4,6 +4,7 @@
  * @packageDocumentation
  */
 import { applyTransition, availableTransitions, type Blueprint } from "@platform/blueprint";
+import { formatDateJst } from "@platform/datetime";
 import { routeByAmount, startWorkflow, approve, type AmountTier, type WorkflowState, type Actor } from "@platform/workflow";
 import { expenseJournal, type JournalEntry } from "@platform/accounting";
 
@@ -62,7 +63,8 @@ export function approveExpense(expense: ExpenseRecord, actor: Actor): { ok: bool
   if (result.value.status === "approved") {
     const done = applyTransition(expenseBlueprint, next, "承認完了");
     if (done.ok) {
-      const journal = expenseJournal({ date: new Date().toISOString().slice(0, 10), net: next.taxNet ?? next.amount, tax: next.tax ?? 0, account: next.category });
+      // 起票日。UTC で切ると月初深夜の承認が前月の仕訳になる
+      const journal = expenseJournal({ date: formatDateJst(), net: next.taxNet ?? next.amount, tax: next.tax ?? 0, account: next.category });
       return { ok: true, expense: done.record, errors: [], journal };
     }
   }

@@ -833,6 +833,7 @@
     "ceilToMinutes",
     "clampDate",
     "dayNumber",
+    "dayNumberJst",
     "dayOfWeek",
     "daysBetween",
     "daysInMonth",
@@ -842,6 +843,7 @@
     "endOfMonth",
     "floorToMinutes",
     "formatDate",
+    "formatDateJst",
     "formatDuration",
     "formatJst",
     "formatRelativeDay",
@@ -871,6 +873,7 @@
     "startOfMonth",
     "startOfWeek",
     "toWareki",
+    "todayJst",
     "utcDate",
     "weekdayNameJa"
   ],

@@ -1,12 +1,13 @@
-import { describe, it, expect } from "vitest";
 import {
-  isLeapYear, daysInMonth, addDays, addMonths, addYears, daysBetween, daysUntil,
-  isPast, isFuture, isSameDay, isToday, age, weekdayNameJa, isWeekend, quarter,
-  startOfMonth, endOfMonth, startOfWeek, formatDate, parseDate,
-  holidayName, holidaysInYear, isBusinessDay, addBusinessDays, businessDaysBetween,
-  rangeContains, rangesOverlap, rangeIntersection, rangeDays, eachDayOfRange, splitRangeByMonth, clampDate,
-  toWareki, formatWareki, formatRelativeDay,
-  roundToNearestMinutes, floorToMinutes, ceilToMinutes, formatDuration, parseDuration, businessMinutesBetween,
+  describe, it, expect } from "vitest"; import {   isLeapYear, daysInMonth, addDays, addMonths,
+  addYears, daysBetween, daysUntil, isPast, isFuture, isSameDay,
+  isToday, age, weekdayNameJa, isWeekend, quarter, startOfMonth,
+  endOfMonth, startOfWeek, formatDate, parseDate, holidayName, holidaysInYear,
+  isBusinessDay, addBusinessDays, businessDaysBetween, rangeContains, rangesOverlap, rangeIntersection,
+  rangeDays, eachDayOfRange, splitRangeByMonth, clampDate, toWareki, formatWareki,
+  formatRelativeDay, roundToNearestMinutes, floorToMinutes, ceilToMinutes, formatDuration, parseDuration,
+  businessMinutesBetween, todayJst, formatDateJst, dayNumber, dayNumberJst, dayOfWeek,
+  isBeforeDay, isAfterDay, utcDate, isHoliday,
 } from "./calendar";
 
 const D = (s: string) => new Date(s + "T00:00:00Z");
@@ -25,7 +26,13 @@ describe("arithmetic", () => {
 
 describe("compare/age", () => {
   it("past/future", () => { expect(isPast(D("2020-01-01"), D("2024-01-01"))).toBe(true); expect(isFuture(D("2030-01-01"), D("2024-01-01"))).toBe(true); });
-  it("sameDay/today", () => { expect(isSameDay(new Date("2024-05-01T01:00:00Z"), new Date("2024-05-01T23:00:00Z"))).toBe(true); expect(isToday(D("2024-05-01"), new Date("2024-05-01T10:00:00Z"))).toBe(true); });
+  it("sameDay/today", () => {
+    // 暦日は JST 基準。01:00Z = 5/1 10:00 JST、23:00Z = **5/2 08:00 JST** なので別日
+    expect(isSameDay(new Date("2024-05-01T01:00:00Z"), new Date("2024-05-01T23:00:00Z"))).toBe(false);
+    // 同じ JST 日どうしは true
+    expect(isSameDay(new Date("2024-05-01T01:00:00Z"), new Date("2024-05-01T14:00:00Z"))).toBe(true);
+    expect(isToday(D("2024-05-01"), new Date("2024-05-01T10:00:00Z"))).toBe(true);
+  });
   it("age", () => { expect(age(D("1990-06-15"), D("2024-06-14"))).toBe(33); expect(age(D("1990-06-15"), D("2024-06-15"))).toBe(34); expect(age(D("2000-02-29"), D("2024-02-28"))).toBe(23); });
 });
 
@@ -71,4 +78,62 @@ describe("time/duration", () => {
   it("formatDuration", () => { expect(formatDuration(9000)).toBe("2時間30分"); expect(formatDuration(90061, { maxUnits: 3 })).toBe("1日1時間1分"); expect(formatDuration(0)).toBe("0秒"); expect(formatDuration(9000, { short: true })).toBe("2h30m"); });
   it("parseDuration", () => { expect(parseDuration("2時間30分")).toBe(9000); expect(parseDuration("1日3時間")).toBe(97200); expect(parseDuration("abc")).toBeNull(); });
   it("businessMinutes", () => { expect(businessMinutesBetween(T("2024-01-04T10:00:00"), T("2024-01-05T15:00:00"))).toBe(840); expect(businessMinutesBetween(T("2024-01-01T09:00:00"), T("2024-01-01T18:00:00"))).toBe(0); });
+});
+
+describe("JST の暦日(9 時間ずれ対策)", () => {
+  // JST 2026-07-29 00:30 = UTC 2026-07-28 15:30。
+  // ここが「昨日」に見えるのが、UTC 基準の日付計算で起きる典型的な不具合。
+  const jst0030 = new Date("2026-07-29T00:30:00+09:00");
+  const jst0800 = new Date("2026-07-29T08:00:00+09:00"); // UTC ではまだ 07-28
+  const jst1000 = new Date("2026-07-29T10:00:00+09:00"); // UTC では 07-29
+
+  it("todayJst は JST の暦日を UTC 0 時の Date で返す", () => {
+    expect(todayJst(jst0030).toISOString()).toBe("2026-07-29T00:00:00.000Z");
+    expect(todayJst(jst1000).toISOString()).toBe("2026-07-29T00:00:00.000Z");
+  });
+
+  it("formatDateJst は JST の日付を返す(toISOString().slice(0,10) の置き換え)", () => {
+    expect(formatDateJst(jst0030)).toBe("2026-07-29");
+    // 比較: UTC で切ると前日になる
+    expect(jst0030.toISOString().slice(0, 10)).toBe("2026-07-28");
+  });
+
+  it("UTC の日付をまたぐ 2 時刻でも、同じ JST 日なら isSameDay は true", () => {
+    expect(isSameDay(jst0800, jst1000)).toBe(true);
+    expect(isSameDay(jst0030, jst1000)).toBe(true);
+  });
+
+  it("JST 深夜でも isToday が今日を今日と判定する", () => {
+    expect(isToday(utcDate(2026, 7, 29), jst0030)).toBe(true);
+    expect(isToday(utcDate(2026, 7, 28), jst0030)).toBe(false);
+  });
+
+  it("JST 深夜でも daysUntil が 0 になる(期限が今日のものを明日扱いしない)", () => {
+    expect(daysUntil(utcDate(2026, 7, 29), jst0030)).toBe(0);
+    expect(daysUntil(utcDate(2026, 7, 30), jst0030)).toBe(1);
+  });
+
+  it("暦日の前後比較も JST 基準", () => {
+    expect(isBeforeDay(jst0030, utcDate(2026, 7, 30))).toBe(true);
+    expect(isAfterDay(jst0030, utcDate(2026, 7, 28))).toBe(true);
+    expect(isBeforeDay(jst0800, jst1000)).toBe(false); // 同じ日
+  });
+
+  it("曜日も JST 基準(月曜の早朝を日曜にしない)", () => {
+    // 2026-08-03 は月曜。JST 月曜 08:00 は UTC ではまだ日曜
+    expect(dayOfWeek(new Date("2026-08-03T08:00:00+09:00"))).toBe(1);
+  });
+
+  it("祝日判定も JST 基準(元日の朝を前年扱いしない)", () => {
+    // 2027-01-01 元日。JST 元日 08:00 は UTC ではまだ 2026-12-31
+    expect(isHoliday(new Date("2027-01-01T08:00:00+09:00"))).toBe(true);
+    expect(holidayName(new Date("2027-01-01T08:00:00+09:00"))).toBe("元日");
+  });
+
+  it("日付だけの値(utcDate)では dayNumber と dayNumberJst が一致する", () => {
+    // 既存の祝日表・営業日計算が影響を受けないことの担保
+    for (const d of [utcDate(2026, 1, 1), utcDate(2026, 7, 29), utcDate(2026, 12, 31)]) {
+      expect(dayNumberJst(d)).toBe(dayNumber(d));
+    }
+  });
 });

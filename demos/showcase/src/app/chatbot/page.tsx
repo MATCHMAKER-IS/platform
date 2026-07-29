@@ -13,6 +13,7 @@
  *     （「AI が無いと何も出ない」状態にしない）
  */
 import * as React from "react";
+import { formatDateJst } from "@platform/datetime";
 import { createBm25Index } from "@platform/search";
 import { buildContext, textToDocument, chunkDocument, boostExactKeyword } from "@platform/rag";
 import { ChatWindow, Badge, Button, Alert, type MessageGroup } from "@platform/ui";
@@ -24,7 +25,7 @@ type Turn = { id: string; role: "user" | "assistant"; text: string; sources?: st
 const KEY = "demo-chatbot-turns";
 const GREETING = "社内の手順書・規約・設計判断から探して答えます。例:「バックアップの復元手順は？」「なぜ db push なの？」";
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => formatDateJst();
 const hhmm = () => new Date().toTimeString().slice(0, 5);
 
 export default function Page() {

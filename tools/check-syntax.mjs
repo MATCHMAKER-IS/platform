@@ -25,9 +25,9 @@
  * 型検査は node_modules が要るので CI 側で走らせる、という役割分担。
  */
 import { readFileSync } from "node:fs";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { collectFiles } from "./lib/collect-files.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
@@ -45,13 +45,9 @@ try {
 /** 検査対象のディレクトリ。生成物・依存は含めない。 */
 const DIRS = ["packages", "apps", "demos", "tools", "e2e", "tests"];
 
-const files = execSync(
-  `find ${DIRS.join(" ")} \\( -name '*.ts' -o -name '*.tsx' -o -name '*.mts' \\) -not -path '*/node_modules/*'`,
-  { cwd: ROOT, encoding: "utf8" },
-)
-  .trim()
-  .split("\n")
-  .filter(Boolean);
+// `find` は Windows で別コマンドになるため使わない(tools/lib/collect-files.mjs 参照)。
+// **この検査こそ Windows で動く必要がある**(構文エラーはどの OS でも起きる)。
+const files = collectFiles(DIRS, ROOT, { extensions: [".ts", ".tsx", ".mts"] });
 
 let ng = 0;
 for (const rel of files) {

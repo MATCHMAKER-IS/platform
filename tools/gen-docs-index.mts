@@ -15,6 +15,7 @@
  * 実行: node tools/gen-docs-index.mjs
  */
 import { writeFileSync, mkdirSync } from "node:fs";
+import { formatDateJst } from "../packages/datetime/src/calendar.ts";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadDocSections, isGenerated } from "./lib/doc-sections.mts";
@@ -54,7 +55,8 @@ const entries = sections
 
 mkdirSync(path.dirname(OUT), { recursive: true });
 const json = JSON.stringify({
-  generatedAt: new Date().toISOString().slice(0, 10),
+  // JST の日付。UTC で切ると深夜〜朝 9 時の生成分だけ前日になる
+  generatedAt: formatDateJst(),
   count: entries.length,
   entries,
 });

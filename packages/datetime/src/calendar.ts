@@ -1,9 +1,9 @@
 /**
  * 日付・時刻ユーティリティ(外部依存なし・UTC カレンダー基準の純ロジック)。
  *
- * 日付のみの計算(年齢・日数差・祝日)は UTC の暦日で扱う。時刻を含む比較は
- * インスタント(getTime)で行う。JST での境界計算が必要な場合は index.ts の
- * `startOfDayJst` 等と併用すること。
+ * 日付だけの値は UTC 0 時の Date で表す(`utcDate()`)。**暦日の比較は JST 基準**で行うため、
+ * 「今」をそのまま渡してよい(`dayNumberJst`)。時刻を含む前後比較はインスタント(getTime)で行う。
+ * 時刻まで含めた JST の境界が要る場合は index.ts の `startOfDayJst` 等を使う。
  * @packageDocumentation
  */
 
@@ -45,6 +45,57 @@ export function daysInMonth(year: number, month: number): number {
  */
 export function dayNumber(date: Date): number {
   return Math.floor(date.getTime() / MS_PER_DAY);
+}
+
+/** JST は UTC+9 固定(夏時間が無い)。 */
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+/**
+ * **JST の暦日**での日番号を返す。
+ *
+ * `dayNumber` は UTC の暦日なので、**JST の 00:00〜08:59 は前日**になる。
+ * 「今」を渡して日付を比べる場面（今日か・期限まで何日か）はすべてこちらを使う。
+ *
+ * 日付だけの値（`utcDate()` が返す UTC 0 時の Date）に対しては `dayNumber` と同じ値になる
+ * ため、祝日表や営業日計算の既存ロジックはこの関数に置き換えても結果が変わらない
+ * （0 時 + 9 時間は同じ日に収まるため）。
+ *
+ * @param date 日時
+ * @returns 1970-01-01(JST) からの日数
+ */
+export function dayNumberJst(date: Date): number {
+  return Math.floor((date.getTime() + JST_OFFSET_MS) / MS_PER_DAY);
+}
+
+/**
+ * その瞬間が属する **JST の暦日**を、UTC 0 時の Date で返す。
+ *
+ * `utcDate()` と同じ「日付だけの値」の形なので、そのまま他の日付関数へ渡せる。
+ *
+ * @param now 基準の瞬間(テスト注入用。既定は現在時刻)
+ * @returns JST の今日(UTC 0 時)
+ *
+ * @example
+ * ```ts
+ * // JST 2026-07-29 00:30(UTC では 07-28 15:30)に実行しても
+ * todayJst(); // 2026-07-29T00:00:00Z
+ * ```
+ */
+export function todayJst(now: Date = new Date()): Date {
+  return new Date(dayNumberJst(now) * MS_PER_DAY);
+}
+
+/**
+ * **JST の日付**を `YYYY-MM-DD` で返す。
+ *
+ * `new Date().toISOString().slice(0, 10)` は UTC の日付なので、
+ * **JST の 00:00〜08:59 に実行すると前日**になる。その置き換え先。
+ *
+ * @param date 日時(既定は現在時刻)
+ * @returns `YYYY-MM-DD`(JST)
+ */
+export function formatDateJst(date: Date = new Date()): string {
+  return new Date(date.getTime() + JST_OFFSET_MS).toISOString().slice(0, 10);
 }
 
 /**
@@ -119,7 +170,8 @@ export function addYears(date: Date, n: number): Date {
  * @returns 日数(b が過去なら負)。同じ日なら 0
  */
 export function daysBetween(a: Date, b: Date): number {
-  return dayNumber(b) - dayNumber(a);
+  // JST の暦日で数える。UTC だと「今」を渡したとき 00:00〜08:59 が前日になる
+  return dayNumberJst(b) - dayNumberJst(a);
 }
 
 /**
@@ -143,7 +195,7 @@ export function daysUntil(date: Date, from: Date = new Date()): number {
  * @returns 同じ日なら true(時刻が違っても true)
  */
 export function isSameDay(a: Date, b: Date): boolean {
-  return dayNumber(a) === dayNumber(b);
+  return dayNumberJst(a) === dayNumberJst(b);
 }
 
 /**
@@ -186,7 +238,7 @@ export function isToday(date: Date, now: Date = new Date()): boolean {
  * @param b 比較する日付
  * @returns a が b より前の暦日なら true(時刻は無視)
  */
-export function isBeforeDay(a: Date, b: Date): boolean { return dayNumber(a) < dayNumber(b); }
+export function isBeforeDay(a: Date, b: Date): boolean { return dayNumberJst(a) < dayNumberJst(b); }
 /**
  * a は b より後の暦日か。
  *
@@ -194,7 +246,7 @@ export function isBeforeDay(a: Date, b: Date): boolean { return dayNumber(a) < d
  * @param b 比較する日付
  * @returns a が b より後の暦日なら true(時刻は無視)
  */
-export function isAfterDay(a: Date, b: Date): boolean { return dayNumber(a) > dayNumber(b); }
+export function isAfterDay(a: Date, b: Date): boolean { return dayNumberJst(a) > dayNumberJst(b); }
 
 // ───────────────────────── 年齢・曜日・四半期 ─────────────────────────
 
@@ -219,7 +271,9 @@ export function age(birth: Date, at: Date = new Date()): number {
  * @returns 0=日曜 〜 6=土曜(JavaScript の getUTCDay と同じ)
  */
 export function dayOfWeek(date: Date): number {
-  return new Date(dayNumber(date) * MS_PER_DAY).getUTCDay();
+  // JST の暦日の曜日。UTC だと JST 00:00〜08:59 が前日の曜日になり、
+  // 月曜早朝が「日曜」= 休日と判定されてしまう
+  return new Date(dayNumberJst(date) * MS_PER_DAY).getUTCDay();
 }
 
 const WEEKDAY_JA = ["日", "月", "火", "水", "木", "金", "土"];
@@ -419,7 +473,9 @@ function holidayMap(year: number): Map<number, string> {
  * @returns 日本の祝日なら true(**土日は含まない**。土日は isWeekend で見る)
  */
 export function isHoliday(date: Date): boolean {
-  return holidayMap(date.getUTCFullYear()).has(dayNumber(date));
+  // 年も JST の暦日から取る(元日の朝 8 時に「前年」を引かないため)
+  const day = new Date(dayNumberJst(date) * MS_PER_DAY);
+  return holidayMap(day.getUTCFullYear()).has(dayNumberJst(date));
 }
 
 /**
@@ -429,7 +485,8 @@ export function isHoliday(date: Date): boolean {
  * @returns 祝日の名前。祝日でなければ undefined
  */
 export function holidayName(date: Date): string | null {
-  return holidayMap(date.getUTCFullYear()).get(dayNumber(date)) ?? null;
+  const day = new Date(dayNumberJst(date) * MS_PER_DAY);
+  return holidayMap(day.getUTCFullYear()).get(dayNumberJst(date)) ?? null;
 }
 
 // ───────────────────────── 営業日 ─────────────────────────

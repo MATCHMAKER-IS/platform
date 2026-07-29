@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { fitDimensions, clampRect, mimeForFormat, formatFromExtension } from "./index";
+import {
+  describe, it, expect } from "vitest"; import { fitDimensions, clampRect, mimeForFormat, formatFromExtension, watermarkTextSvg,
+} from "./index";
 
 describe("fitDimensions", () => {
   it("contain: 4000x3000 → max2000 = 2000x1500", () => {
@@ -24,5 +25,27 @@ describe("format helpers", () => {
     expect(mimeForFormat("webp")).toBe("image/webp");
     expect(formatFromExtension("photo.JPG")).toBe("jpeg");
     expect(formatFromExtension("x.gif")).toBeNull();
+  });
+});
+
+describe("watermarkTextSvg(属性のエスケープ)", () => {
+  it("**属性に入る値をすべてエスケープする**", () => {
+    // 以前は本文(text)だけで、fontFamily / color は素通しだった。
+    // `" onload="…` の形で SVG に任意の属性を差し込める
+    const svg = watermarkTextSvg("社外秘", { fontFamily: 'x" onload="alert(1)', color: 'red" onerror="x' });
+    expect(svg).not.toContain('onload="alert(1)"');
+    expect(svg).not.toContain('onerror="x"');
+    expect(svg).toContain("&quot;");
+  });
+
+  it("本文もエスケープする", () => {
+    expect(watermarkTextSvg("<script>")).toContain("&lt;script&gt;");
+  });
+
+  it("通常の指定は壊れない", () => {
+    const svg = watermarkTextSvg("社外秘");
+    expect(svg).toContain('font-family="sans-serif"');
+    expect(svg).toContain('fill="#ffffff"');
+    expect(svg.startsWith("<svg")).toBe(true);
   });
 });

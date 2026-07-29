@@ -23,6 +23,8 @@ export interface PackageInfo {
   summary: string;
   exports: string[];
   hasReadme: boolean;
+  /** どこからも import されていないか(**未実戦**。動作が確かめられていない)。 */
+  untested: boolean;
   reference: ReferenceEntry[];
 }
 
@@ -93,6 +95,38 @@ function loadAdrs(): AdrInfo[] {
     });
 }
 
+/**
+ * **どこからも import されていない**パッケージを見つける。
+ *
+ * 使われていない部品は「あるはず」と思って選ばれ、最初の利用者がバグを踏む役になる。
+ * 探す画面で先に分かるようにする(判定は `tools/gen-module-list.mjs` と同じ規則)。
+ *
+ * @returns 一度でも import されているパッケージ名
+ */
+function collectUsedPackages(): Set<string> {
+  const used = new Set<string>();
+  const walk = (dir: string, owner: string | null) => {
+    if (!existsSync(dir)) return;
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) { walk(full, owner); continue; }
+      if (!/\.(ts|tsx|js|jsx|mjs)$/.test(entry.name)) continue;
+      // 生成物には全パッケージ名が載るため対象外
+      if (entry.name.includes(".generated.")) continue;
+      const text = readFileSync(full, "utf8");
+      const re = /(?:from|import|require)\s*\(?\s*["'`]@platform\/([a-z0-9-]+)/g;
+      for (const m of text.matchAll(re)) {
+        if (m[1] !== undefined && m[1] !== owner) used.add(m[1]);
+      }
+    }
+  };
+  for (const group of ["apps", "demos"]) walk(path.join(ROOT, group), null);
+  const pkgDir = path.join(ROOT, "packages");
+  if (existsSync(pkgDir)) for (const name of readdirSync(pkgDir)) walk(path.join(pkgDir, name), name);
+  return used;
+}
+
 /** カタログを構築する。 */
 export function buildCatalog(): Catalog {
   const surfaceRaw = read("docs/platform/api-surface.json");
@@ -102,6 +136,7 @@ export function buildCatalog(): Catalog {
   const categoryMap = loadCategoryMap();
   const pkgDir = path.join(ROOT, "packages");
   const names = existsSync(pkgDir) ? readdirSync(pkgDir).filter((d) => existsSync(path.join(pkgDir, d, "package.json"))).sort() : [];
+  const used = collectUsedPackages();
 
   const packages: PackageInfo[] = names.map((name) => ({
     name,
@@ -109,6 +144,7 @@ export function buildCatalog(): Catalog {
     summary: firstReadmeLine(name),
     exports: surface[`@platform/${name}`] ?? [],
     hasReadme: existsSync(path.join(pkgDir, name, "README.md")),
+    untested: !used.has(name),
     reference: reference[`@platform/${name}`] ?? [],
   }));
 

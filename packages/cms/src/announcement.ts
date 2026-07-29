@@ -45,7 +45,8 @@ export interface AnnouncementInput {
  * お知らせの入力を検証する。
  *
  * @param input 入力
- * @returns 問題の一覧(空なら妥当)
+ * @returns `{ ok: true, value }` または `{ ok: false, error }`。
+ *   **配列ではない**ので `.length` で判定しないこと(常に妥当と読めてしまう)
  */
 export function validateAnnouncementInput(input: AnnouncementInput): { ok: true; value: AnnouncementInput } | { ok: false; error: string } {
   if (!input.message.trim()) return { ok: false, error: "メッセージは必須です" };

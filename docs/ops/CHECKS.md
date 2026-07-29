@@ -1,7 +1,7 @@
 # 検査の一覧（preflight は何を見ているか）
 
-`node tools/preflight.mjs` は **依存をインストールせずに 36 種類の検査**をまとめて実行する
-（schema 検査はアプリごとに走るため、実行時の項目数は 39）。
+`node tools/preflight.mjs` は **依存をインストールせずに 39 種類の検査**をまとめて実行する
+（schema 検査はアプリごとに走るため、実行時の項目数は 42）。
 「手元で `pnpm install` する前に、壊れているかどうかを知る」ための入口。
 
 ```bash
@@ -31,11 +31,14 @@ node tools/<検査名>.mjs        # 1 つだけ実行する
 | `check-e2e-quality` | E2E テストの質（意味のある検証か） | 通るだけのテスト |
 | `check-package-rules` | **基盤自身**が作法（logger / env）を守っているか | 基盤が破ると、使う側にも同じ書き方が広がる |
 | `check-app-rules` | アプリが基盤の役割を侵していないか。**生タグの上限**と**手書き Cookie** も見る | 属人化・作法の崩壊・Secure の付け忘れ |
-| `check-api-auth` | 認可も公開宣言も無い API が増えていないか | URL を知っていれば誰でも叩ける |
+| `check-api-auth` | API が認可を通すか、通さない理由を宣言しているか。**見るのは「認可を書いたか」だけ**（身元が本物かは `check-auth-stub`） | 認可の書き忘れ |
+| `check-auth-stub` | **身元を返す関数が固定値を返していないか**。スタブは禁止せず、本番ガードか `// auth-stub: 理由` を求める | **全検査グリーンなのに誰でも全操作できるアプリ**。雛形はコピーされ黙って複製される |
 | `check-permissions` | 使っている権限がポリシーに定義されているか | 誰も通れず 403 になる |
 | `check-reimplementation` | 基盤にある機能をアプリで作り直していないか | 直す場所が増え、強度もばらつく |
+| `check-handmade-chart` | **アプリが自前でグラフを描いていないか**（データ駆動のインライン SVG）。名前ではなく書き方で再実装を捕まえる | 目盛・凡例・レスポンシブを毎回作り直して毎回抜ける。色も直書きになる |
+| `check-utc-date` | **「今」から UTC の日付を切り出していないか**（`new Date().toISOString().slice(0,10)`）| JST の **00:00〜08:59 だけ前日**になる。昼間に試すと必ず通り、夜間バッチで出る |
 | `check-showcase-deps` | デモの依存と `transpilePackages` の整合 | ビルド失敗 |
-| `check-app-transpile` | 各アプリの `transpilePackages` の網羅 | ビルド失敗 |
+| `check-app-transpile` | **実際に import している** `@platform/*` が `transpilePackages` に載っているか（宣言ではなくソースを見る） | **`next build` だけが落ちる**。以前は宣言どうしを比べており、未宣言 import 17 件を見逃していた |
 | `check-syntax` | **全 .ts/.tsx を本物のパーサ（TypeScript）にかける**。この検査だけ `typescript` が要るため、未インストールなら `⏭` で skip され、preflight の最後に警告が出る（**skip を ✅ で描かない**） | **ビルドが構文エラーで落ちる**。これが無い間、他の検査が全部グリーンのまま `next build` が落ちた |
 | `check-jsx-tags` | JSX の閉じ忘れ（数え上げによる一次検知） | ビルドが構文エラーで落ちる |
 | `check-a11y` | 画像の alt・キーボード操作・読み上げ名 | 一部の人が操作できない画面 |
@@ -45,11 +48,24 @@ node tools/<検査名>.mjs        # 1 つだけ実行する
 | `check-contract` | 外部 SaaS の契約（依存フィールド）と実装のズレ | 相手の変更に気づけない |
 | `check-drill` | 復元訓練の鮮度 | 戻せないバックアップ |
 | `check-imports` | `@platform/*` から取り込む名前が実在するか | **ビルドが落ちる**（型検査まで気づけない） |
-| `check-lockfile` | **pnpm-lock.yaml と全 package.json の一致**（依存を足す/消す/バージョン変更したのに `pnpm install` していない状態を検知）。`peerDependencies` は `.npmrc` の `auto-install-peers=true` により lockfile へ書き戻されるので、**載っていること自体は正常**とし、指定がズレたときだけ報告する | **CI の `--frozen-lockfile` でデプロイが落ちる**（Amplify で実際に発生）。ローカルは frozen でないため気づけない |
+| `check-lockfile` | **pnpm-lock.yaml と全 package.json の一致**。`peerDependencies` は `auto-install-peers` で書き戻されるため、載っていること自体は正常とし指定のズレだけ報告 | **CI の `--frozen-lockfile` でデプロイが落ちる**（Amplify で実際に発生） |
 | `check-build-ready` | `next build` が通る前提（entry・重複 export・import 解決・リテラル型の広がり・**例外/404 の受け皿**） | ビルド失敗・白い画面 |
 | `advisor` | 重複コードの検出 | 同じものが増える |
 | `setup.sh 構文` | セットアップスクリプトの構文 | 初日に詰まる |
 | `Windows setup 検査` | Windows 環境の手順 | Windows で動かない |
+
+## OS 非依存であること
+
+検査ツールは **`find` などの外部コマンドを使わない**。`find` は Windows では
+まったく別のコマンド(文字列検索の `FIND.EXE`)になり、`FIND: パラメーターが違います`
+で落ちる。ファイルの走査は `tools/lib/collect-files.mjs` を使う。
+
+パスの比較も注意が要る。`path.join` は Windows で `\` を返すため、
+`endsWith("src/index.ts")` のような比較は**一度も一致しない**（検査が黙って素通りする）。
+走査結果は `/` 区切りに揃えてから比較する。
+
+> 2026-07、`check-lockfile` を Windows で実行して発覚した。
+> `check-syntax` を含む 5 つの検査が Windows では動いていなかった。
 
 ## 上限つきの検査（ラチェット）
 

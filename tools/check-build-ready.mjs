@@ -58,6 +58,13 @@ function stripSampleCode(src, rel) {
   return src.replace(/`[\s\S]*?`/g, " ");
 }
 
+/**
+ * 配下のファイルを集める。**返すパスは常に `/` 区切り**にする。
+ *
+ * `path.join` は Windows で `\` を使うため、そのまま返すと
+ * 後段の `endsWith("src/index.ts")` のような比較が**一度も一致しない**。
+ * 検査が黙って素通りするので、ここで揃えておく。
+ */
 function collect(dir, exts = [".ts", ".tsx"]) {
   const out = [];
   if (!existsSync(dir)) return out;
@@ -65,7 +72,7 @@ function collect(dir, exts = [".ts", ".tsx"]) {
     if (name === "node_modules" || name === ".next") continue;
     const p = path.join(dir, name);
     if (statSync(p).isDirectory()) out.push(...collect(p, exts));
-    else if (exts.some((e) => name.endsWith(e)) && !name.includes(".test.")) out.push(p);
+    else if (exts.some((e) => name.endsWith(e)) && !name.includes(".test.")) out.push(p.split(path.sep).join("/"));
   }
   return out;
 }

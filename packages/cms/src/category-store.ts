@@ -26,7 +26,8 @@ export function isValidCategorySlug(slug: string): boolean {
  * カテゴリの入力を検証する。
  *
  * @param input 入力
- * @returns 問題の一覧(空なら妥当)
+ * @returns `{ ok: true, value }` または `{ ok: false, error }`。
+ *   **配列ではない**ので `.length` で判定しないこと(常に妥当と読めてしまう)
  */
 export function validateCategoryInput(input: CategoryInput): { ok: true; value: CategoryInput } | { ok: false; error: string } {
   if (!input.name.trim()) return { ok: false, error: "カテゴリ名は必須です" };

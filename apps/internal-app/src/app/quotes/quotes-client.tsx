@@ -1,6 +1,7 @@
 "use client";
 /** 見積管理。一覧（状態・残日数）、作成（明細入力）、状態遷移、請求書へ変換。 */
 import * as React from "react";
+import { formatDateJst } from "@platform/datetime";
 import { Button, Input, Select } from "@platform/ui";
 
 interface Line { description: string; quantity: number; unitPrice: number; taxRate?: 10 | 8 | 0; }
@@ -54,7 +55,7 @@ export function QuotesClient({ fetchImpl, canWrite = true }: QuotesClientProps) 
     const promptFn = (globalThis as unknown as { prompt: (m: string, d?: string) => string | null }).prompt;
     const invNumber = promptFn("請求書番号を入力してください", q.number.replace(/^Q/, "INV"));
     if (!invNumber) return;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = formatDateJst();
     const due = promptFn("支払期限（YYYY-MM-DD）", today);
     if (!due) return;
     const res = await doFetch(`/api/quotes/${q.number}/convert`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ number: invNumber, issueDate: today, dueDate: due }) });

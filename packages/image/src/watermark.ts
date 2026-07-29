@@ -47,10 +47,15 @@ export function watermarkTextSvg(text: string, options: WatermarkTextOptions = {
   const pad = Math.round(fontSize * 0.4);
   const w = Math.max(1, text.length) * fontSize * 0.62 + pad * 2;
   const h = fontSize + pad * 2;
+  // **属性に入る値はすべて esc を通す。** 本文(text)だけ通していたが、
+  // fontFamily / color も属性なので、`" onload="…` の形で SVG に任意の属性を差し込める。
+  // 生成した SVG は sharp に渡るだけでなく、画面へそのまま出す使い方もありうる。
+  const font = esc(fontFamily);
+  const fill = esc(color);
   const shadowEl = shadow
-    ? `<text x="${pad + 1}" y="${fontSize + pad - 2}" font-family="${fontFamily}" font-size="${fontSize}" fill="#000000" fill-opacity="${opacity * 0.5}">${esc(text)}</text>`
+    ? `<text x="${pad + 1}" y="${fontSize + pad - 2}" font-family="${font}" font-size="${fontSize}" fill="#000000" fill-opacity="${opacity * 0.5}">${esc(text)}</text>`
     : "";
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(w)}" height="${Math.round(h)}">${shadowEl}<text x="${pad}" y="${fontSize + pad - 3}" font-family="${fontFamily}" font-size="${fontSize}" fill="${color}" fill-opacity="${opacity}">${esc(text)}</text></svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(w)}" height="${Math.round(h)}">${shadowEl}<text x="${pad}" y="${fontSize + pad - 3}" font-family="${font}" font-size="${fontSize}" fill="${fill}" fill-opacity="${opacity}">${esc(text)}</text></svg>`;
 }
 
 /** {@link WatermarkOptions}。text か image のどちらかを指定。 */

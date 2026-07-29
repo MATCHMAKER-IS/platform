@@ -6,6 +6,7 @@
  * 一覧・検索・作成・編集・削除という、どのアプリにも要る形を示す。
  */
 import * as React from "react";
+import { formatDateJst } from "@platform/datetime";
 import { Button, Input } from "@platform/ui";
 
 interface Row { id: string; name: string; email: string; dept: string; createdAt: string }
@@ -47,7 +48,7 @@ export function CrudDemo() {
             style={{ flex: 1, padding: "8px 12px", fontSize: 13, borderRadius: 8, border: "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-fg)" }}
           />
           <Button
-            onClick={() => setEditing({ id: String(Date.now()), name: "", email: "", dept: "", createdAt: new Date().toISOString().slice(0, 10) })}
+            onClick={() => setEditing({ id: String(Date.now()), name: "", email: "", dept: "", createdAt: formatDateJst() })}
             style={{ padding: "8px 16px", fontSize: 13, cursor: "pointer", borderRadius: 8, border: "none", background: "var(--color-primary)", color: "var(--color-primary-fg, #fff)" }}
           >
             + 新規

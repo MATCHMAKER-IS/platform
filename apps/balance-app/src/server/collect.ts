@@ -6,6 +6,7 @@
  * @packageDocumentation
  */
 import { planRetention, verifyRetention, type BalanceSnapshot } from "@platform/freee";
+import { formatDateJst } from "@platform/datetime";
 import { createLogger } from "@platform/logger";
 import { getWallets } from "./balance-service";
 import { snapshotStore } from "./services";
@@ -36,7 +37,8 @@ export interface CollectResult {
  * @returns 実行の結果
  */
 export async function collectAndPrune(asOf?: string): Promise<CollectResult> {
-  const today = asOf ?? new Date().toISOString().slice(0, 10);
+  // JST の今日。UTC で切ると 00:00〜08:59 の間だけ前日の残高を集計してしまう
+  const today = asOf ?? formatDateJst();
   const takenAt = new Date().toISOString();
 
   // 1. 取る

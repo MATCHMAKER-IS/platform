@@ -68,6 +68,11 @@ crud-template には次が入っています。不要なら消し、必要なら
 | ファイル | 役割 | 消すとどうなるか |
 |---|---|---|
 | `server/authorize.ts` | 認可（ロールと権限） | 画面と API が増えてから足すと、**必ずどこかで漏れる** |
+
+> ⚠️ **`authorize.ts` の `currentUser` は雛形では固定値を返します**（`{ id: "demo-user", roles: ["editor"] }`）。
+> 認可は通るので画面は動きますが、**誰でも全操作できる状態**です。
+> 公開する前に、実際のセッション検証へ差し替えてください（実例: `apps/equipment-app/src/server/guard.ts`）。
+> 差し替え忘れは `node tools/check-auth-stub.mjs` が検出し、本番では起動後の最初のリクエストで例外になります。
 | `server/instrument.ts` | 観測・監査・エラー整形を `withApi` にまとめる | 認可の失敗が 500 になる。誰が何を変えたか追えない |
 | `app/error.tsx` | 例外時の画面 | **既定の白い画面**が出て「壊れた」としか伝わらない |
 | `app/not-found.tsx` | 404 の画面 | URL 違いか障害か、利用者が判断できない |

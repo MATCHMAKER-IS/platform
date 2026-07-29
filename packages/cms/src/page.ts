@@ -41,7 +41,8 @@ export function isValidPageSlug(slug: string): boolean {
  * ページの入力を検証する。
  *
  * @param input 入力
- * @returns 問題の一覧(空なら妥当)
+ * @returns `{ ok: true, value }` または `{ ok: false, error }`。
+ *   **配列ではない**ので `.length` で判定しないこと(常に妥当と読めてしまう)
  */
 export function validatePageInput(input: PageInput): { ok: true; value: PageInput } | { ok: false; error: string } {
   if (!isValidPageSlug(input.slug)) return { ok: false, error: "slug は空（トップ）か英小文字・数字・ハイフンで指定してください" };

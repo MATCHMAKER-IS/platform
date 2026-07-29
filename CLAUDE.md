@@ -356,6 +356,19 @@ export function EnvSettingsTable({ rows, groupNotes, runtime }: EnvSettingsTable
 >
 > これらは画面を動かして確かめながら、1つずつ置き換える。
 
+> **認可を書いただけでは守れていない**: `requirePermission(currentUser(req), "...")` は、
+> `currentUser` が固定値を返していても**通る**。実際、雛形 `crud-template` の `currentUser` は
+> `{ id: "demo-user", roles: ["editor"] }` を返すだけで、リクエストを一切見ていなかった。
+> この状態でも `check-api-auth` は「認可あり」と数える —— つまり
+> **全検査グリーンなのに誰でも全操作できるアプリ**が作れる。雛形はコピーされる前提なので、
+> 気づかないまま複製される。
+>
+> 身元を返す関数は、**リクエストから読む**（Cookie / セッション / トークン）。
+> 開発中にスタブを置くのは構わないが、**本番に出られないようにする**:
+> `NODE_ENV === "production"` なら例外を投げるか、ファイル冒頭に `// auth-stub: 理由` と宣言する。
+> `node tools/check-auth-stub.mjs` が検出する。実際に動く例は
+> `apps/equipment-app/src/server/guard.ts` / `auth.ts`。
+
 > **API の認可**: `apps/**/api/**/route.ts` は、認可（`requirePermission` / `requireUser` / API キー検証）を通すか、
 > 通さない理由をファイル冒頭に `// public-api: 理由` として書く。どちらも無い本数は
 > `tools/api-auth-limit.json` に上限として記録され、**増やすと preflight が失敗する**。

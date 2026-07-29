@@ -89,7 +89,56 @@ export const GET = withApiObservability("/api/xxx", handleGET);
 
 ## 5. UI(Next.js App Router)
 
-`page.tsx`(サーバ・metadata) + `xxx-client.tsx`("use client")の2ファイル構成。fetch は `fetchImpl ?? globalThis.fetch` で注入可能に。グラフは外部ライブラリを使わず**インラインSVG**(参照: dashboard-client.tsx の TrendChart)。ナビ導線は `components/AppNav.tsx`。
+### ファイルの分け方
+
+`page.tsx`(サーバ・metadata) + `xxx-client.tsx`(`"use client"`)の 2 ファイル構成にする。
+fetch は `fetchImpl ?? globalThis.fetch` で注入可能にしておく(テストで差し替えられる)。
+ナビ導線は `components/AppNav.tsx`。
+
+### サーバとブラウザの境界(最初に必ず詰まるところ)
+
+App Router のファイルは**既定でサーバ側**で動く。ブラウザでしかできないことを書くと動かない。
+
+| やりたいこと | 置く場所 |
+|---|---|
+| `useState` / `useEffect` / `onClick` | `"use client"` を先頭に書いたファイル |
+| DB アクセス・秘密情報・`process.env` | サーバ側(`page.tsx` や `src/server/`) |
+| `window` / `localStorage` / `navigator` | クライアント側。かつ**初回描画では触らない**(サーバに存在しない) |
+
+**`"use client"` はファイルの 1 行目**に書く(コメントより前でもよいが、import より後ろだと効かない)。
+境界を越えて渡せるのは**素の値だけ**。関数やクラスのインスタンスは渡せない。
+
+`params` と `searchParams` は **Promise**(Next.js 15 以降)。`await` を忘れると型は通るのに実行時に壊れる。
+
+```tsx
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;      // ← await が要る
+}
+```
+
+### グラフは `@platform/ui` を使う(自前で描かない)
+
+```tsx
+import { BarChart, LineChart, ComboChart } from "@platform/ui";
+
+<ComboChart title="売上と利益率" data={monthly} xKey="month"
+  series={[{ key: "売上", type: "bar" }, { key: "利益率", type: "line" }]} unit="万円" toggleable />
+```
+
+棒 / 折れ線 / 複合 / 円 / レーダー / 散布 / ガント / ヒートマップなど **20 種類**ある。
+一覧と動く実例は `/charts` デモ。
+
+**インライン SVG で描かないこと。** 目盛・凡例・ツールチップ・レスポンシブを毎回作り直すことになり、
+そのたびにどれかが抜ける。色も直書きになりやすく、テーマ切り替えに追従しない。
+
+> この節は以前「グラフは外部ライブラリを使わずインライン SVG」と**逆のことを書いていた**。
+> その結果 internal-app は基盤のグラフを 1 つも使わず、4 画面を手書きしている(移行中)。
+> 増やさないよう `node tools/check-handmade-chart.mjs` が見張っている。
+
+### 部品が無いときは
+
+生の `<button>` / `<input>` を書く前に `@platform/ui` を探す(`search_platform` / ポータル)。
+無ければ**アプリで自作せず基盤に足す**(CLAUDE.md「UI 部品は `@platform/ui` を使う」)。
 
 ## 6. MCP ツールの足し方
 

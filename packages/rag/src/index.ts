@@ -277,16 +277,22 @@ export function buildContext(hits: RagHit[], options: { maxChars?: number } = {}
  *
  * **正規化済みでなくても動く**(内部で長さを割る)。
  *
+ * **次元が違うベクトルは 0 を返す**(似ていないとみなす)。短い方に合わせて計算すると、
+ * 埋め込みモデルを差し替えたとき(1536 次元 → 3072 次元など)に、
+ * **古いベクトルと新しいベクトルが先頭だけで比較されて、それらしいスコアが出てしまう**。
+ * 検索結果は静かに劣化するだけで、エラーにならないので気づけない。
+ * 0 にしておけば「モデルを変えたら再インデックスが要る」と結果で分かる。
+ *
  * @param a ベクトル
  * @param b ベクトル
- * @returns -1〜1(**1 が最も似ている**)。長さが違えば 0
+ * @returns -1〜1(**1 が最も似ている**)。次元が違う / 零ベクトルなら 0
  */
 export function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) return 0;
   let dot = 0;
   let na = 0;
   let nb = 0;
-  const len = Math.min(a.length, b.length);
-  for (let i = 0; i < len; i += 1) {
+  for (let i = 0; i < a.length; i += 1) {
     const av = a[i] ?? 0;
     const bv = b[i] ?? 0;
     dot += av * bv;

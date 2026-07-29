@@ -3,6 +3,7 @@
  * Excel で文字化けしないよう BOM 付き。ファイル名は audit-YYYYMMDD.csv。管理者のみ。
  */
 import { withApiObservability } from "../../../../server/instrument";
+import { formatDateJst } from "@platform/datetime";
 import { currentUser, requirePermission } from "../../../../server/authorize";
 import { serverEnv } from "../../../../server/env";
 import { auditLog } from "../../../../server/platform-services";
@@ -19,7 +20,7 @@ async function handleGET(req: Request): Promise<Response> {
   const limit = url.searchParams.get("limit");
   if (limit) q.limit = Number(limit) || 10000;
   const csv = await auditLog.exportCsv(q);
-  const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const date = formatDateJst().replace(/-/g, "");
   return new Response(csv, {
     headers: {
       "content-type": "text/csv; charset=utf-8",

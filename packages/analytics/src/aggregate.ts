@@ -20,8 +20,12 @@ export function pageViews(events: AnalyticsEvent[]): number {
  * **同じ人が別の日に来れば別カウント**(セッションが変わるため)。
  * 「何人が来たか」ではなく「何回の訪問があったか」に近い。
  *
+ * **種別を問わず数える**(pageview だけでなく click / custom も対象)。
+ * `pageViews` や `bounceRate` は pageview だけを見るので、**分母が揃わない**。
+ * ページを見ずにイベントだけ送るセッションがある場合、UU と PV の比率は素直に読めない。
+ *
  * @param events イベントの配列
- * @returns ユニークなセッション数
+ * @returns ユニークなセッション数(**全種別のイベントが対象**)
  */
 export function uniqueVisitors(events: AnalyticsEvent[]): number {
   return new Set(events.map((e) => e.sessionId)).size;
@@ -96,23 +100,35 @@ export type Bucket = "hour" | "day";
 
 /** 時系列の 1 点。 */
 export interface TimePoint {
-  /** バケットの開始（ISO・day は YYYY-MM-DD、hour は YYYY-MM-DDTHH:00）。 */
+  /** バケットの開始(**JST 基準**。day は YYYY-MM-DD、hour は YYYY-MM-DDTHH:00)。 */
   bucket: string;
   views: number;
   visitors: number;
 }
 
+/** JST は UTC+9 固定(夏時間が無い)。 */
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+/**
+ * イベント時刻を **JST の**バケットキーにする。
+ *
+ * ISO 文字列をそのまま切ると **UTC の日付**になる。JST の 00:00〜08:59 に起きた
+ * アクセスが前日に数えられ、**日次 PV が毎日ずれる**(しかも夜間の少ない時間帯なので
+ * 「なんとなく合わない」としか見えない)。
+ *
+ * 暦日は JST 基準で扱う(ADR-0019)。ここも同じ規則に揃える。
+ */
 function bucketKey(at: string, bucket: Bucket): string {
-  // at は ISO。day は先頭10文字、hour は先頭13文字 + ":00"。
-  return bucket === "day" ? at.slice(0, 10) : `${at.slice(0, 13)}:00`;
+  const jst = new Date(new Date(at).getTime() + JST_OFFSET_MS).toISOString();
+  return bucket === "day" ? jst.slice(0, 10) : `${jst.slice(0, 13)}:00`;
 }
 
 /**
  * ページビューを時系列に集計する。
  *
  * @param events イベントの配列
- * @param bucket 集計の単位(`hour` / `day` / `month`)
- * @returns 時刻と件数(**昇順**。グラフにそのまま渡せる)
+ * @param bucket 集計の単位(`hour` / `day`)
+ * @returns 時刻と件数(**昇順・JST 基準**。グラフにそのまま渡せる)
  */
 export function timeSeries(events: AnalyticsEvent[], bucket: Bucket = "day"): TimePoint[] {
   const byBucket = new Map<string, { views: number; sessions: Set<string> }>();

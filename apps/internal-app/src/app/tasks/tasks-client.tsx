@@ -6,6 +6,7 @@
  * この画面は「表示」と「操作を API に渡すこと」だけを行う。
  */
 import * as React from "react";
+import { formatDateJst } from "@platform/datetime";
 import { Button, Input } from "@platform/ui";
 import type { Task, TaskStatus, TaskProgress } from "@platform/task";
 
@@ -130,7 +131,8 @@ export function TasksClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
               <span style={{ color: "var(--color-muted, #999)" }}>{col.tasks.length}</span>
             </div>
             {col.tasks.map((t) => {
-              const overdue = t.dueDate && t.status !== "done" && t.dueDate < new Date().toISOString().slice(0, 10);
+              // 期限切れ判定。UTC で切ると深夜〜朝 9 時の間だけ「昨日期限」が期限切れにならない
+              const overdue = t.dueDate && t.status !== "done" && t.dueDate < formatDateJst();
               return (
                 <div key={t.id} style={{
                   padding: 8, marginBottom: 6, borderRadius: 8,

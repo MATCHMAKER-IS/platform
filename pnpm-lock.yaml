@@ -215,27 +215,42 @@ importers:
       '@platform/accounting':
         specifier: workspace:*
         version: link:../../packages/accounting
+      '@platform/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@platform/analytics':
         specifier: workspace:*
         version: link:../../packages/analytics
+      '@platform/apikey':
+        specifier: workspace:*
+        version: link:../../packages/apikey
       '@platform/attendance':
         specifier: workspace:*
         version: link:../../packages/attendance
       '@platform/audit':
         specifier: workspace:*
         version: link:../../packages/audit
+      '@platform/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@platform/blueprint':
         specifier: workspace:*
         version: link:../../packages/blueprint
       '@platform/board':
         specifier: workspace:*
         version: link:../../packages/board
+      '@platform/booking':
+        specifier: workspace:*
+        version: link:../../packages/booking
       '@platform/chat':
         specifier: workspace:*
         version: link:../../packages/chat
       '@platform/cms':
         specifier: workspace:*
         version: link:../../packages/cms
+      '@platform/commerce':
+        specifier: workspace:*
+        version: link:../../packages/commerce
       '@platform/contract':
         specifier: workspace:*
         version: link:../../packages/contract
@@ -272,9 +287,15 @@ importers:
       '@platform/faq':
         specifier: workspace:*
         version: link:../../packages/faq
+      '@platform/flags':
+        specifier: workspace:*
+        version: link:../../packages/flags
       '@platform/html':
         specifier: workspace:*
         version: link:../../packages/html
+      '@platform/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@platform/image':
         specifier: workspace:*
         version: link:../../packages/image
@@ -302,15 +323,33 @@ importers:
       '@platform/notify':
         specifier: workspace:*
         version: link:../../packages/notify
+      '@platform/observability':
+        specifier: workspace:*
+        version: link:../../packages/observability
       '@platform/os-notify':
         specifier: workspace:*
         version: link:../../packages/os-notify
+      '@platform/payroll':
+        specifier: workspace:*
+        version: link:../../packages/payroll
+      '@platform/pdf':
+        specifier: workspace:*
+        version: link:../../packages/pdf
+      '@platform/pii':
+        specifier: workspace:*
+        version: link:../../packages/pii
       '@platform/purchase':
         specifier: workspace:*
         version: link:../../packages/purchase
       '@platform/quote':
         specifier: workspace:*
         version: link:../../packages/quote
+      '@platform/rag':
+        specifier: workspace:*
+        version: link:../../packages/rag
+      '@platform/ratelimit':
+        specifier: workspace:*
+        version: link:../../packages/ratelimit
       '@platform/realtime':
         specifier: workspace:*
         version: link:../../packages/realtime
@@ -323,6 +362,12 @@ importers:
       '@platform/search':
         specifier: workspace:*
         version: link:../../packages/search
+      '@platform/secrets':
+        specifier: workspace:*
+        version: link:../../packages/secrets
+      '@platform/security':
+        specifier: workspace:*
+        version: link:../../packages/security
       '@platform/seo':
         specifier: workspace:*
         version: link:../../packages/seo
@@ -338,6 +383,9 @@ importers:
       '@platform/task':
         specifier: workspace:*
         version: link:../../packages/task
+      '@platform/tax':
+        specifier: workspace:*
+        version: link:../../packages/tax
       '@platform/theme':
         specifier: workspace:*
         version: link:../../packages/theme
@@ -359,6 +407,9 @@ importers:
       '@platform/xlsx':
         specifier: workspace:*
         version: link:../../packages/xlsx
+      '@platform/zoho':
+        specifier: workspace:*
+        version: link:../../packages/zoho
       next:
         specifier: ^16.2.0
         version: 16.2.0(@playwright/test@1.61.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -427,6 +478,9 @@ importers:
       '@platform/cms':
         specifier: workspace:*
         version: link:../../packages/cms
+      '@platform/env':
+        specifier: workspace:*
+        version: link:../../packages/env
       '@platform/html':
         specifier: workspace:*
         version: link:../../packages/html
@@ -442,6 +496,9 @@ importers:
       '@platform/site':
         specifier: workspace:*
         version: link:../../packages/site
+      '@platform/social':
+        specifier: workspace:*
+        version: link:../../packages/social
       '@platform/theme':
         specifier: workspace:*
         version: link:../../packages/theme

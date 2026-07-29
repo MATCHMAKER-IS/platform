@@ -1,6 +1,7 @@
 "use client";
 /** 管理: データ管理。バックアップ復元・監査アーカイブ・検索インデックス再構築を1画面に集約。 */
 import * as React from "react";
+import { formatDateJst } from "@platform/datetime";
 import { Button, Input, Textarea } from "@platform/ui";
 
 interface PlanItem { name: string; count: number; restorable: boolean; }
@@ -12,7 +13,7 @@ export function DataClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   const [json, setJson] = React.useState("");
   const [plan, setPlan] = React.useState<PlanItem[] | null>(null);
   const [result, setResult] = React.useState<RestoreResult | null>(null);
-  const [before, setBefore] = React.useState(new Date().toISOString().slice(0, 10));
+  const [before, setBefore] = React.useState(formatDateJst());
   const [reindexMsg, setReindexMsg] = React.useState("");
   const [msg, setMsg] = React.useState("");
 

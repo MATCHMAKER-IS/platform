@@ -5,7 +5,7 @@ import { Button, Input, Select, SkinSelector } from "@platform/ui";
 import { TreeTab } from "./tree-tab";
 
 interface ReferenceEntry { name: string; kind: string; summary: string; }
-interface PackageInfo { name: string; category: string; summary: string; exports: string[]; hasReadme: boolean; reference: ReferenceEntry[]; }
+interface PackageInfo { name: string; category: string; summary: string; exports: string[]; hasReadme: boolean; untested: boolean; reference: ReferenceEntry[]; }
 interface AdrInfo { id: string; title: string; status: string; file: string; }
 interface Advisor { sameNameCount: number; similarCount: number; isolated: { name: string; reason: string }[]; }
 interface Erd { app: string; mermaid: string; }
@@ -85,7 +85,18 @@ export function PortalClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
               <div key={p.name} style={card}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                   <code style={{ fontSize: 14, fontWeight: 600, color: "var(--color-primary, #2563eb)" }}>@platform/{p.name}</code>
-                  <span style={{ fontSize: 11, color: "var(--color-muted, #999)", background: "#f0f0f0", padding: "2px 8px", borderRadius: 10 }}>{p.category}</span>
+                  <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    {p.untested && (
+                      <span title="どこからも import されていません。動作が確かめられていないので、最初に使うときは注意してください"
+                        style={{
+                          fontSize: 11, color: "var(--color-danger)", whiteSpace: "nowrap",
+                          border: "1px solid var(--color-danger)", padding: "1px 6px", borderRadius: 10,
+                        }}>
+                        未実戦
+                      </span>
+                    )}
+                    <span style={{ fontSize: 11, color: "var(--color-muted, #999)", background: "#f0f0f0", padding: "2px 8px", borderRadius: 10 }}>{p.category}</span>
+                  </span>
                 </div>
                 <p style={{ fontSize: 13, color: "#555", margin: "8px 0", lineHeight: 1.5 }}>{p.summary || "(説明未整備)"}</p>
                 {p.exports.length > 0 && <p style={{ fontSize: 11, color: "var(--color-muted, #999)", margin: 0 }}>export: {p.exports.slice(0, 5).join(", ")}{p.exports.length > 5 ? ` +${p.exports.length - 5}` : ""}</p>}

@@ -98,8 +98,13 @@ export function straightLineSchedule(cost: number, usefulLifeYears: number, star
  * 定率法の償却スケジュールを作る。
  *
  * **途中で定額法に切り替わる**のが要点。定率法は年々償却額が減るため、
- * そのままでは耐用年数内に償却しきれない。**償却保証額を下回ったら定額**に切り替える
- * (税法の規定)。最終年度は 1 円を残す。
+ * そのままでは耐用年数内に償却しきれない。最終年度は 1 円を残す。
+ *
+ * **切り替えの判定は法令の表と同じではない。** 税法は「償却保証額(取得価額 × 保証率)を
+ * 下回った年から、改定取得価額 × 改定償却率で均等償却」と定めており、保証率・改定償却率は
+ * 耐用年数ごとの表で決まる。ここでは表を持たず、**残存年数での均等額と比べて大きい方**を
+ * 採る近似で切り替えている。結果はごく近い(耐用年数 5 年・100 万円で切替年に 1 円差)が、
+ * **申告書の数字と一致させる必要があるなら、耐用年数省令の表を実装すること**。
  *
  * @param acquisitionCost 取得価額
  * @param usefulLife 耐用年数
@@ -140,12 +145,12 @@ export function depreciationSchedule(asset: DepreciableAsset, startYear: number)
 }
 
 /**
- * スケジュールから指定年度の期末簿価を返す（取得前は取得価額、償却後は最終簿価）。
- *
+ * 指定年度の期末簿価を返す。
  *
  * @param schedule 償却スケジュール
- * @param year 年度(1 始まり)
- * @returns その年度末の簿価。**範囲外なら取得価額または 1 円**
+ * @param year **西暦**(スケジュールの `year` と同じ。1 始まりの連番ではない)
+ * @param cost 取得価額
+ * @returns その年度末の簿価。**取得前は取得価額、償却後は最終簿価**
  */
 export function bookValueAt(schedule: ScheduleRow[], year: number, cost: number): number {
   if (schedule.length === 0) return cost;
@@ -159,25 +164,32 @@ export function bookValueAt(schedule: ScheduleRow[], year: number, cost: number)
 }
 
 /**
- * スケジュールから指定年度の償却額を返す（該当年度が無ければ0）。
- *
+ * 指定年度の償却額を返す。
  *
  * @param schedule 償却スケジュール
- * @param year 年度(1 始まり)
- * @returns その年度の償却額。**範囲外なら 0**
+ * @param year **西暦**(スケジュールの `year` と同じ。1 始まりの連番ではない)
+ * @returns その年度の償却額。**該当年度が無ければ 0**(例外にしない)
  */
 export function depreciationInYear(schedule: ScheduleRow[], year: number): number {
   return schedule.find((r) => r.year === year)?.depreciation ?? 0;
 }
 
 /**
- * 年間償却額の月割（円未満切り捨て）。
+ * 年間償却額を月割りする(円未満切り捨て)。
  *
+ * **期中に取得した資産は月割りする**(4 月取得で 3 月決算なら 12 か月、
+ * 10 月取得なら 6 か月)。取得した年から丸 1 年ぶん償却すると過大計上になる。
  *
- * @param yearlyAmount 年間の償却額
- * @param months 事業供用月数(**期中に取得した資産は月割り**)
- * @returns 月割りした償却額
+ * @param annual 年間の償却額
+ * @param months 事業供用月数(既定 12 = 1 か月分だけ欲しいときは 1 を渡す)
+ * @returns 月割りした償却額(**円未満切り捨て**)
+ *
+ * @example
+ * ```ts
+ * monthlyAmount(200_000);      // 16,666(1 か月分)
+ * monthlyAmount(200_000, 6);   // 100,000(6 か月分)
+ * ```
  */
-export function monthlyAmount(annual: number): number {
-  return Math.floor(annual / 12);
+export function monthlyAmount(annual: number, months = 1): number {
+  return Math.floor((annual / 12) * months);
 }

@@ -1,5 +1,6 @@
 /** 源泉徴収: 支払調書サマリーと明細(GET)・報酬支払の記録(POST)。withholding:read / withholding:write。 */
 import { withApiObservability } from "../../../server/instrument";
+import { formatDateJst } from "@platform/datetime";
 import { currentUser, requirePermission } from "../../../server/authorize";
 import { serverEnv } from "../../../server/env";
 import { feePaymentStore, auditActions } from "../../../server/platform-services";
@@ -17,7 +18,8 @@ async function handlePOST(req: Request): Promise<Response> {
   requirePermission(user, "withholding:write");
   const body = (await req.json()) as FeePayment;
   if (!body.payee || !body.category || typeof body.base !== "number" || body.base <= 0) return Response.json({ error: "支払先・区分・正の報酬額(税抜)が必要です" }, { status: 400 });
-  const paidAt = body.paidAt && /^\d{4}-\d{2}-\d{2}/.test(body.paidAt) ? body.paidAt : new Date().toISOString().slice(0, 10);
+  // 支払日。納付期限(翌月 10 日)の起点なので、月をまたぐとズレる
+  const paidAt = body.paidAt && /^\d{4}-\d{2}-\d{2}/.test(body.paidAt) ? body.paidAt : formatDateJst();
   const view = await feePaymentStore.record({ payee: body.payee, category: body.category, base: body.base, paidAt });
   await auditActions.record(user!.email, "withholding.record", `payee:${body.payee}`, { after: { base: body.base, withholding: view.withholding } });
   return Response.json(view, { status: 201 });

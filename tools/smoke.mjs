@@ -11341,12 +11341,12 @@ section("color");
       }
       return true;
     })());
-  ok("a11y: findContrastIssues は配列・残る警告は補助テキストのみ(muted)",
+  // 以前は「残る警告は補助テキストのみ」を許容していたが、その補助テキストこそが
+  // 読めない箇所だった(7 スキンが AA 未達・最低 2.83:1)。muted を調整して全スキンが AA を満たす。
+  ok("a11y: findContrastIssues は空(全 14 スキン × light/dark が AA を満たす)",
     (() => {
       const issues = T.findContrastIssues(T.builtInThemes);
-      if (!Array.isArray(issues)) return false;
-      const nonMuted = issues.flatMap((i) => i.checks.filter((c) => c.level === "fail" && !c.label.includes("補助")));
-      return nonMuted.length === 0;
+      return Array.isArray(issues) && issues.length === 0;
     })());
 
   // deriveTheme: ブランド色から完全テーマを自動生成
@@ -11544,8 +11544,8 @@ section("core");
     apps.length === 6 && apps.find((a) => a.name === "internal-app").pages.length > 10 && apps.find((a) => a.name === "internal-app").apis.length > 10);
   const erds = M.collectErds();
   const adrs = M.collectAdrs();
-  ok("collectErds/collectAdrs: 4 ER図(erDiagram)・18 ADR(タイトル/状態)",
-    erds.length === 4 && erds.every((e) => e.mermaid.includes("erDiagram")) && adrs.length === 18 && adrs[0].title.includes("ADR"));
+  ok("collectErds/collectAdrs: 4 ER図(erDiagram)・19 ADR(タイトル/状態)",
+    erds.length === 4 && erds.every((e) => e.mermaid.includes("erDiagram")) && adrs.length === 19 && adrs[0].title.includes("ADR"));
   const themesInfo = M.collectThemes();
   ok("collectThemes: 14スキン(id/name/色/角丸/フォントをソースから抽出)",
     themesInfo.length === 14 && themesInfo.every((t) => t.id && t.name && t.colors.primary) &&

@@ -10,6 +10,7 @@
  *  - localStorage への保存（リロードしても維持）
  */
 import * as React from "react";
+import { formatDateJst } from "@platform/datetime";
 import { Kanban, moveCard, Button, Input, Select, type KanbanColumn, type KanbanCard } from "@platform/ui";
 
 const KEY = "demo-kanban-v2";
@@ -40,7 +41,7 @@ const DEFAULT: Board[] = [
   ] },
 ];
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
+const todayIso = () => formatDateJst();
 /** 期限の状態を返す。色分けの根拠を1か所に集める。 */
 function dueState(due: string): "none" | "over" | "today" | "future" {
   if (!due) return "none";

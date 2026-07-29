@@ -1,5 +1,6 @@
 /** 請求: 日付つき入金の記録(POST)。入金記録に残しつつ請求の入金済み額も更新する。invoice:write。 */
 import { withApiObservability } from "../../../../../server/instrument";
+import { formatDateJst } from "@platform/datetime";
 import { currentUser, requirePermission } from "../../../../../server/authorize";
 import { serverEnv } from "../../../../../server/env";
 import { invoiceStore, receiptStore, periodLockStore, auditActions } from "../../../../../server/platform-services";
@@ -12,7 +13,8 @@ async function handlePOST(req: Request, ctx: { params: Promise<{ number: string 
   if (typeof body.amount !== "number" || body.amount <= 0) return Response.json({ error: "正の入金額を入力してください" }, { status: 400 });
   const view = await invoiceStore.get(number);
   if (!view) return Response.json({ error: "請求書が見つかりません" }, { status: 404 });
-  const receivedAt = body.receivedAt && /^\d{4}-\d{2}-\d{2}/.test(body.receivedAt) ? body.receivedAt : new Date().toISOString().slice(0, 10);
+  // 入金日。**この直後に締め月を判定する**ので、UTC で切ると月初深夜の入金が前月扱いになる
+  const receivedAt = body.receivedAt && /^\d{4}-\d{2}-\d{2}/.test(body.receivedAt) ? body.receivedAt : formatDateJst();
   if ((await periodLockStore.lockedSet()).has(receivedAt.slice(0, 7))) return Response.json({ error: `${receivedAt.slice(0, 7)} は締め済みのため入金記録できません` }, { status: 409 });
   const receipt = await receiptStore.record(number, body.amount, receivedAt);
   await invoiceStore.recordPayment(number, body.amount);

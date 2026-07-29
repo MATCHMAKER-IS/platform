@@ -12,6 +12,7 @@
  *  - 同一人物の二重予約を断る／予約一覧・キャンセル・localStorage 保存
  */
 import * as React from "react";
+import { formatDateJst } from "@platform/datetime";
 import { UsesPackages } from "../../components/uses-packages";
 import {
   generateSlots, availableSlots, hasConflict, isWithinBookingWindow, canCancel,
@@ -30,7 +31,7 @@ const REASON: Record<string, string> = {
   past: "過去の日時です", too_soon: "直前すぎます（開始1時間前で締切）", too_far: "先すぎます（30日先まで）",
 };
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
+const todayIso = () => formatDateJst();
 const box: React.CSSProperties = { border: "1px solid var(--color-border)", borderRadius: "var(--radius)", background: "var(--color-surface)", padding: 16, marginBottom: 16 };
 
 export default function Page() {

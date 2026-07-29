@@ -30,6 +30,17 @@ export function truncate(input: string, max: number, suffix = "…"): string {
   return input.slice(0, max - suffix.length) + suffix;
 }
 
+/**
+ * 属性値をエスケープする。
+ *
+ * `escapeHtml` でもよいが、属性で危険なのは `"` と `<` と `&` なので、
+ * `embed.ts` の `escapeAttribute` と同じ規則に揃えてある
+ * (循環参照を避けるためここに置いている)。
+ */
+function escapeAttributeValue(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+
 const URL_RE = /https?:\/\/[^\s<>"']+/g;
 
 /**
@@ -46,9 +57,12 @@ const URL_RE = /https?:\/\/[^\s<>"']+/g;
  * @returns リンク化した安全な HTML
  */
 export function linkify(input: string, options: { target?: string; rel?: string; className?: string } = {}): string {
-  const target = options.target ?? "_blank";
-  const rel = options.rel ?? "noopener noreferrer";
-  const cls = options.className ? ` class="${escapeHtml(options.className)}"` : "";
+  // **3 つとも属性に入るので、3 つともエスケープする。**
+  // 以前は className だけエスケープしており、target / rel は素通しだった。
+  // 呼び出し側が値を組み立てていると、`_blank" onload="…` で任意の属性を差し込める。
+  const target = escapeAttributeValue(options.target ?? "_blank");
+  const rel = escapeAttributeValue(options.rel ?? "noopener noreferrer");
+  const cls = options.className ? ` class="${escapeAttributeValue(options.className)}"` : "";
   // 先に全体をエスケープ（この時点で URL 内の & は &amp; になる）
   const escaped = escapeHtml(input);
   return escaped.replace(URL_RE, (url) => {

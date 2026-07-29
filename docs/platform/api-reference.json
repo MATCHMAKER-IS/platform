@@ -1135,7 +1135,7 @@
     {
       "name": "timeSeries",
       "kind": "function",
-      "summary": "バケットの開始（ISO・day は YYYY-MM-DD、hour は YYYY-MM-DDTHH:00）。 */ bucket: string; views: number; visitors: number; } function bucketKey(at: string, bucket: Bucket): string { // at は ISO。day は先頭10文字、hour は先頭13文字 + \":00\"。 return bucket === \"day\" ? at.slice(0, 10) : `${at.slice(0, 13)}:00`; } /** ページビューを時系列に集計する。",
+      "summary": "バケットの開始(**JST 基準**。day は YYYY-MM-DD、hour は YYYY-MM-DDTHH:00)。 */ bucket: string; views: number; visitors: number; } /** JST は UTC+9 固定(夏時間が無い)。 */ const JST_OFFSET_MS = 9 * 60 * 60 * 1000; /** イベント時刻を **JST の**バケットキーにする。 ISO 文字列をそのまま切ると **UTC の日付**になる。JST の 00:00〜08:59 に起きた アクセスが前日に数えられ、**日次 PV が毎日ずれる**(しかも夜間の少ない時間帯なので 「なんとなく合わない」としか見えない)。 暦日は JST 基準で扱う(ADR-0019)。ここも同じ規則に揃える。 / function bucketKey(at: string, bucket: Bucket): string { const jst = new Date(new Date(at).getTime() + JST_OFFSET_MS).toISOString(); return bucket === \"day\" ? jst.slice(0, 10) : `${jst.slice(0, 13)}:00`; } /** ページビューを時系列に集計する。",
       "signature": "timeSeries(events: AnalyticsEvent[], bucket: Bucket = \"day\"): TimePoint[]",
       "params": [
         {
@@ -1144,10 +1144,10 @@
         },
         {
           "name": "bucket",
-          "description": "集計の単位(`hour` / `day` / `month`)"
+          "description": "集計の単位(`hour` / `day`)"
         }
       ],
-      "returns": "時刻と件数(**昇順**。グラフにそのまま渡せる)"
+      "returns": "時刻と件数(**昇順・JST 基準**。グラフにそのまま渡せる)"
     },
     {
       "name": "topPages",
@@ -1182,7 +1182,7 @@
     {
       "name": "uniqueVisitors",
       "kind": "function",
-      "summary": "ユニークビジター数を返す(**セッション ID のユニーク数**)。 **同じ人が別の日に来れば別カウント**(セッションが変わるため)。 「何人が来たか」ではなく「何回の訪問があったか」に近い。",
+      "summary": "ユニークビジター数を返す(**セッション ID のユニーク数**)。 **同じ人が別の日に来れば別カウント**(セッションが変わるため)。 「何人が来たか」ではなく「何回の訪問があったか」に近い。 **種別を問わず数える**(pageview だけでなく click / custom も対象)。 `pageViews` や `bounceRate` は pageview だけを見るので、**分母が揃わない**。 ページを見ずにイベントだけ送るセッションがある場合、UU と PV の比率は素直に読めない。",
       "signature": "uniqueVisitors(events: AnalyticsEvent[]): number",
       "params": [
         {
@@ -1190,7 +1190,7 @@
           "description": "イベントの配列"
         }
       ],
-      "returns": "ユニークなセッション数"
+      "returns": "ユニークなセッション数(**全種別のイベントが対象**)"
     },
     {
       "name": "withinPeriod",
@@ -6636,7 +6636,7 @@
           "description": "入力"
         }
       ],
-      "returns": "問題の一覧(空なら妥当)"
+      "returns": "`{ ok: true, value }` または `{ ok: false, error }`。 **配列ではない**ので `.length` で判定しないこと(常に妥当と読めてしまう)"
     },
     {
       "name": "validateCategoryInput",
@@ -6649,7 +6649,7 @@
           "description": "入力"
         }
       ],
-      "returns": "問題の一覧(空なら妥当)"
+      "returns": "`{ ok: true, value }` または `{ ok: false, error }`。 **配列ではない**ので `.length` で判定しないこと(常に妥当と読めてしまう)"
     },
     {
       "name": "validatePageInput",
@@ -6662,7 +6662,7 @@
           "description": "入力"
         }
       ],
-      "returns": "問題の一覧(空なら妥当)"
+      "returns": "`{ ok: true, value }` または `{ ok: false, error }`。 **配列ではない**ので `.length` で判定しないこと(常に妥当と読めてしまう)"
     },
     {
       "name": "validatePostInput",
@@ -6675,7 +6675,7 @@
           "description": "入力"
         }
       ],
-      "returns": "問題の一覧(**空なら妥当**)。フィールド名と理由を返すので、画面でそのまま出せる"
+      "returns": "`{ ok: true, value }` または `{ ok: false, error }`。理由は文字列なので画面にそのまま出せる。 **配列ではない**ので `.length` で判定しないこと(常に妥当と読めてしまう)"
     }
   ],
   "@platform/color": [
@@ -9184,6 +9184,19 @@
       "returns": "1970-01-01 からの日数(負もありうる)"
     },
     {
+      "name": "dayNumberJst",
+      "kind": "function",
+      "summary": "JST は UTC+9 固定(夏時間が無い)。 */ const JST_OFFSET_MS = 9 * 60 * 60 * 1000; /** **JST の暦日**での日番号を返す。 `dayNumber` は UTC の暦日なので、**JST の 00:00〜08:59 は前日**になる。 「今」を渡して日付を比べる場面（今日か・期限まで何日か）はすべてこちらを使う。 日付だけの値（`utcDate()` が返す UTC 0 時の Date）に対しては `dayNumber` と同じ値になる ため、祝日表や営業日計算の既存ロジックはこの関数に置き換えても結果が変わらない （0 時 + 9 時間は同じ日に収まるため）。",
+      "signature": "dayNumberJst(date: Date): number",
+      "params": [
+        {
+          "name": "date",
+          "description": "日時"
+        }
+      ],
+      "returns": "1970-01-01(JST) からの日数"
+    },
+    {
       "name": "dayOfWeek",
       "kind": "function",
       "summary": "曜日番号(0=日〜6=土)。",
@@ -9315,6 +9328,19 @@
         }
       ],
       "returns": "YYYY-MM-DD(UTC 基準。ローカルタイムゾーンの影響を受けない)"
+    },
+    {
+      "name": "formatDateJst",
+      "kind": "function",
+      "summary": "**JST の日付**を `YYYY-MM-DD` で返す。 `new Date().toISOString().slice(0, 10)` は UTC の日付なので、 **JST の 00:00〜08:59 に実行すると前日**になる。その置き換え先。",
+      "signature": "formatDateJst(date: Date = new Date()): string",
+      "params": [
+        {
+          "name": "date",
+          "description": "日時(既定は現在時刻)"
+        }
+      ],
+      "returns": "`YYYY-MM-DD`(JST)"
     },
     {
       "name": "formatDuration",
@@ -9497,7 +9523,7 @@
     {
       "name": "isLeapYear",
       "kind": "function",
-      "summary": "日付・時刻ユーティリティ(外部依存なし・UTC カレンダー基準の純ロジック)。 日付のみの計算(年齢・日数差・祝日)は UTC の暦日で扱う。時刻を含む比較は インスタント(getTime)で行う。JST での境界計算が必要な場合は index.ts の `startOfDayJst` 等と併用すること。",
+      "summary": "日付・時刻ユーティリティ(外部依存なし・UTC カレンダー基準の純ロジック)。 日付だけの値は UTC 0 時の Date で表す(`utcDate()`)。**暦日の比較は JST 基準**で行うため、 「今」をそのまま渡してよい(`dayNumberJst`)。時刻を含む前後比較はインスタント(getTime)で行う。 時刻まで含めた JST の境界が要る場合は index.ts の `startOfDayJst` 等を使う。",
       "signature": "isLeapYear(year: number): boolean",
       "params": [
         {
@@ -9754,6 +9780,20 @@
         }
       ],
       "returns": "その週の始まりの日(UTC 00:00:00)"
+    },
+    {
+      "name": "todayJst",
+      "kind": "function",
+      "summary": "その瞬間が属する **JST の暦日**を、UTC 0 時の Date で返す。 `utcDate()` と同じ「日付だけの値」の形なので、そのまま他の日付関数へ渡せる。",
+      "signature": "todayJst(now: Date = new Date()): Date",
+      "params": [
+        {
+          "name": "now",
+          "description": "基準の瞬間(テスト注入用。既定は現在時刻)"
+        }
+      ],
+      "returns": "JST の今日(UTC 0 時)",
+      "example": "// JST 2026-07-29 00:30(UTC では 07-28 15:30)に実行しても\ntodayJst(); // 2026-07-29T00:00:00Z"
     },
     {
       "name": "toWareki",
@@ -10853,7 +10893,7 @@
     {
       "name": "bookValueAt",
       "kind": "function",
-      "summary": "スケジュールから指定年度の期末簿価を返す（取得前は取得価額、償却後は最終簿価）。",
+      "summary": "指定年度の期末簿価を返す。",
       "signature": "bookValueAt(schedule: ScheduleRow[], year: number, cost: number): number",
       "params": [
         {
@@ -10862,10 +10902,14 @@
         },
         {
           "name": "year",
-          "description": "年度(1 始まり)"
+          "description": "**西暦**(スケジュールの `year` と同じ。1 始まりの連番ではない)"
+        },
+        {
+          "name": "cost",
+          "description": "取得価額"
         }
       ],
-      "returns": "その年度末の簿価。**範囲外なら取得価額または 1 円**"
+      "returns": "その年度末の簿価。**取得前は取得価額、償却後は最終簿価**"
     },
     {
       "name": "decliningBalanceRate",
@@ -10883,7 +10927,7 @@
     {
       "name": "decliningBalanceSchedule",
       "kind": "function",
-      "summary": "定率法の償却スケジュールを作る。 **途中で定額法に切り替わる**のが要点。定率法は年々償却額が減るため、 そのままでは耐用年数内に償却しきれない。**償却保証額を下回ったら定額**に切り替える (税法の規定)。最終年度は 1 円を残す。",
+      "summary": "定率法の償却スケジュールを作る。 **途中で定額法に切り替わる**のが要点。定率法は年々償却額が減るため、 そのままでは耐用年数内に償却しきれない。最終年度は 1 円を残す。 **切り替えの判定は法令の表と同じではない。** 税法は「償却保証額(取得価額 × 保証率)を 下回った年から、改定取得価額 × 改定償却率で均等償却」と定めており、保証率・改定償却率は 耐用年数ごとの表で決まる。ここでは表を持たず、**残存年数での均等額と比べて大きい方**を 採る近似で切り替えている。結果はごく近い(耐用年数 5 年・100 万円で切替年に 1 円差)が、 **申告書の数字と一致させる必要があるなら、耐用年数省令の表を実装すること**。",
       "signature": "decliningBalanceSchedule(cost: number, usefulLifeYears: number, startYear: number, rate?: number): ScheduleRow[]",
       "params": [
         {
@@ -10905,7 +10949,7 @@
     {
       "name": "depreciationInYear",
       "kind": "function",
-      "summary": "スケジュールから指定年度の償却額を返す（該当年度が無ければ0）。",
+      "summary": "指定年度の償却額を返す。",
       "signature": "depreciationInYear(schedule: ScheduleRow[], year: number): number",
       "params": [
         {
@@ -10914,10 +10958,10 @@
         },
         {
           "name": "year",
-          "description": "年度(1 始まり)"
+          "description": "**西暦**(スケジュールの `year` と同じ。1 始まりの連番ではない)"
         }
       ],
-      "returns": "その年度の償却額。**範囲外なら 0**"
+      "returns": "その年度の償却額。**該当年度が無ければ 0**(例外にしない)"
     },
     {
       "name": "DepreciationMethod",
@@ -10953,19 +10997,20 @@
     {
       "name": "monthlyAmount",
       "kind": "function",
-      "summary": "年間償却額の月割（円未満切り捨て）。",
-      "signature": "monthlyAmount(annual: number): number",
+      "summary": "年間償却額を月割りする(円未満切り捨て)。 **期中に取得した資産は月割りする**(4 月取得で 3 月決算なら 12 か月、 10 月取得なら 6 か月)。取得した年から丸 1 年ぶん償却すると過大計上になる。",
+      "signature": "monthlyAmount(annual: number, months = 1): number",
       "params": [
         {
-          "name": "yearlyAmount",
+          "name": "annual",
           "description": "年間の償却額"
         },
         {
           "name": "months",
-          "description": "事業供用月数(**期中に取得した資産は月割り**)"
+          "description": "事業供用月数(既定 12 = 1 か月分だけ欲しいときは 1 を渡す)"
         }
       ],
-      "returns": "月割りした償却額"
+      "returns": "月割りした償却額(**円未満切り捨て**)",
+      "example": "monthlyAmount(200_000);      // 16,666(1 か月分)\nmonthlyAmount(200_000, 6);   // 100,000(6 か月分)"
     },
     {
       "name": "ScheduleRow",
@@ -11217,11 +11262,11 @@
           "description": "コース"
         },
         {
-          "name": "completed",
-          "description": "完了したレッスン ID"
+          "name": "progress",
+          "description": "学習の進捗"
         }
       ],
-      "returns": "完了率(0–1)・完了数・総数・修了したか"
+      "returns": "完了率(0–1)・完了数・総数・**所要分の合計**・修了したか"
     },
     {
       "name": "flattenLessons",
@@ -11286,15 +11331,22 @@
       "signature": "markLessonComplete(course: Course, progress: Progress, lessonId: string): Result<Progress>",
       "params": [
         {
-          "name": "completed",
-          "description": "完了済みの ID"
+          "name": "course",
+          "description": "コース(レッスンの存在確認に使う)"
+        },
+        {
+          "name": "progress",
+          "description": "現在の進捗"
         },
         {
           "name": "lessonId",
           "description": "完了したレッスン"
         }
       ],
-      "returns": "追加した**新しい配列**(**重複しない**)"
+      "returns": "追加した**新しい進捗**({@link Result})。元の progress は変更しない。 既に完了済みならそのまま返す(**重複しない**)",
+      "throws": [
+        "なし。コースに無いレッスンは `VALIDATION` の err で返す"
+      ]
     },
     {
       "name": "Module",
@@ -11312,8 +11364,8 @@
           "description": "コース"
         },
         {
-          "name": "completed",
-          "description": "完了したレッスン ID"
+          "name": "progress",
+          "description": "学習の進捗"
         }
       ],
       "returns": "モジュールごとの完了率"
@@ -11329,11 +11381,11 @@
           "description": "コース"
         },
         {
-          "name": "completed",
-          "description": "完了したレッスン ID"
+          "name": "progress",
+          "description": "学習の進捗"
         }
       ],
-      "returns": "次に受けるレッスン。**すべて完了なら undefined**"
+      "returns": "次に受けるレッスン。**すべて完了なら null**"
     },
     {
       "name": "Progress",
@@ -13863,7 +13915,7 @@
     {
       "name": "linkify",
       "kind": "function",
-      "summary": "テキスト中の URL を <a> リンクにする。全体をエスケープしてから安全にリンク化する。 target/rel を指定可能（既定は別タブ + noopener noreferrer）。 **`noopener` は必須**。付けないと、リンク先の JavaScript から元のページを操作できる (タブナビング攻撃)。既定で付けてあるので、上書きするときは理由を確認すること。",
+      "summary": "属性値をエスケープする。 `escapeHtml` でもよいが、属性で危険なのは `\"` と `<` と `&` なので、 `embed.ts` の `escapeAttribute` と同じ規則に揃えてある (循環参照を避けるためここに置いている)。 / function escapeAttributeValue(value: string): string { return value.replace(/&/g, \"&amp;\").replace(/\"/g, \"&quot;\").replace(/</g, \"&lt;\"); } const URL_RE = /https?:\\/\\/[^\\s<>\"']+/g; /** テキスト中の URL を <a> リンクにする。全体をエスケープしてから安全にリンク化する。 target/rel を指定可能（既定は別タブ + noopener noreferrer）。 **`noopener` は必須**。付けないと、リンク先の JavaScript から元のページを操作できる (タブナビング攻撃)。既定で付けてあるので、上書きするときは理由を確認すること。",
       "signature": "linkify(input: string, options: { target?: string; rel?: string; className?: string } = {}): string",
       "params": [
         {
@@ -19437,20 +19489,8 @@
     {
       "name": "createOsNotifier",
       "kind": "function",
-      "summary": "デスクトップ通知を出す。dry-run 時は生成コマンドを返すのみ。 */ notify(n: OsNotification): Promise<Result<OsCommand>>; /** 音を鳴らす。 */ playSound(soundFile?: string): Promise<Result<OsCommand>>; /** 現在の OS。 */ readonly platform: OsPlatform; } /** OS 通知ランナーを作る。spawn を渡すと実際に通知/音を出し、渡さなければコマンド生成のみ(dry-run)。",
-      "signature": "createOsNotifier(options: OsNotifierOptions = {}): OsNotifier",
-      "params": [
-        {
-          "name": "options.exec",
-          "description": "コマンドを実行する関数(**テストで差し替えられる**)"
-        },
-        {
-          "name": "options.store",
-          "description": "履歴ストア"
-        }
-      ],
-      "returns": "通知器。**開発者の手元向け**(サーバでは意味がない。利用者に届けるなら @platform/notify)",
-      "example": "import { spawn } from \"node:child_process\";\nconst notifier = createOsNotifier({ platform: process.platform as OsPlatform, spawn });\nawait notifier.notify({ title: \"完了\", message: \"バッチが終わりました\", sound: true });"
+      "summary": "",
+      "signature": "createOsNotifier(options: OsNotifierOptions = {}): OsNotifier"
     },
     {
       "name": "OsCommand",
@@ -20765,7 +20805,7 @@
     {
       "name": "cosineSimilarity",
       "kind": "function",
-      "summary": "コサイン類似度を計算する。 **正規化済みでなくても動く**(内部で長さを割る)。",
+      "summary": "コサイン類似度を計算する。 **正規化済みでなくても動く**(内部で長さを割る)。 **次元が違うベクトルは 0 を返す**(似ていないとみなす)。短い方に合わせて計算すると、 埋め込みモデルを差し替えたとき(1536 次元 → 3072 次元など)に、 **古いベクトルと新しいベクトルが先頭だけで比較されて、それらしいスコアが出てしまう**。 検索結果は静かに劣化するだけで、エラーにならないので気づけない。 0 にしておけば「モデルを変えたら再インデックスが要る」と結果で分かる。",
       "signature": "cosineSimilarity(a: number[], b: number[]): number",
       "params": [
         {
@@ -20777,7 +20817,7 @@
           "description": "ベクトル"
         }
       ],
-      "returns": "-1〜1(**1 が最も似ている**)。長さが違えば 0"
+      "returns": "-1〜1(**1 が最も似ている**)。次元が違う / 零ベクトルなら 0"
     },
     {
       "name": "createMemoryVectorIndex",
@@ -25217,7 +25257,7 @@
     {
       "name": "defaultTheme",
       "kind": "const",
-      "summary": "標準テーマ(スキン)。性格の異なる 4 種を用意。アプリはこれをそのまま使うか、 registry.register() で独自テーマを追加して差し替える。"
+      "summary": "組み込みスキンの定義。 **補助テキスト(muted)の色は勝手に変えないこと。** 2026-07 の検査で、11 スキンのうち 7 つが WCAG AA(4.5:1)を満たしておらず、最低は 2.83:1 だった(cute)。 「薄いグレーで上品に見える」色は、**見えるが読めない**画面になる。 現在は全スキンが背景・サーフェスの両方に対して AA を満たす値に調整してある。 変更したら `node --experimental-strip-types tools/smoke.mjs` で 「findContrastIssues は空」が通ることを必ず確認する。 / /** 標準テーマ(スキン)。性格の異なる 4 種を用意。アプリはこれをそのまま使うか、 registry.register() で独自テーマを追加して差し替える。"
     },
     {
       "name": "deriveTheme",

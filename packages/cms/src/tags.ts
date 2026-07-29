@@ -56,7 +56,13 @@ export function mergeTagsInPosts<T extends Tagged>(posts: T[], sources: string[]
   const changed: { slug: string; tags: string[] }[] = [];
   for (const p of posts) {
     if (!p.tags.some((t) => src.has(t))) continue;
-    changed.push({ slug: p.slug, tags: dedupe(p.tags.map((t) => (src.has(t) ? target : t))) });
+    const next = dedupe(p.tags.map((t) => (src.has(t) ? target : t)));
+    // **結果が変わらない記事は返さない。** 統合元に統合先そのものが含まれるとき
+    // (["経費","経費精算"] → "経費")、既に "経費" だけの記事は何も変わらないのに
+    // 「変更あり」として返っていた。呼び出し側はそれを保存するので、
+    // **中身が同じまま updatedAt だけが進む**(renameTagInPosts は正しく除いている)。
+    if (next.length === p.tags.length && next.every((t, i) => t === p.tags[i])) continue;
+    changed.push({ slug: p.slug, tags: next });
   }
   return changed;
 }

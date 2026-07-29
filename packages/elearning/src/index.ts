@@ -119,9 +119,9 @@ function lessonWeight(lesson: Lesson): number {
 
 /**
  * コース進捗を計算する。完了レッスンの重み合計 / 全体の重み合計。
- * @returns 完了率(0–1)・完了数・総数・修了したか
  * @param course コース
- * @param completed 完了したレッスン ID
+ * @param progress 学習の進捗
+ * @returns 完了率(0–1)・完了数・総数・**所要分の合計**・修了したか
  */
 export function courseProgress(course: Course, progress: Progress): { ratio: number; completed: number; total: number; completedMinutes: number; totalMinutes: number; certified: boolean } {
   const lessons = flattenLessons(course);
@@ -147,7 +147,7 @@ export function courseProgress(course: Course, progress: Progress): { ratio: num
  * (全体の進捗だけだと、長いコースでは進んでいる実感が無い)。
  *
  * @param course コース
- * @param completed 完了したレッスン ID
+ * @param progress 学習の進捗
  * @returns モジュールごとの完了率
  */
 export function moduleProgress(course: Course, progress: Progress): { moduleId: string; title: string; completed: number; total: number; ratio: number }[] {
@@ -162,8 +162,8 @@ export function moduleProgress(course: Course, progress: Progress): { moduleId: 
  * 次に取り組むべきレッスンを返す(コース順で最初の未完了)。全完了なら null。
  *
  * @param course コース
- * @param completed 完了したレッスン ID
- * @returns 次に受けるレッスン。**すべて完了なら undefined**
+ * @param progress 学習の進捗
+ * @returns 次に受けるレッスン。**すべて完了なら null**
  */
 export function nextLesson(course: Course, progress: Progress): Lesson | null {
   const done = new Set(progress.completedLessons);
@@ -177,9 +177,12 @@ export function nextLesson(course: Course, progress: Progress): Lesson | null {
  * レッスンを完了としてマークした新しい進捗を返す(元は破壊しない・重複しない)。
  * 存在しないレッスン ID は VALIDATION。
  *
- * @param completed 完了済みの ID
+ * @param course コース(レッスンの存在確認に使う)
+ * @param progress 現在の進捗
  * @param lessonId 完了したレッスン
- * @returns 追加した**新しい配列**(**重複しない**)
+ * @returns 追加した**新しい進捗**({@link Result})。元の progress は変更しない。
+ *   既に完了済みならそのまま返す(**重複しない**)
+ * @throws なし。コースに無いレッスンは `VALIDATION` の err で返す
  */
 export function markLessonComplete(course: Course, progress: Progress, lessonId: string): Result<Progress> {
   const exists = flattenLessons(course).some((l) => l.id === lessonId);

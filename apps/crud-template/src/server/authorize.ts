@@ -11,6 +11,7 @@
 import { can, resolveHierarchy, type Policy } from "@platform/auth";
 import { setContextValue } from "@platform/context";
 import { AppError, ErrorCode } from "@platform/core";
+import { env } from "./env";
 
 /** このアプリのロールと権限。**ここを書き換えて使う。** */
 export const APP_POLICY: Policy = resolveHierarchy({
@@ -29,18 +30,41 @@ export interface CurrentUser {
 }
 
 /**
+ * 開発用の仮ログイン。**本番では使われない**({@link currentUser} が例外を投げる)。
+ *
+ * 名前を付けてあるのは、置き換え忘れを検索で見つけられるようにするため
+ * (`node tools/check-auth-stub.mjs` もこの形を探している)。
+ */
+const STUB_USER: CurrentUser = { id: "demo-user", roles: ["editor"] };
+
+/**
  * リクエストから利用者を取り出す。
  *
  * **雛形では固定値を返す**(認証の作り込みはアプリごとに違うため)。
  * 実装するときは @platform/session の `verifySession` でセッション Cookie を検証し、
- * 中身の userId / roles を返す。`/login` デモに一連の流れがある。
+ * 中身の userId / roles を返す。実際に動く例は `apps/equipment-app/src/server/guard.ts`、
+ * 画面込みの流れは `/login` デモにある。
+ *
+ * **本番では必ず例外を投げる。** 固定値を返したまま公開すると、`requirePermission` は
+ * 通るのに**誰でも全操作できる**状態になる。しかも認可を書いてあるので
+ * `check-api-auth` は緑のままで、検査からは正常に見える —— 気づけない壊れ方なので、
+ * 動かないことで気づかせる。
  *
  * 誰か分かった時点で `userId` をリクエストコンテキストへ載せる。**ここが唯一の
  * 身元確定点**なので、ここで載せておけば以降のログすべてに自動で付く。
  * 差し替えるときも、この 1 行を残せば相関は保たれる。
+ *
+ * @throws {@link @platform/core#AppError} コード `INTERNAL` — 本番環境で認証が未実装のまま呼ばれた場合
  */
 export function currentUser(_req: Request): CurrentUser | null {
-  const user: CurrentUser | null = { id: "demo-user", roles: ["editor"] };
+  if (env.NODE_ENV === "production") {
+    throw new AppError(
+      ErrorCode.INTERNAL,
+      "認証が実装されていません。apps/crud-template/src/server/authorize.ts の currentUser を "
+      + "実際のセッション検証に差し替えてください(実例: apps/equipment-app/src/server/guard.ts)",
+    );
+  }
+  const user: CurrentUser | null = STUB_USER;
   if (user) setContextValue("userId", user.id);
   return user;
 }

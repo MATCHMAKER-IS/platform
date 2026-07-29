@@ -2,6 +2,9 @@
 
 > 自動生成: `node tools/gen-module-list.mjs`(手で編集しない)。
 > 目的: AI・新規参加者が「既にある部品」を再実装せず使うためのインデックス。詳細は各 `packages/<name>/README.md` を参照。
+>
+> **⚠ 未実戦** = アプリ・デモ・他パッケージのどこからも import されていないパッケージ。
+> 実装はあるが**動作が一度も確かめられていない**ため、最初に使う人はバグを踏む可能性がある。
 
 ## 基礎(型・共通)
 
@@ -18,10 +21,10 @@
 - **@platform/utils** — 規律ある汎用ヘルパー。`sleep` / `chunk` / `groupBy` / `uniqueBy` / `assertNever` /
   - 主なexport: Decomposition, FormatNumberOptions, FormatRangeOptions, HighlightSegment, HistogramBin, HistogramOptions, …(全155)
 - **@platform/datetime** — 日本時間(JST)前提の日時ユーティリティ。UTC で保存し、表示・境界計算は JST で行います。
-  - 主なexport: BusinessHours, DateRange, FormatDurationOptions, Holiday, JST, Wareki, …(全58)
+  - 主なexport: BusinessHours, DateRange, FormatDurationOptions, Holiday, JST, Wareki, …(全61)
 - **@platform/context** — リクエストスコープのコンテキスト(相関ID)。`AsyncLocalStorage` で 1 リクエストの間
   - 主なexport: Childable, RequestContext, bindLogger, getContext, getRequestId, runWithContext, …(全7)
-- **@platform/testing** — テスト支援ツール。
+- **@platform/testing** **⚠ 未実戦** — テスト支援ツール。
   - 主なexport: fakeAuthUser, fakeSession, fixedDate, runCacheContract, runStorageContract, testId
 - **@platform/faker** — 日本語のダミーデータ生成(@faker-js/faker の ja ロケール)。開発シード・デモ・負荷試験用。
   - 主なexport: address, companyName, email, faker, japaneseName, phoneNumber, …(全9)
@@ -44,7 +47,7 @@
   - 主なexport: ApiKeyRecord, ApiKeyStore, AuthResult, GenerateApiKeyOptions, GeneratedApiKey, authenticateApiKey, …(全11)
 - **@platform/ratelimit** — レート制限(固定ウィンドウ)。ログイン試行や API 濫用の抑止に使います。
   - 主なexport: RateLimitResult, RateLimitStore, RateLimiter, RateLimiterConfig, createMemoryStore, createRateLimiter, …(全7)
-- **@platform/access-review** — 権限の棚卸し（アクセスレビュー）と、退職・異動時の停止手順。
+- **@platform/access-review** **⚠ 未実戦** — 権限の棚卸し（アクセスレビュー）と、退職・異動時の停止手順。
   - 主なexport: AccessGrant, EmploymentStatus, OffboardingStep, Person, ReviewFinding, ReviewOptions, …(全12)
 
 ## 認証・認可
@@ -62,7 +65,7 @@
   - 主なexport: Cache, CacheAdapter, RedisCacheClient, RedisCacheConfig, createCache, createMemoryCache, …(全7)
 - **@platform/storage** — ファイル操作の共通部品(Adapter パターン)。保存先を意識せず使えます。
   - 主なexport: FallbackStorageOptions, PresignOptions, PutOptions, S3StorageConfig, Storage, StorageAdapter, …(全12)
-- **@platform/fs** — ファイル/フォルダ操作とパスユーティリティ。ファイル種別判定(マジックバイト)や
+- **@platform/fs** **⚠ 未実戦** — ファイル/フォルダ操作とパスユーティリティ。ファイル種別判定(マジックバイト)や
   - 主なexport: FileTypeInfo, WalkOptions, basename, changeExt, copyDir, copyFile, …(全34)
 - **@platform/csv** — CSV の生成・解析・ダウンロード。生成/解析は純関数、`downloadCsv` はブラウザ専用。
   - 主なexport: CsvChunkHandler, CsvChunkProgress, CsvColumn, CsvLineSource, CsvStreamOptions, CsvStreamResult, …(全14)
@@ -79,7 +82,7 @@
   - 主なexport: BackoffOptions, FramedConnection, FramedServer, LengthPrefixedDecoder, LineDecoder, PollOptions, …(全31)
 - **@platform/mail** — メール送信の共通部品(Adapter パターン)。`createMailer()` で作った Mailer の `sendMail` を呼ぶだけで、送信基盤(SMTP / Resend)を意識せずに済みます。
   - 主なexport: ApplyPolicyOptions, AttachmentLimits, EmailAddress, EmailTemplate, HtmlEmailLayoutOptions, MailAttachment, …(全53)
-- **@platform/sms** — SMS 送信の共通部品(Adapter パターン)。`mail` と同じ構造です。
+- **@platform/sms** **⚠ 未実戦** — SMS 送信の共通部品(Adapter パターン)。`mail` と同じ構造です。
   - 主なexport: MemorySmsTransport, OtpSmsOptions, Sms, SmsEncoding, SmsFallbackOptions, SmsInfo, …(全21)
 - **@platform/notify** — チャット通知の共通部品(Adapter パターン)。業務イベントの通知に使います。
   - 主なexport: AsyncSeenStore, CategoryPreference, ChannelResult, DedupOptions, DeliveryChannel, DeliveryDecision, …(全42)
@@ -89,7 +92,7 @@
   - 主なexport: BroadcastHub, BroadcastHubOptions, Poller, ReconnectingWebSocket, ReconnectingWsOptions, RedisPubSubClient, …(全12)
 - **@platform/integrations** — 外部サービス連携の共通土台。型付き HTTP クライアントを提供します
   - 主なexport: ApiClient, ApiClientConfig, MultipartBody, MultipartFile, RequestOptions, createApiClient
-- **@platform/webhook** — Webhook 受信の共通枠組み。外部サービス(Stripe/Zoho/LINE/GitHub 等)からの Webhook を
+- **@platform/webhook** **⚠ 未実戦** — Webhook 受信の共通枠組み。外部サービス(Stripe/Zoho/LINE/GitHub 等)からの Webhook を
   - 主なexport: WebhookHandler, WebhookIdempotencyStore, WebhookOutcome, WebhookReceiver, WebhookReceiverOptions, createMemoryWebhookStore, …(全8)
 
 ## AI基盤
@@ -107,26 +110,26 @@
   - 主なexport: AuthorizationUrlInput, CodeExchangeResult, TokenManagerConfig, TokenResult, ZOHO_DATA_CENTERS, ZohoAnalyticsClient, …(全49)
 - **@platform/google** — Google Workspace 連携の総合クライアント。**ログイン(OAuth)/ ユーザー情報 / Sheets /
   - 主なexport: GmailClient, GmailMessageInput, GoogleAuthUrlParams, GoogleCalendarClient, GoogleDriveClient, GoogleMapsClient, …(全22)
-- **@platform/microsoft** — Microsoft 365 / Entra ID(旧 Azure AD)との連携。OAuth と Microsoft Graph を型付きで扱います。
+- **@platform/microsoft** **⚠ 未実戦** — Microsoft 365 / Entra ID(旧 Azure AD)との連携。OAuth と Microsoft Graph を型付きで扱います。
   - 主なexport: GraphEvent, GraphEventInput, GraphFile, GraphMailInput, GraphUser, MicrosoftAuthUrlParams, …(全15)
 - **@platform/slack** — Slack の Web API と、Slack **からの受信**（イベント・スラッシュコマンド）の署名検証。
   - 主なexport: ApprovalRequest, SlackClient, SlackInteraction, SlackMessage, SlackPostResult, SlackSignatureInput, …(全13)
-- **@platform/notion** — Notion のデータベース照会・ページ作成/更新・本文取得。
+- **@platform/notion** **⚠ 未実戦** — Notion のデータベース照会・ページ作成/更新・本文取得。
   - 主なexport: NOTION_VERSION, NotionClient, NotionPage, NotionPropertyInput, createNotionClient
 - **@platform/line** — LINE Messaging API の総合クライアント + メッセージビルダー + Webhook 受信。
   - 主なexport: CarouselColumn, LineAction, LineClient, LineEventBase, LineEventSource, LineMessage, …(全31)
 - **@platform/freee** — freee 会計 API クライアント + OAuth トークン管理 + 証憑・振替伝票。
   - 主なexport: BalancePoint, BalanceSnapshot, BalanceSummary, DealDetail, DealType, FreeeClient, …(全38)
-- **@platform/stripe** — Stripe 決済クライアント(公式 `stripe` SDK ラッパー)。
+- **@platform/stripe** **⚠ 未実戦** — Stripe 決済クライアント(公式 `stripe` SDK ラッパー)。
   - 主なexport: Stripe, StripeClient, createStripeClient
-- **@platform/paypal** — PayPal 決済クライアント(Orders v2)。client_id / client_secret から
+- **@platform/paypal** **⚠ 未実戦** — PayPal 決済クライアント(Orders v2)。client_id / client_secret から
   - 主なexport: PayPalClient, PayPalConfig, createPayPalClient
 - **@platform/ekyc** — eKYC(オンライン本人確認)ベンダー連携コネクタ。TRUSTDOCK 等の API を型付きで扱い、
   - 主なexport: EkycClient, EkycClientConfig, EkycEndpoints, EkycStatus, EkycWebhookEvent, createEkycClient, …(全12)
 
 ## 非同期・フロー制御
 
-- **@platform/jobs** — 非同期ジョブ(キュー)の共通部品。重い処理・遅延処理をリクエストから切り離します
+- **@platform/jobs** **⚠ 未実戦** — 非同期ジョブ(キュー)の共通部品。重い処理・遅延処理をリクエストから切り離します
   - 主なexport: FailedJob, JobDefinition, JobsConnection, MemoryQueue, MemoryQueueOptions, QueueLike, …(全12)
 - **@platform/rpa** — RPA を**安全に実行するための共通部品**(ランナー骨格)。基盤は RPA 本体(ブラウザ自動操作など)は持ちません。壁打ちの優先順位は **API > MCP > RPA** で、RPA は最後の手段です。
   - 主なexport: RpaAuditEvent, RpaAuditSink, RpaContext, RpaLock, RpaRetryOptions, RpaRunResult, …(全9)
@@ -168,7 +171,7 @@
 
 ## メディア・デバイス
 
-- **@platform/media** — 動画・音声の処理(ffmpeg ラッパー)。メタ情報取得・変換・音声抽出・サムネイル・トリミング。
+- **@platform/media** **⚠ 未実戦** — 動画・音声の処理(ffmpeg ラッパー)。メタ情報取得・変換・音声抽出・サムネイル・トリミング。
   - 主なexport: MediaInfo, MediaProcessor, createMediaProcessor
 - **@platform/image** — サーバ側の画像処理(sharp ラッパー)。順序付きの操作リストを適用します。
   - 主なexport: BackgroundRemover, FitMode, FitOptions, GenericRemoverOptions, Gravity, ImageFormat, …(全27)

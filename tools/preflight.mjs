@@ -1,7 +1,7 @@
 /**
  * オフライン検証ゲートの一括実行(依存インストール不要)。人も CI(boundaries)もこれ1本。
  *   node tools/preflight.mjs      (= pnpm verify:offline)
- * 内容: smoke / check-deps / api-surface(差分検査) / check-core-signatures / check-schema ×3 / check-env-example / check-generated / check-doc-numbers / check-ports / check-package-shape / check-docs-links / check-docs-duplication / check-docs-orphans / check-doc-apis / check-e2e-quality / check-package-rules / check-app-rules / check-api-auth / check-permissions / check-reimplementation / check-showcase-deps / check-app-transpile / check-syntax / check-jsx-tags / check-a11y / check-pwa / check-maintainability / check-hardcoded-colors / check-contract / check-drill / check-imports / check-lockfile / check-build-ready / setup.sh 構文
+ * 内容: smoke / check-deps / api-surface(差分検査) / check-core-signatures / check-schema ×3 / check-env-example / check-generated / check-doc-numbers / check-ports / check-package-shape / check-docs-links / check-docs-duplication / check-docs-orphans / check-doc-apis / check-e2e-quality / check-package-rules / check-app-rules / check-api-auth / check-auth-stub / check-permissions / check-reimplementation / check-handmade-chart / check-utc-date / check-showcase-deps / check-app-transpile / check-syntax / check-jsx-tags / check-a11y / check-pwa / check-maintainability / check-hardcoded-colors / check-contract / check-drill / check-imports / check-lockfile / check-build-ready / setup.sh 構文
  */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -62,8 +62,11 @@ allOk = run("check-e2e-quality", "node", ["tools/check-e2e-quality.mjs"]) && all
 allOk = run("check-package-rules", "node", ["tools/check-package-rules.mjs"]) && allOk;  // 基盤自身が作法を守っているか
 allOk = run("check-app-rules", "node", ["tools/check-app-rules.mjs"]) && allOk;  // apps が基盤の役割を侵していないか(CLAUDE.md の規約)
 allOk = run("check-api-auth", "node", ["tools/check-api-auth.mjs"]) && allOk;  // 認可も公開宣言も無い API を検出(上限つき)
+allOk = run("check-auth-stub", "node", ["tools/check-auth-stub.mjs"]) && allOk;
 allOk = run("check-permissions", "node", ["tools/check-permissions.mjs"]) && allOk;  // 使用している権限がポリシーに定義されているか
 allOk = run("check-reimplementation", "node", ["tools/check-reimplementation.mjs"]) && allOk;  // 基盤にある機能をアプリで作り直していないか
+allOk = run("check-handmade-chart", "node", ["tools/check-handmade-chart.mjs"]) && allOk;
+allOk = run("check-utc-date", "node", ["tools/check-utc-date.mjs"]) && allOk;
 allOk = run("check-showcase-deps", "node", ["tools/check-showcase-deps.mjs"]) && allOk;  // デモサイトの依存漏れ(ビルドしないと気づけない)
 allOk = run("check-app-transpile", "node", ["tools/check-app-transpile.mjs"]) && allOk;  // apps の transpilePackages 漏れ(next build だけが落ちる。typecheck/smoke は通る)
 allOk = run("check-syntax", "node", ["tools/check-syntax.mjs"]) && allOk;  // 本物のパーサで構文エラーを検出(これが無く、全項目グリーンのまま next build が落ちた)

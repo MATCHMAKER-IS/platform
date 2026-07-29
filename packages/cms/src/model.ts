@@ -50,7 +50,8 @@ export function isValidSlug(slug: string): boolean {
  * 記事の入力を検証する。
  *
  * @param input 入力
- * @returns 問題の一覧(**空なら妥当**)。フィールド名と理由を返すので、画面でそのまま出せる
+ * @returns `{ ok: true, value }` または `{ ok: false, error }`。理由は文字列なので画面にそのまま出せる。
+ *   **配列ではない**ので `.length` で判定しないこと(常に妥当と読めてしまう)
  */
 export function validatePostInput(input: CmsPostInput): { ok: true; value: CmsPostInput } | { ok: false; error: string } {
   if (!input.slug || !isValidSlug(input.slug)) return { ok: false, error: "slug は英小文字・数字・ハイフンで指定してください" };

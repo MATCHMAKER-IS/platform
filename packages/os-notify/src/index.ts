@@ -167,6 +167,14 @@ export interface OsNotifier {
  * @param options.store 履歴ストア
  * @returns 通知器。**開発者の手元向け**(サーバでは意味がない。利用者に届けるなら @platform/notify)
  */
+/**
+ * 起動失敗(error イベント)を待つ時間(ms)。
+ *
+ * `spawn` の `error` は**必ず非同期**に来る。同期的に成功と決めてしまうと検出できない。
+ * デスクトップ通知なのでこの程度の待ちは体感に影響しない。
+ */
+const SPAWN_SETTLE_MS = 50;
+
 export function createOsNotifier(options: OsNotifierOptions = {}): OsNotifier {
   const platform = options.platform ?? "linux";
   const spawn = options.spawn;
@@ -190,8 +198,19 @@ export function createOsNotifier(options: OsNotifierOptions = {}): OsNotifier {
           resolve(ok(cmd));
         });
         child.unref?.();
-        // detached の場合 close が来ないことがあるので、error が無ければ成功とみなす
-        if (settled === false) { settled = true; resolve(ok(cmd)); }
+        // detached + stdio:ignore では close が来ないことがあるため、
+        // **少し待って error が来なければ成功**とみなす。
+        //
+        // ここを同期的に resolve すると、error は必ず後から来るので**毎回成功が先に確定**し、
+        // error ハンドラが一度も勝てない(= 起動失敗を検出できず、履歴も常に成功になる)。
+        const settleTimer = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          resolve(ok(cmd));
+        }, SPAWN_SETTLE_MS);
+        if (typeof settleTimer === "object" && settleTimer !== null && "unref" in settleTimer) {
+          (settleTimer as { unref: () => void }).unref();
+        }
       } catch (e) {
         resolve(err(new AppError(ErrorCode.EXTERNAL, `通知コマンドの起動に失敗しました: ${e instanceof Error ? e.message : String(e)}`, { details: { command: cmd.command } })));
       }

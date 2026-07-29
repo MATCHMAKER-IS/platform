@@ -1,4 +1,15 @@
 /**
+ * 組み込みスキンの定義。
+ *
+ * **補助テキスト(muted)の色は勝手に変えないこと。** 2026-07 の検査で、11 スキンのうち
+ * 7 つが WCAG AA(4.5:1)を満たしておらず、最低は 2.83:1 だった(cute)。
+ * 「薄いグレーで上品に見える」色は、**見えるが読めない**画面になる。
+ * 現在は全スキンが背景・サーフェスの両方に対して AA を満たす値に調整してある。
+ *
+ * 変更したら `node --experimental-strip-types tools/smoke.mjs` で
+ * 「findContrastIssues は空」が通ることを必ず確認する。
+ */
+/**
  * 標準テーマ(スキン)。性格の異なる 4 種を用意。アプリはこれをそのまま使うか、
  * registry.register() で独自テーマを追加して差し替える。
  * @packageDocumentation
@@ -53,7 +64,7 @@ export const softTheme: Theme = {
   shape: { fontFamily: "'Hiragino Sans', 'Yu Gothic', system-ui, sans-serif", radius: 16, spacing: 10, elevation: 2 },
   modes: {
     light: {
-      bg: "#faf6f0", fg: "#3f342b", muted: "#8b7d6b", surface: "#fffdfa",
+      bg: "#faf6f0", fg: "#3f342b", muted: "#796d5d", surface: "#fffdfa",
       border: "#ece3d6", primary: "#c85014", primaryFg: "#ffffff", accent: "#d4a017",
       success: "#4d9e5a", warning: "#e08e0b", danger: "#d0553f",
     },
@@ -93,7 +104,7 @@ export const cuteTheme: Theme = {
   shape: { fontFamily: "'Rounded Mplus 1c', 'Hiragino Maru Gothic ProN', system-ui, sans-serif", radius: 20, spacing: 10, elevation: 2 },
   modes: {
     light: {
-      bg: "#fff5f8", fg: "#5a3d4a", muted: "#b08a99", surface: "#ffffff",
+      bg: "#fff5f8", fg: "#5a3d4a", muted: "#926376", surface: "#ffffff",
       border: "#ffd9e6", primary: "#ff7eb6", primaryFg: "#4a1f33", accent: "#c88eff",
       success: "#5cc98f", warning: "#ffab5e", danger: "#ff6f91",
     },
@@ -113,7 +124,7 @@ export const warmTheme: Theme = {
   shape: { fontFamily: "system-ui, sans-serif", radius: 10, spacing: 8, elevation: 1 },
   modes: {
     light: {
-      bg: "#fff8f2", fg: "#3d2b1f", muted: "#9c7c66", surface: "#ffffff",
+      bg: "#fff8f2", fg: "#3d2b1f", muted: "#886b59", surface: "#ffffff",
       border: "#f5ddc8", primary: "#c25405", primaryFg: "#ffffff", accent: "#e11d48",
       success: "#65a30d", warning: "#ca8a04", danger: "#dc2626",
     },
@@ -133,7 +144,7 @@ export const chicTheme: Theme = {
   shape: { fontFamily: "'Playfair Display', 'Noto Serif JP', serif", headingFontFamily: "'Playfair Display', 'Noto Serif JP', serif", radius: 6, spacing: 9, elevation: 1 },
   modes: {
     light: {
-      bg: "#f5f1ee", fg: "#3a2e2e", muted: "#8a7a75", surface: "#fdfaf8",
+      bg: "#f5f1ee", fg: "#3a2e2e", muted: "#796b67", surface: "#fdfaf8",
       border: "#e0d5cf", primary: "#7b2d3f", primaryFg: "#ffffff", accent: "#a68a64",
       success: "#5a7a52", warning: "#b0812f", danger: "#a3423c",
     },
@@ -173,7 +184,7 @@ export const retroTheme: Theme = {
   shape: { fontFamily: "'Courier New', 'Roboto Mono', monospace", headingFontFamily: "'Georgia', serif", radius: 4, spacing: 8, elevation: 1 },
   modes: {
     light: {
-      bg: "#f3ead8", fg: "#3e352a", muted: "#8a7a5f", surface: "#faf3e3",
+      bg: "#f3ead8", fg: "#3e352a", muted: "#756852", surface: "#faf3e3",
       border: "#d9c9a8", primary: "#a85a29", primaryFg: "#faf3e3", accent: "#2f7c78",
       success: "#6b8e23", warning: "#c99a2e", danger: "#b23a2e",
     },
@@ -193,7 +204,7 @@ export const monochromeTheme: Theme = {
   shape: { fontFamily: "'Helvetica Neue', 'Noto Sans JP', system-ui, sans-serif", radius: 6, spacing: 8, elevation: 1 },
   modes: {
     light: {
-      bg: "#f5f5f5", fg: "#1a1a1a", muted: "#767676", surface: "#ffffff",
+      bg: "#f5f5f5", fg: "#1a1a1a", muted: "#707070", surface: "#ffffff",
       border: "#d4d4d4", primary: "#2b2b2b", primaryFg: "#ffffff", accent: "#585858",
       success: "#4a4a4a", warning: "#6e6e6e", danger: "#1a1a1a",
     },
@@ -213,7 +224,7 @@ export const coolTheme: Theme = {
   shape: { fontFamily: "'SF Pro Display', 'Noto Sans JP', system-ui, sans-serif", radius: 10, spacing: 8, elevation: 2 },
   modes: {
     light: {
-      bg: "#f0f7fa", fg: "#152a33", muted: "#5e7a85", surface: "#ffffff",
+      bg: "#f0f7fa", fg: "#152a33", muted: "#59737d", surface: "#ffffff",
       border: "#cfe3ea", primary: "#077e9c", primaryFg: "#ffffff", accent: "#2563eb",
       success: "#0d9488", warning: "#0284c7", danger: "#e11d48",
     },

@@ -26,9 +26,9 @@
  * これで捕まえられる。
  */
 import { readFileSync, existsSync } from "node:fs";
-import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { collectFiles } from "./lib/collect-files.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const LOCK = path.join(ROOT, "pnpm-lock.yaml");
@@ -99,10 +99,9 @@ function readPkgDeps(pkgPath) {
 const lockImporters = parseLockImporters(readFileSync(LOCK, "utf8"));
 
 // ワークスペースの全 package.json を集める(ルート + 各 importer)。
-const pkgFiles = execSync(
-  "find . -maxdepth 3 -name package.json -not -path '*/node_modules/*' -not -path '*/.next/*'",
-  { cwd: ROOT, encoding: "utf8" },
-).trim().split("\n").filter(Boolean);
+// `find` は Windows で別コマンドになるため使わない(tools/lib/collect-files.mjs 参照)
+const pkgFiles = collectFiles(["."], ROOT, { extensions: ["package.json"], maxDepth: 3 })
+  .filter((f) => f === "package.json" || f.endsWith("/package.json"));
 
 const problems = [];
 for (const rel of pkgFiles) {
