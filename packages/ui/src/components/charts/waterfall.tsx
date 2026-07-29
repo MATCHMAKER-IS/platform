@@ -2,7 +2,7 @@
 /** ウォーターフォール(増減の滝グラフ)。 @packageDocumentation */
 import { ResponsiveContainer, ComposedChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { cn } from "../../lib/cn";
-import { ChartTitle } from "./chart-common";
+import { ChartTitle, AXIS_PROPS } from "./chart-common";
 import { toWaterfall, type WaterfallItem } from "./chart-math";
 
 /** {@link WaterfallChart} の props。 */
@@ -32,8 +32,8 @@ export function WaterfallChart({
       <ResponsiveContainer width="100%" height={height}>
         <ComposedChart data={rows}>
           {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />}
-          <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-          <YAxis tick={{ fontSize: 12 }} tickFormatter={fmt} />
+          <XAxis dataKey="label" {...AXIS_PROPS} />
+          <YAxis {...AXIS_PROPS} tickFormatter={fmt} />
           <Tooltip formatter={(_v: number, _n: string, item: { payload?: { value: number; cumulative: number } }) =>
             item?.payload ? [`${item.payload.value >= 0 ? "+" : ""}${item.payload.value}${unit ?? ""}(累計 ${item.payload.cumulative}${unit ?? ""})`, "増減"] : _v} />
           <Bar dataKey="offset" stackId="wf" fill="transparent" />

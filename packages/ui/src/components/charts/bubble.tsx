@@ -2,7 +2,7 @@
 /** バブルチャート(散布図 + 大きさ z)。 @packageDocumentation */
 import { ResponsiveContainer, ScatterChart as RScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { cn } from "../../lib/cn";
-import { ChartTitle, SeriesToggle, useSeriesVisibility, CHART_COLORS, GRID_STROKE } from "./chart-common";
+import { ChartTitle, SeriesToggle, useSeriesVisibility, CHART_COLORS, GRID_STROKE, AXIS_PROPS } from "./chart-common";
 
 /** バブルの系列。 */
 export interface BubbleSeries {
@@ -42,8 +42,8 @@ export function BubbleChart({
       <ResponsiveContainer width="100%" height={height}>
         <RScatterChart>
           {showGrid && <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />}
-          <XAxis type="number" dataKey="x" name={xLabel} tick={{ fontSize: 12 }} label={xLabel ? { value: xLabel, position: "insideBottom", offset: -4 } : undefined} />
-          <YAxis type="number" dataKey="y" name={yLabel} tick={{ fontSize: 12 }} label={yLabel ? { value: yLabel, angle: -90, position: "insideLeft" } : undefined} />
+          <XAxis type="number" dataKey="x" name={xLabel} {...AXIS_PROPS} label={xLabel ? { value: xLabel, position: "insideBottom", offset: -4 } : undefined} />
+          <YAxis type="number" dataKey="y" name={yLabel} {...AXIS_PROPS} label={yLabel ? { value: yLabel, angle: -90, position: "insideLeft" } : undefined} />
           <ZAxis type="number" dataKey="z" range={sizeRange} />
           <Tooltip cursor={{ strokeDasharray: "3 3" }} />
           {showLegend && <Legend />}

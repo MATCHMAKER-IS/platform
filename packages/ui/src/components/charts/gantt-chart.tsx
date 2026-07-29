@@ -2,7 +2,7 @@
 /** ガントチャート(横棒積み上げで期間を表現)。 @packageDocumentation */
 import { ResponsiveContainer, BarChart as RBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from "recharts";
 import { cn } from "../../lib/cn";
-import { ChartTitle, CHART_COLORS, GRID_STROKE } from "./chart-common";
+import { ChartTitle, CHART_COLORS, GRID_STROKE, AXIS_PROPS } from "./chart-common";
 import { toGanttRows, type GanttTask } from "./gantt-transform";
 
 /** {@link GanttChart} の props。 */
@@ -29,8 +29,8 @@ export function GanttChart({ tasks, title, height, showGrid = true, tickFormatte
       <ResponsiveContainer width="100%" height={h}>
         <RBarChart data={rows} layout="vertical" barCategoryGap={8}>
           {showGrid && <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} horizontal={false} />}
-          <XAxis type="number" domain={[0, max - min]} tickFormatter={(v: number) => tickFormatter(min + v)} tick={{ fontSize: 12 }} />
-          <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={110} />
+          <XAxis type="number" domain={[0, max - min]} tickFormatter={(v: number) => tickFormatter(min + v)} {...AXIS_PROPS} />
+          <YAxis type="category" dataKey="name" {...AXIS_PROPS} width={110} />
           <Tooltip
             formatter={(v: number, _n: string, item: { payload?: { start: number; end: number } }) =>
               item?.payload ? [`${tickFormatter(item.payload.start)} 〜 ${tickFormatter(item.payload.end)}`, "期間"] : v}

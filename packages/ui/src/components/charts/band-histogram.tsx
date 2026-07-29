@@ -2,7 +2,7 @@
 /** 帯グラフ(100%積み上げ)とヒストグラム。 @packageDocumentation */
 import { ResponsiveContainer, ComposedChart, Bar, BarChart as RBarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { cn } from "../../lib/cn";
-import { ChartTitle, buildColorMap, GRID_STROKE, type SeriesDef } from "./chart-common";
+import { ChartTitle, buildColorMap, GRID_STROKE, type SeriesDef, AXIS_PROPS } from "./chart-common";
 import { toPercentStacked, histogramBins } from "./chart-math";
 
 /** {@link BandChart} の props。 */
@@ -30,9 +30,16 @@ export function BandChart({ data, xKey, series, title, height = 280, horizontal 
       <ResponsiveContainer width="100%" height={height}>
         <ComposedChart data={pct} layout={horizontal ? "vertical" : "horizontal"}>
           <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
+          {/* Fragment に包むと recharts から軸が見えなくなる(cartesian.tsx の axes 参照) */}
           {horizontal
-            ? <><XAxis type="number" domain={[0, 100]} tickFormatter={fmt} tick={{ fontSize: 12 }} /><YAxis type="category" dataKey={xKey} tick={{ fontSize: 12 }} width={80} /></>
-            : <><XAxis dataKey={xKey} tick={{ fontSize: 12 }} /><YAxis type="number" domain={[0, 100]} tickFormatter={fmt} tick={{ fontSize: 12 }} /></>}
+            ? [
+              <XAxis key="x" type="number" domain={[0, 100]} tickFormatter={fmt} {...AXIS_PROPS} />,
+              <YAxis key="y" type="category" dataKey={xKey} {...AXIS_PROPS} width={80} />,
+            ]
+            : [
+              <XAxis key="x" dataKey={xKey} {...AXIS_PROPS} />,
+              <YAxis key="y" type="number" domain={[0, 100]} tickFormatter={fmt} {...AXIS_PROPS} />,
+            ]}
           <Tooltip formatter={(v: number) => fmt(v)} />
           {showLegend && <Legend />}
           {series.map((s) => <Bar key={s.key} dataKey={s.key} name={s.name ?? s.key} stackId="band" fill={colorMap.get(s.key)} />)}
@@ -65,7 +72,7 @@ export function Histogram({ values, binCount = 10, title, height = 280, color = 
         <RBarChart data={bins} barCategoryGap={0}>
           <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />
           <XAxis dataKey="label" tick={{ fontSize: 11 }} interval={0} angle={-30} textAnchor="end" height={50} />
-          <YAxis allowDecimals={false} tick={{ fontSize: 12 }} label={{ value: "度数", angle: -90, position: "insideLeft" }} />
+          <YAxis allowDecimals={false} {...AXIS_PROPS} label={{ value: "度数", angle: -90, position: "insideLeft" }} />
           <Tooltip formatter={(v: number) => [`${v}${unit ?? "件"}`, "度数"]} />
           <Bar dataKey="count" fill={color} />
         </RBarChart>

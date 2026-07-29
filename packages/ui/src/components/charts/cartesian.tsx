@@ -10,7 +10,7 @@ import {
 import { cn } from "../../lib/cn";
 import {
   ChartTitle, SeriesToggle, useSeriesVisibility, buildColorMap, makeFormatter,
-  GRID_STROKE, type SeriesDef, type BaseChartProps,
+  GRID_STROKE, AXIS_PROPS, type SeriesDef, type BaseChartProps,
 } from "./chart-common";
 
 /** 直交系グラフの共通 props。 */
@@ -38,18 +38,43 @@ function Frame({
   );
 }
 
-function axes(xKey: string, horizontal: boolean, fmt?: (v: number) => string, xLabel?: string, yLabel?: string) {
-  return horizontal ? (
-    <>
-      <XAxis type="number" tickFormatter={fmt} label={xLabel ? { value: xLabel, position: "insideBottom", offset: -4 } : undefined} tick={{ fontSize: 12 }} />
-      <YAxis type="category" dataKey={xKey} tick={{ fontSize: 12 }} width={90} />
-    </>
-  ) : (
-    <>
-      <XAxis dataKey={xKey} tick={{ fontSize: 12 }} label={xLabel ? { value: xLabel, position: "insideBottom", offset: -4 } : undefined} />
-      <YAxis tickFormatter={fmt} tick={{ fontSize: 12 }} label={yLabel ? { value: yLabel, angle: -90, position: "insideLeft" } : undefined} />
-    </>
-  );
+/**
+ * X/Y 軸を作る。
+ *
+ * **Fragment ではなく配列で返す。** recharts は子要素を走査して軸や系列を見つけるが、
+ * `<>…</>` で包むと中身が見えない(React.Children は配列は平坦化する一方、
+ * Fragment は 1 個の要素として扱うため)。
+ *
+ * 実際にこれで **全グラフから目盛が消えていた**。さらに横棒(`layout="vertical"`)は
+ * カテゴリ軸を失うため、棒が 1 本しか出ない・積み上げが何も描かれない状態になっていた。
+ * 軸が無いだけに見えて、実は描画そのものが壊れる。
+ *
+ * @param xKey       カテゴリ軸のキー
+ * @param horizontal 横棒か(縦横で number 軸と category 軸が入れ替わる)
+ * @param fmt        数値軸の整形(単位付けなど)
+ * @returns XAxis と YAxis の配列
+ */
+function axes(
+  xKey: string,
+  horizontal: boolean,
+  fmt?: (v: number) => string,
+  xLabel?: string,
+  yLabel?: string,
+): React.ReactElement[] {
+  return horizontal
+    ? [
+      <XAxis key="x" type="number" {...AXIS_PROPS} tickFormatter={fmt}
+        label={xLabel ? { value: xLabel, position: "insideBottom", offset: -4 } : undefined} />,
+      // 幅を確保しないと「東京」のようなラベルが切れる
+      <YAxis key="y" type="category" dataKey={xKey} {...AXIS_PROPS} width={90}
+        label={yLabel ? { value: yLabel, angle: -90, position: "insideLeft" } : undefined} />,
+    ]
+    : [
+      <XAxis key="x" dataKey={xKey} {...AXIS_PROPS}
+        label={xLabel ? { value: xLabel, position: "insideBottom", offset: -4 } : undefined} />,
+      <YAxis key="y" {...AXIS_PROPS} tickFormatter={fmt}
+        label={yLabel ? { value: yLabel, angle: -90, position: "insideLeft" } : undefined} />,
+    ];
 }
 
 /** 棒グラフ。`stacked` で積み上げ、`horizontal` で横棒。系列ごとの `stackId` で複数積み上げ群も可。 */

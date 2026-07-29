@@ -131,14 +131,38 @@ export function SheetGrid<T extends Record<string, unknown>>({
   const stickyColBody = (c: number): React.CSSProperties =>
     c < freezeLeft ? { ...stickyCol(c), background: "var(--color-bg)" } : {};
 
+  /**
+   * ヘッダ/フッタの固定スタイル。
+   *
+   * **重なり順をここで決め切る**。以前は `...stickyCol(c)` を後ろに展開しており、
+   * 左固定列のヘッダの `zIndex` が stickyCol の 2 に上書きされていた。本体セルも 2 なので
+   * DOM 順で後に来る本体セルが上に描かれ、**日付列のヘッダだけデータが突き抜けた**。
+   * スプレッドの順序で意図が壊れる典型なので、条件分岐で組み立てる。
+   *
+   * @param c    列番号
+   * @param edge ヘッダ(上端)かフッタ(下端)か
+   * @returns 位置と重なり順を決めたスタイル
+   */
+  const pinnedStyle = (c: number, edge: "top" | "bottom"): React.CSSProperties => {
+    const frozen = c < freezeLeft;
+    const pinnedEdge = edge === "top" ? stickyHeader : true; // フッタは常に下端に貼り付く
+    const style: React.CSSProperties = { width: widths[c], minWidth: widths[c] };
+    if (pinnedEdge || frozen) style.position = "sticky";
+    if (pinnedEdge) style[edge] = 0;
+    if (frozen) style.left = lefts[c] ?? 0;
+    // 交差部(左固定 × 上下端)がいちばん手前。次に上下端、最後に左固定列(本体と同じ 2)。
+    style.zIndex = pinnedEdge ? (frozen ? 4 : 3) : frozen ? 2 : undefined;
+    return style;
+  };
+
   const renderHeaderCell = (c: number) => {
     const col = columns[c]!;
     return (
       <th key={col.key} className={cn(cellCls(col.align), "relative font-semibold")}
-        style={{ width: widths[c], minWidth: widths[c], height: rowHeight,
+        style={{ height: rowHeight,
           // ★不透明であること。sticky で浮いているので、半透明だと下の行が透ける。
           background: "var(--color-surface)", boxShadow: "inset 0 -1px 0 var(--color-border)",
-          ...(stickyHeader ? { position: "sticky", top: 0, zIndex: c < freezeLeft ? 4 : 3 } : {}), ...stickyCol(c), ...(c < freezeLeft && stickyHeader ? { left: lefts[c] ?? 0 } : {}) }}>
+          ...pinnedStyle(c, "top") }}>
         {col.header}
         {resizable && <span data-resizer="1" onPointerDown={startResize(c)} title={t("grid.resize")} className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-[var(--color-primary)]/40" />}
       </th>
@@ -192,9 +216,9 @@ export function SheetGrid<T extends Record<string, unknown>>({
         {showFooter && (
           <tfoot>
             <tr>
-              {frozenCols.map((c) => renderFooterCell(columns[c]!, c, widths, lefts, freezeLeft, cellCls, stickyCol))}
+              {frozenCols.map((c) => renderFooterCell(columns[c]!, c, cellCls, pinnedStyle))}
               {spacerCell(vc.leftPad, "f-lpad")}
-              {(virtualizeColumns ? winCols : midCols).map((c) => renderFooterCell(columns[c]!, c, widths, lefts, freezeLeft, cellCls, stickyCol))}
+              {(virtualizeColumns ? winCols : midCols).map((c) => renderFooterCell(columns[c]!, c, cellCls, pinnedStyle))}
               {spacerCell(vc.rightPad, "f-rpad")}
             </tr>
           </tfoot>
@@ -204,13 +228,17 @@ export function SheetGrid<T extends Record<string, unknown>>({
   );
 }
 
-function renderFooterCell<T>(col: SheetColumn<T>, c: number, widths: number[], lefts: number[], freezeLeft: number, cellCls: (a?: string) => string, stickyCol: (c: number) => React.CSSProperties) {
+/**
+ * 合計行のセル。重なり順はヘッダと同じ理由で `pinnedStyle` に任せる
+ * (以前はここも `...stickyCol(c)` が後ろにあり、zIndex が潰れていた)。
+ */
+function renderFooterCell<T>(col: SheetColumn<T>, c: number, cellCls: (a?: string) => string, pinnedStyle: (c: number, edge: "top" | "bottom") => React.CSSProperties) {
   return (
     <td key={col.key} className={cn(cellCls(col.align), "font-semibold")}
-      style={{ width: widths[c], minWidth: widths[c], position: "sticky", bottom: 0, zIndex: c < freezeLeft ? 4 : 3,
+      style={{
         // ★不透明であること(ヘッダと同じ理由)。
         background: "var(--color-surface)", boxShadow: "inset 0 1px 0 var(--color-border)",
-        ...stickyCol(c), ...(c < freezeLeft ? { left: lefts[c] ?? 0 } : {}) }}>
+        ...pinnedStyle(c, "bottom") }}>
       {col.footer ?? ""}
     </td>
   );

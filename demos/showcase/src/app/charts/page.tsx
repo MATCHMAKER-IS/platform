@@ -76,7 +76,8 @@ export default function Page() {
             series={[{ key: "文具" }, { key: "食品" }, { key: "家電" }]} stacked unit="万円" toggleable />
         </Box>
         <Box>
-          <BarChart title="横棒グラフ" data={stacked} xKey="地域" series={[{ key: "食品" }]} horizontal unit="万円" />
+          <BarChart title="横棒グラフ(地域×カテゴリ・並列)" data={stacked} xKey="地域"
+            series={[{ key: "文具" }, { key: "食品" }, { key: "家電" }]} horizontal unit="万円" toggleable />
         </Box>
         <Box>
           <BarChart title="積み上げ横棒(地域×カテゴリ)" data={stacked} xKey="地域"
@@ -151,7 +152,8 @@ export default function Page() {
           ]} />
         </Box>
         <Box>
-          <HorizontalBarChart title="横棒グラフ" data={stacked} xKey="地域" series={[{ key: "文具" }, { key: "食品" }, { key: "家電" }]} stacked unit="万円" toggleable />
+          <HorizontalBarChart title="横棒グラフ(HorizontalBarChart ラッパー)" data={stacked} xKey="地域"
+            series={[{ key: "文具" }, { key: "食品" }, { key: "家電" }]} stacked unit="万円" toggleable />
         </Box>
         <Box>
           <BandChart title="帯グラフ(構成比100%)" data={stacked} xKey="地域" series={[{ key: "文具" }, { key: "食品" }, { key: "家電" }]} />

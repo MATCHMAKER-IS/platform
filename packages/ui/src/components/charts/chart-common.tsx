@@ -106,3 +106,23 @@ export function makeFormatter(unit?: string, valueFormatter?: (v: number) => str
 }
 
 export const GRID_STROKE = "var(--color-border)";
+
+/**
+ * 軸線・目盛線の色。グリッドより少しはっきりさせる。
+ *
+ * 目盛が読めないグラフは「だいたいの形」しか伝えられない。
+ * 値を読み取れることが表と違う点なので、軸は薄くしすぎない。
+ */
+export const AXIS_STROKE = "var(--color-muted)";
+
+/**
+ * X/Y 軸に共通で渡す見た目。**目盛線と軸線を必ず出す**。
+ *
+ * recharts は既定でも軸線を描くが、色がテーマに追従しないため明示する。
+ */
+export const AXIS_PROPS = {
+  tick: { fontSize: 12, fill: "var(--color-muted)" },
+  tickLine: { stroke: AXIS_STROKE },
+  axisLine: { stroke: AXIS_STROKE },
+  tickMargin: 6,
+} as const;

@@ -2,7 +2,7 @@
 /** ローソク足チャート(OHLC)。 @packageDocumentation */
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { cn } from "../../lib/cn";
-import { ChartTitle } from "./chart-common";
+import { ChartTitle, AXIS_PROPS } from "./chart-common";
 import { candleGeometry, type Candle } from "./chart-math";
 
 /** ローソク足の 1 本。 */
@@ -55,8 +55,8 @@ export function CandlestickChart({ data, title, height = 320, showGrid = true, u
       <ResponsiveContainer width="100%" height={height}>
         <ComposedChart data={data}>
           {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />}
-          <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-          <YAxis domain={[(min: number) => Math.floor(min * 0.98), (max: number) => Math.ceil(max * 1.02)]} tick={{ fontSize: 12 }} tickFormatter={unit ? (v: number) => `${v}${unit}` : undefined} />
+          <XAxis dataKey="label" {...AXIS_PROPS} />
+          <YAxis domain={[(min: number) => Math.floor(min * 0.98), (max: number) => Math.ceil(max * 1.02)]} {...AXIS_PROPS} tickFormatter={unit ? (v: number) => `${v}${unit}` : undefined} />
           <Tooltip
             content={({ payload }: { payload?: { payload?: Candlestick }[] }) => {
               const c = payload?.[0]?.payload;
@@ -74,12 +74,11 @@ export function CandlestickChart({ data, title, height = 320, showGrid = true, u
             }}
           />
           <Bar dataKey={(d: Candle) => [d.low, d.high]} shape={<CandleShape upColor={upColor} downColor={downColor} />} isAnimationActive={false} />
-          {maWindow !== undefined && (
-            <>
-              <Line type="monotone" dataKey="ma" name={`MA${maWindow}`} stroke={maColor} strokeWidth={2} dot={false} connectNulls={false} isAnimationActive={false} />
-              <Legend />
-            </>
-          )}
+          {/* Fragment に包むと recharts から見えない(cartesian.tsx の axes 参照) */}
+          {maWindow !== undefined && [
+            <Line key="ma" type="monotone" dataKey="ma" name={`MA${maWindow}`} stroke={maColor} strokeWidth={2} dot={false} connectNulls={false} isAnimationActive={false} />,
+            <Legend key="legend" />,
+          ]}
         </ComposedChart>
       </ResponsiveContainer>
     </div>

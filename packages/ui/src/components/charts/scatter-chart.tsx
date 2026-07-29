@@ -2,7 +2,7 @@
 /** 散布図。 @packageDocumentation */
 import { ResponsiveContainer, ScatterChart as RScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { cn } from "../../lib/cn";
-import { ChartTitle, SeriesToggle, useSeriesVisibility, CHART_COLORS, makeFormatter, GRID_STROKE, type BaseChartProps } from "./chart-common";
+import { ChartTitle, SeriesToggle, useSeriesVisibility, CHART_COLORS, makeFormatter, GRID_STROKE, type BaseChartProps, AXIS_PROPS } from "./chart-common";
 import { regressionLine } from "../../lib/scatter-data";
 
 /** 散布図の系列(点群)。 */
@@ -44,8 +44,8 @@ export function ScatterChart({
       <ResponsiveContainer width="100%" height={height}>
         <RScatterChart>
           {showGrid && <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} />}
-          <XAxis type="number" dataKey="x" name={xLabel} tick={{ fontSize: 12 }} label={xLabel ? { value: xLabel, position: "insideBottom", offset: -4 } : undefined} />
-          <YAxis type="number" dataKey="y" name={yLabel} tickFormatter={fmt} tick={{ fontSize: 12 }} label={yLabel ? { value: yLabel, angle: -90, position: "insideLeft" } : undefined} />
+          <XAxis type="number" dataKey="x" name={xLabel} {...AXIS_PROPS} label={xLabel ? { value: xLabel, position: "insideBottom", offset: -4 } : undefined} />
+          <YAxis type="number" dataKey="y" name={yLabel} tickFormatter={fmt} {...AXIS_PROPS} label={yLabel ? { value: yLabel, angle: -90, position: "insideLeft" } : undefined} />
           {hasZ && <ZAxis type="number" dataKey="z" range={[40, 400]} />}
           <Tooltip cursor={{ strokeDasharray: "3 3" }} />
           {showLegend && <Legend />}
