@@ -62,3 +62,21 @@ const decision = await gate.evaluate({ path, roles, getHeader });
 > **Next.js middleware で DB を読む場合は Node ランタイムが必要です**(Prisma は Edge 非対応)。
 > アプリ側の配線例(DB ストア + 管理 API + 管理 UI)は `apps/internal-app` を参照。
 
+## プリセットの上書き
+
+`renderMaintenancePage` などのプリセットは、`title` / `message` / `showReload` などを
+部分的に上書きできます。**`undefined` は「指定なし」として扱い、既定値を残します。**
+
+```ts
+// message を指定しなければ既定文が出る
+renderNotFoundPage({ brand: "社内システム" });
+
+// options?.message のように「有るかもしれない値」をそのまま渡してよい
+renderNotFoundPage({ message: cfg?.message });
+```
+
+> 2026-07 まで、`{ message: undefined }` を渡すと既定の本文が消える不具合がありました
+> (既定値をスプレッドより前に置いていたため)。`message` は必須項目なので、
+> **エラー画面が本文の無い画面になる**という、いちばん出したくない壊れ方をしていました。
+> 現在は修正済みで、回帰テストがあります。
+

@@ -29,7 +29,7 @@ import { Search, Settings } from "@platform/ui/icons";
 - 数値・日時・色: `NumberInput` / `DatePicker` / `TimePicker` / `DateTimePicker` / `ColorPicker`
 - ファイル: `FileUpload`(ドラッグ&ドロップ)
 - フィードバック: `Spinner` / `LoadingOverlay` / `Progress` / `Seekbar` / `Steps` / `Toaster`+`toast`
-- ダイアログ: `Dialog` / `Modal` / `ConfirmDialog` / `ErrorDialog` / `Tooltip`
+- ダイアログ: `Dialog` / `Modal` / `ConfirmDialog` / `ErrorDialog` / `Tooltip` / `ModalHost`+`openModal`(どこからでも開ける)
 - データ表示: `DataTable`(ソート・ページング) / `Pagination` / `Carousel`
 - ナビ・レイアウト: `Tabs` / `Accordion` / `Breadcrumb` / `Avatar` / `Badge` / `Skeleton`
 - 評価・サジェスト・タグ・OTP・署名: `Rating`(⭐) / `Autocomplete` / `TagInput` / `OTPInput` / `SignaturePad`
@@ -45,6 +45,40 @@ import { Search, Settings } from "@platform/ui/icons";
 - `DataView` + `ViewToggle`: 同じデータをカード/リスト/ブロックで切り替え表示
 - `Pagination`(省略記号対応)/ `SimplePagination`(前後+現在/総数)
 - `BackToTop`: スクロールで出現し先頭へ戻る
+
+## どこからでも開くモーダル
+
+`Dialog` / `Modal` は画面が開閉の状態を持つ前提。**一覧の行・メニュー・非同期処理の途中**など
+状態を持たせたくない場所から開きたいときは `ModalHost` + `openModal()` を使う
+(`Toaster` + `toast` と同じ「ルートに 1 つ置いて、どこからでも呼ぶ」形)。
+
+覆い・×ボタン・Esc / 外側クリックで閉じる挙動はすべて `Dialog` のものを使っており、
+見た目を二重に持っていない。
+
+```tsx
+// アプリのルートに 1 つ(置き忘れると何も出ない)
+<ModalHost />
+
+// 呼ぶ側。params を渡し、close(値) の結果を待てる
+const ok = await openModal<{ code: string }, boolean>({
+  title: "品目の削除",
+  params: { code: "A-001" },
+  dismissible: false,                       // 入力途中に消えると困る画面
+  content: ({ params }) => <p>{params.code} を削除します。</p>,
+  footer: ({ close }) => (
+    <>
+      <Button variant="secondary" onClick={() => close(false)}>やめる</Button>
+      <Button onClick={() => close(true)}>削除する</Button>
+    </>
+  ),
+});
+```
+
+- `size`: `sm` / `md`(既定) / `lg` / `xl` / `full`
+- **× ・Esc・外側クリックで閉じたときは `undefined`**。「保存したか」を知りたいなら必ず値を渡す
+- モーダルの中からさらに開ける(重なる)
+- 同じ小窓を配るなら `defineModal` で 1 度定義する
+- 全部畳むなら `closeAllModals()`(画面遷移・ログアウト時)
 
 ## グラフ(チャート)
 recharts ラップ。`BarChart`(積み上げ `stacked` / 横棒 `horizontal`)、`LineChart`(`smooth`/`area`)、`ComboChart`(棒+折れ線)、`PieChart`(`donut`/`showLabels`)、`RadarChart`、`ScatterChart`、`GanttChart`。

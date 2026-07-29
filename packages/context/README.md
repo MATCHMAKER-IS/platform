@@ -13,3 +13,32 @@ await runWithContext({}, async () => {
   reqLog.info({}, "処理開始");               // requestId/userId が自動で乗る
 });
 ```
+
+## requestId の採番
+
+`requestId` は **渡さなくても、`undefined` を渡しても採番されます**。
+上流(ロードバランサ・呼び出し元アプリ)のヘッダをそのまま渡してよい設計です。
+
+```ts
+// どちらも採番される
+runWithContext({}, fn);
+runWithContext({ requestId: req.headers.get("x-request-id") ?? undefined }, fn);
+```
+
+> 2026-07 まで、`requestId: undefined` を明示的に渡すと採番結果が消える不具合がありました
+> (既定値をスプレッドより前に置いていたため)。現在は修正済みで、回帰テストがあります。
+
+## ロガーとつなぐ
+
+`@platform/logger` の `contextProvider` に差すと、**個々の呼び出しで書かなくても**
+全ログに `requestId` / `userId` が乗ります。書かせる方式は必ずどこかで抜けます。
+
+```ts
+export const logger = createLogger({
+  base: { service: "my-app" },
+  contextProvider: () => getContext() ?? {},
+});
+```
+
+実際の配線は `apps/crud-template/src/server/instrument.ts`(API を包む 1 箇所で
+`runWithContext` を張る)と `authorize.ts`(身元が確定した時点で `userId` を足す)を参照。

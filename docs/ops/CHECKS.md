@@ -1,6 +1,7 @@
 # 検査の一覧（preflight は何を見ているか）
 
-`node tools/preflight.mjs` は **依存をインストールせずに 32 個の検査**をまとめて実行する。
+`node tools/preflight.mjs` は **依存をインストールせずに 36 種類の検査**をまとめて実行する
+（schema 検査はアプリごとに走るため、実行時の項目数は 39）。
 「手元で `pnpm install` する前に、壊れているかどうかを知る」ための入口。
 
 ```bash

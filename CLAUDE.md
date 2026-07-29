@@ -99,6 +99,12 @@ import { Button, Input } from "@platform/ui";
 `PasswordInput` / `Checkbox` / `Radio` / `Switch` / `DatePicker` / `Combobox` /
 `TagInput` / `ColorPicker` / `Slider` ほか。
 
+**ポップアップ(モーダル)も自作しない。** 画面が開閉の状態を持つなら `Dialog` / `Modal`、
+一覧の行やメニューなど**状態を持たせたくない場所から開く**なら `ModalHost` + `openModal()`
+(ルートに `<ModalHost />` を 1 つ置く。`Toaster` + `toast` と同じ作法)。
+`openModal` は値を渡して結果を待てるので、「はいなら削除する」を素直に書ける。
+定型は `docs/ai/patterns.md` 12 章、動く実例は `/modal` デモ。
+
 **無い部品が必要なら、アプリで自作せず基盤に足す。**
 そのとき「このアプリだけで使うか」を考える必要はない —— UI 部品は定義上どのアプリでも使う。
 
@@ -212,7 +218,7 @@ export function EnvSettingsTable({ rows, groupNotes, runtime }: EnvSettingsTable
 **リファレンスサイト**(`pnpm site`)は TSDoc から**引数・戻り値・例外・使用例**を自動生成する。
 書かなければサイトにも出ない = 使う人に伝わらない。
 
-> **全 1,752 関数・113 パッケージが完備**(2026-07 時点)。**この状態を保つ**: 新規の関数には必ず書き、
+> **全 1,751 関数・113 パッケージが完備**(2026-07 時点)。**この状態を保つ**: 新規の関数には必ず書き、
 > `node tools/check-tsdoc.mjs` で確認する
 > (**正規表現での一括処理は関数を壊す**ので、1 ファイルずつ意味を確認しながら書くこと)。
 
@@ -340,11 +346,13 @@ export function EnvSettingsTable({ rows, groupNotes, runtime }: EnvSettingsTable
 > **生タグの歯止め**: `<button>` / `<input>` / `<select>` / `<textarea>` の使用箇所数は
 > `tools/ui-raw-tag-limit.json` に上限として記録されている。**増やすと preflight が失敗する**。
 > 減らしたら `node tools/check-app-rules.mjs --set-limit` で上限を下げること。
-> 現在の残り(44)は、**機械的に置換すると壊れるもの**だけ:
-> - `<input type="file">` 11 … `FileInput` は自前のボタンを描画するため、hidden + ラベルで起動している箇所は見た目が変わる
+> 現在の残り(33)は、**機械的に置換すると壊れるもの**だけ:
+> - `<select>` 16 … 数値 value(`value={3}`)や `.filter().map()` を含み、options への変換に人の判断が要る
+> - `<input type="file">` 9 … `FileInput` は自前のボタンを描画するため、hidden + ラベルで起動している箇所は見た目が変わる
 > - `<input type="radio">` 5 … `RadioGroup` + `RadioGroupItem` へ構造ごと組み替える必要がある
-> - `<select>` 26 … 数値 value(`value={3}`)や `.filter().map()` を含み、options への変換に人の判断が要る
-> - `<input type="checkbox">` 1 … 上記いずれにも当てはまらない特殊形
+> - `<input>`(type 指定なし) 2 / `<input type="checkbox">` 1 … 上記いずれにも当てはまらない特殊形
+>
+> `<button>` と `<textarea>` の生タグは**残っていない**。
 >
 > これらは画面を動かして確かめながら、1つずつ置き換える。
 
@@ -404,6 +412,21 @@ export function EnvSettingsTable({ rows, groupNotes, runtime }: EnvSettingsTable
 >
 > 例外の**中身は利用者に見せない**（内部の作りや値が漏れる）。
 > 直す人が追えるよう `digest` だけを示し、詳細は `@platform/observability` へ送る。
+
+> **既定値はスプレッドの後に置く**: `{ message: 既定, ...options }` と書くと、
+> 呼び出し側が `{ message: undefined }` を渡したときに**既定値が消える**。
+> `options?.message` や `headers.get(...) ?? undefined` のように、
+> 「有るかもしれない値」をそのまま渡す書き方で必ず踏む。
+> キーが無いときは通るので、**テストを「キーを省いた場合」だけで書くと生き残る**。
+> 2026-07 に `@platform/context` の `runWithContext`、`@platform/status-page` のプリセット
+> 7 関数、`sheet-grid` のヘッダ z-index で、**同じ誤りが 3 系統**見つかった。
+> 既定と指定を混ぜるときは、`undefined` を「指定なし」として落としてから重ねる。
+
+> **子要素を走査するライブラリに Fragment を渡さない**: `React.Children` は配列は平坦化するが、
+> `<>…</>` は 1 個の要素として扱う。recharts のように子要素から軸や系列を見つける作りだと、
+> **中身が丸ごと無かったことになる**。実際にグラフの目盛が全画面で消え、
+> 横棒グラフ(`layout="vertical"`)はカテゴリ軸を失って描画が壊れていた。
+> 複数要素を返すヘルパーは**配列で返す**(`[<XAxis key="x" />, <YAxis key="y" />]`)。
 
 > **引き継ぐとき / 引き継いだとき**は `docs/ops/HANDOVER.md` を最初に読むこと。
 > 何ができていて、何が残っていて、どこが危ないかを 1 枚にまとめてある。

@@ -204,3 +204,57 @@ const customThemes = await getCustomThemes();   // Theme[]
 ```
 
 空きポートは `node tools/check-ports.mjs` で確認できる(重複・記載漏れ・ドキュメント不一致を検出)。新しいアプリを足したら `docs/APPS_AND_DEMOS.md` のポート表も更新すること。
+
+## 12. ポップアップ(モーダル)
+
+画面が開閉の状態を持つなら `Dialog` / `Modal`。**一覧の行・メニュー・通知など、状態を持たせたくない場所から開く**なら `ModalHost` + `openModal()` を使う(`Toaster` + `toast` と同じ作法)。自分で覆いや小窓を作らない。
+
+まずアプリのルートに 1 つ置く。**置き忘れると `openModal()` を呼んでも何も出ない。**
+
+```tsx
+// app/layout.tsx
+<body>
+  {children}
+  <Toaster />
+  <ModalHost />
+</body>
+```
+
+呼ぶ側は値を渡し、結果を待つ。
+
+```tsx
+const ok = await openModal<{ code: string }, boolean>({
+  title: "品目の削除",
+  params: { code: item.code },
+  dismissible: false,                 // 入力途中に消えると困る画面は閉じさせない
+  content: ({ params }) => <p>{params.code} を削除します。戻せません。</p>,
+  footer: ({ close }) => (
+    <>
+      <Button variant="secondary" onClick={() => close(false)}>やめる</Button>
+      <Button onClick={() => close(true)}>削除する</Button>
+    </>
+  ),
+});
+if (ok) await remove(item.code);
+```
+
+- `params` が中身に渡る値、`close(値)` の値が `openModal` の戻り値になる
+- **×・Esc・外側クリックで閉じた場合は `undefined`**。「保存したか」を知りたいなら必ず値を渡す
+- `dismissible: false` にしたら、フッタから閉じる導線を必ず用意する(閉じられない画面になる)
+- 中からさらに `openModal()` を呼べる(一覧 → 明細 → 確認)
+
+同じ小窓を複数箇所から開くなら `defineModal` で 1 度定義して配る。呼ぶ側ごとに `content` を書くと、同じ用途の小窓が少しずつ違う形で増える。
+
+```tsx
+// 定義(1 箇所)
+export const openItemDetail = defineModal<{ code: string }, "saved" | "deleted">({
+  title: "品目の詳細",
+  size: "lg",
+  content: ({ params, close }) => <ItemDetail code={params.code} onSaved={() => close("saved")} />,
+});
+
+// 呼ぶ(どこからでも・型が効く)
+if (await openItemDetail({ code: "A-001" }) === "saved") await reload();
+```
+
+動く実例は `/modal` デモ(`demos/showcase/src/app/modal/page.tsx`)。
