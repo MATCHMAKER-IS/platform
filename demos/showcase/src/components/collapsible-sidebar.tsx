@@ -48,7 +48,9 @@ export function CollapsibleSidebar() {
           width: collapsed ? 0 : 240,
           flexShrink: 0,
           borderRight: collapsed ? "none" : "1px solid var(--color-border)",
-          background: "var(--color-surface)",
+          // 本文(--color-bg)より少しだけ濃い面にして、案内が独立したパネルに見えるようにする。
+          // surface に主色をごく薄く混ぜることで、どのテーマでも本文と差がつく(暗いテーマでも破綻しない)。
+          background: "color-mix(in srgb, var(--color-primary) 5%, var(--color-surface))",
           overflowY: "auto",
           overflowX: "hidden",
           maxHeight: "100vh",

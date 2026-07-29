@@ -56,6 +56,8 @@ export const PLATFORM_DEMOS: DemoEntry[] = [
     packages: ["theme", "ui", "color"] , group: "画面の部品" },
   { href: "/widgets", title: "時計・タイマー・プロパティ", desc: "リアルタイム時計・カウントダウン・選択項目のプロパティ表示（インスペクタ）",
     packages: ["ui"], group: "画面の部品" },
+  { href: "/modal", title: "ポップアップ(モーダル)", desc: "どこからでも開ける小窓。値を渡して結果を受け取る・閉じさせない・重ねる",
+    packages: ["ui"], group: "画面の部品" },
 
   { href: "/canvas", title: "自由配置キャンバス", desc: "6種類の形と色・文字を変えられる図形をドラッグ配置・位置を保存",
     packages: ["ui"], group: "画面の部品" },

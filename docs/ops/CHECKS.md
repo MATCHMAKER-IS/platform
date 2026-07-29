@@ -35,7 +35,7 @@ node tools/<検査名>.mjs        # 1 つだけ実行する
 | `check-reimplementation` | 基盤にある機能をアプリで作り直していないか | 直す場所が増え、強度もばらつく |
 | `check-showcase-deps` | デモの依存と `transpilePackages` の整合 | ビルド失敗 |
 | `check-app-transpile` | 各アプリの `transpilePackages` の網羅 | ビルド失敗 |
-| `check-syntax` | **全 .ts/.tsx を本物のパーサ（TypeScript）にかける** | **ビルドが構文エラーで落ちる**。これが無い間、他の検査が全部グリーンのまま `next build` が落ちた |
+| `check-syntax` | **全 .ts/.tsx を本物のパーサ（TypeScript）にかける**。この検査だけ `typescript` が要るため、未インストールなら `⏭` で skip され、preflight の最後に警告が出る（**skip を ✅ で描かない**） | **ビルドが構文エラーで落ちる**。これが無い間、他の検査が全部グリーンのまま `next build` が落ちた |
 | `check-jsx-tags` | JSX の閉じ忘れ（数え上げによる一次検知） | ビルドが構文エラーで落ちる |
 | `check-a11y` | 画像の alt・キーボード操作・読み上げ名 | 一部の人が操作できない画面 |
 | `check-pwa` | ホーム画面追加・オフラインの設定が揃っているか | 現場から言われるまで気づけない |
@@ -44,6 +44,7 @@ node tools/<検査名>.mjs        # 1 つだけ実行する
 | `check-contract` | 外部 SaaS の契約（依存フィールド）と実装のズレ | 相手の変更に気づけない |
 | `check-drill` | 復元訓練の鮮度 | 戻せないバックアップ |
 | `check-imports` | `@platform/*` から取り込む名前が実在するか | **ビルドが落ちる**（型検査まで気づけない） |
+| `check-lockfile` | **pnpm-lock.yaml と全 package.json の一致**（依存を足す/消す/バージョン変更したのに `pnpm install` していない状態を検知）。`peerDependencies` は `.npmrc` の `auto-install-peers=true` により lockfile へ書き戻されるので、**載っていること自体は正常**とし、指定がズレたときだけ報告する | **CI の `--frozen-lockfile` でデプロイが落ちる**（Amplify で実際に発生）。ローカルは frozen でないため気づけない |
 | `check-build-ready` | `next build` が通る前提（entry・重複 export・import 解決・リテラル型の広がり・**例外/404 の受け皿**） | ビルド失敗・白い画面 |
 | `advisor` | 重複コードの検出 | 同じものが増える |
 | `setup.sh 構文` | セットアップスクリプトの構文 | 初日に詰まる |

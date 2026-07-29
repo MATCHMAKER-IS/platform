@@ -8,10 +8,12 @@
 import * as React from "react";
 import { usePathname } from "next/navigation";
 import { OVERVIEWS } from "../lib/overviews";
+import { USE_CASES } from "../lib/use-cases";
 
 export function DemoIntro() {
   const pathname = usePathname() ?? "/";
   const overview = OVERVIEWS[pathname];
+  const useCase = USE_CASES[pathname];
   if (!overview) return null;
 
   return (
@@ -34,6 +36,25 @@ export function DemoIntro() {
           このデモでできること
         </div>
         <div style={{ fontSize: 13, lineHeight: 1.8, color: "var(--color-fg)" }}>{overview}</div>
+        {useCase && (
+          <div style={{ display: "flex", gap: 6, alignItems: "baseline", marginTop: 8 }}>
+            <span
+              style={{
+                flexShrink: 0,
+                fontSize: 10.5,
+                fontWeight: 700,
+                color: "var(--color-primary)",
+                border: "1px solid color-mix(in srgb, var(--color-primary) 40%, transparent)",
+                borderRadius: 999,
+                padding: "1px 8px",
+                lineHeight: 1.6,
+              }}
+            >
+              こんなとき
+            </span>
+            <span style={{ fontSize: 12.5, lineHeight: 1.75, color: "var(--color-muted)" }}>{useCase}</span>
+          </div>
+        )}
       </div>
     </div>
   );

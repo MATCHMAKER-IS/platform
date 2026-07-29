@@ -24,6 +24,8 @@ export function DemoSidebar() {
     <nav style={{ padding: "12px 8px", fontSize: 13 }}>
       <Link
         href="/"
+        className="demo-navlink"
+        data-active={pathname === "/"}
         style={{
           display: "block", padding: "8px 10px", marginBottom: 8, borderRadius: 6,
           fontWeight: 700, textDecoration: "none",
@@ -40,10 +42,12 @@ export function DemoSidebar() {
           <div key={section.title} style={{ marginBottom: 4 }}>
             <Button
               onClick={() => toggle(i)}
+              className="demo-navlink"
               style={{
                 display: "flex", alignItems: "center", gap: 6, width: "100%",
                 padding: "6px 10px", border: "none", background: "none", cursor: "pointer",
                 color: "var(--color-muted)", fontSize: 11, fontWeight: 700, letterSpacing: "0.04em",
+                borderRadius: 6,
               }}
             >
               <span style={{ fontSize: 9 }}>{isOpen ? "▼" : "▶"}</span>
@@ -83,6 +87,8 @@ export function DemoSidebar() {
                             <li key={item.href}>
                               <Link
                                 href={item.href}
+                                className="demo-navlink"
+                                data-active={active}
                                 style={{
                                   display: "block", padding: "5px 10px 5px 24px", borderRadius: 6,
                                   textDecoration: "none", fontSize: 12.5,

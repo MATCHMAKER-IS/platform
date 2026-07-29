@@ -2,6 +2,7 @@
 /** 基盤ポータル。パッケージ検索・カテゴリ絞り込み・ADR・ヘルスを1画面で。 */
 import * as React from "react";
 import { Button, Input, Select, SkinSelector } from "@platform/ui";
+import { TreeTab } from "./tree-tab";
 
 interface ReferenceEntry { name: string; kind: string; summary: string; }
 interface PackageInfo { name: string; category: string; summary: string; exports: string[]; hasReadme: boolean; reference: ReferenceEntry[]; }
@@ -12,7 +13,7 @@ interface Appmap { app: string; pages: number; apis: number; flowchart: string; 
 interface Depgraph { mermaid: string; topDepended: { name: string; count: number }[]; }
 interface Catalog { generatedAt: string; packages: PackageInfo[]; categories: { name: string; count: number }[]; adrs: AdrInfo[]; health: { label: string; value: string }[]; advisor: Advisor; erds: Erd[]; appmaps: Appmap[]; depgraph: Depgraph; }
 
-type Tab = "packages" | "health" | "adr" | "advisor" | "erd";
+type Tab = "packages" | "tree" | "health" | "adr" | "advisor" | "erd";
 
 export function PortalClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   const doFetch = fetchImpl ?? (globalThis as unknown as { fetch: typeof fetch }).fetch;
@@ -60,6 +61,7 @@ export function PortalClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
 
       <nav style={{ borderBottom: "1px solid #e8e8e8", margin: "16px 0", display: "flex", gap: 4 }}>
         {tabBtn("packages", `パッケージ (${catalog.packages.length})`)}
+        {tabBtn("tree", "構成")}
         {tabBtn("health", "ヘルス")}
         {tabBtn("adr", `ADR (${catalog.adrs.length})`)}
         {tabBtn("advisor", "Advisor")}
@@ -106,6 +108,8 @@ export function PortalClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
           </div>
         </div>
       )}
+
+      {tab === "tree" && <TreeTab />}
 
       {tab === "health" && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>

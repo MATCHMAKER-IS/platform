@@ -7902,7 +7902,7 @@
     {
       "name": "runWithContext",
       "kind": "function",
-      "summary": "リクエストを一意に識別する相関ID。 */ requestId: string; /** 認証済みユーザー ID(あれば)。 */ userId?: string; /** 任意の追加フィールド。 */ [key: string]: unknown; } const storage = new AsyncLocalStorage<RequestContext>(); /** コンテキストを張ってコールバックを実行する。この中の処理は `getContext()` で 同じコンテキストを参照できる。通常はリクエスト境界(ミドルウェア等)で呼ぶ。",
+      "summary": "リクエストを一意に識別する相関ID。 */ requestId: string; /** 認証済みユーザー ID(あれば)。 */ userId?: string; /** 任意の追加フィールド。 */ [key: string]: unknown; } const storage = new AsyncLocalStorage<RequestContext>(); /** コンテキストを張ってコールバックを実行する。この中の処理は `getContext()` で 同じコンテキストを参照できる。通常はリクエスト境界(ミドルウェア等)で呼ぶ。 `requestId` は**渡さなくても、`undefined` を渡しても採番される**。 `{ requestId: req.headers.get(\"x-request-id\") ?? undefined }` のように 「有るかもしれない値」をそのまま渡してよい。",
       "signature": "runWithContext(context: Partial<RequestContext>, fn: () => T,): T",
       "params": [
         {
@@ -24288,9 +24288,21 @@
     {
       "name": "renderMaintenancePage",
       "kind": "function",
-      "summary": "メンテナンス画面のプリセット(503 相当)。 **復旧予定を書く**(「しばらくお待ちください」だけでは、利用者は何度もリロードする)。",
+      "summary": "`undefined` の値を落とした複製を返す。 `{ ...既定, ...options }` をそのまま書くと、`{ message: undefined }` のように **「キーはあるが値が無い」指定で既定値が消える**。`options?.message` のような optional chaining の結果を渡すと必ず起きる形で、同じ誤りが `@platform/context` の `runWithContext` にもあった。 ジェネリックにしているのは型のため。具体型で `merged[key] = value` と書くと、 値がすべてのプロパティ型の合併になり代入できない(TS は総称のキーでのみ許す)。 このパッケージは**依存を持たない**(障害時に出す画面なので、壊れる余地を増やさない)。 そのため汎用ヘルパーでもここに置く。",
       "signature": "renderMaintenancePage(options?: Partial<StatusPageOptions> & { estimatedRecovery?: string }): string",
       "params": [
+        {
+          "name": "source",
+          "description": "元のオブジェクト(未指定なら空を返す)"
+        },
+        {
+          "name": "defaults",
+          "description": "プリセットの既定値"
+        },
+        {
+          "name": "options",
+          "description": "呼び出し側の指定(部分指定でよい)"
+        },
         {
           "name": "options.until",
           "description": "復旧予定(任意)"

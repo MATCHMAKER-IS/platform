@@ -27,6 +27,10 @@ const storage = new AsyncLocalStorage<RequestContext>();
  * コンテキストを張ってコールバックを実行する。この中の処理は `getContext()` で
  * 同じコンテキストを参照できる。通常はリクエスト境界(ミドルウェア等)で呼ぶ。
  *
+ * `requestId` は**渡さなくても、`undefined` を渡しても採番される**。
+ * `{ requestId: req.headers.get("x-request-id") ?? undefined }` のように
+ * 「有るかもしれない値」をそのまま渡してよい。
+ *
  * @param context 初期コンテキスト(requestId 未指定なら自動採番)
  * @param fn      実行する処理
  * @returns fn の戻り値
@@ -42,7 +46,10 @@ export function runWithContext<T>(
   context: Partial<RequestContext>,
   fn: () => T,
 ): T {
-  const ctx: RequestContext = { requestId: context.requestId ?? randomUUID(), ...context };
+  // requestId は **スプレッドより後**に置く。先に書くと、呼び出し側が
+  // `requestId: undefined` を明示的に渡したときに採番結果が上書きされて消える
+  // (optional chaining の結果をそのまま渡すと必ず踏む)。
+  const ctx: RequestContext = { ...context, requestId: context.requestId ?? randomUUID() };
   return storage.run(ctx, fn);
 }
 

@@ -72,6 +72,10 @@ export { Toaster, toast } from "./components/toast";
 // ダイアログ
 export { Modal, type ModalProps } from "./components/modal";
 export {
+  ModalHost, openModal, closeModal, closeAllModals, defineModal,
+  type ModalSpec, type ModalContext, type ModalSize,
+} from "./components/modal-host";
+export {
   ConfirmDialog, ErrorDialog,
   type ConfirmDialogProps, type ErrorDialogProps,
 } from "./components/confirm-dialog";

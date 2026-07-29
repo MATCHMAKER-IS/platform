@@ -11,12 +11,25 @@
  * @packageDocumentation
  */
 import { createLogger } from "@platform/logger";
+import { getContext, getRequestId, runWithContext } from "@platform/context";
 import { createMetrics, createTracer } from "@platform/observability";
 import { toErrorEnvelope, httpStatusFor, AppError } from "@platform/core";
 import type { AuditEvent } from "@platform/audit";
 
-/** ログ。秘密情報(password / token / email など)は基盤側で自動的に伏せられる。 */
-export const logger = createLogger({ base: { service: "crud-template" } });
+/** 相関ID を運ぶヘッダ名。**受けるときも返すときも同じ名前**を使う。 */
+export const REQUEST_ID_HEADER = "x-request-id";
+
+/**
+ * ログ。秘密情報(password / token / email など)は基盤側で自動的に伏せられる。
+ *
+ * `contextProvider` に `@platform/context` を差してあるので、`withApi` の中で出した
+ * ログには **requestId / userId が自動で乗る**。個々の呼び出しで `log.info({ requestId })`
+ * と書く必要はない —— 書かせると必ずどこかで抜け、抜けた行だけ追えなくなる。
+ */
+export const logger = createLogger({
+  base: { service: "crud-template" },
+  contextProvider: () => getContext() ?? {},
+});
 
 /** メトリクス。/api/metrics などで公開すると Prometheus から読める。 */
 export const metrics = createMetrics([50, 100, 300, 1000]);
@@ -36,6 +49,7 @@ const auditEntries: AuditEvent[] = [];
 
 export function recordAudit(event: AuditEvent): void {
   auditEntries.push(event);
+  // requestId は contextProvider が自動で乗せるので、ここでは業務側の情報だけ書く。
   logger.info({ actor: event.actor, action: event.action, target: event.target }, "audit");
 }
 
@@ -45,6 +59,43 @@ export function listAudit(): readonly AuditEvent[] {
 }
 
 type Handler = (req: Request, ctx?: unknown) => Response | Promise<Response>;
+
+/** 相関ID として受け入れる形。**上流から来た値をそのままログに流さない**ための関門。 */
+const REQUEST_ID_PATTERN = /^[A-Za-z0-9._-]{8,128}$/;
+
+/**
+ * 上流(ロードバランサ・呼び出し元アプリ)が付けた相関ID を拾う。
+ *
+ * 拾うのは、**アプリをまたいで 1 つの操作を追える**ようにするため。ここで採番し直すと、
+ * 「入口では追えるが、社内の別アプリを呼んだ先で切れる」状態になる。
+ *
+ * ただし値は検証する。改行のような不正な文字はランタイムが弾くが、**数 KB の文字列や
+ * 記号だらけの値は素通りする**。そのままログの相関キーにすると、検索も集計もできない。
+ * 形を絞っておけば、おかしな値は捨てて採番し直せる。
+ *
+ * @returns 使える相関ID。無い/形が不正なら `undefined`(呼び出し側がキーごと省く)
+ */
+function incomingRequestId(req: Request): string | undefined {
+  const raw = req.headers.get(REQUEST_ID_HEADER);
+  return raw !== null && REQUEST_ID_PATTERN.test(raw) ? raw : undefined;
+}
+
+/**
+ * 応答に相関ID を載せる。
+ *
+ * **利用者から「エラーが出た」と言われたときの手掛かり**になる。画面やレスポンスに
+ * 出ている ID をそのまま伝えてもらえば、サーバのログを 1 件に絞り込める。
+ *
+ * ヘッダを直接 `set()` しないのは、`fetch()` 由来の Response が immutable で例外に
+ * なるため。詰め替えれば、ハンドラが何を返しても壊れない。
+ */
+function withRequestId(res: Response): Response {
+  const id = getRequestId();
+  if (id === undefined) return res;
+  const headers = new Headers(res.headers);
+  headers.set(REQUEST_ID_HEADER, id);
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}
 
 /**
  * API ハンドラを包む。
@@ -67,24 +118,33 @@ type Handler = (req: Request, ctx?: unknown) => Response | Promise<Response>;
  */
 export function withApi(route: string, handler: Handler): (req: Request, ctx?: unknown) => Promise<Response> {
   return async (req: Request, ctx?: unknown): Promise<Response> => {
-    const started = Date.now();
-    const span = tracer.startSpan(`${req.method} ${route}`);
-    try {
-      const res = await handler(req, ctx);
-      metrics.incrementCounter("http_requests_total", 1, { route, method: req.method, status: String(res.status) });
-      metrics.observeHistogram("http_request_duration_ms", Date.now() - started, { route });
-      return res;
-    } catch (e) {
-      // AppError 以外(想定外の例外)は INTERNAL として扱う
-      const err = AppError.from(e);
-      const status = httpStatusFor(err.code);
-      metrics.incrementCounter("http_requests_total", 1, { route, method: req.method, status: String(status) });
-      // 4xx は利用者の操作ミス、5xx はこちらの不具合。分けて記録する
-      if (status >= 500) logger.error({ route, err: err.message }, "api error");
-      else logger.warn({ route, err: err.message }, "api rejected");
-      return Response.json(toErrorEnvelope(err), { status });
-    } finally {
-      span.end();
-    }
+    // 上流の ID が無いときはキーごと渡さない。runWithContext は
+    // `requestId: undefined` でも採番するが、渡さない方が意図が読める
+    const upstream = incomingRequestId(req);
+    const seed = { route, method: req.method, ...(upstream !== undefined && { requestId: upstream }) };
+
+    // コンテキストはここで張る。**入口が 1 つ**なので、ルートが増えても付け忘れが起きない。
+    return runWithContext(seed, async () => {
+      const started = Date.now();
+      const span = tracer.startSpan(`${req.method} ${route}`);
+      try {
+        const res = await handler(req, ctx);
+        metrics.incrementCounter("http_requests_total", 1, { route, method: req.method, status: String(res.status) });
+        metrics.observeHistogram("http_request_duration_ms", Date.now() - started, { route });
+        return withRequestId(res);
+      } catch (e) {
+        // AppError 以外(想定外の例外)は INTERNAL として扱う
+        const err = AppError.from(e);
+        const status = httpStatusFor(err.code);
+        metrics.incrementCounter("http_requests_total", 1, { route, method: req.method, status: String(status) });
+        // 4xx は利用者の操作ミス、5xx はこちらの不具合。分けて記録する
+        // route/requestId/userId は contextProvider が自動で乗せる
+        if (status >= 500) logger.error({ err: err.message }, "api error");
+        else logger.warn({ err: err.message }, "api rejected");
+        return withRequestId(Response.json(toErrorEnvelope(err), { status }));
+      } finally {
+        span.end();
+      }
+    });
   };
 }

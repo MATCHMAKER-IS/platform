@@ -101,6 +101,49 @@ ${headExtra}
 }
 
 /**
+ * `undefined` の値を落とした複製を返す。
+ *
+ * `{ ...既定, ...options }` をそのまま書くと、`{ message: undefined }` のように
+ * **「キーはあるが値が無い」指定で既定値が消える**。`options?.message` のような
+ * optional chaining の結果を渡すと必ず起きる形で、同じ誤りが
+ * `@platform/context` の `runWithContext` にもあった。
+ *
+ * ジェネリックにしているのは型のため。具体型で `merged[key] = value` と書くと、
+ * 値がすべてのプロパティ型の合併になり代入できない(TS は総称のキーでのみ許す)。
+ *
+ * このパッケージは**依存を持たない**(障害時に出す画面なので、壊れる余地を増やさない)。
+ * そのため汎用ヘルパーでもここに置く。
+ *
+ * @param source 元のオブジェクト(未指定なら空を返す)
+ * @returns 値が `undefined` のキーを除いた複製
+ */
+function definedOnly<T extends object>(source: T | undefined): Partial<T> {
+  const out: Partial<T> = {};
+  if (source === undefined) return out;
+  for (const key of Object.keys(source) as (keyof T)[]) {
+    const value = source[key];
+    if (value !== undefined) out[key] = value;
+  }
+  return out;
+}
+
+/**
+ * プリセットの既定値に、呼び出し側の指定を重ねる。
+ *
+ * **`undefined` は「指定なし」として扱い、既定値を残す**。
+ *
+ * @param defaults プリセットの既定値
+ * @param options  呼び出し側の指定(部分指定でよい)
+ * @returns 合成した設定
+ */
+function withDefaults(
+  defaults: StatusPageOptions,
+  options?: Partial<StatusPageOptions>,
+): StatusPageOptions {
+  return { ...defaults, ...definedOnly(options) };
+}
+
+/**
  * メンテナンス画面のプリセット(503 相当)。
  *
  * **復旧予定を書く**(「しばらくお待ちください」だけでは、利用者は何度もリロードする)。
@@ -115,10 +158,10 @@ export function renderMaintenancePage(options?: Partial<StatusPageOptions> & { e
     "ご不便をおかけしますが、しばらくたってから再度アクセスしてください。",
   ];
   if (options?.estimatedRecovery) msg.push(`復旧予定: ${options.estimatedRecovery}`);
-  return renderStatusPage({
-    title: "メンテナンス中", message: options?.message ?? msg,
-    showReload: true, ...options,
-  });
+  return renderStatusPage(withDefaults(
+    { title: "メンテナンス中", message: msg, showReload: true },
+    options,
+  ));
 }
 
 /**
@@ -131,14 +174,17 @@ export function renderMaintenancePage(options?: Partial<StatusPageOptions> & { e
  * @returns 画面の内容
  */
 export function renderErrorPage(options?: Partial<StatusPageOptions>): string {
-  return renderStatusPage({
-    title: "システムエラー",
-    message: options?.message ?? [
-      "予期しないエラーが発生しました。",
-      "時間をおいて再度お試しいただくか、管理者にお問い合わせください。",
-    ],
-    showReload: true, ...options,
-  });
+  return renderStatusPage(withDefaults(
+    {
+      title: "システムエラー",
+      message: [
+        "予期しないエラーが発生しました。",
+        "時間をおいて再度お試しいただくか、管理者にお問い合わせください。",
+      ],
+      showReload: true,
+    },
+    options,
+  ));
 }
 
 /**
@@ -150,14 +196,17 @@ export function renderErrorPage(options?: Partial<StatusPageOptions>): string {
  * @returns 画面の内容
  */
 export function renderServiceUnavailablePage(options?: Partial<StatusPageOptions>): string {
-  return renderStatusPage({
-    title: "ただいま混み合っています",
-    message: options?.message ?? [
-      "アクセスが集中しているか、一時的な障害が発生しています。",
-      "少し時間をおいてから再度お試しください。",
-    ],
-    showReload: true, ...options,
-  });
+  return renderStatusPage(withDefaults(
+    {
+      title: "ただいま混み合っています",
+      message: [
+        "アクセスが集中しているか、一時的な障害が発生しています。",
+        "少し時間をおいてから再度お試しください。",
+      ],
+      showReload: true,
+    },
+    options,
+  ));
 }
 
 /**
@@ -167,12 +216,14 @@ export function renderServiceUnavailablePage(options?: Partial<StatusPageOptions
  * @returns 画面の内容
  */
 export function renderNotFoundPage(options?: Partial<StatusPageOptions>): string {
-  return renderStatusPage({
-    title: "ページが見つかりません",
-    message: options?.message ?? ["お探しのページは移動または削除された可能性があります。"],
-    action: options?.action ?? { label: "トップへ戻る", href: "/" },
-    ...options,
-  });
+  return renderStatusPage(withDefaults(
+    {
+      title: "ページが見つかりません",
+      message: ["お探しのページは移動または削除された可能性があります。"],
+      action: { label: "トップへ戻る", href: "/" },
+    },
+    options,
+  ));
 }
 
 /**
@@ -182,12 +233,14 @@ export function renderNotFoundPage(options?: Partial<StatusPageOptions>): string
  * @returns 画面の内容
  */
 export function renderUnauthorizedPage(options?: Partial<StatusPageOptions>): string {
-  return renderStatusPage({
-    title: "ログインが必要です",
-    message: options?.message ?? ["このページを表示するにはログインが必要です。"],
-    action: options?.action ?? { label: "ログインへ", href: "/login" },
-    ...options,
-  });
+  return renderStatusPage(withDefaults(
+    {
+      title: "ログインが必要です",
+      message: ["このページを表示するにはログインが必要です。"],
+      action: { label: "ログインへ", href: "/login" },
+    },
+    options,
+  ));
 }
 
 /**
@@ -197,15 +250,17 @@ export function renderUnauthorizedPage(options?: Partial<StatusPageOptions>): st
  * @returns 画面の内容
  */
 export function renderForbiddenPage(options?: Partial<StatusPageOptions>): string {
-  return renderStatusPage({
-    title: "アクセス権限がありません",
-    message: options?.message ?? [
-      "このページを表示する権限がありません。",
-      "権限が必要な場合は管理者にお問い合わせください。",
-    ],
-    action: options?.action ?? { label: "トップへ戻る", href: "/" },
-    ...options,
-  });
+  return renderStatusPage(withDefaults(
+    {
+      title: "アクセス権限がありません",
+      message: [
+        "このページを表示する権限がありません。",
+        "権限が必要な場合は管理者にお問い合わせください。",
+      ],
+      action: { label: "トップへ戻る", href: "/" },
+    },
+    options,
+  ));
 }
 
 /**
@@ -215,13 +270,15 @@ export function renderForbiddenPage(options?: Partial<StatusPageOptions>): strin
  * @returns 画面の内容
  */
 export function renderTooManyRequestsPage(options?: Partial<StatusPageOptions>): string {
-  return renderStatusPage({
-    title: "アクセスが多すぎます",
-    message: options?.message ?? [
-      "短時間に多くのリクエストが送られました。",
-      "少し時間をおいてから再度お試しください。",
-    ],
-    showReload: true,
-    ...options,
-  });
+  return renderStatusPage(withDefaults(
+    {
+      title: "アクセスが多すぎます",
+      message: [
+        "短時間に多くのリクエストが送られました。",
+        "少し時間をおいてから再度お試しください。",
+      ],
+      showReload: true,
+    },
+    options,
+  ));
 }

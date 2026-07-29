@@ -74,12 +74,15 @@ export function NextDemos({ current, limit = 4 }: NextDemosProps) {
 
   return (
     <section style={{ marginTop: 20 }}>
-      <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 8 }}>次に見るもの</div>
+      {/* 本文と「次に見るもの」を視覚的に分ける。無いと、どこまでが本編か分かりにくい */}
+      <hr className="demo-separator" />
+      <div style={{ fontSize: 12.5, fontWeight: 700, margin: "20px 0 8px" }}>次に見るもの</div>
       <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
         {items.map((d) => (
           <a
             key={d.href}
             href={d.href}
+            className="demo-next-card"
             style={{
               display: "block",
               padding: "10px 12px",

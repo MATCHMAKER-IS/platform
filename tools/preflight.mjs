@@ -1,23 +1,40 @@
 /**
  * オフライン検証ゲートの一括実行(依存インストール不要)。人も CI(boundaries)もこれ1本。
  *   node tools/preflight.mjs      (= pnpm verify:offline)
- * 内容: smoke / check-deps / api-surface(差分検査) / check-core-signatures / check-schema ×3 / check-env-example / check-generated / check-doc-numbers / check-ports / check-package-shape / check-docs-links / check-docs-duplication / check-docs-orphans / check-doc-apis / check-e2e-quality / check-package-rules / check-app-rules / check-api-auth / check-permissions / check-reimplementation / check-showcase-deps / check-app-transpile / check-syntax / check-jsx-tags / check-a11y / check-pwa / check-maintainability / check-hardcoded-colors / check-contract / check-drill / check-imports / check-build-ready / setup.sh 構文
+ * 内容: smoke / check-deps / api-surface(差分検査) / check-core-signatures / check-schema ×3 / check-env-example / check-generated / check-doc-numbers / check-ports / check-package-shape / check-docs-links / check-docs-duplication / check-docs-orphans / check-doc-apis / check-e2e-quality / check-package-rules / check-app-rules / check-api-auth / check-permissions / check-reimplementation / check-showcase-deps / check-app-transpile / check-syntax / check-jsx-tags / check-a11y / check-pwa / check-maintainability / check-hardcoded-colors / check-contract / check-drill / check-imports / check-lockfile / check-build-ready / setup.sh 構文
  */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
+
+/**
+ * skip した検査の数。
+ *
+ * **skip を ✅ で描いてはいけない。** 実際に 2026-07、check-syntax が
+ * typescript 未インストールで skip したのに ✅ と出ており、
+ * 「preflight は全部緑なのに `pnpm build` が構文エラーで落ちる」が起きた。
+ * 検査ツール側は `⏭` と正しく報告していたので、**穴は表示側**にあった。
+ * 緑が信じられないゲートは、無いのと同じになる。
+ */
+const skipped = [];
+
 const run = (name, cmd, args) => {
   const t0 = Date.now();
   const r = spawnSync(cmd, args, { cwd: root, encoding: "utf8" });
   const ok = r.status === 0;
   const ms = Date.now() - t0;
-  const tail = (r.stdout + r.stderr).trim().split("\n").filter(Boolean).slice(-1)[0] ?? "";
-  console.log(`${ok ? "✅" : "❌"} ${name.padEnd(22)} ${String(ms).padStart(5)}ms  ${tail}`);
+  const out = (r.stdout + r.stderr).trim();
+  // 検査ツールが自分で「skip した」と言っている場合(依存が無い等)
+  const isSkip = ok && out.includes("⏭");
+  const tail = out.split("\n").filter(Boolean).slice(-1)[0] ?? "";
+  const mark = !ok ? "❌" : isSkip ? "⏭ " : "✅";
+  console.log(`${mark} ${name.padEnd(22)} ${String(ms).padStart(5)}ms  ${tail}`);
+  if (isSkip) skipped.push(name);
   if (!ok) {
     console.error(`----- ${name} の出力 -----`);
-    console.error((r.stdout + r.stderr).trim());
+    console.error(out);
     console.error("-".repeat(30));
   }
   return ok;
@@ -58,6 +75,7 @@ allOk = run("check-hardcoded-colors", "node", ["tools/check-hardcoded-colors.mjs
 allOk = run("check-contract", "node", ["tools/check-contract.mjs"]) && allOk;
 allOk = run("check-drill", "node", ["tools/check-drill.mjs"]) && allOk;  // 復元訓練の鮮度(バックアップは戻せて初めて完成する)  // 外部SaaSとの契約(依存フィールド)と実装のズレを検知  // アクセシビリティの静的検査(キーボード操作・読み上げが壊れる実装を検知)  // JSX インラインタグの閉じ忘れ(next build を構文エラーで落とす。tsc 無しでも一次検知)
 allOk = run("check-imports", "node", ["tools/check-imports.mjs"]) && allOk;  // 存在しない名前の取り込み(next build が落ちる)
+allOk = run("check-lockfile", "node", ["tools/check-lockfile.mjs"]) && allOk;  // pnpm-lock.yaml と package.json の一致(CI の frozen-lockfile で落ちる前に検知。Amplify で実際に落ちた)
 allOk = run("check-build-ready", "node", ["tools/check-build-ready.mjs"]) && allOk;  // next build が通る前提(エントリ/重複export/use client/import)
 allOk = run("advisor(dup検出)", "node", ["tools/advisor.mjs", "dup"]) && allOk;
 if (existsSync("/bin/bash") || existsSync("/usr/bin/bash")) {
@@ -68,8 +86,13 @@ if (existsSync("/bin/bash") || existsSync("/usr/bin/bash")) {
 }
 
 console.log("");
+if (skipped.length > 0) {
+  // 見落とすと「緑なのに落ちる」に戻るので、最後にもう一度出す
+  console.log(`⚠ ${skipped.length} 項目を skip しました: ${skipped.join(", ")}`);
+  console.log("  依存が要る検査です。`pnpm install` 後に再実行してください(CI では必ず走ります)。\n");
+}
 if (allOk) {
-  console.log("preflight: すべて緑 ✅");
+  console.log(skipped.length > 0 ? "preflight: 失敗なし(ただし skip あり ⚠)" : "preflight: すべて緑 ✅");
 } else {
   console.error("preflight: 失敗あり ❌(上の出力を確認)");
   process.exitCode = 1;

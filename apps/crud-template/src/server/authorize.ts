@@ -9,6 +9,7 @@
  * @packageDocumentation
  */
 import { can, resolveHierarchy, type Policy } from "@platform/auth";
+import { setContextValue } from "@platform/context";
 import { AppError, ErrorCode } from "@platform/core";
 
 /** このアプリのロールと権限。**ここを書き換えて使う。** */
@@ -33,9 +34,15 @@ export interface CurrentUser {
  * **雛形では固定値を返す**(認証の作り込みはアプリごとに違うため)。
  * 実装するときは @platform/session の `verifySession` でセッション Cookie を検証し、
  * 中身の userId / roles を返す。`/login` デモに一連の流れがある。
+ *
+ * 誰か分かった時点で `userId` をリクエストコンテキストへ載せる。**ここが唯一の
+ * 身元確定点**なので、ここで載せておけば以降のログすべてに自動で付く。
+ * 差し替えるときも、この 1 行を残せば相関は保たれる。
  */
 export function currentUser(_req: Request): CurrentUser | null {
-  return { id: "demo-user", roles: ["editor"] };
+  const user: CurrentUser | null = { id: "demo-user", roles: ["editor"] };
+  if (user) setContextValue("userId", user.id);
+  return user;
 }
 
 /**
