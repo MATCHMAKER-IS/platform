@@ -38,6 +38,11 @@ export interface Bm25Index {
  * @param docs 文書の配列
  * @param options.k1 / b BM25 のパラメータ(**既定で十分**。調整は効果を測ってから)
  * @returns 索引(**メモリ上の総当たり**。数万件が限界。それ以上は Meilisearch などを使う)
+ 
+ * **短い文書が上に来る**(BM25 の文書長正規化)。同じ語を同じ回数含むなら、
+ * 短い文書のほうが高スコアになる。「請求書」で検索したとき
+ * 「経費と請求書」が「請求書の書き方」より上に出るのはこのため。
+ * **タイトル一致を優先したいなら `fieldBoosts` を使う**(語順や完全一致では調整できない)。
  */
 export function createBm25Index(options: Bm25Options = {}): Bm25Index {
   const k1 = options.k1 ?? 1.2;

@@ -1,7 +1,7 @@
 /**
  * オフライン検証ゲートの一括実行(依存インストール不要)。人も CI(boundaries)もこれ1本。
  *   node tools/preflight.mjs      (= pnpm verify:offline)
- * 内容: smoke / check-deps / api-surface(差分検査) / check-core-signatures / check-schema ×3 / check-env-example / check-generated / check-doc-numbers / check-ports / check-package-shape / check-docs-links / check-docs-duplication / check-docs-orphans / check-doc-apis / check-e2e-quality / check-package-rules / check-app-rules / check-api-auth / check-auth-stub / check-permissions / check-reimplementation / check-handmade-chart / check-utc-date / check-showcase-deps / check-app-transpile / check-syntax / check-jsx-tags / check-a11y / check-pwa / check-maintainability / check-hardcoded-colors / check-contract / check-drill / check-imports / check-lockfile / check-build-ready / setup.sh 構文
+ * 内容: smoke / check-deps / api-surface(差分検査) / check-core-signatures / check-schema ×3 / check-env-example / check-generated / check-doc-numbers / check-ports / check-package-shape / check-docs-links / check-docs-duplication / check-docs-orphans / check-doc-apis / check-e2e-quality / check-package-rules / check-app-rules / check-api-auth / check-auth-stub / check-permissions / check-reimplementation / check-handmade-chart / check-utc-date / check-test-setup / check-showcase-deps / check-app-transpile / check-syntax / check-jsx-tags / check-a11y / check-pwa / check-maintainability / check-hardcoded-colors / check-contract / check-drill / check-imports / check-lockfile / check-build-ready / setup.sh 構文
  */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -67,6 +67,7 @@ allOk = run("check-permissions", "node", ["tools/check-permissions.mjs"]) && all
 allOk = run("check-reimplementation", "node", ["tools/check-reimplementation.mjs"]) && allOk;  // 基盤にある機能をアプリで作り直していないか
 allOk = run("check-handmade-chart", "node", ["tools/check-handmade-chart.mjs"]) && allOk;
 allOk = run("check-utc-date", "node", ["tools/check-utc-date.mjs"]) && allOk;
+allOk = run("check-test-setup", "node", ["tools/check-test-setup.mjs"]) && allOk;
 allOk = run("check-showcase-deps", "node", ["tools/check-showcase-deps.mjs"]) && allOk;  // デモサイトの依存漏れ(ビルドしないと気づけない)
 allOk = run("check-app-transpile", "node", ["tools/check-app-transpile.mjs"]) && allOk;  // apps の transpilePackages 漏れ(next build だけが落ちる。typecheck/smoke は通る)
 allOk = run("check-syntax", "node", ["tools/check-syntax.mjs"]) && allOk;  // 本物のパーサで構文エラーを検出(これが無く、全項目グリーンのまま next build が落ちた)

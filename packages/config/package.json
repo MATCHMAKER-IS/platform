@@ -5,7 +5,10 @@
   "type": "module",
   "exports": {
     "./tsconfig.base.json": "./tsconfig.base.json",
-    "./vitest": "./vitest.preset.ts"
+    "./vitest": "./vitest.preset.mjs"
   },
-  "files": ["tsconfig.base.json", "vitest.preset.ts"]
+  "files": [
+    "tsconfig.base.json",
+    "vitest.preset.mjs"
+  ]
 }

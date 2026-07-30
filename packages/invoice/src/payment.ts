@@ -11,8 +11,10 @@
  * @returns 支払期限
  */
 export function dueDateFrom(issueDate: string | Date, termDays: number): string {
+  // **UTC で通す。** `setDate`/`getDate` はローカル時刻で動くのに `toISOString` は UTC なので、
+  // 混ぜると JST 機で日付が 1 日ずれる(CI は UTC なので気づけない)。
   const d = new Date(issueDate);
-  d.setDate(d.getDate() + termDays);
+  d.setUTCDate(d.getUTCDate() + termDays);
   return d.toISOString().slice(0, 10);
 }
 
@@ -25,8 +27,10 @@ export function dueDateFrom(issueDate: string | Date, termDays: number): string 
  * @returns 翌月末の日付
  */
 export function endOfNextMonth(issueDate: string | Date): string {
+  // **UTC で組み立てる。** `new Date(y, m, 0)` はローカル時刻の 0 時を作るため、
+  // JST 機では UTC に直したときに前日へ回り、**支払期日が 1 日早くなる**。
   const d = new Date(issueDate);
-  const end = new Date(d.getFullYear(), d.getMonth() + 2, 0);
+  const end = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 2, 0));
   return end.toISOString().slice(0, 10);
 }
 
@@ -48,8 +52,9 @@ export function paymentStatus(
   if (invoice.cancelled) return "cancelled";
   if (!invoice.issued) return "draft";
   if (invoice.paidAmount >= invoice.total) return "paid";
+  // 日付だけの比較。UTC で揃える(ローカル時刻で作ると実行環境で結果が変わる)
   const due = new Date(invoice.dueDate);
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   return today > due ? "overdue" : "issued";
 }
 
@@ -72,8 +77,9 @@ export function balanceDue(total: number, paidAmount: number): number {
  * @returns 残り日数(**過ぎていれば負**)
  */
 export function daysUntilDue(dueDate: string | Date, now: Date = new Date()): number {
+  // 日付だけの比較。UTC で揃える(ローカル時刻で作ると実行環境で結果が変わる)
   const due = new Date(dueDate);
-  const a = new Date(due.getFullYear(), due.getMonth(), due.getDate()).getTime();
-  const b = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const a = Date.UTC(due.getUTCFullYear(), due.getUTCMonth(), due.getUTCDate());
+  const b = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   return Math.round((a - b) / 86_400_000);
 }

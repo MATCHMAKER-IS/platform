@@ -26,7 +26,8 @@ export function formatInvoiceNumber(sequence: number, options: InvoiceNumberOpti
   const padding = options.padding ?? 4;
   const seq = String(sequence).padStart(padding, "0");
   if (options.date) {
-    const ym = `${options.date.getFullYear()}${String(options.date.getMonth() + 1).padStart(2, "0")}`;
+    // 番号に使う年月も UTC で揃える(JST 深夜の発行で前月の番号にならないように)
+    const ym = `${options.date.getUTCFullYear()}${String(options.date.getUTCMonth() + 1).padStart(2, "0")}`;
     return `${prefix}-${ym}-${seq}`;
   }
   return `${prefix}-${seq}`;

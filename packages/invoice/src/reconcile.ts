@@ -111,12 +111,13 @@ export interface AgingBuckets {
  */
 export function agingBuckets(invoices: OpenInvoice[], asOf: Date = new Date()): AgingBuckets {
   const b: AgingBuckets = { current: 0, d1_30: 0, d31_60: 0, d61_90: 0, over90: 0, total: 0 };
-  const today = new Date(asOf.getFullYear(), asOf.getMonth(), asOf.getDate()).getTime();
+  // 日付だけの比較。UTC で揃える(実行環境のタイムゾーンで結果を変えない)
+  const today = Date.UTC(asOf.getUTCFullYear(), asOf.getUTCMonth(), asOf.getUTCDate());
   for (const inv of invoices) {
     const bal = balanceDue(inv.total, inv.paidAmount);
     if (bal <= 0) continue;
     const due = new Date(inv.dueDate);
-    const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate()).getTime();
+    const dueDay = Date.UTC(due.getUTCFullYear(), due.getUTCMonth(), due.getUTCDate());
     const overdueDays = Math.round((today - dueDay) / 86_400_000);
     if (overdueDays <= 0) b.current += bal;
     else if (overdueDays <= 30) b.d1_30 += bal;

@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
-    "test": "echo \"アプリの単体テストは vitest / 統合は Playwright を想定\"",
+    "test": "vitest run",
     "e2e": "playwright test",
     "mcp": "tsx mcp/server.mts"
   },
@@ -85,10 +85,12 @@
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@platform/config": "workspace:*",
+    "@playwright/test": "^1.48.0",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.3",
-    "@playwright/test": "^1.48.0",
-    "tsx": "^4.19.2"
+    "vitest": "^3.0.4"
   }
 }

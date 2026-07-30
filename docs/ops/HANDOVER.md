@@ -23,7 +23,7 @@
 |---|---|
 | 部品 | **113 パッケージ**。会計・請求・勤怠・在庫・電帳法など日本の業務に対応 |
 | アプリ | 5 つ（社内・備品・公開サイト・雛形・目録） |
-| 作法の強制 | **39 種類の検査**が `preflight` で自動確認（実行 42 項目・約 15 秒） |
+| 作法の強制 | **40 種類の検査**が `preflight` で自動確認（実行 43 項目・約 15 秒） |
 | テスト | smoke **1,442 件**（依存なしで動く）・単体テスト **112/113 パッケージ**（config はランタイムコード無し）・E2E 14 本 |
 | 資料 | 82 件。すべて索引から辿れる |
 | 認可 | API **250 本すべて**が認可を通すか、通さない理由を宣言済み |
@@ -88,6 +88,14 @@
 | パッケージの追加 | smoke 側の展開・パッケージ数の更新など**5 か所**の更新が要る（`docs/ops/PACKAGE_CONSOLIDATION.md`） |
 | 数値の一括置換 | `108` を一括で置換して**給与計算の期待値を壊した**ことがある。文脈を限定すること |
 | オブジェクトのスプレッド順 | `{ 既定値, ...options }` は `{ key: undefined }` の指定で**既定値が消える**。2026-07 に context・status-page(7 関数)・sheet-grid の z-index で**3 系統**見つかった |
+| Docker が要るテストは通常実行から外す | `*.integration.test.ts` は testcontainers で実 PostgreSQL を起動する。共通プリセットの `exclude` で外し、`pnpm --filter @platform/db test:integration` で明示的に実行する |
+| Prisma 7 は CLI と実行時で設定が別 | `schema.prisma` に `url` を書けない(`P1012`)。CLI は `prisma.config.ts`、実行時は `createDb()` → アダプタ。**片方だけ直すと generate は通るのに動かない**。`prisma generate` は `build` の前段なので、放置すると**デプロイも落ちる** |
+| vitest と Playwright の住み分け | `.test.ts` は vitest、`.spec.ts` は Playwright。vitest の既定 include は両方拾うため、`Playwright Test did not expect test.describe()` で落ちる。`vitest.preset.mjs` で `.test.ts` だけに絞ってある |
+| Prisma の生成物 | `@prisma/client` は `prisma generate` 前だと **import した時点で落ちる**。`pnpm test`(turbo)なら先に生成されるが、`pnpm exec vitest run` を直接叩くと生成されない |
+| API の例外は投げ返さない | `withApiObservability` は例外を **traceId つきの 500 に変換して返す**。素で投げると Next 既定の 500 画面になり、traceId が返らず調査できない。内部メッセージも漏らさない(`toErrorEnvelope`)|
+| BM25 は短い文書を高く評価する | 同じ語を同じ回数含むなら**短いほうが上**(文書長正規化)。「請求書」で「経費と請求書」が「請求書の書き方」より上に出る。仕様どおりなので、タイトル一致を優先したいなら `fieldBoosts` を使う |
+| ローカル時刻と UTC の混在 | `new Date(y, m, d)` はローカル、`toISOString()` は UTC。混ぜると **JST 機だけ日付が 1 日ずれる**。`@platform/invoice` の `endOfNextMonth` が該当し、**支払期日が 1 日早く**なっていた。CI は UTC なので**絶対に検出できない**。日付だけの値は `Date.UTC` で揃える |
+| テストが「動かない」形で壊れる | `pnpm test` は**一度も成功していなかった**。① ワークスペースがディレクトリ指定で `demos/README.md` に当たる ② 共通プリセットが `.ts` で Node が読めない ③ `@platform/ui`(83 件)と `internal-app`(16 件)の test が echo で素通り ④ `packages/form` が `@platform/config` を未宣言。**どれもテストの中身とは無関係**。`check-test-setup` で守る |
 | 検査ツールの OS 依存 | `find` は Windows で別コマンド。`path.join` の `\` と `/` 前提の比較も一致しない。**どちらも「落ちる」か「黙って素通りする」**ので、Windows で一度も動いていない検査が 5 つあった（`check-syntax` を含む）。走査は `tools/lib/collect-files.mjs` を使う |
 | 非同期イベントを同期的に打ち切らない | `child.on("error", …)` を登録した直後に同期で成功を確定すると、**error は必ず後から来るのでハンドラが一度も勝てない**。`os-notify` は起動失敗を検出できず、履歴も常に成功で残っていた |
 | TSDoc の `@returns` を信じる前に実装を見る | 「問題の一覧(空なら妥当)」と書いてあるのに **Result を返す** `validate*` が cms に 4 つあった。配列だと思って `.length` を見ると `undefined` になり、**常に妥当と判定される**。テストを書くたびに同種の食い違いが出ている |
@@ -126,6 +134,6 @@
 
 - `CLAUDE.md` — 作法（AI に読ませる前提でも書いてある）
 - `docs/README.md` — 資料の索引
-- `docs/ops/CHECKS.md` — 39 種類の検査が何を見ているか
+- `docs/ops/CHECKS.md` — 40 種類の検査が何を見ているか
 - `docs/RUNBOOK.md` — 障害対応
 - `docs/ops/SUPPORT_GUIDE.md` — 利用者からの問い合わせ

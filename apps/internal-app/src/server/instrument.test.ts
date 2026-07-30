@@ -21,9 +21,23 @@ describe("withApiObservability", () => {
     expect(res.status).toBe(200);
     expect(await res.text()).toBe("ok");
   });
-  it("re-throws handler errors", async () => {
+  it("**例外は投げ返さず、traceId つきの 500 に変換する**", async () => {
+    // 素で投げると Next 既定の 500 画面になり、**traceId が返らず調査できない**。
+    // エラーエンベロープに変換して返すのが意図した設計(instrument.ts のコメント参照)。
     const { withApiObservability } = await import("./instrument");
     const wrapped = withApiObservability("/api/e", async () => { throw new Error("boom"); });
-    await expect(wrapped(new Request("https://h/api/e", { method: "POST" }))).rejects.toThrow("boom");
+    const res = await wrapped(new Request("https://h/api/e", { method: "POST" }));
+    expect(res.status).toBe(500);
+    const body = (await res.json()) as { error?: { code?: string; traceId?: string } };
+    expect(body.error?.traceId).toBeTruthy();   // 調査に使える
+    expect(JSON.stringify(body)).not.toContain("boom");  // 内部メッセージは漏らさない
+  });
+
+  it("status を持つ例外はそのステータスを尊重する", async () => {
+    const { withApiObservability } = await import("./instrument");
+    const wrapped = withApiObservability("/api/e", async () => {
+      throw Object.assign(new Error("forbidden"), { status: 403 });
+    });
+    expect((await wrapped(new Request("https://h/api/e"))).status).toBe(403);
   });
 });

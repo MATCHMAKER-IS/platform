@@ -55,7 +55,10 @@ export function donutSegments(values: number[], radius: number): DonutSegment[] 
   let acc = 0;
   return shares.map((s) => {
     const dash = s.ratio * circumference;
-    const offset = -acc; // 直前までの累積ぶん戻す(12時方向起点は circle の回転で調整)
+    // 直前までの累積ぶん戻す(12時方向起点は circle の回転で調整)。
+    // `-acc` は acc が 0 のとき **-0** になる。SVG 上は同じでも、
+    // `Object.is(-0, 0)` は false なので比較や JSON 往復で食い違う。0 に正規化する。
+    const offset = acc === 0 ? 0 : -acc;
     acc += dash;
     return { value: s.value, ratio: s.ratio, percent: s.percent, dash, offset, circumference };
   });

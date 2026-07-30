@@ -21,8 +21,10 @@ describe("cookie", () => {
   });
 });
 
+// salt は必須。**環境ごとに変える**ことで、保存先が漏れても他環境の鍵に流用されない
+// (@platform/crypto の deriveKey が 8 文字以上を要求する)
 describe("createSession(封緘クッキー)", () => {
-  const session = createSession<{ userId: string }>({ secret: "test-secret-value-1234567890", cookie: { secure: false } });
+  const session = createSession<{ userId: string }>({ secret: "test-secret-value-1234567890", salt: "test-salt-1234", cookie: { secure: false } });
 
   it("write→read の往復", () => {
     const setCookie = session.write({ userId: "u1" });
@@ -31,7 +33,7 @@ describe("createSession(封緘クッキー)", () => {
     expect(data?.userId).toBe("u1");
   });
   it("期限切れは null", () => {
-    const s2 = createSession<{ x: number }>({ secret: "test-secret-value-1234567890", maxAgeSec: -1 });
+    const s2 = createSession<{ x: number }>({ secret: "test-secret-value-1234567890", salt: "test-salt-1234", maxAgeSec: -1 });
     const setCookie = s2.write({ x: 1 });
     const value = setCookie.split(";")[0]!.split("=").slice(1).join("=");
     expect(s2.read(`session=${value}`)).toBeNull();
@@ -39,7 +41,7 @@ describe("createSession(封緘クッキー)", () => {
   it("別の秘密鍵では読めない", () => {
     const setCookie = session.write({ userId: "u1" });
     const value = setCookie.split(";")[0]!.split("=").slice(1).join("=");
-    const other = createSession<{ userId: string }>({ secret: "different-secret-abcdefghij" });
+    const other = createSession<{ userId: string }>({ secret: "different-secret-abcdefghij", salt: "test-salt-1234" });
     expect(other.read(`session=${value}`)).toBeNull();
   });
 });

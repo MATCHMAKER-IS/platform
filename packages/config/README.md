@@ -4,7 +4,7 @@
 全パッケージ・アプリが継承する TypeScript / テスト設定を一元管理します。
 
 - `tsconfig.base.json` … 全 tsconfig が `extends` する厳格設定(`strict` / `noUncheckedIndexedAccess` 等)
-- `vitest.preset.ts` … 各パッケージの Vitest が読み込むカバレッジ閾値つきプリセット
+- `vitest.preset.mjs` … 各パッケージの Vitest が読み込むカバレッジ閾値つきプリセット
 
 ```jsonc
 // packages/xxx/tsconfig.json

@@ -73,7 +73,12 @@ describe("accounting payroll & department", () => {
     expect(pay.lines[0]!.debit).toBe(300000);
     expect(pay.lines[3]!.credit).toBe(245000);
     expect(isBalanced(pay)).toBe(true);
-    expect(payrollJournal({ date: "x", gross: 100000, withholdingTax: 0, socialInsurance: 0, paid: true }).lines[3]!.account).toBe("現金預金");
+    // **控除が 0 なら預り金の行は作らない**ので、行位置を決め打ちしない。
+    // 手取りの行は「貸方に net が立つ最後の行」なので、末尾から取る
+    const cashPay = payrollJournal({ date: "x", gross: 100000, withholdingTax: 0, socialInsurance: 0, paid: true });
+    expect(cashPay.lines).toHaveLength(2);
+    expect(cashPay.lines.at(-1)!.account).toBe("現金預金");
+    expect(cashPay.lines.at(-1)!.credit).toBe(100000);
   });
   it("department P&L", () => {
     const entries = [

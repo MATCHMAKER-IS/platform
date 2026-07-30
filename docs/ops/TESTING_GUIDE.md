@@ -6,6 +6,28 @@
 
 ---
 
+
+## 実行のしかた
+
+```bash
+pnpm test          # turbo 経由。prisma generate も先に走るので、これが基本
+pnpm exec vitest run   # 直接実行。**先に `pnpm --filter @platform/db db:generate` が要る**
+```
+
+`@prisma/client` は生成物が無いと import した時点で落ちる
+(`Cannot find module '.prisma/client/default'`)。`pnpm test` なら turbo が
+`^build` で生成するが、vitest を直接叩くと生成されない。
+
+`*.integration.test.ts` は **Docker(testcontainers)が要る**ため通常実行から外してある。
+実行するときは明示的に呼ぶ。
+
+```bash
+pnpm --filter @platform/db test:integration   # 要 Docker
+```
+
+`.spec.ts` は Playwright(e2e)のもので、vitest は `.test.ts` だけを見る
+(`@platform/config` の `vitest.preset.mjs` で明示)。e2e は `pnpm e2e` で実行する。
+
 ## テストの全体像
 
 このリポジトリには 6 種類の検証があります。**速いものから順に**使ってください。
@@ -141,7 +163,7 @@ pnpm --filter @platform/tax test -- -t "端数"   # 名前で絞る
 pnpm --filter @platform/tax test -- --coverage
 ```
 
-閾値は共通で **80%**（`@platform/config` の `vitest.preset.ts` で一元管理）。
+閾値は共通で **80%**（`@platform/config` の `vitest.preset.mjs` で一元管理）。
 
 ---
 

@@ -13,3 +13,24 @@ Prisma 7 を driver adapter(`@prisma/adapter-pg`)で採用し、接続生成は 
 
 ## 影響
 `prisma generate` が install 後に必須(CI / setup.sh / Dockerfile に組込済)。schema の軽量 lint は `tools/check-schema.mjs`。
+
+## 追記(2026-07): CLI と実行時で設定が分かれた
+
+Prisma 7 では **`schema.prisma` に `datasource.url` を書けない**(`P1012`)。
+接続先の指定が 2 経路に分かれる。
+
+| 経路 | 設定場所 |
+|---|---|
+| CLI(`migrate` / `db push` / `studio` / `generate`)| `prisma.config.ts` |
+| アプリの実行時 | `createDb()` → `@prisma/adapter-pg` |
+
+**片方だけ直すと「generate は通るのに動かない」**、あるいはその逆になる。
+`prisma.config.ts` は **`packages/db` に 1 つだけ**置く。アプリの schema を使うときは
+`--schema` で指す(`docs/ops/SETUP.md`)。アプリごとに config を置くと `--schema` と
+競合して分かりにくいので置かない。config 側でも `schema` は固定しない。
+
+`prisma/config` の `env()` ヘルパーは使わない。**変数が無いと例外を投げる**ため、
+`DATABASE_URL` を設定しない CI で `prisma generate`(URL 不要)まで落ちる。
+`process.env.DATABASE_URL ?? ""` を使う。
+
+`node tools/check-test-setup.mjs` が、旧形式の残りと config の欠落を検出する。

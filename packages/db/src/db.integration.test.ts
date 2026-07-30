@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "testcontainers";
+// PostgreSqlContainer は `testcontainers` 本体ではなく
+// **`@testcontainers/postgresql`** にある(v10 で分離された)。
+// 本体から import すると `PostgreSqlContainer is not a constructor` になる。
+import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
 import { createDb, executeRaw, queryRawValidated, sql } from "./index";
 import { z } from "zod";
 import type { PrismaClient } from "@prisma/client";
