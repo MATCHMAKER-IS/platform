@@ -23,7 +23,7 @@
 |---|---|
 | 部品 | **113 パッケージ**。会計・請求・勤怠・在庫・電帳法など日本の業務に対応 |
 | アプリ | 5 つ（社内・備品・公開サイト・雛形・目録） |
-| 作法の強制 | **40 種類の検査**が `preflight` で自動確認（実行 43 項目・約 15 秒） |
+| 作法の強制 | **41 種類の検査**が `preflight` で自動確認（実行 44 項目・約 15 秒） |
 | テスト | smoke **1,442 件**（依存なしで動く）・単体テスト **112/113 パッケージ**（config はランタイムコード無し）・E2E 14 本 |
 | 資料 | 82 件。すべて索引から辿れる |
 | 認可 | API **250 本すべて**が認可を通すか、通さない理由を宣言済み |
@@ -88,6 +88,7 @@
 | パッケージの追加 | smoke 側の展開・パッケージ数の更新など**5 か所**の更新が要る（`docs/ops/PACKAGE_CONSOLIDATION.md`） |
 | 数値の一括置換 | `108` を一括で置換して**給与計算の期待値を壊した**ことがある。文脈を限定すること |
 | オブジェクトのスプレッド順 | `{ 既定値, ...options }` は `{ key: undefined }` の指定で**既定値が消える**。2026-07 に context・status-page(7 関数)・sheet-grid の z-index で**3 系統**見つかった |
+| Windows のパス長 260 文字 | pnpm は `.pnpm/<pkg>@<版>_<ハッシュ>/node_modules/...` と**非常に深い階層**を作る。113 パッケージでは簡単に超え、**turbo が `0xC0000409` でログも出さずクラッシュ**、`pnpm -r` も止まる。**単一パッケージのビルドは通る**のでコードの問題と誤解する。2026-07 に実測 265 文字で踏んだ。対処は ① 浅い場所へ移す ② `LongPathsEnabled=1`。`node tools/check-path-length.mjs` が測る |
 | Docker が要るテストは通常実行から外す | `*.integration.test.ts` は testcontainers で実 PostgreSQL を起動する。共通プリセットの `exclude` で外し、`pnpm --filter @platform/db test:integration` で明示的に実行する |
 | Prisma 7 は CLI と実行時で設定が別 | `schema.prisma` に `url` を書けない(`P1012`)。CLI は `prisma.config.ts`、実行時は `createDb()` → アダプタ。**片方だけ直すと generate は通るのに動かない**。`prisma generate` は `build` の前段なので、放置すると**デプロイも落ちる** |
 | vitest と Playwright の住み分け | `.test.ts` は vitest、`.spec.ts` は Playwright。vitest の既定 include は両方拾うため、`Playwright Test did not expect test.describe()` で落ちる。`vitest.preset.mjs` で `.test.ts` だけに絞ってある |
@@ -134,6 +135,6 @@
 
 - `CLAUDE.md` — 作法（AI に読ませる前提でも書いてある）
 - `docs/README.md` — 資料の索引
-- `docs/ops/CHECKS.md` — 40 種類の検査が何を見ているか
+- `docs/ops/CHECKS.md` — 41 種類の検査が何を見ているか
 - `docs/RUNBOOK.md` — 障害対応
 - `docs/ops/SUPPORT_GUIDE.md` — 利用者からの問い合わせ

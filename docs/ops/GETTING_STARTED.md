@@ -6,6 +6,23 @@
 
 ---
 
+
+> **Windows の人は最初に読んでください。**
+> このリポジトリは 113 パッケージあり、pnpm が深い階層を作るため
+> **Windows の 260 文字制限を超えます**。超えると `turbo` が
+> **ログも出さずクラッシュ**し、原因が分かりません。
+>
+> 1. リポジトリは**浅い場所**に置く（`C:\dev\platform` など。`Documents` の下は避ける）
+> 2. 長いパスを有効化する（管理者権限の PowerShell・要再起動）
+>
+> ```powershell
+> Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" `
+>   -Name LongPathsEnabled -Value 1
+> ```
+>
+> `node tools/check-path-length.mjs` で現状を測れます。
+
+
 ## 全体の流れ
 
 ```

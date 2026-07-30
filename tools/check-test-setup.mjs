@@ -188,6 +188,24 @@ if (existsSync(path.join(ROOT, "packages", "db", "prisma")) &&
   );
 }
 
+// ── 7. turbo の UI モード ────────────────────────────────────────────────
+// `"ui": "tui"` は Windows でクラッシュする報告がある
+// (turborepo の既知バグ #8861 / #9999 / #11434)。
+// この基盤は Windows での開発を支援しているので `stream` を使う。
+//
+// 注意: 2026-07 時点で `stream` にしても turbo 2.10.5 は Windows で落ちる
+// (別原因・未解決)。回避策は `pnpm -r run build`(HANDOVER 参照)。
+const turboPath = path.join(ROOT, "turbo.json");
+if (existsSync(turboPath)) {
+  const turbo = JSON.parse(readFileSync(turboPath, "utf8"));
+  if (turbo.ui === "tui" || turbo.global?.ui === "tui") {
+    problems.push(
+      'turbo.json の "ui" が "tui" です。**Windows で turbo がクラッシュします**' +
+      "\n     → \"stream\" にしてください(turborepo の既知バグ #8861 / #9999 / #11434)",
+    );
+  }
+}
+
 if (problems.length > 0) {
   console.error("❌ テストを実行できない設定があります。**テストの中身ではなく設定の問題**です。");
   for (const p of problems) console.error(`   - ${p}`);

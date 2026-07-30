@@ -1,7 +1,7 @@
 # 検査の一覧（preflight は何を見ているか）
 
-`node tools/preflight.mjs` は **依存をインストールせずに 40 種類の検査**をまとめて実行する
-（schema 検査はアプリごとに走るため、実行時の項目数は 43）。
+`node tools/preflight.mjs` は **依存をインストールせずに 41 種類の検査**をまとめて実行する
+（schema 検査はアプリごとに走るため、実行時の項目数は 44）。
 「手元で `pnpm install` する前に、壊れているかどうかを知る」ための入口。
 
 ```bash
@@ -37,7 +37,8 @@ node tools/<検査名>.mjs        # 1 つだけ実行する
 | `check-reimplementation` | 基盤にある機能をアプリで作り直していないか | 直す場所が増え、強度もばらつく |
 | `check-handmade-chart` | **アプリが自前でグラフを描いていないか**（データ駆動のインライン SVG）。名前ではなく書き方で再実装を捕まえる | 目盛・凡例・レスポンシブを毎回作り直して毎回抜ける。色も直書きになる |
 | `check-utc-date` | **「今」から UTC の日付を切り出していないか**（`new Date().toISOString().slice(0,10)`）| JST の **00:00〜08:59 だけ前日**になる。昼間に試すと必ず通り、夜間バッチで出る |
-| `check-test-setup` | **テストを実行できる設定か**（ワークスペースのグロブ・共通プリセットの拡張子・テストがあるのに設定が無いパッケージ）| **`pnpm test` が 1 件も動かない**。`demos/*` が README.md に当たる、プリセットが `.ts` で Node が読めない、など。テストの中身は正しいのに起動しないので、緑にも赤にもならず気づけない |
+| `check-test-setup` | **テスト・ビルドを実行できる設定か**（ワークスペースのグロブ・共通プリセットの拡張子・`test` が vitest を呼ぶか・依存の宣言・アプリの環境変数・Prisma 7 の schema と config・turbo の UI モード）| **`pnpm test` / `pnpm build` が 1 件も動かない**。テストの中身は正しいのに起動しないので、緑にも赤にもならず気づけない。`"ui": "tui"` は Windows で**ログも出さずクラッシュ**する |
+| `check-path-length` | **Windows のパス長 260 文字**を超えていないか（`node_modules` の最長パスを実測）| **turbo が `0xC0000409` でログも出さずクラッシュ**し、`pnpm -r` も止まる。単一パッケージは通るのでコードの問題と誤解する |
 | `check-showcase-deps` | デモの依存と `transpilePackages` の整合 | ビルド失敗 |
 | `check-app-transpile` | **実際に import している** `@platform/*` が `transpilePackages` に載っているか（宣言ではなくソースを見る） | **`next build` だけが落ちる**。以前は宣言どうしを比べており、未宣言 import 17 件を見逃していた |
 | `check-syntax` | **全 .ts/.tsx を本物のパーサ（TypeScript）にかける**。この検査だけ `typescript` が要るため、未インストールなら `⏭` で skip され、preflight の最後に警告が出る（**skip を ✅ で描かない**） | **ビルドが構文エラーで落ちる**。これが無い間、他の検査が全部グリーンのまま `next build` が落ちた |

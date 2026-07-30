@@ -18,6 +18,21 @@ pnpm exec vitest run   # 直接実行。**先に `pnpm --filter @platform/db db:
 (`Cannot find module '.prisma/client/default'`)。`pnpm test` なら turbo が
 `^build` で生成するが、vitest を直接叩くと生成されない。
 
+### turbo が動かないとき
+
+turbo 2.10.5 は **Windows で `0xC0000409`(スタック破壊)により落ちることがある**。
+タスクを 1 つも実行せず、ログも出さないので原因が分かりにくい。
+`ui` を `stream` にしても `--concurrency=1` でも変わらない(2026-07 時点で未解決)。
+
+turbo を経由しない代替を用意してある。
+
+```bash
+pnpm build:no-turbo   # pnpm -r で依存順にビルド（遅いがログが出る）
+pnpm test:no-turbo    # vitest を直接実行
+```
+
+デプロイ(Amplify)は `demos/showcase` だけをビルドするので、この問題の影響を受けない。
+
 `*.integration.test.ts` は **Docker(testcontainers)が要る**ため通常実行から外してある。
 実行するときは明示的に呼ぶ。
 
