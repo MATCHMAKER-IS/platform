@@ -6,7 +6,8 @@
  * - {@link bulkUpsert}: 冪等インポート(再実行しても重複しない)。
  * @packageDocumentation
  */
-import { PrismaClient, type Prisma } from "@prisma/client";
+// 生成物の型に縛られないよう、必要な形だけを要求する(client-types.ts 参照)
+import type { RawCapableClient, TransactionClientOf } from "./client-types";
 import { tryCatch, type Result } from "@platform/core";
 import { mapPrismaError } from "./errors";
 import { withTransaction } from "./transaction";
@@ -76,9 +77,9 @@ export async function bulkInsert(
  * ```
  * @returns 挿入した行(**ID が要るとき用**。返さない bulkInsert より遅い)
  */
-export async function bulkInsertReturning<T>(
-  db: PrismaClient,
-  pick: (tx: Prisma.TransactionClient) => CreateDelegate<T>,
+export async function bulkInsertReturning<TClient extends RawCapableClient, T>(
+  db: TClient,
+  pick: (tx: TransactionClientOf<TClient>) => CreateDelegate<T>,
   rows: unknown[],
 ): Promise<Result<T[]>> {
   return withTransaction(db, async (tx) => {
@@ -101,9 +102,9 @@ export async function bulkInsertReturning<T>(
  * ```
  * @returns 処理件数(**あれば更新、無ければ挿入**。取り込みの再実行に強い)
  */
-export async function bulkUpsert<Row, T>(
-  db: PrismaClient,
-  pick: (tx: Prisma.TransactionClient) => UpsertDelegate<T>,
+export async function bulkUpsert<TClient extends RawCapableClient, Row, T>(
+  db: TClient,
+  pick: (tx: TransactionClientOf<TClient>) => UpsertDelegate<T>,
   rows: Row[],
   build: (row: Row) => { where: unknown; create: unknown; update: unknown },
 ): Promise<Result<T[]>> {

@@ -3,7 +3,6 @@
  * ソーシャルログイン一式。複数プロバイダのログインボタンを縦に並べ、区切り線でメール認証等と分ける。
  * @packageDocumentation
  */
-import * as React from "react";
 import { cn } from "../lib/cn";
 import { SocialLoginButton, type SocialProvider } from "./social-login-button";
 

@@ -3,7 +3,7 @@
  * 秘密値は @platform/env の口を通し、本番では未設定を起動時に検出する(fail-fast)。
  * @packageDocumentation
  */
-import { parseEnv, requireEnv, optionalEnv, assertSecretStrength, z } from "@platform/env";
+import { parseEnv, requireEnv, optionalEnv, assertSecretStrength, isProductionRuntime, z } from "@platform/env";
 
 export const env = parseEnv(
   z.object({
@@ -20,7 +20,10 @@ export const usePrisma = optionalEnv("PERSISTENCE") === "prisma";
  * 既定の管理パスワードのまま本番公開する事故を防ぐ。
  */
 function loadServerEnv(): { SESSION_SECRET: string; ADMIN_PASSWORD: string } {
-  if (optionalEnv("NODE_ENV") === "production") {
+  // **ビルド中は必須チェックを見送る。** `next build` は NODE_ENV=production で動き、
+  // ページデータ収集のためにこのモジュールを読み込む。ここで落とすと
+  // **ビルドマシンに本番の秘密を置くまでビルドできない**(実行時に改めて検証される)
+  if (isProductionRuntime()) {
     const required = requireEnv(["SESSION_SECRET", "ADMIN_PASSWORD"]);
     // "admin1234" のような既定値・短い鍵のまま本番公開する事故を防ぐ
     assertSecretStrength(required, { isProduction: true });

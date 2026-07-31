@@ -3,6 +3,7 @@
  * ドーナツチャート(依存なし・SVG)。構成比を円で表す。凡例つき。
  * @packageDocumentation
  */
+import * as React from "react";
 import { cn } from "../lib/cn";
 import { donutSegments } from "../lib/dashboard";
 

@@ -2,7 +2,8 @@
  * トランザクションの再試行とヘルスチェック。
  * @packageDocumentation
  */
-import { PrismaClient, type Prisma } from "@prisma/client";
+// 生成物の型に縛られないよう、必要な形だけを要求する(client-types.ts 参照)
+import type { RawCapableClient, TransactionClient, TransactionClientOf } from "./client-types";
 import { tryCatch, type Result } from "@platform/core";
 import { mapPrismaError, isRetryablePrismaError } from "./errors";
 import { asTransactionAbort, type TransactionOptions } from "./transaction";
@@ -32,16 +33,18 @@ export interface RetryOptions extends TransactionOptions {
  * @param options.attempts 最大試行回数
  * @returns 処理の結果(**デッドロックは再試行で回復する**ことが多い)
  */
-export async function transactionWithRetry<T>(
-  db: PrismaClient,
-  fn: (tx: Prisma.TransactionClient) => Promise<T>,
+export async function transactionWithRetry<TClient extends RawCapableClient, T>(
+  db: TClient,
+  fn: (tx: TransactionClientOf<TClient>) => Promise<T>,
   options: RetryOptions = {},
 ): Promise<Result<T>> {
   const { retries = 3, baseDelayMs = 50, isolationLevel, timeoutMs, maxWaitMs } = options;
   const txOptions = { isolationLevel: isolationLevel as unknown, timeout: timeoutMs, maxWait: maxWaitMs };
   let lastError: unknown;
   for (let attempt = 0; attempt <= retries; attempt++) {
-    const res = await tryCatch(() => db.$transaction(fn, txOptions as never));
+    // 実体は同じオブジェクト。型だけをクライアント側のものに合わせる
+    const run = fn as unknown as (tx: TransactionClient) => Promise<T>;
+    const res = await tryCatch(() => db.$transaction(run, txOptions as never));
     if (res.ok) return res;
     lastError = res.error.cause ?? res.error;
     // 明示的中止(abortTransaction)は再試行せず、その AppError をそのまま返す
@@ -59,7 +62,7 @@ export async function transactionWithRetry<T>(
  * @param db Prisma クライアント
  * @param options.timeoutMs タイムアウト
  */
-export async function checkDatabase(db: PrismaClient): Promise<Result<true>> {
+export async function checkDatabase(db: RawCapableClient): Promise<Result<true>> {
   const res = await tryCatch(() => db.$queryRaw`SELECT 1`);
   return res.ok ? { ok: true, value: true } : { ok: false, error: mapPrismaError(res.error.cause ?? res.error) };
 }

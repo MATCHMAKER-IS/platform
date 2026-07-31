@@ -6,7 +6,7 @@
 import * as React from "react";
 import { Button, Checkbox, Input, Select, Textarea } from "@platform/ui";
 import { nl2br, linkify } from "@platform/html";
-import { filterPosts, diffRevisions } from "@platform/cms";
+import { filterPosts, diffRevisions, effectiveStatus } from "@platform/cms";
 
 interface Post {
   slug: string;
@@ -352,7 +352,9 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
           </thead>
           <tbody>
             {visiblePosts.map((p) => {
-              const eff = p.effectiveStatus ?? p.status;
+              // **effectiveStatus は関数**(CmsPost のプロパティではない)。
+              // 予約日時を過ぎたものを published として扱う
+              const eff = effectiveStatus(p);
               const badge = eff === "published" ? "rounded bg-green-100 px-1.5 py-0.5 text-xs text-green-700" : eff === "scheduled" ? "rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700" : "rounded bg-neutral-100 px-1.5 py-0.5 text-xs text-neutral-600";
               const label = eff === "published" ? "公開中" : eff === "scheduled" ? "予約" : "下書き";
               return (

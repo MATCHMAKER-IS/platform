@@ -41,17 +41,28 @@ export interface CreateDbOptions {
 /**
  * PrismaClient のシングルトンを生成する。
  *
+ * **アプリが自分で生成したクライアントを使える。** このリポジトリは
+ * アプリごとに `schema.prisma` を分けており(ADR-0006)、`generator` の `output` で
+ * 生成先も分けている。型引数にアプリの `PrismaClient` を渡すと、
+ * **そのアプリのモデルが型として見える**ようになる。
+ *
+ * 省略すると `@prisma/client` の型になる(= 最後に generate した schema のもの)。
+ * アプリからは必ず型引数を渡すこと。
+ *
  * @param databaseUrl 接続文字列(通常は `@platform/env` 由来の検証済み値)
  * @param options     任意。`onQuery` を渡すと SQL を観測できる(開発時のデバッグ用)
- * @returns 共有 {@link PrismaClient}
+ * @returns 共有クライアント
  *
  * @example
  * ```ts
- * const db = createDb(env.DATABASE_URL);
- * const users = await db.user.findMany();
+ * // アプリ側(apps/internal-app/src/server/services.ts)
+ * import { PrismaClient } from "../generated/prisma";
+ *
+ * export const db = createDb<PrismaClient>(env.DATABASE_URL);
+ * const rows = await db.expense.findMany();  // アプリのモデルが見える
  * ```
  */
-export function createDb(databaseUrl: string, options: CreateDbOptions = {}): PrismaClient {
+export function createDb<TClient = PrismaClient>(databaseUrl: string, options: CreateDbOptions = {}): TClient {
   const g = globalThis as unknown as { __prisma?: PrismaClient };
   if (!g.__prisma) {
     const adapter = new PrismaPg({ connectionString: databaseUrl });
@@ -68,5 +79,7 @@ export function createDb(databaseUrl: string, options: CreateDbOptions = {}): Pr
         });
     }
   }
-  return g.__prisma;
+  // 生成物が違っても実体は同じ PrismaClient(アダプタ経由)。
+  // 型だけをアプリ側のものに合わせる
+  return g.__prisma as unknown as TClient;
 }

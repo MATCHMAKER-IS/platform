@@ -5,7 +5,6 @@
  * (UI は crypto に依存せず、値だけ受け取る)。
  * @packageDocumentation
  */
-import * as React from "react";
 import { cn } from "../lib/cn";
 import { useT } from "./i18n-provider";
 

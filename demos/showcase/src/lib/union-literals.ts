@@ -512,10 +512,11 @@ import { organizationJsonLd, websiteJsonLd, breadcrumbJsonLd, renderJsonLd, buil
 /** commerce の union。 */
 export const taxModes: TaxMode[] = ["exclusive", "inclusive"];
 export const discountTypes: DiscountType[] = ["percentage", "fixed"];
-/** site の union。**12 種類**。ラベル表が漏れると画面が空欄になる。 */
+/** site の union。**17 種類**(LP のセクション 12 + 文書ブロック 5)。ラベル表が漏れると画面が空欄になる。 */
 export const blockTypes: BlockType[] = [
   "hero", "features", "cta", "faq", "testimonials",
   "richText", "gallery", "stats", "pricing", "logos", "contact", "steps",
+  "heading", "text", "list", "image", "embed",
 ];
 
 /**

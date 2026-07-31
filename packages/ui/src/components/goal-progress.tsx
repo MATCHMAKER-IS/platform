@@ -3,6 +3,7 @@
  * 目標達成バー。実績と目標を比較し、達成率とターゲットマーカーを表示する。
  * @packageDocumentation
  */
+import * as React from "react";
 import { cn } from "../lib/cn";
 import { achievementRate } from "../lib/dashboard";
 

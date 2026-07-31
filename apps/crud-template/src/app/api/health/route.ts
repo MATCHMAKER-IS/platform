@@ -9,7 +9,7 @@
  * 分けるのは、依存が落ちているときに**再起動すべきか判断が変わる**ため。
  */
 import { runHealthChecks } from "@platform/observability";
-import { env } from "../../../server/env";
+import { env, usePrisma } from "../../../server/env";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,9 @@ export async function GET(req: Request): Promise<Response> {
       : {
         // 保存先。未設定ならメモリで動くが、再起動で消える
         "persistence": () => {
-          if (env.PERSISTENCE === "prisma" && !env.DATABASE_URL) {
+          // **`PERSISTENCE` は env のスキーマに無い。** 真偽値の `usePrisma` として
+          // 公開されている(server/env.ts)。生の環境変数を直接見ない
+          if (usePrisma && !env.DATABASE_URL) {
             throw new Error("PERSISTENCE=prisma には DATABASE_URL が必要です");
           }
         },

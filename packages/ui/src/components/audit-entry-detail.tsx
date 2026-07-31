@@ -3,7 +3,6 @@
  * 監査エントリ詳細。メタ情報と、before/after のフィールド差分を並べて表示する。
  * @packageDocumentation
  */
-import * as React from "react";
 import { cn } from "../lib/cn";
 
 /** フィールド差分。 */

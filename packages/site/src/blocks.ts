@@ -6,10 +6,22 @@
  * @packageDocumentation
  */
 
-/** ブロックの種類。 */
+/**
+ * ブロックの種類。
+ *
+ * **2 系統ある。** LP のセクション(`hero` `features` など)と、
+ * 会社概要や採用情報のような**文書ページのブロック**(`heading` `text` `list` `image` `embed`)。
+ * どちらも「ブロックの並び」として同じ枠組みで扱う。
+ *
+ * 増やしたら `demos/showcase/src/lib/union-literals.ts` の `blockTypes` にも足すこと
+ * (**ラベル表が漏れると画面が空欄になる**)。
+ */
 export type BlockType =
+  // LP のセクション
   | "hero" | "features" | "cta" | "faq" | "testimonials"
-  | "richText" | "gallery" | "stats" | "pricing" | "logos" | "contact" | "steps";
+  | "richText" | "gallery" | "stats" | "pricing" | "logos" | "contact" | "steps"
+  // 文書ページのブロック
+  | "heading" | "text" | "list" | "image" | "embed";
 
 /** ページを構成する 1 ブロック。 */
 export interface PageBlock {

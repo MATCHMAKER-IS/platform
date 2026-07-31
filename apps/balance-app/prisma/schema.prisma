@@ -4,6 +4,9 @@
 // (@platform/freee の planRetention が判断します)。
 generator client {
   provider = "prisma-client-js"
+  // **アプリごとに生成先を分ける。** 既定(node_modules/@prisma/client)のままだと
+  // 全アプリが 1 つの生成物を奪い合い、**最後に generate したアプリしか型が通らない**。
+  output   = "../src/generated/prisma"
 }
 
 datasource db {

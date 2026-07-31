@@ -57,7 +57,13 @@ export function parseAttendanceCsv(text: string): ImportResult {
     const breakMin = Number(breakRaw);
     if (!Number.isFinite(breakMin) || breakMin < 0) { errors.push({ row: rowNum, reason: `休憩時間が不正です: ${breakRaw}` }); return; }
 
-    records.push({ employeeId, date, clockIn, clockOut, workedMinutes: workedMinutes(inMin, outMin, breakMin) });
+    // **workedMinutes はレコードを 1 つ取る**(分の数値を 3 つ渡す形ではない)。
+    // `AttendanceRecord` は date / clockIn / clockOut / breakMinutes だけで、
+    // **employeeId は持たない**ので渡さない
+    records.push({
+      employeeId, date, clockIn, clockOut,
+      workedMinutes: workedMinutes({ date, clockIn, clockOut, breakMinutes: breakMin }),
+    });
   });
 
   return { records, errors };

@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { parseEnv, z } from "./index";
+import {
+  describe, it, expect } from "vitest"; import { parseEnv, z, isProductionRuntime,
+} from "./index";
 import { AppError } from "@platform/core";
 
 const schema = z.object({
@@ -21,5 +22,24 @@ describe("parseEnv", () => {
       expect(e).toBeInstanceOf(AppError);
       expect((e as AppError).code).toBe("CONFIG");
     }
+  });
+});
+
+describe("isProductionRuntime(本番実行とビルドを区別する)", () => {
+  it("開発・テストでは false", () => {
+    expect(isProductionRuntime({ NODE_ENV: "development" })).toBe(false);
+    expect(isProductionRuntime({ NODE_ENV: "test" })).toBe(false);
+    expect(isProductionRuntime({})).toBe(false);
+  });
+
+  it("本番で実行中なら true", () => {
+    expect(isProductionRuntime({ NODE_ENV: "production" })).toBe(true);
+    expect(isProductionRuntime({ NODE_ENV: "production", NEXT_PHASE: "phase-production-server" })).toBe(true);
+  });
+
+  it("**`next build` 中は false**(ビルドマシンに本番の秘密を置かせない)", () => {
+    // NODE_ENV だけで判定すると、ビルドでもページデータ収集のために
+    // env モジュールが読まれ、必須チェックで落ちる
+    expect(isProductionRuntime({ NODE_ENV: "production", NEXT_PHASE: "phase-production-build" })).toBe(false);
   });
 });

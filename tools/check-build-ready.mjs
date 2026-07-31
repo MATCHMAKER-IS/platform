@@ -27,6 +27,7 @@
  */
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
+import { collectFiles } from "./lib/collect-files.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const SITE = path.join(ROOT, "demos/showcase");
@@ -137,6 +138,101 @@ export function check() {
         if (typeof val !== "string" || val.includes("tsconfig") || val.includes("vitest")) continue;
         if (!existsSync(path.join(base, val.replace(/^\.\//, "")))) {
           issues.push(`[A] ${name}: exports["${key}"] の実体が無い(${val})`);
+        }
+      }
+    }
+  }
+
+  // ── A2: 利用側が「exports に無いサブパス」を import していないか ──
+  // `@platform/ui/styles/tokens.css` のように**存在しないサブパス**を書くと、
+  // **型検査は通るのに `next build` だけが落ちる**(Module not found)。
+  // exports に載っているものだけが解決できる。
+  const subpathMap = new Map(); // "@platform/ui" -> Set(["./tokens.css", "./icons"])
+  for (const name of readdirSync(path.join(ROOT, "packages"))) {
+    const pj = path.join(ROOT, "packages", name, "package.json");
+    if (!existsSync(pj)) continue;
+    const d = JSON.parse(readFileSync(pj, "utf8"));
+    const keys = d.exports && typeof d.exports === "object" ? Object.keys(d.exports) : ["."];
+    subpathMap.set(`@platform/${name}`, new Set(keys));
+  }
+  for (const rel of collectFiles(["packages", "apps", "demos"], ROOT, { extensions: [".ts", ".tsx"] })) {
+    if (rel.includes(".test.")) continue;
+    const text = readFileSync(path.join(ROOT, rel), "utf8");
+    for (const m of text.matchAll(/from\s+["'](@platform\/[a-z0-9-]+)(\/[^"']+)["']|import\s+["'](@platform\/[a-z0-9-]+)(\/[^"']+)["']/g)) {
+      const pkg = m[1] ?? m[3];
+      const sub = m[2] ?? m[4];
+      const allowed = subpathMap.get(pkg);
+      if (!allowed) continue; // 自前のパッケージでなければ対象外
+      if (!allowed.has(`.${sub}`)) {
+        const list = [...allowed].filter((k) => k !== ".").join(", ") || "(サブパスなし)";
+        issues.push(`[A2] ${rel}: ${pkg}${sub} は exports にありません。使えるのは ${list}`);
+      }
+    }
+  }
+
+  // ── A3: 相対 import に .js を付けていないか ──
+  // このリポジトリは `moduleResolution: "Bundler"` なので**拡張子は書かない**。
+  // `.js` を付けると **`tsc` は通るのに `next build` だけが落ちる**
+  // (実体は `.ts` なので Turbopack が解決できない)。
+  // Node の ESM 流儀(`.js` 必須)と混ざりやすいので明示的に止める。
+  for (const rel of collectFiles(["packages", "apps", "demos"], ROOT, { extensions: [".ts", ".tsx"] })) {
+    if (rel.includes(".test.")) continue;
+    const text = readFileSync(path.join(ROOT, rel), "utf8");
+    for (const m of text.matchAll(/(?:from|import)\s+["'](\.{1,2}\/[^"']*\.js)["']/g)) {
+      issues.push(`[A3] ${rel}: 相対 import に .js を付けています(${m[1]})。拡張子は書きません`);
+    }
+  }
+
+  // ── A4: middleware.ts と proxy.ts が両方ないか ──
+  // Next 16 で `middleware.ts` は `proxy.ts` に改称された。**両方あるとビルドが落ちる**
+  // (`Both middleware file and proxy file are detected`)。
+  // 改称のとき片方を消し忘れると、**型検査は通るのに next build だけが落ちる**。
+  for (const group of ["apps", "demos"]) {
+    const groupDir = path.join(ROOT, group);
+    if (!existsSync(groupDir)) continue;
+    for (const name of readdirSync(groupDir)) {
+      const src = path.join(groupDir, name, "src");
+      if (!existsSync(src)) continue;
+      const hasMiddleware = existsSync(path.join(src, "middleware.ts"));
+      const hasProxy = existsSync(path.join(src, "proxy.ts"));
+      if (hasMiddleware && hasProxy) {
+        issues.push(
+          `[A4] ${group}/${name}: middleware.ts と proxy.ts が両方あります` +
+          `\n     → Next 16 は proxy.ts を使います。middleware.ts の中身を移して削除してください`,
+        );
+      }
+    }
+  }
+
+  // ── A5: React フックを使うのに "use client" が無いか ──
+  // サーバコンポーネントから import されると
+  // `You're importing a module that depends on useState` でビルドが落ちる。
+  // **型検査は通る**ので、next build まで気づけない。
+  for (const rel of collectFiles(["packages"], ROOT, { extensions: [".ts"] })) {
+    if (rel.includes(".test.")) continue;
+    const text = readFileSync(path.join(ROOT, rel), "utf8");
+    if (!/\b(useState|useEffect|useRef|useMemo|useCallback|useReducer)\s*\(/.test(text)) continue;
+    if (/^\s*["']use client["']/.test(text)) continue;
+    issues.push(`[A5] ${rel}: React フックを使うのに "use client" がありません`);
+  }
+
+  // ── A6: Next のメタデータファイルが default export か ──
+  // `app/robots.ts` `app/sitemap.ts` `app/manifest.ts` は**メタデータファイル**として
+  // 特別扱いされ、`default` export を要求する。`GET` を書くと
+  // `Export default doesn't exist in target module` で落ちる(型検査は通る)。
+  for (const group of ["apps", "demos"]) {
+    const groupDir = path.join(ROOT, group);
+    if (!existsSync(groupDir)) continue;
+    for (const name of readdirSync(groupDir)) {
+      for (const meta of ["robots.ts", "sitemap.ts", "manifest.ts"]) {
+        const f = path.join(groupDir, name, "src", "app", meta);
+        if (!existsSync(f)) continue;
+        const text = readFileSync(f, "utf8");
+        if (!/export\s+default\b/.test(text)) {
+          issues.push(
+            `[A6] ${group}/${name}/src/app/${meta}: default export がありません` +
+            `\n     → Next はメタデータファイルとして扱うため、default を要求します`,
+          );
         }
       }
     }

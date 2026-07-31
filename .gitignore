@@ -7,3 +7,6 @@ coverage
 .env
 .env.local
 docs/platform/api
+
+# Prisma の生成物（アプリごとに output で分けている。generate で作られる）
+apps/*/src/generated/

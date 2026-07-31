@@ -92,7 +92,12 @@ export function createHttpOcr(options: HttpOcrOptions): OcrEngine {
     async recognize(image) {
       try {
         const form = new FormData();
-        const blob = image instanceof Blob ? image : typeof image === "string" ? new Blob([image]) : new Blob([image as unknown as BlobPart]);
+        // DOM の型名を使わず、ArrayBuffer 裏付けにする(理由は integrations/src/index.ts に詳述)。
+        // `new Uint8Array(x)` は必ず新しい ArrayBuffer を確保するので、
+        // DOM 有無どちらの tsconfig で検査されても通る。
+        const blob = image instanceof Blob
+          ? image
+          : typeof image === "string" ? new Blob([image]) : new Blob([new Uint8Array(image)]);
         form.append(options.fieldName ?? "image", blob);
         const res = await doFetch(options.endpoint, { method: "POST", headers: options.headers, body: form });
         if (!res.ok) return err(new AppError(ErrorCode.EXTERNAL, `OCR API エラー(${res.status})`));

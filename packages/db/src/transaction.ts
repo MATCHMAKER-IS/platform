@@ -5,7 +5,8 @@
  * 明示的な中止(ロールバック)手段を提供する。
  * @packageDocumentation
  */
-import { PrismaClient, type Prisma } from "@prisma/client";
+// 生成物の型に縛られないよう、必要な形だけを要求する(client-types.ts 参照)
+import type { RawCapableClient, TransactionClient, TransactionClientOf } from "./client-types";
 import { AppError, ErrorCode, tryCatch, type Result } from "@platform/core";
 import { mapPrismaError } from "./errors";
 
@@ -68,9 +69,9 @@ export function abortTransaction(reason: string | AppError): never {
  * @param fn トランザクション内の処理
  * @returns 処理の結果(**例外が出たらロールバック**。{@link abortTransaction} で明示的に中断できる)
  */
-export async function withTransaction<T>(
-  db: PrismaClient,
-  fn: (tx: Prisma.TransactionClient) => Promise<T>,
+export async function withTransaction<TClient extends RawCapableClient, T>(
+  db: TClient,
+  fn: (tx: TransactionClientOf<TClient>) => Promise<T>,
   options: TransactionOptions = {},
 ): Promise<Result<T>> {
   const txOptions = {
@@ -78,7 +79,9 @@ export async function withTransaction<T>(
     timeout: options.timeoutMs,
     maxWait: options.maxWaitMs,
   };
-  const res = await tryCatch(() => db.$transaction(fn, txOptions as never));
+  // 実体は同じオブジェクト。型だけをクライアント側のものに合わせる
+  const run = fn as unknown as (tx: TransactionClient) => Promise<T>;
+  const res = await tryCatch(() => db.$transaction(run, txOptions as never));
   if (res.ok) return res;
   const cause = res.error.cause ?? res.error;
   const aborted = asTransactionAbort(cause);

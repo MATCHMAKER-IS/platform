@@ -10,9 +10,9 @@ import type { Expense } from "./expense";
 /** 取込フィールド定義(ImportReview / validateImportRows 用)。 */
 export const EXPENSE_IMPORT_FIELDS = [
   { key: "date", label: "日付", type: "date" as const, required: true },
-  { key: "category", label: "カテゴリ", type: "text" as const, required: true },
+  { key: "category", label: "カテゴリ", type: "string" as const, required: true },
   { key: "amount", label: "金額", type: "number" as const, required: true },
-  { key: "note", label: "備考", type: "text" as const },
+  { key: "note", label: "備考", type: "string" as const },
 ];
 
 const HEADER_ALIASES: Record<string, string> = {

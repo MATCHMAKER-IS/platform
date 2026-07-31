@@ -34,3 +34,44 @@ Prisma 7 では **`schema.prisma` に `datasource.url` を書けない**(`P1012`
 `process.env.DATABASE_URL ?? ""` を使う。
 
 `node tools/check-test-setup.mjs` が、旧形式の残りと config の欠落を検出する。
+
+## 追記(2026-07): アプリごとに生成先を分ける
+
+**1 つの `@prisma/client` を 5 つの schema が奪い合っていた。** `generator` に
+`output` を書かないと、生成先は常に `node_modules/@prisma/client` になる。
+その結果、
+
+| generate に使った schema | 結果 |
+|---|---|
+| `packages/db`(AuditLog のみ) | **全アプリが壊れる** |
+| `internal-app` | 他の 3 アプリが壊れる |
+
+つまり**同時に 1 アプリしか型が通らない**。`turbo run build` が Windows で動かず、
+全アプリを続けてビルドしたことが無かったため、長く気づけなかった。
+
+### 決定
+
+1. アプリの `schema.prisma` に `output = "../src/generated/prisma"` を書く
+2. `createDb<TClient>()` を型引数付きにし、アプリは**自分の生成物の型**を渡す
+3. 基盤(`@platform/db`)は `PrismaClient` 全体を要求せず、
+   **実際に使うメソッドだけ**を構造的な型で受ける(`client-types.ts`)
+
+```ts
+// アプリ側
+import type { PrismaClient } from "../generated/prisma";
+export const db = createDb<PrismaClient>(env.DATABASE_URL);
+```
+
+3 が要点。基盤が `@prisma/client` の型に触れる限り、どの schema で生成したかに
+縛られ続ける。`RawCapableClient` のように**必要な形だけ**を要求すれば、
+どのアプリの生成物でも渡せる。
+
+構造的な型を書くときの注意:
+
+- `$queryRaw<T>` のように**型引数を受ける形**にする(呼び出し側が結果の型を指定する)
+- `$transaction(fn, options?)` の**第 2 引数を任意で受ける**(分離レベルの指定に使う)
+- `TransactionClient` に**索引シグネチャを持たせない**。持たせると相手にも要求され、
+  Prisma の生成型を渡したときに代入互換が崩れる。モデルへは `model(tx, "expense")` で触る
+
+生成物は `.gitignore` に入れ、各アプリの `build` が `prisma generate` を先に走らせる。
+`node tools/check-test-setup.mjs` が `output` の書き忘れと `prisma.config.ts` の欠落を検出する。

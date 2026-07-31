@@ -45,7 +45,12 @@ function collectFiles(root: string): string[] {
   const out: string[] = [];
   const walk = (dir: string) => {
     if (!existsSync(dir)) return;
-    for (const e of readdirSync(dir, { withFileTypes: true })) {
+    // **名前順に固定する。** `readdirSync` の順序は OS で違い(Linux と Windows で別)、
+    // そのまま生成物に入ると「環境によって差分が出る」状態になる。
+    // check-generated が恒常的に赤くなり、本物の drift が埋もれる。
+    const entries = readdirSync(dir, { withFileTypes: true })
+      .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+    for (const e of entries) {
       if (e.name === "node_modules") continue;
       const fp = path.join(dir, e.name);
       if (e.isDirectory()) walk(fp);
@@ -62,7 +67,9 @@ function collectFiles(root: string): string[] {
   // 探したい場面が多いため。両方が同じ検索で引ける状態にする。
   const pkgDir = path.join(root, "packages");
   if (existsSync(pkgDir)) {
-    for (const d of readdirSync(pkgDir, { withFileTypes: true })) {
+    const pkgs = readdirSync(pkgDir, { withFileTypes: true })
+      .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+    for (const d of pkgs) {
       if (!d.isDirectory()) continue;
       const readme = path.join(pkgDir, d.name, "README.md");
       if (existsSync(readme)) out.push(readme);

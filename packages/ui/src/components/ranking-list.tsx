@@ -3,6 +3,7 @@
  * ランキングリスト。上位項目を順位・値・インラインバーで表示する(売上上位商品など)。
  * @packageDocumentation
  */
+import * as React from "react";
 import { cn } from "../lib/cn";
 
 /** ランキングの 1 項目。 */

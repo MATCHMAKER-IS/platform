@@ -11,10 +11,11 @@ export const metrics = createMetrics();
 
 /** 完了スパンをログへ(構造化)。 */
 const exportSpan = (span: Span) => {
-  log.info("trace", {
+  // **pino 流儀: (obj, msg) の順。** メッセージを第 1 引数に書くと型が合わない
+  log.info({
     traceId: span.traceId, spanId: span.spanId, parentSpanId: span.parentSpanId,
     name: span.name, durationMs: span.durationMs, status: span.status, ...(span.error ? { error: span.error } : {}),
-  });
+  }, "trace");
 };
 
 /** アプリ共有トレーサ。 */

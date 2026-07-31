@@ -1,6 +1,6 @@
 # 基盤ヘルスレポート(自動生成)
 
-> 再生成: `node tools/platform-report.mjs`(手で編集しない)。生成日: 2026-07-30
+> 再生成: `node tools/platform-report.mjs`(手で編集しない)。生成日: 2026-07-31
 
 ## サマリー
 
@@ -9,9 +9,9 @@
 | パッケージ数 | 113 |
 | README 整備率 | 113/113(100%) |
 | ユニットテスト保有パッケージ | 112/113(99%)・テストファイル 298 |
-| 実装行数(packages/src, テスト除く) | 69,815 行 |
-| 公開 API(export) | 3487(api-surface 追跡) |
-| スモーク検証 | 1444 チェック / 369 セクション(実測は `pnpm verify:offline`) |
+| 実装行数(packages/src, テスト除く) | 70,101 行 |
+| 公開 API(export) | 3497(api-surface 追跡) |
+| スモーク検証 | 1446 チェック / 369 セクション(実測は `pnpm verify:offline`) |
 | ADR | 19 件 / デモ | 1 本 |
 
 ## アプリ

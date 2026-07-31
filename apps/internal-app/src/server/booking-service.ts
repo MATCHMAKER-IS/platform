@@ -170,7 +170,9 @@ export function createBooking(input: { resourceId: string; userId: string; title
   if (input.start >= input.end) throw new AppError(ErrorCode.VALIDATION, "終了は開始より後にしてください");
 
   // 予約可能期間(何日先まで・何分前まで)
-  const window = isWithinBookingWindow(input.start, { maxDaysAhead: RULES.maxDaysAhead, minMinutesAhead: RULES.minMinutesAhead }, now);
+  // **キー名は `maxAdvanceDays` / `minLeadMinutes`**(BookingWindow)。
+  // maxDaysAhead / minMinutesAhead という名前ではない
+  const window = isWithinBookingWindow(input.start, { maxAdvanceDays: RULES.maxDaysAhead, minLeadMinutes: RULES.minMinutesAhead }, now);
   if (!window.ok) throw new AppError(ErrorCode.VALIDATION, window.reason ?? "この日時は予約できません");
 
   // 休業日

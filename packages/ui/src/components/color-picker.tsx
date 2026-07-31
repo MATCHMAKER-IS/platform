@@ -4,7 +4,6 @@
  * 内部は react-colorful。値は 16 進カラー("#rrggbb")。
  * @packageDocumentation
  */
-import * as React from "react";
 import { Popover as PopoverPrimitive } from "radix-ui";
 import { HexColorPicker } from "react-colorful";
 import { cn } from "../lib/cn";

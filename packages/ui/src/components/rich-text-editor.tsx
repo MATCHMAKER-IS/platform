@@ -4,7 +4,6 @@
  * 太字・イタリック・取り消し線・コード・見出し・箇条書き/番号リスト・引用・文字色・文字サイズ・履歴に対応したエディタ。
  * @packageDocumentation
  */
-import * as React from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import { Extension } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";

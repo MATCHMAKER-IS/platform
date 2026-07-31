@@ -3,7 +3,6 @@
  * 添付ファイルの一覧表示。画像はサムネイル、その他はファイル名チップ。chat/board 非依存。
  * @packageDocumentation
  */
-import * as React from "react";
 import { cn } from "../lib/cn";
 
 /** 表示用の添付情報。 */

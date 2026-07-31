@@ -3,7 +3,6 @@
  * チャット画面の枠。ヘッダ + メッセージ一覧 + 入力欄を縦に並べる。
  * @packageDocumentation
  */
-import * as React from "react";
 import { cn } from "../lib/cn";
 import { MessageList, type MessageGroup } from "./message-list";
 import { MessageComposer } from "./message-composer";

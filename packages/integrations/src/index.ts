@@ -113,12 +113,26 @@ export function createApiClient(config: ApiClientConfig): ApiClient {
       ...headers,
       ...options.headers,
     };
-    let body: BodyInit | undefined;
+    // **DOM 固有の型名(`BodyInit` / `BlobPart`)を使わない。**
+    // このパッケージの tsconfig は DOM を含むが、**ソースを直接 import する側**
+    // (`@platform/ekyc` など DOM 無し)の tsconfig で型検査されるため、
+    // ここに DOM の型を書くと**利用側のビルドが落ちる**(TS2304)。
+    // 実際に入るのは FormData か JSON 文字列だけなので、それを直接書く。
+    let body: FormData | string | undefined;
     if (options.multipart) {
       const form = new FormData();
       for (const [k, v] of Object.entries(options.multipart.fields ?? {})) form.append(k, String(v));
       for (const f of options.multipart.files ?? []) {
-        const blob = f.data instanceof Blob ? f.data : new Blob([f.data as BlobPart], f.contentType ? { type: f.contentType } : {});
+        // **DOM の型名を使わず、ArrayBuffer 裏付けにする。** 2 つの制約を同時に満たす必要がある。
+        //  ・DOM 無しのパッケージから import されるので `BlobPart` などの名前は書けない(TS2304)
+        //  ・DOM ありで型検査されると、`BlobPart` は ArrayBuffer 裏付けのビューを要求する。
+        //    TypeScript 5.7 以降 `Uint8Array` は裏付けの型でジェネリックになったため、
+        //    `Uint8Array<ArrayBufferLike>` はそのままでは渡せない(TS2322)
+        // `new Uint8Array(x)` は**必ず新しい ArrayBuffer を確保**して複製するので両方を満たす。
+        // 複製のコストはかかるが、ここはファイル添付の組み立てなので許容する。
+        const blob = f.data instanceof Blob
+          ? f.data
+          : new Blob([new Uint8Array(f.data)], f.contentType ? { type: f.contentType } : {});
         form.append(f.field, blob, f.filename);
       }
       body = form;
@@ -127,7 +141,8 @@ export function createApiClient(config: ApiClientConfig): ApiClient {
     } else if (options.body !== undefined) {
       body = JSON.stringify(options.body);
     }
-    const init: RequestInit = {
+    // `RequestInit` も DOM の型名なので使わない。fetch の第 2 引数の型を取り出す
+    const init: NonNullable<Parameters<typeof fetch>[1]> = {
       method,
       headers: mergedHeaders,
       ...(body !== undefined ? { body } : {}),

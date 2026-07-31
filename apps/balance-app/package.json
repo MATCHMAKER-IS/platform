@@ -4,10 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "prisma generate --schema=prisma/schema.prisma && tsc -p tsconfig.json --noEmit && next build",
+    "db:generate": "prisma generate --schema=prisma/schema.prisma",
     "dev": "next dev --port 3006",
-    "build": "tsc -p tsconfig.json --noEmit && next build",
-    "start": "next start --port 3006",
     "lint": "eslint src",
+    "start": "next start --port 3006",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
@@ -23,6 +24,7 @@
     "@platform/observability": "workspace:*",
     "@platform/theme": "workspace:*",
     "@platform/ui": "workspace:*",
+    "@prisma/client": "^7.2.0",
     "next": "16.2.0",
     "react": "19.2.0",
     "react-dom": "19.2.0"
@@ -30,6 +32,8 @@
   "devDependencies": {
     "@platform/config": "workspace:*",
     "@types/react": "^19.0.0",
+    "dotenv": "^16.4.5",
+    "prisma": "^7.2.0",
     "typescript": "^5.7.3"
   }
 }

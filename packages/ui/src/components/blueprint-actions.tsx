@@ -4,7 +4,6 @@
  * blueprint パッケージには依存せず、算出済みのアクション一覧を受け取る(疎結合)。
  * @packageDocumentation
  */
-import * as React from "react";
 import { cn } from "../lib/cn";
 import { Badge } from "./badge";
 import { Button } from "./button";

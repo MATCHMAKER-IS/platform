@@ -3,7 +3,6 @@
  * 掲示板の投稿カード。投稿者・本文・リアクション・返信数を表示。board パッケージ非依存。
  * @packageDocumentation
  */
-import * as React from "react";
 import { linkify } from "@platform/html";
 import { cn } from "../lib/cn";
 

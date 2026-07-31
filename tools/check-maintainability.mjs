@@ -36,6 +36,8 @@ const IGNORE = [
   /[\\/]\.next[\\/]/,
   /[\\/]dist[\\/]/,
   /docs[\\/]platform[\\/]/,
+  // 生成物(Prisma の src/generated/prisma など)。人が書いたものではない
+  /[\\/]generated[\\/]/,
 ];
 
 function collect(dir, out = []) {

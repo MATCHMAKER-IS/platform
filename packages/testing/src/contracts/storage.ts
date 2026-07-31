@@ -24,7 +24,10 @@ export function runStorageContract(name: string, makeStorage: () => Storage): vo
 
     it("exists は保存有無を反映する", async () => {
       const s = makeStorage();
-      expect((await s.exists("x")).ok && (await s.exists("x")).value ? true : false).toBe(false);
+      // **一度変数に受けてから絞り込む。** `(await f()).ok && (await f()).value` と書くと
+      // **別の式なので絞り込みが効かず**、`Err` に value が無いと言われる(TS2339)。
+      const before = await s.exists("x");
+      expect(before.ok && before.value).toBe(false);
       await s.put("x", bytes);
       const ex = await s.exists("x");
       expect(ex.ok && ex.value).toBe(true);

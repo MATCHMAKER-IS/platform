@@ -71,7 +71,8 @@ export function AuditClient({ fetchImpl }: AuditClientProps) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-end gap-2">
-        <SearchInput value={actor} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setActor(e.target.value)} placeholder="操作者で絞り込み" />
+        {/* SearchInput は onChange ではなく **onValueChange**(文字列を直接受け取る) */}
+        <SearchInput value={actor} onValueChange={setActor} placeholder="操作者で絞り込み" />
         <Input value={action} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAction(e.target.value)} placeholder="操作で絞り込み（例 invoice.create）" className="rounded-[var(--radius)] border border-[var(--color-border)] px-2 py-1.5 text-sm" />
         <label className="text-xs text-[var(--color-muted)]">From<Input type="date" value={from} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFrom(e.target.value)} className="ml-1 rounded-[var(--radius)] border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
         <label className="text-xs text-[var(--color-muted)]">To<Input type="date" value={to} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTo(e.target.value)} className="ml-1 rounded-[var(--radius)] border border-[var(--color-border)] px-2 py-1 text-sm" /></label>

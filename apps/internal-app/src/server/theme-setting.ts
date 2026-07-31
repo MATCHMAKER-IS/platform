@@ -5,6 +5,8 @@
  * @packageDocumentation
  */
 import { AppError, ErrorCode } from "@platform/core";
+// Json 列に入れる値は toJson で包む(Prisma の InputJsonValue は索引シグネチャを要求する)
+import { toJson } from "@platform/db";
 import { db } from "./services";
 import { builtInThemes, parseTheme, validateTheme, type Theme } from "@platform/theme";
 
@@ -43,12 +45,12 @@ async function recordHistory(entry: Omit<ThemeHistoryEntry, "at">): Promise<void
   const full: ThemeHistoryEntry = { ...entry, at: new Date().toISOString() };
   try {
     const row = await db.systemSetting.findUnique({ where: { key: HISTORY_KEY } });
-    const current = Array.isArray((row?.value as { entries?: ThemeHistoryEntry[] })?.entries) ? (row!.value as { entries: ThemeHistoryEntry[] }).entries : [];
+    const current = Array.isArray((row?.value as unknown as { entries?: ThemeHistoryEntry[] })?.entries) ? (row!.value as unknown as { entries: ThemeHistoryEntry[] }).entries : [];
     const next = [...current, full].slice(-HISTORY_LIMIT);
     await db.systemSetting.upsert({
       where: { key: HISTORY_KEY },
-      create: { key: HISTORY_KEY, value: { entries: next }, updatedBy: entry.actor },
-      update: { value: { entries: next }, updatedBy: entry.actor },
+      create: { key: HISTORY_KEY, value: toJson({ entries: next }), updatedBy: entry.actor },
+      update: { value: toJson({ entries: next }), updatedBy: entry.actor },
     });
   } catch {
     // 履歴が残せなくても本処理は続行する
@@ -125,8 +127,8 @@ async function writeCustomThemes(themes: Theme[], actor?: string | null): Promis
   try {
     await db.systemSetting.upsert({
       where: { key: CUSTOM_KEY },
-      create: { key: CUSTOM_KEY, value, updatedBy: actor ?? null },
-      update: { value, updatedBy: actor ?? null },
+      create: { key: CUSTOM_KEY, value: toJson(value), updatedBy: actor ?? null },
+      update: { value: toJson(value), updatedBy: actor ?? null },
     });
   } catch {
     // DB 未接続でも呼び出し側を止めない
@@ -138,7 +140,8 @@ export async function getThemeSetting(): Promise<ThemeSetting> {
   try {
     const row = await db.systemSetting.findUnique({ where: { key: KEY } });
     if (!row) return DEFAULT_SETTING;
-    const value = row.value as ThemeSetting;
+    // Prisma の JsonValue からは直接変換できないので unknown を挟む
+    const value = row.value as unknown as ThemeSetting;
     // 保存済みスキンが登録から消えていたら既定にフォールバック
     if (!(await validSkinIds()).includes(value.skinId)) return { ...value, skinId: DEFAULT_SETTING.skinId };
     return { ...DEFAULT_SETTING, ...value };
@@ -154,8 +157,8 @@ export async function setThemeSetting(setting: ThemeSetting): Promise<ThemeSetti
   try {
     await db.systemSetting.upsert({
       where: { key: KEY },
-      create: { key: KEY, value, updatedBy: value.updatedBy ?? null },
-      update: { value, updatedBy: value.updatedBy ?? null },
+      create: { key: KEY, value: toJson(value), updatedBy: value.updatedBy ?? null },
+      update: { value: toJson(value), updatedBy: value.updatedBy ?? null },
     });
   } catch {
     // DB 未接続でも呼び出し側を止めない(検証・オフライン)

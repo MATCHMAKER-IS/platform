@@ -3,7 +3,6 @@
  * コピーライト表記。@platform/site の copyrightText で文字列を生成して表示する。
  * @packageDocumentation
  */
-import * as React from "react";
 import { cn } from "../lib/cn";
 
 /** {@link CopyrightNotice} の props。 */

@@ -5,7 +5,7 @@
  */
 import { withApiObservability } from "../../../../../server/instrument";
 import { currentUser } from "../../../../../server/authorize";
-import { serverEnv } from "../../../../../server/env";
+import { serverEnv, featureEnv } from "../../../../../server/env";
 import { auditLog, userStore, appMailer, settingsStore, alertSeenStore, auditActions } from "../../../../../server/platform-services";
 import { detectAnomalies, anomalyDigest, type AuditEvent } from "../../../../../server/audit-anomaly";
 import { buildAlertChannels, notifyNewAnomalies } from "../../../../../server/alert-notify";

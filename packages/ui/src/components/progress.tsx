@@ -2,7 +2,6 @@
  * 共通 Progress(進捗バー)と Seekbar(操作可能なシークバー)。
  * @packageDocumentation
  */
-import * as React from "react";
 import { Progress as Primitive } from "radix-ui";
 import { Slider } from "./slider";
 import { cn } from "../lib/cn";

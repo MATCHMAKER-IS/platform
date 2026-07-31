@@ -40,7 +40,10 @@ export function createRemoveBgRemover(options: RemoveBgOptions): BackgroundRemov
     async remove(image) {
       try {
         const form = new FormData();
-        const blob = image instanceof Blob ? image : new Blob([image as unknown as BlobPart]);
+        // DOM の型名を使わず、ArrayBuffer 裏付けにする(理由は integrations/src/index.ts に詳述)。
+        // `new Uint8Array(x)` は必ず新しい ArrayBuffer を確保するので、
+        // DOM 有無どちらの tsconfig で検査されても通る。
+        const blob = image instanceof Blob ? image : new Blob([new Uint8Array(image)]);
         form.append("image_file", blob);
         form.append("size", options.size ?? "auto");
         const res = await doFetch(endpoint, { method: "POST", headers: { "X-Api-Key": options.apiKey }, body: form });
@@ -79,7 +82,10 @@ export function createBackgroundRemover(options: GenericRemoverOptions): Backgro
     async remove(image) {
       try {
         const form = new FormData();
-        const blob = image instanceof Blob ? image : new Blob([image as unknown as BlobPart]);
+        // DOM の型名を使わず、ArrayBuffer 裏付けにする(理由は integrations/src/index.ts に詳述)。
+        // `new Uint8Array(x)` は必ず新しい ArrayBuffer を確保するので、
+        // DOM 有無どちらの tsconfig で検査されても通る。
+        const blob = image instanceof Blob ? image : new Blob([new Uint8Array(image)]);
         form.append(options.fieldName ?? "image_file", blob);
         const res = await doFetch(options.endpoint, { method: "POST", headers: options.headers, body: form });
         if (!res.ok) return err(new AppError(ErrorCode.EXTERNAL, `背景除去 API エラー(${res.status})`));

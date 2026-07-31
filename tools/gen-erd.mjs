@@ -95,7 +95,9 @@ ${mermaid}
 import { fileURLToPath } from "node:url";
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const target = process.argv[2];
-  const apps = target ? [target] : readdirSync(path.join(ROOT, "apps")).filter((a) => existsSync(path.join(ROOT, "apps", a, "prisma", "schema.prisma")));
+  // 名前順に固定する(readdirSync の順序は OS で違う。生成物に環境差が出る)
+  const apps = target ? [target] : readdirSync(path.join(ROOT, "apps")).sort()
+    .filter((a) => existsSync(path.join(ROOT, "apps", a, "prisma", "schema.prisma")));
   const results = [];
   for (const app of apps) {
     const r = generate(app);

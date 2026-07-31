@@ -1,6 +1,6 @@
 # Advisor レポート(自動生成)
 
-> 再生成: `node tools/advisor.mjs report`。生成日: 2026-07-30
+> 再生成: `node tools/advisor.mjs report`。生成日: 2026-07-31
 
 重複や似た API は「わざと(層が違う)」の場合もあります。這は**再利用の当たりを付ける入口**であり、機械的な指摘です。
 
@@ -91,7 +91,7 @@
 | `round` | @platform/units, @platform/utils |
 | `toHalfWidth` | @platform/utils, @platform/validation |
 
-## 似た概念の export(27 組・上位20)
+## 似た概念の export(28 組・上位20)
 
 | 概念 | 該当 |
 |---|---|
@@ -104,6 +104,7 @@
 | page | @platform/cms:PageInput / @platform/cms:PageStore / @platform/print:PageOptions / @platform/site:Page |
 | context | @platform/context:getContext / @platform/logger:ContextStore / @platform/logger:createContextStore / @platform/rag:buildContext |
 | daterange | @platform/datetime:DateRange / @platform/validation:dateRange |
+| json | @platform/db:toJson / @platform/mcp:jsonResult |
 | client | @platform/device:ClientInfo / @platform/device:getClientInfo / @platform/ui:useClientInfo |
 | i18n | @platform/i18n:I18nOptions / @platform/i18n:createI18n / @platform/ui:useI18n |
 | locale | @platform/i18n:Locale / @platform/ui:LocaleProvider / @platform/ui:LocaleStore / @platform/ui:isLocale |
@@ -114,7 +115,6 @@
 | sequence | @platform/sequence:SequenceOptions / @platform/sequence:SequenceStore / @platform/ui:isSequence / @platform/ui:parseSequence / @platform/utils:sequence |
 | throttle | @platform/session:ThrottleStore / @platform/utils:throttle |
 | kanban | @platform/task:toKanban / @platform/ui:Kanban |
-| theme | @platform/theme:Theme / @platform/theme:parseTheme / @platform/ui:ThemeProvider / @platform/ui:useTheme |
 
 ## 孤立パッケージ(1)
 

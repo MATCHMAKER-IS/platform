@@ -4,7 +4,10 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { AuditLogView, Card, FileList, Input, List, StatCard, type AuditLogRow, type FileListItem } from "@platform/ui";
+// **SimpleStatCard を使う。** @platform/ui には StatCard が 2 つあり、
+// 主(dashboard.tsx)は delta / trend / format を持つが **hint / href は無い**。
+// ここは「値＋単位＋リンク」なので SimpleStatCard(stat-card.tsx)が合う。
+import { AuditLogView, Card, FileList, Input, List, SimpleStatCard, type AuditLogRow, type FileListItem } from "@platform/ui";
 
 interface DashboardData {
   unreadCount: number;
@@ -94,18 +97,18 @@ export function DashboardClient({ fetchImpl }: DashboardClientProps) {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {show("unread") && <StatCard label="未読通知" value={data.unreadCount} icon="🔔" href="/notifications" />}
-        {show("pendingApprovals") && <StatCard label="承認待ち" value={data.pendingApprovals} hint="全体" icon="📝" href="/expenses" />}
-        {show("receivables") && <StatCard label="売掛残高" value={`¥${(data.receivablesTotal ?? 0).toLocaleString()}`} hint="未回収" icon="💰" href="/receivables" />}
-        {show("inventoryAlerts") && <StatCard label="在庫アラート" value={data.inventoryAlerts ?? 0} hint="発注要" icon="📦" href="/inventory" />}
+        {show("unread") && <SimpleStatCard label="未読通知" value={data.unreadCount} icon="🔔" href="/notifications" />}
+        {show("pendingApprovals") && <SimpleStatCard label="承認待ち" value={data.pendingApprovals} hint="全体" icon="📝" href="/expenses" />}
+        {show("receivables") && <SimpleStatCard label="売掛残高" value={`¥${(data.receivablesTotal ?? 0).toLocaleString()}`} hint="未回収" icon="💰" href="/receivables" />}
+        {show("inventoryAlerts") && <SimpleStatCard label="在庫アラート" value={data.inventoryAlerts ?? 0} hint="発注要" icon="📦" href="/inventory" />}
       </div>
       {trend.length > 0 && <div><TrendChart points={trend} /></div>}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {show("myTasks") && <StatCard label="自分の申請（承認待ち）" value={data.myPendingRequests} hint="担当タスク" icon="✅" href="/expenses" />}
-        {show("recentFiles") && <StatCard label="最近のファイル" value={data.recentFiles.length} icon="📁" href="/files" />}
-        {show("mailbox") && <StatCard label="受信箱の未読" value={data.mailboxUnread} icon="✉️" href="/mailbox" />}
-        {show("inquiries") && <StatCard label="未対応の問い合わせ" value={data.openInquiries} icon="📮" href="/inquiries" />}
-        {show("alerts") && <StatCard label="運用アラート" value={data.activeAlerts} icon="⚠️" href="/overview" />}
+        {show("myTasks") && <SimpleStatCard label="自分の申請（承認待ち）" value={data.myPendingRequests} hint="担当タスク" icon="✅" href="/expenses" />}
+        {show("recentFiles") && <SimpleStatCard label="最近のファイル" value={data.recentFiles.length} icon="📁" href="/files" />}
+        {show("mailbox") && <SimpleStatCard label="受信箱の未読" value={data.mailboxUnread} icon="✉️" href="/mailbox" />}
+        {show("inquiries") && <SimpleStatCard label="未対応の問い合わせ" value={data.openInquiries} icon="📮" href="/inquiries" />}
+        {show("alerts") && <SimpleStatCard label="運用アラート" value={data.activeAlerts} icon="⚠️" href="/overview" />}
       </div>
 
       {show("recentNotifications") && (

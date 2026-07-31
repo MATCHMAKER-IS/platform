@@ -4,7 +4,7 @@ import { serverEnv } from "../../../../../server/env";
 import { withApiObservability } from "../../../../../server/instrument";
 import { rollbackImportBatch } from "../../../../../server/import-repo";
 
-async function handleDELETE(_req: Request, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
+async function handleDELETE(req: Request, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
   // 認可: この API を叩いてよいかを最初に判定する
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
   requirePermission(user, "expense:read:own");

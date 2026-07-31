@@ -4,7 +4,7 @@ import { login, signSession, SESSION_MAX_AGE } from "../../../../server/auth";
 import { serverEnv } from "../../../../server/env";
 import { checkLoginAttempt, clientIp } from "../../../../server/login-limit";
 import { serializeCookie } from "@platform/session";
-import "../../../../server/guard.js"; // 初期ユーザー播種
+import "../../../../server/guard"; // 初期ユーザー播種
 
 export async function POST(req: Request): Promise<Response> {
   const body = (await req.json()) as Partial<{ email: string; password: string }>;

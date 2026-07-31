@@ -53,3 +53,35 @@ assertSecretStrength({ SESSION_SECRET, ADMIN_PASSWORD }, { isProduction: true })
 | 文字種が 1 種類のみ | warn |
 
 `checkSecretStrength` は判定結果を返すだけ（例外なし）、`assertSecretStrength` は本番で error があれば `CONFIG` エラーを投げます。
+
+## 本番判定は `isProductionRuntime()` を使う
+
+`NODE_ENV === "production"` だけで判定すると、**`next build` でも真**になる。
+ビルドはページデータ収集のためにルートハンドラを読み込むので、そこで秘密値を必須に
+すると**ビルドマシンに本番の秘密を置くまでビルドできない**。
+
+```ts
+if (isProductionRuntime()) {
+  const required = requireEnv(["SESSION_SECRET", "ADMIN_PASSWORD"]);
+  assertSecretStrength(required, { isProduction: true });
+}
+```
+
+`NEXT_PHASE=phase-production-build` を見てビルド中を除外する。
+**実行時には改めて検証される**ので、本番の安全性は落ちない。
+
+## ビルド中だけ既定値にする
+
+`next build` はページデータ収集のためにサーバ側モジュールを読み込む。
+`DATABASE_URL` のような値を必須にすると、**ビルドマシンに接続情報を置くまで
+ビルドできない**。
+
+```ts
+DATABASE_URL: requiredAtRuntime(
+  z.string().url(),                                        // 実行時はこれ
+  z.string().default("postgresql://build@localhost:5432/build"),  // ビルド中はこれ
+),
+```
+
+**実行時には元の検証がそのまま効く**ので、安全性は落ちない。
+判定は `NEXT_PHASE=phase-production-build` を見ている(`isBuildPhase()`)。

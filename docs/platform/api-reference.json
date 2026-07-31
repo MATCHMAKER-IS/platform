@@ -9944,7 +9944,7 @@
       "name": "bulkInsertReturning",
       "kind": "function",
       "summary": "一括挿入して生成レコード(ID 含む)を返す。トランザクション内で 1 件ずつ作成するため ID が必要な場合に使う(その分 createMany より遅い)。全件成功か全件失敗。",
-      "signature": "bulkInsertReturning(db: PrismaClient, pick: (tx: Prisma.TransactionClient) => CreateDelegate<T>, rows: unknown[],): Promise<Result<T[]>>",
+      "signature": "bulkInsertReturning(db: TClient, pick: (tx: TransactionClientOf<TClient>) => CreateDelegate<T>, rows: unknown[],): Promise<Result<T[]>>",
       "params": [
         {
           "name": "pick",
@@ -9958,7 +9958,7 @@
       "name": "bulkUpsert",
       "kind": "function",
       "summary": "冪等な一括アップサート(再実行しても重複しない)。トランザクション内で実行。",
-      "signature": "bulkUpsert(db: PrismaClient, pick: (tx: Prisma.TransactionClient) => UpsertDelegate<T>, rows: Row[], build: (row: Row) => { where: …): Promise<Result<T[]>>",
+      "signature": "bulkUpsert(db: TClient, pick: (tx: TransactionClientOf<TClient>) => UpsertDelegate<T>, rows: Row[], build: (row: Row) => { where: u…): Promise<Result<T[]>>",
       "params": [
         {
           "name": "pick",
@@ -9998,7 +9998,7 @@
       "name": "checkDatabase",
       "kind": "function",
       "summary": "データベース接続の疎通確認(SELECT 1)。ヘルスチェックエンドポイント向き。",
-      "signature": "checkDatabase(db: PrismaClient): Promise<Result<true>>",
+      "signature": "checkDatabase(db: RawCapableClient): Promise<Result<true>>",
       "params": [
         {
           "name": "db",
@@ -10015,7 +10015,7 @@
       "name": "createDb",
       "kind": "function",
       "summary": "SQL が実行されるたびに呼ばれる。**開発時のデバッグ用**。 渡すと Prisma のクエリログが有効になる(わずかにオーバーヘッドがあるため本番では渡さない)。",
-      "signature": "createDb(databaseUrl: string, options: CreateDbOptions = {}): PrismaClient",
+      "signature": "createDb(databaseUrl: string, options: CreateDbOptions = {}): TClient",
       "params": [
         {
           "name": "databaseUrl",
@@ -10026,8 +10026,8 @@
           "description": "任意。`onQuery` を渡すと SQL を観測できる(開発時のデバッグ用)"
         }
       ],
-      "returns": "共有 {@link PrismaClient}",
-      "example": "const db = createDb(url, {\n  onQuery: (q) => debugCollector.record(getRequestId(), {\n    kind: \"sql\", label: summarizeSql(q.query), durationMs: q.durationMs, ok: true,\n  }),\n});\n```\n/\n  onQuery?: (info: QueryInfo) => void;\n}\n\n/**\nPrismaClient のシングルトンを生成する。\n\n```ts\nconst db = createDb(env.DATABASE_URL);\nconst users = await db.user.findMany();"
+      "returns": "共有クライアント",
+      "example": "const db = createDb(url, {\n  onQuery: (q) => debugCollector.record(getRequestId(), {\n    kind: \"sql\", label: summarizeSql(q.query), durationMs: q.durationMs, ok: true,\n  }),\n});\n```\n/\n  onQuery?: (info: QueryInfo) => void;\n}\n\n/**\nPrismaClient のシングルトンを生成する。\n\n**アプリが自分で生成したクライアントを使える。** このリポジトリは\nアプリごとに `schema.prisma` を分けており(ADR-0006)、`generator` の `output` で\n生成先も分けている。型引数にアプリの `PrismaClient` を渡すと、\n**そのアプリのモデルが型として見える**ようになる。\n\n省略すると `@prisma/client` の型になる(= 最後に generate した schema のもの)。\nアプリからは必ず型引数を渡すこと。\n\n```ts\n// アプリ側(apps/internal-app/src/server/services.ts)\nimport { PrismaClient } from \"../generated/prisma\";\n\nexport const db = createDb<PrismaClient>(env.DATABASE_URL);\nconst rows = await db.expense.findMany();  // アプリのモデルが見える"
     },
     {
       "name": "createQueryCache",
@@ -10144,7 +10144,7 @@
       "name": "executeRaw",
       "kind": "function",
       "summary": "パラメータ化された生SQL(INSERT/UPDATE/DELETE 等)を実行し、影響行数を返す。",
-      "signature": "executeRaw(db: PrismaClient, query: Prisma.Sql,): Promise<Result<number>>",
+      "signature": "executeRaw(db: RawCapableClient, query: Prisma.Sql,): Promise<Result<number>>",
       "params": [
         {
           "name": "db",
@@ -10293,6 +10293,24 @@
       "summary": "マイグレーション実行。`prisma migrate deploy` を起動する(アプリ起動時・CI・ デプロイ時に本番 DB へ適用)。開発中のスキーマ変更は `prisma migrate dev` を CLI で使う。"
     },
     {
+      "name": "model",
+      "kind": "function",
+      "summary": "トランザクション内でモデルを取り出す。 `TransactionClient` は索引シグネチャを持たない(持たせると Prisma の生成型と 代入互換が崩れる)ため、モデルへは**このヘルパー経由**で触る。 型引数に期待する形を書くと、その形として扱える。",
+      "signature": "model(tx: TransactionClient, name: string): T",
+      "params": [
+        {
+          "name": "tx",
+          "description": "トランザクションクライアント"
+        },
+        {
+          "name": "model",
+          "description": "モデル名(`\"expense\"` など。**生成物のプロパティ名**)"
+        }
+      ],
+      "returns": "そのモデルのデリゲート",
+      "example": "await bulkInsert(db, (tx) => model<CreateDelegate<Product>>(tx, \"product\"), rows);"
+    },
+    {
       "name": "normalizeBigInt",
       "kind": "function",
       "summary": "BigInt を含むオブジェクトを JSON 安全な形(number/string)に変換する。 PostgreSQL の集計結果をそのまま `JSON.stringify` すると例外になるため使う。",
@@ -10347,7 +10365,7 @@
       "name": "queryRaw",
       "kind": "function",
       "summary": "生SQL の実行ヘルパー。 - `sql\\`\\`` タグでパラメータ化し、SQL インジェクションを防ぐ。 - 失敗は {@link @platform/core#AppError}(コード `DATABASE`)に正規化する。 - `queryRawValidated` は結果を zod スキーマで検証し、`queryRaw<T>` のような 「実行時未検証のキャスト」による型の嘘を防ぐ。 - PostgreSQL の `COUNT(*)` 等は BigInt を返すため {@link normalizeBigInt} を用意。",
-      "signature": "queryRaw(db: PrismaClient, query: Prisma.Sql,): Promise<Result<T[]>>",
+      "signature": "queryRaw(db: RawCapableClient, query: Prisma.Sql,): Promise<Result<T[]>>",
       "params": [
         {
           "name": "db",
@@ -10364,7 +10382,7 @@
       "name": "queryRawValidated",
       "kind": "function",
       "summary": "生SQL を実行し、各行を zod スキーマで検証して返す。 実行時に型が保証されるため、集計クエリなど「型が曖昧になりがちな」箇所に使う。",
-      "signature": "queryRawValidated(db: PrismaClient, query: Prisma.Sql, schema: S,): Promise<Result<z.infer<S>[]>>",
+      "signature": "queryRawValidated(db: RawCapableClient, query: Prisma.Sql, schema: S,): Promise<Result<z.infer<S>[]>>",
       "params": [
         {
           "name": "db",
@@ -10386,7 +10404,7 @@
       "name": "rawExecute",
       "kind": "function",
       "summary": "普通の SQL 文字列を実行して影響行数を返す(INSERT/UPDATE/DELETE/DDL 等)。 パラメータは `$1, $2, ...` で束縛する。",
-      "signature": "rawExecute(db: PrismaClient, sqlText: string, params: unknown[] = [],): Promise<Result<number>>",
+      "signature": "rawExecute(db: RawCapableClient, sqlText: string, params: unknown[] = [],): Promise<Result<number>>",
       "params": [
         {
           "name": "db",
@@ -10408,14 +10426,14 @@
       "name": "rawQuery",
       "kind": "function",
       "summary": "普通の SQL 文字列を実行して結果行を返す(SELECT 等)。 パラメータは `$1, $2, ...` のプレースホルダで束縛する(SQL インジェクション対策)。 ⚠️ SQL 文字列自体にユーザー入力を連結しないこと。値は必ず params で渡す。",
-      "signature": "rawQuery(db: PrismaClient, sqlText: string, params: unknown[] = [],): Promise<Result<number>>",
+      "signature": "rawQuery(db: RawCapableClient, sqlText: string, params: unknown[] = [],): Promise<Result<number>>",
       "example": "const res = await rawQuery(db, \"SELECT * FROM users WHERE age > $1 AND active = $2\", [20, true]);"
     },
     {
       "name": "recordAudit",
       "kind": "function",
       "summary": "操作者(ユーザー ID / メール等)。 */ actor: string; /** 操作内容(例: \"user.create\"）。 */ action: string; /** 操作対象の識別子(任意)。 */ target?: string; /** 付随情報(個人情報や機微情報は入れない)。 */ metadata?: Record<string, unknown>; } /** 監査ログを 1 件記録する。",
-      "signature": "recordAudit(db: PrismaClient, entry: AuditEntry,): Promise<Result<void>>",
+      "signature": "recordAudit(db: AuditCapableClient, entry: AuditEntry,): Promise<Result<void>>",
       "params": [
         {
           "name": "db",
@@ -10433,7 +10451,7 @@
       "name": "recordAuditChange",
       "kind": "function",
       "summary": "変更前の状態。 */ before: Record<string, unknown> | null | undefined; /** 変更後の状態。 */ after: Record<string, unknown> | null | undefined; } /** 変更差分付きで監査ログを記録する。metadata.changes に変わったフィールドのみ残す。 変更が無い場合も記録する(no-op を明示したくない場合は呼び出し側で判定)。",
-      "signature": "recordAuditChange(db: PrismaClient, entry: AuditChangeEntry): Promise<Result<void>>",
+      "signature": "recordAuditChange(db: AuditCapableClient, entry: AuditChangeEntry): Promise<Result<void>>",
       "params": [
         {
           "name": "params",
@@ -10525,10 +10543,23 @@
       "returns": "テナント条件を足した where。**全クエリに必ず適用する**(1 箇所でも漏れると、他社のデータが見える)"
     },
     {
+      "name": "toJson",
+      "kind": "function",
+      "summary": "Json 列に入れる値を、Prisma の入力型として受け入れられる形にする。 【なぜ必要か】 Prisma の `InputJsonValue` はオブジェクトに**索引シグネチャ**を要求する。 `interface Theme { ... }` のように名前の付いた型や、その配列は 索引シグネチャを持たないため、Json 列にそのまま渡すと型エラーになる。 value: { entries: history } // ❌ Type 'ThemeHistoryEntry[]' is not assignable value: toJson({ entries: history }) // ✅ **中身は変えない**(実行時は何もしない)。JSON として妥当な値を渡すのは呼び出し側の責任。 関数や `undefined` を含む値を渡すと、保存時に落ちるか黙って欠ける。",
+      "signature": "toJson(value: unknown): never",
+      "params": [
+        {
+          "name": "value",
+          "description": "Json 列に入れる値(**JSON として妥当なもの**)"
+        }
+      ],
+      "returns": "Prisma の入力型として渡せる値"
+    },
+    {
       "name": "transaction",
       "kind": "function",
       "summary": "複数の書き込みを 1 トランザクションで実行する。 いずれかが失敗すれば全体がロールバックされる。",
-      "signature": "transaction(db: PrismaClient, fn: (tx: Prisma.TransactionClient) => Promise<T>,): Promise<Result<T>>",
+      "signature": "transaction(db: TClient, fn: (tx: TransactionClientOf<TClient>) => Promise<T>,): Promise<Result<T>>",
       "params": [
         {
           "name": "db",
@@ -10551,7 +10582,7 @@
       "name": "transactionWithRetry",
       "kind": "function",
       "summary": "最大再試行回数(既定 3)。 */ retries?: number; /** 再試行間隔(ミリ秒、既定 50、試行ごとに倍化)。 */ baseDelayMs?: number; } /** デッドロック/シリアライズ失敗(P2034 等)を自動再試行するトランザクション。 一時的な書き込み競合に強くなる。回復不能な失敗は {@link mapPrismaError} で返す。",
-      "signature": "transactionWithRetry(db: PrismaClient, fn: (tx: Prisma.TransactionClient) => Promise<T>, options: RetryOptions = {},): Promise<Result<T>>",
+      "signature": "transactionWithRetry(db: TClient, fn: (tx: TransactionClientOf<TClient>) => Promise<T>, options: RetryOptions = {},): Promise<Result<T>>",
       "params": [
         {
           "name": "db",
@@ -10573,7 +10604,7 @@
       "name": "withTransaction",
       "kind": "function",
       "summary": "トランザクションを実行する。正常終了でコミット、例外でロールバック。 `abortTransaction()` で任意の地点から明示的にロールバックできる。",
-      "signature": "withTransaction(db: PrismaClient, fn: (tx: Prisma.TransactionClient) => Promise<T>, options: TransactionOptions = {},): Promise<Result<T>>",
+      "signature": "withTransaction(db: TClient, fn: (tx: TransactionClientOf<TClient>) => Promise<T>, options: TransactionOptions = {},): Promise<Result<T>>",
       "params": [
         {
           "name": "db",
@@ -11468,6 +11499,33 @@
       "summary": "環境変数の周辺ユーティリティ。parseEnv(検証)を補い、実運用で必要になる 「説明の生成」「秘密値のマスキング」「.env.example の生成」を提供する。"
     },
     {
+      "name": "isBuildPhase",
+      "kind": "function",
+      "summary": "**`next build` 中か**を判定する。 ビルドは「ページデータの収集」でサーバ側モジュールを読み込むため、 起動時検証がそのまま走る。DB 接続情報などをビルドマシンに置きたくない場面で使う。",
+      "signature": "isBuildPhase(source: Record<string, string | undefined> = process.env): boolean",
+      "params": [
+        {
+          "name": "source",
+          "description": "環境変数(既定 `process.env`)"
+        }
+      ],
+      "returns": "ビルド中なら true"
+    },
+    {
+      "name": "isProductionRuntime",
+      "kind": "function",
+      "summary": "**本番として動いているか**を判定する(ビルド中は false)。 `NODE_ENV === \"production\"` だけで判定すると、**`next build` でも真になる**。 ビルドは「ページデータの収集」でルートハンドラを読み込むため、 秘密値を必須にしていると **ビルドマシンに本番の秘密を置くまでビルドできない**。 Next.js はビルド中に `NEXT_PHASE=phase-production-build` を設定するので、 それを見て除外する。**本番で実際に起動したときだけ**必須チェックを効かせる。",
+      "signature": "isProductionRuntime(source: Record<string, string | undefined> = process.env): boolean",
+      "params": [
+        {
+          "name": "source",
+          "description": "環境変数(既定 `process.env`)"
+        }
+      ],
+      "returns": "本番実行中なら true。**ビルド中は false**",
+      "example": "// アプリの env.ts\nif (isProductionRuntime()) {\n  const required = requireEnv([\"SESSION_SECRET\", \"ADMIN_PASSWORD\"]);\n  assertSecretStrength(required, { isProduction: true });\n}"
+    },
+    {
       "name": "isSecretName",
       "kind": "function",
       "summary": "変数名。 */ name: string; /** 必須か(既定値が無く optional でもない)。 */ required: boolean; /** 既定値(あれば)。 */ defaultValue?: string; /** 説明(zod の .describe() から)。 */ description?: string; /** 想定される型・許容値の説明(例: \"文字列(URL)\"、\"debug | info | warn\")。 */ type: string; /** 秘密値とみなすか(名前に KEY/SECRET/TOKEN/PASSWORD を含む)。 */ secret: boolean; } /** 名前から秘密値らしさを判定する。",
@@ -11539,6 +11597,24 @@
         }
       ],
       "returns": "`.env.example` の内容(**値は空にする**。秘密をコミットしないため)"
+    },
+    {
+      "name": "requiredAtRuntime",
+      "kind": "function",
+      "summary": "**実行時は必須、ビルド中だけ既定値**にするスキーマを返す。 `next build` はページデータ収集のためにサーバ側モジュールを読み込むので、 `DATABASE_URL` のような値を必須にすると**ビルドマシンに本番の接続情報を置くまで ビルドできない**。実行時には元の検証がそのまま効くので、安全性は落ちない。 **スキーマは呼び出し側が両方渡す。** ここで `z` を使うと、 zod を持たない環境(smoke の軽量スタブなど)で読み込めなくなる。",
+      "signature": "requiredAtRuntime(runtime: TRuntime, build: TBuild): TRuntime",
+      "params": [
+        {
+          "name": "runtime",
+          "description": "実行時に使う検証(`z.string().url()` など)"
+        },
+        {
+          "name": "build",
+          "description": "ビルド中に使うスキーマ(`z.string().default(\"...\")` など)"
+        }
+      ],
+      "returns": "ビルド中なら `build`、それ以外は `runtime`",
+      "example": "DATABASE_URL: requiredAtRuntime(\n  z.string().url(),\n  z.string().default(\"postgresql://build@localhost:5432/build\"),\n),"
     },
     {
       "name": "requireEnv",
@@ -22300,7 +22376,7 @@
       "kind": "function",
       "summary": "社内ツール用の robots.txt を返す(全クローラーを全パス拒否)。 **robots.txt は「お願い」でしかない**(行儀の悪いクローラーは無視する)。 本当に守るなら認証で守ること。これは補助。",
       "signature": "internalRobotsTxt(): string",
-      "returns": "robots.txt の中身"
+      "returns": "robots.txt の中身 / /** **Next.js の App Router では使わない。** `app/robots.ts` はメタデータファイルとして特別扱いされ、 `MetadataRoute.Robots` を返す `default` export を要求する。 この関数は文字列を返すので、静的配信や Pages Router など **自分でレスポンスを組み立てる場面**で使う。 ```ts // Next.js App Router ではこちら export default function robots(): MetadataRoute.Robots { return { rules: [{ userAgent: \"*\", disallow: \"/\" }] }; } ```"
     },
     {
       "name": "JsonLd",

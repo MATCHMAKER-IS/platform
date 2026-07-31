@@ -3,14 +3,22 @@
  * ここが「アプリ固有の設定(ロジック側)」の一例。
  * @packageDocumentation
  */
-import { parseEnv, requireEnv, optionalEnv, assertSecretStrength, z } from "@platform/env";
+import { parseEnv, requireEnv, optionalEnv, assertSecretStrength, isProductionRuntime, requiredAtRuntime, z } from "@platform/env";
 
 export const env = parseEnv(
   z.object({
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-    DATABASE_URL: z.string().url().describe("接続先 PostgreSQL"),
+    // **ビルド中だけ既定値**。next build はページデータ収集でこのモジュールを読むため、
+    // 必須のままだとビルドマシンに接続情報を置くまでビルドできない(実行時は検証が効く)
+    DATABASE_URL: requiredAtRuntime(
+      z.string().url(),
+      z.string().default("postgresql://build@localhost:5432/build"),
+    ).describe("接続先 PostgreSQL"),
     LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error", "fatal"]).default("info").describe("ログの詳細度"),
-    MAIL_FROM: z.string().email().describe("送信元メールアドレス"),
+    MAIL_FROM: requiredAtRuntime(
+      z.string().email(),
+      z.string().default("build@example.com"),
+    ).describe("送信元メールアドレス"),
     SMTP_HOST: z.string().default("localhost").describe("SMTP サーバのホスト"),
     SMTP_PORT: z.coerce.number().default(1025).describe("SMTP サーバのポート"),
   }),
@@ -26,7 +34,10 @@ export const env = parseEnv(
  * 欠けていても起動を止めず、開発用の既定値で継続する。
  */
 function loadServerEnv(): { DATABASE_URL: string; SESSION_SECRET: string; SECRET_MASTER_KEY: string } {
-  const isProd = process.env.NODE_ENV === "production";
+  // **ビルド中は必須チェックを見送る。** `next build` は NODE_ENV=production で動き、
+  // ページデータ収集のためにこのモジュールを読み込む。ここで落とすと
+  // **ビルドマシンに本番の秘密を置くまでビルドできない**(実行時に改めて検証される)
+  const isProd = isProductionRuntime();
   if (isProd) {
     // 本番では必須。欠けていれば起動時に落とす(fail-fast)
     const required = requireEnv(["DATABASE_URL", "SESSION_SECRET"]);

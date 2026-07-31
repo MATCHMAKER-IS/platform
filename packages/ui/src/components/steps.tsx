@@ -2,7 +2,6 @@
  * 共通 Steps(ステッパー)。多段フローの進捗表示。
  * @packageDocumentation
  */
-import * as React from "react";
 import { Check } from "lucide-react";
 import { cn } from "../lib/cn";
 

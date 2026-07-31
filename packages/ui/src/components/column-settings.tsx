@@ -4,7 +4,6 @@
  * localStorage / repository に永続化する(createFetchLayoutStore と同様のパターン)。
  * @packageDocumentation
  */
-import * as React from "react";
 import { ChevronUp, ChevronDown, Eye, EyeOff } from "lucide-react";
 import { cn } from "../lib/cn";
 import { useT } from "./i18n-provider";

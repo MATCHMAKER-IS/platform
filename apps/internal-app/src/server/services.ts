@@ -4,6 +4,8 @@
  * @packageDocumentation
  */
 import { createLogger } from "@platform/logger";
+// このアプリ専用の生成物(prisma/schema.prisma の output で生成される)
+import type { PrismaClient } from "../generated/prisma";
 import { logContext } from "./log-context";
 import { createDb } from "@platform/db";
 import { summarizeSql } from "@platform/debug";
@@ -18,8 +20,13 @@ export const log = createLogger({ level: env.LOG_LEVEL, base: { service: "intern
 /**
  * DB クライアント。Platform Debugger が有効なときだけ SQL を記録する
  * (`onQuery` を渡すと Prisma のクエリログが有効になるため、本番では渡さない)。
+ *
+ * **型引数にこのアプリの生成物を渡す。** schema はアプリごとに分かれており
+ * (ADR-0006)、生成先も `src/generated/prisma` に分けてある。
+ * 渡さないと `@prisma/client`(= 最後に generate した schema)の型になり、
+ * `db.expense` などが「存在しない」と言われる。
  */
-export const db = createDb(
+export const db = createDb<PrismaClient>(
   env.DATABASE_URL,
   featureEnv.DEBUG_TOOL
     ? {

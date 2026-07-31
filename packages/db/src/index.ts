@@ -35,3 +35,7 @@ export { createSeeder, type Seeder, type SeedLogger } from "./seed";
 export { fullTextSearch, ginIndexSql, isSafeIdentifier, buildTsVectorExpr, type FullTextSearchOptions } from "./search";
 export { createTenantClient, tenantWhere, tenantData, type TenantClientOptions } from "./tenant";
 export { PrismaClient, Prisma } from "@prisma/client";
+// **生成物に依存しないクライアント型。** アプリごとに schema を分けているため、
+// 基盤はこの構造的な型だけを要求する(client-types.ts に理由を詳述)
+export type { RawCapableClient, TransactionClient, TransactionClientOf, AuditCapableClient, ModelDelegate } from "./client-types";
+export { model, toJson } from "./client-types";

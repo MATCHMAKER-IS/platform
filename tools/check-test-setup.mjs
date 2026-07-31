@@ -176,16 +176,46 @@ for (const schemaPath of collectFiles(["packages", "apps"], ROOT, { extensions: 
     `\n     → url の行を消し、同じパッケージに prisma.config.ts を置いてください`,
   );
 }
-// prisma.config.ts が 1 つはあるか。
-// **このリポジトリは `packages/db` に 1 つ置き、アプリの schema は `--schema` で指す**
-// (docs/ops/SETUP.md)。アプリごとに config を置くと `--schema` と競合して混乱するので、
-// 「schema があるディレクトリごとに config」ではなく「CLI を動かす場所に 1 つ」を確認する。
-if (existsSync(path.join(ROOT, "packages", "db", "prisma")) &&
-    !existsSync(path.join(ROOT, "packages", "db", "prisma.config.ts"))) {
-  problems.push(
-    "packages/db/prisma.config.ts がありません(Prisma 7 では接続先をここで渡します)" +
-    "\n     → schema.prisma の url は使えません(P1012)",
-  );
+// **schema があるディレクトリには prisma.config.ts が要る。**
+// Prisma 7 は接続先を config で受け取る(schema の url は P1012)。
+// アプリごとに schema と生成先(output)を分けているので、config もアプリごとに置く。
+for (const schemaPath of collectFiles(["packages", "apps"], ROOT, { extensions: [".prisma"] })) {
+  const pkgRoot = schemaPath.split("/").slice(0, 2).join("/");
+  if (!existsSync(path.join(ROOT, pkgRoot, "prisma.config.ts"))) {
+    problems.push(`${pkgRoot}/prisma.config.ts がありません(Prisma 7 では接続先をここで渡します)`);
+  }
+}
+
+// **schema があるパッケージは Prisma の依存を宣言する。**
+// pnpm は未宣言の依存を解決しないので、`prisma generate` が
+// `Could not resolve @prisma/client` で落ちる(生成物のランタイムに必要)。
+for (const schemaPath of collectFiles(["packages", "apps"], ROOT, { extensions: [".prisma"] })) {
+  const pkgRoot = schemaPath.split("/").slice(0, 2).join("/");
+  const pkgPath = path.join(ROOT, pkgRoot, "package.json");
+  if (!existsSync(pkgPath)) continue;
+  const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+  const all = { ...pkg.dependencies, ...pkg.devDependencies };
+  for (const need of ["@prisma/client", "prisma"]) {
+    if (!all[need]) {
+      problems.push(
+        `${pkgRoot}: schema.prisma があるのに ${need} を宣言していません` +
+        `\n     → pnpm は未宣言の依存を解決しません(prisma generate が落ちます)`,
+      );
+    }
+  }
+}
+
+// **アプリの schema には output が要る。** 既定のままだと全アプリが
+// node_modules/@prisma/client を奪い合い、**最後に generate したものしか型が通らない**。
+for (const schemaPath of collectFiles(["apps"], ROOT, { extensions: [".prisma"] })) {
+  const text = readFileSync(path.join(ROOT, schemaPath), "utf8");
+  const gen = /generator\s+\w+\s*\{([\s\S]*?)\}/.exec(text);
+  if (gen && !/^\s*output\s*=/m.test(gen[1] ?? "")) {
+    problems.push(
+      `${schemaPath}: generator に output がありません` +
+      `\n     → 生成先を分けないと、**最後に generate したアプリしか型が通りません**`,
+    );
+  }
 }
 
 // ── 7. turbo の UI モード ────────────────────────────────────────────────

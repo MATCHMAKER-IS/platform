@@ -3,7 +3,7 @@
  * WorkflowState ⇄ ExpenseRequest 行を相互変換し、承認/却下/差戻しをトランザクション内で適用する。
  * @packageDocumentation
  */
-import { withTransaction } from "@platform/db";
+import { withTransaction, toJson } from "@platform/db";
 import type { Result } from "@platform/core";
 import { db } from "./services";
 import { EXPENSE_WORKFLOW, actOn, type ExpenseRequest } from "../lib/expense-approval";
@@ -40,7 +40,8 @@ export function rowToState(row: Pick<ExpenseRequestRow, "status" | "currentStep"
 export async function createRequest(applicant: string, expenseId: string): Promise<ExpenseRequestRow> {
   const initial = startWorkflow(EXPENSE_WORKFLOW);
   return db.expenseRequest.create({
-    data: { applicant, expenseId, ...stateToRow(initial) },
+    // history は Json 列。名前付きの型は索引シグネチャを持たないので toJson で包む
+    data: toJson({ applicant, expenseId, ...stateToRow(initial) }),
   }) as Promise<ExpenseRequestRow>;
 }
 
@@ -63,7 +64,7 @@ export async function applyAction(
     const result = actOn(request, actor, action, reason);
     if (result.error) throw new Error(result.error);
 
-    await tx.expenseRequest.update({ where: { id: requestId }, data: stateToRow(result.request.state) });
+    await tx.expenseRequest.update({ where: { id: requestId }, data: toJson(stateToRow(result.request.state)) });
     return result.request.state;
   });
 

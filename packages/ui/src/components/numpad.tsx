@@ -3,7 +3,6 @@
  * 共通 NumericKeypad(テンキー)。タッチ端末・キオスク向けの数値入力。
  * @packageDocumentation
  */
-import * as React from "react";
 import { Delete } from "lucide-react";
 import { cn } from "../lib/cn";
 

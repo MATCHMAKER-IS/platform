@@ -5,7 +5,8 @@
  * @packageDocumentation
  */
 
-import type { PrismaClient } from "@prisma/client";
+// 生成物の型に縛られないよう、必要な形だけを要求する(client-types.ts 参照)
+import type { AuditCapableClient } from "./client-types";
 import { AppError, ErrorCode, tryCatch, type Result } from "@platform/core";
 
 /** 監査ログ 1 件分の入力。 */
@@ -37,7 +38,7 @@ export interface AuditEntry {
  * ```
  */
 export async function recordAudit(
-  db: PrismaClient,
+  db: AuditCapableClient,
   entry: AuditEntry,
 ): Promise<Result<void>> {
   const res = await tryCatch(async () => {
@@ -87,7 +88,7 @@ export interface AuditChangeEntry extends DiffOptions {
  * @param params 操作者・対象・変更内容
  * @returns 監査レコード(**変更が無ければ null**。何も変わっていない操作を記録しない)
  */
-export async function recordAuditChange(db: PrismaClient, entry: AuditChangeEntry): Promise<Result<void>> {
+export async function recordAuditChange(db: AuditCapableClient, entry: AuditChangeEntry): Promise<Result<void>> {
   const changes = diffChanges(entry.before, entry.after, { ignore: entry.ignore, redact: entry.redact });
   return recordAudit(db, {
     actor: entry.actor,

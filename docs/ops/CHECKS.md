@@ -1,7 +1,7 @@
 # 検査の一覧（preflight は何を見ているか）
 
-`node tools/preflight.mjs` は **依存をインストールせずに 41 種類の検査**をまとめて実行する
-（schema 検査はアプリごとに走るため、実行時の項目数は 44）。
+`node tools/preflight.mjs` は **依存をインストールせずに 44 種類の検査**をまとめて実行する
+（schema 検査はアプリごとに走るため、実行時の項目数は 47）。
 「手元で `pnpm install` する前に、壊れているかどうかを知る」ための入口。
 
 ```bash
@@ -39,6 +39,9 @@ node tools/<検査名>.mjs        # 1 つだけ実行する
 | `check-utc-date` | **「今」から UTC の日付を切り出していないか**（`new Date().toISOString().slice(0,10)`）| JST の **00:00〜08:59 だけ前日**になる。昼間に試すと必ず通り、夜間バッチで出る |
 | `check-test-setup` | **テスト・ビルドを実行できる設定か**（ワークスペースのグロブ・共通プリセットの拡張子・`test` が vitest を呼ぶか・依存の宣言・アプリの環境変数・Prisma 7 の schema と config・turbo の UI モード）| **`pnpm test` / `pnpm build` が 1 件も動かない**。テストの中身は正しいのに起動しないので、緑にも赤にもならず気づけない。`"ui": "tui"` は Windows で**ログも出さずクラッシュ**する |
 | `check-path-length` | **Windows のパス長 260 文字**を超えていないか（`node_modules` の最長パスを実測）| **turbo が `0xC0000409` でログも出さずクラッシュ**し、`pnpm -r` も止まる。単一パッケージは通るのでコードの問題と誤解する |
+| `check-dom-lib` | **DOM の型を使うのに `lib` に DOM が無い**か（`BlobPart` `BodyInit` `RequestInit` など）。**利用側の tsconfig も見る**（ソースを直接 import するため）| `TS2304` で**ビルドだけが落ちる**。vitest は型を見ないので、**テストが全部緑でも `tsc` で落ちる** |
+| `check-result-narrowing` | **Result の絞り込みが効かない書き方**（同じ呼び出しを 2 回書いて `f().ok && f().value` とする）| `TS2339` で**ビルドだけが落ちる**。API を 2 回呼ぶので**呼び出し回数も 2 倍**になる |
+| `check-react-import` | **`React` の import の過不足**（`jsx: "react-jsx"` のパッケージのみ）| `TS6133`（未使用）/ `TS2686`（不足）で**ビルドだけが落ちる**。`jsx` が `preserve` のアプリでは同じコードがエラーにならないので間違えやすい |
 | `check-showcase-deps` | デモの依存と `transpilePackages` の整合 | ビルド失敗 |
 | `check-app-transpile` | **実際に import している** `@platform/*` が `transpilePackages` に載っているか（宣言ではなくソースを見る） | **`next build` だけが落ちる**。以前は宣言どうしを比べており、未宣言 import 17 件を見逃していた |
 | `check-syntax` | **全 .ts/.tsx を本物のパーサ（TypeScript）にかける**。この検査だけ `typescript` が要るため、未インストールなら `⏭` で skip され、preflight の最後に警告が出る（**skip を ✅ で描かない**） | **ビルドが構文エラーで落ちる**。これが無い間、他の検査が全部グリーンのまま `next build` が落ちた |
@@ -51,7 +54,7 @@ node tools/<検査名>.mjs        # 1 つだけ実行する
 | `check-drill` | 復元訓練の鮮度 | 戻せないバックアップ |
 | `check-imports` | `@platform/*` から取り込む名前が実在するか | **ビルドが落ちる**（型検査まで気づけない） |
 | `check-lockfile` | **pnpm-lock.yaml と全 package.json の一致**。`peerDependencies` は `auto-install-peers` で書き戻されるため、載っていること自体は正常とし指定のズレだけ報告 | **CI の `--frozen-lockfile` でデプロイが落ちる**（Amplify で実際に発生） |
-| `check-build-ready` | `next build` が通る前提（entry・重複 export・import 解決・リテラル型の広がり・**例外/404 の受け皿**） | ビルド失敗・白い画面 |
+| `check-build-ready` | `next build` が通る前提（entry・重複 export・import 解決・リテラル型の広がり・**例外/404 の受け皿**・**`exports` に無いサブパスの import**・**相対 import の `.js`**・**`middleware.ts` と `proxy.ts` の重複**・**`use client` の欠落**・**メタデータファイルの `default` export**） | ビルド失敗・白い画面 |
 | `advisor` | 重複コードの検出 | 同じものが増える |
 | `setup.sh 構文` | セットアップスクリプトの構文 | 初日に詰まる |
 | `Windows setup 検査` | Windows 環境の手順 | Windows で動かない |

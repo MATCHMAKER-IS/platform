@@ -43,7 +43,13 @@ async function handlePOST(req: Request): Promise<Response> {
     const recipients = resolveRecipients(sched.recipient, users);
     if (recipients.length > 0) {
       await appMailer.sendMail({ to: recipients, from: mailFrom, subject: msg.subject, text: msg.body });
-      for (const email of recipients) await notificationStore.add(email, { title: msg.subject, body: summary, createdAt: now.toISOString() });
+      // **id は必須**(AppNotification)。既読管理に使うので重複しない値を入れる
+      for (const email of recipients) {
+        await notificationStore.add(email, {
+          id: `report-${now.getTime()}-${email}`,
+          title: msg.subject, body: summary, createdAt: now.toISOString(),
+        });
+      }
       deliveries += recipients.length;
     }
     await deliveryLogStore.add(makeDeliveryEntry(now.toISOString(), sched.reportType, recipients));

@@ -6,7 +6,7 @@
 import * as React from "react";
 import { AppSkin, Toaster } from "@platform/ui";
 import { builtInThemes } from "@platform/theme";
-import "@platform/ui/styles/tokens.css";
+import "@platform/ui/tokens.css";
 
 export const metadata = {
   title: "口座残高",

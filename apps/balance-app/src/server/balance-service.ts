@@ -61,7 +61,10 @@ export async function getBalances(range?: { from: string; to: string }): Promise
       // **リフレッシュトークンは回転する。** 保存し直さないといずれ失効する
       onRefresh: (r) => { console.warn("freee のトークンが更新されました。保存先の更新が必要です", { hasNew: Boolean(r.refreshToken) }); },
     });
-    const client = createFreeeClient(createFreeeAuthedFetch(manager));
+    // **`createFreeeAuthedFetch` は fetch を返すので `fetchImpl` に渡す。**
+    // Authorization はその fetch 側で毎回付け直される(期限切れなら自動で更新する)ため、
+    // `accessToken` はここでは使われない。必須項目なので空文字を渡す。
+    const client = createFreeeClient({ accessToken: "", fetchImpl: createFreeeAuthedFetch(manager) });
     const companyId = env.FREEE_COMPANY_ID!;
 
     const wallets = await client.getWalletables(companyId);
@@ -110,7 +113,10 @@ export async function getWallets(): Promise<{ wallets: FreeeWalletable[]; isSamp
       clientSecret: env.FREEE_CLIENT_SECRET!,
       refreshToken: env.FREEE_REFRESH_TOKEN!,
     });
-    const client = createFreeeClient(createFreeeAuthedFetch(manager));
+    // **`createFreeeAuthedFetch` は fetch を返すので `fetchImpl` に渡す。**
+    // Authorization はその fetch 側で毎回付け直される(期限切れなら自動で更新する)ため、
+    // `accessToken` はここでは使われない。必須項目なので空文字を渡す。
+    const client = createFreeeClient({ accessToken: "", fetchImpl: createFreeeAuthedFetch(manager) });
     const r = await client.getWalletables(env.FREEE_COMPANY_ID!);
     // 取れなければ見本に落とす。**記録が途切れるより、見本と分かる形で残す方がよい**
     if (!r.ok) return { wallets: SAMPLE_WALLETS, isSample: true };

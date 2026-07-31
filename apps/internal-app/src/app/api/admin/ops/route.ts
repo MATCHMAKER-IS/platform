@@ -13,8 +13,7 @@ import { db } from "../../../../server/services";
 import { sql, queryRaw } from "@platform/db";
 import { zohoBreakerState } from "../../../../server/zoho-client";
 import { webhookSubscriptionStore, auditLog } from "../../../../server/platform-services";
-import { buildStatusChecks, summarizeStatus } from "../../../../server/status-checks";
-import { runHealthChecks } from "@platform/observability";
+import { getStatus, summarizeStatus } from "../../../../server/status-checks";
 import { maskSecrets } from "@platform/env";
 
 /** ダッシュボードの 1 セクション。 */
@@ -42,17 +41,19 @@ async function handleGET(req: Request): Promise<Response> {
   }
 
   // 1) 稼働状況(DB・外部連携・Webhook)
-  const checks = buildStatusChecks({
-    db: { query: async () => queryRaw(db, sql`SELECT 1`) },
-    zohoBreaker: zohoBreakerState,
-    webhookStore: webhookSubscriptionStore,
-  });
-  const report = await runHealthChecks(checks, 2000);
+  // **StatusDeps は `checkDb` / `checkZoho` / `checkWebhooks` を取る**(server/status-checks.ts)。
+  // `getStatus` が buildStatusChecks + runHealthChecks をまとめてくれるのでそれを使う。
+  const report = await getStatus({
+    checkDb: async () => { await queryRaw(db, sql`SELECT 1`); },
+    checkZoho: () => zohoBreakerState() !== "open",
+    checkWebhooks: async () => { await webhookSubscriptionStore.list(); },
+  }, 2000);
   const summary = summarizeStatus(report);
-  const sections: OpsSection[] = Object.entries(report.checks).map(([name, c]) => ({
-    name,
-    ok: c.ok,
-    ...(c.detail ? { detail: c.detail } : {}),
+  // **CheckResult は `status: "up" | "down"` と `error`**(ok / detail は無い)
+  const sections: OpsSection[] = report.checks.map((c) => ({
+    name: c.name,
+    ok: c.status === "up",
+    ...(c.error ? { detail: c.error } : {}),
   }));
 
   // 2) 監査ログの整合性(改ざん検知)

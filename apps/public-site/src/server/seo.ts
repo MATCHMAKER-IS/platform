@@ -2,7 +2,7 @@
  * 公開ページの SEO メタ生成。@platform/seo に委譲する。
  * @packageDocumentation
  */
-import { buildMeta, renderMetaTags, websiteJsonLd, renderJsonLd, breadcrumbJsonLd, type MetaResult } from "@platform/seo";
+import { buildMeta, renderMetaTags, websiteJsonLd, renderJsonLd, breadcrumbJsonLd, type MetaResult, buildOpenGraphTags } from "@platform/seo";
 import { type Page } from "@platform/site";
 
 /** サイト全体の設定。 */
@@ -28,14 +28,19 @@ export function pageMeta(page: Page, config: SiteConfig): MetaResult {
     ...(description ? { description } : {}),
     visibility: "public",
     canonical: `${config.baseUrl}/${page.slug}`,
-    openGraph: { title: page.title, type: "website", url: `${config.baseUrl}/${page.slug}`, siteName: config.siteName },
   });
 }
 
 /** ページの head に入れる HTML（meta タグ＋JSON-LD）。 */
 export function pageHead(page: Page, config: SiteConfig, breadcrumb: { label: string; href: string }[]): string {
   const meta = pageMeta(page, config);
+  // **OGP は buildMeta とは別**(@platform/seo の open-graph)。
+  // buildMeta に openGraph を渡す口は無い
+  const og = buildOpenGraphTags({
+    title: page.title, type: "website",
+    url: `${config.baseUrl}/${page.slug}`, siteName: config.siteName,
+  });
   const website = websiteJsonLd({ name: config.siteName, url: config.baseUrl });
   const crumbs = breadcrumbJsonLd(breadcrumb.map((b) => ({ name: b.label, url: `${config.baseUrl}${b.href}` })));
-  return [renderMetaTags(meta.tags), renderJsonLd([website, crumbs])].join("\n");
+  return [renderMetaTags([...meta.tags, ...og]), renderJsonLd([website, crumbs])].join("\n");
 }

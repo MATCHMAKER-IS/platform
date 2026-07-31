@@ -3,7 +3,6 @@
  * 監査ログ表示。改ざん検証バッジと、操作者・操作・対象・日時の一覧を出す。
  * @packageDocumentation
  */
-import * as React from "react";
 import { cn } from "../lib/cn";
 
 /** 監査ログの 1 行。 */

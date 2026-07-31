@@ -88,7 +88,8 @@ export async function evaluateAndNotify(deps?: {
   if (to) {
     try {
       const send = deps?.sendMail ?? (async (addr: string, sub: string, text: string) => {
-        await mailer.send({ to: addr, subject: sub, text });
+        // **メソッド名は `sendMail`。** 失敗は例外ではなく Result で返る
+        await mailer.sendMail({ to: addr, subject: sub, text });
       });
       await send(to, subject, body + footer);
       sent.push("mail");

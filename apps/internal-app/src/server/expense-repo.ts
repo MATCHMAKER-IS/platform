@@ -34,7 +34,9 @@ export function expenseToCreateData(e: Expense): { date: Date; category: string;
 
 /** 経費一覧をページネーションで取得(新しい順)。 */
 export async function listExpenses(options: { page?: number; pageSize?: number } = {}): Promise<Paginated<Expense>> {
-  const result = await paginate<PrismaExpenseRow>(db.expense, {
+  // **デリゲートの形は生成物ごとに違う**(findMany の引数が厳密に型付けされる)。
+  // paginate は最小の形だけを要求するので、ここで合わせる
+  const result = await paginate<PrismaExpenseRow>(db.expense as never, {
     orderBy: { date: "desc" },
     page: options.page,
     pageSize: options.pageSize,

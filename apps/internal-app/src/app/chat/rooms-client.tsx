@@ -49,7 +49,7 @@ export function RoomsClient({ roomIds, roomName, onOpen, fetchImpl }: RoomsClien
       {rows.map((r) => (
         <Button key={r.roomId} onClick={() => onOpen?.(r.roomId)} className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-[var(--color-muted-bg,#f5f5f5)]">
           <span>{nameOf(r.roomId)}</span>
-          {r.unread > 0 && <Badge tone="danger">{r.unread}</Badge>}
+          {r.unread > 0 && <Badge variant="danger">{r.unread}</Badge>}
         </Button>
       ))}
     </List>

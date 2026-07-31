@@ -4,7 +4,6 @@
  * 確認・エラー通知に適したセマンティクス(role=alertdialog、フォーカス管理)。
  * @packageDocumentation
  */
-import * as React from "react";
 import { AlertDialog as Primitive } from "radix-ui";
 import { AlertTriangle } from "lucide-react";
 import { cn } from "../lib/cn";

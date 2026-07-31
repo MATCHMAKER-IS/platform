@@ -15,19 +15,89 @@ async function loadUiCatalogs() {
  * 実行検証を行う。`node --experimental-strip-types tools/smoke.mjs` で実行。
  */
 import { createHmac, randomBytes, timingSafeEqual, scryptSync, createCipheriv, createDecipheriv, randomInt } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { tmpdir } from "node:os";
+import { pathToFileURL } from "node:url";
 
 let pass = 0, fail = 0;
 const ok = (name, cond) => { if (cond) { pass++; console.log(`  ✅ ${name}`); } else { fail++; console.log(`  ❌ ${name}`); } };
-const section = (t) => console.log(`\n▶ ${t}`);
+let __currentSection = "(開始前)";
+const section = (t) => { __currentSection = t; console.log(`\n▶ ${t}`); };
 
 // プロセス+呼び出しごとに一意な /tmp パスを返す。preflight や CI で smoke が並列/多重に走っても
 // 固定名(例: /tmp/smoke-framing.ts)や Date.now() の同一ミリ秒衝突でファイルを奪い合わない。
 // これがないと、片方の cleanup がもう片方の生成ファイルを消して ENOENT / 空モジュールで flaky に落ちる。
+// **`/tmp` を直書きしない。** Windows には存在せず `C:\tmp` と解決されて
+// ENOENT で落ちる(この基盤は Windows での開発を支援している)。
+const TMP = tmpdir();
+/**
+ * 動的 import 用にパスを file:// URL へ変換する。
+ * **Windows では絶対パスをそのまま import できない**
+ * (`C:\...` が `c:` プロトコルと解釈され `ERR_UNSUPPORTED_ESM_URL_SCHEME`)。
+ * クエリ(`?dev` など)は URL の後ろに付け直す。
+ */
+/**
+ * **生成するコードに埋め込む** import 指定子を作る。
+ * Windows の絶対パス(`C:\...`)をそのまま `from "..."` に書くと、
+ * そのファイルを読み込んだ時点で `c:` プロトコルとして解釈されて落ちる。
+ */
+const toSpec = (p) => {
+  const raw = String(p);
+  if (/^[a-z]+:\/\//i.test(raw)) return raw;
+  // **URL の pathname を渡していないか確かめる。** Windows では `/C:/Users/...` の形になり、
+  // パスとして解決すると `C:\C:\Users\...` と二重になる(Linux では偶然通るので気づけない)。
+  if (/^\/[A-Za-z]:[\\/]/.test(raw)) {
+    throw new Error(`URL の pathname をパスとして渡しています: ${raw}\n  → .href を使うか fileURLToPath() で変換してください`);
+  }
+  return pathToFileURL(raw).href;
+};
+const impFile = (p) => {
+  const raw = String(p);
+  // **既に URL のものはそのまま**(`new URL(...)` を渡す箇所がある)。
+  // 二重に変換すると `file:///.../file:/...` になって解決できない
+  if (/^[a-z]+:\/\//i.test(raw)) return import(raw);
+  const [file, query] = raw.split("?");
+  // **読み込む前に中身を確かめる。** 生成コードに `from "C:\..."` が残っていると
+  // Windows で `c:` プロトコルとして解釈されて落ちるが、
+  // 既定のエラーには**どのファイルの何行目か**が出ないため追えない。
+  try {
+    const src = readFileSync(file, "utf8");
+    // **`file://` でない絶対パス**を検出する。Windows の `C:\...` だけを見ると、
+    // **Linux では検証できない検査**になり、CI で守れているつもりになる。
+    for (const m of src.matchAll(/(?:from|import)\s*\(?\s*["']([^"']+)["']/g)) {
+      const spec = m[1];
+      if (spec.startsWith("file://") || spec.startsWith("node:") || spec.startsWith(".")) continue;
+      if (/^[A-Za-z]:[\\/]/.test(spec) || spec.startsWith("/")) {
+        throw new Error(`生成コードに絶対パスの import が残っています\n  ${file}\n  → from "${spec}"\n  toSpec() で file:// にしてください`);
+      }
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message.startsWith("生成コードに")) throw e;
+    // 読めない場合(URL 指定など)は素通し。import 側でエラーになる
+  }
+  return import(pathToFileURL(file).href + (query ? `?${query}` : "")).catch((e) => {
+    // **どのセクションで落ちたかを出す。** 生成したファイルの中に絶対パスの import が
+    // 残っていると Windows で `c:` プロトコルとして解釈されるが、
+    // 既定のエラーには場所が出ないため追えない。
+    e.message = `[${__currentSection}] ${raw}\n  ${e.message}`;
+    throw e;
+  });
+};
+
+/**
+ * **生成したファイルを読み込んで、絶対パスの import が残っていないか確かめる。**
+ * Windows では `from "C:\..."` が `c:` プロトコルとして解釈されて落ちるが、
+ * エラーには**どのファイルか**が出ないため、書き出した時点で気づけるようにする。
+ */
+const assertNoRawPath = (file, src) => {
+  const m = /from\s+["']([A-Za-z]:[\\/][^"']*)["']/.exec(src);
+  if (m) throw new Error(`生成コードに絶対パスの import が残っています: ${file}\n  → ${m[1]}\n  toSpec() で file:// にしてください`);
+};
 const SMOKE_RUN = `${process.pid}-${randomBytes(4).toString("hex")}`;
 let __smokeTmpSeq = 0;
 /** @param {string} name 末尾に付ける識別子(拡張子込みでよい) */
-const smokeTmp = (name) => `/tmp/smoke-${SMOKE_RUN}-${__smokeTmpSeq++}-${name}`;
+const smokeTmp = (name) => `${TMP}/smoke-${SMOKE_RUN}-${__smokeTmpSeq++}-${name}`;
 /** ファイル名に使うプロセス一意トークン(既存の `Date.now()` 置き換え用)。 */
 const smokeStamp = () => `${Date.now()}-${SMOKE_RUN}-${__smokeTmpSeq++}`;
 
@@ -86,14 +156,14 @@ section("ekyc");
 {
   const fspe = await import("node:fs/promises");
   const ste = smokeStamp();
-  const spath = `/tmp/ekyc-status-${ste}.ts`;
-  const wpath2 = `/tmp/ekyc-webhook-${ste}.ts`;
+  const spath = `${TMP}/ekyc-status-${ste}.ts`;
+  const wpath2 = `${TMP}/ekyc-webhook-${ste}.ts`;
   await fspe.writeFile(spath, await fspe.readFile(new URL("../packages/ekyc/src/status.ts", import.meta.url), "utf8"));
   let wsrc2 = await fspe.readFile(new URL("../packages/ekyc/src/webhook.ts", import.meta.url), "utf8");
-  wsrc2 = wsrc2.replace(/from "\.\/status"/g, `from "${spath}"`);
+  wsrc2 = wsrc2.replace(/from "\.\/status"/g, `from "${toSpec(spath)}"`);
   await fspe.writeFile(wpath2, wsrc2);
-  const S = await import(spath);
-  const W = await import(wpath2);
+  const S = await impFile(spath);
+  const W = await impFile(wpath2);
 
   ok("normalizeEkycStatus: 大文字・前後空白・別名(ok/ng)を吸収",
     S.normalizeEkycStatus("APPROVED") === "approved" && S.normalizeEkycStatus(" ok ") === "approved" &&
@@ -127,13 +197,13 @@ section("line/webhook");
 {
   const fspl = await import("node:fs/promises");
   const crypto = await import("node:crypto");
-  const stl = Date.now();
-  const wpath = `/tmp/line-webhook-${stl}.ts`;
+  const stl = smokeStamp();
+  const wpath = `${TMP}/line-webhook-${stl}.ts`;
   // index.ts に依存しない部分だけを取り出す(LineEventSource 等は型なので実行時に不要)
   let wsrc = await fspl.readFile(new URL("../packages/line/src/webhook.ts", import.meta.url), "utf8");
   wsrc = wsrc.replace(/^import type .*$/gm, "");
   await fspl.writeFile(wpath, wsrc);
-  const W = await import(wpath);
+  const W = await impFile(wpath);
 
   const secret = "my-channel-secret";
   const body = JSON.stringify({ events: [{ type: "message", source: { type: "user", userId: "U1" } }] });
@@ -464,8 +534,8 @@ section("realtime / dashboard layout");
   const { backoffDelay, createPoller } = await (async () => {
     const fs = await import("node:fs/promises");
     const src = (await fs.readFile(new URL("../packages/realtime/src/index.ts", import.meta.url), "utf8")).replace(/export \{[^}]*\} from "\.\/broadcast";\n?/g, "");
-    const f = `/tmp/rt-idx-a-${smokeStamp()}.ts`; await fs.writeFile(f, src);
-    const m = await import(f); await fs.rm(f); return m;
+    const f = `${TMP}/rt-idx-a-${smokeStamp()}.ts`; await fs.writeFile(f, src);
+    const m = await impFile(f); await fs.rm(f); return m;
   })();
   ok("backoff: 指数+上限", backoffDelay(0) === 500 && backoffDelay(3) === 4000 && backoffDelay(10) === 15000);
   let cb = null, calls = 0;
@@ -1231,7 +1301,7 @@ section("app: approval notification");
     .replace('import type { WorkflowState } from "./index";', "");
   const tmp = smokeTmp("notif.ts");
   await fs.writeFile(tmp, src);
-  const W = await import(tmp);
+  const W = await impFile(tmp);
   await fs.rm(tmp);
   const dir = { manager: [{ email: "m@x.jp" }], director: [{ email: "d@x.jp" }] };
   const s0 = { status: "pending", currentStep: 0, history: [] };
@@ -1339,15 +1409,15 @@ section("phone intl type / line client");
   const fs = await import("node:fs/promises");
   const core = smokeTmp("line-core.ts");
   await fs.writeFile(core, `export const ErrorCode={EXTERNAL:"EXTERNAL",INTERNAL:"INTERNAL"};export class AppError extends Error{constructor(c,m,o){super(m);this.code=c;this.details=o?.details;}}export function ok(v){return{ok:true,value:v};}export function err(e){return{ok:false,error:e};}export async function tryCatch(fn){try{return{ok:true,value:await fn()};}catch(e){return{ok:false,error:e};}}`);
-  let ig = (await fs.readFile(new URL("../packages/integrations/src/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`);
+  let ig = (await fs.readFile(new URL("../packages/integrations/src/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${toSpec(core)}"`);
   const igp = smokeTmp("line-ig.ts"); await fs.writeFile(igp, ig);
   let ln = (await fs.readFile(new URL("../packages/line/src/index.ts", import.meta.url), "utf8"))
-    .replace('import { createApiClient } from "@platform/integrations";', `import { createApiClient } from "${igp}";`)
-    .replace(/from "@platform\/core"/g, `from "${core}"`)
+    .replace('import { createApiClient } from "@platform/integrations";', `import { createApiClient } from "${toSpec(igp)}";`)
+    .replace(/from "@platform\/core"/g, `from "${toSpec(core)}"`)
     .replace(/export \* from "\.\/messages";\n?/g, "")
     .replace(/export \* from "\.\/webhook";\n?/g, "");
   const lnp = smokeTmp("line-ln.ts"); await fs.writeFile(lnp, ln);
-  const L = await import(lnp);
+  const L = await impFile(lnp);
   let cap = null;
   const fake = async (url, init) => { cap = { url, init }; return { ok: true, status: 200, headers: { get: () => "application/json" }, json: async () => ({}), text: async () => "" }; };
   const client = L.createLineClient({ channelAccessToken: "TK", fetchImpl: fake });
@@ -1376,9 +1446,9 @@ section("net utilities + sockets");
   const fs = await import("node:fs/promises");
   const framingP = smokeTmp("framing.ts");
   await fs.copyFile(new URL("../packages/net/src/framing.ts", import.meta.url), framingP);
-  let tcp = (await fs.readFile(new URL("../packages/net/src/tcp.ts", import.meta.url), "utf8")).replace('from "./framing"', `from "${framingP}"`);
+  let tcp = (await fs.readFile(new URL("../packages/net/src/tcp.ts", import.meta.url), "utf8")).replace('from "./framing"', `from "${toSpec(framingP)}"`);
   const tp = smokeTmp("tcp.ts"); await fs.writeFile(tp, tcp);
-  const T = await import(tp);
+  const T = await impFile(tp);
   const srv = await T.createFramedServer({ host: "127.0.0.1" }, (payload, conn) => conn.send(enc.encode("echo:" + dec.decode(payload))));
   const got = [];
   const cli = await T.connectFramed({ host: "127.0.0.1", port: srv.port }, (p) => got.push(dec.decode(p)));
@@ -1450,21 +1520,21 @@ section("zoho crm / books");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const core = "/tmp/zoho-core-" + stamp + ".ts";
+  const core = TMP + "/zoho-core-" + stamp + ".ts";
   await fs.writeFile(core, `export const ErrorCode={EXTERNAL:"EXTERNAL",INTERNAL:"INTERNAL"};export class AppError extends Error{constructor(c,m,o){super(m);this.code=c;this.details=o?.details;this.cause=o?.cause;}}export function ok(v){return{ok:true,value:v};}export function err(e){return{ok:false,error:e};}export async function tryCatch(fn){try{return{ok:true,value:await fn()};}catch(e){return{ok:false,error:e};}}`);
-  let ig = (await fs.readFile(new URL("../packages/integrations/src/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`);
-  const igp = "/tmp/zoho-ig-" + stamp + ".ts"; await fs.writeFile(igp, ig);
-  let cl = (await fs.readFile(new URL("../packages/zoho/src/core/client.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${igp}"`);
-  const clp = "/tmp/zoho-client-" + stamp + ".ts"; await fs.writeFile(clp, cl);
+  let ig = (await fs.readFile(new URL("../packages/integrations/src/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${toSpec(core)}"`);
+  const igp = TMP + "/zoho-ig-" + stamp + ".ts"; await fs.writeFile(igp, ig);
+  let cl = (await fs.readFile(new URL("../packages/zoho/src/core/client.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${toSpec(igp)}"`);
+  const clp = TMP + "/zoho-client-" + stamp + ".ts"; await fs.writeFile(clp, cl);
   let crm = (await fs.readFile(new URL("../packages/zoho/src/crm/index.ts", import.meta.url), "utf8"))
-    .replace(/from "@platform\/core"/g, `from "${core}"`)
-    .replace('from "../core/client"', `from "${clp}"`);
-  const crmp = "/tmp/zoho-crm-" + stamp + ".ts"; await fs.writeFile(crmp, crm);
+    .replace(/from "@platform\/core"/g, `from "${toSpec(core)}"`)
+    .replace('from "../core/client"', `from "${toSpec(clp)}"`);
+  const crmp = TMP + "/zoho-crm-" + stamp + ".ts"; await fs.writeFile(crmp, crm);
   let bk = (await fs.readFile(new URL("../packages/zoho/src/books/index.ts", import.meta.url), "utf8"))
-    .replace(/from "@platform\/core"/g, `from "${core}"`)
-    .replace('from "../core/client"', `from "${clp}"`);
-  const bkp = "/tmp/zoho-books-" + stamp + ".ts"; await fs.writeFile(bkp, bk);
-  const CRM = await import(crmp), BK = await import(bkp);
+    .replace(/from "@platform\/core"/g, `from "${toSpec(core)}"`)
+    .replace('from "../core/client"', `from "${toSpec(clp)}"`);
+  const bkp = TMP + "/zoho-books-" + stamp + ".ts"; await fs.writeFile(bkp, bk);
+  const CRM = await impFile(crmp), BK = await impFile(bkp);
   let cap = null;
   const fake = async (url, init) => {
     cap = { url, init: { ...init, bodyJson: init.body ? JSON.parse(init.body) : undefined } };
@@ -1486,19 +1556,19 @@ section("zoho desk/inventory/campaigns/projects/people");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const core = "/tmp/zsvc-core-" + stamp + ".ts";
+  const core = TMP + "/zsvc-core-" + stamp + ".ts";
   await fs.writeFile(core, `export const ErrorCode={EXTERNAL:"EXTERNAL",INTERNAL:"INTERNAL"};export class AppError extends Error{constructor(c,m,o){super(m);this.code=c;this.details=o?.details;this.cause=o?.cause;}}export function ok(v){return{ok:true,value:v};}export function err(e){return{ok:false,error:e};}export async function tryCatch(fn){try{return{ok:true,value:await fn()};}catch(e){return{ok:false,error:e};}}`);
-  let ig = (await fs.readFile(new URL("../packages/integrations/src/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`);
-  const igp = "/tmp/zsvc-ig-" + stamp + ".ts"; await fs.writeFile(igp, ig);
-  const dcp = "/tmp/zsvc-dc-" + stamp + ".ts"; await fs.writeFile(dcp, await fs.readFile(new URL("../packages/zoho/src/core/datacenter.ts", import.meta.url), "utf8"));
-  let cl = (await fs.readFile(new URL("../packages/zoho/src/core/client.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${igp}"`);
-  const clp = "/tmp/zsvc-client-" + stamp + ".ts"; await fs.writeFile(clp, cl);
+  let ig = (await fs.readFile(new URL("../packages/integrations/src/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${toSpec(core)}"`);
+  const igp = TMP + "/zsvc-ig-" + stamp + ".ts"; await fs.writeFile(igp, ig);
+  const dcp = TMP + "/zsvc-dc-" + stamp + ".ts"; await fs.writeFile(dcp, await fs.readFile(new URL("../packages/zoho/src/core/datacenter.ts", import.meta.url), "utf8"));
+  let cl = (await fs.readFile(new URL("../packages/zoho/src/core/client.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${toSpec(igp)}"`);
+  const clp = TMP + "/zsvc-client-" + stamp + ".ts"; await fs.writeFile(clp, cl);
   const load = async (svc) => {
     let t = (await fs.readFile(new URL(`../packages/zoho/src/${svc}/index.ts`, import.meta.url), "utf8"))
-      .replace(/from "@platform\/core"/g, `from "${core}"`)
-      .replace('from "../core/client"', `from "${clp}"`)
-      .replace('from "../core/datacenter"', `from "${dcp}"`);
-    const f = `/tmp/zsvc-${svc}-${stamp}.ts`; await fs.writeFile(f, t); return import(f);
+      .replace(/from "@platform\/core"/g, `from "${toSpec(core)}"`)
+      .replace('from "../core/client"', `from "${toSpec(clp)}"`)
+      .replace('from "../core/datacenter"', `from "${toSpec(dcp)}"`);
+    const f = `${TMP}/zsvc-${svc}-${stamp}.ts`; await fs.writeFile(f, t); return impFile(f);
   };
   const D = await load("desk"), I = await load("inventory"), C = await load("campaigns"), P = await load("projects"), PE = await load("people");
   let cap = null;
@@ -1514,7 +1584,7 @@ section("zoho desk/inventory/campaigns/projects/people");
   await PE.createZohoPeopleClient({ dataCenter: "com", accessToken: "TK", fetchImpl: fake }).getEmployees();
   ok("Zoho People フォームベース", cap.url.startsWith("https://people.zoho.com/people/api/forms/json/employee/records"));
   for (const f of [core, igp, dcp, clp]) await fs.rm(f);
-  for (const svc of ["desk","inventory","campaigns","projects","people"]) await fs.rm(`/tmp/zsvc-${svc}-${stamp}.ts`);
+  for (const svc of ["desk","inventory","campaigns","projects","people"]) await fs.rm(`${TMP}/zsvc-${svc}-${stamp}.ts`);
 }
 
 // ---- Zoho Sign/Recruit/WorkDrive/Analytics(fetch注入) ----
@@ -1522,21 +1592,21 @@ section("zoho sign/recruit/workdrive/analytics");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const core = "/tmp/zw2-core-" + stamp + ".ts";
+  const core = TMP + "/zw2-core-" + stamp + ".ts";
   await fs.writeFile(core, `export const ErrorCode={EXTERNAL:"EXTERNAL",INTERNAL:"INTERNAL"};export class AppError extends Error{constructor(c,m,o){super(m);this.code=c;this.details=o?.details;this.cause=o?.cause;}}export function ok(v){return{ok:true,value:v};}export function err(e){return{ok:false,error:e};}export async function tryCatch(fn){try{return{ok:true,value:await fn()};}catch(e){return{ok:false,error:e};}}`);
-  let ig = (await fs.readFile(new URL("../packages/integrations/src/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`);
-  const igp = "/tmp/zw2-ig-" + stamp + ".ts"; await fs.writeFile(igp, ig);
-  const dcp = "/tmp/zw2-dc-" + stamp + ".ts"; await fs.writeFile(dcp, await fs.readFile(new URL("../packages/zoho/src/core/datacenter.ts", import.meta.url), "utf8"));
-  let cl = (await fs.readFile(new URL("../packages/zoho/src/core/client.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${igp}"`);
-  const clp = "/tmp/zw2-client-" + stamp + ".ts"; await fs.writeFile(clp, cl);
+  let ig = (await fs.readFile(new URL("../packages/integrations/src/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${toSpec(core)}"`);
+  const igp = TMP + "/zw2-ig-" + stamp + ".ts"; await fs.writeFile(igp, ig);
+  const dcp = TMP + "/zw2-dc-" + stamp + ".ts"; await fs.writeFile(dcp, await fs.readFile(new URL("../packages/zoho/src/core/datacenter.ts", import.meta.url), "utf8"));
+  let cl = (await fs.readFile(new URL("../packages/zoho/src/core/client.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${toSpec(igp)}"`);
+  const clp = TMP + "/zw2-client-" + stamp + ".ts"; await fs.writeFile(clp, cl);
   const load = async (svc) => {
     let t = (await fs.readFile(new URL(`../packages/zoho/src/${svc}/index.ts`, import.meta.url), "utf8"))
-      .replace(/from "@platform\/core"/g, `from "${core}"`)
-      .replace('from "../core/client"', `from "${clp}"`)
-      .replace('from "../core/datacenter"', `from "${dcp}"`);
-    const f = `/tmp/zw2-${svc}-${stamp}.ts`;
+      .replace(/from "@platform\/core"/g, `from "${toSpec(core)}"`)
+      .replace('from "../core/client"', `from "${toSpec(clp)}"`)
+      .replace('from "../core/datacenter"', `from "${toSpec(dcp)}"`);
+    const f = `${TMP}/zw2-${svc}-${stamp}.ts`;
     await fs.writeFile(f, t);
-    return import(f);
+    return impFile(f);
   };
   const S = await load("sign"), R = await load("recruit"), W = await load("workdrive"), A = await load("analytics");
   let cap = null;
@@ -1553,7 +1623,7 @@ section("zoho sign/recruit/workdrive/analytics");
   await A.createZohoAnalyticsClient({ dataCenter: "com", accessToken: "TK", orgId: "555", fetchImpl: fake }).listWorkspaces();
   ok("Zoho Analytics ORGID ヘッダ", cap.url === "https://analyticsapi.zoho.com/restapi/v2/workspaces" && cap.init.headers["ZANALYTICS-ORGID"] === "555");
   for (const f of [core, igp, dcp, clp]) await fs.rm(f);
-  for (const svc of ["sign","recruit","workdrive","analytics"]) await fs.rm(`/tmp/zw2-${svc}-${stamp}.ts`);
+  for (const svc of ["sign","recruit","workdrive","analytics"]) await fs.rm(`${TMP}/zw2-${svc}-${stamp}.ts`);
 }
 
 // ---- Zoho Cliq/Creator/Bookings + Desk拡張(fetch注入) ----
@@ -1561,21 +1631,21 @@ section("zoho cliq/creator/bookings + desk拡張");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const core = "/tmp/zv3-core-" + stamp + ".ts";
+  const core = TMP + "/zv3-core-" + stamp + ".ts";
   await fs.writeFile(core, `export const ErrorCode={EXTERNAL:"EXTERNAL",INTERNAL:"INTERNAL"};export class AppError extends Error{constructor(c,m,o){super(m);this.code=c;this.details=o?.details;this.cause=o?.cause;}}export function ok(v){return{ok:true,value:v};}export function err(e){return{ok:false,error:e};}export async function tryCatch(fn){try{return{ok:true,value:await fn()};}catch(e){return{ok:false,error:e};}}`);
-  let ig = (await fs.readFile(new URL("../packages/integrations/src/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`);
-  const igp = "/tmp/zv3-ig-" + stamp + ".ts"; await fs.writeFile(igp, ig);
-  const dcp = "/tmp/zv3-dc-" + stamp + ".ts"; await fs.writeFile(dcp, await fs.readFile(new URL("../packages/zoho/src/core/datacenter.ts", import.meta.url), "utf8"));
-  let cl = (await fs.readFile(new URL("../packages/zoho/src/core/client.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${igp}"`);
-  const clp = "/tmp/zv3-client-" + stamp + ".ts"; await fs.writeFile(clp, cl);
+  let ig = (await fs.readFile(new URL("../packages/integrations/src/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${toSpec(core)}"`);
+  const igp = TMP + "/zv3-ig-" + stamp + ".ts"; await fs.writeFile(igp, ig);
+  const dcp = TMP + "/zv3-dc-" + stamp + ".ts"; await fs.writeFile(dcp, await fs.readFile(new URL("../packages/zoho/src/core/datacenter.ts", import.meta.url), "utf8"));
+  let cl = (await fs.readFile(new URL("../packages/zoho/src/core/client.ts", import.meta.url), "utf8")).replace('from "@platform/integrations"', `from "${toSpec(igp)}"`);
+  const clp = TMP + "/zv3-client-" + stamp + ".ts"; await fs.writeFile(clp, cl);
   const load = async (svc) => {
     let t = (await fs.readFile(new URL(`../packages/zoho/src/${svc}/index.ts`, import.meta.url), "utf8"))
-      .replace(/from "@platform\/core"/g, `from "${core}"`)
-      .replace('from "../core/client"', `from "${clp}"`)
-      .replace('from "../core/datacenter"', `from "${dcp}"`);
-    const f = `/tmp/zv3-${svc}-${stamp}.ts`;
+      .replace(/from "@platform\/core"/g, `from "${toSpec(core)}"`)
+      .replace('from "../core/client"', `from "${toSpec(clp)}"`)
+      .replace('from "../core/datacenter"', `from "${toSpec(dcp)}"`);
+    const f = `${TMP}/zv3-${svc}-${stamp}.ts`;
     await fs.writeFile(f, t);
-    return import(f);
+    return impFile(f);
   };
   const CL = await load("cliq"), CR = await load("creator"), BK = await load("bookings"), D = await load("desk");
   let cap = null;
@@ -1592,7 +1662,7 @@ section("zoho cliq/creator/bookings + desk拡張");
   await D.createZohoDeskClient({ dataCenter: "jp", accessToken: "TK", orgId: "9", fetchImpl: fake }).sendReply("903", { content: "y" });
   ok("Zoho Desk sendReply(拡張)", cap.url.endsWith("/tickets/903/sendReply") && cap.init.method === "POST");
   for (const f of [core, igp, dcp, clp]) await fs.rm(f);
-  for (const svc of ["cliq","creator","bookings","desk"]) await fs.rm(`/tmp/zv3-${svc}-${stamp}.ts`);
+  for (const svc of ["cliq","creator","bookings","desk"]) await fs.rm(`${TMP}/zv3-${svc}-${stamp}.ts`);
 }
 
 // ---- multipart / token自動更新 / Zohoログイン ----
@@ -1600,37 +1670,37 @@ section("multipart / token-refresh / zoho-login");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const core = "/tmp/mtl-core-" + stamp + ".ts";
+  const core = TMP + "/mtl-core-" + stamp + ".ts";
   await fs.writeFile(core, `export const ErrorCode={EXTERNAL:"EXTERNAL",INTERNAL:"INTERNAL"};export class AppError extends Error{constructor(c,m,o){super(m);this.code=c;this.details=o?.details;this.cause=o?.cause;}}export function ok(v){return{ok:true,value:v};}export function err(e){return{ok:false,error:e};}export async function tryCatch(fn){try{return{ok:true,value:await fn()};}catch(e){return{ok:false,error:e};}}`);
-  let ig = (await fs.readFile(new URL("../packages/integrations/src/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`);
-  const igp = "/tmp/mtl-ig-" + stamp + ".ts"; await fs.writeFile(igp, ig);
-  const I = await import(igp);
+  let ig = (await fs.readFile(new URL("../packages/integrations/src/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${toSpec(core)}"`);
+  const igp = TMP + "/mtl-ig-" + stamp + ".ts"; await fs.writeFile(igp, ig);
+  const I = await impFile(igp);
   // multipart
   let cap = null;
   const fake = async (u, init) => { cap = { u, init }; return { ok: true, status: 200, headers: { get: () => "application/json" }, json: async () => ({}), text: async () => "" }; };
   await I.createApiClient({ baseUrl: "https://x.jp", fetchImpl: fake }).post("/upload", { multipart: { fields: { name: "doc" }, files: [{ field: "content", filename: "a.txt", data: new TextEncoder().encode("hi") }] } });
   ok("multipart FormData + content-type除去", cap.init.body instanceof FormData && !("content-type" in cap.init.headers) && cap.init.body.get("name") === "doc");
   // token manager + login
-  const dcp = "/tmp/mtl-dc-" + stamp + ".ts"; await fs.writeFile(dcp, await fs.readFile(new URL("../packages/zoho/src/core/datacenter.ts", import.meta.url), "utf8"));
-  let oa = (await fs.readFile(new URL("../packages/zoho/src/core/oauth.ts", import.meta.url), "utf8")).replace('from "./datacenter"', `from "${dcp}"`);
-  const oap = "/tmp/mtl-oa-" + stamp + ".ts"; await fs.writeFile(oap, oa);
+  const dcp = TMP + "/mtl-dc-" + stamp + ".ts"; await fs.writeFile(dcp, await fs.readFile(new URL("../packages/zoho/src/core/datacenter.ts", import.meta.url), "utf8"));
+  let oa = (await fs.readFile(new URL("../packages/zoho/src/core/oauth.ts", import.meta.url), "utf8")).replace('from "./datacenter"', `from "${toSpec(dcp)}"`);
+  const oap = TMP + "/mtl-oa-" + stamp + ".ts"; await fs.writeFile(oap, oa);
   let tmSrc = (await fs.readFile(new URL("../packages/zoho/src/core/token-manager.ts", import.meta.url), "utf8"))
-    .replace('from "./oauth"', `from "${oap}"`)
-    .replace('from "./datacenter"', `from "${dcp}"`);
-  const tmp = "/tmp/mtl-tm-" + stamp + ".ts"; await fs.writeFile(tmp, tmSrc);
-  const TM = await import(tmp);
+    .replace('from "./oauth"', `from "${toSpec(oap)}"`)
+    .replace('from "./datacenter"', `from "${toSpec(dcp)}"`);
+  const tmp = TMP + "/mtl-tm-" + stamp + ".ts"; await fs.writeFile(tmp, tmSrc);
+  const TM = await impFile(tmp);
   let refreshN = 0;
   const tokFetch = async () => { refreshN++; return { ok: true, status: 200, json: async () => ({ access_token: "t" + refreshN, expires_in: 3600 }) }; };
   const tm = TM.createZohoTokenManager({ dataCenter: "jp", clientId: "c", clientSecret: "s", refreshToken: "r", fetchImpl: tokFetch });
   const a1 = await tm.getAccessToken(); const a2 = await tm.getAccessToken();
   ok("トークン自動更新+キャッシュ", a1 === "t1" && a2 === "t1" && refreshN === 1);
-  let login = (await fs.readFile(new URL("../packages/zoho/src/core/login.ts", import.meta.url), "utf8")).replace('from "./datacenter"', `from "${dcp}"`);
-  const lp = "/tmp/mtl-login-" + stamp + ".ts"; await fs.writeFile(lp, login);
-  const L = await import(lp);
+  let login = (await fs.readFile(new URL("../packages/zoho/src/core/login.ts", import.meta.url), "utf8")).replace('from "./datacenter"', `from "${toSpec(dcp)}"`);
+  const lp = TMP + "/mtl-login-" + stamp + ".ts"; await fs.writeFile(lp, login);
+  const L = await impFile(lp);
   ok("Zoho認可URL生成", L.buildAuthorizationUrl({ dataCenter: "jp", clientId: "A", redirectUri: "https://app/cb", scope: ["email"], state: "s" }).startsWith("https://accounts.zoho.jp/oauth/v2/auth?"));
   // session
-  const sp = "/tmp/mtl-sess-" + stamp + ".ts"; await fs.writeFile(sp, await fs.readFile(new URL("../apps/internal-app/src/server/zoho-session.ts", import.meta.url), "utf8"));
-  const SS = await import(sp);
+  const sp = TMP + "/mtl-sess-" + stamp + ".ts"; await fs.writeFile(sp, await fs.readFile(new URL("../apps/internal-app/src/server/zoho-session.ts", import.meta.url), "utf8"));
+  const SS = await impFile(sp);
   const tok = SS.signSession({ email: "a@x.jp", exp: Math.floor(Date.now() / 1000) + 3600 }, "sec");
   ok("セッション署名/検証/改ざん検出", SS.verifySession(tok, "sec").email === "a@x.jp" && SS.verifySession(tok, "bad") === null);
   for (const f of [core, igp, dcp, oap, tmp, lp, sp]) await fs.rm(f);
@@ -1642,12 +1712,12 @@ section("slack / notion");
   const fs = await import("node:fs/promises");
   const { createHmac } = await import("node:crypto");
   const stamp = smokeStamp();
-  const sp = `/tmp/sl-${stamp}.ts`;
-  const np = `/tmp/no-${stamp}.ts`;
+  const sp = `${TMP}/sl-${stamp}.ts`;
+  const np = `${TMP}/no-${stamp}.ts`;
   await fs.writeFile(sp, await fs.readFile(new URL("../packages/slack/src/index.ts", import.meta.url), "utf8"));
   await fs.writeFile(np, await fs.readFile(new URL("../packages/notion/src/index.ts", import.meta.url), "utf8"));
-  const S = await import(sp);
-  const N = await import(np);
+  const S = await impFile(sp);
+  const N = await impFile(np);
 
   const okFetch = async () => new Response(JSON.stringify({ ok: true, channel: "C1", ts: "1.1" }), { status: 200 });
   const ngFetch = async () => new Response(JSON.stringify({ ok: false, error: "channel_not_found" }), { status: 200 });
@@ -1694,15 +1764,15 @@ section("integrations: extended");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const base = `/tmp/ext-${stamp}`;
+  const base = `${TMP}/ext-${stamp}`;
   await fs.mkdir(base, { recursive: true });
   await fs.writeFile(`${base}/slack.ts`, await fs.readFile(new URL("../packages/slack/src/index.ts", import.meta.url), "utf8"));
   await fs.writeFile(`${base}/notion.ts`, await fs.readFile(new URL("../packages/notion/src/index.ts", import.meta.url), "utf8"));
   await fs.writeFile(`${base}/ms-oauth.ts`, await fs.readFile(new URL("../packages/microsoft/src/oauth.ts", import.meta.url), "utf8"));
-  await fs.writeFile(`${base}/ms-graph.ts`, (await fs.readFile(new URL("../packages/microsoft/src/graph.ts", import.meta.url), "utf8")).replace('from "./oauth"', `from "${base}/ms-oauth.ts"`));
-  const S = await import(`${base}/slack.ts`);
-  const N = await import(`${base}/notion.ts`);
-  const G = await import(`${base}/ms-graph.ts`);
+  await fs.writeFile(`${base}/ms-graph.ts`, (await fs.readFile(new URL("../packages/microsoft/src/graph.ts", import.meta.url), "utf8")).replace('from "./oauth"', `from "${toSpec(`${base}/ms-oauth.ts`)}"`));
+  const S = await impFile(`${base}/slack.ts`);
+  const N = await impFile(`${base}/notion.ts`);
+  const G = await impFile(`${base}/ms-graph.ts`);
 
   // Slack: 承認ボタン
   const blocks = S.buildApprovalBlocks({ title: "経費申請", summary: "山田 / 12,000円", actionValue: "expense:123" });
@@ -1757,12 +1827,12 @@ section("microsoft (Entra ID / Graph)");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const base = `/tmp/ms-${stamp}`;
+  const base = `${TMP}/ms-${stamp}`;
   await fs.mkdir(base, { recursive: true });
   await fs.writeFile(`${base}/oauth.ts`, await fs.readFile(new URL("../packages/microsoft/src/oauth.ts", import.meta.url), "utf8"));
-  await fs.writeFile(`${base}/graph.ts`, (await fs.readFile(new URL("../packages/microsoft/src/graph.ts", import.meta.url), "utf8")).replace('from "./oauth"', `from "${base}/oauth.ts"`));
-  const O = await import(`${base}/oauth.ts`);
-  const G = await import(`${base}/graph.ts`);
+  await fs.writeFile(`${base}/graph.ts`, (await fs.readFile(new URL("../packages/microsoft/src/graph.ts", import.meta.url), "utf8")).replace('from "./oauth"', `from "${toSpec(`${base}/oauth.ts`)}"`));
+  const O = await impFile(`${base}/oauth.ts`);
+  const G = await impFile(`${base}/graph.ts`);
 
   const url = O.buildMicrosoftAuthUrl({ clientId: "cid", redirectUri: "https://app/cb", tenantId: "t-123", scope: ["User.Read"], state: "s1" });
   ok("Microsoft: 認可URLは自社テナント指定・offline_access を付ける(他社アカウントを通さない)",
@@ -1801,10 +1871,10 @@ section("login rate limit");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const base = `/tmp/lrl-${stamp}`;
+  const base = `${TMP}/lrl-${stamp}`;
   await fs.mkdir(base, { recursive: true });
   const mapCore = async (rel) =>
-    (await fs.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`);
+    (await fs.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`);
   await fs.writeFile(`${base}/core.ts`,
     (await fs.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/^import .*$/gm, "") +
     (await fs.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/^import .*$/gm, ""));
@@ -1812,10 +1882,10 @@ section("login rate limit");
   for (const f of ["types", "memory", "limiter"]) {
     await fs.writeFile(`${base}/${f}.ts`, await mapCore(`../packages/ratelimit/src/${f}.ts`));
   }
-  await fs.writeFile(`${base}/entry.ts`, `export * from "${base}/types.ts";\nexport * from "${base}/memory.ts";\nexport * from "${base}/limiter.ts";\n`);
+  await fs.writeFile(`${base}/entry.ts`, `export * from "${toSpec(`${base}/types.ts`)}";\nexport * from "${toSpec(`${base}/memory.ts`)}";\nexport * from "${toSpec(`${base}/limiter.ts`)}";\n`);
   await fs.writeFile(`${base}/login-limit.ts`,
-    (await fs.readFile(new URL("../apps/equipment-app/src/server/login-limit.ts", import.meta.url), "utf8")).replace('from "@platform/ratelimit"', `from "${base}/entry.ts"`));
-  const L = await import(`${base}/login-limit.ts`);
+    (await fs.readFile(new URL("../apps/equipment-app/src/server/login-limit.ts", import.meta.url), "utf8")).replace('from "@platform/ratelimit"', `from "${toSpec(`${base}/entry.ts`)}"`));
+  const L = await impFile(`${base}/login-limit.ts`);
 
   // 同じメールで 5 回までは通り、6 回目で止まる
   const results = [];
@@ -1840,16 +1910,16 @@ section("password migration");
   const fs = await import("node:fs/promises");
   const { scryptSync, randomBytes } = await import("node:crypto");
   const stamp = smokeStamp();
-  const base = `/tmp/pwm-${stamp}`;
+  const base = `${TMP}/pwm-${stamp}`;
   await fs.mkdir(base, { recursive: true });
   await fs.writeFile(`${base}/core.ts`,
     (await fs.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/^import .*$/gm, "") +
     (await fs.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/^import .*$/gm, ""));
   await fs.writeFile(`${base}/crypto.ts`,
-    (await fs.readFile(new URL("../packages/crypto/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${base}/core.ts"`));
+    (await fs.readFile(new URL("../packages/crypto/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`));
   await fs.writeFile(`${base}/password.ts`,
-    (await fs.readFile(new URL("../apps/internal-app/src/server/password.ts", import.meta.url), "utf8")).replace('from "@platform/crypto"', `from "${base}/crypto.ts"`));
-  const P = await import(`${base}/password.ts`);
+    (await fs.readFile(new URL("../apps/internal-app/src/server/password.ts", import.meta.url), "utf8")).replace('from "@platform/crypto"', `from "${toSpec(`${base}/crypto.ts`)}"`));
+  const P = await impFile(`${base}/password.ts`);
 
   // 移行前のデータ(hex 形式・scrypt 32byte)を再現する
   const salt = randomBytes(16).toString("hex");
@@ -1870,9 +1940,9 @@ section("ui: grid (spreadsheet)");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const gp = `/tmp/uigr-${stamp}.ts`;
+  const gp = `${TMP}/uigr-${stamp}.ts`;
   await fs.writeFile(gp, await fs.readFile(new URL("../packages/ui/src/lib/grid.ts", import.meta.url), "utf8"));
-  const G = await import(gp);
+  const G = await impFile(gp);
 
   // 範囲選択: 右下から左上へドラッグしても同じ範囲になる
   const back = G.normalizeCellRange({ row: 3, col: 4 }, { row: 1, col: 2 });
@@ -1919,9 +1989,9 @@ section("ui: table query & selection");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const tb = `/tmp/uitb-${stamp}.ts`;
+  const tb = `${TMP}/uitb-${stamp}.ts`;
   await fs.writeFile(tb, await fs.readFile(new URL("../packages/ui/src/lib/table.ts", import.meta.url), "utf8"));
-  const T = await import(tb);
+  const T = await impFile(tb);
 
   const rows = [
     { id: "1", name: "さくら", price: 300 },
@@ -1976,17 +2046,17 @@ section("ui: format & chart data");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const base = `/tmp/uifmt-${stamp}`;
+  const base = `${TMP}/uifmt-${stamp}`;
   await fs.mkdir(base, { recursive: true });
   await fs.writeFile(`${base}/utils.ts`,
     (await fs.readFile(new URL("../packages/utils/src/numbers.ts", import.meta.url), "utf8")).replace(/^import .*$/gm, ""));
   await fs.writeFile(`${base}/chart-data.ts`,
-    (await fs.readFile(new URL("../packages/ui/src/lib/chart-data.ts", import.meta.url), "utf8")).replace('from "@platform/utils"', `from "${base}/utils.ts"`));
+    (await fs.readFile(new URL("../packages/ui/src/lib/chart-data.ts", import.meta.url), "utf8")).replace('from "@platform/utils"', `from "${toSpec(`${base}/utils.ts`)}"`));
   await fs.writeFile(`${base}/format-bytes.ts`, await fs.readFile(new URL("../packages/ui/src/lib/format-bytes.ts", import.meta.url), "utf8"));
   await fs.writeFile(`${base}/format-time.ts`, await fs.readFile(new URL("../packages/ui/src/lib/format-time.ts", import.meta.url), "utf8"));
-  const C = await import(`${base}/chart-data.ts`);
-  const { formatBytes } = await import(`${base}/format-bytes.ts`);
-  const { formatTime } = await import(`${base}/format-time.ts`);
+  const C = await impFile(`${base}/chart-data.ts`);
+  const { formatBytes } = await impFile(`${base}/format-bytes.ts`);
+  const { formatTime } = await impFile(`${base}/format-time.ts`);
 
   ok("整形: ファイルサイズは単位を繰り上げる(1024 を 1024 B と出さない)",
     formatBytes(0) === "0 B" && formatBytes(500) === "500 B" &&
@@ -2039,15 +2109,15 @@ section("theme: colored sidebar");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const base = `/tmp/thm-${stamp}`;
+  const base = `${TMP}/thm-${stamp}`;
   await fs.mkdir(base, { recursive: true });
   for (const f of ["tokens", "css", "themes"]) {
     await fs.writeFile(`${base}/${f}.ts`,
       (await fs.readFile(new URL(`../packages/theme/src/${f}.ts`, import.meta.url), "utf8"))
-        .replace(/from "\.\/([a-z]+)"/g, `from "${base}/$1.ts"`));
+        .replace(/from "\.\/([a-z]+)"/g, `from "${toSpec(`${base}/$1.ts`)}"`));
   }
-  const { themeToCssVars } = await import(`${base}/css.ts`);
-  const { builtInThemes, navySidebarTheme, defaultTheme } = await import(`${base}/themes.ts`);
+  const { themeToCssVars } = await impFile(`${base}/css.ts`);
+  const { builtInThemes, navySidebarTheme, defaultTheme } = await impFile(`${base}/themes.ts`);
 
   ok("テーマ: 色付きサイドバーの型が 3 つ増えた(既存は据え置き)",
     builtInThemes.length === 14 && builtInThemes.some((t) => t.id === "navy-sidebar"));
@@ -2075,9 +2145,9 @@ section("ui: import validation");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const iv = `/tmp/uiiv-${stamp}.ts`;
+  const iv = `${TMP}/uiiv-${stamp}.ts`;
   await fs.writeFile(iv, await fs.readFile(new URL("../packages/ui/src/lib/import-validate.ts", import.meta.url), "utf8"));
-  const V = await import(iv);
+  const V = await impFile(iv);
 
   const fields = [
     { key: "code", required: true, unique: true },
@@ -2132,12 +2202,12 @@ section("pwa");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const pw = `/tmp/pwa-${stamp}.ts`;
-  const po = `/tmp/pwao-${stamp}.ts`;
+  const pw = `${TMP}/pwa-${stamp}.ts`;
+  const po = `${TMP}/pwao-${stamp}.ts`;
   await fs.writeFile(pw, await fs.readFile(new URL("../packages/mobile/src/pwa.ts", import.meta.url), "utf8"));
   await fs.writeFile(po, await fs.readFile(new URL("../packages/mobile/src/pwa-offline.ts", import.meta.url), "utf8"));
-  const P = await import(pw);
-  const O = await import(po);
+  const P = await impFile(pw);
+  const O = await impFile(po);
 
   const manifest = P.buildWebManifest({
     name: "社内システム", shortName: "社内", themeColor: "#1e40af",
@@ -2184,9 +2254,9 @@ section("oidc id token");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const oidcPath = `/tmp/oidc-${stamp}.ts`;
+  const oidcPath = `${TMP}/oidc-${stamp}.ts`;
   await fs.writeFile(oidcPath, await fs.readFile(new URL("../packages/auth/src/oidc.ts", import.meta.url), "utf8"));
-  const O = await import(oidcPath);
+  const O = await impFile(oidcPath);
 
   const issuer = O.resolveIssuer({ kind: "entra", clientId: "c", clientSecret: "s", tenantId: "t-123" });
   ok("OIDC: IdP 種別から発行者を解決する(Entra はテナント込み)",
@@ -2224,9 +2294,9 @@ section("access review");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const arPath = `/tmp/ar-${stamp}.ts`;
+  const arPath = `${TMP}/ar-${stamp}.ts`;
   await fs.writeFile(arPath, await fs.readFile(new URL("../packages/access-review/src/index.ts", import.meta.url), "utf8"));
-  const A = await import(arPath);
+  const A = await impFile(arPath);
 
   const people = [
     { userId: "u1", name: "山田", department: "経理", status: "active" },
@@ -2270,9 +2340,9 @@ section("password reset");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const prPath = `/tmp/pr-${stamp}.ts`;
+  const prPath = `${TMP}/pr-${stamp}.ts`;
   await fs.writeFile(prPath, await fs.readFile(new URL("../packages/auth/src/password-reset.ts", import.meta.url), "utf8"));
-  const P = await import(prPath);
+  const P = await impFile(prPath);
 
   let clock = 1_000_000;
   const now = () => clock;
@@ -2308,11 +2378,11 @@ section("rbac / authorization");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  await fs.writeFile(`/tmp/rb-rbac-${stamp}.ts`, await fs.readFile(new URL("../packages/auth/src/rbac.ts", import.meta.url), "utf8"));
-  let h = (await fs.readFile(new URL("../packages/auth/src/hierarchy.ts", import.meta.url), "utf8")).replace('from "./rbac"', `from "/tmp/rb-rbac-${stamp}.ts"`);
-  await fs.writeFile(`/tmp/rb-h-${stamp}.ts`, h);
-  const R = await import(`/tmp/rb-rbac-${stamp}.ts`);
-  const H = await import(`/tmp/rb-h-${stamp}.ts`);
+  await fs.writeFile(`${TMP}/rb-rbac-${stamp}.ts`, await fs.readFile(new URL("../packages/auth/src/rbac.ts", import.meta.url), "utf8"));
+  let h = (await fs.readFile(new URL("../packages/auth/src/hierarchy.ts", import.meta.url), "utf8")).replace('from "./rbac"', `from \"${toSpec(`${TMP}/rb-rbac-${stamp}.ts`)}\"`);
+  await fs.writeFile(`${TMP}/rb-h-${stamp}.ts`, h);
+  const R = await impFile(`${TMP}/rb-rbac-${stamp}.ts`);
+  const H = await impFile(`${TMP}/rb-h-${stamp}.ts`);
   const policy = H.resolveHierarchy({
     employee: { permissions: ["expense:create", "expense:read:own"] },
     manager: { inherits: ["employee"], permissions: ["expense:approve:own"] },
@@ -2357,16 +2427,16 @@ section("rbac / authorization");
   })());
   ok("認可: 継承は下り方向のみ(部下が上司の権限を得ない)", !R.can(policy, ["employee"], "expense:approve:any") && !R.can(policy, ["manager"], "expense:export") && !R.can(policy, ["finance"], "user:manage"));
 
-  await fs.rm(`/tmp/rb-rbac-${stamp}.ts`); await fs.rm(`/tmp/rb-h-${stamp}.ts`);
+  await fs.rm(`${TMP}/rb-rbac-${stamp}.ts`); await fs.rm(`${TMP}/rb-h-${stamp}.ts`);
 }
 
 // ---- observability(trace/metrics/idempotency/health) ----
 section("observability");
 {
-  const T = await import(new URL("../packages/observability/src/trace.ts", import.meta.url));
-  const M = await import(new URL("../packages/observability/src/metrics.ts", import.meta.url));
-  const ID = await import(new URL("../packages/observability/src/idempotency.ts", import.meta.url));
-  const H = await import(new URL("../packages/observability/src/health.ts", import.meta.url));
+  const T = await impFile(new URL("../packages/observability/src/trace.ts", import.meta.url));
+  const M = await impFile(new URL("../packages/observability/src/metrics.ts", import.meta.url));
+  const ID = await impFile(new URL("../packages/observability/src/idempotency.ts", import.meta.url));
+  const H = await impFile(new URL("../packages/observability/src/health.ts", import.meta.url));
   const tid = T.newTraceId();
   ok("trace traceparent 往復", (() => { const p = T.parseTraceparent(T.toTraceparent(tid, T.newSpanId())); return p && p.traceId === tid; })());
   let clk = 0; const spans = []; const tr = T.createTracer((s) => spans.push(s), () => clk);
@@ -2394,8 +2464,8 @@ section("dependency boundaries");
 // ---- circuit breaker / outbox ----
 section("circuit-breaker / outbox");
 {
-  const CB = await import(new URL("../packages/observability/src/circuit-breaker.ts", import.meta.url));
-  const O = await import(new URL("../packages/observability/src/outbox.ts", import.meta.url));
+  const CB = await impFile(new URL("../packages/observability/src/circuit-breaker.ts", import.meta.url));
+  const O = await impFile(new URL("../packages/observability/src/outbox.ts", import.meta.url));
   let clk = 0; const now = () => clk;
   const b = CB.createCircuitBreaker({ failureThreshold: 2, resetTimeoutMs: 100, successThreshold: 1, now });
   for (let i = 0; i < 2; i++) { try { await b.execute(async () => { throw new Error("x"); }); } catch { /* ignore */ } }
@@ -2420,12 +2490,12 @@ section("cache stampede / swr");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const core = `/tmp/csm-core-${stamp}.ts`;
+  const core = `${TMP}/csm-core-${stamp}.ts`;
   await fs.writeFile(core, `export const ErrorCode={EXTERNAL:"EXTERNAL"};export class AppError extends Error{constructor(c,m,o){super(m);this.code=c;this.cause=o?.cause;}}export async function tryCatch(fn){try{return{ok:true,value:await fn()};}catch(e){return{ok:false,error:e};}}`);
-  let idx = (await fs.readFile(new URL("../packages/cache/src/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${core}"`);
+  let idx = (await fs.readFile(new URL("../packages/cache/src/index.ts", import.meta.url), "utf8")).replace(/from "@platform\/core"/g, `from "${toSpec(core)}"`);
   idx = idx.split('export { createMemoryCache }')[0];
-  const idxp = `/tmp/csm-idx-${stamp}.ts`; await fs.writeFile(idxp, idx);
-  const C = await import(idxp);
+  const idxp = `${TMP}/csm-idx-${stamp}.ts`; await fs.writeFile(idxp, idx);
+  const C = await impFile(idxp);
   const store = new Map();
   const adapter = { async get(k) { return store.has(k) ? store.get(k) : null; }, async set(k, v) { store.set(k, v); }, async delete(k) { store.delete(k); } };
   const cache = C.createCache(adapter);
@@ -2440,29 +2510,29 @@ section("resilient zoho fetch");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const w = async (name, src) => { const f = `/tmp/rz-${name}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
+  const w = async (name, src) => { const f = `${TMP}/rz-${name}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
   const trace = await fs.readFile(new URL("../packages/observability/src/trace.ts", import.meta.url), "utf8");
   const metrics = await fs.readFile(new URL("../packages/observability/src/metrics.ts", import.meta.url), "utf8");
   const cb = await fs.readFile(new URL("../packages/observability/src/circuit-breaker.ts", import.meta.url), "utf8");
   const tf = await w("trace", trace), mf = await w("metrics", metrics), cbf = await w("cb", cb);
-  const obsidx = await w("obsidx", `export * from "${tf}";\nexport * from "${mf}";\nexport * from "${cbf}";\n`);
+  const obsidx = await w("obsidx", `export * from "${toSpec(tf)}";\nexport * from "${toSpec(mf)}";\nexport * from "${toSpec(cbf)}";\n`);
   const dc = await w("dc", await fs.readFile(new URL("../packages/zoho/src/core/datacenter.ts", import.meta.url), "utf8"));
-  let oaSrc = (await fs.readFile(new URL("../packages/zoho/src/core/oauth.ts", import.meta.url), "utf8")).replace('from "./datacenter"', `from "${dc}"`);
+  let oaSrc = (await fs.readFile(new URL("../packages/zoho/src/core/oauth.ts", import.meta.url), "utf8")).replace('from "./datacenter"', `from "${toSpec(dc)}"`);
   const oa = await w("oa", oaSrc);
   let tmSrc = (await fs.readFile(new URL("../packages/zoho/src/core/token-manager.ts", import.meta.url), "utf8"))
-    .replace('from "./oauth"', `from "${oa}"`)
-    .replace('from "./datacenter"', `from "${dc}"`);
+    .replace('from "./oauth"', `from "${toSpec(oa)}"`)
+    .replace('from "./datacenter"', `from "${toSpec(dc)}"`);
   const tm = await w("tm", tmSrc);
-  const zcore = await w("zcore", `export * from "${dc}";\nexport * from "${tm}";\n`);
-  const obs = await w("obs", `import { createTracer, createMetrics } from "${obsidx}";\nexport const metrics = createMetrics();\nexport const tracer = createTracer(() => {});\n`);
+  const zcore = await w("zcore", `export * from "${toSpec(dc)}";\nexport * from "${toSpec(tm)}";\n`);
+  const obs = await w("obs", `import { createTracer, createMetrics } from "${toSpec(obsidx)}";\nexport const metrics = createMetrics();\nexport const tracer = createTracer(() => {});\n`);
   const zcore2 = await w("zcore2", 'class AppError extends Error { constructor(c,m,o){ super(m); this.code=c; this.details=o?.details; } } export function createBulkhead(opts){ let running=0; const q=[]; const max=opts.maxConcurrent; async function acq(){ if(running<max){running++;return;} return new Promise((res)=>q.push(res)); } function rel(){ const n=q.shift(); if(n){ n(); } else running--; } return { async run(fn){ await acq(); try{ return await fn(); } finally{ rel(); } }, active:()=>running, queued:()=>q.length }; }');
   let zcSrc = (await fs.readFile(new URL("../apps/internal-app/src/server/zoho-client.ts", import.meta.url), "utf8"))
-    .replace('from "@platform/zoho/core"', `from "${zcore}"`)
-    .replace('from "@platform/observability"', `from "${obsidx}"`)
-    .replace('from "./observability"', `from "${obs}"`)
-    .replace('from "@platform/core"', `from "${zcore2}"`);
+    .replace('from "@platform/zoho/core"', `from "${toSpec(zcore)}"`)
+    .replace('from "@platform/observability"', `from "${toSpec(obsidx)}"`)
+    .replace('from "./observability"', `from "${toSpec(obs)}"`)
+    .replace('from "@platform/core"', `from "${toSpec(zcore2)}"`);
   const zc = await w("zc", zcSrc);
-  const ZC = await import(zc);
+  const ZC = await impFile(zc);
   const orig = globalThis.fetch;
   globalThis.fetch = async (url) => { const u = typeof url === "string" ? url : url.url; if (u.includes("/oauth/v2/token")) return { ok: true, status: 200, json: async () => ({ access_token: "AT", expires_in: 3600 }) }; throw new Error("down"); };
   const f = ZC.createResilientZohoFetch({ dataCenter: "jp", clientId: "c", clientSecret: "s", refreshToken: "r" });
@@ -2479,7 +2549,7 @@ section("resilient zoho fetch");
 // ---- logger × トレース相関(AsyncLocalStorage) ----
 section("logger correlation");
 {
-  const C = await import(new URL("../packages/logger/src/context.ts", import.meta.url));
+  const C = await impFile(new URL("../packages/logger/src/context.ts", import.meta.url));
   const store = C.createContextStore();
   const seen = await store.run({ traceId: "TR-1", requestId: "R-1" }, async () => {
     await new Promise((r) => setTimeout(r, 3));
@@ -2495,8 +2565,8 @@ section("logger correlation");
 // ---- cron 信頼性(分散ロック / オーバーラップ / ジッタ / 統計) ----
 section("cron reliability");
 {
-  const L = await import(new URL("../packages/cron/src/lock.ts", import.meta.url));
-  const R = await import(new URL("../packages/cron/src/runner.ts", import.meta.url));
+  const L = await impFile(new URL("../packages/cron/src/lock.ts", import.meta.url));
+  const R = await impFile(new URL("../packages/cron/src/runner.ts", import.meta.url));
   // 分散ロック: 2インスタンス同時 → 1回のみ
   const store = L.createMemoryLockStore();
   let runs = 0;
@@ -2523,24 +2593,24 @@ section("api instrumentation (all shapes)");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const obs = `/tmp/inst2-obs-${stamp}.ts`;
+  const obs = `${TMP}/inst2-obs-${stamp}.ts`;
   await fs.writeFile(obs, `export function parseTraceparent(){return null;} export const metrics={counters:{},incrementCounter(n,v=1,l){const k=n+JSON.stringify(l||{});this.counters[k]=(this.counters[k]||0)+v;},observeHistogram(){},setGauge(){}}; export const tracer={startSpan:()=>({traceId:"T",spanId:"S",setAttribute(){},setStatus(){},end(){}})};`);
-  const lc = `/tmp/inst2-lc-${stamp}.ts`;
+  const lc = `${TMP}/inst2-lc-${stamp}.ts`;
   await fs.writeFile(lc, `export const logContext={run:(c,fn)=>fn(),get:()=>({}),set(){},provider:()=>({})};`);
-  const coreShim = `/tmp/inst2-core-${stamp}.ts`;
+  const coreShim = `${TMP}/inst2-core-${stamp}.ts`;
   await fs.writeFile(coreShim, `export class AppError extends Error { constructor(c,m,o){ super(m); this.code=c; this.details=o?.details; } } const P={VALIDATION:400,NOT_FOUND:404,UNAUTHORIZED:401,FORBIDDEN:403,RATE_LIMITED:429,CONFLICT:409,EXTERNAL:502,DATABASE:503,CONFIG:500,INTERNAL:500}; export function httpStatusFor(e){ return e instanceof AppError ? P[e.code] : 500; } export function toErrorEnvelope(e,traceId){ if(e instanceof AppError) return { error:{ code:e.code, message:e.message, ...(traceId?{traceId}:{}) } }; return { error:{ code:"UNKNOWN", message:"予期しないエラーが発生しました", ...(traceId?{traceId}:{}) } }; }`);
   // Platform Debugger の収集器(開発時のみ有効)。ここでは無効相当のスタブで差し替える
-  const dbgc = `/tmp/inst2-dbg-${stamp}.ts`;
+  const dbgc = `${TMP}/inst2-dbg-${stamp}.ts`;
   await fs.writeFile(dbgc, `export const debugCollector={enabled:false,start(){},record(){},finish(){},list:()=>[],get:()=>undefined,clear(){},summarize:()=>({})};`);
   let ins = (await fs.readFile(new URL("../apps/internal-app/src/server/instrument.ts", import.meta.url), "utf8"))
-    .replace('from "@platform/observability"', `from "${obs}"`)
-    .replace('from "./observability"', `from "${obs}"`)
-    .replace('from "./log-context"', `from "${lc}"`)
-    .replace('from "@platform/core"', `from "${coreShim}"`)
-    .replace('from "./debug-collector"', `from "${dbgc}"`);
-  const insp = `/tmp/inst2-${stamp}.ts`; await fs.writeFile(insp, ins);
-  const I = await import(insp);
-  const { metrics } = await import(obs);
+    .replace('from "@platform/observability"', `from "${toSpec(obs)}"`)
+    .replace('from "./observability"', `from "${toSpec(obs)}"`)
+    .replace('from "./log-context"', `from "${toSpec(lc)}"`)
+    .replace('from "@platform/core"', `from "${toSpec(coreShim)}"`)
+    .replace('from "./debug-collector"', `from "${toSpec(dbgc)}"`);
+  const insp = `${TMP}/inst2-${stamp}.ts`; await fs.writeFile(insp, ins);
+  const I = await impFile(insp);
+  const { metrics } = await impFile(obs);
   // 引数なし同期
   await I.withApiObservability("/logout", () => new Response("ok", { status: 200 }))(new Request("https://x/logout", { method: "POST" }));
   // ctx 付き非同期
@@ -2555,14 +2625,14 @@ section("api instrumentation (all shapes)");
 // ---- notify 信頼性(dedup / retry / fallback) ----
 section("notify resilience");
 {
-  const D = await import(new URL("../packages/notify/src/dedup.ts", import.meta.url));
+  const D = await impFile(new URL("../packages/notify/src/dedup.ts", import.meta.url));
   const R = await (async () => {
     const fsr = await import("node:fs/promises");
-    const shim = `/tmp/nr-core-${smokeStamp()}.ts`;
+    const shim = `${TMP}/nr-core-${smokeStamp()}.ts`;
     await fsr.writeFile(shim, "export function defaultShouldRetry(e){ return !(e && e.__perm); }");
-    const src = (await fsr.readFile(new URL("../packages/notify/src/resilient.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${shim}"`);
-    const f = `/tmp/nr-res-${smokeStamp()}.ts`; await fsr.writeFile(f, src);
-    const m = await import(f); await fsr.rm(shim); await fsr.rm(f); return m;
+    const src = (await fsr.readFile(new URL("../packages/notify/src/resilient.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${toSpec(shim)}"`);
+    const f = `${TMP}/nr-res-${smokeStamp()}.ts`; await fsr.writeFile(f, src);
+    const m = await impFile(f); await fsr.rm(shim); await fsr.rm(f); return m;
   })();
   let clk = 0; const sent = [];
   const base = { send: async (m) => { sent.push(m.text); } };
@@ -2584,11 +2654,11 @@ section("storage resilience");
 {
   const R = await (async () => {
     const fsr = await import("node:fs/promises");
-    const shim = `/tmp/rs-core-${Math.random().toString(36).slice(2)}.ts`;
+    const shim = `${TMP}/rs-core-${Math.random().toString(36).slice(2)}.ts`;
     await fsr.writeFile(shim, "export function defaultShouldRetry(e){ return !(e && e.__perm); }");
-    const src = (await fsr.readFile(new URL("../packages/storage/src/resilient.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${shim}"`);
-    const f = `/tmp/rs-mod-${Math.random().toString(36).slice(2)}.ts`; await fsr.writeFile(f, src);
-    const m = await import(f); await fsr.rm(shim); await fsr.rm(f); return m;
+    const src = (await fsr.readFile(new URL("../packages/storage/src/resilient.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${toSpec(shim)}"`);
+    const f = `${TMP}/rs-mod-${Math.random().toString(36).slice(2)}.ts`; await fsr.writeFile(f, src);
+    const m = await impFile(f); await fsr.rm(shim); await fsr.rm(f); return m;
   })();
   const mk = (fail = {}) => { const store = new Map(); return { store, put: async (k, b) => { if (fail.put) throw new Error("put"); store.set(k, b); }, get: async (k) => { if (fail.get) throw new Error("get"); if (!store.has(k)) throw new Error("nf"); return store.get(k); }, delete: async (k) => { store.delete(k); }, exists: async (k) => store.has(k), list: async () => [...store.keys()] }; };
   let n = 0;
@@ -2608,19 +2678,19 @@ section("sms/mail resilience");
 {
   const S = await (async () => {
     const fsr = await import("node:fs/promises");
-    const shim = `/tmp/rs-core-${Math.random().toString(36).slice(2)}.ts`;
+    const shim = `${TMP}/rs-core-${Math.random().toString(36).slice(2)}.ts`;
     await fsr.writeFile(shim, "export function defaultShouldRetry(e){ return !(e && e.__perm); }");
-    const src = (await fsr.readFile(new URL("../packages/sms/src/resilient.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${shim}"`);
-    const f = `/tmp/rs-mod-${Math.random().toString(36).slice(2)}.ts`; await fsr.writeFile(f, src);
-    const m = await import(f); await fsr.rm(shim); await fsr.rm(f); return m;
+    const src = (await fsr.readFile(new URL("../packages/sms/src/resilient.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${toSpec(shim)}"`);
+    const f = `${TMP}/rs-mod-${Math.random().toString(36).slice(2)}.ts`; await fsr.writeFile(f, src);
+    const m = await impFile(f); await fsr.rm(shim); await fsr.rm(f); return m;
   })();
   const M = await (async () => {
     const fsr = await import("node:fs/promises");
-    const shim = `/tmp/rs-core-${Math.random().toString(36).slice(2)}.ts`;
+    const shim = `${TMP}/rs-core-${Math.random().toString(36).slice(2)}.ts`;
     await fsr.writeFile(shim, "export function defaultShouldRetry(e){ return !(e && e.__perm); }");
-    const src = (await fsr.readFile(new URL("../packages/mail/src/resilient.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${shim}"`);
-    const f = `/tmp/rs-mod-${Math.random().toString(36).slice(2)}.ts`; await fsr.writeFile(f, src);
-    const m = await import(f); await fsr.rm(shim); await fsr.rm(f); return m;
+    const src = (await fsr.readFile(new URL("../packages/mail/src/resilient.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${toSpec(shim)}"`);
+    const f = `${TMP}/rs-mod-${Math.random().toString(36).slice(2)}.ts`; await fsr.writeFile(f, src);
+    const m = await impFile(f); await fsr.rm(shim); await fsr.rm(f); return m;
   })();
   let n = 0;
   await S.withSmsRetry({ send: async () => { n++; if (n < 3) throw new Error("e"); } }, { retries: 2, sleep: async () => {} }).send({ to: "+81", body: "x", from: "+81" });
@@ -2638,11 +2708,11 @@ section("search bm25 / redis / ws queue");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const tok = `/tmp/bm-tok-${stamp}.ts`;
+  const tok = `${TMP}/bm-tok-${stamp}.ts`;
   await fs.writeFile(tok, await fs.readFile(new URL("../packages/search/src/tokenize.ts", import.meta.url), "utf8"));
-  let bm = (await fs.readFile(new URL("../packages/search/src/bm25.ts", import.meta.url), "utf8")).replace('from "./tokenize"', `from "${tok}"`);
-  const bmf = `/tmp/bm-${stamp}.ts`; await fs.writeFile(bmf, bm);
-  const { createBm25Index } = await import(bmf);
+  let bm = (await fs.readFile(new URL("../packages/search/src/bm25.ts", import.meta.url), "utf8")).replace('from "./tokenize"', `from "${toSpec(tok)}"`);
+  const bmf = `${TMP}/bm-${stamp}.ts`; await fs.writeFile(bmf, bm);
+  const { createBm25Index } = await impFile(bmf);
   const idx = createBm25Index();
   idx.addAll([{ id: "1", t: "請求書の書き方と作成手順" }, { id: "2", t: "見積書テンプレート" }, { id: "3", t: "経費精算のやり方" }]);
   ok("BM25 日本語検索(該当のみ)", (() => { const r = idx.search("請求書", 10); return r.length === 1 && r[0].id === "1"; })());
@@ -2653,10 +2723,10 @@ section("search bm25 / redis / ws queue");
   let redisSrc = (await fs.readFile(new URL("../packages/ratelimit/src/redis.ts", import.meta.url), "utf8"))
     .replace('import Redis from "ioredis";\n', "")
     .replace('typeof urlOrClient === "string" ? (new Redis(urlOrClient) as unknown as RedisLike) : urlOrClient', "urlOrClient as RedisLike");
-  const ttypes = `/tmp/rl-types-${stamp}.ts`; await fs.writeFile(ttypes, "export interface RateLimitStore { increment(key: string, windowSeconds: number): Promise<number> }");
-  redisSrc = redisSrc.replace('from "./types"', `from "${ttypes}"`);
-  const rf = `/tmp/rl-${stamp}.ts`; await fs.writeFile(rf, redisSrc);
-  const { createRedisStore } = await import(rf);
+  const ttypes = `${TMP}/rl-types-${stamp}.ts`; await fs.writeFile(ttypes, "export interface RateLimitStore { increment(key: string, windowSeconds: number): Promise<number> }");
+  redisSrc = redisSrc.replace('from "./types"', `from "${toSpec(ttypes)}"`);
+  const rf = `${TMP}/rl-${stamp}.ts`; await fs.writeFile(rf, redisSrc);
+  const { createRedisStore } = await impFile(rf);
   const store = new Map(); let clock = 0;
   const fake = { eval: async (_s, _n, key, ttl) => {
     const e = store.get(key);
@@ -2676,8 +2746,8 @@ section("search bm25 / redis / ws queue");
   const rt = await (async () => {
     const fsx = await import("node:fs/promises");
     const src = (await fsx.readFile(new URL("../packages/realtime/src/index.ts", import.meta.url), "utf8")).replace(/export \{[^}]*\} from "\.\/broadcast";\n?/g, "");
-    const f = `/tmp/rt-idx-b-${smokeStamp()}.ts`; await fsx.writeFile(f, src);
-    const m = await import(f); await fsx.rm(f); return m;
+    const f = `${TMP}/rt-idx-b-${smokeStamp()}.ts`; await fsx.writeFile(f, src);
+    const m = await impFile(f); await fsx.rm(f); return m;
   })();
   const insts = [];
   class FakeWS { constructor() { this.sent = []; this.onopen = null; this.onclose = null; insts.push(this); } send(d) { this.sent.push(d); } close() { this.onclose && this.onclose(); } }
@@ -2695,10 +2765,10 @@ section("cache redis / db retry / jobs retry");
   const stamp = smokeStamp();
   // cache redis(注入)
   let cr = (await fs.readFile(new URL("../packages/cache/src/adapters/redis.ts", import.meta.url), "utf8")).split("\n").filter((ln) => !ln.includes('import Redis from')).join("\n").replace(/const client: RedisLike = isConfig[\s\S]*?: configOrClient;/, "const client = configOrClient as RedisLike;");
-  const ci = `/tmp/cr-idx-${stamp}.ts`; await fs.writeFile(ci, "export interface CacheAdapter { get(key: string): Promise<string | null>; set(key: string, value: string, ttlSeconds?: number): Promise<void>; delete(key: string): Promise<void>; }");
-  cr = cr.replace('from "../index"', `from "${ci}"`);
-  const crf = `/tmp/cr-${stamp}.ts`; await fs.writeFile(crf, cr);
-  const { createRedisCache } = await import(crf);
+  const ci = `${TMP}/cr-idx-${stamp}.ts`; await fs.writeFile(ci, "export interface CacheAdapter { get(key: string): Promise<string | null>; set(key: string, value: string, ttlSeconds?: number): Promise<void>; delete(key: string): Promise<void>; }");
+  cr = cr.replace('from "../index"', `from "${toSpec(ci)}"`);
+  const crf = `${TMP}/cr-${stamp}.ts`; await fs.writeFile(crf, cr);
+  const { createRedisCache } = await impFile(crf);
   const store = new Map(); const ttls = new Map();
   const fake = { get: async (k) => store.has(k) ? store.get(k) : null, set: async (k, v, mode, ttl) => { store.set(k, v); if (mode === "EX") ttls.set(k, ttl); return "OK"; }, del: async (k) => { store.delete(k); return 1; } };
   const c = createRedisCache(fake);
@@ -2707,11 +2777,11 @@ section("cache redis / db retry / jobs retry");
   await fs.rm(ci); await fs.rm(crf);
 
   // jobs memory retry
-  const ji = `/tmp/jb-idx-${stamp}.ts`; await fs.writeFile(ji, "export interface TypedQueue<T> { add(name: string, data: T, o?: unknown): Promise<unknown>; close(): Promise<void>; }");
-  const jc = `/tmp/jb-core-${stamp}.ts`; await fs.writeFile(jc, "export {};");
-  let jm = (await fs.readFile(new URL("../packages/jobs/src/memory.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${jc}"`).replace('from "./index"', `from "${ji}"`);
-  const jmf = `/tmp/jb-${stamp}.ts`; await fs.writeFile(jmf, jm);
-  const { createMemoryQueue } = await import(jmf);
+  const ji = `${TMP}/jb-idx-${stamp}.ts`; await fs.writeFile(ji, "export interface TypedQueue<T> { add(name: string, data: T, o?: unknown): Promise<unknown>; close(): Promise<void>; }");
+  const jc = `${TMP}/jb-core-${stamp}.ts`; await fs.writeFile(jc, "export {};");
+  let jm = (await fs.readFile(new URL("../packages/jobs/src/memory.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${toSpec(jc)}"`).replace('from "./index"', `from "${toSpec(ji)}"`);
+  const jmf = `${TMP}/jb-${stamp}.ts`; await fs.writeFile(jmf, jm);
+  const { createMemoryQueue } = await impFile(jmf);
   let tries = 0;
   const q = createMemoryQueue({ attempts: 3 });
   q.process(async () => { tries++; if (tries < 3) throw new Error("t"); });
@@ -2729,14 +2799,14 @@ section("cache redis / db tx-retry / jobs");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const w = async (name, src) => { const f = `/tmp/dd-${name}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
+  const w = async (name, src) => { const f = `${TMP}/dd-${name}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
   // cache redis(注入)
   const cidx = await w("cidx", "export interface CacheAdapter { get(key: string): Promise<string | null>; set(key: string, value: string, ttlSeconds?: number): Promise<void>; delete(key: string): Promise<void>; }");
   let credis = (await fs.readFile(new URL("../packages/cache/src/adapters/redis.ts", import.meta.url), "utf8"))
     .replace('import Redis from "ioredis";\n', "")
-    .replace('from "../index"', `from "${cidx}"`);
+    .replace('from "../index"', `from "${toSpec(cidx)}"`);
   const credisf = await w("credis", credis);
-  const { createRedisCache } = await import(credisf);
+  const { createRedisCache } = await impFile(credisf);
   const store = new Map(); let exArgs = null;
   const fake = { get: async (k) => store.get(k) ?? null, set: async (k, v, ...a) => { store.set(k, v); exArgs = a; return "OK"; }, del: async (k) => { store.delete(k); return 1; } };
   const ca = createRedisCache(fake);
@@ -2747,20 +2817,20 @@ section("cache redis / db tx-retry / jobs");
   // db transactionWithRetry(注入 Prisma)
   const core = await w("core", `export const ErrorCode={CONFLICT:"CONFLICT",DATABASE:"DATABASE",INTERNAL:"INTERNAL"};export class AppError extends Error{constructor(c,m,o){super(m);this.code=c;this.cause=o?.cause;}static from(e,c){return new AppError(c,String(e));}}export async function tryCatch(fn){try{return{ok:true,value:await fn()};}catch(e){return{ok:false,error:e instanceof AppError?e:new AppError("INTERNAL",String(e),{cause:e})};}}`);
   const prisma = await w("prisma", "export class PrismaClient {}");
-  const errs = await w("errs", `import { AppError, ErrorCode } from "${core}";export function mapPrismaError(e){return new AppError(ErrorCode.DATABASE,"db",{cause:e});}export function isRetryablePrismaError(e){return /40001|40P01|deadlock|serialization|P2034/i.test(e?.message??"");}`);
+  const errs = await w("errs", `import { AppError, ErrorCode } from "${toSpec(core)}";export function mapPrismaError(e){return new AppError(ErrorCode.DATABASE,"db",{cause:e});}export function isRetryablePrismaError(e){return /40001|40P01|deadlock|serialization|P2034/i.test(e?.message??"");}`);
   let tx = (await fs.readFile(new URL("../packages/db/src/transaction.ts", import.meta.url), "utf8"))
-    .replace('from "@prisma/client"', `from "${prisma}"`)
-    .replace('from "@platform/core"', `from "${core}"`)
-    .replace('from "./errors"', `from "${errs}"`);
+    .replace('from "@prisma/client"', `from "${toSpec(prisma)}"`)
+    .replace('from "@platform/core"', `from "${toSpec(core)}"`)
+    .replace('from "./errors"', `from "${toSpec(errs)}"`);
   const txf = await w("tx", tx);
   let res = (await fs.readFile(new URL("../packages/db/src/resilience.ts", import.meta.url), "utf8"))
-    .replace('from "@prisma/client"', `from "${prisma}"`)
-    .replace('from "@platform/core"', `from "${core}"`)
-    .replace('from "./errors"', `from "${errs}"`)
-    .replace('from "./transaction"', `from "${txf}"`);
+    .replace('from "@prisma/client"', `from "${toSpec(prisma)}"`)
+    .replace('from "@platform/core"', `from "${toSpec(core)}"`)
+    .replace('from "./errors"', `from "${toSpec(errs)}"`)
+    .replace('from "./transaction"', `from "${toSpec(txf)}"`);
   const resf = await w("res", res);
-  const { transactionWithRetry } = await import(resf);
-  const { abortTransaction } = await import(txf);
+  const { transactionWithRetry } = await impFile(resf);
+  const { abortTransaction } = await impFile(txf);
   let calls = 0;
   const db = { $transaction: async (fn, o) => { calls++; if (calls < 3) throw new Error("serialize 40001"); return fn({}); } };
   const r = await transactionWithRetry(db, async () => "ok", { retries: 3, baseDelayMs: 1, isolationLevel: "Serializable" });
@@ -2777,12 +2847,12 @@ section("cache redis / db tx-retry / jobs");
   const mem = await w("mem", `export function createMemoryQueue(){return {};}`);
   const def = await w("def", `export function defineJob(n){return {name:n};}`);
   let jidx = (await fs.readFile(new URL("../packages/jobs/src/index.ts", import.meta.url), "utf8"))
-    .replace('from "bullmq"', `from "${bull}"`)
-    .replace('from "@platform/core"', `from "${jcore}"`)
-    .replace('from "./memory"', `from "${mem}"`)
-    .replace('from "./define"', `from "${def}"`);
+    .replace('from "bullmq"', `from "${toSpec(bull)}"`)
+    .replace('from "@platform/core"', `from "${toSpec(jcore)}"`)
+    .replace('from "./memory"', `from "${toSpec(mem)}"`)
+    .replace('from "./define"', `from "${toSpec(def)}"`);
   const jidxf = await w("jidx", jidx);
-  const { connectionFromUrl, createQueue } = await import(jidxf);
+  const { connectionFromUrl, createQueue } = await impFile(jidxf);
   ok("jobs: URL パース", connectionFromUrl("redis://:pw@h:6380").password === "pw" && connectionFromUrl("redis://h").port === 6379);
   let jopts = null; const jq = createQueue("e", { url: "redis://h" }, (_n, o) => { jopts = o; return { add: async () => {}, close: async () => {} }; });
   ok("jobs: defaultJobOptions(attempts3)", jopts.defaultJobOptions.attempts === 3 && (await jq.add("j", {})).ok);
@@ -2794,25 +2864,25 @@ section("reliable expense notifications");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const w = async (n, src) => { const f = `/tmp/en-${n}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
+  const w = async (n, src) => { const f = `${TMP}/en-${n}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
   const outbox = await w("outbox", await fs.readFile(new URL("../packages/observability/src/outbox.ts", import.meta.url), "utf8"));
-  const obsidx = await w("obsidx", `export * from "${outbox}";`);
+  const obsidx = await w("obsidx", `export * from "${toSpec(outbox)}";`);
   const nidx = await w("nidx", 'export interface NotifyMessage { text: string } export interface NotifyChannel { send(m: NotifyMessage): Promise<void> }');
-  let dedup = (await fs.readFile(new URL("../packages/notify/src/dedup.ts", import.meta.url), "utf8")).replace('from "./index"', `from "${nidx}"`);
+  let dedup = (await fs.readFile(new URL("../packages/notify/src/dedup.ts", import.meta.url), "utf8")).replace('from "./index"', `from "${toSpec(nidx)}"`);
   const dedupf = await w("dedup", dedup);
-  const notifyidx = await w("notifyidx", `export * from "${nidx}";\nexport * from "${dedupf}";`);
+  const notifyidx = await w("notifyidx", `export * from "${toSpec(nidx)}";\nexport * from "${toSpec(dedupf)}";`);
   const wf = await w("wf", "export {}");
   const enmail = await w("enmail", 'export function buildTransitionMails(i){ return (i.applicantEmail && i.next.status==="approved") ? [{ to:[i.applicantEmail], subject:"承認", text:i.title }] : []; }');
-  const svcstore = await w("svcstore", `import { createMemoryOutboxStore } from "${obsidx}";\nimport { createMemorySeenStore } from "${notifyidx}";\nexport const notifyOutbox=createMemoryOutboxStore();\nexport const notifySeen=createMemorySeenStore();\nexport const log={info(){},warn(){}};\nexport let beh=async()=>{};\nexport const mailer={ async sendMail(){ try{ await beh(); return {ok:true,value:undefined}; }catch(e){ return {ok:false,error:{message:e.message}}; } } };\nexport function setBeh(f){ beh=f; }`);
+  const svcstore = await w("svcstore", `import { createMemoryOutboxStore } from "${toSpec(obsidx)}";\nimport { createMemorySeenStore } from "${toSpec(notifyidx)}";\nexport const notifyOutbox=createMemoryOutboxStore();\nexport const notifySeen=createMemorySeenStore();\nexport const log={info(){},warn(){}};\nexport let beh=async()=>{};\nexport const mailer={ async sendMail(){ try{ await beh(); return {ok:true,value:undefined}; }catch(e){ return {ok:false,error:{message:e.message}}; } } };\nexport function setBeh(f){ beh=f; }`);
   let svc = (await fs.readFile(new URL("../apps/internal-app/src/server/expense-notify-service.ts", import.meta.url), "utf8"))
-    .replace('from "@platform/workflow"', `from "${wf}"`)
-    .replace('from "@platform/observability"', `from "${obsidx}"`)
-    .replace('from "@platform/notify"', `from "${notifyidx}"`)
-    .replace('from "../lib/expense-notify"', `from "${enmail}"`)
-    .replace('from "./services"', `from "${svcstore}"`);
+    .replace('from "@platform/workflow"', `from "${toSpec(wf)}"`)
+    .replace('from "@platform/observability"', `from "${toSpec(obsidx)}"`)
+    .replace('from "@platform/notify"', `from "${toSpec(notifyidx)}"`)
+    .replace('from "../lib/expense-notify"', `from "${toSpec(enmail)}"`)
+    .replace('from "./services"', `from "${toSpec(svcstore)}"`);
   const svcf = await w("svc", svc);
-  const S = await import(svcf);
-  const { notifyOutbox, setBeh } = await import(svcstore);
+  const S = await impFile(svcf);
+  const { notifyOutbox, setBeh } = await impFile(svcstore);
   const n = S.enqueueExpenseTransition({ title: "出張費", prev: { status: "pending" }, next: { status: "approved" }, applicantEmail: "u@x.jp" });
   ok("承認通知が Outbox に積まれる", n === 1 && notifyOutbox.all()[0].status === "pending");
   let attempts = 0; setBeh(async () => { attempts++; if (attempts < 2) throw new Error("timeout"); });
@@ -2828,12 +2898,12 @@ section("notify relay scheduler");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const w = async (n, src) => { const f = `/tmp/nsc-${n}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
+  const w = async (n, src) => { const f = `${TMP}/nsc-${n}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
   const lock = await w("lock", (await fs.readFile(new URL("../packages/cron/src/lock.ts", import.meta.url), "utf8")));
-  const runner = await w("runner", (await fs.readFile(new URL("../packages/cron/src/runner.ts", import.meta.url), "utf8")).replace('from "./lock"', `from "${lock}"`));
+  const runner = await w("runner", (await fs.readFile(new URL("../packages/cron/src/runner.ts", import.meta.url), "utf8")).replace('from "./lock"', `from "${toSpec(lock)}"`));
   const core = await w("core", 'export const ErrorCode={INTERNAL:"INTERNAL"};export class AppError extends Error{constructor(c,m){super(m);this.code=c;}static from(e,c){return new AppError(c,e instanceof Error?e.message:String(e));}}');
   const croner = await w("croner", "export const REG=[];export class Cron{constructor(_s,_o,fn){this.fn=fn;REG.push(this);}stop(){}}");
-  let idx = (await fs.readFile(new URL("../packages/cron/src/index.ts", import.meta.url), "utf8")).replaceAll('from "croner"', `from "${croner}"`).replaceAll('from "@platform/core"', `from "${core}"`).replaceAll('from "./runner"', `from "${runner}"`).replaceAll('from "./lock"', `from "${lock}"`)
+  let idx = (await fs.readFile(new URL("../packages/cron/src/index.ts", import.meta.url), "utf8")).replaceAll('from "croner"', `from "${toSpec(croner)}"`).replaceAll('from "@platform/core"', `from "${toSpec(core)}"`).replaceAll('from "./runner"', `from "${toSpec(runner)}"`).replaceAll('from "./lock"', `from "${toSpec(lock)}"`)
     .replace(/export \{ createRedisLockStore[^\n]*\n/, "")
     .replace(/export \{ tryAcquireFileLock[^\n]*\n/, "");
   const cidx = await w("cidx", idx);
@@ -2841,15 +2911,15 @@ section("notify relay scheduler");
   const svc = await w("svc", 'export const log={info(){},warn(){},error(){}};');
   const esvc = await w("esvc", 'export let calls=0;export async function relayExpenseNotifications(){ calls++; return {sent:1,failed:0,exhausted:0}; }');
   let ns = (await fs.readFile(new URL("../apps/internal-app/src/server/notify-scheduler.ts", import.meta.url), "utf8"))
-    .replace('from "@platform/cron"', `from "${cidx}"`)
-    .replace('from "./expense-notify-service"', `from "${esvc}"`)
-    .replace('from "./observability"', `from "${obs}"`)
-    .replace('from "./services"', `from "${svc}"`);
+    .replace('from "@platform/cron"', `from "${toSpec(cidx)}"`)
+    .replace('from "./expense-notify-service"', `from "${toSpec(esvc)}"`)
+    .replace('from "./observability"', `from "${toSpec(obs)}"`)
+    .replace('from "./services"', `from "${toSpec(svc)}"`);
   const nsf = await w("ns", ns);
-  const { createNotifyScheduler } = await import(nsf);
-  const { REG } = await import(croner);
-  const es = await import(esvc);
-  const { metrics } = await import(obs);
+  const { createNotifyScheduler } = await impFile(nsf);
+  const { REG } = await impFile(croner);
+  const es = await impFile(esvc);
+  const { metrics } = await impFile(obs);
   const sched = createNotifyScheduler();
   sched.start();
   ok("relay ジョブが登録される", sched.jobNames()[0] === "relay-expense-notifications");
@@ -2863,7 +2933,7 @@ section("production stores / lifecycle / secrets");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const w = async (n, src) => { const f = `/tmp/pi-${n}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
+  const w = async (n, src) => { const f = `${TMP}/pi-${n}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
   // 共有フェイク Redis(SET NX PX / eval / exists / get / del / setValue)
   const mkRedis = () => { let clk = 0; const m = new Map(); return {
     setClock: (t) => { clk = t; },
@@ -2878,31 +2948,31 @@ section("production stores / lifecycle / secrets");
 
   // Redis lock
   const lockif = await w("lockif", "export interface LockStore { acquire(k: string, t: number): Promise<boolean>|boolean; release(k: string): Promise<void>|void }");
-  const lockredis = await w("lockredis", (await fs.readFile(new URL("../packages/cron/src/lock-redis.ts", import.meta.url), "utf8")).replace('from "./lock"', `from "${lockif}"`));
-  const { createRedisLockStore } = await import(lockredis);
+  const lockredis = await w("lockredis", (await fs.readFile(new URL("../packages/cron/src/lock-redis.ts", import.meta.url), "utf8")).replace('from "./lock"', `from "${toSpec(lockif)}"`));
+  const { createRedisLockStore } = await impFile(lockredis);
   const r1 = mkRedis();
   const la = createRedisLockStore(r1), lb = createRedisLockStore(r1);
   ok("Redis lock 相互排他", (await la.acquire("j", 1000)) === true && (await lb.acquire("j", 1000)) === false);
 
   // Redis seen
   const seenif = await w("seenif", "export interface SeenStore { markSeen(k: string, t: number): boolean; has(k: string): boolean }");
-  const seenredis = await w("seenredis", (await fs.readFile(new URL("../packages/notify/src/seen-redis.ts", import.meta.url), "utf8")).replace('from "./dedup"', `from "${seenif}"`));
-  const { createRedisSeenStore } = await import(seenredis);
+  const seenredis = await w("seenredis", (await fs.readFile(new URL("../packages/notify/src/seen-redis.ts", import.meta.url), "utf8")).replace('from "./dedup"', `from "${toSpec(seenif)}"`));
+  const { createRedisSeenStore } = await impFile(seenredis);
   const seen = createRedisSeenStore(mkRedis());
   ok("Redis seen dedup", (await seen.markSeen("m", 1000)) === false && (await seen.markSeen("m", 1000)) === true);
 
   // Redis idempotency
   const idemif = await w("idemif", 'export interface IdempotencyRecord { status: "in_progress"|"completed"|"failed"; result?: unknown; createdAt: number }');
-  const idemredis = await w("idemredis", (await fs.readFile(new URL("../packages/observability/src/idempotency-redis.ts", import.meta.url), "utf8")).replace('from "./idempotency"', `from "${idemif}"`));
-  const { createRedisIdempotencyStore } = await import(idemredis);
+  const idemredis = await w("idemredis", (await fs.readFile(new URL("../packages/observability/src/idempotency-redis.ts", import.meta.url), "utf8")).replace('from "./idempotency"', `from "${toSpec(idemif)}"`));
+  const { createRedisIdempotencyStore } = await impFile(idemredis);
   const idem = createRedisIdempotencyStore(mkRedis(), 5000);
   const reserved = (await idem.reserve("op", { status: "in_progress", createdAt: 0 })) === null;
   ok("Redis idempotency 予約", reserved && (await idem.reserve("op", { status: "in_progress", createdAt: 0 })) !== null);
 
   // SQL outbox
   const obif = await w("obif", 'export interface OutboxMessage { id: string; topic: string; payload: unknown; status: "pending"|"sent"|"failed"; attempts: number; createdAt: number; nextAttemptAt?: number } export interface OutboxStore { fetchPending(l: number, n: number): unknown; markSent(id: string): unknown; markFailed(id: string, e: string, a: number, n?: number): unknown }');
-  const obsql = await w("obsql", (await fs.readFile(new URL("../packages/observability/src/outbox-sql.ts", import.meta.url), "utf8")).replace('from "./outbox"', `from "${obif}"`));
-  const { createSqlOutboxStore } = await import(obsql);
+  const obsql = await w("obsql", (await fs.readFile(new URL("../packages/observability/src/outbox-sql.ts", import.meta.url), "utf8")).replace('from "./outbox"', `from "${toSpec(obif)}"`));
+  const { createSqlOutboxStore } = await impFile(obsql);
   const rows = [];
   const client = { insert: async (m) => rows.push({ ...m }), selectPending: async () => rows.filter((r) => r.status === "pending"), updateSent: async (id) => { const r = rows.find((x) => x.id === id); if (r) r.status = "sent"; }, updateFailed: async () => {} };
   let seq = 0; const outbox = createSqlOutboxStore(client, () => `id-${++seq}`, () => 0);
@@ -2911,7 +2981,7 @@ section("production stores / lifecycle / secrets");
 
   // lifecycle
   const lc = await w("lc", (await fs.readFile(new URL("../packages/core/src/lifecycle.ts", import.meta.url), "utf8")));
-  const { createLifecycle } = await import(lc);
+  const { createLifecycle } = await impFile(lc);
   const order = [];
   const life = createLifecycle({ exitProcess: false, onSignal: () => {}, hookTimeoutMs: 500 });
   life.onShutdown("a", () => { order.push("a"); }); life.onShutdown("b", () => { order.push("b"); });
@@ -2920,7 +2990,7 @@ section("production stores / lifecycle / secrets");
 
   // secrets
   const sec = await w("sec", (await fs.readFile(new URL("../packages/secrets/src/index.ts", import.meta.url), "utf8")));
-  const { createSecretStore } = await import(sec);
+  const { createSecretStore } = await impFile(sec);
   let fetches = 0, clk = 0;
   const store = createSecretStore({ get: async (n) => { fetches++; return n === "K" ? "v" : null; } }, { ttlMs: 1000, now: () => clk });
   await store.get("K"); await store.get("K");
@@ -2936,11 +3006,11 @@ section("otlp exporter / alerting");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const tr = `/tmp/oa-trace-${stamp}.ts`;
+  const tr = `${TMP}/oa-trace-${stamp}.ts`;
   await fs.writeFile(tr, 'export interface Span { traceId: string; spanId: string; parentSpanId?: string; name: string; startTime: number; endTime?: number; durationMs?: number; attributes: Record<string, unknown>; status: "ok"|"error"; error?: string } export type SpanExporter = (span: Span) => void;');
-  const otlp = `/tmp/oa-otlp-${stamp}.ts`;
-  await fs.writeFile(otlp, (await fs.readFile(new URL("../packages/observability/src/otlp.ts", import.meta.url), "utf8")).replace('from "./trace"', `from "${tr}"`));
-  const { createOtlpExporter } = await import(otlp);
+  const otlp = `${TMP}/oa-otlp-${stamp}.ts`;
+  await fs.writeFile(otlp, (await fs.readFile(new URL("../packages/observability/src/otlp.ts", import.meta.url), "utf8")).replace('from "./trace"', `from "${toSpec(tr)}"`));
+  const { createOtlpExporter } = await impFile(otlp);
   const posts = [];
   const exp = createOtlpExporter({ endpoint: "http://c/v1/traces", serviceName: "internal-app", maxBatchSize: 2, fetchImpl: async (_u, i) => { posts.push(JSON.parse(i.body)); return { ok: true, status: 200 }; }, scheduler: () => 1, clearScheduler: () => {} });
   const span = (id) => ({ traceId: id, spanId: "s" + id, name: "GET /x", startTime: 1000, endTime: 1050, attributes: { "http.method": "GET" }, status: "ok" });
@@ -2948,9 +3018,9 @@ section("otlp exporter / alerting");
   await new Promise((r) => setTimeout(r, 5));
   ok("OTLP バッチ送信(service.name/traceId)", posts.length === 1 && posts[0].resourceSpans[0].resource.attributes[0].value.stringValue === "internal-app");
 
-  const al = `/tmp/oa-al-${stamp}.ts`;
+  const al = `${TMP}/oa-al-${stamp}.ts`;
   await fs.writeFile(al, (await fs.readFile(new URL("../packages/observability/src/alerting.ts", import.meta.url), "utf8")));
-  const A = await import(al);
+  const A = await impFile(al);
   const mgr = A.createAlertManager([{ name: "err", severity: "critical", condition: A.errorRateAbove("t", "e", 0.05), describe: () => "エラー率高" }]);
   const view = (c) => ({ counters: c, gauges: {}, histograms: {} });
   const fired = mgr.evaluate(view({ t: 100, e: 10 }));
@@ -2963,7 +3033,7 @@ section("otlp exporter / alerting");
 // ---- feature flags / PII 保護 ----
 section("feature flags / pii");
 {
-  const F = await import(new URL("../packages/flags/src/index.ts", import.meta.url));
+  const F = await impFile(new URL("../packages/flags/src/index.ts", import.meta.url));
   ok("flag kill switch", F.evaluateFlag(false) === false && F.evaluateFlag({ enabled: false, rolloutPercent: 100 }) === false);
   ok("flag 100%/0%", F.evaluateFlag({ rolloutPercent: 100 }, { key: "u" }, "f") === true && F.evaluateFlag({ rolloutPercent: 0 }, { key: "u" }, "f") === false);
   let on = 0; for (let i = 0; i < 1000; i++) if (F.evaluateFlag({ rolloutPercent: 50 }, { key: `u${i}` }, "f")) on++;
@@ -2974,8 +3044,8 @@ section("feature flags / pii");
 
   const { readFile: _rfPii } = await import("node:fs/promises");
   const _piiSrc = (await _rfPii(new URL("../packages/pii/src/index.ts", import.meta.url), "utf8")).replace(/export \* from "\.\/(identity-mask|subject-rights)";\n?/g, "");
-  const _piiF = `/tmp/pii-index-${smokeStamp()}.ts`; await (await import("node:fs/promises")).writeFile(_piiF, _piiSrc);
-  const P = await import(_piiF);
+  const _piiF = `${TMP}/pii-index-${smokeStamp()}.ts`; await (await import("node:fs/promises")).writeFile(_piiF, _piiSrc);
+  const P = await impFile(_piiF);
   ok("pii マスキング", P.maskEmail("taro@example.co.jp") === "t***@example.co.jp" && P.maskPhone("090-1234-5678") === "*******5678");
   ok("pii blind index(正規化+決定的)", P.blindIndex("A@B.jp ", "k") === P.blindIndex("a@b.jp", "k") && P.blindIndex("x", "k1") !== P.blindIndex("x", "k2"));
   const store = new Map(); let n = 0;
@@ -2988,7 +3058,7 @@ section("feature flags / pii");
 // ---- WebSocket 水平スケール(Redis Pub/Sub ブロードキャスト) ----
 section("broadcast hub (horizontal scale)");
 {
-  const { createBroadcastHub } = await import(new URL("../packages/realtime/src/broadcast.ts", import.meta.url));
+  const { createBroadcastHub } = await impFile(new URL("../packages/realtime/src/broadcast.ts", import.meta.url));
   const handlers = new Map();
   const mkClient = () => { const mine = []; return {
     publish: async (c, m) => { const hs = handlers.get(c); if (hs) for (const h of hs) h(m); },
@@ -3012,11 +3082,11 @@ section("error policy / bulkhead / process guards");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const w = async (n, src) => { const f = `/tmp/ec-${n}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
+  const w = async (n, src) => { const f = `${TMP}/ec-${n}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
   const err = await w("err", 'export const ErrorCode={VALIDATION:"VALIDATION",NOT_FOUND:"NOT_FOUND",UNAUTHORIZED:"UNAUTHORIZED",FORBIDDEN:"FORBIDDEN",RATE_LIMITED:"RATE_LIMITED",CONFLICT:"CONFLICT",EXTERNAL:"EXTERNAL",DATABASE:"DATABASE",CONFIG:"CONFIG",INTERNAL:"INTERNAL"};export class AppError extends Error{constructor(c,m,o){super(m);this.code=c;this.details=o?.details;}}');
-  const ep = await w("ep", (await fs.readFile(new URL("../packages/core/src/error-policy.ts", import.meta.url), "utf8")).replace('from "./error"', `from "${err}"`));
-  const { httpStatusFor, isRetryable, toErrorEnvelope } = await import(ep);
-  const { AppError, ErrorCode } = await import(err);
+  const ep = await w("ep", (await fs.readFile(new URL("../packages/core/src/error-policy.ts", import.meta.url), "utf8")).replace('from "./error"', `from "${toSpec(err)}"`));
+  const { httpStatusFor, isRetryable, toErrorEnvelope } = await impFile(ep);
+  const { AppError, ErrorCode } = await impFile(err);
   ok("HTTP ステータス中央化(409/429/500)", httpStatusFor(new AppError(ErrorCode.CONFLICT, "x")) === 409 &&
      httpStatusFor(new AppError(ErrorCode.RATE_LIMITED, "x")) === 429 &&
      httpStatusFor(new Error("r")) === 500);
@@ -3025,8 +3095,8 @@ section("error policy / bulkhead / process guards");
      isRetryable(new Error("x")) === false);
   ok("エラーエンベロープ(traceId + 内部秘匿)", toErrorEnvelope(new AppError(ErrorCode.NOT_FOUND, "x", { details: { id: 1 } }), "t1").error.traceId === "t1" && toErrorEnvelope(new Error("secret")).error.code === "UNKNOWN");
 
-  const bh = await w("bh", (await fs.readFile(new URL("../packages/core/src/bulkhead.ts", import.meta.url), "utf8")).replace('from "./error"', `from "${err}"`));
-  const { createBulkhead } = await import(bh);
+  const bh = await w("bh", (await fs.readFile(new URL("../packages/core/src/bulkhead.ts", import.meta.url), "utf8")).replace('from "./error"', `from "${toSpec(err)}"`));
+  const { createBulkhead } = await impFile(bh);
   const defer = () => { let r; const p = new Promise((res) => { r = res; }); return { p, resolve: r }; };
   const b = createBulkhead({ maxConcurrent: 2 });
   const ds = [defer(), defer(), defer()]; const ps = ds.map((x) => b.run(() => x.p));
@@ -3044,10 +3114,10 @@ section("error policy / bulkhead / process guards");
   const nidx2 = await w("nidx2", "export {}");
   const ncore = await w("ncore", 'export function defaultShouldRetry(e){ return !(e && e.__perm); }');
   let nres = (await fs.readFile(new URL("../packages/notify/src/resilient.ts", import.meta.url), "utf8"))
-    .replace('from "@platform/core"', `from "${ncore}"`)
-    .replace('from "./index"', `from "${nidx2}"`);
+    .replace('from "@platform/core"', `from "${toSpec(ncore)}"`)
+    .replace('from "./index"', `from "${toSpec(nidx2)}"`);
   const nresf = await w("nresf", nres);
-  const { withRetry } = await import(nresf);
+  const { withRetry } = await impFile(nresf);
   let perm = 0; const permErr = Object.assign(new Error("v"), { __perm: true });
   const ch = withRetry({ async send() { perm++; throw permErr; } }, { retries: 3, sleep: async () => {} });
   try { await ch.send({ text: "x" }); } catch {}
@@ -3058,7 +3128,7 @@ section("error policy / bulkhead / process guards");
   await fs.rm(nidx2); await fs.rm(ncore); await fs.rm(nresf);
 
   const pg = await w("pg", (await fs.readFile(new URL("../packages/core/src/process-guard.ts", import.meta.url), "utf8")));
-  const { installProcessGuards } = await import(pg);
+  const { installProcessGuards } = await impFile(pg);
   const H = {}; let exitCode = null; let fatal = false;
   installProcessGuards({ logger: { error: () => {}, warn: () => {} }, onProcess: (e, h) => { H[e] = h; }, exit: (c) => { exitCode = c; }, onFatal: async () => { fatal = true; } });
   H.unhandledRejection(new Error("r"));
@@ -3075,13 +3145,13 @@ section("error control: policy / bulkhead / guard / envelope");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const w = async (n, src) => { const f = `/tmp/ec-${n}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
+  const w = async (n, src) => { const f = `${TMP}/ec-${n}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
   const errmod = await w("err", 'export const ErrorCode = { VALIDATION:"VALIDATION", NOT_FOUND:"NOT_FOUND", UNAUTHORIZED:"UNAUTHORIZED", FORBIDDEN:"FORBIDDEN", RATE_LIMITED:"RATE_LIMITED", CONFLICT:"CONFLICT", EXTERNAL:"EXTERNAL", DATABASE:"DATABASE", CONFIG:"CONFIG", INTERNAL:"INTERNAL" }; export class AppError extends Error { constructor(c, m, o) { super(m); this.code = c; this.details = o?.details; } }');
 
   // error-policy
-  const ep = await w("ep", (await fs.readFile(new URL("../packages/core/src/error-policy.ts", import.meta.url), "utf8")).replace('from "./error"', `from "${errmod}"`));
-  const { httpStatusFor, isRetryable, toErrorEnvelope } = await import(ep);
-  const { AppError, ErrorCode } = await import(errmod);
+  const ep = await w("ep", (await fs.readFile(new URL("../packages/core/src/error-policy.ts", import.meta.url), "utf8")).replace('from "./error"', `from "${toSpec(errmod)}"`));
+  const { httpStatusFor, isRetryable, toErrorEnvelope } = await impFile(ep);
+  const { AppError, ErrorCode } = await impFile(errmod);
   ok("エラー分類: status/retryable 中央化", httpStatusFor(new AppError(ErrorCode.CONFLICT, "x")) === 409 &&
      isRetryable(new AppError(ErrorCode.DATABASE, "x")) === true &&
      isRetryable(new AppError(ErrorCode.VALIDATION, "x")) === false);
@@ -3089,8 +3159,8 @@ section("error control: policy / bulkhead / guard / envelope");
   ok("エンベロープは内部詳細を漏らさない", env.error.code === "UNKNOWN" && !JSON.stringify(env).includes("secret"));
 
   // bulkhead
-  const bh = await w("bh", (await fs.readFile(new URL("../packages/core/src/bulkhead.ts", import.meta.url), "utf8")).replace('from "./error"', `from "${errmod}"`));
-  const { createBulkhead } = await import(bh);
+  const bh = await w("bh", (await fs.readFile(new URL("../packages/core/src/bulkhead.ts", import.meta.url), "utf8")).replace('from "./error"', `from "${toSpec(errmod)}"`));
+  const { createBulkhead } = await impFile(bh);
   const defer = () => { let r; const p = new Promise((res) => (r = res)); return { p, resolve: r }; };
   const b = createBulkhead({ maxConcurrent: 2 });
   const d1 = defer(), d2 = defer(), d3 = defer();
@@ -3108,7 +3178,7 @@ section("error control: policy / bulkhead / guard / envelope");
 
   // process guard
   const pg = await w("pg", (await fs.readFile(new URL("../packages/core/src/process-guard.ts", import.meta.url), "utf8")));
-  const { installProcessGuards } = await import(pg);
+  const { installProcessGuards } = await impFile(pg);
   const h = {}; let exitCode = null; let fatal = false;
   installProcessGuards({ logger: { error: () => {}, warn: () => {} }, onProcess: (e, fn) => { h[e] = fn; }, exit: (c) => { exitCode = c; }, onFatal: () => { fatal = true; } });
   h.unhandledRejection(new Error("r"));
@@ -3125,8 +3195,8 @@ section("tax / importer / sequence");
 {
   const { readFile: _rfTax } = await import("node:fs/promises");
   const _taxSrc = (await _rfTax(new URL("../packages/tax/src/index.ts", import.meta.url), "utf8")).replace(/export \* from "\.\/withholding";\n?/g, "");
-  const _taxF = `/tmp/tax-index-${smokeStamp()}.ts`; await (await import("node:fs/promises")).writeFile(_taxF, _taxSrc);
-  const T = await import(_taxF);
+  const _taxF = `${TMP}/tax-index-${smokeStamp()}.ts`; await (await import("node:fs/promises")).writeFile(_taxF, _taxSrc);
+  const T = await impFile(_taxF);
   ok("消費税 税込/税抜(誤差なし)", T.grossFromNet(1000, 10) === 1100 && T.netFromGross(1100, 10) === 1000);
   ok("軽減税率 8%", T.taxAmount(1000, 8) === 80);
   const sum = T.summarizeTax([{ net: 3000, rate: 10 }, { net: 500, rate: 8 }, { net: 300, rate: 0 }]);
@@ -3135,7 +3205,7 @@ section("tax / importer / sequence");
   const genCorp = (b) => { let x = 0; for (let i = 0; i < 12; i++) x += Number(b[11 - i]) * (i % 2 === 0 ? 1 : 2); return String(9 - (x % 9)) + b; };
   ok("登録番号チェックディジット検証", T.isValidInvoiceNumber("T" + genCorp("234567890123")) === true && T.isValidInvoiceNumber("T123") === false);
 
-  const I = await import(new URL("../packages/importer/src/index.ts", import.meta.url));
+  const I = await impFile(new URL("../packages/importer/src/index.ts", import.meta.url));
   const validate = (raw) => raw.name ? { ok: true, value: { name: raw.name } } : { ok: false, errors: ["名前必須"] };
   const rep = I.validateRows([{ name: "a" }, { name: "" }], validate);
   ok("インポート 有効/エラー振り分け(行番号)", rep.valid.length === 1 && rep.errors[0].rowIndex === 2);
@@ -3144,7 +3214,7 @@ section("tax / importer / sequence");
   const part = await I.runImport([{ name: "a" }, { name: "" }], validate, { partial: true, apply: async (v) => { applied = v.length; } });
   ok("エラー時 全件中止 / partial は有効行のみ", abort.committed === false && part.applied === 1);
 
-  const S = await import(new URL("../packages/sequence/src/index.ts", import.meta.url));
+  const S = await impFile(new URL("../packages/sequence/src/index.ts", import.meta.url));
   const seq = S.createSequencer(S.createMemorySequenceStore(), "inv", { prefix: "INV-", padding: 6, resetPeriod: "yearly" });
   const a2024 = await seq.next(new Date("2024-06-01"));
   const b2025 = await seq.next(new Date("2025-01-05"));
@@ -3155,7 +3225,7 @@ section("tax / importer / sequence");
 section("webhook / apikey / zengin");
 {
   const { createHmac } = await import("node:crypto");
-  const W = await import(new URL("../packages/webhook/src/index.ts", import.meta.url));
+  const W = await impFile(new URL("../packages/webhook/src/index.ts", import.meta.url));
   const secret = "whsec";
   const sign = (p, pre = "") => pre + createHmac("sha256", secret).update(p).digest("hex");
   ok("webhook HMAC 署名検証", W.verifyHmacSignature({ payload: "x", signature: sign("x"), secret }) === true && W.verifyHmacSignature({ payload: "x2", signature: sign("x"), secret }) === false);
@@ -3168,7 +3238,7 @@ section("webhook / apikey / zengin");
   const p3 = await rc.handle(body, "sha256=bad");
   ok("webhook 署名→冪等→ディスパッチ", p1.status === "processed" && p2.status === "duplicate" && p3.status === "invalid_signature" && seen.length === 1);
 
-  const A = await import(new URL("../packages/apikey/src/index.ts", import.meta.url));
+  const A = await impFile(new URL("../packages/apikey/src/index.ts", import.meta.url));
   const key = A.generateApiKey({ prefix: "sk_" });
   ok("apikey 生成+ハッシュ照合", key.plaintext.startsWith("sk_") && A.verifyApiKey(key.plaintext, key.hash) === true && A.verifyApiKey("sk_wrong", key.hash) === false);
   ok("apikey スコープ(ワイルドカード)", A.hasScope(["orders:*"], "orders:write") === true && A.hasScope(["orders:read"], "users:read") === false);
@@ -3177,7 +3247,7 @@ section("webhook / apikey / zengin");
   const exp = await A.authenticateApiKey("k", { findByHash: () => ({ id: "2", hash: "x", scopes: [], expiresAt: 1000 }) }, 2000);
   ok("apikey 認証(有効/期限切れ)", ok1.ok === true && exp.ok === false && exp.reason === "expired");
 
-  const Z = await import(new URL("../packages/zengin/src/index.ts", import.meta.url));
+  const Z = await impFile(new URL("../packages/zengin/src/index.ts", import.meta.url));
   const r = Z.buildZenginTransfer(
     { code: "1234567890", name: "テスト", bankCode: "0001", branchCode: "001", accountType: "1", accountNumber: "1234567" },
     [{ bankCode: "0005", branchCode: "100", accountType: "1", accountNumber: "7654321", recipientName: "ヤマダタロウ", amount: 150000 },
@@ -3192,10 +3262,10 @@ section("webhook / apikey / zengin");
 // ---- utils 拡張: 関数 / オブジェクト / 配列 / 非同期 ----
 section("utils: function / object / array / async");
 {
-  const F = await import(new URL("../packages/utils/src/function.ts", import.meta.url));
-  const O = await import(new URL("../packages/utils/src/object.ts", import.meta.url));
-  const A = await import(new URL("../packages/utils/src/array.ts", import.meta.url));
-  const Y = await import(new URL("../packages/utils/src/async.ts", import.meta.url));
+  const F = await impFile(new URL("../packages/utils/src/function.ts", import.meta.url));
+  const O = await impFile(new URL("../packages/utils/src/object.ts", import.meta.url));
+  const A = await impFile(new URL("../packages/utils/src/array.ts", import.meta.url));
+  const Y = await impFile(new URL("../packages/utils/src/async.ts", import.meta.url));
   // function
   let mc = 0; const m = F.memoize((x) => { mc++; return x * 2; });
   ok("utils memoize/once/pipe", m(5) === 10 && m(5) === 10 && mc === 1 && F.pipe((x) => x + 1, (x) => x * 2)(3) === 8);
@@ -3225,16 +3295,16 @@ section("line: builders / webhook / client");
   const { createHmac } = await import("node:crypto");
   const stamp = smokeStamp();
   // messages(index の型のみ依存 → LineMessage は type import なので shim 不要)
-  const msgShim = `/tmp/line-idx-${stamp}.ts`;
+  const msgShim = `${TMP}/line-idx-${stamp}.ts`;
   await fs.writeFile(msgShim, "export interface LineMessage { type: string; [k: string]: unknown }");
-  const msgSrc = (await fs.readFile(new URL("../packages/line/src/messages.ts", import.meta.url), "utf8")).replace('from "./index"', `from "${msgShim}"`);
-  const msgF = `/tmp/line-msg-${stamp}.ts`; await fs.writeFile(msgF, msgSrc);
-  const M = await import(msgF);
+  const msgSrc = (await fs.readFile(new URL("../packages/line/src/messages.ts", import.meta.url), "utf8")).replace('from "./index"', `from "${toSpec(msgShim)}"`);
+  const msgF = `${TMP}/line-msg-${stamp}.ts`; await fs.writeFile(msgF, msgSrc);
+  const M = await impFile(msgF);
   ok("LINE ビルダー(buttons/confirm/quickReply)", M.buttonsTemplate({ altText: "a", text: "t", actions: [M.postbackAction("承認", "d")] }).template.type === "buttons" &&
      M.withQuickReply(M.textMessage("x"), [M.messageAction("y", "y")]).quickReply.items.length === 1 &&
      M.confirmTemplate("a", "t", M.messageAction("y", "y"), M.messageAction("n", "n")).template.actions.length === 2);
 
-  const W = await import(new URL("../packages/line/src/webhook.ts", import.meta.url));
+  const W = await impFile(new URL("../packages/line/src/webhook.ts", import.meta.url));
   const secret = "linesec";
   const body = JSON.stringify({ events: [{ type: "postback", timestamp: 1, source: { type: "user", userId: "U1" }, postback: { data: "action=approve&id=1" } }] });
   const sig = createHmac("sha256", secret).update(body).digest("base64");
@@ -3243,19 +3313,19 @@ section("line: builders / webhook / client");
   ok("LINE イベント/postback パース", events[0].type === "postback" && W.parsePostbackData(events[0].postback.data).action === "approve" && W.eventSourceId(events[0].source) === "U1");
 
   // 拡張クライアント(integrations shim)
-  const coreF = `/tmp/line-core-${stamp}.ts`; await fs.writeFile(coreF, "export type Result<T> = { ok: true; value: T } | { ok: false; error: { message: string } };");
-  const intF = `/tmp/line-int-${stamp}.ts`;
+  const coreF = `${TMP}/line-core-${stamp}.ts`; await fs.writeFile(coreF, "export type Result<T> = { ok: true; value: T } | { ok: false; error: { message: string } };");
+  const intF = `${TMP}/line-int-${stamp}.ts`;
   await fs.writeFile(intF, "export function createApiClient(){ const c=[]; globalThis.__lc=c; const r=async(m,p,o)=>{ c.push({m,p,body:o?.body}); return {ok:true,value:{richMenuId:'rm1'}}; }; return { get:(p)=>r('GET',p), post:(p,o)=>r('POST',p,o), put:(p,o)=>r('PUT',p,o), delete:(p,o)=>r('DELETE',p,o), patch:(p,o)=>r('PATCH',p,o) }; }");
-  const emptyF = `/tmp/line-empty-${stamp}.ts`; await fs.writeFile(emptyF, "export {};");
+  const emptyF = `${TMP}/line-empty-${stamp}.ts`; await fs.writeFile(emptyF, "export {};");
   const idxSrc = (await fs.readFile(new URL("../packages/line/src/index.ts", import.meta.url), "utf8"))
-    .replace('from "@platform/integrations"', `from "${intF}"`)
-    .replace('from "@platform/core"', `from "${coreF}"`)
-    .replace('from "./messages"', `from "${emptyF}"`)
-    .replace('from "./webhook"', `from "${emptyF}"`)
-    .replace('from "./balance"', `from "${emptyF}"`)
-    .replace('from "./retention"', `from "${emptyF}"`);
-  const idxF = `/tmp/line-index-${stamp}.ts`; await fs.writeFile(idxF, idxSrc);
-  const L = await import(idxF);
+    .replace('from "@platform/integrations"', `from "${toSpec(intF)}"`)
+    .replace('from "@platform/core"', `from "${toSpec(coreF)}"`)
+    .replace('from "./messages"', `from "${toSpec(emptyF)}"`)
+    .replace('from "./webhook"', `from "${toSpec(emptyF)}"`)
+    .replace('from "./balance"', `from "${toSpec(emptyF)}"`)
+    .replace('from "./retention"', `from "${toSpec(emptyF)}"`);
+  const idxF = `${TMP}/line-index-${stamp}.ts`; await fs.writeFile(idxF, idxSrc);
+  const L = await impFile(idxF);
   const client = L.createLineClient({ channelAccessToken: "t" });
   await client.createRichMenu({ size: {} });
   await client.deleteRichMenu("rm1");
@@ -3275,7 +3345,7 @@ section("freee: token / receipts / journal");
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
   // token(依存なし・純ロジック)
-  const T = await import(new URL("../packages/freee/src/token.ts", import.meta.url));
+  const T = await impFile(new URL("../packages/freee/src/token.ts", import.meta.url));
   let clock = 0, refreshCount = 0;
   const tf = async () => { refreshCount++; return { ok: true, status: 200, json: async () => ({ access_token: "at-" + refreshCount, refresh_token: "rt", expires_in: 21600 }) }; };
   const saved = [];
@@ -3293,7 +3363,7 @@ section("freee: token / receipts / journal");
   ok("freee authed fetch 401 で再試行", (await authed("https://api.freee.co.jp/x")).status === 200 && apiCalls === 2);
 
   // builders(buildManualJournal・純ロジック)
-  const B = await import(new URL("../packages/freee/src/builders.ts", import.meta.url));
+  const B = await impFile(new URL("../packages/freee/src/builders.ts", import.meta.url));
   const mj = B.buildManualJournal({ companyId: 1, issueDate: "2025-07-11", details: [
     { entrySide: "debit", accountItemId: 100, taxCode: 0, amount: 11000 },
     { entrySide: "credit", accountItemId: 200, taxCode: 0, amount: 11000 }] });
@@ -3302,21 +3372,21 @@ section("freee: token / receipts / journal");
   ok("freee 振替伝票(借方=貸方検証)", mj.details.length === 2 && mj.details[0].entry_side === "debit" && unbalanced === true);
 
   // 拡張クライアント(証憑 multipart 等)を integrations shim で
-  const coreF = `/tmp/fr-core-${stamp}.ts`; await fs.writeFile(coreF, "export type Result<T> = { ok: true; value: T } | { ok: false; error: { message: string } };");
-  const intF = `/tmp/fr-int-${stamp}.ts`;
+  const coreF = `${TMP}/fr-core-${stamp}.ts`; await fs.writeFile(coreF, "export type Result<T> = { ok: true; value: T } | { ok: false; error: { message: string } };");
+  const intF = `${TMP}/fr-int-${stamp}.ts`;
   await fs.writeFile(intF, "export function createApiClient(){ const c=[]; globalThis.__fr=c; const r=async(m,p,o)=>{ c.push({m,p,query:o?.query,body:o?.body,multipart:o?.multipart}); return {ok:true,value:{id:1}}; }; return { get:(p,o)=>r('GET',p,o), post:(p,o)=>r('POST',p,o), put:(p,o)=>r('PUT',p,o), delete:(p,o)=>r('DELETE',p,o), patch:(p,o)=>r('PATCH',p,o) }; }");
-  const emptyF = `/tmp/fr-empty-${stamp}.ts`; await fs.writeFile(emptyF, "export {};");
+  const emptyF = `${TMP}/fr-empty-${stamp}.ts`; await fs.writeFile(emptyF, "export {};");
   const idxSrc = (await fs.readFile(new URL("../packages/freee/src/index.ts", import.meta.url), "utf8"))
-    .replace('from "@platform/integrations"', `from "${intF}"`)
-    .replace(/from "@platform\/core"/g, `from "${coreF}"`)
-    .replace('from "./token"', `from "${emptyF}"`)
-    .replace('from "./builders"', `from "${emptyF}"`)
-    .replace('from "./webhook"', `from "${emptyF}"`)
-    .replace('from "./balance"', `from "${emptyF}"`)
-    .replace('from "./retention"', `from "${emptyF}"`)
-    .replace('from "./hr"', `from "${emptyF}"`);
-  const idxF = `/tmp/fr-index-${stamp}.ts`; await fs.writeFile(idxF, idxSrc);
-  const F = await import(idxF);
+    .replace('from "@platform/integrations"', `from "${toSpec(intF)}"`)
+    .replace(/from "@platform\/core"/g, `from "${toSpec(coreF)}"`)
+    .replace('from "./token"', `from "${toSpec(emptyF)}"`)
+    .replace('from "./builders"', `from "${toSpec(emptyF)}"`)
+    .replace('from "./webhook"', `from "${toSpec(emptyF)}"`)
+    .replace('from "./balance"', `from "${toSpec(emptyF)}"`)
+    .replace('from "./retention"', `from "${toSpec(emptyF)}"`)
+    .replace('from "./hr"', `from "${toSpec(emptyF)}"`);
+  const idxF = `${TMP}/fr-index-${stamp}.ts`; await fs.writeFile(idxF, idxSrc);
+  const F = await impFile(idxF);
   const client = F.createFreeeClient({ accessToken: "t" });
   await client.uploadReceipt(123, { filename: "r.jpg", data: new Uint8Array([1]), contentType: "image/jpeg" }, "タクシー代");
   await client.createManualJournal({ company_id: 123 });
@@ -3337,16 +3407,16 @@ section("freee: HR / approval / webhook");
   const fs = await import("node:fs/promises");
   const { createHmac } = await import("node:crypto");
   const stamp = smokeStamp();
-  const w = async (n, src) => { const f = `/tmp/frx-${n}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
+  const w = async (n, src) => { const f = `${TMP}/frx-${n}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
   const coreF = await w("core", "export {}");
   const intF = await w("int", "export function createApiClient(c){ const calls=[]; globalThis.__frx={baseUrl:c.baseUrl,calls}; const r=async(m,p,o)=>{ calls.push({m,p,query:o?.query,body:o?.body}); return {ok:true,value:{}}; }; return { get:(p,o)=>r('GET',p,o), post:(p,o)=>r('POST',p,o), put:(p,o)=>r('PUT',p,o), delete:(p,o)=>r('DELETE',p,o), patch:(p,o)=>r('PATCH',p,o) }; }");
 
   // HR クライアント
   const hrSrc = (await fs.readFile(new URL("../packages/freee/src/hr.ts", import.meta.url), "utf8"))
-    .replace('from "@platform/integrations"', `from "${intF}"`)
-    .replace('from "@platform/core"', `from "${coreF}"`);
+    .replace('from "@platform/integrations"', `from "${toSpec(intF)}"`)
+    .replace('from "@platform/core"', `from "${toSpec(coreF)}"`);
   const hrF = await w("hr", hrSrc);
-  const H = await import(hrF);
+  const H = await impFile(hrF);
   const hr = H.createFreeeHrClient({ accessToken: "t" });
   await hr.getEmployees(5);
   const baseOk = globalThis.__frx.baseUrl === "https://api.freee.co.jp/hr/api/v1";
@@ -3363,16 +3433,16 @@ section("freee: HR / approval / webhook");
   // 承認ワークフロー(会計 index)
   const emptyF = await w("empty", "export {}");
   const idxSrc = (await fs.readFile(new URL("../packages/freee/src/index.ts", import.meta.url), "utf8"))
-    .replace('from "@platform/integrations"', `from "${intF}"`)
-    .replace(/from "@platform\/core"/g, `from "${coreF}"`)
-    .replace('from "./token"', `from "${emptyF}"`)
-    .replace('from "./builders"', `from "${emptyF}"`)
-    .replace('from "./webhook"', `from "${emptyF}"`)
-    .replace('from "./balance"', `from "${emptyF}"`)
-    .replace('from "./retention"', `from "${emptyF}"`)
-    .replace('from "./hr"', `from "${emptyF}"`);
+    .replace('from "@platform/integrations"', `from "${toSpec(intF)}"`)
+    .replace(/from "@platform\/core"/g, `from "${toSpec(coreF)}"`)
+    .replace('from "./token"', `from "${toSpec(emptyF)}"`)
+    .replace('from "./builders"', `from "${toSpec(emptyF)}"`)
+    .replace('from "./webhook"', `from "${toSpec(emptyF)}"`)
+    .replace('from "./balance"', `from "${toSpec(emptyF)}"`)
+    .replace('from "./retention"', `from "${toSpec(emptyF)}"`)
+    .replace('from "./hr"', `from "${toSpec(emptyF)}"`);
   const idxF = await w("idx", idxSrc);
-  const F = await import(idxF);
+  const F = await impFile(idxF);
   const freee = F.createFreeeClient({ accessToken: "t" });
   await freee.actionExpenseApplication(123, 55, "approve", { comment: "OK" });
   const ea = globalThis.__frx.calls.at(-1);
@@ -3381,7 +3451,7 @@ section("freee: HR / approval / webhook");
   ok("freee 承認ワークフロー(経費申請/承認依頼 actions)", ea.p === "/expense_applications/55/actions" && ea.body.action === "approve" && ar.p === "/approval_requests/77/actions" && ar.body.approval_step_id === 2);
 
   // Webhook 署名検証
-  const W = await import(new URL("../packages/freee/src/webhook.ts", import.meta.url));
+  const W = await impFile(new URL("../packages/freee/src/webhook.ts", import.meta.url));
   const secret = "frwh";
   const body = JSON.stringify({ application_notifications: [{ type: "deal.created", company_id: 123 }] });
   const sig = createHmac("sha256", secret).update(body).digest("hex");
@@ -3395,12 +3465,12 @@ section("google: oauth / gmail / drive / calendar");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const w = async (n, src) => { const f = `/tmp/gx-${n}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
+  const w = async (n, src) => { const f = `${TMP}/gx-${n}-${stamp}.ts`; await fs.writeFile(f, src); return f; };
   const coreF = await w("core", "export {}");
   const intF = await w("int", "export function createApiClient(c){ const req=async(m,p,o)=>{ globalThis.__gx={method:m,path:p,query:o?.query,body:o?.body,multipart:o?.multipart,baseUrl:c.baseUrl}; return {ok:true,value:{id:'f1',name:'x'}}; }; return { get:(p,o)=>req('GET',p,o), post:(p,o)=>req('POST',p,o), put:(p,o)=>req('PUT',p,o), delete:(p,o)=>req('DELETE',p,o), patch:(p,o)=>req('PATCH',p,o) }; }");
 
   // OAuth(純ロジック + fake fetch)
-  const O = await import(new URL("../packages/google/src/oauth.ts", import.meta.url));
+  const O = await impFile(new URL("../packages/google/src/oauth.ts", import.meta.url));
   const url = O.buildGoogleAuthUrl({ clientId: "cid", redirectUri: "https://app/cb", scopes: ["openid", "email"], state: "s", forceConsent: true });
   const authOk = new URL(url).searchParams.get("client_id") === "cid" && new URL(url).searchParams.get("access_type") === "offline" && new URL(url).searchParams.get("prompt") === "consent";
   let clock = 0, n = 0;
@@ -3413,9 +3483,9 @@ section("google: oauth / gmail / drive / calendar");
 
   // Gmail(raw 構築 + 送信)
   const gmSrc = (await fs.readFile(new URL("../packages/google/src/gmail.ts", import.meta.url), "utf8"))
-    .replace('from "@platform/integrations"', `from "${intF}"`)
-    .replace('from "@platform/core"', `from "${coreF}"`);
-  const G = await import(await w("gm", gmSrc));
+    .replace('from "@platform/integrations"', `from "${toSpec(intF)}"`)
+    .replace('from "@platform/core"', `from "${toSpec(coreF)}"`);
+  const G = await impFile(await w("gm", gmSrc));
   const raw = G.buildRawEmail({ to: "a@x.com", subject: "テスト", text: "本文", cc: ["b@x.com"] });
   const gmail = G.createGmailClient({ accessToken: "t" });
   await gmail.sendEmail({ to: "a@x.com", subject: "件名", text: "本文" });
@@ -3423,9 +3493,9 @@ section("google: oauth / gmail / drive / calendar");
 
   // Drive(multipart アップロード + 共有)
   const drSrc = (await fs.readFile(new URL("../packages/google/src/drive.ts", import.meta.url), "utf8"))
-    .replace('from "@platform/integrations"', `from "${intF}"`)
-    .replace('from "@platform/core"', `from "${coreF}"`);
-  const D = await import(await w("dr", drSrc));
+    .replace('from "@platform/integrations"', `from "${toSpec(intF)}"`)
+    .replace('from "@platform/core"', `from "${toSpec(coreF)}"`);
+  const D = await impFile(await w("dr", drSrc));
   const drive = D.createGoogleDriveClient({ accessToken: "t" });
   await drive.uploadFile({ name: "報告書.pdf", data: new Uint8Array([1]), mimeType: "application/pdf", parents: ["folder1"] });
   const up = globalThis.__gx;
@@ -3435,12 +3505,12 @@ section("google: oauth / gmail / drive / calendar");
   // Calendar 拡張(index を integrations shim で)
   const emptyF = await w("empty", "export {}");
   const idxSrc = (await fs.readFile(new URL("../packages/google/src/index.ts", import.meta.url), "utf8"))
-    .replace('from "@platform/integrations"', `from "${intF}"`)
-    .replace('from "@platform/core"', `from "${coreF}"`)
-    .replace('from "./oauth"', `from "${emptyF}"`)
-    .replace('from "./gmail"', `from "${emptyF}"`)
-    .replace('from "./drive"', `from "${emptyF}"`);
-  const I = await import(await w("idx", idxSrc));
+    .replace('from "@platform/integrations"', `from "${toSpec(intF)}"`)
+    .replace('from "@platform/core"', `from "${toSpec(coreF)}"`)
+    .replace('from "./oauth"', `from "${toSpec(emptyF)}"`)
+    .replace('from "./gmail"', `from "${toSpec(emptyF)}"`)
+    .replace('from "./drive"', `from "${toSpec(emptyF)}"`);
+  const I = await impFile(await w("idx", idxSrc));
   const cal = I.createGoogleCalendarClient({ accessToken: "t" });
   await cal.createEvent("primary", { summary: "会議" }, { sendUpdates: "all" });
   const ce = globalThis.__gx;
@@ -3457,7 +3527,7 @@ section("google: oauth / gmail / drive / calendar");
 // ---- status-page: メンテナンス/エラー画面 + 切替ゲート ----
 section("status-page: templates / gate");
 {
-  const T = await import(new URL("../packages/status-page/src/templates.ts", import.meta.url));
+  const T = await impFile(new URL("../packages/status-page/src/templates.ts", import.meta.url));
   const m = T.renderMaintenancePage({ brand: "社内システム", estimatedRecovery: "22:00" });
   ok("メンテHTML(自己完結/noindex/文言)", m.startsWith("<!doctype html>") && m.includes("メンテナンス中") && m.includes("22:00") && m.includes("noindex") && !/src=|href="https?:/.test(m));
   const e = T.renderErrorPage({ referenceId: "trace-1" });
@@ -3465,7 +3535,7 @@ section("status-page: templates / gate");
   const x = T.renderStatusPage({ title: "<script>x</script>", message: "a & b < c" });
   ok("XSSエスケープ", x.includes("&lt;script&gt;") && x.includes("a &amp; b &lt; c") && !x.includes("<script>x"));
 
-  const G = await import(new URL("../packages/status-page/src/gate.ts", import.meta.url));
+  const G = await impFile(new URL("../packages/status-page/src/gate.ts", import.meta.url));
   const now = () => new Date("2025-07-25T12:00:00Z");
   const on = G.createMaintenanceGate(() => ({ enabled: true, allowRoles: ["admin"], estimatedRecovery: "22:00" }), now);
   ok("ゲート: 一般はメンテ/管理者は素通し", on.evaluate({ path: "/x" }).active === true && on.evaluate({ path: "/x", roles: ["admin"] }).active === false && on.evaluate({ path: "/api/health" }).active === false);
@@ -3494,15 +3564,15 @@ section("session: idle timeout / idle timer / login throttle");
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
   // 無操作セッション(crypto/cookie を可逆 shim に差し替え)
-  const cryptoF = `/tmp/sess-crypto-${stamp}.ts`;
+  const cryptoF = `${TMP}/sess-crypto-${stamp}.ts`;
   await fs.writeFile(cryptoF, "export function deriveKey(s){return s} export function encrypt(t){return Buffer.from(t,'utf8').toString('base64')} export function decrypt(x){return Buffer.from(x,'base64').toString('utf8')}");
-  const cookieF = `/tmp/sess-cookie-${stamp}.ts`;
+  const cookieF = `${TMP}/sess-cookie-${stamp}.ts`;
   await fs.writeFile(cookieF, "export function getCookie(h,n){ if(!h) return undefined; for(const p of h.split(';')){ const [k,v]=p.trim().split('='); if(k===n) return v; } return undefined } export function serializeCookie(n,v,o){ return `${n}=${v}; Max-Age=${o?.maxAge??0}` } export function clearCookie(n){ return `${n}=; Max-Age=0` }");
   const sessSrc = (await fs.readFile(new URL("../packages/session/src/session.ts", import.meta.url), "utf8"))
-    .replace('from "@platform/crypto"', `from "${cryptoF}"`)
-    .replace('from "./cookie"', `from "${cookieF}"`);
-  const sessF = `/tmp/sess-session-${stamp}.ts`; await fs.writeFile(sessF, sessSrc);
-  const S = await import(sessF);
+    .replace('from "@platform/crypto"', `from "${toSpec(cryptoF)}"`)
+    .replace('from "./cookie"', `from "${toSpec(cookieF)}"`);
+  const sessF = `${TMP}/sess-session-${stamp}.ts`; await fs.writeFile(sessF, sessSrc);
+  const S = await impFile(sessF);
   const idle = S.createSession({ secret: "y".repeat(32), salt: "smoke-salt-1", maxAgeSec: 3600, idleTimeoutSec: 0.05 });
   const ci = idle.write({ u: "1" });
   const cookieI = "session=" + ci.split("session=")[1].split(";")[0];
@@ -3514,7 +3584,7 @@ section("session: idle timeout / idle timer / login throttle");
   ok("session 既定は無操作でもOK", noIdle.read("session=" + cn.split("session=")[1].split(";")[0])?.u === "2");
 
   // idle timer(スケジューラ注入)
-  const IT = await import(new URL("../packages/session/src/idle-timer.ts", import.meta.url));
+  const IT = await impFile(new URL("../packages/session/src/idle-timer.ts", import.meta.url));
   const jobs = new Map(); let jid = 0; let t = 0;
   const sched = { set: (fn, ms) => { const h = ++jid; jobs.set(h, { fn, at: t + ms }); return h; }, clear: (h) => jobs.delete(h) };
   const advance = (ms) => { t += ms; for (const [h, j] of [...jobs]) if (j.at <= t) { jobs.delete(h); j.fn(); } };
@@ -3524,7 +3594,7 @@ section("session: idle timeout / idle timer / login throttle");
   ok("idle timer(警告→活動リセット→ログアウト)", w === true && stillIn === true && loggedOut === true);
 
   // login throttle
-  const LT = await import(new URL("../packages/session/src/login-throttle.ts", import.meta.url));
+  const LT = await impFile(new URL("../packages/session/src/login-throttle.ts", import.meta.url));
   let clock = 0; const now = () => clock;
   const th = LT.createLoginThrottle({ maxFails: 3, lockMs: 30000, store: LT.createMemoryThrottleStore(now), now });
   await th.recordFailure("a"); await th.recordFailure("a");
@@ -3535,13 +3605,13 @@ section("session: idle timeout / idle timer / login throttle");
   ok("login throttle(3回でロック→解除)", locked.allowed === false && stillLocked === false && unlocked === true);
 
   // store session: 再生成 + 全端末ログアウト(crypto/cookie shim)
-  const stCrypto = `/tmp/sess-stcrypto-${stamp}.ts`;
+  const stCrypto = `${TMP}/sess-stcrypto-${stamp}.ts`;
   await fs.writeFile(stCrypto, "let n=0; export function randomToken(){ return 'tok'+(++n) }");
   const stStoreSrc = (await fs.readFile(new URL("../packages/session/src/store-session.ts", import.meta.url), "utf8"))
-    .replace('from "@platform/crypto"', `from "${stCrypto}"`)
-    .replace('from "./cookie"', `from "${cookieF}"`);
-  const stStoreF = `/tmp/sess-store-${stamp}.ts`; await fs.writeFile(stStoreF, stStoreSrc);
-  const SS = await import(stStoreF);
+    .replace('from "@platform/crypto"', `from "${toSpec(stCrypto)}"`)
+    .replace('from "./cookie"', `from "${toSpec(cookieF)}"`);
+  const stStoreF = `${TMP}/sess-store-${stamp}.ts`; await fs.writeFile(stStoreF, stStoreSrc);
+  const SS = await impFile(stStoreF);
   const map = new Map();
   const memStore = { get: async (k) => map.get(k) ?? null, set: async (k, v) => { map.set(k, v); }, delete: async (k) => { map.delete(k); } };
   const svr = SS.createServerSession({ store: memStore });
@@ -3554,12 +3624,12 @@ section("session: idle timeout / idle timer / login throttle");
   ok("store session(再生成→旧失効 / 全端末ログアウト)", re && re.id !== sa.id && oldGone && revoked >= 2 && (await svr.listUserSessions("u1")).length === 0);
 
   // step-up 再認証 + Remember-me + 監査
-  const SU = await import(new URL("../packages/session/src/step-up.ts", import.meta.url));
+  const SU = await impFile(new URL("../packages/session/src/step-up.ts", import.meta.url));
   let clk = 0; const step = SU.createStepUp({ freshnessSec: 300, now: () => clk });
   const atv = step.stamp(); const freshOk = step.required(atv) === false; clk = 301000; const staleOk = step.required(atv) === true;
   const remOk = SU.sessionMaxAge(false, { defaultMaxAgeSec: 3600, rememberMaxAgeSec: 999 }) === 3600 && SU.sessionMaxAge(true, { defaultMaxAgeSec: 3600, rememberMaxAgeSec: 999 }) === 999;
   ok("step-up 再認証 + Remember-me", freshOk && staleOk && remOk);
-  const LA = await import(new URL("../packages/session/src/login-audit.ts", import.meta.url));
+  const LA = await impFile(new URL("../packages/session/src/login-audit.ts", import.meta.url));
   const evs = [];
   const audit = LA.createLoginAudit({ record: (e) => evs.push(e) }, { now: () => new Date("2025-07-25T12:00:00Z") });
   await audit.loginSuccess({ subject: "a@x.com", ip: "10.0.0.1" });
@@ -3574,13 +3644,13 @@ section("session: idle timeout / idle timer / login throttle");
 // ---- 本人確認書類の検証 + マイナンバー/書類番号マスキング(KYC 部品) ----
 section("identity: document validation / masking");
 {
-  const I = await import(new URL("../packages/validation/src/identity.ts", import.meta.url));
+  const I = await impFile(new URL("../packages/validation/src/identity.ts", import.meta.url));
   ok("本人確認書類の書式検証(免許/旅券/在留)", I.isValidDriversLicenseNumber("123456789012") &&
      I.isValidJapanPassportNumber("TK1234567") &&
      I.isValidResidenceCardNumber("AB12345678CD") &&
      !I.isValidDriversLicenseNumber("12345678901"));
   ok("書類番号の正規化(全角/ハイフン)", I.normalizeDocumentNumber("ＴＫ－１２３４５６７") === "TK1234567" && I.validateIdentityDocument("passport", "TK1234567"));
-  const M = await import(new URL("../packages/pii/src/identity-mask.ts", import.meta.url));
+  const M = await impFile(new URL("../packages/pii/src/identity-mask.ts", import.meta.url));
   ok("マイナンバーは既定 全桁マスク(番号法)", M.maskMyNumber("123456789018") === "************" && M.maskMyNumber("123456789018", 4) === "********9018");
   ok("本人確認番号の末尾マスク", M.maskIdentityNumber("AB12345678CD") === "********78CD");
 }
@@ -3590,7 +3660,7 @@ section("ekyc: status / webhook / client");
 {
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
-  const S = await import(new URL("../packages/ekyc/src/status.ts", import.meta.url));
+  const S = await impFile(new URL("../packages/ekyc/src/status.ts", import.meta.url));
   ok("ekyc ステータス正規化", S.normalizeEkycStatus("Approved") === "approved" &&
      S.normalizeEkycStatus("NG") === "rejected" &&
      S.normalizeEkycStatus("reviewing") === "in_review" &&
@@ -3599,8 +3669,8 @@ section("ekyc: status / webhook / client");
 
   // webhook(status.ts を .ts 参照に差し替えて読み込み)
   const whSrc = (await fs.readFile(new URL("../packages/ekyc/src/webhook.ts", import.meta.url), "utf8")).replace('from "./status"', `from ${JSON.stringify(new URL("../packages/ekyc/src/status.ts", import.meta.url).href)}`);
-  const whF = `/tmp/ekyc-wh-${stamp}.ts`; await fs.writeFile(whF, whSrc);
-  const W = await import(whF);
+  const whF = `${TMP}/ekyc-wh-${stamp}.ts`; await fs.writeFile(whF, whSrc);
+  const W = await impFile(whF);
   const { createHmac } = await import("node:crypto");
   const body = JSON.stringify({ application_id: "a1", status: "approved" });
   const sig = createHmac("sha256", "sec").update(body).digest("hex");
@@ -3609,14 +3679,16 @@ section("ekyc: status / webhook / client");
   ok("ekyc Webhook パース+正規化", ev.applicationId === "v1" && ev.status === "rejected" && ev.reason === "mismatch");
 
   // client(integrations を fake に差し替え)
-  const intF = `/tmp/ekyc-int-${stamp}.ts`;
+  const intF = `${TMP}/ekyc-int-${stamp}.ts`;
   await fs.writeFile(intF, "export function createApiClient(config){ const calls=[]; globalThis.__ekyc=calls; const r=(m)=>(p,o)=>{ calls.push({m,p,h:config.headers,b:config.baseUrl}); return Promise.resolve({ok:true,value:{}}); }; return { get:r('GET'), post:r('POST'), put:r('PUT'), patch:r('PATCH'), delete:r('DELETE') }; }");
-  const coreF = `/tmp/ekyc-core-${stamp}.ts`; await fs.writeFile(coreF, "export {};");
+  const coreF = `${TMP}/ekyc-core-${stamp}.ts`; await fs.writeFile(coreF, "export {};");
   const clSrc = (await fs.readFile(new URL("../packages/ekyc/src/client.ts", import.meta.url), "utf8"))
-    .replace('from "@platform/integrations"', `from ${JSON.stringify(intF)}`)
-    .replace('from "@platform/core"', `from ${JSON.stringify(coreF)}`);
-  const clF = `/tmp/ekyc-cl-${stamp}.ts`; await fs.writeFile(clF, clSrc);
-  const C = await import(clF);
+    // **JSON.stringify に生パスを渡さない。** Windows の絶対パスがそのまま
+    // 埋め込まれ、読み込んだ時点で `c:` プロトコルとして解釈されて落ちる
+    .replace('from "@platform/integrations"', `from ${JSON.stringify(toSpec(intF))}`)
+    .replace('from "@platform/core"', `from ${JSON.stringify(toSpec(coreF))}`);
+  const clF = `${TMP}/ekyc-cl-${stamp}.ts`; await fs.writeFile(clF, clSrc);
+  const C = await impFile(clF);
   const client = C.createEkycClient({ apiKey: "k", baseUrl: "https://api.example.com/v1" });
   await client.createApplication({ name: "t" });
   await client.getApplication("app_1");
@@ -3637,21 +3709,21 @@ section("ekyc: client / webhook / status");
   const cr = await import("node:crypto");
   const stamp2 = smokeStamp();
   // status(依存ゼロ)
-  const ST = await import(new URL("../packages/ekyc/src/status.ts", import.meta.url));
+  const ST = await impFile(new URL("../packages/ekyc/src/status.ts", import.meta.url));
   ok("ekyc status 正規化", ST.normalizeEkycStatus("Approved") === "approved" &&
      ST.normalizeEkycStatus("NG") === "rejected" &&
      ST.normalizeEkycStatus("x") === "unknown" &&
      ST.isEkycFinal("approved") === true);
   // client(integrations を core shim 経由で読み込み)
-  const coreF = `/tmp/ekyc-core-${stamp2}.ts`;
+  const coreF = `${TMP}/ekyc-core-${stamp2}.ts`;
   await fs.writeFile(coreF, `export const ErrorCode={EXTERNAL:"EXTERNAL",INTERNAL:"INTERNAL"};export class AppError extends Error{constructor(c,m,d){super(m);this.code=c;this.details=d;}}export async function tryCatch(fn){try{return {ok:true,value:await fn()};}catch(e){return {ok:false,error:e instanceof AppError?e:new AppError("INTERNAL",String(e))};}}`);
-  const intSrc = (await fs.readFile(new URL("../packages/integrations/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${coreF}"`);
-  const intF = `/tmp/ekyc-int-${stamp2}.ts`; await fs.writeFile(intF, intSrc);
+  const intSrc = (await fs.readFile(new URL("../packages/integrations/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${toSpec(coreF)}"`);
+  const intF = `${TMP}/ekyc-int-${stamp2}.ts`; await fs.writeFile(intF, intSrc);
   const clientSrc = (await fs.readFile(new URL("../packages/ekyc/src/client.ts", import.meta.url), "utf8"))
-    .replace('from "@platform/integrations"', `from "${intF}"`)
-    .replace('from "@platform/core"', `from "${coreF}"`);
-  const clientF = `/tmp/ekyc-client-${stamp2}.ts`; await fs.writeFile(clientF, clientSrc);
-  const C = await import(clientF);
+    .replace('from "@platform/integrations"', `from "${toSpec(intF)}"`)
+    .replace('from "@platform/core"', `from "${toSpec(coreF)}"`);
+  const clientF = `${TMP}/ekyc-client-${stamp2}.ts`; await fs.writeFile(clientF, clientSrc);
+  const C = await impFile(clientF);
   const calls = [];
   const fakeFetch = async (url, init = {}) => { calls.push({ url: String(url), method: init.method, headers: init.headers }); return new Response(JSON.stringify({ id: "app_1", status: "in_review" }), { status: 200, headers: { "content-type": "application/json" } }); };
   const kyc = C.createEkycClient({ apiKey: "k", baseUrl: "https://ex.test/v2", fetchImpl: fakeFetch });
@@ -3663,8 +3735,8 @@ section("ekyc: client / webhook / status");
   ok("ekyc TRUSTDOCK プリセット baseUrl", calls[2].url.includes("sandbox.api.trustdock.io"));
   // webhook(status.ts を .ts 参照に)
   const whSrc = (await fs.readFile(new URL("../packages/ekyc/src/webhook.ts", import.meta.url), "utf8")).replace('from "./status"', `from ${JSON.stringify(new URL("../packages/ekyc/src/status.ts", import.meta.url).href)}`);
-  const whF = `/tmp/ekyc-wh-${stamp2}.ts`; await fs.writeFile(whF, whSrc);
-  const W = await import(whF);
+  const whF = `${TMP}/ekyc-wh-${stamp2}.ts`; await fs.writeFile(whF, whSrc);
+  const W = await impFile(whF);
   const secret = "whsec"; const body = JSON.stringify({ application_id: "app_9", status: "approved" });
   const sig = cr.createHmac("sha256", secret).update(body).digest("hex");
   const ev = W.parseEkycWebhook(body);
@@ -3678,8 +3750,8 @@ section("ekyc: client / webhook / status");
 // ---- ui: tree / kanban 純ロジック(ダッシュボード部品)----
 section("ui: tree / kanban logic");
 {
-  const T = await import(new URL("../packages/ui/src/lib/tree.ts", import.meta.url));
-  const K = await import(new URL("../packages/ui/src/lib/kanban.ts", import.meta.url));
+  const T = await impFile(new URL("../packages/ui/src/lib/tree.ts", import.meta.url));
+  const K = await impFile(new URL("../packages/ui/src/lib/kanban.ts", import.meta.url));
   const nodes = [{ id: "a", children: [{ id: "a1" }, { id: "a2", children: [{ id: "a2x" }] }] }, { id: "b" }];
   ok("tree collectAllIds / findNode / pathToNode", T.collectAllIds(nodes).length === 5 && T.findNode(nodes, "a2x").id === "a2x" && T.pathToNode(nodes, "a2x").join(">") === "a>a2>a2x");
   ok("tree toggleExpanded(不変)", T.toggleExpanded(new Set(["a"]), "a").has("a") === false && T.toggleExpanded(new Set(), "a").has("a") === true);
@@ -3693,7 +3765,7 @@ section("ui: tree / kanban logic");
 // ---- ui: schedule カレンダー配置ロジック ----
 section("ui: schedule layout");
 {
-  const S = await import(new URL("../packages/ui/src/lib/schedule.ts", import.meta.url));
+  const S = await impFile(new URL("../packages/ui/src/lib/schedule.ts", import.meta.url));
   const ev = (id, s, e, x = {}) => ({ id, start: new Date(s), end: new Date(e), title: id, ...x });
   const day = new Date(2025, 6, 25);
   const forDay = S.eventsForDay([ev("b", "2025-07-25T10:00", "2025-07-25T11:00"), ev("ad", "2025-07-25T00:00", "2025-07-26T00:00", { allDay: true }), ev("a", "2025-07-25T09:00", "2025-07-25T10:00")], day).map((e) => e.id);
@@ -3726,9 +3798,9 @@ section("ui: schedule layout");
 // ---- workflow: 条件別ルート / 代理承認 / 並列承認 ----
 section("workflow: routing / delegation / parallel");
 {
-  const R = await import(new URL("../packages/workflow/src/routing.ts", import.meta.url));
-  const D = await import(new URL("../packages/workflow/src/delegation.ts", import.meta.url));
-  const P = await import(new URL("../packages/workflow/src/parallel.ts", import.meta.url));
+  const R = await impFile(new URL("../packages/workflow/src/routing.ts", import.meta.url));
+  const D = await impFile(new URL("../packages/workflow/src/delegation.ts", import.meta.url));
+  const P = await impFile(new URL("../packages/workflow/src/parallel.ts", import.meta.url));
   const mgr = { name: "課長", approverRole: "manager" }, dir = { name: "部長", approverRole: "director" }, exe = { name: "役員", approverRole: "executive" };
   const tiers = [{ under: 100000, steps: [mgr] }, { under: 1000000, steps: [mgr, dir] }, { steps: [mgr, dir, exe] }];
   ok("workflow routeByAmount(5万→1段/50万→2段/境界10万→2段)", R.routeByAmount(50000, tiers).steps.length === 1 &&
@@ -3749,7 +3821,7 @@ section("workflow: routing / delegation / parallel");
      P.isParallelComplete(pstep, ps) &&
      P.isParallelComplete({ name: "x", approverRoles: ["a", "b"], mode: "any" }, P.recordParallelApproval({ name: "x", approverRoles: ["a", "b"], mode: "any" }, P.startParallel(), { id: "z", roles: ["a"] })));
 
-  const ES = await import(new URL("../packages/workflow/src/escalation.ts", import.meta.url));
+  const ES = await impFile(new URL("../packages/workflow/src/escalation.ts", import.meta.url));
   const pend = (h = []) => ({ status: "pending", currentStep: 0, history: h });
   const st = new Date("2025-07-25T09:00:00Z");
   const pol = { remindAfterMin: 60, reminderIntervalMin: 60, escalateAfterMin: 240 };
@@ -3765,7 +3837,7 @@ section("workflow: routing / delegation / parallel");
 // ---- tax 源泉徴収 + report 帳票種別(見積/納品/源泉) ----
 section("withholding / business documents");
 {
-  const W = await import(new URL("../packages/tax/src/withholding.ts", import.meta.url));
+  const W = await impFile(new URL("../packages/tax/src/withholding.ts", import.meta.url));
   ok("源泉徴収(10万→10210 / 100万→102100 / 200万→306300)", W.withholdingTax(100000) === 10210 && W.withholdingTax(1000000) === 102100 && W.withholdingTax(2000000) === 306300);
   ok("源泉徴収 切り捨て + applyWithholding(差引)", W.withholdingTax(105000) === 10720 && W.applyWithholding(500000).net === 448950);
   // render は ./invoice.js / ./money.js を import → fs read + .js→.ts shim で読み込む
@@ -3774,10 +3846,10 @@ section("withholding / business documents");
   const files = {};
   for (const f of ["render", "invoice", "money"]) {
     const src = (await fs.readFile(new URL(`../packages/report/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-    files[f] = `/tmp/rep-${f}-${stamp}.ts`;
-    await fs.writeFile(files[f], src.replace(/from "\.\/(invoice|money)\.ts"/g, (m, n) => `from "/tmp/rep-${n}-${stamp}.ts"`));
+    files[f] = `${TMP}/rep-${f}-${stamp}.ts`;
+    await fs.writeFile(files[f], src.replace(/from "\.\/(invoice|money)\.ts"/g, (m, n) => `from \"${toSpec(`${TMP}/rep-${n}-${stamp}.ts`)}\"`));
   }
-  const R = await import(files.render);
+  const R = await impFile(files.render);
   const doc = { invoiceNumber: "INV-001", issueDate: "2025-07-25", dueDate: "2025-08-31", seller: { name: "自社" }, buyer: { name: "取引先" }, lines: [{ description: "制作", quantity: 1, unitPrice: 500000, taxRate: 10 }] };
   const withWH = R.renderInvoiceHtml({ ...doc, withholding: 51050 });
   ok("請求書に源泉徴収+差引お支払額(¥498,950)", withWH.includes("源泉徴収税") && withWH.includes("差引お支払額") && withWH.includes("¥498,950"));
@@ -3788,7 +3860,7 @@ section("withholding / business documents");
 // ---- notify: 通知プレファレンス(チャネル選択・静音時間・ダイジェスト) ----
 section("notify: preferences");
 {
-  const P = await import(new URL("../packages/notify/src/preferences.ts", import.meta.url));
+  const P = await impFile(new URL("../packages/notify/src/preferences.ts", import.meta.url));
   const at = (h) => { const d = new Date("2025-07-25T00:00:00"); d.setHours(h); return d; };
   const pref = { categories: { approval: { channels: ["slack", "email"], mode: "immediate" }, report: { channels: ["email"], mode: "digest" }, marketing: { channels: ["email"], mode: "off" }, mention: { channels: ["push"] } }, defaultChannels: ["inApp"], quietHours: { start: 22, end: 7 } };
   ok("静音時間 日またぎ(23時内/12時外/5時内)", P.isQuietHour({ start: 22, end: 7 }, at(23)) === true &&
@@ -3812,7 +3884,7 @@ section("mail: template / allowlist");
   const fs = await import("node:fs/promises");
   const stamp = smokeStamp();
   // template は MailMessage 型のみ import(型は消える)→ 直接 import 可
-  const T = await import(new URL("../packages/mail/src/template.ts", import.meta.url));
+  const T = await impFile(new URL("../packages/mail/src/template.ts", import.meta.url));
   const r = T.renderEmailTemplate({ subject: "{{name}}様", html: "<p>{{name}}様</p>", text: "{{name}}様" }, { name: "山田<太郎>" });
   ok("template: 件名生/HTML エスケープ/テキスト生", r.subject === "山田<太郎>様" && r.html === "<p>山田&lt;太郎&gt;様</p>" && r.text === "山田<太郎>様");
   const w = T.wrapHtmlEmail("<p>x</p>", { title: "T", preheader: "P" });
@@ -3824,12 +3896,12 @@ section("mail: template / allowlist");
 
   // allowlist は ./email.js を import → fs read + .js→.ts shim
   const emailSrc = (await fs.readFile(new URL("../packages/mail/src/email.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-  const emailF = `/tmp/mail-email-${stamp}.ts`; await fs.writeFile(emailF, emailSrc);
+  const emailF = `${TMP}/mail-email-${stamp}.ts`; await fs.writeFile(emailF, emailSrc);
   const alSrc = (await fs.readFile(new URL("../packages/mail/src/allowlist.ts", import.meta.url), "utf8"))
-    .replace(/from "\.\/email"/g, `from "${emailF}"`)
-    .replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(`from "${emailF.replace(/\.ts"$/, '.ts')}"`, `from "${emailF}"`);
-  const alF = `/tmp/mail-al-${stamp}.ts`; await fs.writeFile(alF, alSrc);
-  const A = await import(alF);
+    .replace(/from "\.\/email"/g, `from "${toSpec(emailF)}"`)
+    .replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(`from "${toSpec(emailF.replace(/\.ts"$/, '.ts'))}"`, `from "${toSpec(emailF)}"`);
+  const alF = `${TMP}/mail-al-${stamp}.ts`; await fs.writeFile(alF, alSrc);
+  const A = await impFile(alF);
   ok("allowlist: ドメイン許可/拒否/大小無視/ブロック優先", A.isAllowedRecipient("a@corp.com", { allowedDomains: ["corp.com"] }) === true &&
      A.isAllowedRecipient("a@gmail.com", { allowedDomains: ["corp.com"] }) === false &&
      A.isAllowedRecipient("A@CORP.COM", { allowedDomains: ["corp.com"] }) === true &&
@@ -3840,13 +3912,13 @@ section("mail: template / allowlist");
      A.applyRecipientPolicy({ to: "a@b.com", subject: "s" }, {}, { redirectTo: "stg@t.com" }).message.to === "stg@t.com");
   await fs.rm(emailF); await fs.rm(alF);
 
-  const AT = await import(new URL("../packages/mail/src/attachments.ts", import.meta.url));
+  const AT = await impFile(new URL("../packages/mail/src/attachments.ts", import.meta.url));
   const pdf = AT.attachmentFromBase64("請求書.pdf", "SGVsbG8gV29ybGQ=");
   ok("attachments: 種別推定/base64サイズ11/検証", pdf.contentType === "application/pdf" &&
      AT.attachmentSize(pdf) === 11 &&
      AT.validateAttachments([pdf], { maxTotalBytes: 5 }).ok === false &&
      AT.validateAttachments([AT.attachmentFromBase64("v.exe", "AA")], { blockedExtensions: ["exe"] }).ok === false);
-  const U = await import(new URL("../packages/mail/src/unsubscribe.ts", import.meta.url));
+  const U = await impFile(new URL("../packages/mail/src/unsubscribe.ts", import.meta.url));
   const tok = U.createUnsubscribeToken("User@Example.com", "sec", { category: "news" });
   const uv = U.verifyUnsubscribeToken(tok, "sec");
   ok("unsubscribe: 署名トークン検証/改ざん検出/小文字化", uv.valid === true &&
@@ -3863,7 +3935,7 @@ section("mail: template / allowlist");
 // ---- auth OTP(SMS認証)+ sms OTP文面 ----
 section("otp / sms otp message");
 {
-  const O = await import(new URL("../packages/auth/src/otp.ts", import.meta.url));
+  const O = await impFile(new URL("../packages/auth/src/otp.ts", import.meta.url));
   const secret = "pepper"; const now = new Date("2025-07-25T12:00:00Z");
   ok("OTP 生成/ハッシュ(6桁・平文非保持・identifier差)", /^\d{6}$/.test(O.generateOtpCode()) && O.hashOtpCode("123456", secret) !== "123456" && O.hashOtpCode("1", secret, "a") !== O.hashOtpCode("1", secret, "b"));
   const { challenge, code } = O.createOtpChallenge("0901234", secret, { now, ttlSec: 300, maxAttempts: 3 });
@@ -3875,10 +3947,10 @@ section("otp / sms otp message");
   ok("OTP 再送クールダウン(前不可/後可/残秒)", O.canResendOtp(challenge, 60, new Date(now.getTime() + 30000)) === false &&
      O.canResendOtp(challenge, 60, new Date(now.getTime() + 61000)) === true &&
      O.resendWaitSeconds(challenge, 60, new Date(now.getTime() + 20000)) === 40);
-  const M = await import(new URL("../packages/sms/src/otp-message.ts", import.meta.url));
+  const M = await impFile(new URL("../packages/sms/src/otp-message.ts", import.meta.url));
   ok("SMS OTP 文面(既定/テンプレート)", M.buildOtpSms({ to: "+8190", code: "123456", appName: "社内", expiryMinutes: 5 }).body === "【社内】認証コード: 123456(5分間有効)" && M.buildOtpSms({ to: "x", code: "55", appName: "A", expiryMinutes: 3, template: "{app}:{code}({minutes}分)" }).body === "A:55(3分)");
 
-  const TT = await import(new URL("../packages/auth/src/totp.ts", import.meta.url));
+  const TT = await impFile(new URL("../packages/auth/src/totp.ts", import.meta.url));
   const rfcSecret = TT.base32Encode(Uint8Array.from([..."12345678901234567890"].map((c) => c.charCodeAt(0))));
   ok("TOTP base32(Hello→JBSWY3DP)+ラウンドトリップ", TT.base32Encode(Uint8Array.from([..."Hello"].map((c) => c.charCodeAt(0)))) === "JBSWY3DP");
   const hExpected = ["755224", "287082", "359152", "969429", "338314", "254676", "287922", "162583", "399871", "520489"];
@@ -3893,7 +3965,7 @@ section("otp / sms otp message");
      TT.totpAuthUri(sec, { issuer: "App", account: "u@x.com" }).includes(`secret=${sec}`) &&
      TT.totpAuthUri(sec, { issuer: "App", account: "u@x.com" }).includes("issuer=App"));
 
-  const BC = await import(new URL("../packages/auth/src/recovery-codes.ts", import.meta.url));
+  const BC = await impFile(new URL("../packages/auth/src/recovery-codes.ts", import.meta.url));
   const bcSecret = "pepper";
   const { codes, records } = BC.generateBackupCodes(bcSecret);
   ok("バックアップ生成(10個/読みやすい/平文非保持/一意)", codes.length === 10 &&
@@ -3917,13 +3989,13 @@ section("two-factor / webauthn");
   const tfFiles = {};
   for (const f of ["two-factor", "totp", "otp", "recovery-codes"]) {
     const src = (await fs2.readFile(new URL(`../packages/auth/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-    tfFiles[f] = `/tmp/2fa-${f}-${stamp2}.ts`;
-    await fs2.writeFile(tfFiles[f], src.replace(/from "\.\/(two-factor|totp|otp|recovery-codes)\.ts"/g, (m, n) => `from "/tmp/2fa-${n}-${stamp2}.ts"`));
+    tfFiles[f] = `${TMP}/2fa-${f}-${stamp2}.ts`;
+    await fs2.writeFile(tfFiles[f], src.replace(/from "\.\/(two-factor|totp|otp|recovery-codes)\.ts"/g, (m, n) => `from \"${toSpec(`${TMP}/2fa-${n}-${stamp2}.ts`)}\"`));
   }
-  const TF = await import(tfFiles["two-factor"]);
-  const TO = await import(tfFiles["totp"]);
-  const OT = await import(tfFiles["otp"]);
-  const BK = await import(tfFiles["recovery-codes"]);
+  const TF = await impFile(tfFiles["two-factor"]);
+  const TO = await impFile(tfFiles["totp"]);
+  const OT = await impFile(tfFiles["otp"]);
+  const BK = await impFile(tfFiles["recovery-codes"]);
   const sec = "pepper"; const now = new Date("2025-07-25T12:00:00Z");
   const totpSecret = TO.generateTotpSecret();
   const { records: bcodes, codes: bplain } = BK.generateBackupCodes(sec);
@@ -3934,7 +4006,7 @@ section("two-factor / webauthn");
   const { challenge: smsCh, code: smsCode } = OT.createOtpChallenge("+8190", sec, { now });
   ok("2FA SMS検証+自動判定", TF.verifyTwoFactor({ ...cfg, smsChallenge: smsCh }, "sms", smsCode, { secret: sec, now }).verified === true && TF.verifyAnyTwoFactor(cfg, TO.totp(totpSecret, {}, now), { secret: sec, now }).method === "totp");
 
-  const W = await import(new URL("../packages/auth/src/webauthn.ts", import.meta.url));
+  const W = await impFile(new URL("../packages/auth/src/webauthn.ts", import.meta.url));
   const ch = W.generateWebAuthnChallenge();
   const cd = W.toBase64Url(new TextEncoder().encode(JSON.stringify({ type: "webauthn.get", challenge: ch, origin: "https://example.com" })));
   ok("WebAuthn clientData検証(正/challenge不一致/origin不一致)", W.verifyClientData(cd, { challenge: ch, origin: "https://example.com", type: "webauthn.get" }).valid === true &&
@@ -3957,9 +4029,9 @@ section("two-factor / webauthn");
 // ---- mobile: レスポンシブ / ネットワーク / 画面向き(純ロジック) ----
 section("mobile: responsive / network / orientation");
 {
-  const B = await import(new URL("../packages/mobile/src/breakpoints.ts", import.meta.url));
-  const N = await import(new URL("../packages/mobile/src/network.ts", import.meta.url));
-  const O = await import(new URL("../packages/mobile/src/orientation.ts", import.meta.url));
+  const B = await impFile(new URL("../packages/mobile/src/breakpoints.ts", import.meta.url));
+  const N = await impFile(new URL("../packages/mobile/src/network.ts", import.meta.url));
+  const O = await impFile(new URL("../packages/mobile/src/orientation.ts", import.meta.url));
   ok("mobile ブレークポイント(375→xs/800→md/1400→xl/640→sm)", B.matchBreakpoint(375) === "xs" && B.matchBreakpoint(800) === "md" && B.matchBreakpoint(1400) === "xl" && B.matchBreakpoint(640) === "sm");
   ok("mobile 端末サイズ(mobile/tablet/desktop)+bp以上判定", B.deviceSizeFromWidth(375) === "mobile" &&
      B.deviceSizeFromWidth(800) === "tablet" &&
@@ -3978,7 +4050,7 @@ section("mobile: responsive / network / orientation");
      O.orientationFromDimensions(375, 812) === "portrait" &&
      O.simplifyOrientationType("landscape-primary") === "landscape");
 
-  const BC = await import(new URL("../packages/mobile/src/barcode.ts", import.meta.url));
+  const BC = await impFile(new URL("../packages/mobile/src/barcode.ts", import.meta.url));
   ok("mobile バーコード JAN/EAN 検証(実JAN/誤り/EAN-8)", BC.eanCheckDigit("490177701868") === 6 &&
      BC.isValidEan13("4901777018686") === true &&
      BC.isValidEan13("4901777018680") === false &&
@@ -3989,7 +4061,7 @@ section("mobile: responsive / network / orientation");
      BC.isJapaneseJan("4901777018686") === true &&
      BC.isBarcodeDetectorSupported() === false &&
      (await BC.detectBarcodes({})).length === 0);
-  const CM = await import(new URL("../packages/mobile/src/camera.ts", import.meta.url));
+  const CM = await impFile(new URL("../packages/mobile/src/camera.ts", import.meta.url));
   ok("mobile カメラ制約(背面/前面/deviceId優先)+非対応false", CM.cameraConstraints().video.facingMode.ideal === "environment" &&
      CM.cameraConstraints().audio === false &&
      CM.cameraConstraints({ facing: "user" }).video.facingMode.ideal === "user" &&
@@ -4000,9 +4072,9 @@ section("mobile: responsive / network / orientation");
 // ---- payroll: 勤怠集計 / 割増賃金 / 給与明細(労基法) ----
 section("payroll: worktime / premium / payslip");
 {
-  const W = await import(new URL("../packages/payroll/src/worktime.ts", import.meta.url));
-  const P = await import(new URL("../packages/payroll/src/premium.ts", import.meta.url));
-  const S = await import(new URL("../packages/payroll/src/payslip.ts", import.meta.url));
+  const W = await impFile(new URL("../packages/payroll/src/worktime.ts", import.meta.url));
+  const P = await impFile(new URL("../packages/payroll/src/premium.ts", import.meta.url));
+  const S = await impFile(new URL("../packages/payroll/src/payslip.ts", import.meta.url));
   const t = W.parseTimeToMinutes;
   ok("勤怠 深夜窓(22-24=120/20-翌6=420/昼=0)", W.nightMinutes(t("22:00"), 1440) === 120 && W.nightMinutes(t("20:00"), 1440 + t("06:00")) === 420 && W.nightMinutes(t("09:00"), t("18:00")) === 0);
   ok("勤怠 区分(8h→残業0/10h→残業120/法定休日→全休日)", W.splitDailyWork({ startMin: t("09:00"), endMin: t("18:00"), breakMinutes: 60 }).overtimeMinutes === 0 &&
@@ -4023,10 +4095,10 @@ section("payroll: worktime / premium / payslip");
 // ---- dencho: 改ざん検知 / 検索 / タイムスタンプ / 保存期間(電帳法) ----
 section("dencho: hash-chain / search / timestamp / retention");
 {
-  const H = await import(new URL("../packages/dencho/src/hash-chain.ts", import.meta.url));
-  const S = await import(new URL("../packages/dencho/src/search.ts", import.meta.url));
-  const T = await import(new URL("../packages/dencho/src/timestamp.ts", import.meta.url));
-  const R = await import(new URL("../packages/dencho/src/retention.ts", import.meta.url));
+  const H = await impFile(new URL("../packages/dencho/src/hash-chain.ts", import.meta.url));
+  const S = await impFile(new URL("../packages/dencho/src/search.ts", import.meta.url));
+  const T = await impFile(new URL("../packages/dencho/src/timestamp.ts", import.meta.url));
+  const R = await impFile(new URL("../packages/dencho/src/retention.ts", import.meta.url));
   let chain = [];
   chain = [...chain, H.appendEvidence(chain, { inv: "1", amount: 11000, partner: "A" }, "2025-07-25T10:00:00Z")];
   chain = [...chain, H.appendEvidence(chain, { inv: "2", amount: 22000, partner: "B" }, "2025-07-26T10:00:00Z")];
@@ -4059,10 +4131,10 @@ section("report: print / pdf-prep");
   const files = {};
   for (const f of ["print", "render", "invoice", "money"]) {
     const src = (await fs3.readFile(new URL(`../packages/report/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-    files[f] = `/tmp/rprint-${f}-${st3}.ts`;
-    await fs3.writeFile(files[f], src.replace(/from "\.\/(render|invoice|money)\.ts"/g, (m, n) => `from "/tmp/rprint-${n}-${st3}.ts"`));
+    files[f] = `${TMP}/rprint-${f}-${st3}.ts`;
+    await fs3.writeFile(files[f], src.replace(/from "\.\/(render|invoice|money)\.ts"/g, (m, n) => `from \"${toSpec(`${TMP}/rprint-${n}-${st3}.ts`)}\"`));
   }
-  const P = await import(files.print);
+  const P = await impFile(files.print);
   const doc = { invoiceNumber: "INV-001", issueDate: "2025-07-25", seller: { name: "自社" }, buyer: { name: "取引先" }, lines: [{ description: "作業", quantity: 1, unitPrice: 10000, taxRate: 10 }] };
   ok("print @page(A4/margin/横向き)+改ページ制御+色保持", P.printPageCss({ format: "A4", margin: "20mm" }).includes("@page { size: A4; margin: 20mm; }") &&
      P.printPageCss({ landscape: true }).includes("A4 landscape") &&
@@ -4087,11 +4159,11 @@ section("form: dynamic fields / steps");
   const files = {};
   for (const f of ["field", "steps"]) {
     const src = (await fs4.readFile(new URL(`../packages/form/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-    files[f] = `/tmp/form-${f}-${st4}.ts`;
-    await fs4.writeFile(files[f], src.replace(/from "\.\/field\.ts"/g, `from "/tmp/form-field-${st4}.ts"`));
+    files[f] = `${TMP}/form-${f}-${st4}.ts`;
+    await fs4.writeFile(files[f], src.replace(/from "\.\/field\.ts"/g, `from \"${toSpec(`${TMP}/form-field-${st4}.ts`)}\"`));
   }
-  const F = await import(files.field);
-  const S = await import(files.steps);
+  const F = await impFile(files.field);
+  const S = await impFile(files.steps);
   const fields = [
     { name: "type", label: "種別", type: "radio", options: [{ value: "corp", label: "法人" }, { value: "ind", label: "個人" }] },
     { name: "company", label: "会社名", type: "text", required: true, visibleWhen: { field: "type", equals: "corp" } },
@@ -4119,10 +4191,10 @@ section("pii: subject rights (disclosure / erasure)");
   const files = {};
   for (const f of ["subject-rights", "index", "identity-mask"]) {
     const src = (await fs5.readFile(new URL(`../packages/pii/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-    files[f] = `/tmp/pii-${f}-${st5}.ts`;
-    await fs5.writeFile(files[f], src.replace(/from "\.\/(index|identity-mask|subject-rights)\.ts"/g, (m, n) => `from "/tmp/pii-${n}-${st5}.ts"`));
+    files[f] = `${TMP}/pii-${f}-${st5}.ts`;
+    await fs5.writeFile(files[f], src.replace(/from "\.\/(index|identity-mask|subject-rights)\.ts"/g, (m, n) => `from \"${toSpec(`${TMP}/pii-${n}-${st5}.ts`)}\"`));
   }
-  const SR = await import(files["subject-rights"]);
+  const SR = await impFile(files["subject-rights"]);
   const categories = [{ id: "member", name: "会員基本情報", purpose: "サービス提供", legalBasis: "契約", retentionDays: 1825, thirdParties: ["配送業者A"] }, { id: "mkt", name: "販促情報", purpose: "ご案内" }];
   const report = SR.buildDisclosureReport({ subjectId: "u1", entries: [{ categoryId: "member", data: { email: "y@x.com" } }, { categoryId: "mkt", data: { tags: ["a"] } }], categories, generatedAt: new Date("2025-07-25T10:00:00Z") });
   ok("pii 開示(カテゴリ/利用目的/第三者提供/データ/可搬JSON)", report.holdings[0].category === "会員基本情報" &&
@@ -4171,7 +4243,7 @@ section("pii: subject rights (disclosure / erasure)");
 // ---- 画面フロー: 入力→確認→完了 / 確認・詳細項目 / 一覧選択 ----
 section("screens: submit-flow / review / list-selection");
 {
-  const FL = await import(new URL("../packages/form/src/flow.ts", import.meta.url));
+  const FL = await impFile(new URL("../packages/form/src/flow.ts", import.meta.url));
   let f = FL.initialSubmitFlow();
   f = FL.reviewData(f, { name: "山田" });
   const back = FL.editAgain(f);
@@ -4187,10 +4259,10 @@ section("screens: submit-flow / review / list-selection");
      FL.phaseIndex("confirm") === 1);
 
   const fs6 = await import("node:fs/promises"); const st6 = smokeStamp();
-  const rvSrc = (await fs6.readFile(new URL("../packages/form/src/review.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/field\.ts"/g, `from "/tmp/scr-field-${st6}.ts"`);
+  const rvSrc = (await fs6.readFile(new URL("../packages/form/src/review.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/field\.ts"/g, `from \"${toSpec(`${TMP}/scr-field-${st6}.ts`)}\"`);
   const fldSrc = (await fs6.readFile(new URL("../packages/form/src/field.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-  await fs6.writeFile(`/tmp/scr-field-${st6}.ts`, fldSrc); await fs6.writeFile(`/tmp/scr-review-${st6}.ts`, rvSrc);
-  const R = await import(`/tmp/scr-review-${st6}.ts`);
+  await fs6.writeFile(`${TMP}/scr-field-${st6}.ts`, fldSrc); await fs6.writeFile(`${TMP}/scr-review-${st6}.ts`, rvSrc);
+  const R = await impFile(`${TMP}/scr-review-${st6}.ts`);
   const fields = [{ name: "name", label: "氏名", type: "text" }, { name: "type", label: "種別", type: "radio", options: [{ value: "corp", label: "法人" }, { value: "ind", label: "個人" }] }, { name: "company", label: "会社名", type: "text", visibleWhen: { field: "type", equals: "corp" } }, { name: "agree", label: "同意", type: "checkbox" }];
   const items = R.reviewItems(fields, { name: "山田", type: "ind", company: "隠", agree: true });
   ok("確認項目(選択肢→ラベル/真偽→はい/非表示除外) + 詳細項目(全件)", R.formatFieldValue(fields[1], "corp") === "法人" &&
@@ -4198,9 +4270,9 @@ section("screens: submit-flow / review / list-selection");
      !items.some((i) => i.name === "company") &&
      items.find((i) => i.name === "type").value === "個人" &&
      R.describeRecord(fields, { name: "鈴木", type: "corp" }).map((i) => i.name).join(",") === "name,type,company,agree");
-  await fs6.rm(`/tmp/scr-field-${st6}.ts`); await fs6.rm(`/tmp/scr-review-${st6}.ts`);
+  await fs6.rm(`${TMP}/scr-field-${st6}.ts`); await fs6.rm(`${TMP}/scr-review-${st6}.ts`);
 
-  const T = await import(new URL("../packages/ui/src/lib/table.ts", import.meta.url));
+  const T = await impFile(new URL("../packages/ui/src/lib/table.ts", import.meta.url));
   let sel = T.toggleRow(T.toggleRow(T.emptySelection(), "a"), "b");
   const keys = ["a", "b", "c"];
   ok("一覧選択(2件/indeterminate/全選択/全解除)", T.selectionCount(sel) === 2 &&
@@ -4213,7 +4285,7 @@ section("screens: submit-flow / review / list-selection");
 // ---- dashboard viz: 構成比 / ドーナツ / 達成率 / ファネル / 相対時刻 ----
 section("dashboard: shares / donut / goal / funnel / relative-time");
 {
-  const D = await import(new URL("../packages/ui/src/lib/dashboard.ts", import.meta.url));
+  const D = await impFile(new URL("../packages/ui/src/lib/dashboard.ts", import.meta.url));
   const C = 2 * Math.PI * 50;
   const sh = D.computeShares([30, 50, 20]);
   ok("構成比(割合/パーセント/合計0/負値0)", sh[0].ratio === 0.3 && sh[1].percent === 50 && D.computeShares([0, 0]).every((x) => x.ratio === 0) && D.computeShares([-10, 10])[0].value === 0);
@@ -4233,10 +4305,10 @@ section("dashboard: shares / donut / goal / funnel / relative-time");
 // ---- commerce: カート / お気に入り / 割引 / 注文サマリ / 在庫(EC基盤) ----
 section("commerce: cart / favorites / discount / order-summary / inventory");
 {
-  const C = await import(new URL("../packages/commerce/src/cart.ts", import.meta.url));
-  const F = await import(new URL("../packages/commerce/src/favorites.ts", import.meta.url));
-  const D = await import(new URL("../packages/commerce/src/discount.ts", import.meta.url));
-  const I = await import(new URL("../packages/commerce/src/inventory.ts", import.meta.url));
+  const C = await impFile(new URL("../packages/commerce/src/cart.ts", import.meta.url));
+  const F = await impFile(new URL("../packages/commerce/src/favorites.ts", import.meta.url));
+  const D = await impFile(new URL("../packages/commerce/src/discount.ts", import.meta.url));
+  const I = await impFile(new URL("../packages/commerce/src/inventory.ts", import.meta.url));
   // カート
   let cart = C.addToCart(C.addToCart(C.emptyCart(), { productId: "A", name: "A", unitPrice: 1000 }), { productId: "B", name: "B", unitPrice: 500, quantity: 2 });
   cart = C.addToCart(cart, { productId: "A", name: "A", unitPrice: 1000 });
@@ -4272,16 +4344,16 @@ section("commerce: cart / favorites / discount / order-summary / inventory");
      chk.shortages.length === 2);
   // 注文サマリ(@platform/tax を忠実 shim で解決: floor ベース)
   const fs7 = await import("node:fs/promises"); const st7 = smokeStamp();
-  await fs7.writeFile(`/tmp/comm-tax-${st7}.ts`, "export function taxAmount(net,rate=10){return Math.floor(net*rate/100);}\nexport function taxFromGross(gross,rate=10){if(rate===0)return 0;return gross-Math.floor(gross*100/(100+rate));}\n");
-  const osSrc = (await fs7.readFile(new URL("../packages/commerce/src/order-summary.ts", import.meta.url), "utf8")).replace(/from "@platform\/tax"/g, `from "/tmp/comm-tax-${st7}.ts"`);
-  await fs7.writeFile(`/tmp/comm-os-${st7}.ts`, osSrc);
-  const O = await import(`/tmp/comm-os-${st7}.ts`);
+  await fs7.writeFile(`${TMP}/comm-tax-${st7}.ts`, "export function taxAmount(net,rate=10){return Math.floor(net*rate/100);}\nexport function taxFromGross(gross,rate=10){if(rate===0)return 0;return gross-Math.floor(gross*100/(100+rate));}\n");
+  const osSrc = (await fs7.readFile(new URL("../packages/commerce/src/order-summary.ts", import.meta.url), "utf8")).replace(/from "@platform\/tax"/g, `from \"${toSpec(`${TMP}/comm-tax-${st7}.ts`)}\"`);
+  await fs7.writeFile(`${TMP}/comm-os-${st7}.ts`, osSrc);
+  const O = await impFile(`${TMP}/comm-os-${st7}.ts`);
   ok("注文サマリ(外税300/割引+送料/内税/軽減8%/送料無料)", O.buildOrderSummary({ subtotal: 3000, taxRate: 10 }).total === 3300 &&
      O.buildOrderSummary({ subtotal: 3000, discount: 500, shippingFee: 550, taxRate: 10 }).total === 3300 &&
      O.buildOrderSummary({ subtotal: 3300, taxRate: 10, taxMode: "inclusive" }).tax === 300 &&
      O.buildOrderSummary({ subtotal: 3000, taxRate: 8 }).tax === 240 &&
      O.resolveShippingFee(5000, 5000, 550) === 0);
-  await fs7.rm(`/tmp/comm-tax-${st7}.ts`); await fs7.rm(`/tmp/comm-os-${st7}.ts`);
+  await fs7.rm(`${TMP}/comm-tax-${st7}.ts`); await fs7.rm(`${TMP}/comm-os-${st7}.ts`);
 }
 
 // ---- blog: スラッグ / 抜粋 / 読了時間 / 目次 / 記事公開 / RSS ----
@@ -4290,14 +4362,14 @@ section("blog: slug / excerpt / reading-time / toc / post / feed");
   const fs8 = await import("node:fs/promises"); const st8 = smokeStamp();
   const files = {};
   for (const f of ["slug", "excerpt", "reading-time", "toc"]) {
-    const src = (await fs8.readFile(new URL(`../packages/blog/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/(slug|excerpt)\.ts"/g, (m, n) => `from "/tmp/blog-${n}-${st8}.ts"`);
-    files[f] = `/tmp/blog-${f}-${st8}.ts`;
+    const src = (await fs8.readFile(new URL(`../packages/blog/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/(slug|excerpt)\.ts"/g, (m, n) => `from \"${toSpec(`${TMP}/blog-${n}-${st8}.ts`)}\"`);
+    files[f] = `${TMP}/blog-${f}-${st8}.ts`;
     await fs8.writeFile(files[f], src);
   }
-  const S = await import(files.slug);
-  const E = await import(files.excerpt);
-  const R = await import(files["reading-time"]);
-  const T = await import(files.toc);
+  const S = await impFile(files.slug);
+  const E = await impFile(files.excerpt);
+  const R = await impFile(files["reading-time"]);
+  const T = await impFile(files.toc);
   ok("blog スラッグ(英語/allowUnicode/fallback/衝突連番/maxLength)", S.slugify("Hello World!") === "hello-world" &&
      S.slugify("こんにちは 世界", { allowUnicode: true }) === "こんにちは-世界" &&
      S.ensureSlug("こんにちは", "post-123") === "post-123" &&
@@ -4320,8 +4392,8 @@ section("blog: slug / excerpt / reading-time / toc / post / feed");
      T.extractHeadings(doc, { maxLevel: 2, allowUnicode: true }).every((e) => e.level <= 2));
   for (const f of Object.values(files)) await fs8.rm(f);
 
-  const P = await import(new URL("../packages/blog/src/post.ts", import.meta.url));
-  const F = await import(new URL("../packages/blog/src/feed.ts", import.meta.url));
+  const P = await impFile(new URL("../packages/blog/src/post.ts", import.meta.url));
+  const F = await impFile(new URL("../packages/blog/src/feed.ts", import.meta.url));
   const now = new Date("2025-07-25T12:00:00Z");
   const posts = [
     { id: "1", slug: "a", title: "A", status: "published", publishedAt: "2025-07-20T00:00:00Z", tags: ["tech", "react"] },
@@ -4353,11 +4425,11 @@ section("seo: meta / open-graph / json-ld / robots");
 {
   const fs9 = await import("node:fs/promises"); const st9 = smokeStamp();
   const metaSrc = (await fs9.readFile(new URL("../packages/seo/src/meta.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-  await fs9.writeFile(`/tmp/seo-meta-${st9}.ts`, metaSrc);
-  const ogSrc = (await fs9.readFile(new URL("../packages/seo/src/open-graph.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/meta\.ts"/g, `from "/tmp/seo-meta-${st9}.ts"`);
-  await fs9.writeFile(`/tmp/seo-og-${st9}.ts`, ogSrc);
-  const M = await import(`/tmp/seo-meta-${st9}.ts`);
-  const O = await import(`/tmp/seo-og-${st9}.ts`);
+  await fs9.writeFile(`${TMP}/seo-meta-${st9}.ts`, metaSrc);
+  const ogSrc = (await fs9.readFile(new URL("../packages/seo/src/open-graph.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/meta\.ts"/g, `from \"${toSpec(`${TMP}/seo-meta-${st9}.ts`)}\"`);
+  await fs9.writeFile(`${TMP}/seo-og-${st9}.ts`, ogSrc);
+  const M = await impFile(`${TMP}/seo-meta-${st9}.ts`);
+  const O = await impFile(`${TMP}/seo-og-${st9}.ts`);
   ok("seo メタ(title適用/desc160/robots/escape/render)", M.buildTitle("記事", "%s | S") === "記事 | S" &&
      M.truncateDescription("あ".repeat(200)).length === 160 &&
      M.robotsContent({ index: false, follow: false }) === "noindex, nofollow" &&
@@ -4370,10 +4442,10 @@ section("seo: meta / open-graph / json-ld / robots");
      og.filter((t) => t.property === "article:tag").length === 2 &&
      tw.some((t) => t.name === "twitter:card" && t.content === "summary_large_image") &&
      tw.some((t) => t.name === "twitter:site"));
-  await fs9.rm(`/tmp/seo-meta-${st9}.ts`); await fs9.rm(`/tmp/seo-og-${st9}.ts`);
+  await fs9.rm(`${TMP}/seo-meta-${st9}.ts`); await fs9.rm(`${TMP}/seo-og-${st9}.ts`);
 
-  const J = await import(new URL("../packages/seo/src/json-ld.ts", import.meta.url));
-  const R = await import(new URL("../packages/seo/src/robots.ts", import.meta.url));
+  const J = await impFile(new URL("../packages/seo/src/json-ld.ts", import.meta.url));
+  const R = await impFile(new URL("../packages/seo/src/robots.ts", import.meta.url));
   const art = J.articleJsonLd({ headline: "記事", authorName: "著者", publisherName: "S", publisherLogo: "https://ex.com/l.png", url: "https://ex.com/a" });
   const bc = J.breadcrumbJsonLd([{ name: "H", url: "https://ex.com" }, { name: "記事", url: "https://ex.com/a" }]);
   const web = J.websiteJsonLd({ name: "S", url: "https://ex.com", searchUrl: "https://ex.com/s?q={search_term_string}" });
@@ -4394,11 +4466,11 @@ section("seo: meta / open-graph / json-ld / robots");
 // ---- commerce拡張: バリエーション / レビュー / 注文ステータス / ポイント / 送料 ----
 section("commerce+: variant / review / order-status / points / shipping");
 {
-  const V = await import(new URL("../packages/commerce/src/variant.ts", import.meta.url));
-  const RV = await import(new URL("../packages/commerce/src/review.ts", import.meta.url));
-  const OS = await import(new URL("../packages/commerce/src/order-status.ts", import.meta.url));
-  const PT = await import(new URL("../packages/commerce/src/points.ts", import.meta.url));
-  const SH = await import(new URL("../packages/commerce/src/shipping.ts", import.meta.url));
+  const V = await impFile(new URL("../packages/commerce/src/variant.ts", import.meta.url));
+  const RV = await impFile(new URL("../packages/commerce/src/review.ts", import.meta.url));
+  const OS = await impFile(new URL("../packages/commerce/src/order-status.ts", import.meta.url));
+  const PT = await impFile(new URL("../packages/commerce/src/points.ts", import.meta.url));
+  const SH = await impFile(new URL("../packages/commerce/src/shipping.ts", import.meta.url));
   const variants = [{ sku: "S-赤", options: { サイズ: "S", 色: "赤" }, price: 1000, stock: 5 }, { sku: "M-赤", options: { サイズ: "M", 色: "赤" }, price: 1000, stock: 0 }, { sku: "M-青", options: { サイズ: "M", 色: "青" }, price: 1200, stock: 3 }, { sku: "L-青", options: { サイズ: "L", 色: "青" }, price: 1200, stock: 2 }];
   ok("variant(選択特定/在庫別選択肢/価格帯)", V.findVariant(variants, { サイズ: "M", 色: "青" }).sku === "M-青" &&
      V.availableValues(variants, "サイズ", { 色: "青" }).sort().join(",") === "L,M" &&
@@ -4426,7 +4498,7 @@ section("commerce+: variant / review / order-status / points / shipping");
 // ---- blog拡張: コメント / 記事ナビゲーション ----
 section("blog+: comment / navigation");
 {
-  const CM = await import(new URL("../packages/blog/src/comment.ts", import.meta.url));
+  const CM = await impFile(new URL("../packages/blog/src/comment.ts", import.meta.url));
   const comments = [{ id: "1", author: "A", body: "最初", createdAt: "2025-07-20T10:00:00Z", status: "approved" }, { id: "2", parentId: "1", author: "B", body: "返信", createdAt: "2025-07-20T11:00:00Z", status: "approved" }, { id: "3", author: "C", body: "別", createdAt: "2025-07-21T10:00:00Z", status: "pending" }, { id: "4", parentId: "1", author: "D", body: "返信2", createdAt: "2025-07-20T12:00:00Z", status: "approved" }];
   const tree = CM.buildCommentTree(comments);
   ok("comment(ツリー/返信/承認済み/並替/総数/承認待ち)", tree.length === 2 &&
@@ -4436,10 +4508,10 @@ section("blog+: comment / navigation");
      CM.countComments(tree) === 4 &&
      CM.pendingCount(comments) === 1);
   const fs10 = await import("node:fs/promises"); const st10 = smokeStamp();
-  const navSrc = (await fs10.readFile(new URL("../packages/blog/src/navigation.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/post\.ts"/g, `from "/tmp/blognav-post-${st10}.ts"`);
+  const navSrc = (await fs10.readFile(new URL("../packages/blog/src/navigation.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/post\.ts"/g, `from \"${toSpec(`${TMP}/blognav-post-${st10}.ts`)}\"`);
   const postSrc = (await fs10.readFile(new URL("../packages/blog/src/post.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-  await fs10.writeFile(`/tmp/blognav-post-${st10}.ts`, postSrc); await fs10.writeFile(`/tmp/blognav-nav-${st10}.ts`, navSrc);
-  const N = await import(`/tmp/blognav-nav-${st10}.ts`);
+  await fs10.writeFile(`${TMP}/blognav-post-${st10}.ts`, postSrc); await fs10.writeFile(`${TMP}/blognav-nav-${st10}.ts`, navSrc);
+  const N = await impFile(`${TMP}/blognav-nav-${st10}.ts`);
   const posts = [{ id: "1", slug: "a", title: "A", status: "published", publishedAt: "2025-07-20T00:00:00Z", series: "入門", seriesOrder: 1 }, { id: "2", slug: "b", title: "B", status: "published", publishedAt: "2025-07-22T00:00:00Z", series: "入門", seriesOrder: 2 }, { id: "3", slug: "c", title: "C", status: "published", publishedAt: "2025-07-24T00:00:00Z", series: "入門", seriesOrder: 3 }];
   const adj = N.adjacentPosts(posts, "2"); const sn = N.seriesNavigation(posts, "2");
   ok("navigation(前後記事/連載順/連載内前後+位置)", adj.newer.id === "3" &&
@@ -4448,16 +4520,16 @@ section("blog+: comment / navigation");
      sn.prev.id === "1" &&
      sn.next.id === "3" &&
      sn.total === 3);
-  await fs10.rm(`/tmp/blognav-post-${st10}.ts`); await fs10.rm(`/tmp/blognav-nav-${st10}.ts`);
+  await fs10.rm(`${TMP}/blognav-post-${st10}.ts`); await fs10.rm(`${TMP}/blognav-nav-${st10}.ts`);
 }
 
 // ---- site: ページ構成 / ナビ / リダイレクト / お知らせ(公式サイト・LP) ----
 section("site: blocks / navigation / redirects / announcement");
 {
-  const B = await import(new URL("../packages/site/src/blocks.ts", import.meta.url));
-  const N = await import(new URL("../packages/site/src/navigation.ts", import.meta.url));
-  const RD = await import(new URL("../packages/site/src/redirects.ts", import.meta.url));
-  const AN = await import(new URL("../packages/site/src/announcement.ts", import.meta.url));
+  const B = await impFile(new URL("../packages/site/src/blocks.ts", import.meta.url));
+  const N = await impFile(new URL("../packages/site/src/navigation.ts", import.meta.url));
+  const RD = await impFile(new URL("../packages/site/src/redirects.ts", import.meta.url));
+  const AN = await impFile(new URL("../packages/site/src/announcement.ts", import.meta.url));
   const now = new Date("2025-07-25T12:00:00Z");
   const page = { slug: "home", title: "T", blocks: [{ id: "h", type: "hero", data: {} }, { id: "f", type: "features", data: {}, visible: false }, { id: "c", type: "cta", data: {}, visibleFrom: "2025-08-01T00:00:00Z" }, { id: "faq", type: "faq", data: {} }, { id: "s", type: "stats", data: {} }] };
   ok("site ブロック(公開中のみ/タイプ別/並べ替え/上下移動)", B.visibleBlocks(page, now).map((b) => b.id).join(",") === "h,faq,s" &&
@@ -4492,12 +4564,12 @@ section("seo: visibility (internal noindex / public index)");
   const fs11 = await import("node:fs/promises"); const st11 = smokeStamp();
   const files = {};
   for (const f of ["meta", "robots", "indexing"]) {
-    const src = (await fs11.readFile(new URL(`../packages/seo/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/(meta|robots)\.ts"/g, (m, n) => `from "/tmp/seovis-${n}-${st11}.ts"`);
-    files[f] = `/tmp/seovis-${f}-${st11}.ts`;
+    const src = (await fs11.readFile(new URL(`../packages/seo/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/(meta|robots)\.ts"/g, (m, n) => `from \"${toSpec(`${TMP}/seovis-${n}-${st11}.ts`)}\"`);
+    files[f] = `${TMP}/seovis-${f}-${st11}.ts`;
     await fs11.writeFile(files[f], src);
   }
-  const I = await import(files.indexing);
-  const M = await import(files.meta);
+  const I = await impFile(files.indexing);
+  const M = await impFile(files.meta);
   ok("可視性 internal→noindex / public→index / xRobotsTag", M.robotsContent(I.robotsForVisibility("internal")) === "noindex, nofollow, noarchive" &&
      M.robotsContent(I.robotsForVisibility("public")) === "index, follow" &&
      I.noindexRobots() === "noindex, nofollow, noarchive" &&
@@ -4518,10 +4590,14 @@ section("seo: visibility (internal noindex / public index)");
 section("blog: permalink (URL structure)");
 {
   const fs12 = await import("node:fs/promises"); const st12 = smokeStamp();
-  const plSrc = (await fs12.readFile(new URL("../packages/blog/src/permalink.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/slug\.ts"/g, `from "/tmp/pl-slug-${st12}.ts"`).replace(/from "@platform\/url"/g, `from "${new URL("../packages/url/src/join.ts", import.meta.url).pathname}"`);
+  const plSrc = (await fs12.readFile(new URL("../packages/blog/src/permalink.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"')// **URL を組み立ててから toSpec に渡す。** `toSpec(TMP)` の後ろに文字列を足すと
+    // `file:///tmp` + `/x.ts` のように URL の途中へ連結することになる。
+    // **`.pathname` は使わない**(Windows では `/C:/...` になり、パスとして解決すると `C:\C:\...` になる)
+    .replace(/from "\.\/slug\.ts"/g, `from \"${toSpec(`${TMP}/pl-slug-${st12}.ts`)}\"`)
+    .replace(/from "@platform\/url"/g, `from "${new URL("../packages/url/src/join.ts", import.meta.url).href}"`);
   const slugSrc = (await fs12.readFile(new URL("../packages/blog/src/slug.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-  await fs12.writeFile(`/tmp/pl-slug-${st12}.ts`, slugSrc); await fs12.writeFile(`/tmp/pl-perma-${st12}.ts`, plSrc);
-  const P = await import(`/tmp/pl-perma-${st12}.ts`);
+  await fs12.writeFile(`${TMP}/pl-slug-${st12}.ts`, slugSrc); await fs12.writeFile(`${TMP}/pl-perma-${st12}.ts`, plSrc);
+  const P = await impFile(`${TMP}/pl-perma-${st12}.ts`);
   const post = { slug: "hello-world", id: "123", category: "技術ブログ", publishedAt: "2025-07-25T10:00:00Z" };
   const late = { slug: "night", publishedAt: "2025-07-25T23:00:00Z" };
   ok("permalink 生成(slug/日付/ID/カテゴリunicode/TZ)", P.buildPermalink("/blog/:slug", post) === "/blog/hello-world" &&
@@ -4533,17 +4609,17 @@ section("blog: permalink (URL structure)");
      P.postUrl(post, { baseUrl: "https://ex.com", pattern: "/blog/:year/:slug" }) === "https://ex.com/blog/2025/hello-world" &&
      JSON.stringify(P.matchPermalink("/blog/:year/:month/:slug", "/blog/2025/07/hello")) === JSON.stringify({ year: "2025", month: "07", slug: "hello" }) &&
      P.matchPermalink("/blog/:slug", "/blog/2025/hello") === null);
-  await fs12.rm(`/tmp/pl-slug-${st12}.ts`); await fs12.rm(`/tmp/pl-perma-${st12}.ts`);
+  await fs12.rm(`${TMP}/pl-slug-${st12}.ts`); await fs12.rm(`${TMP}/pl-perma-${st12}.ts`);
 }
 
 // ---- url: 解析 / ドメイン / クエリ / 正規化 / 検証(URL・ドメイン処理) ----
 section("url: parse / domain / query / normalize / validate");
 {
-  const P = await import(new URL("../packages/url/src/parse.ts", import.meta.url));
-  const D = await import(new URL("../packages/url/src/domain.ts", import.meta.url));
-  const Q = await import(new URL("../packages/url/src/query.ts", import.meta.url));
-  const NM = await import(new URL("../packages/url/src/normalize.ts", import.meta.url));
-  const VL = await import(new URL("../packages/url/src/validate.ts", import.meta.url));
+  const P = await impFile(new URL("../packages/url/src/parse.ts", import.meta.url));
+  const D = await impFile(new URL("../packages/url/src/domain.ts", import.meta.url));
+  const Q = await impFile(new URL("../packages/url/src/query.ts", import.meta.url));
+  const NM = await impFile(new URL("../packages/url/src/normalize.ts", import.meta.url));
+  const VL = await impFile(new URL("../packages/url/src/validate.ts", import.meta.url));
   const pp = P.parseUrl("https://www.ex.com:8080/blog/a?x=1&y=2#top");
   ok("url 解析(分解/相対base/buildUrl/isAbsolute)", pp.hostname === "www.ex.com" &&
      pp.port === "8080" &&
@@ -4589,16 +4665,16 @@ section("social: handle / parse / embed / accounts");
   const fs13 = await import("node:fs/promises"); const st13 = smokeStamp();
   const names = ["platforms", "handle", "parse", "embed", "accounts"];
   const paths = {};
-  for (const n of names) paths[n] = `/tmp/soc-${n}-${st13}.ts`;
+  for (const n of names) paths[n] = `${TMP}/soc-${n}-${st13}.ts`;
   for (const n of names) {
     let src = (await fs13.readFile(new URL(`../packages/social/src/${n}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-    for (const dep of names) src = src.replace(new RegExp(`from "\\./${dep}\\.ts"`, "g"), `from "${paths[dep]}"`);
+    for (const dep of names) src = src.replace(new RegExp(`from "\\./${dep}\\.ts"`, "g"), `from "${toSpec(paths[dep])}"`);
     await fs13.writeFile(paths[n], src);
   }
-  const H = await import(paths.handle);
-  const PR = await import(paths.parse);
-  const E = await import(paths.embed);
-  const A = await import(paths.accounts);
+  const H = await impFile(paths.handle);
+  const PR = await impFile(paths.parse);
+  const E = await impFile(paths.embed);
+  const A = await impFile(paths.accounts);
   ok("social ハンドル(normalize/valid X15字/TikTok./profileUrl/display@)", H.normalizeHandle("@yamada") === "yamada" &&
      H.isValidHandle("x", "yamada_taro") === true &&
      H.isValidHandle("x", "toolong_handle_over15") === false &&
@@ -4641,17 +4717,17 @@ section("booking: hours / slots / availability / rules / status");
   const fs14 = await import("node:fs/promises"); const st14 = smokeStamp();
   const names = ["hours", "slots", "availability", "rules", "status"];
   const paths = {};
-  for (const n of names) paths[n] = `/tmp/bk-${n}-${st14}.ts`;
+  for (const n of names) paths[n] = `${TMP}/bk-${n}-${st14}.ts`;
   for (const n of names) {
     let src = (await fs14.readFile(new URL(`../packages/booking/src/${n}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-    for (const dep of names) src = src.replace(new RegExp(`from "\\./${dep}\\.ts"`, "g"), `from "${paths[dep]}"`);
+    for (const dep of names) src = src.replace(new RegExp(`from "\\./${dep}\\.ts"`, "g"), `from "${toSpec(paths[dep])}"`);
     await fs14.writeFile(paths[n], src);
   }
-  const H = await import(paths.hours);
-  const S = await import(paths.slots);
-  const A = await import(paths.availability);
-  const R = await import(paths.rules);
-  const ST = await import(paths.status);
+  const H = await impFile(paths.hours);
+  const S = await impFile(paths.slots);
+  const A = await impFile(paths.availability);
+  const R = await impFile(paths.rules);
+  const ST = await impFile(paths.status);
   const weekly = { 1: [{ open: "09:00", close: "12:00" }, { open: "13:00", close: "18:00" }], 0: [] };
   ok("booking 営業時間(分変換/曜日/臨時休/特別営業/昼休み判定)", H.timeToMinutes("09:30") === 570 &&
      H.weekdayOf("2025-07-28") === 1 &&
@@ -4696,7 +4772,7 @@ section("booking-reminders / social-feed / cast");
 {
   const fs15 = await import("node:fs/promises"); const st15 = smokeStamp();
   // booking reminders(依存なし)
-  const R = await import(new URL("../packages/booking/src/reminders.ts", import.meta.url));
+  const R = await impFile(new URL("../packages/booking/src/reminders.ts", import.meta.url));
   const bookingAt = "2025-07-26T18:00:00Z";
   const sched = R.reminderSchedule(bookingAt, [{ beforeMinutes: 1440, channel: "email" }, { beforeMinutes: 60, channel: "sms" }]);
   ok("reminders(発火時刻/due/送信済除外/grace/timing/本文)", sched[0].fireAt === "2025-07-25T18:00:00.000Z" &&
@@ -4707,23 +4783,23 @@ section("booking-reminders / social-feed / cast");
      R.reminderTiming(1440) === "day_before" &&
      R.reminderMessage({ customerName: "山田", bookingAt, beforeMinutes: 1440 }).includes("明日"));
   // social feed(platforms 依存 → shim)
-  const feedSrc = (await fs15.readFile(new URL("../packages/social/src/feed.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/platforms\.ts"/g, `from "/tmp/sf-plat-${st15}.ts"`);
+  const feedSrc = (await fs15.readFile(new URL("../packages/social/src/feed.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/platforms\.ts"/g, `from \"${toSpec(`${TMP}/sf-plat-${st15}.ts`)}\"`);
   const platSrc = (await fs15.readFile(new URL("../packages/social/src/platforms.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-  await fs15.writeFile(`/tmp/sf-plat-${st15}.ts`, platSrc); await fs15.writeFile(`/tmp/sf-feed-${st15}.ts`, feedSrc);
-  const F = await import(`/tmp/sf-feed-${st15}.ts`);
+  await fs15.writeFile(`${TMP}/sf-plat-${st15}.ts`, platSrc); await fs15.writeFile(`${TMP}/sf-feed-${st15}.ts`, feedSrc);
+  const F = await impFile(`${TMP}/sf-feed-${st15}.ts`);
   const posts = [{ platform: "x", id: "1", url: "u1", createdAt: "2025-07-20T10:00:00Z" }, { platform: "tiktok", id: "10", url: "u10", createdAt: "2025-07-25T10:00:00Z" }, { platform: "x", id: "2", url: "u2", createdAt: "2025-07-24T10:00:00Z" }, { platform: "x", id: "1", url: "dup", createdAt: "2025-07-20T10:00:00Z" }, { platform: "instagram", id: "100", url: "u100", createdAt: "2025-07-22T10:00:00Z" }];
   ok("social-feed(重複排除+新しい順/最新1件/新着/直近N)", F.mergeSocialFeed(posts).length === 4 &&
      F.mergeSocialFeed(posts)[0].id === "10" &&
      F.latestPerPlatform(posts).length === 3 &&
      F.newPosts(posts, ["x:1", "x:2"]).some((p) => p.id === "1") === false &&
      F.recentPosts(posts, 2).map((p) => p.id).join(",") === "10,2");
-  await fs15.rm(`/tmp/sf-plat-${st15}.ts`); await fs15.rm(`/tmp/sf-feed-${st15}.ts`);
+  await fs15.rm(`${TMP}/sf-plat-${st15}.ts`); await fs15.rm(`${TMP}/sf-feed-${st15}.ts`);
   // cast(profile が cast 依存 → shim)
   const castSrc = (await fs15.readFile(new URL("../packages/cast/src/cast.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-  const profSrc = (await fs15.readFile(new URL("../packages/cast/src/profile.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/cast\.ts"/g, `from "/tmp/cast-c-${st15}.ts"`);
-  await fs15.writeFile(`/tmp/cast-c-${st15}.ts`, castSrc); await fs15.writeFile(`/tmp/cast-p-${st15}.ts`, profSrc);
-  const C = await import(`/tmp/cast-c-${st15}.ts`);
-  const P = await import(`/tmp/cast-p-${st15}.ts`);
+  const profSrc = (await fs15.readFile(new URL("../packages/cast/src/profile.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/cast\.ts"/g, `from \"${toSpec(`${TMP}/cast-c-${st15}.ts`)}\"`);
+  await fs15.writeFile(`${TMP}/cast-c-${st15}.ts`, castSrc); await fs15.writeFile(`${TMP}/cast-p-${st15}.ts`, profSrc);
+  const C = await impFile(`${TMP}/cast-c-${st15}.ts`);
+  const P = await impFile(`${TMP}/cast-p-${st15}.ts`);
   const now = new Date("2025-07-25T00:00:00Z");
   const casts = [{ id: "1", name: "あおい", status: "active", tags: ["ダンス", "歌"], featured: true, rating: 4.8, joinedAt: "2025-01-01" }, { id: "2", name: "かえで", status: "active", tags: ["トーク"], rating: 4.2, joinedAt: "2025-07-10" }, { id: "3", name: "さくら", status: "hidden", tags: ["ダンス"], rating: 5.0 }, { id: "4", name: "みなと", status: "active", tags: ["ダンス", "トーク"], rating: 4.5, joinedAt: "2024-06-01" }];
   ok("cast(在籍/タグ/全タグ/集計/新人/並替featured/注目)", C.activeCasts(casts).length === 3 &&
@@ -4740,7 +4816,7 @@ section("booking-reminders / social-feed / cast");
      P.profileCompleteness(one, fields) === 0.75 &&
      P.hasRequiredProfile(one, ["name", "tags"]) === true &&
      P.hasRequiredProfile(one, ["name", "message"]) === false);
-  await fs15.rm(`/tmp/cast-c-${st15}.ts`); await fs15.rm(`/tmp/cast-p-${st15}.ts`);
+  await fs15.rm(`${TMP}/cast-c-${st15}.ts`); await fs15.rm(`${TMP}/cast-p-${st15}.ts`);
 }
 
 // ---- booking シフト / cast 口コミランキング ----
@@ -4750,14 +4826,14 @@ section("booking-shift / cast-ranking");
   // booking shift(slots/hours/availability 依存 → shim)
   const bn = ["shift", "slots", "hours", "availability"];
   const bp = {};
-  for (const n of bn) bp[n] = `/tmp/bks-${n}-${st16}.ts`;
+  for (const n of bn) bp[n] = `${TMP}/bks-${n}-${st16}.ts`;
   for (const n of bn) {
     let src = (await fs16.readFile(new URL(`../packages/booking/src/${n}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-    for (const dep of bn) src = src.replace(new RegExp(`from "\\./${dep}\\.ts"`, "g"), `from "${bp[dep]}"`);
+    for (const dep of bn) src = src.replace(new RegExp(`from "\\./${dep}\\.ts"`, "g"), `from "${toSpec(bp[dep])}"`);
     await fs16.writeFile(bp[n], src);
   }
-  const SH = await import(bp.shift);
-  const S = await import(bp.slots);
+  const SH = await impFile(bp.shift);
+  const S = await impFile(bp.slots);
   const slots = S.generateSlots([{ open: "09:00", close: "18:00" }], { slotMinutes: 60 });
   const staffShifts = { aoi: [{ start: "10:00", end: "14:00" }], kaede: [{ start: "12:00", end: "18:00" }], minato: [{ start: "09:00", end: "12:00" }] };
   const staffing = SH.slotStaffing(slots, staffShifts);
@@ -4770,10 +4846,10 @@ section("booking-shift / cast-ranking");
      avail.find((x) => x.slot.start === "13:00").remaining === 2);
   for (const n of bn) await fs16.rm(bp[n]);
   // cast ranking(cast 依存 → shim)
-  const rankSrc = (await fs16.readFile(new URL("../packages/cast/src/ranking.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/cast\.ts"/g, `from "/tmp/rk-cast-${st16}.ts"`);
+  const rankSrc = (await fs16.readFile(new URL("../packages/cast/src/ranking.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/cast\.ts"/g, `from \"${toSpec(`${TMP}/rk-cast-${st16}.ts`)}\"`);
   const castSrc = (await fs16.readFile(new URL("../packages/cast/src/cast.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-  await fs16.writeFile(`/tmp/rk-cast-${st16}.ts`, castSrc); await fs16.writeFile(`/tmp/rk-rank-${st16}.ts`, rankSrc);
-  const RK = await import(`/tmp/rk-rank-${st16}.ts`);
+  await fs16.writeFile(`${TMP}/rk-cast-${st16}.ts`, castSrc); await fs16.writeFile(`${TMP}/rk-rank-${st16}.ts`, rankSrc);
+  const RK = await impFile(`${TMP}/rk-rank-${st16}.ts`);
   const casts = [{ id: "1", name: "あおい", status: "active", rating: 5.0, reviewCount: 2 }, { id: "2", name: "かえで", status: "active", rating: 4.7, reviewCount: 150 }, { id: "3", name: "みなと", status: "active", rating: 4.9, reviewCount: 80 }, { id: "4", name: "さくら", status: "hidden", rating: 5.0, reviewCount: 200 }];
   const ranking = RK.rankCasts(casts, { minCount: 10 });
   ok("cast-ranking(重み付き/少件数満点は独占せず/在籍のみ/単純平均別)", RK.weightedRating(5.0, 1, 10, 4.0) < RK.weightedRating(4.8, 100, 10, 4.0) &&
@@ -4782,13 +4858,13 @@ section("booking-shift / cast-ranking");
      ranking[0].cast.id !== "1" &&
      ranking[0].rank === 1 &&
      RK.rankByRawRating(casts)[0].cast.id === "1");
-  await fs16.rm(`/tmp/rk-cast-${st16}.ts`); await fs16.rm(`/tmp/rk-rank-${st16}.ts`);
+  await fs16.rm(`${TMP}/rk-cast-${st16}.ts`); await fs16.rm(`${TMP}/rk-rank-${st16}.ts`);
 }
 
 // ---- ui/social-login: プロバイダ表示・認証バックエンド対応(ログインUIの純ロジック) ----
 section("ui: social-login lib");
 {
-  const S = await import(new URL("../packages/ui/src/lib/social-login.ts", import.meta.url));
+  const S = await impFile(new URL("../packages/ui/src/lib/social-login.ts", import.meta.url));
   ok("social-login(ラベル/動詞/認証バックエンド対応)", S.PROVIDER_LABELS.google === "Google" &&
      S.PROVIDER_LABELS.zoho === "Zoho" &&
      S.socialLoginLabel("google") === "Google でログイン" &&
@@ -4801,7 +4877,7 @@ section("ui: social-login lib");
 // ---- ui/login-form: メールログイン入力検証(純ロジック) ----
 section("ui: login-form validation");
 {
-  const L = await import(new URL("../packages/ui/src/lib/login-form.ts", import.meta.url));
+  const L = await impFile(new URL("../packages/ui/src/lib/login-form.ts", import.meta.url));
   ok("login-form(email形式/空/不正/短パス/最小長/正常/valid判定)", L.isEmailLike("a@x.com") === true &&
      L.isEmailLike("bad") === false &&
      L.validateEmailLogin("", "password1").email.includes("入力") &&
@@ -4816,7 +4892,7 @@ section("ui: login-form validation");
 // ---- ui/nav: レイアウトナビのアクティブ判定(純ロジック) ----
 section("ui: nav lib (layout)");
 {
-  const N = await import(new URL("../packages/ui/src/lib/nav.ts", import.meta.url));
+  const N = await impFile(new URL("../packages/ui/src/lib/nav.ts", import.meta.url));
   const items = [{ label: "ホーム", href: "/" }, { label: "製品", href: "/products", children: [{ label: "製品A", href: "/products/a" }] }, { label: "会社", href: "/about" }];
   ok("nav(前方一致/exact/ルート/クエリ無視/平坦化/最具体一致/親一致/子アクティブ)", N.isNavActive("/products", "/products/a") === true &&
      N.isNavActive("/products", "/products/a", true) === false &&
@@ -4833,14 +4909,14 @@ section("ui: nav lib (layout)");
 // ---- site パス自動パンくず / ui テーマ切替(純ロジック) ----
 section("site-breadcrumbFromPath / ui-theme");
 {
-  const N = await import(new URL("../packages/site/src/navigation.ts", import.meta.url));
+  const N = await impFile(new URL("../packages/site/src/navigation.ts", import.meta.url));
   ok("breadcrumbFromPath(基本/ラベル/home無/現在除外/見出し化/ルート)", JSON.stringify(N.breadcrumbFromPath("/products/a")) === JSON.stringify([{ label: "ホーム", href: "/" }, { label: "Products", href: "/products" }, { label: "A", href: "/products/a" }]) &&
      N.breadcrumbFromPath("/products/a", { labels: { products: "製品", "/products/a": "製品A" } })[1].label === "製品" &&
      N.breadcrumbFromPath("/a", { home: false }).length === 1 &&
      N.breadcrumbFromPath("/products/a", { includeCurrent: false }).map((i) => i.href).join(",") === "/,/products" &&
      N.breadcrumbFromPath("/user-settings")[1].label === "User Settings" &&
      N.breadcrumbFromPath("/").length === 1);
-  const T = await import(new URL("../packages/ui/src/lib/theme.ts", import.meta.url));
+  const T = await impFile(new URL("../packages/ui/src/lib/theme.ts", import.meta.url));
   const classes = new Set(); const attr = {};
   const el = { classList: { add: (c) => classes.add(c), remove: (c) => classes.delete(c) }, setAttribute: (n, v) => { attr[n] = v; } };
   T.applyTheme("dark", el); const d = classes.has("dark") && attr["data-theme"] === "dark";
@@ -4858,7 +4934,7 @@ section("site-breadcrumbFromPath / ui-theme");
 // ---- ui/theme: FOUC対策の初期化スクリプト生成(純ロジック) ----
 section("ui: themeInitScript");
 {
-  const T = await import(new URL("../packages/ui/src/lib/theme.ts", import.meta.url));
+  const T = await impFile(new URL("../packages/ui/src/lib/theme.ts", import.meta.url));
   const script = T.themeInitScript();
   ok("themeInitScript(既定キー/OS判定/darkクラス/属性/try-catch/カスタムキー/STORAGE_KEY)", script.includes('"theme"') &&
      script.includes("prefers-color-scheme") &&
@@ -4873,7 +4949,7 @@ section("ui: themeInitScript");
 // ---- ui/notifications: 通知の集計・グループ化(純ロジック) ----
 section("ui: notifications lib");
 {
-  const N = await import(new URL("../packages/ui/src/lib/notifications.ts", import.meta.url));
+  const N = await impFile(new URL("../packages/ui/src/lib/notifications.ts", import.meta.url));
   const now = new Date("2025-07-25T12:00:00Z");
   const list = [{ id: "1", title: "A", createdAt: "2025-07-25T09:00:00Z" }, { id: "2", title: "B", createdAt: "2025-07-25T11:00:00Z", read: true }, { id: "3", title: "C", createdAt: "2025-07-24T10:00:00Z" }, { id: "4", title: "D", createdAt: "2025-07-20T10:00:00Z" }];
   const g = N.groupByDate(list, now);
@@ -4890,7 +4966,7 @@ section("ui: notifications lib");
 // ---- ui/command パレット検索 / ui/notification-store リアルタイム反映(純ロジック) ----
 section("ui: command-palette / notification-store");
 {
-  const C = await import(new URL("../packages/ui/src/lib/command.ts", import.meta.url));
+  const C = await impFile(new URL("../packages/ui/src/lib/command.ts", import.meta.url));
   const cmds = [{ id: "1", label: "ダッシュボード", keywords: ["home"], group: "ページ" }, { id: "2", label: "予約一覧", keywords: ["booking"], group: "ページ" }, { id: "3", label: "新規予約を作成", keywords: ["add"], group: "操作" }, { id: "4", label: "設定", group: "ページ" }];
   ok("command(スコア前方3/部分2/KW1/不一致null/空全件/絞込/スコア順/グループ/循環)", C.scoreCommand(cmds[0], "ダッシュ") === 3 &&
      C.scoreCommand(cmds[2], "予約") === 2 &&
@@ -4903,10 +4979,10 @@ section("ui: command-palette / notification-store");
      C.nextIndex(0, 3, -1) === 2 &&
      C.nextIndex(0, 0, 1) === -1);
   const fs17 = await import("node:fs/promises"); const st17 = smokeStamp();
-  const storeSrc = (await fs17.readFile(new URL("../packages/ui/src/lib/notification-store.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/notifications\.ts"/g, `from "/tmp/nstore-notif-${st17}.ts"`);
+  const storeSrc = (await fs17.readFile(new URL("../packages/ui/src/lib/notification-store.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/notifications\.ts"/g, `from \"${toSpec(`${TMP}/nstore-notif-${st17}.ts`)}\"`);
   const notifSrc = (await fs17.readFile(new URL("../packages/ui/src/lib/notifications.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-  await fs17.writeFile(`/tmp/nstore-notif-${st17}.ts`, notifSrc); await fs17.writeFile(`/tmp/nstore-store-${st17}.ts`, storeSrc);
-  const S = await import(`/tmp/nstore-store-${st17}.ts`);
+  await fs17.writeFile(`${TMP}/nstore-notif-${st17}.ts`, notifSrc); await fs17.writeFile(`${TMP}/nstore-store-${st17}.ts`, storeSrc);
+  const S = await impFile(`${TMP}/nstore-store-${st17}.ts`);
   let stt = [{ id: "1", title: "A", createdAt: "2025-07-25T09:00:00Z" }, { id: "2", title: "B", createdAt: "2025-07-25T11:00:00Z", read: true }];
   stt = S.notificationReducer(stt, { type: "receive", notification: { id: "3", title: "C", createdAt: "2025-07-25T12:00:00Z" } });
   const dup = S.notificationReducer(stt, { type: "receive", notification: { id: "3", title: "C2", createdAt: "2025-07-25T13:00:00Z" } });
@@ -4917,20 +4993,20 @@ section("ui: command-palette / notification-store");
      S.unreadCount(S.notificationReducer(stt, { type: "readAll" })) === 0 &&
      S.notificationReducer(stt, { type: "remove", id: "2" }).some((n) => n.id === "2") === false &&
      S.notificationReducer([], { type: "set", notifications: many }, { max: 3 }).map((n) => n.id).join(",") === "4,3,2");
-  await fs17.rm(`/tmp/nstore-notif-${st17}.ts`); await fs17.rm(`/tmp/nstore-store-${st17}.ts`);
+  await fs17.rm(`${TMP}/nstore-notif-${st17}.ts`); await fs17.rm(`${TMP}/nstore-store-${st17}.ts`);
 }
 
 // ---- ui/clipboard コピペ / ui/shortcut キーボードショートカット(純ロジック) ----
 section("ui: clipboard / shortcut");
 {
-  const C = await import(new URL("../packages/ui/src/lib/clipboard.ts", import.meta.url));
+  const C = await impFile(new URL("../packages/ui/src/lib/clipboard.ts", import.meta.url));
   let wrote = null;
   const copyOk = (await C.copyToClipboard("hi", async (t) => { wrote = t; })) === true && wrote === "hi";
   const copyFail = (await C.copyToClipboard("x", async () => { throw new Error("no"); })) === false && (await C.copyToClipboard("x")) === false;
   const pasteOk = (await C.readClipboard(async () => "pasted")) === "pasted";
   const pasteFail = (await C.readClipboard(async () => { throw new Error("no"); })) === null && (await C.readClipboard()) === null;
   ok("clipboard(copy成功/失敗/navigator無, paste成功/失敗/navigator無)", copyOk && copyFail && pasteOk && pasteFail);
-  const S = await import(new URL("../packages/ui/src/lib/shortcut.ts", import.meta.url));
+  const S = await impFile(new URL("../packages/ui/src/lib/shortcut.ts", import.meta.url));
   const k = S.parseShortcut("mod+k");
   const sh = S.parseShortcut("mod+shift+p");
   ok("shortcut(parse/match Mac meta・Win ctrl/format記号・語/sequence complete-partial-none)", k.key === "k" &&
@@ -4950,7 +5026,7 @@ section("ui: clipboard / shortcut");
 // ---- ui/clipboard コピペ / ui/shortcut キーボードショートカット(純ロジック・検証固定) ----
 section("ui: clipboard / shortcut");
 {
-  const CB = await import(new URL("../packages/ui/src/lib/clipboard.ts", import.meta.url));
+  const CB = await impFile(new URL("../packages/ui/src/lib/clipboard.ts", import.meta.url));
   let copied = null;
   const copyOk = await CB.copyToClipboard("hello", async (t) => { copied = t; });
   const copyFail = await CB.copyToClipboard("x", async () => { throw new Error("no"); });
@@ -4959,7 +5035,7 @@ section("ui: clipboard / shortcut");
   const pasteNone = await CB.readClipboard();
   ok("clipboard(コピー成功/失敗false/navigator無false/貼付/無null)", copyOk === true && copied === "hello" && copyFail === false && copyNone === false && pasted === "pasted" && pasteNone === null);
 
-  const SH = await import(new URL("../packages/ui/src/lib/shortcut.ts", import.meta.url));
+  const SH = await impFile(new URL("../packages/ui/src/lib/shortcut.ts", import.meta.url));
   const modK = { key: "k", ctrlKey: true, metaKey: false, shiftKey: false, altKey: false };
   const cmdK = { key: "k", ctrlKey: false, metaKey: true, shiftKey: false, altKey: false };
   ok("shortcut(parse/match Win⌘/format/連続入力complete-partial-none)", SH.parseShortcut("mod+k").mod === true &&
@@ -4977,7 +5053,7 @@ section("ui: clipboard / shortcut");
 // ---- form/errors: バリデーション結果→項目別エラー(純ロジック) ----
 section("form: errors");
 {
-  const E = await import(new URL("../packages/form/src/errors.ts", import.meta.url));
+  const E = await impFile(new URL("../packages/form/src/errors.ts", import.meta.url));
   const issues = [{ path: "email", message: "メール形式が不正" }, { path: "password", message: "8文字以上" }, { path: "email", message: "必須" }, { path: "", message: "全体エラー" }];
   const fe = E.issuesToFieldErrors(issues);
   ok("form-errors(項目別/最初優先/空path=_form/ネスト保持/query)", fe.email === "メール形式が不正" &&
@@ -4994,7 +5070,7 @@ section("form: errors");
 // ---- ui/nav: RBAC による出し分け filterNavByPermission(純ロジック) ----
 section("ui: filterNavByPermission (RBAC)");
 {
-  const N = await import(new URL("../packages/ui/src/lib/nav.ts", import.meta.url));
+  const N = await impFile(new URL("../packages/ui/src/lib/nav.ts", import.meta.url));
   const nav = [{ label: "D", href: "/" }, { label: "予約", href: "/bookings", permission: "booking:read" }, { label: "管理", href: "/admin", permission: "admin:access", children: [{ label: "U", href: "/admin/users", permission: "user:manage" }, { label: "S", href: "/admin/settings", permission: "admin:settings" }] }];
   const viewer = new Set(["booking:read"]);
   const rv = N.filterNavByPermission(nav, (p) => viewer.has(p));
@@ -5011,16 +5087,16 @@ section("ui: filterNavByPermission (RBAC)");
 section("invoice (billing)");
 {
   const fs18 = await import("node:fs/promises"); const st18 = smokeStamp();
-  const taxIdx = (await fs18.readFile(new URL("../packages/tax/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/withholding\.ts"/g, `from "/tmp/inv-tax-wh-${st18}.ts"`);
+  const taxIdx = (await fs18.readFile(new URL("../packages/tax/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/withholding\.ts"/g, `from \"${toSpec(`${TMP}/inv-tax-wh-${st18}.ts`)}\"`);
   let wh = "export {};"; try { wh = (await fs18.readFile(new URL("../packages/tax/src/withholding.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'); } catch {}
-  await fs18.writeFile(`/tmp/inv-tax-wh-${st18}.ts`, wh);
-  await fs18.writeFile(`/tmp/inv-tax-${st18}.ts`, taxIdx);
-  const rd = async (name) => (await fs18.readFile(new URL(`../packages/invoice/src/${name}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/tax"/g, `from "/tmp/inv-tax-${st18}.ts"`).replace(/from "\.\/line\.ts"/g, `from "/tmp/inv-line-${st18}.ts"`).replace(/from "\.\/invoice\.ts"/g, `from "/tmp/inv-invoice-${st18}.ts"`);
-  for (const n of ["line", "invoice", "numbering", "payment"]) await fs18.writeFile(`/tmp/inv-${n}-${st18}.ts`, await rd(n));
-  const L = await import(`/tmp/inv-line-${st18}.ts`);
-  const I = await import(`/tmp/inv-invoice-${st18}.ts`);
-  const N = await import(`/tmp/inv-numbering-${st18}.ts`);
-  const P = await import(`/tmp/inv-payment-${st18}.ts`);
+  await fs18.writeFile(`${TMP}/inv-tax-wh-${st18}.ts`, wh);
+  await fs18.writeFile(`${TMP}/inv-tax-${st18}.ts`, taxIdx);
+  const rd = async (name) => (await fs18.readFile(new URL(`../packages/invoice/src/${name}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/tax"/g, `from \"${toSpec(`${TMP}/inv-tax-${st18}.ts`)}\"`).replace(/from "\.\/line\.ts"/g, `from \"${toSpec(`${TMP}/inv-line-${st18}.ts`)}\"`).replace(/from "\.\/invoice\.ts"/g, `from \"${toSpec(`${TMP}/inv-invoice-${st18}.ts`)}\"`);
+  for (const n of ["line", "invoice", "numbering", "payment"]) await fs18.writeFile(`${TMP}/inv-${n}-${st18}.ts`, await rd(n));
+  const L = await impFile(`${TMP}/inv-line-${st18}.ts`);
+  const I = await impFile(`${TMP}/inv-invoice-${st18}.ts`);
+  const N = await impFile(`${TMP}/inv-numbering-${st18}.ts`);
+  const P = await impFile(`${TMP}/inv-payment-${st18}.ts`);
   const lines = [{ description: "10%", quantity: 1, unitPrice: 10000 }, { description: "8%", quantity: 2, unitPrice: 1000, taxRate: 8 }, { description: "10%b", quantity: 1, unitPrice: 5000 }];
   const t = I.invoiceTotals(lines);
   ok("invoice(明細/税率別集計10%1500+8%160/合計18660/採番/期限/入金状態)", L.lineNet({ description: "A", quantity: 3, unitPrice: 1000, discount: 500 }) === 2500 &&
@@ -5035,27 +5111,27 @@ section("invoice (billing)");
      P.paymentStatus({ issued: true, dueDate: "2025-07-01", paidAmount: 0, total: 1000 }, new Date("2025-07-15")) === "overdue" &&
      P.paymentStatus({ issued: true, dueDate: "2025-07-31", paidAmount: 1000, total: 1000 }) === "paid" &&
      P.balanceDue(1000, 300) === 700);
-  for (const n of ["line", "invoice", "numbering", "payment"]) await fs18.rm(`/tmp/inv-${n}-${st18}.ts`);
-  await fs18.rm(`/tmp/inv-tax-${st18}.ts`); await fs18.rm(`/tmp/inv-tax-wh-${st18}.ts`);
+  for (const n of ["line", "invoice", "numbering", "payment"]) await fs18.rm(`${TMP}/inv-${n}-${st18}.ts`);
+  await fs18.rm(`${TMP}/inv-tax-${st18}.ts`); await fs18.rm(`${TMP}/inv-tax-wh-${st18}.ts`);
 }
 
 // ---- invoice 消込/繰越/HTML + quote 見積(実 @platform/invoice/@platform/tax 連携) ----
 section("invoice-reconcile / quote");
 {
   const fs19 = await import("node:fs/promises"); const st19 = smokeStamp();
-  const T = `/tmp/rq-tax-${st19}.ts`, TW = `/tmp/rq-taxwh-${st19}.ts`;
-  const taxIdx = (await fs19.readFile(new URL("../packages/tax/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/withholding\.ts"/g, `from "${TW}"`);
+  const T = `${TMP}/rq-tax-${st19}.ts`, TW = `${TMP}/rq-taxwh-${st19}.ts`;
+  const taxIdx = (await fs19.readFile(new URL("../packages/tax/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/withholding\.ts"/g, `from "${toSpec(TW)}"`);
   let wh = "export {};"; try { wh = (await fs19.readFile(new URL("../packages/tax/src/withholding.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'); } catch {}
   await fs19.writeFile(TW, wh); await fs19.writeFile(T, taxIdx);
-  const invPaths = {}; for (const n of ["line", "invoice", "numbering", "payment", "reconcile"]) invPaths[n] = `/tmp/rq-inv-${n}-${st19}.ts`;
+  const invPaths = {}; for (const n of ["line", "invoice", "numbering", "payment", "reconcile"]) invPaths[n] = `${TMP}/rq-inv-${n}-${st19}.ts`;
   for (const n of ["line", "invoice", "numbering", "payment", "reconcile"]) {
-    let src = (await fs19.readFile(new URL(`../packages/invoice/src/${n}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/tax"/g, `from "${T}"`);
-    for (const d of ["line", "invoice", "numbering", "payment"]) src = src.replace(new RegExp(`from "\\./${d}\\.ts"`, "g"), `from "${invPaths[d]}"`);
+    let src = (await fs19.readFile(new URL(`../packages/invoice/src/${n}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/tax"/g, `from "${toSpec(T)}"`);
+    for (const d of ["line", "invoice", "numbering", "payment"]) src = src.replace(new RegExp(`from "\\./${d}\\.ts"`, "g"), `from "${toSpec(invPaths[d])}"`);
     await fs19.writeFile(invPaths[n], src);
   }
-  const barrel = `/tmp/rq-inv-barrel-${st19}.ts`;
-  await fs19.writeFile(barrel, ["line","invoice","numbering","payment","reconcile"].map((n) => `export * from "${invPaths[n]}";`).join("\n"));
-  const R = await import(invPaths.reconcile);
+  const barrel = `${TMP}/rq-inv-barrel-${st19}.ts`;
+  await fs19.writeFile(barrel, ["line","invoice","numbering","payment","reconcile"].map((n) => `export * from "${toSpec(invPaths[n])}";`).join("\n"));
+  const R = await impFile(invPaths.reconcile);
   const invs = [{ number: "INV-001", dueDate: "2025-05-31", total: 10000, paidAmount: 0 }, { number: "INV-002", dueDate: "2025-06-30", total: 20000, paidAmount: 0 }, { number: "INV-003", dueDate: "2025-07-31", total: 5000, paidAmount: 0 }];
   const r1 = R.applyPayment(invs, 15000);
   const aging = R.agingBuckets(invs, new Date("2025-07-15"));
@@ -5066,9 +5142,9 @@ section("invoice-reconcile / quote");
      aging.current === 5000 &&
      aging.d1_30 === 20000 &&
      aging.d31_60 === 10000);
-  const quoteSrc = (await fs19.readFile(new URL("../packages/quote/src/quote.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/invoice"/g, `from "${barrel}"`);
-  const QP = `/tmp/rq-quote-${st19}.ts`; await fs19.writeFile(QP, quoteSrc);
-  const Q = await import(QP);
+  const quoteSrc = (await fs19.readFile(new URL("../packages/quote/src/quote.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/invoice"/g, `from "${toSpec(barrel)}"`);
+  const QP = `${TMP}/rq-quote-${st19}.ts`; await fs19.writeFile(QP, quoteSrc);
+  const Q = await impFile(QP);
   const q = Q.buildQuote({ number: "QUO-0001", issueDate: "2025-07-01", validUntil: "2025-07-31", billTo: "株式会社テスト" }, [{ description: "開発", quantity: 1, unitPrice: 100000 }, { description: "書籍", quantity: 2, unitPrice: 1000, taxRate: 8 }]);
   const inv = Q.convertToInvoice(q, { number: "INV-202507-0001", issueDate: "2025-07-16", dueDate: "2025-08-31" });
   ok("quote(合計112160/状態expired-accepted/請求書変換で明細引継ぎ)", q.totals.total === 112160 &&
@@ -5086,13 +5162,13 @@ section("invoice-recurring / dunning / purchase");
 {
   const fs20 = await import("node:fs/promises"); const st20 = smokeStamp();
   // datetime calendar
-  const CAL = `/tmp/rp-cal-${st20}.ts`;
+  const CAL = `${TMP}/rp-cal-${st20}.ts`;
   await fs20.writeFile(CAL, (await fs20.readFile(new URL("../packages/datetime/src/calendar.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  const RECP = `/tmp/rp-recurring-${st20}.ts`;
-  await fs20.writeFile(RECP, (await fs20.readFile(new URL("../packages/invoice/src/recurring.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/datetime"/g, `from "${CAL}"`));
-  const DUNP = `/tmp/rp-dunning-${st20}.ts`;
+  const RECP = `${TMP}/rp-recurring-${st20}.ts`;
+  await fs20.writeFile(RECP, (await fs20.readFile(new URL("../packages/invoice/src/recurring.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/datetime"/g, `from "${toSpec(CAL)}"`));
+  const DUNP = `${TMP}/rp-dunning-${st20}.ts`;
   await fs20.writeFile(DUNP, (await fs20.readFile(new URL("../packages/invoice/src/dunning.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  const R = await import(RECP), D = await import(DUNP);
+  const R = await impFile(RECP), D = await impFile(DUNP);
   const q = { interval: "quarterly", startDate: "2025-01-15", endDate: "2025-12-31" };
   ok("recurring(月末クランプ/四半期/範囲/終了null/督促段階/文面/送付判定)", R.billingDateAt({ interval: "monthly", startDate: "2025-01-31" }, 1) === "2025-02-28" &&
      R.billingDateAt(q, 2) === "2025-07-15" &&
@@ -5104,21 +5180,21 @@ section("invoice-recurring / dunning / purchase");
      D.shouldSendDunning(20, ["first"]).send === false);
 
   // purchase → invoice → tax
-  const TX = `/tmp/rp-tax-${st20}.ts`, TXW = `/tmp/rp-taxwh-${st20}.ts`;
+  const TX = `${TMP}/rp-tax-${st20}.ts`, TXW = `${TMP}/rp-taxwh-${st20}.ts`;
   await fs20.writeFile(TXW, (await (async()=>{ try { return (await fs20.readFile(new URL("../packages/tax/src/withholding.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'); } catch { return "export {};"; } })()));
-  await fs20.writeFile(TX, (await fs20.readFile(new URL("../packages/tax/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/withholding\.ts"/g, `from "${TXW}"`));
-  const ip = {}; for (const n of ["line", "invoice", "numbering", "payment"]) ip[n] = `/tmp/rp-inv-${n}-${st20}.ts`;
+  await fs20.writeFile(TX, (await fs20.readFile(new URL("../packages/tax/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/withholding\.ts"/g, `from "${toSpec(TXW)}"`));
+  const ip = {}; for (const n of ["line", "invoice", "numbering", "payment"]) ip[n] = `${TMP}/rp-inv-${n}-${st20}.ts`;
   for (const n of ["line", "invoice", "numbering", "payment"]) {
-    let src = (await fs20.readFile(new URL(`../packages/invoice/src/${n}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/tax"/g, `from "${TX}"`);
-    for (const d of ["line", "invoice", "numbering", "payment"]) src = src.replace(new RegExp(`from "\\./${d}\\.ts"`, "g"), `from "${ip[d]}"`);
+    let src = (await fs20.readFile(new URL(`../packages/invoice/src/${n}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/tax"/g, `from "${toSpec(TX)}"`);
+    for (const d of ["line", "invoice", "numbering", "payment"]) src = src.replace(new RegExp(`from "\\./${d}\\.ts"`, "g"), `from "${toSpec(ip[d])}"`);
     await fs20.writeFile(ip[n], src);
   }
-  const IB = `/tmp/rp-inv-barrel-${st20}.ts`;
-  await fs20.writeFile(IB, ["line","invoice","numbering","payment"].map((n) => `export * from "${ip[n]}";`).join("\n"));
-  const POP = `/tmp/rp-po-${st20}.ts`, RCP = `/tmp/rp-recv-${st20}.ts`;
-  await fs20.writeFile(POP, (await fs20.readFile(new URL("../packages/purchase/src/purchase-order.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/invoice"/g, `from "${IB}"`));
-  await fs20.writeFile(RCP, (await fs20.readFile(new URL("../packages/purchase/src/receiving.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/purchase-order\.ts"/g, `from "${POP}"`));
-  const PO = await import(POP), RC = await import(RCP);
+  const IB = `${TMP}/rp-inv-barrel-${st20}.ts`;
+  await fs20.writeFile(IB, ["line","invoice","numbering","payment"].map((n) => `export * from "${toSpec(ip[n])}";`).join("\n"));
+  const POP = `${TMP}/rp-po-${st20}.ts`, RCP = `${TMP}/rp-recv-${st20}.ts`;
+  await fs20.writeFile(POP, (await fs20.readFile(new URL("../packages/purchase/src/purchase-order.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/invoice"/g, `from "${toSpec(IB)}"`));
+  await fs20.writeFile(RCP, (await fs20.readFile(new URL("../packages/purchase/src/receiving.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/purchase-order\.ts"/g, `from "${toSpec(POP)}"`));
+  const PO = await impFile(POP), RC = await impFile(RCP);
   const lines = [{ description: "部品A", quantity: 100, unitPrice: 500 }, { description: "部品B", quantity: 50, unitPrice: 200, taxRate: 8 }];
   const po = PO.buildPurchaseOrder({ number: "PO-0001", orderDate: "2025-07-01", supplier: "仕入先", state: "ordered" }, lines);
   const receipts = [{ lineIndex: 0, quantity: 80, receivedAt: "x" }];
@@ -5136,11 +5212,11 @@ section("invoice-recurring / dunning / purchase");
 section("inventory");
 {
   const fs21 = await import("node:fs/promises"); const st21 = smokeStamp();
-  const MP = `/tmp/inv-mv-${st21}.ts`, RP = `/tmp/inv-ro-${st21}.ts`, VP = `/tmp/inv-val-${st21}.ts`;
+  const MP = `${TMP}/inv-mv-${st21}.ts`, RP = `${TMP}/inv-ro-${st21}.ts`, VP = `${TMP}/inv-val-${st21}.ts`;
   await fs21.writeFile(MP, (await fs21.readFile(new URL("../packages/inventory/src/movements.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fs21.writeFile(RP, (await fs21.readFile(new URL("../packages/inventory/src/reorder.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fs21.writeFile(VP, (await fs21.readFile(new URL("../packages/inventory/src/valuation.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/movements\.ts"/g, `from "${MP}"`));
-  const M = await import(MP), R = await import(RP), V = await import(VP);
+  await fs21.writeFile(VP, (await fs21.readFile(new URL("../packages/inventory/src/valuation.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/movements\.ts"/g, `from "${toSpec(MP)}"`));
+  const M = await impFile(MP), R = await impFile(RP), V = await impFile(VP);
   const mv = [{ type: "inbound", quantity: 100, at: "a", unitCost: 500 }, { type: "outbound", quantity: 30, at: "b" }, { type: "inbound", quantity: 50, at: "c", unitCost: 600 }, { type: "adjustment", quantity: -5, at: "d" }];
   const policy = { safetyStock: 20, dailyDemand: 5, leadTimeDays: 7 };
   const val = V.movingAverage([{ type: "inbound", quantity: 100, at: "a", unitCost: 500 }, { type: "outbound", quantity: 30, at: "b" }, { type: "inbound", quantity: 50, at: "c", unitCost: 600 }]);
@@ -5161,10 +5237,10 @@ section("inventory");
 section("accounting / inventory-lot-warehouse");
 {
   const fs22 = await import("node:fs/promises"); const st22 = smokeStamp();
-  const AJ = `/tmp/ac-j-${st22}.ts`, AE = `/tmp/ac-e-${st22}.ts`;
+  const AJ = `${TMP}/ac-j-${st22}.ts`, AE = `${TMP}/ac-e-${st22}.ts`;
   await fs22.writeFile(AJ, (await fs22.readFile(new URL("../packages/accounting/src/journal.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fs22.writeFile(AE, (await fs22.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
-  const J = await import(AJ), E = await import(AE);
+  await fs22.writeFile(AE, (await fs22.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${toSpec(AJ)}"`));
+  const J = await impFile(AJ), E = await impFile(AE);
   const sales = E.salesJournal({ date: "2025-07-01", net: 100000, tax: 10000 });
   const purchase = E.purchaseJournal({ date: "2025-07-02", net: 60000, tax: 6000 });
   const tb = J.trialBalance([sales, E.receiptJournal({ date: "2025-07-31", amount: 110000 })]);
@@ -5176,11 +5252,11 @@ section("accounting / inventory-lot-warehouse");
      J.trialBalanceBalanced([sales]) &&
      J.toFreeeDetails(sales).length === 3);
 
-  const MV = `/tmp/il-mv-${st22}.ts`, LT = `/tmp/il-lot-${st22}.ts`, WH = `/tmp/il-wh-${st22}.ts`;
+  const MV = `${TMP}/il-mv-${st22}.ts`, LT = `${TMP}/il-lot-${st22}.ts`, WH = `${TMP}/il-wh-${st22}.ts`;
   await fs22.writeFile(MV, (await fs22.readFile(new URL("../packages/inventory/src/movements.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fs22.writeFile(LT, (await fs22.readFile(new URL("../packages/inventory/src/lot.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fs22.writeFile(WH, (await fs22.readFile(new URL("../packages/inventory/src/warehouse.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/movements\.ts"/g, `from "${MV}"`));
-  const L = await import(LT), W = await import(WH);
+  await fs22.writeFile(WH, (await fs22.readFile(new URL("../packages/inventory/src/warehouse.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/movements\.ts"/g, `from "${toSpec(MV)}"`));
+  const L = await impFile(LT), W = await impFile(WH);
   const lots = [{ lotId: "L1", type: "inbound", quantity: 100, at: "2025-07-01", expiry: "2025-08-31" }, { lotId: "L2", type: "inbound", quantity: 50, at: "2025-07-02", expiry: "2025-07-20" }, { lotId: "L1", type: "outbound", quantity: 30, at: "2025-07-05" }, { lotId: "L3", type: "inbound", quantity: 80, at: "2025-07-03" }];
   const alloc = L.allocateFEFO(lots, 100);
   const wm = [{ warehouse: "東京", type: "inbound", quantity: 100, at: "a" }, { warehouse: "大阪", type: "inbound", quantity: 50, at: "b" }, { warehouse: "東京", type: "outbound", quantity: 30, at: "c" }];
@@ -5203,12 +5279,12 @@ section("accounting / inventory-lot-warehouse");
 section("accounting-closing / tax-report");
 {
   const fs23 = await import("node:fs/promises"); const st23 = smokeStamp();
-  const AJ = `/tmp/cl-j-${st23}.ts`, AE = `/tmp/cl-e-${st23}.ts`, AC = `/tmp/cl-c-${st23}.ts`, AT = `/tmp/cl-t-${st23}.ts`;
+  const AJ = `${TMP}/cl-j-${st23}.ts`, AE = `${TMP}/cl-e-${st23}.ts`, AC = `${TMP}/cl-c-${st23}.ts`, AT = `${TMP}/cl-t-${st23}.ts`;
   await fs23.writeFile(AJ, (await fs23.readFile(new URL("../packages/accounting/src/journal.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fs23.writeFile(AE, (await fs23.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
-  await fs23.writeFile(AC, (await fs23.readFile(new URL("../packages/accounting/src/closing.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`).replace(/from "\.\/entries\.ts"/g, `from "${AE}"`));
+  await fs23.writeFile(AE, (await fs23.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${toSpec(AJ)}"`));
+  await fs23.writeFile(AC, (await fs23.readFile(new URL("../packages/accounting/src/closing.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${toSpec(AJ)}"`).replace(/from "\.\/entries\.ts"/g, `from "${toSpec(AE)}"`));
   await fs23.writeFile(AT, (await fs23.readFile(new URL("../packages/accounting/src/tax-report.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  const E = await import(AE), C = await import(AC), T = await import(AT);
+  const E = await impFile(AE), C = await impFile(AC), T = await impFile(AT);
   const entries = [E.salesJournal({ date: "2025-07-05", net: 100000, tax: 10000 }), E.purchaseJournal({ date: "2025-07-10", net: 60000, tax: 6000 }), E.salesJournal({ date: "2025-08-03", net: 50000, tax: 5000 })];
   const jul = C.filterByPeriod(entries, "2025-07");
   const pl = C.profitAndLoss(jul), bs = C.balanceSheet(jul);
@@ -5228,11 +5304,11 @@ section("accounting-closing / tax-report");
 section("accounting-export");
 {
   const fs24 = await import("node:fs/promises"); const st24 = smokeStamp();
-  const AJ = `/tmp/ex-j-${st24}.ts`, AE = `/tmp/ex-e-${st24}.ts`, AX = `/tmp/ex-x-${st24}.ts`;
+  const AJ = `${TMP}/ex-j-${st24}.ts`, AE = `${TMP}/ex-e-${st24}.ts`, AX = `${TMP}/ex-x-${st24}.ts`;
   await fs24.writeFile(AJ, (await fs24.readFile(new URL("../packages/accounting/src/journal.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fs24.writeFile(AE, (await fs24.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
-  await fs24.writeFile(AX, (await fs24.readFile(new URL("../packages/accounting/src/export.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
-  const E = await import(AE), X = await import(AX);
+  await fs24.writeFile(AE, (await fs24.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${toSpec(AJ)}"`));
+  await fs24.writeFile(AX, (await fs24.readFile(new URL("../packages/accounting/src/export.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${toSpec(AJ)}"`));
+  const E = await impFile(AE), X = await impFile(AX);
   const entries = [E.salesJournal({ date: "2025-07-01", net: 100000, tax: 10000 }), E.receiptJournal({ date: "2025-07-31", amount: 110000 })];
   const rows = X.journalToRows(entries);
   const ids = { "売掛金": 100, "売上高": 200, "仮受消費税": 300, "現金預金": 400 };
@@ -5251,10 +5327,10 @@ section("accounting-export");
 section("blueprint / expense-journal");
 {
   const fs25 = await import("node:fs/promises"); const st25 = smokeStamp();
-  const FSM = `/tmp/bp-fsm-${st25}.ts`, BP = `/tmp/bp-bp-${st25}.ts`;
+  const FSM = `${TMP}/bp-fsm-${st25}.ts`, BP = `${TMP}/bp-bp-${st25}.ts`;
   await fs25.writeFile(FSM, (await fs25.readFile(new URL("../packages/fsm/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fs25.writeFile(BP, (await fs25.readFile(new URL("../packages/blueprint/src/blueprint.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/fsm"/g, `from "${FSM}"`));
-  const B = await import(BP);
+  await fs25.writeFile(BP, (await fs25.readFile(new URL("../packages/blueprint/src/blueprint.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/fsm"/g, `from "${toSpec(FSM)}"`));
+  const B = await impFile(BP);
   const bp = { initial: "draft", states: ["draft", "submitted", "approved", "rejected"], final: ["approved", "rejected"], transitions: [{ from: "draft", to: "submitted", name: "提出", requiredFields: ["amount", "purpose"], actions: ["notifyApprover"] }, { from: "submitted", to: "approved", name: "承認", condition: (r) => r.amount <= 100000, actions: ["createJournal"], allowedRoles: ["manager"] }, { from: "submitted", to: "rejected", name: "却下", allowedRoles: ["manager"] }] };
   const good = B.evaluateTransition(bp, "draft", "提出", { amount: 5000, purpose: "x" });
   const applied = B.applyTransition(bp, { state: "draft", amount: 5000, purpose: "交通費" }, "提出");
@@ -5270,10 +5346,10 @@ section("blueprint / expense-journal");
      B.isFinalState(bp, "approved") === true);
 
   // 経費 → 仕訳の自動起票
-  const AJ = `/tmp/ej-j-${st25}.ts`, AE = `/tmp/ej-e-${st25}.ts`;
+  const AJ = `${TMP}/ej-j-${st25}.ts`, AE = `${TMP}/ej-e-${st25}.ts`;
   await fs25.writeFile(AJ, (await fs25.readFile(new URL("../packages/accounting/src/journal.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fs25.writeFile(AE, (await fs25.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
-  const J = await import(AJ), E = await import(AE);
+  await fs25.writeFile(AE, (await fs25.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${toSpec(AJ)}"`));
+  const J = await impFile(AJ), E = await impFile(AE);
   const e1 = E.expenseJournal({ date: "2025-07-10", net: 10000, tax: 1000, account: "旅費交通費" });
   ok("expense-journal(経費10000/仮払税1000/未払金11000貸借一致/現金払い/税0は2明細/仮払金)", e1.lines[0].account === "旅費交通費" &&
      e1.lines[0].debit === 10000 &&
@@ -5290,18 +5366,18 @@ section("blueprint / expense-journal");
 section("blueprint-workflow integration");
 {
   const fs26 = await import("node:fs/promises"); const st26 = smokeStamp();
-  const FSM = `/tmp/iw-fsm-${st26}.ts`, BP = `/tmp/iw-bp-${st26}.ts`, CORE = `/tmp/iw-core-${st26}.ts`;
+  const FSM = `${TMP}/iw-fsm-${st26}.ts`, BP = `${TMP}/iw-bp-${st26}.ts`, CORE = `${TMP}/iw-core-${st26}.ts`;
   await fs26.writeFile(FSM, (await fs26.readFile(new URL("../packages/fsm/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fs26.writeFile(BP, (await fs26.readFile(new URL("../packages/blueprint/src/blueprint.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/fsm"/g, `from "${FSM}"`));
+  await fs26.writeFile(BP, (await fs26.readFile(new URL("../packages/blueprint/src/blueprint.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/fsm"/g, `from "${toSpec(FSM)}"`));
   await fs26.writeFile(CORE, `export const ok=(value)=>({ok:true,value});export const err=(error)=>({ok:false,error});export class AppError extends Error{constructor(code,message){super(message);this.code=code;}static from(e){return e instanceof AppError?e:new AppError("INTERNAL",e?.message??String(e));}}export const ErrorCode={VALIDATION:"VALIDATION",INTERNAL:"INTERNAL",NOT_FOUND:"NOT_FOUND",FORBIDDEN:"FORBIDDEN"};`);
   const wfFiles = (await fs26.readdir(new URL("../packages/workflow/src/", import.meta.url))).filter((f) => f.endsWith(".ts") && !f.includes(".test."));
-  const wfPath = {}; for (const f of wfFiles) wfPath[f.replace(".ts", "")] = `/tmp/iw-wf-${f.replace(".ts", "")}-${st26}.ts`;
+  const wfPath = {}; for (const f of wfFiles) wfPath[f.replace(".ts", "")] = `${TMP}/iw-wf-${f.replace(".ts", "")}-${st26}.ts`;
   for (const f of wfFiles) {
-    let src = (await fs26.readFile(new URL(`../packages/workflow/src/${f}`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/core"/g, `from "${CORE}"`);
-    for (const dep of Object.keys(wfPath)) src = src.replace(new RegExp(`from "\\./${dep}\\.ts"`, "g"), `from "${wfPath[dep]}"`);
+    let src = (await fs26.readFile(new URL(`../packages/workflow/src/${f}`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/core"/g, `from "${toSpec(CORE)}"`);
+    for (const dep of Object.keys(wfPath)) src = src.replace(new RegExp(`from "\\./${dep}\\.ts"`, "g"), `from "${toSpec(wfPath[dep])}"`);
     await fs26.writeFile(wfPath[f.replace(".ts", "")], src);
   }
-  const B = await import(BP), WF = await import(wfPath["index"]);
+  const B = await impFile(BP), WF = await impFile(wfPath["index"]);
   const TIERS = [{ under: 30000, steps: [{ name: "課長承認", approverRole: "manager" }] }, { under: 100000, steps: [{ name: "課長承認", approverRole: "manager" }, { name: "部長承認", approverRole: "director" }] }, { steps: [{ name: "課長承認", approverRole: "manager" }, { name: "部長承認", approverRole: "director" }, { name: "役員承認", approverRole: "executive" }] }];
   const bp = { initial: "draft", states: ["draft", "submitted", "approved", "rejected"], final: ["approved", "rejected"], transitions: [{ from: "draft", to: "submitted", name: "提出", requiredFields: ["amount", "purpose"], actions: ["startApproval"] }, { from: "submitted", to: "approved", name: "承認完了", condition: (e) => e.approval?.status === "approved", actions: ["postJournal"] }] };
   const submit = (ex) => {
@@ -5337,11 +5413,11 @@ section("blueprint-workflow integration");
 section("audit / report-integration");
 {
   const fs27 = await import("node:fs/promises"); const st27 = smokeStamp();
-  const AEV = `/tmp/au-ev-${st27}.ts`, ALG = `/tmp/au-lg-${st27}.ts`, AQ = `/tmp/au-q-${st27}.ts`;
+  const AEV = `${TMP}/au-ev-${st27}.ts`, ALG = `${TMP}/au-lg-${st27}.ts`, AQ = `${TMP}/au-q-${st27}.ts`;
   await fs27.writeFile(AEV, (await fs27.readFile(new URL("../packages/audit/src/event.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fs27.writeFile(ALG, (await fs27.readFile(new URL("../packages/audit/src/log.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/event\.ts"/g, `from "${AEV}"`));
-  await fs27.writeFile(AQ, (await fs27.readFile(new URL("../packages/audit/src/query.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/log\.ts"/g, `from "${ALG}"`));
-  const L = await import(ALG), Q = await import(AQ), EV = await import(AEV);
+  await fs27.writeFile(ALG, (await fs27.readFile(new URL("../packages/audit/src/log.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/event\.ts"/g, `from "${toSpec(AEV)}"`));
+  await fs27.writeFile(AQ, (await fs27.readFile(new URL("../packages/audit/src/query.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/log\.ts"/g, `from "${toSpec(ALG)}"`));
+  const L = await impFile(ALG), Q = await impFile(AQ), EV = await impFile(AEV);
   let log = [];
   log = L.appendEvent(log, { at: "2025-07-01T10:00:00Z", actor: "u1", action: "expense.create", target: "expense:1" });
   log = L.appendEvent(log, { at: "2025-07-01T11:00:00Z", actor: "u1", action: "expense.submit", target: "expense:1", before: { status: "draft" }, after: { status: "submitted" } });
@@ -5357,9 +5433,9 @@ section("audit / report-integration");
      Q.filterByAction(log, "expense").length === 3 &&
      EV.diffChanges({ a: 1 }, { a: 2 }).length === 1);
 
-  const RP = `/tmp/rep-${st27}.ts`;
+  const RP = `${TMP}/rep-${st27}.ts`;
   await fs27.writeFile(RP, (await fs27.readFile(new URL("../packages/report/src/reports.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  const R = await import(RP);
+  const R = await impFile(RP);
   const tb = R.trialBalanceSheet([{ account: "売掛金", debit: 110000, credit: 110000, balance: 0 }, { account: "売上高", debit: 0, credit: 100000, balance: -100000 }]);
   const tax = R.taxReportSheet({ byRate: [{ rate: 10, salesNet: 100000, outputTax: 10000, purchaseNet: 60000, inputTax: 6000 }, { rate: 8, salesNet: 20000, outputTax: 1600, purchaseNet: 0, inputTax: 0 }], outputTax: 11600, inputTax: 6000, netPayable: 5600 });
   ok("report-integration(試算表合計/売掛年齢6区分/消費税納付5600/在庫評価合計/CSV/空シート除外)", tb.rows[2].借方 === 110000 &&
@@ -5375,11 +5451,11 @@ section("audit / report-integration");
 section("audit-wired expense trail");
 {
   const fs28 = await import("node:fs/promises"); const st28 = smokeStamp();
-  const AEV = `/tmp/aw-ev-${st28}.ts`, ALG = `/tmp/aw-lg-${st28}.ts`, AQ = `/tmp/aw-q-${st28}.ts`;
+  const AEV = `${TMP}/aw-ev-${st28}.ts`, ALG = `${TMP}/aw-lg-${st28}.ts`, AQ = `${TMP}/aw-q-${st28}.ts`;
   await fs28.writeFile(AEV, (await fs28.readFile(new URL("../packages/audit/src/event.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fs28.writeFile(ALG, (await fs28.readFile(new URL("../packages/audit/src/log.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/event\.ts"/g, `from "${AEV}"`));
-  await fs28.writeFile(AQ, (await fs28.readFile(new URL("../packages/audit/src/query.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/log\.ts"/g, `from "${ALG}"`));
-  const L = await import(ALG), Q = await import(AQ);
+  await fs28.writeFile(ALG, (await fs28.readFile(new URL("../packages/audit/src/log.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/event\.ts"/g, `from "${toSpec(AEV)}"`));
+  await fs28.writeFile(AQ, (await fs28.readFile(new URL("../packages/audit/src/query.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/log\.ts"/g, `from "${toSpec(ALG)}"`));
+  const L = await impFile(ALG), Q = await impFile(AQ);
   const record = (log, input) => L.appendEvent(log, { at: new Date().toISOString(), ...input });
   let log = [];
   log = record(log, { actor: "u1", action: "expense.create", target: "expense:1", after: { state: "draft" } });
@@ -5400,13 +5476,13 @@ section("audit-wired expense trail");
 section("accounting-payroll / department / sync");
 {
   const fs29 = await import("node:fs/promises"); const st29 = smokeStamp();
-  const AJ = `/tmp/ps-j-${st29}.ts`, AE = `/tmp/ps-e-${st29}.ts`, AC = `/tmp/ps-c-${st29}.ts`, AX = `/tmp/ps-x-${st29}.ts`, AS = `/tmp/ps-s-${st29}.ts`;
+  const AJ = `${TMP}/ps-j-${st29}.ts`, AE = `${TMP}/ps-e-${st29}.ts`, AC = `${TMP}/ps-c-${st29}.ts`, AX = `${TMP}/ps-x-${st29}.ts`, AS = `${TMP}/ps-s-${st29}.ts`;
   await fs29.writeFile(AJ, (await fs29.readFile(new URL("../packages/accounting/src/journal.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fs29.writeFile(AE, (await fs29.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
-  await fs29.writeFile(AC, (await fs29.readFile(new URL("../packages/accounting/src/closing.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`).replace(/from "\.\/entries\.ts"/g, `from "${AE}"`));
-  await fs29.writeFile(AX, (await fs29.readFile(new URL("../packages/accounting/src/export.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
-  await fs29.writeFile(AS, (await fs29.readFile(new URL("../packages/accounting/src/sync.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`).replace(/from "\.\/export\.ts"/g, `from "${AX}"`));
-  const J = await import(AJ), E = await import(AE), C = await import(AC), S = await import(AS);
+  await fs29.writeFile(AE, (await fs29.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${toSpec(AJ)}"`));
+  await fs29.writeFile(AC, (await fs29.readFile(new URL("../packages/accounting/src/closing.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${toSpec(AJ)}"`).replace(/from "\.\/entries\.ts"/g, `from "${toSpec(AE)}"`));
+  await fs29.writeFile(AX, (await fs29.readFile(new URL("../packages/accounting/src/export.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${toSpec(AJ)}"`));
+  await fs29.writeFile(AS, (await fs29.readFile(new URL("../packages/accounting/src/sync.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${toSpec(AJ)}"`).replace(/from "\.\/export\.ts"/g, `from "${toSpec(AX)}"`));
+  const J = await impFile(AJ), E = await impFile(AE), C = await impFile(AC), S = await impFile(AS);
   const pay = E.payrollJournal({ date: "2025-07-25", gross: 300000, withholdingTax: 10000, socialInsurance: 45000 });
   const entriesDep = [{ date: "2025-07-01", description: "売上", lines: [{ account: "売上高", debit: 0, credit: 100000, department: "営業部" }] }, { date: "2025-07-02", description: "経費", lines: [{ account: "旅費交通費", debit: 20000, credit: 0, department: "営業部" }] }];
   const ids = { "売掛金": 100, "売上高": 200, "仮受消費税": 300, "現金預金": 400 };
@@ -5429,31 +5505,31 @@ section("payslip-html / sync-job");
 {
   const fs30 = await import("node:fs/promises"); const st30 = smokeStamp();
   // 給与明細HTML(payslip 型 shim)
-  const PS = `/tmp/pj-ps-${st30}.ts`, RN = `/tmp/pj-rn-${st30}.ts`;
+  const PS = `${TMP}/pj-ps-${st30}.ts`, RN = `${TMP}/pj-rn-${st30}.ts`;
   await fs30.writeFile(PS, "export interface PayslipItem { name: string; amount: number; } export interface Payslip { base: number; premiums: number; allowances: PayslipItem[]; grossPay: number; deductions: PayslipItem[]; totalDeductions: number; netPay: number; }");
-  await fs30.writeFile(RN, (await fs30.readFile(new URL("../packages/payroll/src/render.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/payslip\.ts"/g, `from "${PS}"`));
-  const R = await import(RN);
+  await fs30.writeFile(RN, (await fs30.readFile(new URL("../packages/payroll/src/render.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/payslip\.ts"/g, `from "${toSpec(PS)}"`));
+  const R = await impFile(RN);
   const payslip = { base: 250000, premiums: 30000, allowances: [{ name: "通勤手当", amount: 15000 }], grossPay: 295000, deductions: [{ name: "健康保険料", amount: 14000 }], totalDeductions: 14000, netPay: 281000 };
   const html = R.renderPayslipHtml(payslip, { employeeName: "山田太郎", period: "2025年7月分" });
 
   // 送信ジョブ(cron runner + accounting sync 実結線)
   const cronFiles = (await fs30.readdir(new URL("../packages/cron/src/", import.meta.url))).filter((f) => f.endsWith(".ts") && !f.includes(".test.") && f !== "index.ts");
-  const cronPath = {}; for (const f of cronFiles) cronPath[f.replace(".ts", "")] = `/tmp/pj-cron-${f.replace(".ts", "")}-${st30}.ts`;
-  const CORE = `/tmp/pj-core-${st30}.ts`;
+  const cronPath = {}; for (const f of cronFiles) cronPath[f.replace(".ts", "")] = `${TMP}/pj-cron-${f.replace(".ts", "")}-${st30}.ts`;
+  const CORE = `${TMP}/pj-core-${st30}.ts`;
   await fs30.writeFile(CORE, `export const ok=(value)=>({ok:true,value});export const err=(error)=>({ok:false,error});export class AppError extends Error{constructor(code,message){super(message);this.code=code;}static from(e){return e instanceof AppError?e:new AppError("INTERNAL",e?.message??String(e));}}export const ErrorCode={VALIDATION:"VALIDATION",INTERNAL:"INTERNAL"};`);
   for (const f of cronFiles) {
-    let src = (await fs30.readFile(new URL(`../packages/cron/src/${f}`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/core"/g, `from "${CORE}"`);
-    for (const dep of Object.keys(cronPath)) src = src.replace(new RegExp(`from "\\./${dep}\\.ts"`, "g"), `from "${cronPath[dep]}"`);
+    let src = (await fs30.readFile(new URL(`../packages/cron/src/${f}`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/core"/g, `from "${toSpec(CORE)}"`);
+    for (const dep of Object.keys(cronPath)) src = src.replace(new RegExp(`from "\\./${dep}\\.ts"`, "g"), `from "${toSpec(cronPath[dep])}"`);
     await fs30.writeFile(cronPath[f.replace(".ts", "")], src);
   }
-  const AJ = `/tmp/pj-j-${st30}.ts`, AE = `/tmp/pj-e-${st30}.ts`, AX = `/tmp/pj-x-${st30}.ts`, AS = `/tmp/pj-s-${st30}.ts`;
+  const AJ = `${TMP}/pj-j-${st30}.ts`, AE = `${TMP}/pj-e-${st30}.ts`, AX = `${TMP}/pj-x-${st30}.ts`, AS = `${TMP}/pj-s-${st30}.ts`;
   await fs30.writeFile(AJ, (await fs30.readFile(new URL("../packages/accounting/src/journal.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fs30.writeFile(AE, (await fs30.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
-  await fs30.writeFile(AX, (await fs30.readFile(new URL("../packages/accounting/src/export.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`));
-  await fs30.writeFile(AS, (await fs30.readFile(new URL("../packages/accounting/src/sync.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${AJ}"`).replace(/from "\.\/export\.ts"/g, `from "${AX}"`));
-  const SJ = `/tmp/pj-syncjob-${st30}.ts`;
-  await fs30.writeFile(SJ, (await fs30.readFile(new URL("../demos/showcase/src/examples/accounting-sync-sync-job.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/cron"/g, `from "${cronPath["runner"]}"`).replace(/from "@platform\/accounting"/g, `from "${AS}"`));
-  const E = await import(AE), JOB = await import(SJ);
+  await fs30.writeFile(AE, (await fs30.readFile(new URL("../packages/accounting/src/entries.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${toSpec(AJ)}"`));
+  await fs30.writeFile(AX, (await fs30.readFile(new URL("../packages/accounting/src/export.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${toSpec(AJ)}"`));
+  await fs30.writeFile(AS, (await fs30.readFile(new URL("../packages/accounting/src/sync.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/journal\.ts"/g, `from "${toSpec(AJ)}"`).replace(/from "\.\/export\.ts"/g, `from "${toSpec(AX)}"`));
+  const SJ = `${TMP}/pj-syncjob-${st30}.ts`;
+  await fs30.writeFile(SJ, (await fs30.readFile(new URL("../demos/showcase/src/examples/accounting-sync-sync-job.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/cron"/g, `from "${toSpec(cronPath["runner"])}"`).replace(/from "@platform\/accounting"/g, `from "${toSpec(AS)}"`));
+  const E = await impFile(AE), JOB = await impFile(SJ);
   const ids = { "売掛金": 100, "売上高": 200, "仮受消費税": 300, "現金預金": 400 };
   const entries = [E.salesJournal({ date: "2025-07-01", net: 100000, tax: 10000 }), E.receiptJournal({ date: "2025-07-31", amount: 110000 })];
   let sentKeys = new Set(); const store = { loadSent: async () => sentKeys, markSent: async (ks) => { ks.forEach((k) => sentKeys.add(k)); } };
@@ -5474,11 +5550,13 @@ section("payslip-html / sync-job");
 section("attendance-import / payslip-batch");
 {
   const fs31 = await import("node:fs/promises"); const st31 = smokeStamp();
-  const CSV = `/tmp/ab-csv-${st31}.ts`, ATT = `/tmp/ab-att-${st31}.ts`, IMP = `/tmp/ab-imp-${st31}.ts`;
+  const CSV = `${TMP}/ab-csv-${st31}.ts`, ATT = `${TMP}/ab-att-${st31}.ts`, IMP = `${TMP}/ab-imp-${st31}.ts`;
   await fs31.writeFile(CSV, (await fs31.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fs31.writeFile(ATT, "export function hhmmToMinutes(hhmm) { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; } export function workedMinutes(inMin, outMin, breakMin = 0) { return Math.max(0, outMin - inMin - breakMin); }");
-  await fs31.writeFile(IMP, (await fs31.readFile(new URL("../apps/internal-app/src/lib/attendance-import.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/csv"/g, `from "${CSV}"`).replace(/from "\.\/attendance\.ts"/g, `from "${ATT}"`));
-  const I = await import(IMP);
+  // **本物の署名に合わせる。** workedMinutes はレコードを 1 つ取る
+  // (以前は 3 引数のスタブで、実装と食い違ったまま検査していた)
+  await fs31.writeFile(ATT, "export function hhmmToMinutes(hhmm) { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; } export function workedMinutes(record) { const start = hhmmToMinutes(record.clockIn); let end = hhmmToMinutes(record.clockOut); if (Number.isNaN(start) || Number.isNaN(end)) return 0; if (end < start) end += 24 * 60; return Math.max(0, end - start - (record.breakMinutes ?? 60)); }");
+  await fs31.writeFile(IMP, (await fs31.readFile(new URL("../apps/internal-app/src/lib/attendance-import.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/csv"/g, `from "${toSpec(CSV)}"`).replace(/from "\.\/attendance\.ts"/g, `from "${toSpec(ATT)}"`));
+  const I = await impFile(IMP);
   const goodCsv = "社員番号,日付,出勤,退勤,休憩\nE001,2025-07-01,09:00,18:00,60\nE001,2025-07-02,09:00,17:30,60\nE002,2025-07-01,10:00,19:00,45";
   const r = I.parseAttendanceCsv(goodCsv);
   const badCsv = "社員番号,日付,出勤,退勤,休憩\n,2025-07-01,09:00,18:00,60\nE001,2025/07/01,09:00,18:00,60\nE002,2025-07-01,25:00,18:00,60\nE003,2025-07-01,18:00,09:00,60";
@@ -5492,11 +5570,11 @@ section("attendance-import / payslip-batch");
      sum.find((s) => s.employeeId === "E001").totalMinutes === 930);
 
   // 給与明細一括PDF(payroll/pdf shim)
-  const PR = `/tmp/ab-pr-${st31}.ts`, PD = `/tmp/ab-pd-${st31}.ts`, BT = `/tmp/ab-bt-${st31}.ts`;
+  const PR = `${TMP}/ab-pr-${st31}.ts`, PD = `${TMP}/ab-pd-${st31}.ts`, BT = `${TMP}/ab-bt-${st31}.ts`;
   await fs31.writeFile(PR, "export function buildPayslip(b, o = {}) { const allowances = o.allowances ?? []; const deductions = o.deductions ?? []; const premiums = b.overtimePremium + b.over60Premium + b.nightPremium + b.holidayPay; const grossPay = b.base + premiums + allowances.reduce((s, a) => s + a.amount, 0); const totalDeductions = deductions.reduce((s, d) => s + d.amount, 0); return { base: b.base, premiums, allowances, grossPay, deductions, totalDeductions, netPay: grossPay - totalDeductions }; } export function renderPayslipHtml(p, o = {}) { return '<html>' + (o.employeeName ?? '') + ' ' + p.grossPay + '</html>'; }");
   await fs31.writeFile(PD, "export const DEFAULT_INVOICE_PDF_OPTIONS = { format: 'A4' }; export function createPdf(renderer) { return { async fromHtml(html, options) { return renderer.render(html, options); } }; }");
-  await fs31.writeFile(BT, (await fs31.readFile(new URL("../demos/showcase/src/examples/payslip-pdf-batch.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/payroll"/g, `from "${PR}"`).replace(/from "@platform\/pdf"/g, `from "${PD}"`));
-  const B = await import(BT);
+  await fs31.writeFile(BT, (await fs31.readFile(new URL("../demos/showcase/src/examples/payslip-pdf-batch.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/payroll"/g, `from "${toSpec(PR)}"`).replace(/from "@platform\/pdf"/g, `from "${toSpec(PD)}"`));
+  const B = await impFile(BT);
   const enc = new TextEncoder();
   const jobs = [{ employeeId: "E001", employeeName: "山田", breakdown: { base: 250000, overtimePremium: 30000, over60Premium: 0, nightPremium: 0, holidayPay: 0 } }, { employeeId: "E002", employeeName: "佐藤", breakdown: { base: 200000, overtimePremium: 0, over60Premium: 0, nightPremium: 0, holidayPay: 0 } }];
   const okR = await B.generatePayslipBatch(jobs, { render: async (h) => ({ ok: true, value: enc.encode(h) }) });
@@ -5516,14 +5594,14 @@ section("platform-authz / notify-channels / readiness");
 {
   const fs32 = await import("node:fs/promises"); const st32 = smokeStamp();
   // authz: 実 auth rbac+hierarchy + 実 ui nav
-  const RB = `/tmp/az-rb-${st32}.ts`, HI = `/tmp/az-hi-${st32}.ts`, AU = `/tmp/az-au-${st32}.ts`, NV = `/tmp/az-nv-${st32}.ts`, AZ = `/tmp/az-az-${st32}.ts`;
+  const RB = `${TMP}/az-rb-${st32}.ts`, HI = `${TMP}/az-hi-${st32}.ts`, AU = `${TMP}/az-au-${st32}.ts`, NV = `${TMP}/az-nv-${st32}.ts`, AZ = `${TMP}/az-az-${st32}.ts`;
 section("auth");
   await fs32.writeFile(RB, (await fs32.readFile(new URL("../packages/auth/src/rbac.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fs32.writeFile(HI, (await fs32.readFile(new URL("../packages/auth/src/hierarchy.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/rbac\.ts"/g, `from "${RB}"`));
-  await fs32.writeFile(AU, `export * from "${RB}"; export * from "${HI}";`);
+  await fs32.writeFile(HI, (await fs32.readFile(new URL("../packages/auth/src/hierarchy.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "\.\/rbac\.ts"/g, `from "${toSpec(RB)}"`));
+  await fs32.writeFile(AU, `export * from "${toSpec(RB)}"; export * from "${toSpec(HI)}";`);
   await fs32.writeFile(NV, (await fs32.readFile(new URL("../packages/ui/src/lib/nav.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fs32.writeFile(AZ, (await fs32.readFile(new URL("../apps/internal-app/src/lib/platform-authz.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/auth"/g, `from "${AU}"`).replace(/from "@platform\/ui"/g, `from "${NV}"`));
-  const A = await import(AZ);
+  await fs32.writeFile(AZ, (await fs32.readFile(new URL("../apps/internal-app/src/lib/platform-authz.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/auth"/g, `from "${toSpec(AU)}"`).replace(/from "@platform\/ui"/g, `from "${toSpec(NV)}"`));
+  const A = await impFile(AZ);
   const salesNav = A.navForRoles(["sales"]).map((n) => n.href);
   ok("platform-authz(sales見積OK会計NG/accountant会計OK/admin全許可/兼務/nav画面制御)", A.userCan(["sales"], "quote:create") === true &&
      A.userCan(["sales"], "accounting:post") === false &&
@@ -5536,11 +5614,11 @@ section("auth");
      A.navForRoles(["admin"]).length === 9);
 
   // notify channels: createNotifier 忠実再現 + アダプタ
-  const NT = `/tmp/az-nt-${st32}.ts`, ML = `/tmp/az-ml-${st32}.ts`, CH = `/tmp/az-ch-${st32}.ts`;
+  const NT = `${TMP}/az-nt-${st32}.ts`, ML = `${TMP}/az-ml-${st32}.ts`, CH = `${TMP}/az-ch-${st32}.ts`;
   await fs32.writeFile(NT, "export function createNotifier(channels) { return { async notify(message) { try { await Promise.all(channels.map((c) => c.send(message))); return { ok: true }; } catch (e) { return { ok: false, error: e }; } } }; }");
   await fs32.writeFile(ML, "export {};");
-  await fs32.writeFile(CH, (await fs32.readFile(new URL("../demos/showcase/src/examples/notify-channels-channels.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/notify"/g, `from "${NT}"`).replace(/from "@platform\/mail"/g, `from "${ML}"`));
-  const N = await import(NT), C = await import(CH);
+  await fs32.writeFile(CH, (await fs32.readFile(new URL("../demos/showcase/src/examples/notify-channels-channels.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace(/from "@platform\/notify"/g, `from "${toSpec(NT)}"`).replace(/from "@platform\/mail"/g, `from "${toSpec(ML)}"`));
+  const N = await impFile(NT), C = await impFile(CH);
   const mails = []; const mailer = { sendMail: async (m) => { mails.push(m); return { ok: true }; } };
   const slacks = []; const posts = []; 
   const mc = C.mailChannel(mailer, "team@x.com", { subjectPrefix: "承認依頼" });
@@ -5556,9 +5634,9 @@ section("auth");
      failRes.ok === false);
 
   // readiness
-  const RD = `/tmp/az-rd-${st32}.ts`;
+  const RD = `${TMP}/az-rd-${st32}.ts`;
   await fs32.writeFile(RD, (await fs32.readFile(new URL("../apps/internal-app/src/lib/readiness.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  const R = await import(RD);
+  const R = await impFile(RD);
   const allOk = await R.checkReadiness([{ name: "db", probe: async () => ({ ok: true }) }, { name: "mig", probe: async () => ({ ok: true }) }]);
   const dbDown = await R.checkReadiness([{ name: "db", probe: async () => ({ ok: false, detail: "refused" }) }]);
   const degraded = await R.checkReadiness([{ name: "db", probe: async () => ({ ok: true }) }, { name: "slack", critical: false, probe: async () => ({ ok: false }) }]);
@@ -5580,29 +5658,29 @@ section("auth");
   const fscb = await import("node:fs/promises");
   const oscb = await import("node:os");
   const dcb = oscb.tmpdir();
-  const stcb = Date.now();
+  const stcb = smokeStamp();
   const rd = async (rel) => (await fscb.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const ATTC = `${dcb}/cb-attc-${stcb}.ts`, MSG = `${dcb}/cb-msg-${stcb}.ts`, ROOM = `${dcb}/cb-room-${stcb}.ts`, CHAT = `${dcb}/cb-chat-${stcb}.ts`;
   const ATTB = `${dcb}/cb-attb-${stcb}.ts`, POST = `${dcb}/cb-post-${stcb}.ts`, REAC = `${dcb}/cb-reac-${stcb}.ts`, TL = `${dcb}/cb-tl-${stcb}.ts`, BOARD = `${dcb}/cb-board-${stcb}.ts`;
   const RT = `${dcb}/cb-rt-${stcb}.ts`, RTB = `${dcb}/cb-rtb-${stcb}.ts`;
   const SESS = `${dcb}/cb-sess-${stcb}.ts`, VIEW = `${dcb}/cb-view-${stcb}.ts`, BV = `${dcb}/cb-bv-${stcb}.ts`;
   await fscb.writeFile(ATTC, await rd("../packages/chat/src/attachment.ts"));
-  await fscb.writeFile(MSG, (await rd("../packages/chat/src/message.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${ATTC}"`));
-  await fscb.writeFile(ROOM, (await rd("../packages/chat/src/room.ts")).replace(/from "\.\/message\.ts"/g, `from "${MSG}"`));
-  await fscb.writeFile(CHAT, `export * from "${ATTC}"; export * from "${MSG}"; export * from "${ROOM}";`);
+  await fscb.writeFile(MSG, (await rd("../packages/chat/src/message.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${toSpec(ATTC)}"`));
+  await fscb.writeFile(ROOM, (await rd("../packages/chat/src/room.ts")).replace(/from "\.\/message\.ts"/g, `from "${toSpec(MSG)}"`));
+  await fscb.writeFile(CHAT, `export * from "${toSpec(ATTC)}"; export * from "${toSpec(MSG)}"; export * from "${toSpec(ROOM)}";`);
   await fscb.writeFile(ATTB, await rd("../packages/board/src/attachment.ts"));
-  await fscb.writeFile(POST, (await rd("../packages/board/src/post.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${ATTB}"`));
+  await fscb.writeFile(POST, (await rd("../packages/board/src/post.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${toSpec(ATTB)}"`));
   await fscb.writeFile(REAC, await rd("../packages/board/src/reaction.ts"));
-  await fscb.writeFile(TL, (await rd("../packages/board/src/thread-list.ts")).replace(/from "\.\/post\.ts"/g, `from "${POST}"`));
-  await fscb.writeFile(BOARD, `export * from "${ATTB}"; export * from "${POST}"; export * from "${REAC}"; export * from "${TL}";`);
+  await fscb.writeFile(TL, (await rd("../packages/board/src/thread-list.ts")).replace(/from "\.\/post\.ts"/g, `from "${toSpec(POST)}"`));
+  await fscb.writeFile(BOARD, `export * from "${toSpec(ATTB)}"; export * from "${toSpec(POST)}"; export * from "${toSpec(REAC)}"; export * from "${toSpec(TL)}";`);
   await fscb.writeFile(RTB, await rd("../packages/realtime/src/broadcast.ts"));
-  await fscb.writeFile(RT, `export * from "${RTB}";`);
+  await fscb.writeFile(RT, `export * from "${toSpec(RTB)}";`);
   await fscb.writeFile(SESS, (await rd("../demos/showcase/src/examples/chat-room-room-session.ts"))
-    .replace(/from "@platform\/chat"/g, `from "${CHAT}"`)
-    .replace(/from "@platform\/realtime"/g, `from "${RT}"`));
-  await fscb.writeFile(VIEW, (await rd("../demos/showcase/src/examples/chat-room-view.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
-  await fscb.writeFile(BV, (await rd("../demos/showcase/src/examples/board-threads-board-view.ts")).replace(/from "@platform\/board"/g, `from "${BOARD}"`));
-  const CH = await import(CHAT);
+    .replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`)
+    .replace(/from "@platform\/realtime"/g, `from "${toSpec(RT)}"`));
+  await fscb.writeFile(VIEW, (await rd("../demos/showcase/src/examples/chat-room-view.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`));
+  await fscb.writeFile(BV, (await rd("../demos/showcase/src/examples/board-threads-board-view.ts")).replace(/from "@platform\/board"/g, `from "${toSpec(BOARD)}"`));
+  const CH = await impFile(CHAT);
   const M2 = (id, senderId, at, text = "x") => ({ id, roomId: "r1", senderId, text, at });
   const cm = CH.createMessage({ id: "m", roomId: "r", senderId: "u", text: "  hi @bob  ", at: "2025-07-01T10:00:00Z" });
   const em = cm.ok ? CH.editMessage(cm.message, "z", "2025-07-01T11:00:00Z") : { ok: false };
@@ -5623,7 +5701,7 @@ section("auth");
     CH.unreadCount(roomMsgs, CH.markRead({ userId:"u2" }, "2025-07-03T00:00:00Z"))===0 &&
     CH.firstUnread(roomMsgs, { userId:"u2" }).id==="c" &&
     CH.sortRoomsByActivity([CH.createRoom({ id:"r1", name:"A", kind:"group", memberIds:[], createdAt:"2025-01-01T00:00:00Z" }),CH.createRoom({ id:"r2", name:"B", kind:"group", memberIds:[], createdAt:"2025-01-02T00:00:00Z" })], { r1:roomMsgs, r2:[] })[0].id==="r1");
-  const BD = await import(BOARD);
+  const BD = await impFile(BOARD);
   const bposts = [{ id:"p1", authorId:"u1", body:"本文", createdAt:"2025-07-01T10:00:00Z" },{ id:"p2", authorId:"u2", body:"返信", createdAt:"2025-07-01T12:00:00Z", replyTo:"p1" }];
   const bt = BD.createThread({ id:"t", title:"  お知らせ  ", authorId:"u", tags:["総務"] });
   ok("board.post(検証/trim/施錠返信不可/本文返信分離/mention)",
@@ -5649,9 +5727,9 @@ section("auth");
     BD.searchThreads([bsum], { t:bposts }, "返信").length===1);
 
   section("demos: chat-room(realtime配信) / board-threads");
-  const B2 = await import(RT);
-  const S2 = await import(SESS);
-  const V2 = await import(VIEW);
+  const B2 = await impFile(RT);
+  const S2 = await impFile(SESS);
+  const V2 = await impFile(VIEW);
   const memoryPubsub = () => { const h = new Map(); return {
     async publish(ch, msg){ (h.get(ch)||[]).forEach(fn=>fn(msg)); },
     async subscribe(ch, fn){ const a=h.get(ch)||[]; a.push(fn); h.set(ch, a); },
@@ -5670,7 +5748,7 @@ section("auth");
     sr.ok===true && rA.length===2 && rB.length===1 && rB[0].id==="m1" &&
     badr.ok===false &&
     grp.length===1 && grp[0].messages[0].own===true && grp[0].messages[1].own===false && grp[0].messages[1].authorName==="田中" && grp[0].messages[0].timestamp==="10:00");
-  const BV2 = await import(BV);
+  const BV2 = await impFile(BV);
   const pv = BV2.toPostView({ id:"p1", authorId:"u2", body:"質問", createdAt:"2025-07-01T10:00:00Z" }, [{ postId:"p1", userId:"u1", kind:"like" },{ postId:"p1", userId:"u3", kind:"like" }], "u1", (id)=>id==="u2"?"佐藤":id);
   const tl = BV2.toThreadList([{ id:"t1", title:"雑談", authorId:"u1", createdAt:"2025-07-01T00:00:00Z" },{ id:"t2", title:"重要", authorId:"u1", createdAt:"2025-06-01T00:00:00Z", pinned:true }], { t1:[{ id:"a", authorId:"u2", body:"x", createdAt:"2025-07-05T00:00:00Z", replyTo:"p0" }], t2:[] });
   ok("board-threads(PostView集計+自分状態/ThreadListピン優先+返信数)",
@@ -5687,27 +5765,27 @@ section("auth");
   const fsg = await import("node:fs/promises");
   const osg = await import("node:os");
   const dg = osg.tmpdir();
-  const stg = Date.now();
+  const stg = smokeStamp();
   const rdg = async (rel) => (await fsg.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const ATC = `${dg}/g-attc-${stg}.ts`, MSG2 = `${dg}/g-msg-${stg}.ts`, ROOM2 = `${dg}/g-room-${stg}.ts`, CHAT2 = `${dg}/g-chat-${stg}.ts`;
   const ATB = `${dg}/g-attb-${stg}.ts`, POST2 = `${dg}/g-post-${stg}.ts`;
   const RTB2 = `${dg}/g-rtb-${stg}.ts`, RT2 = `${dg}/g-rt-${stg}.ts`, NTPL = `${dg}/g-ntpl-${stg}.ts`, NT2 = `${dg}/g-nt-${stg}.ts`;
   const GW = `${dg}/g-gw-${stg}.ts`, CN = `${dg}/g-cn-${stg}.ts`;
   await fsg.writeFile(ATC, await rdg("../packages/chat/src/attachment.ts"));
-  await fsg.writeFile(MSG2, (await rdg("../packages/chat/src/message.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${ATC}"`));
-  await fsg.writeFile(ROOM2, (await rdg("../packages/chat/src/room.ts")).replace(/from "\.\/message\.ts"/g, `from "${MSG2}"`));
-  await fsg.writeFile(CHAT2, `export * from "${ATC}"; export * from "${MSG2}"; export * from "${ROOM2}";`);
+  await fsg.writeFile(MSG2, (await rdg("../packages/chat/src/message.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${toSpec(ATC)}"`));
+  await fsg.writeFile(ROOM2, (await rdg("../packages/chat/src/room.ts")).replace(/from "\.\/message\.ts"/g, `from "${toSpec(MSG2)}"`));
+  await fsg.writeFile(CHAT2, `export * from "${toSpec(ATC)}"; export * from "${toSpec(MSG2)}"; export * from "${toSpec(ROOM2)}";`);
   await fsg.writeFile(ATB, await rdg("../packages/board/src/attachment.ts"));
-  await fsg.writeFile(POST2, (await rdg("../packages/board/src/post.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${ATB}"`));
+  await fsg.writeFile(POST2, (await rdg("../packages/board/src/post.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${toSpec(ATB)}"`));
   await fsg.writeFile(RTB2, await rdg("../packages/realtime/src/broadcast.ts"));
-  await fsg.writeFile(RT2, `export * from "${RTB2}";`);
+  await fsg.writeFile(RT2, `export * from "${toSpec(RTB2)}";`);
 section("notify");
   await fsg.writeFile(NTPL, await rdg("../packages/notify/src/template.ts"));
-  await fsg.writeFile(NT2, `export * from "${NTPL}";`);
-  await fsg.writeFile(GW, (await rdg("../apps/internal-app/src/server/chat-gateway.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT2}"`).replace(/from "@platform\/realtime"/g, `from "${RT2}"`));
-  await fsg.writeFile(CN, (await rdg("../apps/internal-app/src/server/chat-notify.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT2}"`).replace(/from "@platform\/notify"/g, `from "${NT2}"`));
+  await fsg.writeFile(NT2, `export * from "${toSpec(NTPL)}";`);
+  await fsg.writeFile(GW, (await rdg("../apps/internal-app/src/server/chat-gateway.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT2)}"`).replace(/from "@platform\/realtime"/g, `from "${toSpec(RT2)}"`));
+  await fsg.writeFile(CN, (await rdg("../apps/internal-app/src/server/chat-notify.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT2)}"`).replace(/from "@platform\/notify"/g, `from "${toSpec(NT2)}"`));
 
-  const AC = await import(ATC), MC = await import(MSG2), BC = await import(ATB), BP = await import(POST2);
+  const AC = await impFile(ATC), MC = await impFile(MSG2), BC = await impFile(ATB), BP = await impFile(POST2);
   const img = { key: "chat/a.png", name: "a.png", size: 1000, type: "image/png" };
   const pdf = { key: "chat/b.pdf", name: "b.pdf", size: 2000, type: "application/pdf" };
   const big = { key: "chat/c.zip", name: "c.zip", size: 99999999, type: "application/zip" };
@@ -5724,7 +5802,7 @@ section("notify");
     BP.createPost({ id: "p", authorId: "u", body: "", attachments: [pdf] }).ok === true &&
     BP.createPost({ id: "x", authorId: "u", body: "" }).ok === false);
 
-  const B2 = await import(RTB2), G2 = await import(GW), CN2 = await import(CN);
+  const B2 = await impFile(RTB2), G2 = await impFile(GW), CN2 = await impFile(CN);
   const memoryPubsub = () => { const h = new Map(); return {
     async publish(ch, msg){ (h.get(ch)||[]).forEach(fn=>fn(msg)); },
     async subscribe(ch, fn){ const a=h.get(ch)||[]; a.push(fn); h.set(ch, a); },
@@ -5766,30 +5844,30 @@ section("notify");
   const fss = await import("node:fs/promises");
   const oss = await import("node:os");
   const ds = oss.tmpdir();
-  const sts = Date.now();
+  const sts = smokeStamp();
   const rds = async (rel) => (await fss.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const AC = `${ds}/s-attc-${sts}.ts`, MSG = `${ds}/s-msg-${sts}.ts`, ROOM = `${ds}/s-room-${sts}.ts`, CHAT = `${ds}/s-chat-${sts}.ts`;
   const AB = `${ds}/s-attb-${sts}.ts`, POST = `${ds}/s-post-${sts}.ts`, REAC = `${ds}/s-reac-${sts}.ts`, TL = `${ds}/s-tl-${sts}.ts`, BOARD = `${ds}/s-board-${sts}.ts`;
   const NTPL = `${ds}/s-ntpl-${sts}.ts`, NT = `${ds}/s-nt-${sts}.ts`;
   const STORE = `${ds}/s-store-${sts}.ts`, CN = `${ds}/s-cn-${sts}.ts`, BSV = `${ds}/s-bsv-${sts}.ts`, CTRL = `${ds}/s-ctrl-${sts}.ts`;
   await fss.writeFile(AC, await rds("../packages/chat/src/attachment.ts"));
-  await fss.writeFile(MSG, (await rds("../packages/chat/src/message.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${AC}"`));
-  await fss.writeFile(ROOM, (await rds("../packages/chat/src/room.ts")).replace(/from "\.\/message\.ts"/g, `from "${MSG}"`));
-  await fss.writeFile(CHAT, `export * from "${AC}"; export * from "${MSG}"; export * from "${ROOM}";`);
+  await fss.writeFile(MSG, (await rds("../packages/chat/src/message.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${toSpec(AC)}"`));
+  await fss.writeFile(ROOM, (await rds("../packages/chat/src/room.ts")).replace(/from "\.\/message\.ts"/g, `from "${toSpec(MSG)}"`));
+  await fss.writeFile(CHAT, `export * from "${toSpec(AC)}"; export * from "${toSpec(MSG)}"; export * from "${toSpec(ROOM)}";`);
   await fss.writeFile(AB, await rds("../packages/board/src/attachment.ts"));
-  await fss.writeFile(POST, (await rds("../packages/board/src/post.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${AB}"`));
+  await fss.writeFile(POST, (await rds("../packages/board/src/post.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${toSpec(AB)}"`));
   await fss.writeFile(REAC, await rds("../packages/board/src/reaction.ts"));
-  await fss.writeFile(TL, (await rds("../packages/board/src/thread-list.ts")).replace(/from "\.\/post\.ts"/g, `from "${POST}"`));
-  await fss.writeFile(BOARD, `export * from "${AB}"; export * from "${POST}"; export * from "${REAC}"; export * from "${TL}";`);
+  await fss.writeFile(TL, (await rds("../packages/board/src/thread-list.ts")).replace(/from "\.\/post\.ts"/g, `from "${toSpec(POST)}"`));
+  await fss.writeFile(BOARD, `export * from "${toSpec(AB)}"; export * from "${toSpec(POST)}"; export * from "${toSpec(REAC)}"; export * from "${toSpec(TL)}";`);
   await fss.writeFile(NTPL, await rds("../packages/notify/src/template.ts"));
-  await fss.writeFile(NT, `export * from "${NTPL}";`);
-  await fss.writeFile(STORE, (await rds("../apps/internal-app/src/server/chat-store.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
-  await fss.writeFile(CN, (await rds("../apps/internal-app/src/server/chat-notify.ts")).replace(/from "@platform\/notify"/g, `from "${NT}"`));
-  await fss.writeFile(BSV, (await rds("../apps/internal-app/src/server/board.ts")).replace(/from "@platform\/board"/g, `from "${BOARD}"`).replace(/from "\.\/chat-notify\.ts"/g, `from "${CN}"`));
-  await fss.writeFile(CTRL, (await rds("../apps/internal-app/src/app/chat/chat-controller.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
+  await fss.writeFile(NT, `export * from "${toSpec(NTPL)}";`);
+  await fss.writeFile(STORE, (await rds("../apps/internal-app/src/server/chat-store.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`));
+  await fss.writeFile(CN, (await rds("../apps/internal-app/src/server/chat-notify.ts")).replace(/from "@platform\/notify"/g, `from "${toSpec(NT)}"`));
+  await fss.writeFile(BSV, (await rds("../apps/internal-app/src/server/board.ts")).replace(/from "@platform\/board"/g, `from "${toSpec(BOARD)}"`).replace(/from "\.\/chat-notify\.ts"/g, `from "${toSpec(CN)}"`));
+  await fss.writeFile(CTRL, (await rds("../apps/internal-app/src/app/chat/chat-controller.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`));
 
   // chat-store
-  const ST = await import(STORE);
+  const ST = await impFile(STORE);
   const iso = (x) => new Date(x).toISOString();
   const store = ST.createMemoryChatStore({ keepPerRoom: 3 });
   const Msg = (id, roomId, senderId, at) => ({ id, roomId, senderId, text: id, at: iso(at) });
@@ -5807,7 +5885,7 @@ section("notify");
     (await store.unreadFor("u2", ["r1"]))[0].unread === 0);
 
   // board service + 汎用メンション通知(文脈IDつき)
-  const CN2 = await import(CN), BS = await import(BSV);
+  const CN2 = await impFile(CN), BS = await impFile(BSV);
   const notified = [];
   const fake = (l) => ({ async notify(m){ notified.push(l + ":" + m.text); return { ok: true }; } });
   const mn = CN2.buildMentionNotifier({ notifierFor: (h) => h === "bob" ? fake("bob") : undefined, senderName: (id) => id === "alice" ? "アリス" : id, contextName: (id) => "スレ" + id, template: "{{sender}}@{{context}}: {{text}}" });
@@ -5827,7 +5905,7 @@ section("notify");
     bp1n.length === 1 && bp1n[0] === "TH9:@bob 確認");
 
   // client controller(SSE fake + fetch fake)
-  const CC = await import(CTRL);
+  const CC = await impFile(CTRL);
   let esInst = null;
   class FakeES { constructor(url){ this.url = url; this.onmessage = null; this.onerror = null; this.closed = false; esInst = this; } emit(o){ this.onmessage && this.onmessage({ data: JSON.stringify(o) }); } emitRaw(sx){ this.onmessage && this.onmessage({ data: sx }); } close(){ this.closed = true; } }
   const fcalls = [];
@@ -5861,31 +5939,31 @@ section("notify");
   const fsp = await import("node:fs/promises");
   const osp = await import("node:os");
   const dp = osp.tmpdir();
-  const stp = Date.now();
+  const stp = smokeStamp();
   const rdp = async (rel) => (await fsp.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const AC = `${dp}/p-attc-${stp}.ts`, MSG = `${dp}/p-msg-${stp}.ts`, ROOM = `${dp}/p-room-${stp}.ts`, CHAT = `${dp}/p-chat-${stp}.ts`;
   const STORE = `${dp}/p-store-${stp}.ts`, PSTORE = `${dp}/p-pstore-${stp}.ts`, RREPO = `${dp}/p-rrepo-${stp}.ts`, PRES = `${dp}/p-pres-${stp}.ts`;
   const RTB = `${dp}/p-rtb-${stp}.ts`, RT = `${dp}/p-rt-${stp}.ts`, GW = `${dp}/p-gw-${stp}.ts`, CTRL = `${dp}/p-ctrl-${stp}.ts`;
   await fsp.writeFile(AC, await rdp("../packages/chat/src/attachment.ts"));
-  await fsp.writeFile(MSG, (await rdp("../packages/chat/src/message.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${AC}"`));
-  await fsp.writeFile(ROOM, (await rdp("../packages/chat/src/room.ts")).replace(/from "\.\/message\.ts"/g, `from "${MSG}"`));
-  await fsp.writeFile(CHAT, `export * from "${AC}"; export * from "${MSG}"; export * from "${ROOM}";`);
-  await fsp.writeFile(STORE, (await rdp("../apps/internal-app/src/server/chat-store.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
+  await fsp.writeFile(MSG, (await rdp("../packages/chat/src/message.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${toSpec(AC)}"`));
+  await fsp.writeFile(ROOM, (await rdp("../packages/chat/src/room.ts")).replace(/from "\.\/message\.ts"/g, `from "${toSpec(MSG)}"`));
+  await fsp.writeFile(CHAT, `export * from "${toSpec(AC)}"; export * from "${toSpec(MSG)}"; export * from "${toSpec(ROOM)}";`);
+  await fsp.writeFile(STORE, (await rdp("../apps/internal-app/src/server/chat-store.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`));
   await fsp.writeFile(PSTORE, (await rdp("../apps/internal-app/src/server/chat-store-prisma.ts"))
-    .replace(/from "@platform\/chat"/g, `from "${CHAT}"`)
-    .replace(/from "\.\/chat-store\.ts"/g, `from "${STORE}"`));
-  await fsp.writeFile(RREPO, (await rdp("../apps/internal-app/src/server/chat-rooms.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
+    .replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`)
+    .replace(/from "\.\/chat-store\.ts"/g, `from "${toSpec(STORE)}"`));
+  await fsp.writeFile(RREPO, (await rdp("../apps/internal-app/src/server/chat-rooms.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`));
   await fsp.writeFile(PRES, await rdp("../apps/internal-app/src/server/chat-presence.ts"));
 section("realtime");
   await fsp.writeFile(RTB, await rdp("../packages/realtime/src/broadcast.ts"));
-  await fsp.writeFile(RT, `export * from "${RTB}";`);
-  await fsp.writeFile(GW, (await rdp("../apps/internal-app/src/server/chat-gateway.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`).replace(/from "@platform\/realtime"/g, `from "${RT}"`));
-  await fsp.writeFile(CTRL, (await rdp("../apps/internal-app/src/app/chat/chat-controller.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
+  await fsp.writeFile(RT, `export * from "${toSpec(RTB)}";`);
+  await fsp.writeFile(GW, (await rdp("../apps/internal-app/src/server/chat-gateway.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`).replace(/from "@platform\/realtime"/g, `from "${toSpec(RT)}"`));
+  await fsp.writeFile(CTRL, (await rdp("../apps/internal-app/src/app/chat/chat-controller.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`));
 
   const isoP = (x) => new Date(x).toISOString();
 
   // Prisma store(フェイク db)+ memory とのパリティ
-  const PS = await import(PSTORE), MS = await import(STORE);
+  const PS = await impFile(PSTORE), MS = await impFile(STORE);
   const fakeDb = () => { const msgs = []; const reads = new Map(); const rk = (u, r) => u + "\u0000" + r; return {
     _reads: reads,
     chatMessageRow: {
@@ -5917,7 +5995,7 @@ section("realtime");
     (await pstore.lastRead("u1", "r1")) === isoP("2025-07-01T10:15:00Z") && pu.unread === 0 && db._reads.size === 1 && mu.unread === pu.unread);
 
   // ルームリポジトリ
-  const RR = await import(RREPO);
+  const RR = await impFile(RREPO);
   let rn = 0;
   const repo = RR.createMemoryRoomRepo({ newId: () => "r" + (++rn) });
   const room = await repo.create({ name: "総務", kind: "group", ownerId: "alice", memberIds: ["bob", "alice"] });
@@ -5930,7 +6008,7 @@ section("realtime");
     (await repo.isMember("r1", "carol")) === false && (await repo.get("r1")).name === "総務" && (await repo.get("none")) === undefined);
 
   // プレゼンス(TTL)
-  const PR = await import(PRES);
+  const PR = await impFile(PRES);
   const pres = PR.createPresenceTracker({ onlineTtlMs: 30000, typingTtlMs: 5000 });
   const t0 = 1000000;
   pres.heartbeat("r1", "alice", t0);
@@ -5947,7 +6025,7 @@ section("realtime");
     typingGone === 0 && onlineGone === 0 && alive === 1 && pres.onlineCount("r1", t0 + 31000) === 0);
 
   // gateway.publishTyping → controller.onTyping(封筒判別)
-  const B = await import(RTB), G = await import(GW), CC = await import(CTRL);
+  const B = await impFile(RTB), G = await impFile(GW), CC = await impFile(CTRL);
   const memoryPubsub = () => { const h = new Map(); return {
     async publish(ch, msg) { (h.get(ch) || []).forEach(fn => fn(typeof msg === "string" ? msg : JSON.stringify(msg))); },
     async subscribe(ch, fn) { const a = h.get(ch) || []; a.push(fn); h.set(ch, a); },
@@ -5979,7 +6057,7 @@ section("realtime");
   const fsx = await import("node:fs/promises");
   const osx = await import("node:os");
   const dx = osx.tmpdir();
-  const stx = Date.now();
+  const stx = smokeStamp();
   const rdx = async (rel) => (await fsx.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const AC = `${dx}/x-attc-${stx}.ts`, MSG = `${dx}/x-msg-${stx}.ts`, ROOM = `${dx}/x-room-${stx}.ts`, CHAT = `${dx}/x-chat-${stx}.ts`;
   const AB = `${dx}/x-attb-${stx}.ts`, POST = `${dx}/x-post-${stx}.ts`, BOARD = `${dx}/x-board-${stx}.ts`;
@@ -5988,46 +6066,46 @@ section("realtime");
   const STORE = `${dx}/x-store-${stx}.ts`, RREPO = `${dx}/x-rrepo-${stx}.ts`, CSEARCH = `${dx}/x-csearch-${stx}.ts`, DIGEST = `${dx}/x-digest-${stx}.ts`;
   const RTB = `${dx}/x-rtb-${stx}.ts`, RT = `${dx}/x-rt-${stx}.ts`, GW = `${dx}/x-gw-${stx}.ts`, CTRL = `${dx}/x-ctrl-${stx}.ts`;
   await fsx.writeFile(AC, await rdx("../packages/chat/src/attachment.ts"));
-  await fsx.writeFile(MSG, (await rdx("../packages/chat/src/message.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${AC}"`));
-  await fsx.writeFile(ROOM, (await rdx("../packages/chat/src/room.ts")).replace(/from "\.\/message\.ts"/g, `from "${MSG}"`));
-  await fsx.writeFile(CHAT, `export * from "${AC}"; export * from "${MSG}"; export * from "${ROOM}";`);
+  await fsx.writeFile(MSG, (await rdx("../packages/chat/src/message.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${toSpec(AC)}"`));
+  await fsx.writeFile(ROOM, (await rdx("../packages/chat/src/room.ts")).replace(/from "\.\/message\.ts"/g, `from "${toSpec(MSG)}"`));
+  await fsx.writeFile(CHAT, `export * from "${toSpec(AC)}"; export * from "${toSpec(MSG)}"; export * from "${toSpec(ROOM)}";`);
   await fsx.writeFile(AB, await rdx("../packages/board/src/attachment.ts"));
-  await fsx.writeFile(POST, (await rdx("../packages/board/src/post.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${AB}"`));
-  await fsx.writeFile(BOARD, `export * from "${AB}"; export * from "${POST}";`);
+  await fsx.writeFile(POST, (await rdx("../packages/board/src/post.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${toSpec(AB)}"`));
+  await fsx.writeFile(BOARD, `export * from "${toSpec(AB)}"; export * from "${toSpec(POST)}";`);
   await fsx.writeFile(CORE, `export const ErrorCode={EXTERNAL:"EXTERNAL",VALIDATION:"VALIDATION"};export class AppError extends Error{constructor(c,m,o){super(m);this.code=c;this.cause=o?.cause;}}export function ok(v){return{ok:true,value:v};}export function err(e){return{ok:false,error:e};}export async function tryCatch(fn){try{return{ok:true,value:await fn()};}catch(e){return{ok:false,error:e};}}`);
   await fsx.writeFile(TOK, await rdx("../packages/search/src/tokenize.ts"));
-  await fsx.writeFile(BM, (await rdx("../packages/search/src/bm25.ts")).replace(/from "\.\/tokenize\.ts"/g, `from "${TOK}"`));
-  await fsx.writeFile(MEM, (await rdx("../packages/search/src/adapters/memory.ts")).replace(/from "\.\.\/index\.ts"/g, `from "${SEARCH}"`).replace(/from "\.\.\/bm25\.ts"/g, `from "${BM}"`));
+  await fsx.writeFile(BM, (await rdx("../packages/search/src/bm25.ts")).replace(/from "\.\/tokenize\.ts"/g, `from "${toSpec(TOK)}"`));
+  await fsx.writeFile(MEM, (await rdx("../packages/search/src/adapters/memory.ts")).replace(/from "\.\.\/index\.ts"/g, `from "${toSpec(SEARCH)}"`).replace(/from "\.\.\/bm25\.ts"/g, `from "${toSpec(BM)}"`));
   await fsx.writeFile(MEI, `export function createMeilisearchAdapter(){ return {}; }`);
   await fsx.writeFile(SEARCH, (await rdx("../packages/search/src/index.ts"))
-    .replace(/from "@platform\/core"/g, `from "${CORE}"`)
-    .replace(/from "\.\/adapters\/memory\.ts"/g, `from "${MEM}"`)
-    .replace(/from "\.\/adapters\/meilisearch\.ts"/g, `from "${MEI}"`)
-    .replace(/from "\.\/bm25\.ts"/g, `from "${BM}"`)
-    .replace(/from "\.\/tokenize\.ts"/g, `from "${TOK}"`));
+    .replace(/from "@platform\/core"/g, `from "${toSpec(CORE)}"`)
+    .replace(/from "\.\/adapters\/memory\.ts"/g, `from "${toSpec(MEM)}"`)
+    .replace(/from "\.\/adapters\/meilisearch\.ts"/g, `from "${toSpec(MEI)}"`)
+    .replace(/from "\.\/bm25\.ts"/g, `from "${toSpec(BM)}"`)
+    .replace(/from "\.\/tokenize\.ts"/g, `from "${toSpec(TOK)}"`));
 section("notify");
   await fsx.writeFile(NTPL, await rdx("../packages/notify/src/template.ts"));
-  await fsx.writeFile(NT, `export * from "${NTPL}";`);
+  await fsx.writeFile(NT, `export * from "${toSpec(NTPL)}";`);
   await fsx.writeFile(RUNNER, await rdx("../packages/cron/src/runner.ts"));
-  await fsx.writeFile(STORE, (await rdx("../apps/internal-app/src/server/chat-store.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
-  await fsx.writeFile(RREPO, (await rdx("../apps/internal-app/src/server/chat-rooms.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
+  await fsx.writeFile(STORE, (await rdx("../apps/internal-app/src/server/chat-store.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`));
+  await fsx.writeFile(RREPO, (await rdx("../apps/internal-app/src/server/chat-rooms.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`));
   await fsx.writeFile(CSEARCH, (await rdx("../apps/internal-app/src/server/chat-search.ts"))
-    .replace(/from "@platform\/chat"/g, `from "${CHAT}"`)
-    .replace(/from "@platform\/board"/g, `from "${BOARD}"`)
-    .replace(/from "@platform\/search"/g, `from "${SEARCH}"`));
+    .replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`)
+    .replace(/from "@platform\/board"/g, `from "${toSpec(BOARD)}"`)
+    .replace(/from "@platform\/search"/g, `from "${toSpec(SEARCH)}"`));
   await fsx.writeFile(DIGEST, (await rdx("../apps/internal-app/src/server/chat-digest.ts"))
-    .replace(/from "@platform\/notify"/g, `from "${NT}"`)
-    .replace(/from "\.\/chat-store\.ts"/g, `from "${STORE}"`)
-    .replace(/from "\.\/chat-rooms\.ts"/g, `from "${RREPO}"`));
+    .replace(/from "@platform\/notify"/g, `from "${toSpec(NT)}"`)
+    .replace(/from "\.\/chat-store\.ts"/g, `from "${toSpec(STORE)}"`)
+    .replace(/from "\.\/chat-rooms\.ts"/g, `from "${toSpec(RREPO)}"`));
   await fsx.writeFile(RTB, await rdx("../packages/realtime/src/broadcast.ts"));
-  await fsx.writeFile(RT, `export * from "${RTB}";`);
-  await fsx.writeFile(GW, (await rdx("../apps/internal-app/src/server/chat-gateway.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`).replace(/from "@platform\/realtime"/g, `from "${RT}"`));
-  await fsx.writeFile(CTRL, (await rdx("../apps/internal-app/src/app/chat/chat-controller.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
+  await fsx.writeFile(RT, `export * from "${toSpec(RTB)}";`);
+  await fsx.writeFile(GW, (await rdx("../apps/internal-app/src/server/chat-gateway.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`).replace(/from "@platform\/realtime"/g, `from "${toSpec(RT)}"`));
+  await fsx.writeFile(CTRL, (await rdx("../apps/internal-app/src/app/chat/chat-controller.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`));
 
   const isoX = (x) => new Date(x).toISOString();
 
   // 全文検索(実 BM25)
-  const SE = await import(SEARCH), CS = await import(CSEARCH);
+  const SE = await impFile(SEARCH), CS = await impFile(CSEARCH);
   const cs = CS.createChatSearch({ messageSearch: SE.createSearch(SE.createMemorySearch({ fieldBoosts: { text: 2 } })), postSearch: SE.createSearch(SE.createMemorySearch({ fieldBoosts: { body: 2 } })) });
   await cs.indexMessage({ id: "m1", roomId: "r1", senderId: "u1", text: "プロジェクトの進捗を共有します", at: isoX("2025-07-01T10:00:00Z") });
   await cs.indexMessage({ id: "m2", roomId: "r1", senderId: "u2", text: "会議は明日です", at: isoX("2025-07-01T10:05:00Z") });
@@ -6042,7 +6120,7 @@ section("notify");
     (await cs.searchMessages("備品")).length === 0);
 
   // 編集・削除フロー(gateway + store + controller 封筒)
-  const B = await import(RTB), ST = await import(STORE), G = await import(GW), CC = await import(CTRL);
+  const B = await impFile(RTB), ST = await impFile(STORE), G = await impFile(GW), CC = await impFile(CTRL);
   const memPS = () => {
     const h = new Map();
     return { async publish(ch, msg) { (h.get(ch) || []).forEach(fn => fn(typeof msg === "string" ? msg : JSON.stringify(msg))); }, async subscribe(ch, fn) { const a = h.get(ch) || []; a.push(fn); h.set(ch, a); }, async unsubscribe(ch) { h.delete(ch); } };
@@ -6076,7 +6154,7 @@ section("notify");
     (await store.recent("r1")).length === 0 && idxLog.includes("i:m1") && idxLog.includes("re:m1") && idxLog.includes("de:m1"));
 
   // ダイジェスト + cron
-  const RR = await import(RREPO), DG = await import(DIGEST), CR = await import(RUNNER);
+  const RR = await impFile(RREPO), DG = await impFile(DIGEST), CR = await impFile(RUNNER);
   const dstore = ST.createMemoryChatStore({ keepPerRoom: 100 });
   const repo = RR.createMemoryRoomRepo({ newId: () => "x" });
   await repo.create({ id: "r1", name: "総務", kind: "group", ownerId: "alice", memberIds: ["bob"] });
@@ -6106,7 +6184,7 @@ section("notify");
   const fsr = await import("node:fs/promises");
   const osr = await import("node:os");
   const dr = osr.tmpdir();
-  const str = Date.now();
+  const str = smokeStamp();
   const rdr = async (rel) => (await fsr.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const AC = `${dr}/rr-attc-${str}.ts`, RX = `${dr}/rr-rx-${str}.ts`, MSG = `${dr}/rr-msg-${str}.ts`, ROOM = `${dr}/rr-room-${str}.ts`, CHAT = `${dr}/rr-chat-${str}.ts`;
   const GEO = `${dr}/rr-geo-${str}.ts`, IMG = `${dr}/rr-img-${str}.ts`, HL = `${dr}/rr-hl-${str}.ts`;
@@ -6114,24 +6192,24 @@ section("notify");
   const RSTORE = `${dr}/rr-rstore-${str}.ts`, THUMB = `${dr}/rr-thumb-${str}.ts`;
   await fsr.writeFile(AC, await rdr("../packages/chat/src/attachment.ts"));
   await fsr.writeFile(RX, await rdr("../packages/chat/src/reaction.ts"));
-  await fsr.writeFile(MSG, (await rdr("../packages/chat/src/message.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${AC}"`));
-  await fsr.writeFile(ROOM, (await rdr("../packages/chat/src/room.ts")).replace(/from "\.\/message\.ts"/g, `from "${MSG}"`));
-  await fsr.writeFile(CHAT, `export * from "${AC}"; export * from "${RX}"; export * from "${MSG}"; export * from "${ROOM}";`);
+  await fsr.writeFile(MSG, (await rdr("../packages/chat/src/message.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${toSpec(AC)}"`));
+  await fsr.writeFile(ROOM, (await rdr("../packages/chat/src/room.ts")).replace(/from "\.\/message\.ts"/g, `from "${toSpec(MSG)}"`));
+  await fsr.writeFile(CHAT, `export * from "${toSpec(AC)}"; export * from "${toSpec(RX)}"; export * from "${toSpec(MSG)}"; export * from "${toSpec(ROOM)}";`);
   await fsr.writeFile(GEO, await rdr("../packages/image/src/geometry.ts"));
-  await fsr.writeFile(IMG, `export * from "${GEO}";`);
+  await fsr.writeFile(IMG, `export * from "${toSpec(GEO)}";`);
   await fsr.writeFile(HL, await rdr("../packages/ui/src/lib/highlight.ts"));
   await fsr.writeFile(RTB, await rdr("../packages/realtime/src/broadcast.ts"));
-  await fsr.writeFile(RT, `export * from "${RTB}";`);
-  await fsr.writeFile(GW, (await rdr("../apps/internal-app/src/server/chat-gateway.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`).replace(/from "@platform\/realtime"/g, `from "${RT}"`));
-  await fsr.writeFile(CTRL, (await rdr("../apps/internal-app/src/app/chat/chat-controller.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
-  await fsr.writeFile(RSTORE, (await rdr("../apps/internal-app/src/server/chat-reactions.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
+  await fsr.writeFile(RT, `export * from "${toSpec(RTB)}";`);
+  await fsr.writeFile(GW, (await rdr("../apps/internal-app/src/server/chat-gateway.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`).replace(/from "@platform\/realtime"/g, `from "${toSpec(RT)}"`));
+  await fsr.writeFile(CTRL, (await rdr("../apps/internal-app/src/app/chat/chat-controller.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`));
+  await fsr.writeFile(RSTORE, (await rdr("../apps/internal-app/src/server/chat-reactions.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`));
   await fsr.writeFile(THUMB, (await rdr("../apps/internal-app/src/server/chat-thumbnails.ts"))
-    .replace(/from "@platform\/chat"/g, `from "${CHAT}"`)
-    .replace(/from "@platform\/image"/g, `from "${IMG}"`)
-    .replace(/from "@platform\/storage"/g, `from "${GEO}"`));
+    .replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`)
+    .replace(/from "@platform\/image"/g, `from "${toSpec(IMG)}"`)
+    .replace(/from "@platform\/storage"/g, `from "${toSpec(GEO)}"`));
 
   // ハイライト(純関数)
-  const H = await import(HL);
+  const H = await impFile(HL);
   const s1 = H.highlightSegments("プロジェクトの進捗", "プロジェクト");
   const s2 = H.highlightSegments("Hello World hello", "hello");
   ok("highlight(日本語前方一致/大小無視2箇所/連続まとめ/一致なし全体/クエリ空)",
@@ -6143,7 +6221,7 @@ section("notify");
     JSON.stringify(H.queryTerms("cat dog cat")) === JSON.stringify(["cat", "dog"]));
 
   // リアクション配信(gateway + store + controller 封筒)
-  const B = await import(RTB), RS = await import(RSTORE), G = await import(GW), CC = await import(CTRL);
+  const B = await impFile(RTB), RS = await impFile(RSTORE), G = await impFile(GW), CC = await impFile(CTRL);
   const memPS = () => {
     const h = new Map();
     return { async publish(ch, msg) { (h.get(ch) || []).forEach(fn => fn(typeof msg === "string" ? msg : JSON.stringify(msg))); }, async subscribe(ch, fn) { const a = h.get(ch) || []; a.push(fn); h.set(ch, a); }, async unsubscribe(ch) { h.delete(ch); } };
@@ -6168,7 +6246,7 @@ section("notify");
     recvR[1].counts.like === 2 && recvR[2].counts.like === 1 && rr3.counts.like === 1 && rrNo.ok === false && rrNo.error.includes("未対応"));
 
   // サムネイル(実 fitDimensions + fake processor/storage)
-  const TH = await import(THUMB);
+  const TH = await impFile(THUMB);
   const files = new Map();
   files.set("chat/a.png", { b: "orig" });
   const storage = { async get(k) { const v = files.get(k); return v ? { ok: true, value: v } : { ok: false, error: new Error("nf") }; }, async put(k, b, o) { files.set(k, b); return { ok: true, value: undefined }; } };
@@ -6195,7 +6273,7 @@ section("notify");
   const fsp = await import("node:fs/promises");
   const osp = await import("node:os");
   const dp = osp.tmpdir();
-  const stp = Date.now();
+  const stp = smokeStamp();
   const rdp = async (rel) => (await fsp.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const AC = `${dp}/pb-attc-${stp}.ts`, RX = `${dp}/pb-rx-${stp}.ts`, PIN = `${dp}/pb-pin-${stp}.ts`, MSG = `${dp}/pb-msg-${stp}.ts`, ROOM = `${dp}/pb-room-${stp}.ts`, CHAT = `${dp}/pb-chat-${stp}.ts`;
   const STORE = `${dp}/pb-store-${stp}.ts`, RREPO = `${dp}/pb-rrepo-${stp}.ts`, PINS = `${dp}/pb-pins-${stp}.ts`, MENT = `${dp}/pb-ment-${stp}.ts`, REAC = `${dp}/pb-reac-${stp}.ts`;
@@ -6203,26 +6281,26 @@ section("notify");
   await fsp.writeFile(AC, await rdp("../packages/chat/src/attachment.ts"));
   await fsp.writeFile(RX, await rdp("../packages/chat/src/reaction.ts"));
   await fsp.writeFile(PIN, await rdp("../packages/chat/src/pin.ts"));
-  await fsp.writeFile(MSG, (await rdp("../packages/chat/src/message.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${AC}"`));
-  await fsp.writeFile(ROOM, (await rdp("../packages/chat/src/room.ts")).replace(/from "\.\/message\.ts"/g, `from "${MSG}"`));
-  await fsp.writeFile(CHAT, `export * from "${AC}"; export * from "${RX}"; export * from "${PIN}"; export * from "${MSG}"; export * from "${ROOM}";`);
-  await fsp.writeFile(STORE, (await rdp("../apps/internal-app/src/server/chat-store.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
-  await fsp.writeFile(RREPO, (await rdp("../apps/internal-app/src/server/chat-rooms.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
-  await fsp.writeFile(PINS, (await rdp("../apps/internal-app/src/server/chat-pins.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
+  await fsp.writeFile(MSG, (await rdp("../packages/chat/src/message.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${toSpec(AC)}"`));
+  await fsp.writeFile(ROOM, (await rdp("../packages/chat/src/room.ts")).replace(/from "\.\/message\.ts"/g, `from "${toSpec(MSG)}"`));
+  await fsp.writeFile(CHAT, `export * from "${toSpec(AC)}"; export * from "${toSpec(RX)}"; export * from "${toSpec(PIN)}"; export * from "${toSpec(MSG)}"; export * from "${toSpec(ROOM)}";`);
+  await fsp.writeFile(STORE, (await rdp("../apps/internal-app/src/server/chat-store.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`));
+  await fsp.writeFile(RREPO, (await rdp("../apps/internal-app/src/server/chat-rooms.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`));
+  await fsp.writeFile(PINS, (await rdp("../apps/internal-app/src/server/chat-pins.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`));
   await fsp.writeFile(MENT, (await rdp("../apps/internal-app/src/server/chat-mentions.ts"))
-    .replace(/from "@platform\/chat"/g, `from "${CHAT}"`)
-    .replace(/from "\.\/chat-store\.ts"/g, `from "${STORE}"`)
-    .replace(/from "\.\/chat-rooms\.ts"/g, `from "${RREPO}"`));
-  await fsp.writeFile(REAC, (await rdp("../apps/internal-app/src/server/chat-reactions.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
+    .replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`)
+    .replace(/from "\.\/chat-store\.ts"/g, `from "${toSpec(STORE)}"`)
+    .replace(/from "\.\/chat-rooms\.ts"/g, `from "${toSpec(RREPO)}"`));
+  await fsp.writeFile(REAC, (await rdp("../apps/internal-app/src/server/chat-reactions.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`));
   await fsp.writeFile(RTB, await rdp("../packages/realtime/src/broadcast.ts"));
-  await fsp.writeFile(RT, `export * from "${RTB}";`);
-  await fsp.writeFile(GW, (await rdp("../apps/internal-app/src/server/chat-gateway.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`).replace(/from "@platform\/realtime"/g, `from "${RT}"`));
-  await fsp.writeFile(CTRL, (await rdp("../apps/internal-app/src/app/chat/chat-controller.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
+  await fsp.writeFile(RT, `export * from "${toSpec(RTB)}";`);
+  await fsp.writeFile(GW, (await rdp("../apps/internal-app/src/server/chat-gateway.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`).replace(/from "@platform\/realtime"/g, `from "${toSpec(RT)}"`));
+  await fsp.writeFile(CTRL, (await rdp("../apps/internal-app/src/app/chat/chat-controller.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`));
 
   const isoP = (x) => new Date(x).toISOString();
 
   // ピン/ブックマークストア
-  const PS = await import(PINS);
+  const PS = await impFile(PINS);
   const pinStore = PS.createMemoryPinStore();
   const pa = await pinStore.togglePin("r1", "m1", "alice");
   await pinStore.togglePin("r1", "m2", "bob");
@@ -6235,7 +6313,7 @@ section("notify");
     ba === true && bc === false && (await pinStore.bookmarks("u1")).length === 1 && (await pinStore.bookmarks("u2")).length === 0);
 
   // メンション未読集計
-  const ST = await import(STORE), RR = await import(RREPO), MI = await import(MENT);
+  const ST = await impFile(STORE), RR = await impFile(RREPO), MI = await impFile(MENT);
   const store = ST.createMemoryChatStore({ keepPerRoom: 100 });
   const repo = RR.createMemoryRoomRepo({ newId: () => "x" });
   await repo.create({ id: "r1", name: "A", kind: "group", ownerId: "boss", memberIds: ["bob"] });
@@ -6253,7 +6331,7 @@ section("notify");
     before === 3 && listOrder === "cba" && after === 2 && (await inbox.unread("bob", "bob", 1)).length === 1 && (await inbox.unreadCount("alice", "alice")) === 0);
 
   // リアクション永続化(Prisma実装 fake db)+ memory パリティ
-  const RC = await import(REAC);
+  const RC = await impFile(REAC);
   const fakeRxDb = () => { const rows = []; return {
     messageReactionRow: {
       async findUnique({ where }) { const w = where.messageId_userId_kind; return rows.find(r => r.messageId === w.messageId && r.userId === w.userId && r.kind === w.kind) ?? null; },
@@ -6274,7 +6352,7 @@ section("notify");
     JSON.stringify(await prx.reactionsBy("m1", "u2")) === JSON.stringify(await mrx.reactionsBy("m1", "u2")));
 
   // ピン配信(gateway → controller 封筒)
-  const B = await import(RTB), G = await import(GW), CC = await import(CTRL);
+  const B = await impFile(RTB), G = await impFile(GW), CC = await impFile(CTRL);
   const memBus = () => {
     const h = new Map();
     return { async publish(ch, msg) { (h.get(ch) || []).forEach(fn => fn(typeof msg === "string" ? msg : JSON.stringify(msg))); }, async subscribe(ch, fn) { const a = h.get(ch) || []; a.push(fn); h.set(ch, a); }, async unsubscribe(ch) { h.delete(ch); } };
@@ -6306,19 +6384,19 @@ section("notify");
   const fpp = await import("node:fs/promises");
   const opp = await import("node:os");
   const dpp = opp.tmpdir();
-  const spp = Date.now();
+  const spp = smokeStamp();
   const rpp = async (rel) => (await fpp.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const AC = `${dpp}/pz-attc-${spp}.ts`, RX = `${dpp}/pz-rx-${spp}.ts`, PIN = `${dpp}/pz-pin-${spp}.ts`, MSG = `${dpp}/pz-msg-${spp}.ts`, ROOM = `${dpp}/pz-room-${spp}.ts`, CHAT = `${dpp}/pz-chat-${spp}.ts`, PINS = `${dpp}/pz-pins-${spp}.ts`;
   await fpp.writeFile(AC, await rpp("../packages/chat/src/attachment.ts"));
   await fpp.writeFile(RX, await rpp("../packages/chat/src/reaction.ts"));
   await fpp.writeFile(PIN, await rpp("../packages/chat/src/pin.ts"));
-  await fpp.writeFile(MSG, (await rpp("../packages/chat/src/message.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${AC}"`));
-  await fpp.writeFile(ROOM, (await rpp("../packages/chat/src/room.ts")).replace(/from "\.\/message\.ts"/g, `from "${MSG}"`));
-  await fpp.writeFile(CHAT, `export * from "${AC}"; export * from "${RX}"; export * from "${PIN}"; export * from "${MSG}"; export * from "${ROOM}";`);
-  await fpp.writeFile(PINS, (await rpp("../apps/internal-app/src/server/chat-pins.ts")).replace(/from "@platform\/chat"/g, `from "${CHAT}"`));
+  await fpp.writeFile(MSG, (await rpp("../packages/chat/src/message.ts")).replace(/from "\.\/attachment\.ts"/g, `from "${toSpec(AC)}"`));
+  await fpp.writeFile(ROOM, (await rpp("../packages/chat/src/room.ts")).replace(/from "\.\/message\.ts"/g, `from "${toSpec(MSG)}"`));
+  await fpp.writeFile(CHAT, `export * from "${toSpec(AC)}"; export * from "${toSpec(RX)}"; export * from "${toSpec(PIN)}"; export * from "${toSpec(MSG)}"; export * from "${toSpec(ROOM)}";`);
+  await fpp.writeFile(PINS, (await rpp("../apps/internal-app/src/server/chat-pins.ts")).replace(/from "@platform\/chat"/g, `from "${toSpec(CHAT)}"`));
 
   const isoZ = (x) => new Date(x).toISOString();
-  const PS = await import(PINS);
+  const PS = await impFile(PINS);
   const fakePinDb = () => { const pins = []; const bms = []; return {
     pinRow: {
       async findUnique({ where }) { const w = where.roomId_messageId; return pins.find(p => p.roomId === w.roomId && p.messageId === w.messageId) ?? null; },
@@ -6362,26 +6440,26 @@ section("notify");
   const fsn = await import("node:fs/promises");
   const osn = await import("node:os");
   const dn = osn.tmpdir();
-  const stn = Date.now();
+  const stn = smokeStamp();
   const rdn = async (rel) => (await fsn.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const NC = `${dn}/pf-nc-${stn}.ts`, FM = `${dn}/pf-fm-${stn}.ts`, AL = `${dn}/pf-al-${stn}.ts`, STG = `${dn}/pf-stg-${stn}.ts`;
   const AEV = `${dn}/pf-aev-${stn}.ts`, ALOG = `${dn}/pf-alog-${stn}.ts`, AQ = `${dn}/pf-aq-${stn}.ts`, AUD = `${dn}/pf-aud-${stn}.ts`;
   await fsn.writeFile(NC, await rdn("../apps/internal-app/src/server/notification-center.ts"));
   await fsn.writeFile(STG, "export {};");
-  await fsn.writeFile(FM, (await rdn("../apps/internal-app/src/server/file-manager.ts")).replace(/from "@platform\/storage"/g, `from "${STG}"`));
+  await fsn.writeFile(FM, (await rdn("../apps/internal-app/src/server/file-manager.ts")).replace(/from "@platform\/storage"/g, `from "${toSpec(STG)}"`));
 section("audit");
   await fsn.writeFile(AEV, await rdn("../packages/audit/src/event.ts"));
-  await fsn.writeFile(ALOG, (await rdn("../packages/audit/src/log.ts")).replace(/from "\.\/event\.ts"/g, `from "${AEV}"`));
-  await fsn.writeFile(AQ, (await rdn("../packages/audit/src/query.ts")).replace(/from "\.\/log\.ts"/g, `from "${ALOG}"`).replace(/from "\.\/event\.ts"/g, `from "${AEV}"`));
-  await fsn.writeFile(AUD, `export * from "${AEV}"; export * from "${ALOG}"; export * from "${AQ}";`);
+  await fsn.writeFile(ALOG, (await rdn("../packages/audit/src/log.ts")).replace(/from "\.\/event\.ts"/g, `from "${toSpec(AEV)}"`));
+  await fsn.writeFile(AQ, (await rdn("../packages/audit/src/query.ts")).replace(/from "\.\/log\.ts"/g, `from "${toSpec(ALOG)}"`).replace(/from "\.\/event\.ts"/g, `from "${toSpec(AEV)}"`));
+  await fsn.writeFile(AUD, `export * from "${toSpec(AEV)}"; export * from "${toSpec(ALOG)}"; export * from "${toSpec(AQ)}";`);
   const CSVSTUB1 = `${dn}/pf-csv-${stn}.ts`;
   await fsn.writeFile(CSVSTUB1, await rdn("../packages/csv/src/index.ts"));
-  await fsn.writeFile(AL, (await rdn("../apps/internal-app/src/server/audit-log.ts")).replace(/from "@platform\/audit"/g, `from "${AUD}"`).replace(/from "@platform\/csv"/g, `from "${CSVSTUB1}"`));
+  await fsn.writeFile(AL, (await rdn("../apps/internal-app/src/server/audit-log.ts")).replace(/from "@platform\/audit"/g, `from "${toSpec(AUD)}"`).replace(/from "@platform\/csv"/g, `from "${toSpec(CSVSTUB1)}"`));
 
   const isoN = (x) => new Date(x).toISOString();
 
   // 通知センター(memory + prisma parity)
-  const N = await import(NC);
+  const N = await impFile(NC);
   const mstore = N.createMemoryNotificationStore();
   const center = N.createNotificationCenter(mstore, (() => { let i = 0; return () => "n" + (++i); })());
   await center.notify("alice", { title: "メンション", kind: "mention", href: "/chat/r1" });
@@ -6415,7 +6493,7 @@ section("audit");
     (await pstore.list("alice", { unreadOnly: true }))[0].title === "B" && (await pstore.list("alice"))[1].kind === "mention");
 
   // ファイル管理(memory + prisma parity)
-  const F = await import(FM);
+  const F = await impFile(FM);
   const deleted = [];
   const storage = { async delete(key) { deleted.push(key); return { ok: true, value: undefined }; } };
   const reg = F.createMemoryFileRegistry();
@@ -6442,7 +6520,7 @@ section("audit");
     (await preg.list()).length === 2 && (await preg.list())[0].name === "y2.pdf" && (await preg.list({ prefix: "u/" })).length === 2 && (await preg.get("u/x.png")).size === 10);
 
   // 監査ログ(記録/検索/検証/改ざん検知)
-  const A = await import(AL);
+  const A = await impFile(AL);
   const audit = A.createAuditLog(A.createMemoryAuditStore());
   await audit.record({ at: isoN("2025-07-01T10:00:00Z"), actor: "alice", action: "expense.submit", target: "expense:1", after: { amount: 1000 } });
   await audit.record({ at: isoN("2025-07-01T11:00:00Z"), actor: "bob", action: "expense.approve", target: "expense:1" });
@@ -6472,26 +6550,26 @@ section("audit");
   const fsz = await import("node:fs/promises");
   const osz = await import("node:os");
   const dz = osz.tmpdir();
-  const stz = Date.now();
+  const stz = smokeStamp();
   const rdz = async (rel) => (await fsz.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const PREF = `${dz}/wz-pref-${stz}.ts`, NT = `${dz}/wz-nt-${stz}.ts`, NP = `${dz}/wz-np-${stz}.ts`;
   const AEV = `${dz}/wz-aev-${stz}.ts`, ALOG = `${dz}/wz-alog-${stz}.ts`, AQ = `${dz}/wz-aq-${stz}.ts`, AUD = `${dz}/wz-aud-${stz}.ts`, AL = `${dz}/wz-al-${stz}.ts`, AA = `${dz}/wz-aa-${stz}.ts`;
   await fsz.writeFile(PREF, await rdz("../packages/notify/src/preferences.ts"));
-  await fsz.writeFile(NT, `export * from "${PREF}";`);
-  await fsz.writeFile(NP, (await rdz("../apps/internal-app/src/server/notification-prefs.ts")).replace(/from "@platform\/notify"/g, `from "${NT}"`));
+  await fsz.writeFile(NT, `export * from "${toSpec(PREF)}";`);
+  await fsz.writeFile(NP, (await rdz("../apps/internal-app/src/server/notification-prefs.ts")).replace(/from "@platform\/notify"/g, `from "${toSpec(NT)}"`));
   for (const [f, src] of [[AEV, "event"], [ALOG, "log"], [AQ, "query"]]) await fsz.writeFile(f, await rdz(`../packages/audit/src/${src}.ts`));
-  let alog = await fsz.readFile(ALOG, "utf8"); alog = alog.replace(new RegExp('from "./event.ts"', "g"), `from "${AEV}"`); await fsz.writeFile(ALOG, alog);
+  let alog = await fsz.readFile(ALOG, "utf8"); alog = alog.replace(new RegExp('from "./event.ts"', "g"), `from "${toSpec(AEV)}"`); await fsz.writeFile(ALOG, alog);
   let aq = await fsz.readFile(AQ, "utf8"); aq = aq
-    .replace(new RegExp('from "./log.ts"', "g"), `from "${ALOG}"`)
-    .replace(new RegExp('from "./event.ts"', "g"), `from "${AEV}"`); await fsz.writeFile(AQ, aq);
-  await fsz.writeFile(AUD, `export * from "${AEV}"; export * from "${ALOG}"; export * from "${AQ}";`);
+    .replace(new RegExp('from "./log.ts"', "g"), `from "${toSpec(ALOG)}"`)
+    .replace(new RegExp('from "./event.ts"', "g"), `from "${toSpec(AEV)}"`); await fsz.writeFile(AQ, aq);
+  await fsz.writeFile(AUD, `export * from "${toSpec(AEV)}"; export * from "${toSpec(ALOG)}"; export * from "${toSpec(AQ)}";`);
   const CSVSTUB2 = `${dz}/wz-csv-${stz}.ts`;
   await fsz.writeFile(CSVSTUB2, await rdz("../packages/csv/src/index.ts"));
-  await fsz.writeFile(AL, (await rdz("../apps/internal-app/src/server/audit-log.ts")).replace(/from "@platform\/audit"/g, `from "${AUD}"`).replace(/from "@platform\/csv"/g, `from "${CSVSTUB2}"`));
-  await fsz.writeFile(AA, (await rdz("../apps/internal-app/src/server/audit-actions.ts")).replace(/from "@platform\/audit"/g, `from "${AUD}"`).replace(/from "\.\/audit-log\.ts"/g, `from "${AL}"`));
+  await fsz.writeFile(AL, (await rdz("../apps/internal-app/src/server/audit-log.ts")).replace(/from "@platform\/audit"/g, `from "${toSpec(AUD)}"`).replace(/from "@platform\/csv"/g, `from "${toSpec(CSVSTUB2)}"`));
+  await fsz.writeFile(AA, (await rdz("../apps/internal-app/src/server/audit-actions.ts")).replace(/from "@platform\/audit"/g, `from "${toSpec(AUD)}"`).replace(/from "\.\/audit-log\.ts"/g, `from "${toSpec(AL)}"`));
 
   // 配信設定
-  const NPmod = await import(NP);
+  const NPmod = await impFile(NP);
   const pstore = NPmod.createMemoryPreferenceStore();
   await pstore.set("u1", { defaultChannels: ["inApp", "email"], categories: { mention: { channels: ["inApp"], mode: "immediate" } } });
   const d1 = await NPmod.decideDelivery(pstore, "u1", { category: "mention" });
@@ -6520,7 +6598,7 @@ section("audit");
     JSON.stringify(pg.defaultChannels) === JSON.stringify(["inApp"]) && pg.quietHours.start === 22 && pg.quietHours.end === 7);
 
   // 監査アクション記録
-  const ALmod = await import(AL), AAmod = await import(AA);
+  const ALmod = await impFile(AL), AAmod = await impFile(AA);
   let t = 0; const now = () => new Date(Date.UTC(2025, 6, 1, 10, 0, t++)).toISOString();
   const audit = ALmod.createAuditLog(ALmod.createMemoryAuditStore());
   const actions = AAmod.createAuditActions(audit, now);
@@ -6550,19 +6628,19 @@ section("audit");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const stc = Date.now();
+  const stc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const AEV = `${dc}/cv-aev-${stc}.ts`, ALOG = `${dc}/cv-alog-${stc}.ts`, AQ = `${dc}/cv-aq-${stc}.ts`, AUD = `${dc}/cv-aud-${stc}.ts`, CSV = `${dc}/cv-csv-${stc}.ts`, AL = `${dc}/cv-al-${stc}.ts`;
   for (const [f, src] of [[AEV, "event"], [ALOG, "log"], [AQ, "query"]]) await fsc.writeFile(f, await rdc(`../packages/audit/src/${src}.ts`));
-  let alog = await fsc.readFile(ALOG, "utf8"); alog = alog.replace(new RegExp('from "./event.ts"', "g"), `from "${AEV}"`); await fsc.writeFile(ALOG, alog);
+  let alog = await fsc.readFile(ALOG, "utf8"); alog = alog.replace(new RegExp('from "./event.ts"', "g"), `from "${toSpec(AEV)}"`); await fsc.writeFile(ALOG, alog);
   let aq = await fsc.readFile(AQ, "utf8"); aq = aq
-    .replace(new RegExp('from "./log.ts"', "g"), `from "${ALOG}"`)
-    .replace(new RegExp('from "./event.ts"', "g"), `from "${AEV}"`); await fsc.writeFile(AQ, aq);
-  await fsc.writeFile(AUD, `export * from "${AEV}"; export * from "${ALOG}"; export * from "${AQ}";`);
+    .replace(new RegExp('from "./log.ts"', "g"), `from "${toSpec(ALOG)}"`)
+    .replace(new RegExp('from "./event.ts"', "g"), `from "${toSpec(AEV)}"`); await fsc.writeFile(AQ, aq);
+  await fsc.writeFile(AUD, `export * from "${toSpec(AEV)}"; export * from "${toSpec(ALOG)}"; export * from "${toSpec(AQ)}";`);
   await fsc.writeFile(CSV, await rdc("../packages/csv/src/index.ts"));
-  await fsc.writeFile(AL, (await rdc("../apps/internal-app/src/server/audit-log.ts")).replace(/from "@platform\/audit"/g, `from "${AUD}"`).replace(/from "@platform\/csv"/g, `from "${CSV}"`));
+  await fsc.writeFile(AL, (await rdc("../apps/internal-app/src/server/audit-log.ts")).replace(/from "@platform\/audit"/g, `from "${toSpec(AUD)}"`).replace(/from "@platform\/csv"/g, `from "${toSpec(CSV)}"`));
 
-  const AL2 = await import(AL);
+  const AL2 = await impFile(AL);
   let t = 0; const now = () => new Date(Date.UTC(2025, 6, 1, 10, 0, t++)).toISOString();
   const audit = AL2.createAuditLog(AL2.createMemoryAuditStore());
   await audit.record({ at: now(), actor: "alice", action: "expense.submit", target: "expense:1", after: { amount: 1000 } });
@@ -6585,20 +6663,20 @@ section("audit");
   const fsp = await import("node:fs/promises");
   const osp = await import("node:os");
   const dp = osp.tmpdir();
-  const stp = Date.now();
+  const stp = smokeStamp();
   const rdp = async (rel) => (await fsp.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const AEV = `${dp}/pz2-aev-${stp}.ts`, ALOG = `${dp}/pz2-alog-${stp}.ts`, AQ = `${dp}/pz2-aq-${stp}.ts`, AUD = `${dp}/pz2-aud-${stp}.ts`, CSV = `${dp}/pz2-csv-${stp}.ts`, AL = `${dp}/pz2-al-${stp}.ts`, AA = `${dp}/pz2-aa-${stp}.ts`;
   for (const [f, src] of [[AEV, "event"], [ALOG, "log"], [AQ, "query"]]) await fsp.writeFile(f, await rdp(`../packages/audit/src/${src}.ts`));
-  let alog = await fsp.readFile(ALOG, "utf8"); alog = alog.replace(new RegExp('from "./event.ts"', "g"), `from "${AEV}"`); await fsp.writeFile(ALOG, alog);
+  let alog = await fsp.readFile(ALOG, "utf8"); alog = alog.replace(new RegExp('from "./event.ts"', "g"), `from "${toSpec(AEV)}"`); await fsp.writeFile(ALOG, alog);
   let aq = await fsp.readFile(AQ, "utf8"); aq = aq
-    .replace(new RegExp('from "./log.ts"', "g"), `from "${ALOG}"`)
-    .replace(new RegExp('from "./event.ts"', "g"), `from "${AEV}"`); await fsp.writeFile(AQ, aq);
-  await fsp.writeFile(AUD, `export * from "${AEV}"; export * from "${ALOG}"; export * from "${AQ}";`);
+    .replace(new RegExp('from "./log.ts"', "g"), `from "${toSpec(ALOG)}"`)
+    .replace(new RegExp('from "./event.ts"', "g"), `from "${toSpec(AEV)}"`); await fsp.writeFile(AQ, aq);
+  await fsp.writeFile(AUD, `export * from "${toSpec(AEV)}"; export * from "${toSpec(ALOG)}"; export * from "${toSpec(AQ)}";`);
   await fsp.writeFile(CSV, await rdp("../packages/csv/src/index.ts"));
-  await fsp.writeFile(AL, (await rdp("../apps/internal-app/src/server/audit-log.ts")).replace(/from "@platform\/audit"/g, `from "${AUD}"`).replace(/from "@platform\/csv"/g, `from "${CSV}"`));
-  await fsp.writeFile(AA, (await rdp("../apps/internal-app/src/server/audit-actions.ts")).replace(/from "@platform\/audit"/g, `from "${AUD}"`).replace(/from "\.\/audit-log\.ts"/g, `from "${AL}"`));
+  await fsp.writeFile(AL, (await rdp("../apps/internal-app/src/server/audit-log.ts")).replace(/from "@platform\/audit"/g, `from "${toSpec(AUD)}"`).replace(/from "@platform\/csv"/g, `from "${toSpec(CSV)}"`));
+  await fsp.writeFile(AA, (await rdp("../apps/internal-app/src/server/audit-actions.ts")).replace(/from "@platform\/audit"/g, `from "${toSpec(AUD)}"`).replace(/from "\.\/audit-log\.ts"/g, `from "${toSpec(AL)}"`));
 
-  const AL2 = await import(AL), AA2 = await import(AA);
+  const AL2 = await impFile(AL), AA2 = await impFile(AA);
   let t = 0; const now = () => new Date(Date.UTC(2025, 6, 1, 10, 0, t++)).toISOString();
 
   // Prisma 永続ストア(fake db)
@@ -6656,38 +6734,38 @@ section("audit");
   const fst = await import("node:fs/promises");
   const ost = await import("node:os");
   const dt = ost.tmpdir();
-  const stt = Date.now();
+  const stt = smokeStamp();
   const rdt = async (rel) => (await fst.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   // analytics package
   const AEV = `${dt}/an-ev-${stt}.ts`, AAG = `${dt}/an-ag-${stt}.ts`, ANA = `${dt}/an-a-${stt}.ts`, AST = `${dt}/an-st-${stt}.ts`;
 section("analytics");
   await fst.writeFile(AEV, await rdt("../packages/analytics/src/event.ts"));
-  await fst.writeFile(AAG, (await rdt("../packages/analytics/src/aggregate.ts")).replace(new RegExp('from "./event.ts"', "g"), `from "${AEV}"`));
-  await fst.writeFile(ANA, `export * from "${AEV}"; export * from "${AAG}";`);
-  await fst.writeFile(AST, (await rdt("../apps/internal-app/src/server/analytics-store.ts")).replace(/from "@platform\/analytics"/g, `from "${ANA}"`));
+  await fst.writeFile(AAG, (await rdt("../packages/analytics/src/aggregate.ts")).replace(new RegExp('from "./event.ts"', "g"), `from "${toSpec(AEV)}"`));
+  await fst.writeFile(ANA, `export * from "${toSpec(AEV)}"; export * from "${toSpec(AAG)}";`);
+  await fst.writeFile(AST, (await rdt("../apps/internal-app/src/server/analytics-store.ts")).replace(/from "@platform\/analytics"/g, `from "${toSpec(ANA)}"`));
 
   // loadtest package
   const LST = `${dt}/lt-st-${stt}.ts`, LRN = `${dt}/lt-rn-${stt}.ts`;
   await fst.writeFile(LST, await rdt("../packages/loadtest/src/stats.ts"));
-  await fst.writeFile(LRN, (await rdt("../packages/loadtest/src/runner.ts")).replace(new RegExp('from "./stats.ts"', "g"), `from "${LST}"`));
+  await fst.writeFile(LRN, (await rdt("../packages/loadtest/src/runner.ts")).replace(new RegExp('from "./stats.ts"', "g"), `from "${toSpec(LST)}"`));
 
   // audit(entry詳細) + dashboard-prefs
   const EEV = `${dt}/ad-ev-${stt}.ts`, ELOG = `${dt}/ad-log-${stt}.ts`, EQ = `${dt}/ad-q-${stt}.ts`, EAUD = `${dt}/ad-aud-${stt}.ts`, ECSV = `${dt}/ad-csv-${stt}.ts`, EAL = `${dt}/ad-al-${stt}.ts`, DPR = `${dt}/dp-${stt}.ts`;
   for (const [f, src] of [[EEV, "event"], [ELOG, "log"], [EQ, "query"]]) await fst.writeFile(f, await rdt(`../packages/audit/src/${src}.ts`));
-  let elog = await fst.readFile(ELOG, "utf8"); elog = elog.replace(new RegExp('from "./event.ts"', "g"), `from "${EEV}"`); await fst.writeFile(ELOG, elog);
+  let elog = await fst.readFile(ELOG, "utf8"); elog = elog.replace(new RegExp('from "./event.ts"', "g"), `from "${toSpec(EEV)}"`); await fst.writeFile(ELOG, elog);
   let eq = await fst.readFile(EQ, "utf8"); eq = eq
-    .replace(new RegExp('from "./log.ts"', "g"), `from "${ELOG}"`)
-    .replace(new RegExp('from "./event.ts"', "g"), `from "${EEV}"`); await fst.writeFile(EQ, eq);
-  await fst.writeFile(EAUD, `export * from "${EEV}"; export * from "${ELOG}"; export * from "${EQ}";`);
+    .replace(new RegExp('from "./log.ts"', "g"), `from "${toSpec(ELOG)}"`)
+    .replace(new RegExp('from "./event.ts"', "g"), `from "${toSpec(EEV)}"`); await fst.writeFile(EQ, eq);
+  await fst.writeFile(EAUD, `export * from "${toSpec(EEV)}"; export * from "${toSpec(ELOG)}"; export * from "${toSpec(EQ)}";`);
   await fst.writeFile(ECSV, await rdt("../packages/csv/src/index.ts"));
-  await fst.writeFile(EAL, (await rdt("../apps/internal-app/src/server/audit-log.ts")).replace(/from "@platform\/audit"/g, `from "${EAUD}"`).replace(/from "@platform\/csv"/g, `from "${ECSV}"`));
+  await fst.writeFile(EAL, (await rdt("../apps/internal-app/src/server/audit-log.ts")).replace(/from "@platform\/audit"/g, `from "${toSpec(EAUD)}"`).replace(/from "@platform\/csv"/g, `from "${toSpec(ECSV)}"`));
   await fst.writeFile(DPR, await rdt("../apps/internal-app/src/server/dashboard-prefs.ts"));
 
   const isoT = (x) => new Date(x).toISOString();
 
   // analytics
-  const AN = await import(AST);
+  const AN = await impFile(AST);
   const an = AN.createAnalytics(AN.createMemoryAnalyticsStore());
   await an.track({ type: "pageview", path: "/", sessionId: "s1", userId: "u1", referrer: "google.com", at: isoT("2025-07-01T10:00:00Z") });
   await an.track({ type: "pageview", path: "/pricing", sessionId: "s1", at: isoT("2025-07-01T10:05:00Z") });
@@ -6707,7 +6785,7 @@ section("analytics");
     (await pan.summary()).pageViews === 3 && (await pan.summary()).uniqueVisitors === 2 && (await pan.series()).length === 2);
 
   // loadtest
-  const LT = await import(LRN), LS = await import(LST);
+  const LT = await impFile(LRN), LS = await impFile(LST);
   let clk = 0; const nowLt = () => clk;
   const res = await LT.runLoad(async ({ index }) => { clk += 10; return index % 3 === 0 ? { ok: false, status: 500 } : { ok: true, status: 200 }; }, { concurrency: 1, iterations: 9, now: nowLt });
   clk = 0;
@@ -6719,7 +6797,7 @@ section("analytics");
     res2.total >= 49 && res2.total <= 51);
 
   // audit entry 詳細
-  const AL = await import(EAL);
+  const AL = await impFile(EAL);
   let ta = 0; const nowA = () => new Date(Date.UTC(2025, 6, 1, 10, 0, ta++)).toISOString();
   const audit = AL.createAuditLog(AL.createMemoryAuditStore());
   const actions = { rec: (e) => audit.record({ at: nowA(), ...e }) };
@@ -6731,7 +6809,7 @@ section("analytics");
     (await audit.entry(1)).changes.length === 0 && (await audit.entry(99)) === undefined);
 
   // dashboard prefs
-  const DP = await import(DPR);
+  const DP = await impFile(DPR);
   const dstore = DP.createMemoryDashboardPrefStore();
   await dstore.set("u1", { widgets: ["unread", "recentFiles", "bogus"] });
   const fakeDpDb = () => { const rows = new Map(); return { dashboardPrefRow: {
@@ -6755,7 +6833,7 @@ section("analytics");
   const fsh = await import("node:fs/promises");
   const osh = await import("node:os");
   const dh = osh.tmpdir();
-  const sth = Date.now();
+  const sth = smokeStamp();
   const rdh = async (rel) => (await fsh.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   // @platform/html
@@ -6764,9 +6842,9 @@ section("analytics");
   await fsh.writeFile(HW, await rdh("../packages/html/src/whitespace.ts"));
   await fsh.writeFile(HF, await rdh("../packages/html/src/fullwidth.ts"));
   await fsh.writeFile(HT, (await rdh("../packages/html/src/text.ts"))
-    .replace(new RegExp('from "./escape.ts"', "g"), `from "${HE}"`)
-    .replace(new RegExp('from "./whitespace.ts"', "g"), `from "${HW}"`));
-  const HTMLE = await import(HE), HTMLW = await import(HW), HTMLF = await import(HF), HTMLT = await import(HT);
+    .replace(new RegExp('from "./escape.ts"', "g"), `from "${toSpec(HE)}"`)
+    .replace(new RegExp('from "./whitespace.ts"', "g"), `from "${toSpec(HW)}"`));
+  const HTMLE = await impFile(HE), HTMLW = await impFile(HW), HTMLF = await impFile(HF), HTMLT = await impFile(HT);
   ok("html(escape/stripTags/nl2br/normalizeSpace/zenkaku/textToHtml-XSS安全/truncate/linkify)",
     HTMLE.escapeHtml('<a>&\"') === "&lt;a&gt;&amp;&quot;" && HTMLE.stripTags("<p>x<b>y</b></p>") === "xy" &&
     HTMLW.nl2br("a\nb") === "a<br>\nb" && HTMLW.normalizeSpace("\u3000 A\u3000\u3000B ") === "A B" &&
@@ -6777,11 +6855,11 @@ section("analytics");
   // 負荷シナリオ
   const LST = `${dh}/l-st-${sth}.ts`, LRN = `${dh}/l-rn-${sth}.ts`, LSC = `${dh}/l-sc-${sth}.ts`;
   await fsh.writeFile(LST, await rdh("../packages/loadtest/src/stats.ts"));
-  await fsh.writeFile(LRN, (await rdh("../packages/loadtest/src/runner.ts")).replace(new RegExp('from "./stats.ts"', "g"), `from "${LST}"`));
+  await fsh.writeFile(LRN, (await rdh("../packages/loadtest/src/runner.ts")).replace(new RegExp('from "./stats.ts"', "g"), `from "${toSpec(LST)}"`));
   await fsh.writeFile(LSC, (await rdh("../packages/loadtest/src/scenario.ts"))
-    .replace(new RegExp('from "./stats.ts"', "g"), `from "${LST}"`)
-    .replace(new RegExp('from "./runner.ts"', "g"), `from "${LRN}"`));
-  const SC = await import(LSC);
+    .replace(new RegExp('from "./stats.ts"', "g"), `from "${toSpec(LST)}"`)
+    .replace(new RegExp('from "./runner.ts"', "g"), `from "${toSpec(LRN)}"`));
+  const SC = await impFile(LSC);
   const steps = [
     { name: "home", weight: 3, request: async () => ({ ok: true, status: 200 }) },
     { name: "search", weight: 1, request: async () => ({ ok: false, status: 500 }) },
@@ -6798,14 +6876,14 @@ section("analytics");
   const EEV = `${dh}/e-ev-${sth}.ts`, ELOG = `${dh}/e-log-${sth}.ts`, EQ = `${dh}/e-q-${sth}.ts`, EAUD = `${dh}/e-aud-${sth}.ts`, ECSV = `${dh}/e-csv-${sth}.ts`, EAL = `${dh}/e-al-${sth}.ts`;
 section("audit");
   for (const [f, src] of [[EEV, "event"], [ELOG, "log"], [EQ, "query"]]) await fsh.writeFile(f, await rdh(`../packages/audit/src/${src}.ts`));
-  let elog = await fsh.readFile(ELOG, "utf8"); elog = elog.replace(new RegExp('from "./event.ts"', "g"), `from "${EEV}"`); await fsh.writeFile(ELOG, elog);
+  let elog = await fsh.readFile(ELOG, "utf8"); elog = elog.replace(new RegExp('from "./event.ts"', "g"), `from "${toSpec(EEV)}"`); await fsh.writeFile(ELOG, elog);
   let eq = await fsh.readFile(EQ, "utf8"); eq = eq
-    .replace(new RegExp('from "./log.ts"', "g"), `from "${ELOG}"`)
-    .replace(new RegExp('from "./event.ts"', "g"), `from "${EEV}"`); await fsh.writeFile(EQ, eq);
-  await fsh.writeFile(EAUD, `export * from "${EEV}"; export * from "${ELOG}"; export * from "${EQ}";`);
+    .replace(new RegExp('from "./log.ts"', "g"), `from "${toSpec(ELOG)}"`)
+    .replace(new RegExp('from "./event.ts"', "g"), `from "${toSpec(EEV)}"`); await fsh.writeFile(EQ, eq);
+  await fsh.writeFile(EAUD, `export * from "${toSpec(EEV)}"; export * from "${toSpec(ELOG)}"; export * from "${toSpec(EQ)}";`);
   await fsh.writeFile(ECSV, await rdh("../packages/csv/src/index.ts"));
-  await fsh.writeFile(EAL, (await rdh("../apps/internal-app/src/server/audit-log.ts")).replace(/from "@platform\/audit"/g, `from "${EAUD}"`).replace(/from "@platform\/csv"/g, `from "${ECSV}"`));
-  const AUDIT = await import(EEV), AL = await import(EAL);
+  await fsh.writeFile(EAL, (await rdh("../apps/internal-app/src/server/audit-log.ts")).replace(/from "@platform\/audit"/g, `from "${toSpec(EAUD)}"`).replace(/from "@platform\/csv"/g, `from "${toSpec(ECSV)}"`));
+  const AUDIT = await impFile(EEV), AL = await impFile(EAL);
   const dd = AUDIT.deepDiffChanges({ amount: 1000, address: { city: "東京" } }, { amount: 2000, address: { city: "大阪" } });
   let ta = 0; const nowA = () => new Date(Date.UTC(2025, 6, 1, 10, 0, ta++)).toISOString();
   const audit = AL.createAuditLog(AL.createMemoryAuditStore());
@@ -6823,8 +6901,8 @@ section("audit");
   // 計測ビーコン
   const ANEV = `${dh}/an-ev-${sth}.ts`, ANBR = `${dh}/an-br-${sth}.ts`;
   await fsh.writeFile(ANEV, await rdh("../packages/analytics/src/event.ts"));
-  await fsh.writeFile(ANBR, (await rdh("../packages/analytics/src/browser.ts")).replace(new RegExp('from "./event.ts"', "g"), `from "${ANEV}"`));
-  const BR = await import(ANBR);
+  await fsh.writeFile(ANBR, (await rdh("../packages/analytics/src/browser.ts")).replace(new RegExp('from "./event.ts"', "g"), `from "${toSpec(ANEV)}"`));
+  const BR = await impFile(ANBR);
   const beaconCalls = []; const fetchCalls = [];
   const b1 = BR.createBeacon({ sessionId: "s1", sendBeacon: (u, body) => { beaconCalls.push({ u, body }); return true; }, fetch: async (u) => { fetchCalls.push(u); } });
   b1.pageview("/pricing", { userId: "u1" });
@@ -6846,7 +6924,7 @@ section("audit");
   const fsp = await import("node:fs/promises");
   const osp = await import("node:os");
   const dp = osp.tmpdir();
-  const sp = Date.now();
+  const sp = smokeStamp();
   const rdp = async (rel) => (await fsp.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   // @platform/html バレル
@@ -6855,12 +6933,12 @@ section("audit");
   await fsp.writeFile(HW, await rdp("../packages/html/src/whitespace.ts"));
   await fsp.writeFile(HF, await rdp("../packages/html/src/fullwidth.ts"));
   await fsp.writeFile(HT, (await rdp("../packages/html/src/text.ts"))
-    .replace(new RegExp('from "./escape.ts"', "g"), `from "${HE}"`)
-    .replace(new RegExp('from "./whitespace.ts"', "g"), `from "${HW}"`));
+    .replace(new RegExp('from "./escape.ts"', "g"), `from "${toSpec(HE)}"`)
+    .replace(new RegExp('from "./whitespace.ts"', "g"), `from "${toSpec(HW)}"`));
   const HEM = `${dp}/ps-hem-${sp}.ts`;
-  await fsp.writeFile(HEM, (await rdp("../packages/html/src/embed.ts")).replace(/from "\.\/escape\.ts"/g, `from "${HE}"`));
+  await fsp.writeFile(HEM, (await rdp("../packages/html/src/embed.ts")).replace(/from "\.\/escape\.ts"/g, `from "${toSpec(HE)}"`));
   const HTMLBARREL = `${dp}/ps-html-${sp}.ts`;
-  await fsp.writeFile(HTMLBARREL, `export * from "${HE}"; export * from "${HW}"; export * from "${HF}"; export * from "${HT}"; export * from "${HEM}";`);
+  await fsp.writeFile(HTMLBARREL, `export * from "${toSpec(HE)}"; export * from "${toSpec(HW)}"; export * from "${toSpec(HF)}"; export * from "${toSpec(HT)}"; export * from "${toSpec(HEM)}";`);
 
   // @platform/site バレル(相互参照を張替)
   const siteSrcs = ["blocks", "navigation", "announcement", "redirects", "banner", "copyright"];
@@ -6868,31 +6946,31 @@ section("audit");
   for (const name of siteSrcs) { const f = `${dp}/ps-site-${name}-${sp}.ts`; siteMap[name] = f; await fsp.writeFile(f, await rdp(`../packages/site/src/${name}.ts`)); }
   for (const name of siteSrcs) {
     let c = await fsp.readFile(siteMap[name], "utf8");
-    for (const other of siteSrcs) c = c.replace(new RegExp(`from "\\./${other}\\.ts"`, "g"), `from "${siteMap[other]}"`);
+    for (const other of siteSrcs) c = c.replace(new RegExp(`from "\\./${other}\\.ts"`, "g"), `from "${toSpec(siteMap[other])}"`);
     await fsp.writeFile(siteMap[name], c);
   }
   const SITEBARREL = `${dp}/ps-sitebarrel-${sp}.ts`;
-  await fsp.writeFile(SITEBARREL, siteSrcs.map((n) => `export * from "${siteMap[n]}";`).join("\n"));
+  await fsp.writeFile(SITEBARREL, siteSrcs.map((n) => `export * from "${toSpec(siteMap[n])}";`).join("\n"));
 
   // board(category+blog)バレル
   const BOARDCAT = `${dp}/ps-boardcat-${sp}.ts`, BOARDBLOG = `${dp}/ps-boardblog-${sp}.ts`, BOARDBARREL = `${dp}/ps-board-${sp}.ts`;
   await fsp.writeFile(BOARDCAT, await rdp("../packages/board/src/category.ts"));
   await fsp.writeFile(BOARDBLOG, await rdp("../packages/board/src/blog.ts"));
-  await fsp.writeFile(BOARDBARREL, `export * from "${BOARDCAT}"; export * from "${BOARDBLOG}";`);
+  await fsp.writeFile(BOARDBARREL, `export * from "${toSpec(BOARDCAT)}"; export * from "${toSpec(BOARDBLOG)}";`);
 
   // fake search(実APIと同形: index/search が Result を返す)
   const SEARCHFAKE = `${dp}/ps-search-${sp}.ts`;
-  await fsp.writeFile(SEARCHFAKE, `export function createBm25Index(_o){const docs=[];return{async index(ds){for(const d of ds)docs.push(d);},async search(q,limit){return docs.filter((d)=>String(d.text??"").includes(q)).slice(0,limit).map((d,i)=>({document:d,score:10-i}));},async delete(){}};}\nexport function createSearch(adapter){return{async index(ds){try{await adapter.index(ds);return{ok:true,value:undefined};}catch(e){return{ok:false,error:e};}},async search(q,limit=10){try{return{ok:true,value:await adapter.search(q,limit)};}catch(e){return{ok:false,error:e};}},async delete(){return{ok:true,value:undefined};}};}\n`);
+  await fsp.writeFile(SEARCHFAKE, `export function createMemorySearch(_o){const docs=[];return{async index(ds){for(const d of ds)docs.push(d);},async search(q,limit){return docs.filter((d)=>String(d.text??"").includes(q)).slice(0,limit).map((d,i)=>({document:d,score:10-i}));},async delete(){}};}\nexport function createSearch(adapter){return{async index(ds){try{await adapter.index(ds);return{ok:true,value:undefined};}catch(e){return{ok:false,error:e};}},async search(q,limit=10){try{return{ok:true,value:await adapter.search(q,limit)};}catch(e){return{ok:false,error:e};}},async delete(){return{ok:true,value:undefined};}};}\n`);
 
   // site-content(実ソース)
   const CONTENT = `${dp}/ps-content-${sp}.ts`;
   await fsp.writeFile(CONTENT, (await rdp("../apps/public-site/src/server/site-content.ts"))
-    .replace(/from "@platform\/site"/g, `from "${SITEBARREL}"`)
-    .replace(/from "@platform\/html"/g, `from "${HTMLBARREL}"`)
-    .replace(/from "@platform\/search"/g, `from "${SEARCHFAKE}"`)
-    .replace(/from "@platform\/board"/g, `from "${BOARDBARREL}"`));
+    .replace(/from "@platform\/site"/g, `from "${toSpec(SITEBARREL)}"`)
+    .replace(/from "@platform\/html"/g, `from "${toSpec(HTMLBARREL)}"`)
+    .replace(/from "@platform\/search"/g, `from "${toSpec(SEARCHFAKE)}"`)
+    .replace(/from "@platform\/board"/g, `from "${toSpec(BOARDBARREL)}"`));
 
-  const C = await import(CONTENT);
+  const C = await impFile(CONTENT);
   const page = { slug: "about", title: "会社概要", blocks: [
     { id: "h", type: "heading", data: { level: 1, text: "私たちについて" } },
     { id: "t", type: "text", data: { text: "詳しくは https://example.com を\n<script>alert(1)</script>" } },
@@ -6917,7 +6995,7 @@ section("audit");
     (await content.announcements("/contact", now)).map((a) => a.id).join(",") === "a2");
 
   // linkify がチャット/掲示板本文に適用されること(html の linkify を直接確認)
-  const HTMLT = await import(HT);
+  const HTMLT = await impFile(HT);
   const msg = HTMLT.linkify("連絡は https://ex.com/x?a=1&b=2 まで <危険>");
   ok("chat/board-linkify(URLリンク化+属性エスケープ+XSS安全)",
     msg.includes('href="https://ex.com/x?a=1&b=2"') && msg.includes('target="_blank"') && msg.includes("&lt;") && !msg.includes("<危険>"));
@@ -6932,19 +7010,19 @@ section("audit");
   const fsx = await import("node:fs/promises");
   const osx = await import("node:os");
   const dx = osx.tmpdir();
-  const sx = Date.now();
+  const sx = smokeStamp();
   const rdx = async (rel) => (await fsx.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   // seo sitemap/favicon (escapeAttr from meta)
   const SMETA = `${dx}/x-smeta-${sx}.ts`, SSM = `${dx}/x-ssm-${sx}.ts`, SFV = `${dx}/x-sfv-${sx}.ts`;
 section("seo");
   await fsx.writeFile(SMETA, await rdx("../packages/seo/src/meta.ts"));
-  await fsx.writeFile(SSM, (await rdx("../packages/seo/src/sitemap.ts")).replace(new RegExp('from "./meta.ts"', "g"), `from "${SMETA}"`));
-  await fsx.writeFile(SFV, (await rdx("../packages/seo/src/favicon.ts")).replace(new RegExp('from "./meta.ts"', "g"), `from "${SMETA}"`));
+  await fsx.writeFile(SSM, (await rdx("../packages/seo/src/sitemap.ts")).replace(new RegExp('from "./meta.ts"', "g"), `from "${toSpec(SMETA)}"`));
+  await fsx.writeFile(SFV, (await rdx("../packages/seo/src/favicon.ts")).replace(new RegExp('from "./meta.ts"', "g"), `from "${toSpec(SMETA)}"`));
   // html embed
   const HESC = `${dx}/x-hesc-${sx}.ts`, HEMB = `${dx}/x-hemb-${sx}.ts`;
   await fsx.writeFile(HESC, await rdx("../packages/html/src/escape.ts"));
-  await fsx.writeFile(HEMB, (await rdx("../packages/html/src/embed.ts")).replace(new RegExp('from "./escape.ts"', "g"), `from "${HESC}"`));
+  await fsx.writeFile(HEMB, (await rdx("../packages/html/src/embed.ts")).replace(new RegExp('from "./escape.ts"', "g"), `from "${toSpec(HESC)}"`));
   // site banner/copyright
   const SBAN = `${dx}/x-sban-${sx}.ts`, SCOP = `${dx}/x-scop-${sx}.ts`;
   await fsx.writeFile(SBAN, await rdx("../packages/site/src/banner.ts"));
@@ -6959,7 +7037,7 @@ section("seo");
   const UMOT = `${dx}/x-umot-${sx}.ts`;
   await fsx.writeFile(UMOT, await rdx("../packages/ui/src/lib/motion.ts"));
 
-  const SM = await import(SSM), FV = await import(SFV), EM = await import(HEMB), BN = await import(SBAN), CP = await import(SCOP), CT = await import(BCAT), SH = await import(SSHR), MO = await import(UMOT);
+  const SM = await impFile(SSM), FV = await impFile(SFV), EM = await impFile(HEMB), BN = await impFile(SBAN), CP = await impFile(SCOP), CT = await impFile(BCAT), SH = await impFile(SSHR), MO = await impFile(UMOT);
 
   const sm = SM.buildSitemap([{ loc: "https://x.com/", changefreq: "daily", priority: 1.0 }, { loc: "https://x.com/a", lastmod: "2025-07-01" }]);
   ok("seo-sitemap/favicon(urlset+loc+priority+lastmod / index / icon+svg+apple+png+manifest+theme / Next形式)",
@@ -7024,7 +7102,7 @@ section("seo");
   const fsb = await import("node:fs/promises");
   const osb = await import("node:os");
   const db = osb.tmpdir();
-  const sb = Date.now();
+  const sb = smokeStamp();
   const rdb = async (rel) => (await fsb.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   // html バレル
@@ -7033,35 +7111,35 @@ section("seo");
   await fsb.writeFile(HW, await rdb("../packages/html/src/whitespace.ts"));
   await fsb.writeFile(HF, await rdb("../packages/html/src/fullwidth.ts"));
   await fsb.writeFile(HT, (await rdb("../packages/html/src/text.ts"))
-    .replace(new RegExp('from "./escape.ts"', "g"), `from "${HE}"`)
-    .replace(new RegExp('from "./whitespace.ts"', "g"), `from "${HW}"`));
+    .replace(new RegExp('from "./escape.ts"', "g"), `from "${toSpec(HE)}"`)
+    .replace(new RegExp('from "./whitespace.ts"', "g"), `from "${toSpec(HW)}"`));
   const HEM2 = `${db}/pb-hem-${sb}.ts`;
-  await fsb.writeFile(HEM2, (await rdb("../packages/html/src/embed.ts")).replace(new RegExp('from "./escape.ts"', "g"), `from "${HE}"`));
-  await fsb.writeFile(HB, `export * from "${HE}"; export * from "${HW}"; export * from "${HF}"; export * from "${HT}"; export * from "${HEM2}";`);
+  await fsb.writeFile(HEM2, (await rdb("../packages/html/src/embed.ts")).replace(new RegExp('from "./escape.ts"', "g"), `from "${toSpec(HE)}"`));
+  await fsb.writeFile(HB, `export * from "${toSpec(HE)}"; export * from "${toSpec(HW)}"; export * from "${toSpec(HF)}"; export * from "${toSpec(HT)}"; export * from "${toSpec(HEM2)}";`);
   // site バレル
   const siteSrcs = ["blocks", "navigation", "announcement", "redirects", "banner", "copyright"];
   const siteMap = {};
   for (const n of siteSrcs) { const f = `${db}/pb-site-${n}-${sb}.ts`; siteMap[n] = f; await fsb.writeFile(f, await rdb(`../packages/site/src/${n}.ts`)); }
-  for (const n of siteSrcs) { let c = await fsb.readFile(siteMap[n], "utf8"); for (const o of siteSrcs) c = c.replace(new RegExp(`from "\\./${o}\\.ts"`, "g"), `from "${siteMap[o]}"`); await fsb.writeFile(siteMap[n], c); }
+  for (const n of siteSrcs) { let c = await fsb.readFile(siteMap[n], "utf8"); for (const o of siteSrcs) c = c.replace(new RegExp(`from "\\./${o}\\.ts"`, "g"), `from "${toSpec(siteMap[o])}"`); await fsb.writeFile(siteMap[n], c); }
   const SB = `${db}/pb-sitebarrel-${sb}.ts`;
-  await fsb.writeFile(SB, siteSrcs.map((n) => `export * from "${siteMap[n]}";`).join("\n"));
+  await fsb.writeFile(SB, siteSrcs.map((n) => `export * from "${toSpec(siteMap[n])}";`).join("\n"));
   // board バレル(category+blog)
   const BCAT = `${db}/pb-bcat-${sb}.ts`, BBLOG = `${db}/pb-bblog-${sb}.ts`, BB = `${db}/pb-bb-${sb}.ts`;
   await fsb.writeFile(BCAT, await rdb("../packages/board/src/category.ts"));
   await fsb.writeFile(BBLOG, await rdb("../packages/board/src/blog.ts"));
-  await fsb.writeFile(BB, `export * from "${BCAT}"; export * from "${BBLOG}";`);
+  await fsb.writeFile(BB, `export * from "${toSpec(BCAT)}"; export * from "${toSpec(BBLOG)}";`);
   // fake search
   const SF = `${db}/pb-sf-${sb}.ts`;
-  await fsb.writeFile(SF, `export function createBm25Index(_o){const d=[];return{async index(x){for(const i of x)d.push(i);},async search(q,l){return d.filter((i)=>String(i.text??"").includes(q)).slice(0,l).map((i,n)=>({document:i,score:10-n}));},async delete(){}};}\nexport function createSearch(a){return{async index(x){await a.index(x);return{ok:true,value:undefined};},async search(q,l=10){return{ok:true,value:await a.search(q,l)};},async delete(){return{ok:true,value:undefined};}};}\n`);
+  await fsb.writeFile(SF, `export function createMemorySearch(_o){const d=[];return{async index(x){for(const i of x)d.push(i);},async search(q,l){return d.filter((i)=>String(i.text??"").includes(q)).slice(0,l).map((i,n)=>({document:i,score:10-n}));},async delete(){}};}\nexport function createSearch(a){return{async index(x){await a.index(x);return{ok:true,value:undefined};},async search(q,l=10){return{ok:true,value:await a.search(q,l)};},async delete(){return{ok:true,value:undefined};}};}\n`);
   // content(実ソース)
   const CT = `${db}/pb-content-${sb}.ts`;
   await fsb.writeFile(CT, (await rdb("../apps/public-site/src/server/site-content.ts"))
-    .replace(/from "@platform\/site"/g, `from "${SB}"`)
-    .replace(/from "@platform\/html"/g, `from "${HB}"`)
-    .replace(/from "@platform\/board"/g, `from "${BB}"`)
-    .replace(/from "@platform\/search"/g, `from "${SF}"`));
+    .replace(/from "@platform\/site"/g, `from "${toSpec(SB)}"`)
+    .replace(/from "@platform\/html"/g, `from "${toSpec(HB)}"`)
+    .replace(/from "@platform\/board"/g, `from "${toSpec(BB)}"`)
+    .replace(/from "@platform\/search"/g, `from "${toSpec(SF)}"`));
 
-  const C = await import(CT);
+  const C = await impFile(CT);
   const cats = [
     { id: "tech", name: "技術", slug: "tech", order: 1 },
     { id: "fe", name: "フロント", slug: "frontend", parentId: "tech" },
@@ -7104,7 +7182,9 @@ section("seo");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  // **`smokeStamp()` を使う。** `Date.now()` だけだと SMOKE_RUN が入らず、
+  // 「この実行で作ったファイル」の絞り込みから漏れる(最後の一括検査が効かない)
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   const BLG = `${dc}/x2-blg-${sc}.ts`, FEED = `${dc}/x2-feed-${sc}.ts`;
@@ -7115,11 +7195,11 @@ section("seo");
   const cmsSrcs = ["model", "scheduling", "adapter", "store"];
   const cmsMap = {};
   for (const n of cmsSrcs) { const f = `${dc}/x2-cms-${n}-${sc}.ts`; cmsMap[n] = f; await fsc.writeFile(f, await rdc(`../packages/cms/src/${n}.ts`)); }
-  for (const n of cmsSrcs) { let c = await fsc.readFile(cmsMap[n], "utf8"); for (const o of cmsSrcs) c = c.replace(new RegExp(`from "\./${o}\.ts"`, "g"), `from "${cmsMap[o]}"`); await fsc.writeFile(cmsMap[n], c); }
+  for (const n of cmsSrcs) { let c = await fsc.readFile(cmsMap[n], "utf8"); for (const o of cmsSrcs) c = c.replace(new RegExp(`from "\./${o}\.ts"`, "g"), `from "${toSpec(cmsMap[o])}"`); await fsc.writeFile(cmsMap[n], c); }
   const CMS = `${dc}/x2-cms-barrel-${sc}.ts`;
-  await fsc.writeFile(CMS, cmsSrcs.map((n) => `export * from "${cmsMap[n]}";`).join("\n"));
+  await fsc.writeFile(CMS, cmsSrcs.map((n) => `export * from "${toSpec(cmsMap[n])}";`).join("\n"));
 
-  const B = await import(BLG), F = await import(FEED), M = await import(CMS);
+  const B = await impFile(BLG), F = await impFile(FEED), M = await impFile(CMS);
 
   const posts = [
     { id: "a", categoryId: "fe", tags: ["React", "TS"], publishedAt: "2025-05-01T00:00:00Z" },
@@ -7187,16 +7267,16 @@ section("seo");
   const fse = await import("node:fs/promises");
   const ose = await import("node:os");
   const de = ose.tmpdir();
-  const se = Date.now();
+  const se = smokeStamp();
   const rde = async (rel) => (await fse.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   // @platform/cms バレル
   const cmsSrcs = ["model", "scheduling", "adapter", "store"];
   const cmsMap = {};
   for (const n of cmsSrcs) { const f = `${de}/xe-cms-${n}-${se}.ts`; cmsMap[n] = f; await fse.writeFile(f, await rde(`../packages/cms/src/${n}.ts`)); }
-  for (const n of cmsSrcs) { let c = await fse.readFile(cmsMap[n], "utf8"); for (const o of cmsSrcs) c = c.replace(new RegExp(`from "\\./${o}\\.ts"`, "g"), `from "${cmsMap[o]}"`); await fse.writeFile(cmsMap[n], c); }
+  for (const n of cmsSrcs) { let c = await fse.readFile(cmsMap[n], "utf8"); for (const o of cmsSrcs) c = c.replace(new RegExp(`from "\\./${o}\\.ts"`, "g"), `from "${toSpec(cmsMap[o])}"`); await fse.writeFile(cmsMap[n], c); }
   const CMSB = `${de}/xe-cmsb-${se}.ts`;
-  await fse.writeFile(CMSB, cmsSrcs.map((n) => `export * from "${cmsMap[n]}";`).join("\n"));
+  await fse.writeFile(CMSB, cmsSrcs.map((n) => `export * from "${toSpec(cmsMap[n])}";`).join("\n"));
 
   // html バレル(embed含む)
   const HE = `${de}/xe-he-${se}.ts`, HW = `${de}/xe-hw-${se}.ts`, HF = `${de}/xe-hf-${se}.ts`, HT = `${de}/xe-ht-${se}.ts`, HM = `${de}/xe-hm-${se}.ts`, HB = `${de}/xe-hb-${se}.ts`;
@@ -7204,40 +7284,40 @@ section("seo");
   await fse.writeFile(HW, await rde("../packages/html/src/whitespace.ts"));
   await fse.writeFile(HF, await rde("../packages/html/src/fullwidth.ts"));
   await fse.writeFile(HT, (await rde("../packages/html/src/text.ts"))
-    .replace(new RegExp('from "./escape.ts"', "g"), `from "${HE}"`)
-    .replace(new RegExp('from "./whitespace.ts"', "g"), `from "${HW}"`));
-  await fse.writeFile(HM, (await rde("../packages/html/src/embed.ts")).replace(new RegExp('from "./escape.ts"', "g"), `from "${HE}"`));
-  await fse.writeFile(HB, `export * from "${HE}"; export * from "${HW}"; export * from "${HF}"; export * from "${HT}"; export * from "${HM}";`);
+    .replace(new RegExp('from "./escape.ts"', "g"), `from "${toSpec(HE)}"`)
+    .replace(new RegExp('from "./whitespace.ts"', "g"), `from "${toSpec(HW)}"`));
+  await fse.writeFile(HM, (await rde("../packages/html/src/embed.ts")).replace(new RegExp('from "./escape.ts"', "g"), `from "${toSpec(HE)}"`));
+  await fse.writeFile(HB, `export * from "${toSpec(HE)}"; export * from "${toSpec(HW)}"; export * from "${toSpec(HF)}"; export * from "${toSpec(HT)}"; export * from "${toSpec(HM)}";`);
   // site バレル
   const siteSrcs = ["blocks", "navigation", "announcement", "redirects", "banner", "copyright"];
   const siteMap = {};
   for (const n of siteSrcs) { const f = `${de}/xe-site-${n}-${se}.ts`; siteMap[n] = f; await fse.writeFile(f, await rde(`../packages/site/src/${n}.ts`)); }
-  for (const n of siteSrcs) { let c = await fse.readFile(siteMap[n], "utf8"); for (const o of siteSrcs) c = c.replace(new RegExp(`from "\\./${o}\\.ts"`, "g"), `from "${siteMap[o]}"`); await fse.writeFile(siteMap[n], c); }
+  for (const n of siteSrcs) { let c = await fse.readFile(siteMap[n], "utf8"); for (const o of siteSrcs) c = c.replace(new RegExp(`from "\\./${o}\\.ts"`, "g"), `from "${toSpec(siteMap[o])}"`); await fse.writeFile(siteMap[n], c); }
   const SB = `${de}/xe-sb-${se}.ts`;
-  await fse.writeFile(SB, siteSrcs.map((n) => `export * from "${siteMap[n]}";`).join("\n"));
+  await fse.writeFile(SB, siteSrcs.map((n) => `export * from "${toSpec(siteMap[n])}";`).join("\n"));
   // board バレル
   const BC = `${de}/xe-bc-${se}.ts`, BBL = `${de}/xe-bbl-${se}.ts`, BB = `${de}/xe-bb-${se}.ts`;
   await fse.writeFile(BC, await rde("../packages/board/src/category.ts"));
   await fse.writeFile(BBL, await rde("../packages/board/src/blog.ts"));
-  await fse.writeFile(BB, `export * from "${BC}"; export * from "${BBL}";`);
+  await fse.writeFile(BB, `export * from "${toSpec(BC)}"; export * from "${toSpec(BBL)}";`);
   // fake search
   const SF = `${de}/xe-sf-${se}.ts`;
-  await fse.writeFile(SF, `export function createBm25Index(_o){const d=[];return{async index(x){for(const i of x)d.push(i);},async search(q,l){return d.filter((i)=>String(i.text??"").includes(q)).slice(0,l).map((i,n)=>({document:i,score:10-n}));},async delete(){}};}\nexport function createSearch(a){return{async index(x){await a.index(x);return{ok:true,value:undefined};},async search(q,l=10){return{ok:true,value:await a.search(q,l)};},async delete(){return{ok:true,value:undefined};}};}\n`);
+  await fse.writeFile(SF, `export function createMemorySearch(_o){const d=[];return{async index(x){for(const i of x)d.push(i);},async search(q,l){return d.filter((i)=>String(i.text??"").includes(q)).slice(0,l).map((i,n)=>({document:i,score:10-n}));},async delete(){}};}\nexport function createSearch(a){return{async index(x){await a.index(x);return{ok:true,value:undefined};},async search(q,l=10){return{ok:true,value:await a.search(q,l)};},async delete(){return{ok:true,value:undefined};}};}\n`);
   // site-content(実ソース)
   const SC = `${de}/xe-sc-${se}.ts`;
   await fse.writeFile(SC, (await rde("../apps/public-site/src/server/site-content.ts"))
-    .replace(/from "@platform\/site"/g, `from "${SB}"`)
-    .replace(/from "@platform\/html"/g, `from "${HB}"`)
-    .replace(/from "@platform\/board"/g, `from "${BB}"`)
-    .replace(/from "@platform\/search"/g, `from "${SF}"`));
+    .replace(/from "@platform\/site"/g, `from "${toSpec(SB)}"`)
+    .replace(/from "@platform\/html"/g, `from "${toSpec(HB)}"`)
+    .replace(/from "@platform\/board"/g, `from "${toSpec(BB)}"`)
+    .replace(/from "@platform\/search"/g, `from "${toSpec(SF)}"`));
   // preview(実ソース)。siteEnv(env.ts)はテスト用スタブに差し替える
   const PVENV = `${de}/xe-pvenv-${se}.ts`;
   // 実 env.ts は起動時に固定するが、この検証は token の有無を動的に切り替えるため getter で読む
   await fse.writeFile(PVENV, `export const siteEnv = { get PREVIEW_TOKEN() { return process.env.PREVIEW_TOKEN ?? ""; }, INTERNAL_API_BASE: "", INTERNAL_INQUIRY_URL: "", INQUIRY_INTAKE_TOKEN: "" };\n`);
   const PV = `${de}/xe-pv-${se}.ts`;
-  await fse.writeFile(PV, (await rde("../apps/public-site/src/server/preview.ts")).replace(/from "@platform\/cms"/g, `from "${CMSB}"`).replace(/from "\.\/env\.ts"/g, `from "${PVENV}"`));
+  await fse.writeFile(PV, (await rde("../apps/public-site/src/server/preview.ts")).replace(/from "@platform\/cms"/g, `from "${toSpec(CMSB)}"`).replace(/from "\.\/env\.ts"/g, `from "${toSpec(PVENV)}"`));
 
-  const SCH = await import(CMSB), C = await import(SC), PVm = await import(PV);
+  const SCH = await impFile(CMSB), C = await impFile(SC), PVm = await impFile(PV);
 
   const now = new Date("2025-07-01T00:00:00Z");
   const future = { slug: "f", title: "F", body: "x", tags: [], status: "published", publishedAt: "2025-07-01T01:00:00Z", updatedAt: "x" };
@@ -7276,7 +7356,7 @@ section("seo");
   const fsp2 = await import("node:fs/promises");
   const osp2 = await import("node:os");
   const dp2 = osp2.tmpdir();
-  const sp2 = Date.now();
+  const sp2 = smokeStamp();
   const rdp2 = async (rel) => (await fsp2.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   // @platform/site は型のみ使用 → 空スタブ
@@ -7284,11 +7364,11 @@ section("seo");
   await fsp2.writeFile(SITE, "export {};");
   const MO = `${dp2}/z-model-${sp2}.ts`, PG = `${dp2}/z-page-${sp2}.ts`, AN = `${dp2}/z-ann-${sp2}.ts`;
 section("cms");
-  await fsp2.writeFile(MO, (await rdp2("../packages/cms/src/model.ts")).replace(/from "@platform\/site"/g, `from "${SITE}"`));
-  await fsp2.writeFile(PG, (await rdp2("../packages/cms/src/page.ts")).replace(/from "@platform\/site"/g, `from "${SITE}"`));
-  await fsp2.writeFile(AN, (await rdp2("../packages/cms/src/announcement.ts")).replace(/from "@platform\/site"/g, `from "${SITE}"`));
+  await fsp2.writeFile(MO, (await rdp2("../packages/cms/src/model.ts")).replace(/from "@platform\/site"/g, `from "${toSpec(SITE)}"`));
+  await fsp2.writeFile(PG, (await rdp2("../packages/cms/src/page.ts")).replace(/from "@platform\/site"/g, `from "${toSpec(SITE)}"`));
+  await fsp2.writeFile(AN, (await rdp2("../packages/cms/src/announcement.ts")).replace(/from "@platform\/site"/g, `from "${toSpec(SITE)}"`));
 
-  const M = await import(MO), P = await import(PG), A = await import(AN);
+  const M = await impFile(MO), P = await impFile(PG), A = await impFile(AN);
 
   ok("buildPreviewUrl(末尾スラッシュ除去 + encode)", M.buildPreviewUrl("https://site.com/", "my-post", "tok en") === "https://site.com/preview/my-post?token=tok%20en");
 
@@ -7348,18 +7428,18 @@ section("cms");
   const fsc2 = await import("node:fs/promises");
   const osc2 = await import("node:os");
   const dc2 = osc2.tmpdir();
-  const sc2 = Date.now();
+  const sc2 = smokeStamp();
   const rdc2 = async (rel) => (await fsc2.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   const BOARD = `${dc2}/y-board-${sc2}.ts`, SITE = `${dc2}/y-site-${sc2}.ts`;
   await fsc2.writeFile(BOARD, "export {};");
   await fsc2.writeFile(SITE, "export {};");
   const CATS = `${dc2}/y-catstore-${sc2}.ts`, TAGS = `${dc2}/y-tags-${sc2}.ts`, PGM = `${dc2}/y-pgmodel-${sc2}.ts`, PG = `${dc2}/y-page-${sc2}.ts`;
-  await fsc2.writeFile(CATS, (await rdc2("../packages/cms/src/category-store.ts")).replace(/from "@platform\/board"/g, `from "${BOARD}"`));
+  await fsc2.writeFile(CATS, (await rdc2("../packages/cms/src/category-store.ts")).replace(/from "@platform\/board"/g, `from "${toSpec(BOARD)}"`));
   await fsc2.writeFile(TAGS, await rdc2("../packages/cms/src/tags.ts"));
-  await fsc2.writeFile(PG, (await rdc2("../packages/cms/src/page.ts")).replace(/from "@platform\/site"/g, `from "${SITE}"`));
+  await fsc2.writeFile(PG, (await rdc2("../packages/cms/src/page.ts")).replace(/from "@platform\/site"/g, `from "${toSpec(SITE)}"`));
 
-  const CS = await import(CATS), TG = await import(TAGS), P = await import(PG);
+  const CS = await impFile(CATS), TG = await impFile(TAGS), P = await impFile(PG);
 
   // category store
   let n = 0; const genId = () => `c${n++}`;
@@ -7413,19 +7493,19 @@ section("cms");
   const fsd = await import("node:fs/promises");
   const osd = await import("node:os");
   const dd = osd.tmpdir();
-  const sd = Date.now();
+  const sd = smokeStamp();
   const rdd = async (rel) => (await fsd.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   const SITE = `${dd}/w-site-${sd}.ts`;
   await fsd.writeFile(SITE, "export {};");
   const MO = `${dd}/w-model-${sd}.ts`, SCH = `${dd}/w-sched-${sd}.ts`, SUM = `${dd}/w-sum-${sd}.ts`;
-  await fsd.writeFile(MO, (await rdd("../packages/cms/src/model.ts")).replace(/from "@platform\/site"/g, `from "${SITE}"`));
-  await fsd.writeFile(SCH, (await rdd("../packages/cms/src/scheduling.ts")).replace(new RegExp('from "./model.ts"', "g"), `from "${MO}"`));
+  await fsd.writeFile(MO, (await rdd("../packages/cms/src/model.ts")).replace(/from "@platform\/site"/g, `from "${toSpec(SITE)}"`));
+  await fsd.writeFile(SCH, (await rdd("../packages/cms/src/scheduling.ts")).replace(new RegExp('from "./model.ts"', "g"), `from "${toSpec(MO)}"`));
   await fsd.writeFile(SUM, (await rdd("../packages/cms/src/summary.ts"))
-    .replace(new RegExp('from "./model.ts"', "g"), `from "${MO}"`)
-    .replace(new RegExp('from "./scheduling.ts"', "g"), `from "${SCH}"`));
+    .replace(new RegExp('from "./model.ts"', "g"), `from "${toSpec(MO)}"`)
+    .replace(new RegExp('from "./scheduling.ts"', "g"), `from "${toSpec(SCH)}"`));
 
-  const S = await import(SUM);
+  const S = await impFile(SUM);
   const now = new Date("2025-07-01T00:00:00Z");
   const posts = [
     { slug: "a", title: "A", body: "x", tags: [], status: "published", publishedAt: "2025-06-01T00:00:00Z", updatedAt: "2025-06-01T00:00:00Z" },
@@ -7461,19 +7541,19 @@ section("cms");
   const fsg = await import("node:fs/promises");
   const osg = await import("node:os");
   const dg = osg.tmpdir();
-  const sg = Date.now();
+  const sg = smokeStamp();
   const rdg = async (rel) => (await fsg.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   // filterPosts(@platform/cms: model + scheduling + filter)
   const SITE = `${dg}/v-site-${sg}.ts`;
   await fsg.writeFile(SITE, "export {};");
   const MO = `${dg}/v-model-${sg}.ts`, SCH = `${dg}/v-sched-${sg}.ts`, FT = `${dg}/v-filter-${sg}.ts`;
-  await fsg.writeFile(MO, (await rdg("../packages/cms/src/model.ts")).replace(/from "@platform\/site"/g, `from "${SITE}"`));
-  await fsg.writeFile(SCH, (await rdg("../packages/cms/src/scheduling.ts")).replace(new RegExp('from "./model.ts"', "g"), `from "${MO}"`));
+  await fsg.writeFile(MO, (await rdg("../packages/cms/src/model.ts")).replace(/from "@platform\/site"/g, `from "${toSpec(SITE)}"`));
+  await fsg.writeFile(SCH, (await rdg("../packages/cms/src/scheduling.ts")).replace(new RegExp('from "./model.ts"', "g"), `from "${toSpec(MO)}"`));
   await fsg.writeFile(FT, (await rdg("../packages/cms/src/filter.ts"))
-    .replace(new RegExp('from "./model.ts"', "g"), `from "${MO}"`)
-    .replace(new RegExp('from "./scheduling.ts"', "g"), `from "${SCH}"`));
-  const F = await import(FT);
+    .replace(new RegExp('from "./model.ts"', "g"), `from "${toSpec(MO)}"`)
+    .replace(new RegExp('from "./scheduling.ts"', "g"), `from "${toSpec(SCH)}"`));
+  const F = await impFile(FT);
 
   const now = new Date("2025-07-01T00:00:00Z");
   const posts = [
@@ -7495,8 +7575,8 @@ section("cms");
   const ALOG = `${dg}/v-alog-${sg}.ts`, AQ = `${dg}/v-auditq-${sg}.ts`;
   await fsg.writeFile(ALOG, "export {};");
 section("audit");
-  await fsg.writeFile(AQ, (await rdg("../packages/audit/src/query.ts")).replace(new RegExp('from "./log.ts"', "g"), `from "${ALOG}"`));
-  const Q = await import(AQ);
+  await fsg.writeFile(AQ, (await rdg("../packages/audit/src/query.ts")).replace(new RegExp('from "./log.ts"', "g"), `from "${toSpec(ALOG)}"`));
+  const Q = await impFile(AQ);
   const entries = [
     { seq: 1, action: "chat.edit", target: "msg:1", actor: "u", at: "x" },
     { seq: 2, action: "cms.post.create", target: "post:a", actor: "u", at: "x" },
@@ -7518,17 +7598,17 @@ section("audit");
   const fsr = await import("node:fs/promises");
   const osr = await import("node:os");
   const dr = osr.tmpdir();
-  const sr = Date.now();
+  const sr = smokeStamp();
   const rdr = async (rel) => (await fsr.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   const SITE = `${dr}/u-site-${sr}.ts`;
   await fsr.writeFile(SITE, "export {};");
   const MO = `${dr}/u-model-${sr}.ts`, RV = `${dr}/u-rev-${sr}.ts`, PR = `${dr}/u-pr-${sr}.ts`;
-  await fsr.writeFile(MO, (await rdr("../packages/cms/src/model.ts")).replace(/from "@platform\/site"/g, `from "${SITE}"`));
-  await fsr.writeFile(RV, (await rdr("../packages/cms/src/revision.ts")).replace(new RegExp('from "./model.ts"', "g"), `from "${MO}"`));
+  await fsr.writeFile(MO, (await rdr("../packages/cms/src/model.ts")).replace(/from "@platform\/site"/g, `from "${toSpec(SITE)}"`));
+  await fsr.writeFile(RV, (await rdr("../packages/cms/src/revision.ts")).replace(new RegExp('from "./model.ts"', "g"), `from "${toSpec(MO)}"`));
   await fsr.writeFile(PR, await rdr("../packages/cms/src/publish-request.ts"));
 
-  const M = await import(MO), R = await import(RV), P = await import(PR);
+  const M = await impFile(MO), R = await impFile(RV), P = await impFile(PR);
 
   ok("cms-isPublishAction(published=true/draft=false)",
     M.isPublishAction({ slug: "x", title: "t", body: "b", status: "published" }) === true && M.isPublishAction({ slug: "x", title: "t", body: "b", status: "draft" }) === false);
@@ -7588,13 +7668,13 @@ section("audit");
   const fsd = await import("node:fs/promises");
   const osd = await import("node:os");
   const dd = osd.tmpdir();
-  const sd = Date.now();
+  const sd = smokeStamp();
   const rdd = async (rel) => (await fsd.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   // 記事差分(@platform/cms diff)
   const DF = `${dd}/w-diff-${sd}.ts`;
   await fsd.writeFile(DF, await rdd("../packages/cms/src/diff.ts"));
-  const D = await import(DF);
+  const D = await impFile(DF);
   const d1 = D.diffLines("a\nb\nc", "a\nx\nc");
   const d2 = D.diffLines("a\nb", "a\nb\nc");
   const rev = D.diffRevisions(
@@ -7614,11 +7694,11 @@ section("audit");
   const MV = `${dd}/w-inv-mv-${sd}.ts`, RE = `${dd}/w-inv-re-${sd}.ts`, WH = `${dd}/w-inv-wh-${sd}.ts`, LT = `${dd}/w-inv-lt-${sd}.ts`, PK = `${dd}/w-inv-pkg-${sd}.ts`, RP = `${dd}/w-inv-repo-${sd}.ts`;
   await fsd.writeFile(MV, await rdd("../packages/inventory/src/movements.ts"));
   await fsd.writeFile(RE, await rdd("../packages/inventory/src/reorder.ts"));
-  await fsd.writeFile(WH, (await rdd("../packages/inventory/src/warehouse.ts")).replace(new RegExp('from "./movements.ts"', "g"), `from "${MV}"`));
-  await fsd.writeFile(LT, (await rdd("../packages/inventory/src/lot.ts")).replace(new RegExp('from "./movements.ts"', "g"), `from "${MV}"`));
-  await fsd.writeFile(PK, `export * from "${MV}";\nexport * from "${RE}";\nexport * from "${WH}";\nexport * from "${LT}";\n`);
-  await fsd.writeFile(RP, (await rdd("../apps/internal-app/src/server/inventory-repo.ts")).replace(/from "@platform\/inventory"/g, `from "${PK}"`));
-  const R = await import(RP);
+  await fsd.writeFile(WH, (await rdd("../packages/inventory/src/warehouse.ts")).replace(new RegExp('from "./movements.ts"', "g"), `from "${toSpec(MV)}"`));
+  await fsd.writeFile(LT, (await rdd("../packages/inventory/src/lot.ts")).replace(new RegExp('from "./movements.ts"', "g"), `from "${toSpec(MV)}"`));
+  await fsd.writeFile(PK, `export * from "${toSpec(MV)}";\nexport * from "${toSpec(RE)}";\nexport * from "${toSpec(WH)}";\nexport * from "${toSpec(LT)}";\n`);
+  await fsd.writeFile(RP, (await rdd("../apps/internal-app/src/server/inventory-repo.ts")).replace(/from "@platform\/inventory"/g, `from "${toSpec(PK)}"`));
+  const R = await impFile(RP);
 
   const st = R.createMemoryInventoryStore();
   await st.createProduct({ sku: "A-1", name: "ネジ", unit: "個", policy: { safetyStock: 100, dailyDemand: 10, leadTimeDays: 5 } });
@@ -7657,39 +7737,39 @@ section("audit");
   const fsb = await import("node:fs/promises");
   const osb = await import("node:os");
   const db_ = osb.tmpdir();
-  const sb = Date.now();
+  const sb = smokeStamp();
   const rdb = async (rel) => (await fsb.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
 
   // tax → invoice → purchase 合成
   const TW = `${db_}/z-taxw-${sb}.ts`, TI = `${db_}/z-taxi-${sb}.ts`, TX = `${db_}/z-tax-${sb}.ts`;
 section("tax");
   await fsb.writeFile(TW, await rdb("../packages/tax/src/withholding.ts"));
-  await fsb.writeFile(TI, (await rdb("../packages/tax/src/index.ts")).replace(new RegExp('from "./withholding.ts"', "g"), `from "${TW}"`));
-  await fsb.writeFile(TX, `export * from "${TI}";`);
+  await fsb.writeFile(TI, (await rdb("../packages/tax/src/index.ts")).replace(new RegExp('from "./withholding.ts"', "g"), `from "${toSpec(TW)}"`));
+  await fsb.writeFile(TX, `export * from "${toSpec(TI)}";`);
   const IL = `${db_}/z-invl-${sb}.ts`, II = `${db_}/z-invi-${sb}.ts`, IP = `${db_}/z-invp-${sb}.ts`, IV = `${db_}/z-inv-${sb}.ts`;
-  await fsb.writeFile(IL, (await rdb("../packages/invoice/src/line.ts")).replace(/from "@platform\/tax"/g, `from "${TX}"`));
-  await fsb.writeFile(II, (await rdb("../packages/invoice/src/invoice.ts")).replace(/from "@platform\/tax"/g, `from "${TX}"`).replace(new RegExp('from "./line.ts"', "g"), `from "${IL}"`));
+  await fsb.writeFile(IL, (await rdb("../packages/invoice/src/line.ts")).replace(/from "@platform\/tax"/g, `from "${toSpec(TX)}"`));
+  await fsb.writeFile(II, (await rdb("../packages/invoice/src/invoice.ts")).replace(/from "@platform\/tax"/g, `from "${toSpec(TX)}"`).replace(new RegExp('from "./line.ts"', "g"), `from "${toSpec(IL)}"`));
   await fsb.writeFile(IP, await rdb("../packages/invoice/src/payment.ts"));
-  await fsb.writeFile(IV, `export * from "${IL}";\nexport * from "${II}";\nexport * from "${IP}";\nexport type { Rounding } from "${TX}";`);
+  await fsb.writeFile(IV, `export * from "${toSpec(IL)}";\nexport * from "${toSpec(II)}";\nexport * from "${toSpec(IP)}";\nexport type { Rounding } from "${toSpec(TX)}";`);
   const PO = `${db_}/z-po-${sb}.ts`, PR = `${db_}/z-pur-${sb}.ts`;
-  await fsb.writeFile(PO, (await rdb("../packages/purchase/src/purchase-order.ts")).replace(/from "@platform\/invoice"/g, `from "${IV}"`));
-  await fsb.writeFile(PR, `export * from "${PO}";`);
+  await fsb.writeFile(PO, (await rdb("../packages/purchase/src/purchase-order.ts")).replace(/from "@platform\/invoice"/g, `from "${toSpec(IV)}"`));
+  await fsb.writeFile(PR, `export * from "${toSpec(PO)}";`);
   // inventory 合成(movements/reorder/warehouse/lot)
   const MV = `${db_}/z-mv-${sb}.ts`, RE = `${db_}/z-re-${sb}.ts`, WH = `${db_}/z-wh-${sb}.ts`, LT = `${db_}/z-lt-${sb}.ts`, INV = `${db_}/z-invtry-${sb}.ts`;
   await fsb.writeFile(MV, await rdb("../packages/inventory/src/movements.ts"));
   await fsb.writeFile(RE, await rdb("../packages/inventory/src/reorder.ts"));
-  await fsb.writeFile(WH, (await rdb("../packages/inventory/src/warehouse.ts")).replace(new RegExp('from "./movements.ts"', "g"), `from "${MV}"`));
-  await fsb.writeFile(LT, (await rdb("../packages/inventory/src/lot.ts")).replace(new RegExp('from "./movements.ts"', "g"), `from "${MV}"`));
-  await fsb.writeFile(INV, `export * from "${MV}";\nexport * from "${RE}";\nexport * from "${WH}";\nexport * from "${LT}";`);
+  await fsb.writeFile(WH, (await rdb("../packages/inventory/src/warehouse.ts")).replace(new RegExp('from "./movements.ts"', "g"), `from "${toSpec(MV)}"`));
+  await fsb.writeFile(LT, (await rdb("../packages/inventory/src/lot.ts")).replace(new RegExp('from "./movements.ts"', "g"), `from "${toSpec(MV)}"`));
+  await fsb.writeFile(INV, `export * from "${toSpec(MV)}";\nexport * from "${toSpec(RE)}";\nexport * from "${toSpec(WH)}";\nexport * from "${toSpec(LT)}";`);
   // repos/helper
   const IREPO = `${db_}/z-irepo-${sb}.ts`, PDRAFT = `${db_}/z-pdraft-${sb}.ts`, VREPO = `${db_}/z-vrepo-${sb}.ts`;
-  await fsb.writeFile(IREPO, (await rdb("../apps/internal-app/src/server/inventory-repo.ts")).replace(/from "@platform\/inventory"/g, `from "${INV}"`));
+  await fsb.writeFile(IREPO, (await rdb("../apps/internal-app/src/server/inventory-repo.ts")).replace(/from "@platform\/inventory"/g, `from "${toSpec(INV)}"`));
   await fsb.writeFile(PDRAFT, (await rdb("../apps/internal-app/src/server/purchase-draft.ts"))
-    .replace(/from "@platform\/purchase"/g, `from "${PR}"`)
-    .replace(new RegExp('from "./inventory-repo.ts"', "g"), `from "${IREPO}"`));
-  await fsb.writeFile(VREPO, (await rdb("../apps/internal-app/src/server/invoice-repo.ts")).replace(/from "@platform\/invoice"/g, `from "${IV}"`));
+    .replace(/from "@platform\/purchase"/g, `from "${toSpec(PR)}"`)
+    .replace(new RegExp('from "./inventory-repo.ts"', "g"), `from "${toSpec(IREPO)}"`));
+  await fsb.writeFile(VREPO, (await rdb("../apps/internal-app/src/server/invoice-repo.ts")).replace(/from "@platform\/invoice"/g, `from "${toSpec(IV)}"`));
 
-  const IR = await import(IREPO), PD = await import(PDRAFT), VR = await import(VREPO);
+  const IR = await impFile(IREPO), PD = await impFile(PDRAFT), VR = await impFile(VREPO);
 
   // 在庫詳細
   const ist = IR.createMemoryInventoryStore();
@@ -7756,41 +7836,41 @@ section("tax");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/y-${name}-${sc}.ts`;
 
   // tax
   const TW = W("taxw"), TI = W("taxi"), TX = W("tax");
   await fsc.writeFile(TW, await rdc("../packages/tax/src/withholding.ts"));
-  await fsc.writeFile(TI, (await rdc("../packages/tax/src/index.ts")).replace(new RegExp('from "./withholding.ts"', "g"), `from "${TW}"`));
-  await fsc.writeFile(TX, `export * from "${TI}";`);
+  await fsc.writeFile(TI, (await rdc("../packages/tax/src/index.ts")).replace(new RegExp('from "./withholding.ts"', "g"), `from "${toSpec(TW)}"`));
+  await fsc.writeFile(TX, `export * from "${toSpec(TI)}";`);
   // invoice(line/invoice/payment/reconcile/dunning)
   const IL = W("invl"), II = W("invi"), IP = W("invp"), IRc = W("invrc"), IDn = W("invdn"), IV = W("inv");
-  await fsc.writeFile(IL, (await rdc("../packages/invoice/src/line.ts")).replace(/from "@platform\/tax"/g, `from "${TX}"`));
-  await fsc.writeFile(II, (await rdc("../packages/invoice/src/invoice.ts")).replace(/from "@platform\/tax"/g, `from "${TX}"`).replace(new RegExp('from "./line.ts"', "g"), `from "${IL}"`));
+  await fsc.writeFile(IL, (await rdc("../packages/invoice/src/line.ts")).replace(/from "@platform\/tax"/g, `from "${toSpec(TX)}"`));
+  await fsc.writeFile(II, (await rdc("../packages/invoice/src/invoice.ts")).replace(/from "@platform\/tax"/g, `from "${toSpec(TX)}"`).replace(new RegExp('from "./line.ts"', "g"), `from "${toSpec(IL)}"`));
   await fsc.writeFile(IP, await rdc("../packages/invoice/src/payment.ts"));
-  await fsc.writeFile(IRc, (await rdc("../packages/invoice/src/reconcile.ts")).replace(new RegExp('from "./payment.ts"', "g"), `from "${IP}"`));
+  await fsc.writeFile(IRc, (await rdc("../packages/invoice/src/reconcile.ts")).replace(new RegExp('from "./payment.ts"', "g"), `from "${toSpec(IP)}"`));
   await fsc.writeFile(IDn, await rdc("../packages/invoice/src/dunning.ts"));
-  await fsc.writeFile(IV, `export * from "${IL}";\nexport * from "${II}";\nexport * from "${IP}";\nexport * from "${IRc}";\nexport * from "${IDn}";\nexport type { Rounding } from "${TX}";`);
+  await fsc.writeFile(IV, `export * from "${toSpec(IL)}";\nexport * from "${toSpec(II)}";\nexport * from "${toSpec(IP)}";\nexport * from "${toSpec(IRc)}";\nexport * from "${toSpec(IDn)}";\nexport type { Rounding } from "${toSpec(TX)}";`);
   // quote
   const QQ = W("qq"), QT = W("q");
-  await fsc.writeFile(QQ, (await rdc("../packages/quote/src/quote.ts")).replace(/from "@platform\/invoice"/g, `from "${IV}"`));
-  await fsc.writeFile(QT, `export * from "${QQ}";`);
+  await fsc.writeFile(QQ, (await rdc("../packages/quote/src/quote.ts")).replace(/from "@platform\/invoice"/g, `from "${toSpec(IV)}"`));
+  await fsc.writeFile(QT, `export * from "${toSpec(QQ)}";`);
   // purchase(order + receiving)
   const PO = W("po"), PRc = W("prc"), PT = W("pur");
-  await fsc.writeFile(PO, (await rdc("../packages/purchase/src/purchase-order.ts")).replace(/from "@platform\/invoice"/g, `from "${IV}"`));
+  await fsc.writeFile(PO, (await rdc("../packages/purchase/src/purchase-order.ts")).replace(/from "@platform\/invoice"/g, `from "${toSpec(IV)}"`));
   await fsc.writeFile(PRc, (await rdc("../packages/purchase/src/receiving.ts"))
-    .replace(/from "@platform\/invoice"/g, `from "${IV}"`)
-    .replace(new RegExp('from "./purchase-order.ts"', "g"), `from "${PO}"`));
-  await fsc.writeFile(PT, `export * from "${PO}";\nexport * from "${PRc}";`);
+    .replace(/from "@platform\/invoice"/g, `from "${toSpec(IV)}"`)
+    .replace(new RegExp('from "./purchase-order.ts"', "g"), `from "${toSpec(PO)}"`));
+  await fsc.writeFile(PT, `export * from "${toSpec(PO)}";\nexport * from "${toSpec(PRc)}";`);
   // repos
   const RCVr = W("rcv"), QRr = W("qrepo"), PRr = W("prepo");
-  await fsc.writeFile(RCVr, (await rdc("../apps/internal-app/src/server/receivables.ts")).replace(/from "@platform\/invoice"/g, `from "${IV}"`));
-  await fsc.writeFile(QRr, (await rdc("../apps/internal-app/src/server/quote-repo.ts")).replace(/from "@platform\/quote"/g, `from "${QT}"`));
-  await fsc.writeFile(PRr, (await rdc("../apps/internal-app/src/server/purchase-repo.ts")).replace(/from "@platform\/purchase"/g, `from "${PT}"`));
+  await fsc.writeFile(RCVr, (await rdc("../apps/internal-app/src/server/receivables.ts")).replace(/from "@platform\/invoice"/g, `from "${toSpec(IV)}"`));
+  await fsc.writeFile(QRr, (await rdc("../apps/internal-app/src/server/quote-repo.ts")).replace(/from "@platform\/quote"/g, `from "${toSpec(QT)}"`));
+  await fsc.writeFile(PRr, (await rdc("../apps/internal-app/src/server/purchase-repo.ts")).replace(/from "@platform\/purchase"/g, `from "${toSpec(PT)}"`));
 
-  const RCV = await import(RCVr), QR = await import(QRr), PR = await import(PRr);
+  const RCV = await impFile(RCVr), QR = await impFile(QRr), PR = await impFile(PRr);
   const now = new Date("2025-07-01T00:00:00Z");
 
   // 売掛
@@ -7863,7 +7943,7 @@ section("tax");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z-${name}-${sc}.ts`;
 
@@ -7872,48 +7952,48 @@ section("tax");
 section("datetime");
   await fsc.writeFile(DT, await rdc("../packages/datetime/src/calendar.ts"));
   const DTB = W("dtb");
-  await fsc.writeFile(DTB, `export * from "${DT}";`);
+  await fsc.writeFile(DTB, `export * from "${toSpec(DT)}";`);
   // tax
   const TW = W("taxw"), TI = W("taxi"), TX = W("tax");
   await fsc.writeFile(TW, await rdc("../packages/tax/src/withholding.ts"));
-  await fsc.writeFile(TI, (await rdc("../packages/tax/src/index.ts")).replace(new RegExp('from "./withholding.ts"', "g"), `from "${TW}"`));
-  await fsc.writeFile(TX, `export * from "${TI}";`);
+  await fsc.writeFile(TI, (await rdc("../packages/tax/src/index.ts")).replace(new RegExp('from "./withholding.ts"', "g"), `from "${toSpec(TW)}"`));
+  await fsc.writeFile(TX, `export * from "${toSpec(TI)}";`);
   // invoice(line/invoice/payment/recurring)
   const IL = W("invl"), II = W("invi"), IP = W("invp"), IRe = W("invre"), IV = W("inv");
-  await fsc.writeFile(IL, (await rdc("../packages/invoice/src/line.ts")).replace(/from "@platform\/tax"/g, `from "${TX}"`));
-  await fsc.writeFile(II, (await rdc("../packages/invoice/src/invoice.ts")).replace(/from "@platform\/tax"/g, `from "${TX}"`).replace(new RegExp('from "./line.ts"', "g"), `from "${IL}"`));
+  await fsc.writeFile(IL, (await rdc("../packages/invoice/src/line.ts")).replace(/from "@platform\/tax"/g, `from "${toSpec(TX)}"`));
+  await fsc.writeFile(II, (await rdc("../packages/invoice/src/invoice.ts")).replace(/from "@platform\/tax"/g, `from "${toSpec(TX)}"`).replace(new RegExp('from "./line.ts"', "g"), `from "${toSpec(IL)}"`));
   await fsc.writeFile(IP, await rdc("../packages/invoice/src/payment.ts"));
   await fsc.writeFile(IRe, (await rdc("../packages/invoice/src/recurring.ts"))
-    .replace(new RegExp('from "./invoice.ts"', "g"), `from "${II}"`)
-    .replace(new RegExp('from "./line.ts"', "g"), `from "${IL}"`)
-    .replace(/from "@platform\/datetime"/g, `from "${DTB}"`));
-  await fsc.writeFile(IV, `export * from "${IL}";\nexport * from "${II}";\nexport * from "${IP}";\nexport * from "${IRe}";\nexport type { Rounding } from "${TX}";`);
+    .replace(new RegExp('from "./invoice.ts"', "g"), `from "${toSpec(II)}"`)
+    .replace(new RegExp('from "./line.ts"', "g"), `from "${toSpec(IL)}"`)
+    .replace(/from "@platform\/datetime"/g, `from "${toSpec(DTB)}"`));
+  await fsc.writeFile(IV, `export * from "${toSpec(IL)}";\nexport * from "${toSpec(II)}";\nexport * from "${toSpec(IP)}";\nexport * from "${toSpec(IRe)}";\nexport type { Rounding } from "${toSpec(TX)}";`);
   // payroll(worktime)
   const PW = W("payw"), PY = W("pay");
   await fsc.writeFile(PW, await rdc("../packages/payroll/src/worktime.ts"));
-  await fsc.writeFile(PY, `export * from "${PW}";`);
+  await fsc.writeFile(PY, `export * from "${toSpec(PW)}";`);
   // accounting(journal/entries/export)
   const AJ = W("accj"), AE = W("acce"), AX = W("accx"), AC = W("acc");
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
-  await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`));
+  await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`));
   await fsc.writeFile(AX, (await rdc("../packages/accounting/src/export.ts"))
-    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
-    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
-  await fsc.writeFile(AC, `export * from "${AJ}";\nexport * from "${AE}";\nexport * from "${AX}";`);
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${toSpec(AE)}"`));
+  await fsc.writeFile(AC, `export * from "${toSpec(AJ)}";\nexport * from "${toSpec(AE)}";\nexport * from "${toSpec(AX)}";`);
   // app repos
   const RRr = W("recrepo"), ARr = W("attrepo"), LGr = W("ledger");
-  await fsc.writeFile(RRr, (await rdc("../apps/internal-app/src/server/recurring-repo.ts")).replace(/from "@platform\/invoice"/g, `from "${IV}"`));
+  await fsc.writeFile(RRr, (await rdc("../apps/internal-app/src/server/recurring-repo.ts")).replace(/from "@platform\/invoice"/g, `from "${toSpec(IV)}"`));
   // 勤怠の型と計算は @platform/attendance へ移したので、そちらも展開する
   const ATc = W("att-core"), ATl = W("att-leave"), ATi = W("att-index");
-  await fsc.writeFile(ATc, (await rdc("../packages/attendance/src/core.ts")).replace(/from "@platform\/payroll"/g, `from "${PY}"`));
+  await fsc.writeFile(ATc, (await rdc("../packages/attendance/src/core.ts")).replace(/from "@platform\/payroll"/g, `from "${toSpec(PY)}"`));
   await fsc.writeFile(ATl, await rdc("../packages/attendance/src/leave.ts"));
-  await fsc.writeFile(ATi, `export * from "${ATc}";\nexport * from "${ATl}";\n`);
+  await fsc.writeFile(ATi, `export * from "${toSpec(ATc)}";\nexport * from "${toSpec(ATl)}";\n`);
   await fsc.writeFile(ARr, (await rdc("../apps/internal-app/src/server/attendance-repo.ts"))
-    .replace(/from "@platform\/payroll"/g, `from "${PY}"`)
-    .replace(/from "@platform\/attendance"/g, `from "${ATi}"`));
-  await fsc.writeFile(LGr, (await rdc("../apps/internal-app/src/server/ledger.ts")).replace(/from "@platform\/accounting"/g, `from "${AC}"`));
+    .replace(/from "@platform\/payroll"/g, `from "${toSpec(PY)}"`)
+    .replace(/from "@platform\/attendance"/g, `from "${toSpec(ATi)}"`));
+  await fsc.writeFile(LGr, (await rdc("../apps/internal-app/src/server/ledger.ts")).replace(/from "@platform\/accounting"/g, `from "${toSpec(AC)}"`));
 
-  const RR = await import(RRr), AR = await import(ARr), LG = await import(LGr);
+  const RR = await impFile(RRr), AR = await impFile(ARr), LG = await impFile(LGr);
 
   // 繰り返し請求
   const rs = RR.createMemoryRecurringStore();
@@ -7992,7 +8072,7 @@ section("datetime");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/w-${name}-${sc}.ts`;
 
@@ -8000,39 +8080,39 @@ section("datetime");
   const CE = W("cerr"), CR = W("cres"), CB = W("core");
 section("core");
   await fsc.writeFile(CE, await rdc("../packages/core/src/error.ts"));
-  await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${CE}"`));
-  await fsc.writeFile(CB, `export * from "${CE}";\nexport * from "${CR}";`);
+  await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${toSpec(CE)}"`));
+  await fsc.writeFile(CB, `export * from "${toSpec(CE)}";\nexport * from "${toSpec(CR)}";`);
   // payroll
   const PWk = W("payw"), PPr = W("payp"), PPs = W("pays"), PB = W("pay");
   await fsc.writeFile(PWk, await rdc("../packages/payroll/src/worktime.ts"));
-  await fsc.writeFile(PPr, (await rdc("../packages/payroll/src/premium.ts")).replace(new RegExp('from "./worktime.ts"', "g"), `from "${PWk}"`));
-  await fsc.writeFile(PPs, (await rdc("../packages/payroll/src/payslip.ts")).replace(new RegExp('from "./premium.ts"', "g"), `from "${PPr}"`));
-  await fsc.writeFile(PB, `export * from "${PWk}";\nexport * from "${PPr}";\nexport * from "${PPs}";`);
+  await fsc.writeFile(PPr, (await rdc("../packages/payroll/src/premium.ts")).replace(new RegExp('from "./worktime.ts"', "g"), `from "${toSpec(PWk)}"`));
+  await fsc.writeFile(PPs, (await rdc("../packages/payroll/src/payslip.ts")).replace(new RegExp('from "./premium.ts"', "g"), `from "${toSpec(PPr)}"`));
+  await fsc.writeFile(PB, `export * from "${toSpec(PWk)}";\nexport * from "${toSpec(PPr)}";\nexport * from "${toSpec(PPs)}";`);
   // accounting
   const AJ = W("accj"), AE = W("acce"), AX = W("accx"), AS = W("accs"), AB = W("acc");
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
-  await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`));
+  await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`));
   await fsc.writeFile(AX, (await rdc("../packages/accounting/src/export.ts"))
-    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
-    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${toSpec(AE)}"`));
   await fsc.writeFile(AS, (await rdc("../packages/accounting/src/sync.ts"))
-    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
-    .replace(new RegExp('from "./export.ts"', "g"), `from "${AX}"`));
-  await fsc.writeFile(AB, `export * from "${AJ}";\nexport * from "${AE}";\nexport * from "${AX}";\nexport * from "${AS}";`);
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`)
+    .replace(new RegExp('from "./export.ts"', "g"), `from "${toSpec(AX)}"`));
+  await fsc.writeFile(AB, `export * from "${toSpec(AJ)}";\nexport * from "${toSpec(AE)}";\nexport * from "${toSpec(AX)}";\nexport * from "${toSpec(AS)}";`);
   // workflow / pdf(兄弟re-export除去 + core張替)
   const WF = W("wf"), PD = W("pdf");
-  const wfSrc = (await rdc("../packages/workflow/src/index.ts")).split("\n").filter((l) => !/from "\.\/(notification|routing|delegation|parallel|escalation)\.ts"/.test(l)).join("\n").replace(/from "@platform\/core"/g, `from "${CB}"`);
+  const wfSrc = (await rdc("../packages/workflow/src/index.ts")).split("\n").filter((l) => !/from "\.\/(notification|routing|delegation|parallel|escalation)\.ts"/.test(l)).join("\n").replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`);
   await fsc.writeFile(WF, wfSrc);
-  const pdSrc = (await rdc("../packages/pdf/src/index.ts")).split("\n").filter((l) => !/from "\.\/renderers\/playwright\.ts"/.test(l)).join("\n").replace(/from "@platform\/core"/g, `from "${CB}"`);
+  const pdSrc = (await rdc("../packages/pdf/src/index.ts")).split("\n").filter((l) => !/from "\.\/renderers\/playwright\.ts"/.test(l)).join("\n").replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`);
   await fsc.writeFile(PD, pdSrc);
   // app repos
   const PRr = W("payrepo"), FEr = W("freee"), AAr = W("apprepo"), PSr = W("pdfsvc");
-  await fsc.writeFile(PRr, (await rdc("../apps/internal-app/src/server/payroll-repo.ts")).replace(/from "@platform\/payroll"/g, `from "${PB}"`));
-  await fsc.writeFile(FEr, (await rdc("../apps/internal-app/src/server/freee-export.ts")).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
-  await fsc.writeFile(AAr, (await rdc("../apps/internal-app/src/server/attendance-approval-repo.ts")).replace(/from "@platform\/workflow"/g, `from "${WF}"`));
-  await fsc.writeFile(PSr, (await rdc("../apps/internal-app/src/server/pdf-service.ts")).replace(/from "@platform\/pdf"/g, `from "${PD}"`));
+  await fsc.writeFile(PRr, (await rdc("../apps/internal-app/src/server/payroll-repo.ts")).replace(/from "@platform\/payroll"/g, `from "${toSpec(PB)}"`));
+  await fsc.writeFile(FEr, (await rdc("../apps/internal-app/src/server/freee-export.ts")).replace(/from "@platform\/accounting"/g, `from "${toSpec(AB)}"`));
+  await fsc.writeFile(AAr, (await rdc("../apps/internal-app/src/server/attendance-approval-repo.ts")).replace(/from "@platform\/workflow"/g, `from "${toSpec(WF)}"`));
+  await fsc.writeFile(PSr, (await rdc("../apps/internal-app/src/server/pdf-service.ts")).replace(/from "@platform\/pdf"/g, `from "${toSpec(PD)}"`));
 
-  const PR = await import(PRr), FE = await import(FEr), AA = await import(AAr), PS = await import(PSr), AC = await import(AB);
+  const PR = await impFile(PRr), FE = await impFile(FEr), AA = await impFile(AAr), PS = await impFile(PSr), AC = await impFile(AB);
 
   // 給与
   const wage = { userId: "u@x.com", hourlyWage: 2000, allowances: [{ name: "通勤手当", amount: 15000 }], deductions: [{ name: "健康保険料", amount: 9000 }, { name: "厚生年金", amount: 16000 }] };
@@ -8099,29 +8179,29 @@ section("core");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/v-${name}-${sc}.ts`;
 
   // tax
   const TW = W("taxw"), TI = W("taxi"), TX = W("tax");
   await fsc.writeFile(TW, await rdc("../packages/tax/src/withholding.ts"));
-  await fsc.writeFile(TI, (await rdc("../packages/tax/src/index.ts")).replace(new RegExp('from "./withholding.ts"', "g"), `from "${TW}"`));
-  await fsc.writeFile(TX, `export * from "${TI}";`);
+  await fsc.writeFile(TI, (await rdc("../packages/tax/src/index.ts")).replace(new RegExp('from "./withholding.ts"', "g"), `from "${toSpec(TW)}"`));
+  await fsc.writeFile(TX, `export * from "${toSpec(TI)}";`);
   // invoice(line/invoice/payment/reconcile)
   const IL = W("invl"), II = W("invi"), IP = W("invp"), IRc = W("invrc"), IV = W("inv");
-  await fsc.writeFile(IL, (await rdc("../packages/invoice/src/line.ts")).replace(/from "@platform\/tax"/g, `from "${TX}"`));
-  await fsc.writeFile(II, (await rdc("../packages/invoice/src/invoice.ts")).replace(/from "@platform\/tax"/g, `from "${TX}"`).replace(new RegExp('from "./line.ts"', "g"), `from "${IL}"`));
+  await fsc.writeFile(IL, (await rdc("../packages/invoice/src/line.ts")).replace(/from "@platform\/tax"/g, `from "${toSpec(TX)}"`));
+  await fsc.writeFile(II, (await rdc("../packages/invoice/src/invoice.ts")).replace(/from "@platform\/tax"/g, `from "${toSpec(TX)}"`).replace(new RegExp('from "./line.ts"', "g"), `from "${toSpec(IL)}"`));
   await fsc.writeFile(IP, await rdc("../packages/invoice/src/payment.ts"));
-  await fsc.writeFile(IRc, (await rdc("../packages/invoice/src/reconcile.ts")).replace(new RegExp('from "./payment.ts"', "g"), `from "${IP}"`));
-  await fsc.writeFile(IV, `export * from "${IL}";\nexport * from "${II}";\nexport * from "${IP}";\nexport * from "${IRc}";\nexport type { Rounding } from "${TX}";`);
+  await fsc.writeFile(IRc, (await rdc("../packages/invoice/src/reconcile.ts")).replace(new RegExp('from "./payment.ts"', "g"), `from "${toSpec(IP)}"`));
+  await fsc.writeFile(IV, `export * from "${toSpec(IL)}";\nexport * from "${toSpec(II)}";\nexport * from "${toSpec(IP)}";\nexport * from "${toSpec(IRc)}";\nexport type { Rounding } from "${toSpec(TX)}";`);
   // app repos
   const PAr = W("payables"), WHr = W("wh"), DKr = W("dash");
-  await fsc.writeFile(PAr, (await rdc("../apps/internal-app/src/server/payables-repo.ts")).replace(/from "@platform\/invoice"/g, `from "${IV}"`));
-  await fsc.writeFile(WHr, (await rdc("../apps/internal-app/src/server/withholding-repo.ts")).replace(/from "@platform\/tax"/g, `from "${TX}"`));
+  await fsc.writeFile(PAr, (await rdc("../apps/internal-app/src/server/payables-repo.ts")).replace(/from "@platform\/invoice"/g, `from "${toSpec(IV)}"`));
+  await fsc.writeFile(WHr, (await rdc("../apps/internal-app/src/server/withholding-repo.ts")).replace(/from "@platform\/tax"/g, `from "${toSpec(TX)}"`));
   await fsc.writeFile(DKr, await rdc("../apps/internal-app/src/server/dashboard-kpi.ts"));
 
-  const PA = await import(PAr), WH = await import(WHr), DK = await import(DKr);
+  const PA = await impFile(PAr), WH = await impFile(WHr), DK = await impFile(DKr);
   const now = new Date("2025-07-01T00:00:00Z");
 
   // 買掛金
@@ -8176,7 +8256,7 @@ section("core");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/u-${name}-${sc}.ts`;
 
@@ -8184,20 +8264,20 @@ section("core");
   const AJ = W("accj"), AE = W("acce"), ACl = W("accc"), ATr = W("acct"), AB = W("acc");
 section("accounting");
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
-  await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`));
+  await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`));
   await fsc.writeFile(ACl, (await rdc("../packages/accounting/src/closing.ts"))
-    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
-    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${toSpec(AE)}"`));
   await fsc.writeFile(ATr, (await rdc("../packages/accounting/src/tax-report.ts"))
-    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
-    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
-  await fsc.writeFile(AB, `export * from "${AJ}";\nexport * from "${AE}";\nexport * from "${ACl}";\nexport * from "${ATr}";`);
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${toSpec(AE)}"`));
+  await fsc.writeFile(AB, `export * from "${toSpec(AJ)}";\nexport * from "${toSpec(AE)}";\nexport * from "${toSpec(ACl)}";\nexport * from "${toSpec(ATr)}";`);
   // app helpers
   const FINr = W("fin"), ALr = W("alerts");
-  await fsc.writeFile(FINr, (await rdc("../apps/internal-app/src/server/financials.ts")).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
+  await fsc.writeFile(FINr, (await rdc("../apps/internal-app/src/server/financials.ts")).replace(/from "@platform\/accounting"/g, `from "${toSpec(AB)}"`));
   await fsc.writeFile(ALr, await rdc("../apps/internal-app/src/server/alerts.ts"));
 
-  const FIN = await import(FINr), AL = await import(ALr), AC = await import(AB);
+  const FIN = await impFile(FINr), AL = await impFile(ALr), AC = await impFile(AB);
 
   // 決算
   const entries = [
@@ -8241,21 +8321,21 @@ section("accounting");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/t-${name}-${sc}.ts`;
 
   // depreciation(外部依存なし)
   const DEP = W("dep"), DEPB = W("depb");
   await fsc.writeFile(DEP, await rdc("../packages/depreciation/src/index.ts"));
-  await fsc.writeFile(DEPB, `export * from "${DEP}";`);
+  await fsc.writeFile(DEPB, `export * from "${toSpec(DEP)}";`);
   // app repos
   const ASr = W("asset"), BUr = W("budget"), PTr = W("partner");
-  await fsc.writeFile(ASr, (await rdc("../apps/internal-app/src/server/asset-repo.ts")).replace(/from "@platform\/depreciation"/g, `from "${DEPB}"`));
+  await fsc.writeFile(ASr, (await rdc("../apps/internal-app/src/server/asset-repo.ts")).replace(/from "@platform\/depreciation"/g, `from "${toSpec(DEPB)}"`));
   await fsc.writeFile(BUr, await rdc("../apps/internal-app/src/server/budget-repo.ts"));
   await fsc.writeFile(PTr, await rdc("../apps/internal-app/src/server/partner-repo.ts"));
 
-  const DP = await import(DEPB), AS = await import(ASr), BU = await import(BUr), PT = await import(PTr);
+  const DP = await impFile(DEPB), AS = await impFile(ASr), BU = await impFile(BUr), PT = await impFile(PTr);
 
   // 減価償却
   const sl = DP.straightLineSchedule(1000000, 5, 2025);
@@ -8320,36 +8400,36 @@ section("accounting");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/s-${name}-${sc}.ts`;
 
   // depreciation + asset-repo
   const DEP = W("dep"), DEPB = W("depb"), ASr = W("asset");
   await fsc.writeFile(DEP, await rdc("../packages/depreciation/src/index.ts"));
-  await fsc.writeFile(DEPB, `export * from "${DEP}";`);
-  await fsc.writeFile(ASr, (await rdc("../apps/internal-app/src/server/asset-repo.ts")).replace(/from "@platform\/depreciation"/g, `from "${DEPB}"`));
+  await fsc.writeFile(DEPB, `export * from "${toSpec(DEP)}";`);
+  await fsc.writeFile(ASr, (await rdc("../apps/internal-app/src/server/asset-repo.ts")).replace(/from "@platform\/depreciation"/g, `from "${toSpec(DEPB)}"`));
   // accounting(journal+entries+closing+tax-report)
   const AJ = W("accj"), AE = W("acce"), ACl = W("accc"), ATr = W("acct"), AB = W("acc");
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
-  await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`));
+  await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`));
   await fsc.writeFile(ACl, (await rdc("../packages/accounting/src/closing.ts"))
-    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
-    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${toSpec(AE)}"`));
   await fsc.writeFile(ATr, (await rdc("../packages/accounting/src/tax-report.ts"))
-    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
-    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
-  await fsc.writeFile(AB, `export * from "${AJ}";\nexport * from "${AE}";\nexport * from "${ACl}";\nexport * from "${ATr}";`);
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${toSpec(AE)}"`));
+  await fsc.writeFile(AB, `export * from "${toSpec(AJ)}";\nexport * from "${toSpec(AE)}";\nexport * from "${toSpec(ACl)}";\nexport * from "${toSpec(ATr)}";`);
   // helpers
   const TRr = W("trend"), PLr = W("plink"), DJr = W("djournal"), FINr = W("fin");
   await fsc.writeFile(TRr, await rdc("../apps/internal-app/src/server/trend.ts"));
   await fsc.writeFile(PLr, await rdc("../apps/internal-app/src/server/partner-link.ts"));
   await fsc.writeFile(DJr, (await rdc("../apps/internal-app/src/server/depreciation-journal.ts"))
-    .replace(new RegExp('from "./asset-repo.ts"', "g"), `from "${ASr}"`)
-    .replace(/from "@platform\/accounting"/g, `from "${AB}"`));
-  await fsc.writeFile(FINr, (await rdc("../apps/internal-app/src/server/financials.ts")).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
+    .replace(new RegExp('from "./asset-repo.ts"', "g"), `from "${toSpec(ASr)}"`)
+    .replace(/from "@platform\/accounting"/g, `from "${toSpec(AB)}"`));
+  await fsc.writeFile(FINr, (await rdc("../apps/internal-app/src/server/financials.ts")).replace(/from "@platform\/accounting"/g, `from "${toSpec(AB)}"`));
 
-  const TR = await import(TRr), PL = await import(PLr), DJ = await import(DJr), FIN = await import(FINr), AC = await import(AB);
+  const TR = await impFile(TRr), PL = await impFile(PLr), DJ = await impFile(DJr), FIN = await impFile(FINr), AC = await impFile(AB);
 
   // 月次推移
   const months = TR.monthRange("2025-05", "2025-07");
@@ -8395,19 +8475,19 @@ section("accounting");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/r-${name}-${sc}.ts`;
 
   const AJ = W("accj"), AB = W("acc");
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
-  await fsc.writeFile(AB, `export * from "${AJ}";`);
+  await fsc.writeFile(AB, `export * from "${toSpec(AJ)}";`);
   const DEPr = W("dept"), CFr = W("cf"), RCr = W("receipt");
-  await fsc.writeFile(DEPr, (await rdc("../apps/internal-app/src/server/department.ts")).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
+  await fsc.writeFile(DEPr, (await rdc("../apps/internal-app/src/server/department.ts")).replace(/from "@platform\/accounting"/g, `from "${toSpec(AB)}"`));
   await fsc.writeFile(CFr, await rdc("../apps/internal-app/src/server/cashflow.ts"));
   await fsc.writeFile(RCr, await rdc("../apps/internal-app/src/server/receipt-repo.ts"));
 
-  const DEP = await import(DEPr), CF = await import(CFr), RC = await import(RCr);
+  const DEP = await impFile(DEPr), CF = await impFile(CFr), RC = await impFile(RCr);
 
   // 部門別予実
   const budgets = [
@@ -8468,7 +8548,7 @@ section("accounting");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/q-${name}-${sc}.ts`;
 
@@ -8476,29 +8556,29 @@ section("accounting");
   const CE = W("cerr"), CR = W("cres"), CB = W("core"), ML = W("mail");
 section("core");
   await fsc.writeFile(CE, await rdc("../packages/core/src/error.ts"));
-  await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${CE}"`));
-  await fsc.writeFile(CB, `export * from "${CE}";\nexport * from "${CR}";`);
-  const mailSrc = (await rdc("../packages/mail/src/index.ts")).split("\n").filter((l) => !/from "\.\/(transports\/smtp|transports\/memory|email|resilient|template|allowlist|attachments|unsubscribe)\.ts"/.test(l)).join("\n").replace(/from "@platform\/core"/g, `from "${CB}"`);
+  await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${toSpec(CE)}"`));
+  await fsc.writeFile(CB, `export * from "${toSpec(CE)}";\nexport * from "${toSpec(CR)}";`);
+  const mailSrc = (await rdc("../packages/mail/src/index.ts")).split("\n").filter((l) => !/from "\.\/(transports\/smtp|transports\/memory|email|resilient|template|allowlist|attachments|unsubscribe)\.ts"/.test(l)).join("\n").replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`);
   await fsc.writeFile(ML, mailSrc);
   // accounting(journal+entries+closing)
   const AJ = W("accj"), AE = W("acce"), ACl = W("accc"), AB = W("acc");
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
-  await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`));
+  await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`));
   await fsc.writeFile(ACl, (await rdc("../packages/accounting/src/closing.ts"))
-    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
-    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
-  await fsc.writeFile(AB, `export * from "${AJ}";\nexport * from "${AE}";\nexport * from "${ACl}";`);
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${toSpec(AE)}"`));
+  await fsc.writeFile(AB, `export * from "${toSpec(AJ)}";\nexport * from "${toSpec(AE)}";\nexport * from "${toSpec(ACl)}";`);
   // helpers
   const PBr = W("pbal"), YEr = W("ye"), ALr = W("alerts"), AMr = W("amail"), MSr = W("msvc");
   await fsc.writeFile(PBr, await rdc("../apps/internal-app/src/server/partner-balance.ts"));
-  await fsc.writeFile(YEr, (await rdc("../apps/internal-app/src/server/year-end.ts")).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
+  await fsc.writeFile(YEr, (await rdc("../apps/internal-app/src/server/year-end.ts")).replace(/from "@platform\/accounting"/g, `from "${toSpec(AB)}"`));
   await fsc.writeFile(ALr, await rdc("../apps/internal-app/src/server/alerts.ts"));
   await fsc.writeFile(AMr, (await rdc("../apps/internal-app/src/server/alert-mail.ts"))
-    .replace(/from "@platform\/mail"/g, `from "${ML}"`)
-    .replace(new RegExp('from "./alerts.ts"', "g"), `from "${ALr}"`));
-  await fsc.writeFile(MSr, (await rdc("../apps/internal-app/src/server/mail-service.ts")).replace(/from "@platform\/mail"/g, `from "${ML}"`));
+    .replace(/from "@platform\/mail"/g, `from "${toSpec(ML)}"`)
+    .replace(new RegExp('from "./alerts.ts"', "g"), `from "${toSpec(ALr)}"`));
+  await fsc.writeFile(MSr, (await rdc("../apps/internal-app/src/server/mail-service.ts")).replace(/from "@platform\/mail"/g, `from "${toSpec(ML)}"`));
 
-  const PB = await import(PBr), YE = await import(YEr), AM = await import(AMr), MS = await import(MSr), AC = await import(AB);
+  const PB = await impFile(PBr), YE = await impFile(YEr), AM = await impFile(AMr), MS = await impFile(MSr), AC = await impFile(AB);
 
   // 取引先残高
   const partners = [{ code: "P001", name: "甲商事" }, { code: "P002", name: "乙社" }, { code: "P003", name: "丙物産" }];
@@ -8544,40 +8624,40 @@ section("core");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/p-${name}-${sc}.ts`;
 
   // core + workflow
   const CE = W("cerr"), CR = W("cres"), CB = W("core"), WI = W("wfi"), WR = W("wfr"), WF = W("wf");
   await fsc.writeFile(CE, await rdc("../packages/core/src/error.ts"));
-  await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${CE}"`));
-  await fsc.writeFile(CB, `export * from "${CE}";\nexport * from "${CR}";`);
-  const wfiSrc = (await rdc("../packages/workflow/src/index.ts")).split("\n").filter((l) => !/from "\.\/(notification|routing|delegation|parallel|escalation)\.ts"/.test(l)).join("\n").replace(/from "@platform\/core"/g, `from "${CB}"`);
+  await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${toSpec(CE)}"`));
+  await fsc.writeFile(CB, `export * from "${toSpec(CE)}";\nexport * from "${toSpec(CR)}";`);
+  const wfiSrc = (await rdc("../packages/workflow/src/index.ts")).split("\n").filter((l) => !/from "\.\/(notification|routing|delegation|parallel|escalation)\.ts"/.test(l)).join("\n").replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`);
   await fsc.writeFile(WI, wfiSrc);
-  await fsc.writeFile(WR, (await rdc("../packages/workflow/src/routing.ts")).replace(new RegExp('from "./index.ts"', "g"), `from "${WI}"`));
-  await fsc.writeFile(WF, `export * from "${WI}";\nexport * from "${WR}";`);
+  await fsc.writeFile(WR, (await rdc("../packages/workflow/src/routing.ts")).replace(new RegExp('from "./index.ts"', "g"), `from "${toSpec(WI)}"`));
+  await fsc.writeFile(WF, `export * from "${toSpec(WI)}";\nexport * from "${toSpec(WR)}";`);
   // csv + accounting
   const CSV = W("csv"), AJ = W("accj"), AE = W("acce"), AX = W("accx"), AB = W("acc");
   await fsc.writeFile(CSV, await rdc("../packages/csv/src/index.ts"));
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
-  await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`));
+  await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`));
   await fsc.writeFile(AX, (await rdc("../packages/accounting/src/export.ts"))
-    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
-    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
-  await fsc.writeFile(AB, `export * from "${AJ}";\nexport * from "${AE}";\nexport * from "${AX}";`);
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${toSpec(AE)}"`));
+  await fsc.writeFile(AB, `export * from "${toSpec(AJ)}";\nexport * from "${toSpec(AE)}";\nexport * from "${toSpec(AX)}";`);
   // helpers
   const JEr = W("je"), AFr = W("af"), DAr = W("da"), PLr = W("pl");
   await fsc.writeFile(JEr, (await rdc("../apps/internal-app/src/server/journal-export.ts"))
-    .replace(/from "@platform\/accounting"/g, `from "${AB}"`)
-    .replace(/from "@platform\/csv"/g, `from "${CSV}"`));
-  await fsc.writeFile(AFr, (await rdc("../apps/internal-app/src/server/approval-flow.ts")).replace(/from "@platform\/workflow"/g, `from "${WF}"`));
+    .replace(/from "@platform\/accounting"/g, `from "${toSpec(AB)}"`)
+    .replace(/from "@platform\/csv"/g, `from "${toSpec(CSV)}"`));
+  await fsc.writeFile(AFr, (await rdc("../apps/internal-app/src/server/approval-flow.ts")).replace(/from "@platform\/workflow"/g, `from "${toSpec(WF)}"`));
   await fsc.writeFile(DAr, (await rdc("../apps/internal-app/src/server/doc-approval-repo.ts"))
-    .replace(/from "@platform\/workflow"/g, `from "${WF}"`)
-    .replace(new RegExp('from "./approval-flow.ts"', "g"), `from "${AFr}"`));
+    .replace(/from "@platform\/workflow"/g, `from "${toSpec(WF)}"`)
+    .replace(new RegExp('from "./approval-flow.ts"', "g"), `from "${toSpec(AFr)}"`));
   await fsc.writeFile(PLr, await rdc("../apps/internal-app/src/server/period-lock-repo.ts"));
 
-  const JE = await import(JEr), AF = await import(AFr), DA = await import(DAr), PL = await import(PLr), AC = await import(AB);
+  const JE = await impFile(JEr), AF = await impFile(AFr), DA = await impFile(DAr), PL = await impFile(PLr), AC = await impFile(AB);
 
   // 仕訳帳CSV
   const entries = [AC.salesJournal({ date: "2025-06-01", description: "売上 INV-1", net: 100000, tax: 10000 }), AC.purchaseJournal({ date: "2025-06-10", net: 30000, tax: 3000 })];
@@ -8649,54 +8729,54 @@ section("core");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/n-${name}-${sc}.ts`;
 
   const CE = W("cerr"), CR = W("cres"), CB = W("core");
 section("core");
   await fsc.writeFile(CE, await rdc("../packages/core/src/error.ts"));
-  await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${CE}"`));
-  await fsc.writeFile(CB, `export * from "${CE}";\nexport * from "${CR}";`);
+  await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${toSpec(CE)}"`));
+  await fsc.writeFile(CB, `export * from "${toSpec(CE)}";\nexport * from "${toSpec(CR)}";`);
   const WI = W("wfi"), WR = W("wfr"), WB = W("wf");
-  await fsc.writeFile(WI, (await rdc("../packages/workflow/src/index.ts")).split("\n").filter((l) => !/from "\.\/(notification|routing|delegation|parallel|escalation)\.ts"/.test(l)).join("\n").replace(/from "@platform\/core"/g, `from "${CB}"`));
-  await fsc.writeFile(WR, (await rdc("../packages/workflow/src/routing.ts")).replace(new RegExp('from "./index.ts"', "g"), `from "${WI}"`));
-  await fsc.writeFile(WB, `export * from "${WI}";\nexport * from "${WR}";`);
+  await fsc.writeFile(WI, (await rdc("../packages/workflow/src/index.ts")).split("\n").filter((l) => !/from "\.\/(notification|routing|delegation|parallel|escalation)\.ts"/.test(l)).join("\n").replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`));
+  await fsc.writeFile(WR, (await rdc("../packages/workflow/src/routing.ts")).replace(new RegExp('from "./index.ts"', "g"), `from "${toSpec(WI)}"`));
+  await fsc.writeFile(WB, `export * from "${toSpec(WI)}";\nexport * from "${toSpec(WR)}";`);
   const CSV = W("csv");
   await fsc.writeFile(CSV, await rdc("../packages/csv/src/index.ts"));
   const DEP = W("dep"), DEPB = W("depb");
   await fsc.writeFile(DEP, await rdc("../packages/depreciation/src/index.ts"));
-  await fsc.writeFile(DEPB, `export * from "${DEP}";`);
+  await fsc.writeFile(DEPB, `export * from "${toSpec(DEP)}";`);
   const AJ = W("accj"), AE = W("acce"), AB = W("acc");
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
-  await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`));
-  await fsc.writeFile(AB, `export * from "${AJ}";\nexport * from "${AE}";`);
+  await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`));
+  await fsc.writeFile(AB, `export * from "${toSpec(AJ)}";\nexport * from "${toSpec(AE)}";`);
   const PR = W("prepo"), ASr = W("asset");
   await fsc.writeFile(PR, await rdc("../apps/internal-app/src/server/partner-repo.ts"));
-  await fsc.writeFile(ASr, (await rdc("../apps/internal-app/src/server/asset-repo.ts")).replace(/from "@platform\/depreciation"/g, `from "${DEPB}"`));
+  await fsc.writeFile(ASr, (await rdc("../apps/internal-app/src/server/asset-repo.ts")).replace(/from "@platform\/depreciation"/g, `from "${toSpec(DEPB)}"`));
   const ALr = W("ledger"), CIr = W("cimp"), PEr = W("pexp"), DJr = W("disp"), AFr = W("aflow"), DAr = W("dappr");
-  await fsc.writeFile(ALr, (await rdc("../apps/internal-app/src/server/account-ledger.ts")).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
+  await fsc.writeFile(ALr, (await rdc("../apps/internal-app/src/server/account-ledger.ts")).replace(/from "@platform\/accounting"/g, `from "${toSpec(AB)}"`));
   await fsc.writeFile(CIr, (await rdc("../apps/internal-app/src/server/csv-import.ts"))
-    .replace(/from "@platform\/csv"/g, `from "${CSV}"`)
-    .replace(new RegExp('from "./partner-repo.ts"', "g"), `from "${PR}"`)
-    .replace(/from "@platform\/accounting"/g, `from "${AB}"`)
+    .replace(/from "@platform\/csv"/g, `from "${toSpec(CSV)}"`)
+    .replace(new RegExp('from "./partner-repo.ts"', "g"), `from "${toSpec(PR)}"`)
+    .replace(/from "@platform\/accounting"/g, `from "${toSpec(AB)}"`)
     .replace(/import \{ type Product \} from "\.\/inventory-repo\.ts";\n?/g, "")
     .replace(/import \{ type AccountDef \} from "\.\/account-master-repo\.ts";\n?/g, "")
     .replace(/import \{ type Product \} from "\.\/inventory-repo\.ts";\n?/g, "")
     .replace(/import \{ type AccountDef \} from "\.\/account-master-repo\.ts";\n?/g, ""));
   await fsc.writeFile(PEr, (await rdc("../apps/internal-app/src/server/partner-export.ts"))
-    .replace(/from "@platform\/csv"/g, `from "${CSV}"`)
-    .replace(new RegExp('from "./partner-repo.ts"', "g"), `from "${PR}"`));
+    .replace(/from "@platform\/csv"/g, `from "${toSpec(CSV)}"`)
+    .replace(new RegExp('from "./partner-repo.ts"', "g"), `from "${toSpec(PR)}"`));
   await fsc.writeFile(DJr, (await rdc("../apps/internal-app/src/server/disposal-journal.ts"))
-    .replace(new RegExp('from "./asset-repo.ts"', "g"), `from "${ASr}"`)
-    .replace(/from "@platform\/depreciation"/g, `from "${DEPB}"`)
-    .replace(/from "@platform\/accounting"/g, `from "${AB}"`));
-  await fsc.writeFile(AFr, (await rdc("../apps/internal-app/src/server/approval-flow.ts")).replace(/from "@platform\/workflow"/g, `from "${WB}"`));
+    .replace(new RegExp('from "./asset-repo.ts"', "g"), `from "${toSpec(ASr)}"`)
+    .replace(/from "@platform\/depreciation"/g, `from "${toSpec(DEPB)}"`)
+    .replace(/from "@platform\/accounting"/g, `from "${toSpec(AB)}"`));
+  await fsc.writeFile(AFr, (await rdc("../apps/internal-app/src/server/approval-flow.ts")).replace(/from "@platform\/workflow"/g, `from "${toSpec(WB)}"`));
   await fsc.writeFile(DAr, (await rdc("../apps/internal-app/src/server/doc-approval-repo.ts"))
-    .replace(/from "@platform\/workflow"/g, `from "${WB}"`)
-    .replace(new RegExp('from "./approval-flow.ts"', "g"), `from "${AFr}"`));
+    .replace(/from "@platform\/workflow"/g, `from "${toSpec(WB)}"`)
+    .replace(new RegExp('from "./approval-flow.ts"', "g"), `from "${toSpec(AFr)}"`));
 
-  const AL = await import(ALr), CI = await import(CIr), PE = await import(PEr), DJ = await import(DJr), AS = await import(ASr), DA = await import(DAr), AC = await import(AB);
+  const AL = await impFile(ALr), CI = await impFile(CIr), PE = await impFile(PEr), DJ = await impFile(DJr), AS = await impFile(ASr), DA = await impFile(DAr), AC = await impFile(AB);
 
   // 勘定元帳
   const led = AL.accountLedger([AC.salesJournal({ date: "2025-06-01", description: "売上A", net: 100000, tax: 10000 }), AC.receiptJournal({ date: "2025-06-20", amount: 60000 }), AC.salesJournal({ date: "2025-06-10", description: "売上B", net: 50000, tax: 5000 })], "売掛金");
@@ -8745,42 +8825,42 @@ section("core");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/o-${name}-${sc}.ts`;
 
   const CE = W("cerr"), CR = W("cres"), CB = W("core"), ML = W("mail");
   await fsc.writeFile(CE, await rdc("../packages/core/src/error.ts"));
-  await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${CE}"`));
-  await fsc.writeFile(CB, `export * from "${CE}";\nexport * from "${CR}";`);
-  await fsc.writeFile(ML, (await rdc("../packages/mail/src/index.ts")).split("\n").filter((l) => !/from "\.\/(transports\/smtp|transports\/memory|email|resilient|template|allowlist|attachments|unsubscribe)\.ts"/.test(l)).join("\n").replace(/from "@platform\/core"/g, `from "${CB}"`));
+  await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${toSpec(CE)}"`));
+  await fsc.writeFile(CB, `export * from "${toSpec(CE)}";\nexport * from "${toSpec(CR)}";`);
+  await fsc.writeFile(ML, (await rdc("../packages/mail/src/index.ts")).split("\n").filter((l) => !/from "\.\/(transports\/smtp|transports\/memory|email|resilient|template|allowlist|attachments|unsubscribe)\.ts"/.test(l)).join("\n").replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`));
   const CSV = W("csv");
   await fsc.writeFile(CSV, await rdc("../packages/csv/src/index.ts"));
   const AJ = W("accj"), AE = W("acce"), ACl = W("accc"), ATR = W("acctr"), AB = W("acc");
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
-  await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`));
+  await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`));
   await fsc.writeFile(ACl, (await rdc("../packages/accounting/src/closing.ts"))
-    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
-    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${toSpec(AE)}"`));
   await fsc.writeFile(ATR, (await rdc("../packages/accounting/src/tax-report.ts"))
-    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
-    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
-  await fsc.writeFile(AB, `export * from "${AJ}";\nexport * from "${AE}";\nexport * from "${ACl}";\nexport * from "${ATR}";`);
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${toSpec(AE)}"`));
+  await fsc.writeFile(AB, `export * from "${toSpec(AJ)}";\nexport * from "${toSpec(AE)}";\nexport * from "${toSpec(ACl)}";\nexport * from "${toSpec(ATR)}";`);
   const PR = W("prepo");
   await fsc.writeFile(PR, await rdc("../apps/internal-app/src/server/partner-repo.ts"));
   const MBr = W("mbox"), CMPr = W("cmp"), MJr = W("mj"), CIr = W("cimp"), FINr = W("fin");
-  await fsc.writeFile(MBr, (await rdc("../apps/internal-app/src/server/mailbox-repo.ts")).replace(/from "@platform\/mail"/g, `from "${ML}"`));
-  await fsc.writeFile(CMPr, (await rdc("../apps/internal-app/src/server/comparative.ts")).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
-  await fsc.writeFile(MJr, (await rdc("../apps/internal-app/src/server/manual-journal-repo.ts")).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
+  await fsc.writeFile(MBr, (await rdc("../apps/internal-app/src/server/mailbox-repo.ts")).replace(/from "@platform\/mail"/g, `from "${toSpec(ML)}"`));
+  await fsc.writeFile(CMPr, (await rdc("../apps/internal-app/src/server/comparative.ts")).replace(/from "@platform\/accounting"/g, `from "${toSpec(AB)}"`));
+  await fsc.writeFile(MJr, (await rdc("../apps/internal-app/src/server/manual-journal-repo.ts")).replace(/from "@platform\/accounting"/g, `from "${toSpec(AB)}"`));
   await fsc.writeFile(CIr, (await rdc("../apps/internal-app/src/server/csv-import.ts"))
-    .replace(/from "@platform\/csv"/g, `from "${CSV}"`)
-    .replace(new RegExp('from "./partner-repo.ts"', "g"), `from "${PR}"`)
-    .replace(/from "@platform\/accounting"/g, `from "${AB}"`)
+    .replace(/from "@platform\/csv"/g, `from "${toSpec(CSV)}"`)
+    .replace(new RegExp('from "./partner-repo.ts"', "g"), `from "${toSpec(PR)}"`)
+    .replace(/from "@platform\/accounting"/g, `from "${toSpec(AB)}"`)
     .replace(/import \{ type Product \} from "\.\/inventory-repo\.ts";\n?/g, "")
     .replace(/import \{ type AccountDef \} from "\.\/account-master-repo\.ts";\n?/g, ""));
-  await fsc.writeFile(FINr, (await rdc("../apps/internal-app/src/server/financials.ts")).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
+  await fsc.writeFile(FINr, (await rdc("../apps/internal-app/src/server/financials.ts")).replace(/from "@platform\/accounting"/g, `from "${toSpec(AB)}"`));
 
-  const MB = await import(MBr), CMP = await import(CMPr), MJ = await import(MJr), CI = await import(CIr), FIN = await import(FINr), MAIL = await import(ML), AC = await import(AB);
+  const MB = await impFile(MBr), CMP = await impFile(CMPr), MJ = await impFile(MJr), CI = await impFile(CIr), FIN = await impFile(FINr), MAIL = await impFile(ML), AC = await impFile(AB);
 
   // 受信箱
   const store = MB.createMemoryMailboxStore();
@@ -8841,28 +8921,28 @@ section("core");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/l-${name}-${sc}.ts`;
 
   const AJ = W("accj"), AE = W("acce"), ACl = W("accc"), ATR = W("acctr"), AB = W("acc");
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
-  await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`));
+  await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`));
   await fsc.writeFile(ACl, (await rdc("../packages/accounting/src/closing.ts"))
-    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
-    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${toSpec(AE)}"`));
   await fsc.writeFile(ATR, (await rdc("../packages/accounting/src/tax-report.ts"))
-    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
-    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
-  await fsc.writeFile(AB, `export * from "${AJ}";\nexport * from "${AE}";\nexport * from "${ACl}";\nexport * from "${ATR}";`);
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${toSpec(AE)}"`));
+  await fsc.writeFile(AB, `export * from "${toSpec(AJ)}";\nexport * from "${toSpec(AE)}";\nexport * from "${toSpec(ACl)}";\nexport * from "${toSpec(ATR)}";`);
   const AMr = W("amaster"), YTr = W("ytrend"), IQr = W("inq"), CBr = W("bot"), FINr = W("fin");
-  await fsc.writeFile(AMr, (await rdc("../apps/internal-app/src/server/account-master-repo.ts")).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
+  await fsc.writeFile(AMr, (await rdc("../apps/internal-app/src/server/account-master-repo.ts")).replace(/from "@platform\/accounting"/g, `from "${toSpec(AB)}"`));
   await fsc.writeFile(YTr, await rdc("../apps/internal-app/src/server/yearly-trend.ts"));
   await fsc.writeFile(IQr, await rdc("../apps/internal-app/src/server/inquiry-repo.ts"));
   await fsc.writeFile(CBr, await rdc("../apps/internal-app/src/server/chatbot.ts"));
-  await fsc.writeFile(FINr, (await rdc("../apps/internal-app/src/server/financials.ts")).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
+  await fsc.writeFile(FINr, (await rdc("../apps/internal-app/src/server/financials.ts")).replace(/from "@platform\/accounting"/g, `from "${toSpec(AB)}"`));
 
-  const AM = await import(AMr), YT = await import(YTr), IQ = await import(IQr), CB = await import(CBr), FIN = await import(FINr), AC = await import(AB);
+  const AM = await impFile(AMr), YT = await impFile(YTr), IQ = await impFile(IQr), CB = await impFile(CBr), FIN = await impFile(FINr), AC = await impFile(AB);
 
   // 勘定科目マスタ → P/L反映
   const store = AM.createMemoryAccountMasterStore();
@@ -8918,12 +8998,12 @@ section("core");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const CBr = `${dc}/l-bot-${sc}.ts`, Ur = `${dc}/l-user-${sc}.ts`;
   await fsc.writeFile(CBr, await rdc("../apps/internal-app/src/server/chatbot.ts"));
   await fsc.writeFile(Ur, await rdc("../apps/internal-app/src/server/user-repo.ts"));
-  const CB = await import(CBr), U = await import(Ur);
+  const CB = await impFile(CBr), U = await impFile(Ur);
 
   const inv = CB.answer("請求書はどこで作りますか");
   const none = CB.answer("宇宙の起源について教えて");
@@ -8963,24 +9043,24 @@ section("core");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/k-${name}-${sc}.ts`;
   const RB = W("rbac"), HI = W("hier"), AU = W("auth");
 section("auth");
   await fsc.writeFile(RB, await rdc("../packages/auth/src/rbac.ts"));
-  await fsc.writeFile(HI, (await rdc("../packages/auth/src/hierarchy.ts")).replace(new RegExp('from "./rbac.ts"', "g"), `from "${RB}"`));
-  await fsc.writeFile(AU, `export * from "${RB}";\nexport * from "${HI}";`);
+  await fsc.writeFile(HI, (await rdc("../packages/auth/src/hierarchy.ts")).replace(new RegExp('from "./rbac.ts"', "g"), `from "${toSpec(RB)}"`));
+  await fsc.writeFile(AU, `export * from "${toSpec(RB)}";\nexport * from "${toSpec(HI)}";`);
   const POLr = W("policy"), Ur = W("user"), BCr = W("bc"), STr = W("set"), ASr = W("as"), PMr = W("pm"), HSr = W("hs");
-  await fsc.writeFile(POLr, (await rdc("../apps/internal-app/src/server/policy.ts")).replace(/from "@platform\/auth"/g, `from "${AU}"`));
+  await fsc.writeFile(POLr, (await rdc("../apps/internal-app/src/server/policy.ts")).replace(/from "@platform\/auth"/g, `from "${toSpec(AU)}"`));
   await fsc.writeFile(Ur, await rdc("../apps/internal-app/src/server/user-repo.ts"));
-  await fsc.writeFile(BCr, (await rdc("../apps/internal-app/src/server/broadcast.ts")).replace(new RegExp('from "./user-repo.ts"', "g"), `from "${Ur}"`));
+  await fsc.writeFile(BCr, (await rdc("../apps/internal-app/src/server/broadcast.ts")).replace(new RegExp('from "./user-repo.ts"', "g"), `from "${toSpec(Ur)}"`));
   await fsc.writeFile(STr, await rdc("../apps/internal-app/src/server/settings-repo.ts"));
   await fsc.writeFile(ASr, await rdc("../apps/internal-app/src/server/audit-summary.ts"));
-  await fsc.writeFile(PMr, (await rdc("../apps/internal-app/src/server/permission-matrix.ts")).replace(/from "@platform\/auth"/g, `from "${AU}"`));
+  await fsc.writeFile(PMr, (await rdc("../apps/internal-app/src/server/permission-matrix.ts")).replace(/from "@platform\/auth"/g, `from "${toSpec(AU)}"`));
   await fsc.writeFile(HSr, await rdc("../apps/internal-app/src/server/health-summary.ts"));
 
-  const BC = await import(BCr), ST = await import(STr), AS = await import(ASr), PM = await import(PMr), HS = await import(HSr), POL = await import(POLr);
+  const BC = await impFile(BCr), ST = await impFile(STr), AS = await impFile(ASr), PM = await impFile(PMr), HS = await impFile(HSr), POL = await impFile(POLr);
 
   const users = [{ email: "a@x.com", name: "A", roles: ["employee"], active: true, createdAt: "" }, { email: "b@x.com", name: "B", roles: ["manager"], active: false, createdAt: "" }, { email: "c@x.com", name: "C", roles: ["admin"], active: true, createdAt: "" }];
   ok("broadcast(有効ユーザーのみa,c)", BC.activeRecipients(users).join(",") === "a@x.com,c@x.com");
@@ -9015,34 +9095,34 @@ section("auth");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/i-${name}-${sc}.ts`;
 
   const CE = W("cerr"), CR = W("cres"), CB = W("core"), ML = W("mail");
   await fsc.writeFile(CE, await rdc("../packages/core/src/error.ts"));
-  await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${CE}"`));
-  await fsc.writeFile(CB, `export * from "${CE}";\nexport * from "${CR}";`);
-  await fsc.writeFile(ML, (await rdc("../packages/mail/src/index.ts")).split("\n").filter((l) => !/from "\.\/(transports\/smtp|transports\/memory|email|resilient|template|allowlist|attachments|unsubscribe)\.ts"/.test(l)).join("\n").replace(/from "@platform\/core"/g, `from "${CB}"`));
+  await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${toSpec(CE)}"`));
+  await fsc.writeFile(CB, `export * from "${toSpec(CE)}";\nexport * from "${toSpec(CR)}";`);
+  await fsc.writeFile(ML, (await rdc("../packages/mail/src/index.ts")).split("\n").filter((l) => !/from "\.\/(transports\/smtp|transports\/memory|email|resilient|template|allowlist|attachments|unsubscribe)\.ts"/.test(l)).join("\n").replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`));
   const AJ = W("aj"), AE = W("ae"), ACl = W("acl"), ATR = W("atr"), AB = W("acc");
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
-  await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`));
+  await fsc.writeFile(AE, (await rdc("../packages/accounting/src/entries.ts")).replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`));
   await fsc.writeFile(ACl, (await rdc("../packages/accounting/src/closing.ts"))
-    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
-    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${toSpec(AE)}"`));
   await fsc.writeFile(ATR, (await rdc("../packages/accounting/src/tax-report.ts"))
-    .replace(new RegExp('from "./journal.ts"', "g"), `from "${AJ}"`)
-    .replace(new RegExp('from "./entries.ts"', "g"), `from "${AE}"`));
-  await fsc.writeFile(AB, `export * from "${AJ}";\nexport * from "${AE}";\nexport * from "${ACl}";\nexport * from "${ATR}";`);
+    .replace(new RegExp('from "./journal.ts"', "g"), `from "${toSpec(AJ)}"`)
+    .replace(new RegExp('from "./entries.ts"', "g"), `from "${toSpec(AE)}"`));
+  await fsc.writeFile(AB, `export * from "${toSpec(AJ)}";\nexport * from "${toSpec(AE)}";\nexport * from "${toSpec(ACl)}";\nexport * from "${toSpec(ATR)}";`);
   const PRr = W("partner"), Ur = W("user"), BCr = W("bc"), MBr = W("mbox"), FINr = W("fin"), FISr = W("fis");
   await fsc.writeFile(PRr, await rdc("../apps/internal-app/src/server/partner-repo.ts"));
   await fsc.writeFile(Ur, await rdc("../apps/internal-app/src/server/user-repo.ts"));
-  await fsc.writeFile(BCr, (await rdc("../apps/internal-app/src/server/broadcast.ts")).replace(new RegExp('from "./user-repo.ts"', "g"), `from "${Ur}"`));
-  await fsc.writeFile(MBr, (await rdc("../apps/internal-app/src/server/mailbox-repo.ts")).replace(/from "@platform\/mail"/g, `from "${ML}"`));
-  await fsc.writeFile(FINr, (await rdc("../apps/internal-app/src/server/financials.ts")).replace(/from "@platform\/accounting"/g, `from "${AB}"`));
+  await fsc.writeFile(BCr, (await rdc("../apps/internal-app/src/server/broadcast.ts")).replace(new RegExp('from "./user-repo.ts"', "g"), `from "${toSpec(Ur)}"`));
+  await fsc.writeFile(MBr, (await rdc("../apps/internal-app/src/server/mailbox-repo.ts")).replace(/from "@platform\/mail"/g, `from "${toSpec(ML)}"`));
+  await fsc.writeFile(FINr, (await rdc("../apps/internal-app/src/server/financials.ts")).replace(/from "@platform\/accounting"/g, `from "${toSpec(AB)}"`));
   await fsc.writeFile(FISr, await rdc("../apps/internal-app/src/server/fiscal.ts"));
 
-  const AC = await import(AB), MAIL = await import(ML), PR = await import(PRr), U = await import(Ur), BC = await import(BCr), MB = await import(MBr), FIN = await import(FINr), FIS = await import(FISr);
+  const AC = await impFile(AB), MAIL = await impFile(ML), PR = await impFile(PRr), U = await impFile(Ur), BC = await impFile(BCr), MB = await impFile(MBr), FIN = await impFile(FINr), FIS = await impFile(FISr);
 
   // ① 受注先(取引先)を登録
   const partners = PR.createMemoryPartnerStore();
@@ -9083,10 +9163,10 @@ section("auth");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const FISr = `${dc}/h-fis-${sc}.ts`;
   await fsc.writeFile(FISr, (await fsc.readFile(new URL("../apps/internal-app/src/server/fiscal.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  const F = await import(FISr);
+  const F = await impFile(FISr);
   ok("fiscal(3月決算: 2025-04→FY2025 / 2026-03→FY2025 / 2025-03→FY2024)", F.fiscalYearOf("2025-04-01", 3) === 2025 &&
      F.fiscalYearOf("2026-03-31", 3) === 2025 &&
      F.fiscalYearOf("2025-03-31", 3) === 2024);
@@ -9108,12 +9188,12 @@ section("auth");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const AAr = `${dc}/g-aa-${sc}.ts`, TDr = `${dc}/g-td-${sc}.ts`;
   await fsc.writeFile(AAr, await rdc("../apps/internal-app/src/server/audit-anomaly.ts"));
   await fsc.writeFile(TDr, await rdc("../apps/internal-app/src/server/tax-default.ts"));
-  const A = await import(AAr), T = await import(TDr);
+  const A = await impFile(AAr), T = await impFile(TDr);
 
   const del = [];
   for (let i = 0; i < 6; i++) del.push({ actor: "u1", action: "invoice.delete", at: "2025-06-01T14:00:00Z" });
@@ -9146,14 +9226,14 @@ section("auth");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/f-${name}-${sc}.ts`;
 
   // アンケート(自己完結)
   const SVr = W("survey");
   await fsc.writeFile(SVr, await rdc("../apps/internal-app/src/server/survey-repo.ts"));
-  const S = await import(SVr);
+  const S = await impFile(SVr);
   const store = S.createMemorySurveyStore();
   const survey = await store.create({ title: "満足度", questions: [{ text: "満足度", type: "rating" }, { text: "良い点", type: "multi", options: ["給与", "環境", "裁量"] }, { text: "自由", type: "text" }] });
   await store.setStatus(survey.id, "open");
@@ -9167,21 +9247,21 @@ section("auth");
   // アラート通知(notify合成)
   const CE = W("cerr"), CR = W("cres"), CB = W("core");
   await fsc.writeFile(CE, await rdc("../packages/core/src/error.ts"));
-  await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${CE}"`));
-  await fsc.writeFile(CB, `export * from "${CE}";\nexport * from "${CR}";`);
+  await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${toSpec(CE)}"`));
+  await fsc.writeFile(CB, `export * from "${toSpec(CE)}";\nexport * from "${toSpec(CR)}";`);
   const NI = W("nindex"), ND = W("ndedup"), NS = W("nslack"), NW = W("nwebhook"), NB = W("notify");
 section("notify");
-  await fsc.writeFile(NI, (await rdc("../packages/notify/src/index.ts")).split("\n").filter((l) => !/from "\.\/[a-z/-]+\.ts"/.test(l)).join("\n").replace(/from "@platform\/core"/g, `from "${CB}"`));
-  await fsc.writeFile(ND, (await rdc("../packages/notify/src/dedup.ts")).replace(/from "@platform\/core"/g, `from "${CB}"`).replace(new RegExp('from "./index.ts"', "g"), `from "${NI}"`));
-  await fsc.writeFile(NS, (await rdc("../packages/notify/src/channels/slack.ts")).replace(/from "@platform\/core"/g, `from "${CB}"`).replace(new RegExp('from "../index.ts"', "g"), `from "${NI}"`));
-  await fsc.writeFile(NW, (await rdc("../packages/notify/src/channels/webhook.ts")).replace(/from "@platform\/core"/g, `from "${CB}"`).replace(new RegExp('from "../index.ts"', "g"), `from "${NI}"`));
-  await fsc.writeFile(NB, `export * from "${NI}";\nexport * from "${ND}";\nexport * from "${NS}";\nexport * from "${NW}";`);
+  await fsc.writeFile(NI, (await rdc("../packages/notify/src/index.ts")).split("\n").filter((l) => !/from "\.\/[a-z/-]+\.ts"/.test(l)).join("\n").replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`));
+  await fsc.writeFile(ND, (await rdc("../packages/notify/src/dedup.ts")).replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`).replace(new RegExp('from "./index.ts"', "g"), `from "${toSpec(NI)}"`));
+  await fsc.writeFile(NS, (await rdc("../packages/notify/src/channels/slack.ts")).replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`).replace(new RegExp('from "../index.ts"', "g"), `from "${toSpec(NI)}"`));
+  await fsc.writeFile(NW, (await rdc("../packages/notify/src/channels/webhook.ts")).replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`).replace(new RegExp('from "../index.ts"', "g"), `from "${toSpec(NI)}"`));
+  await fsc.writeFile(NB, `export * from "${toSpec(NI)}";\nexport * from "${toSpec(ND)}";\nexport * from "${toSpec(NS)}";\nexport * from "${toSpec(NW)}";`);
   const AAr = W("aa"), ANr = W("an");
   await fsc.writeFile(AAr, await rdc("../apps/internal-app/src/server/audit-anomaly.ts"));
   await fsc.writeFile(ANr, (await rdc("../apps/internal-app/src/server/alert-notify.ts"))
-    .replace(/from "@platform\/notify"/g, `from "${NB}"`)
-    .replace(new RegExp('from "./audit-anomaly.ts"', "g"), `from "${AAr}"`));
-  const AN = await import(ANr), NO = await import(NB);
+    .replace(/from "@platform\/notify"/g, `from "${toSpec(NB)}"`)
+    .replace(new RegExp('from "./audit-anomaly.ts"', "g"), `from "${toSpec(AAr)}"`));
+  const AN = await impFile(ANr), NO = await impFile(NB);
   const anomalies = [{ level: "critical", kind: "mass_delete", title: "大量削除", detail: "u1", actor: "u1" }, { level: "warning", kind: "off_hours", title: "深夜", detail: "u2", actor: "u2" }];
   const sent = [];
   const notifier = NO.createNotifier([{ async send(m) { sent.push(m); } }]);
@@ -9196,8 +9276,8 @@ section("notify");
   // i18n(合成)
   const IIr = W("i18n"), APIr = W("appi18n");
   await fsc.writeFile(IIr, (await rdc("../packages/i18n/src/index.ts")).split("\n").filter((l) => !/from "\.\/catalogs/.test(l)).join("\n"));
-  await fsc.writeFile(APIr, (await rdc("../apps/internal-app/src/server/i18n.ts")).replace(/from "@platform\/i18n"/g, `from "${IIr}"`));
-  const I = await import(APIr);
+  await fsc.writeFile(APIr, (await rdc("../apps/internal-app/src/server/i18n.ts")).replace(/from "@platform\/i18n"/g, `from "${toSpec(IIr)}"`));
+  const I = await impFile(APIr);
   ok("i18n(ja=アンケート / en=Survey / zh=问卷 / ko=설문 / 未知キーはキー返し)",
     I.appTranslator("ja").t("survey.title") === "アンケート" && I.appTranslator("en").t("survey.title") === "Survey" && I.appTranslator("zh").t("survey.title") === "问卷" && I.appTranslator("ko").t("survey.title") === "설문" && I.appTranslator("en").t("no.such.key") === "no.such.key");
 
@@ -9211,7 +9291,7 @@ section("notify");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/e-${name}-${sc}.ts`;
 
@@ -9222,11 +9302,11 @@ section("notify");
   const SVr = W("survey"), SEr = W("sexport"), RVr = W("review"), SGr = W("sig");
   await fsc.writeFile(SVr, await rdc("../apps/internal-app/src/server/survey-repo.ts"));
   await fsc.writeFile(SEr, (await rdc("../apps/internal-app/src/server/survey-export.ts"))
-    .replace(/from "@platform\/csv"/g, `from "${CSVr}"`)
-    .replace(new RegExp('from "./survey-repo.ts"', "g"), `from "${SVr}"`));
-  await fsc.writeFile(RVr, (await rdc("../apps/internal-app/src/server/review-repo.ts")).replace(/from "@platform\/commerce"/g, `from "${COMr}"`));
+    .replace(/from "@platform\/csv"/g, `from "${toSpec(CSVr)}"`)
+    .replace(new RegExp('from "./survey-repo.ts"', "g"), `from "${toSpec(SVr)}"`));
+  await fsc.writeFile(RVr, (await rdc("../apps/internal-app/src/server/review-repo.ts")).replace(/from "@platform\/commerce"/g, `from "${toSpec(COMr)}"`));
   await fsc.writeFile(SGr, await rdc("../apps/internal-app/src/server/signature-repo.ts"));
-  const SV = await import(SVr), SE = await import(SEr), RV = await import(RVr), SG = await import(SGr);
+  const SV = await impFile(SVr), SE = await impFile(SEr), RV = await impFile(RVr), SG = await impFile(SGr);
 
   // アンケート: 対象者/匿名/締切
   const store = SV.createMemorySurveyStore();
@@ -9272,16 +9352,16 @@ section("notify");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/d-${name}-${sc}.ts`;
   const COMr = W("commerce"), SVr = W("survey"), RVr = W("review"), SGr = W("sig"), ASr = W("apsig");
   await fsc.writeFile(COMr, await rdc("../packages/commerce/src/review.ts"));
   await fsc.writeFile(SVr, await rdc("../apps/internal-app/src/server/survey-repo.ts"));
-  await fsc.writeFile(RVr, (await rdc("../apps/internal-app/src/server/review-repo.ts")).replace(/from "@platform\/commerce"/g, `from "${COMr}"`));
+  await fsc.writeFile(RVr, (await rdc("../apps/internal-app/src/server/review-repo.ts")).replace(/from "@platform\/commerce"/g, `from "${toSpec(COMr)}"`));
   await fsc.writeFile(SGr, await rdc("../apps/internal-app/src/server/signature-repo.ts"));
-  await fsc.writeFile(ASr, (await rdc("../apps/internal-app/src/server/approval-signature.ts")).replace(new RegExp('from "./signature-repo.ts"', "g"), `from "${SGr}"`));
-  const RV = await import(RVr), SV = await import(SVr), AS = await import(ASr);
+  await fsc.writeFile(ASr, (await rdc("../apps/internal-app/src/server/approval-signature.ts")).replace(new RegExp('from "./signature-repo.ts"', "g"), `from "${toSpec(SGr)}"`));
+  const RV = await impFile(RVr), SV = await impFile(SVr), AS = await impFile(ASr);
 
   // 口コミモデレーション
   const rstore = RV.createMemoryReviewStore();
@@ -9317,16 +9397,16 @@ section("notify");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/c-${name}-${sc}.ts`;
   const FAr = W("fa"), SVr = W("sv"), SGr = W("sg"), ASr = W("as"), STr = W("st");
   await fsc.writeFile(FAr, await rdc("../apps/internal-app/src/server/feature-access.ts"));
   await fsc.writeFile(SVr, await rdc("../apps/internal-app/src/server/survey-repo.ts"));
   await fsc.writeFile(SGr, await rdc("../apps/internal-app/src/server/signature-repo.ts"));
-  await fsc.writeFile(ASr, (await rdc("../apps/internal-app/src/server/approval-signature.ts")).replace(new RegExp('from "./signature-repo.ts"', "g"), `from "${SGr}"`));
+  await fsc.writeFile(ASr, (await rdc("../apps/internal-app/src/server/approval-signature.ts")).replace(new RegExp('from "./signature-repo.ts"', "g"), `from "${toSpec(SGr)}"`));
   await fsc.writeFile(STr, await rdc("../apps/internal-app/src/server/settings-repo.ts"));
-  const FA = await import(FAr), SV = await import(SVr), AS = await import(ASr), ST = await import(STr);
+  const FA = await impFile(FAr), SV = await impFile(SVr), AS = await impFile(ASr), ST = await impFile(STr);
 
   // 機能アクセス
   const disabled = FA.resolveFeatureRules({ accounting: { enabled: false }, invoices: { enabled: true, roles: ["finance", "manager"] } });
@@ -9356,14 +9436,14 @@ section("notify");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/b-${name}-${sc}.ts`;
   const FAr = W("fa"), UAr = W("ua"), OWr = W("ow");
   await fsc.writeFile(FAr, await rdc("../apps/internal-app/src/server/feature-access.ts"));
   await fsc.writeFile(UAr, await rdc("../apps/internal-app/src/server/usage-analytics.ts"));
   await fsc.writeFile(OWr, await rdc("../apps/internal-app/src/server/outbound-webhook.ts"));
-  const FA = await import(FAr), UA = await import(UAr), OW = await import(OWr);
+  const FA = await impFile(FAr), UA = await impFile(UAr), OW = await impFile(OWr);
 
   // action粒度
   const rules = FA.resolveFeatureRules({ invoices: { enabled: true, roles: [], actions: { delete: ["finance"], export: ["manager", "finance"] } } });
@@ -9398,7 +9478,7 @@ section("notify");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/a-${name}-${sc}.ts`;
   const SGr = W("saga"), AKr = W("apikey"), PIr = W("pii"), SAr = W("sa"), PVr = W("pv");
@@ -9406,9 +9486,9 @@ section("saga");
   await fsc.writeFile(SGr, await rdc("../packages/saga/src/index.ts"));
   await fsc.writeFile(AKr, await rdc("../packages/apikey/src/index.ts"));
   await fsc.writeFile(PIr, (await rdc("../packages/pii/src/index.ts")).split("\n").filter((l) => !/from "\.\/(identity-mask|subject-rights)\.ts"/.test(l)).join("\n"));
-  await fsc.writeFile(SAr, (await rdc("../apps/internal-app/src/server/service-account-repo.ts")).replace(/from "@platform\/apikey"/g, `from "${AKr}"`));
-  await fsc.writeFile(PVr, (await rdc("../apps/internal-app/src/server/pii-view.ts")).replace(/from "@platform\/pii"/g, `from "${PIr}"`));
-  const SAGA = await import(SGr), SA = await import(SAr), PV = await import(PVr);
+  await fsc.writeFile(SAr, (await rdc("../apps/internal-app/src/server/service-account-repo.ts")).replace(/from "@platform\/apikey"/g, `from "${toSpec(AKr)}"`));
+  await fsc.writeFile(PVr, (await rdc("../apps/internal-app/src/server/pii-view.ts")).replace(/from "@platform\/pii"/g, `from "${toSpec(PIr)}"`));
+  const SAGA = await impFile(SGr), SA = await impFile(SAr), PV = await impFile(PVr);
 
   // saga
   {
@@ -9444,31 +9524,31 @@ section("saga");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z9-${name}-${sc}.ts`;
   // core + deps
   const CE = W("ce"), CR = W("cr"), CB = W("core");
   await fsc.writeFile(CE, await rdc("../packages/core/src/error.ts"));
-  await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${CE}"`));
-  await fsc.writeFile(CB, `export * from "${CE}";\nexport * from "${CR}";`);
+  await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${toSpec(CE)}"`));
+  await fsc.writeFile(CB, `export * from "${toSpec(CE)}";\nexport * from "${toSpec(CR)}";`);
   const SECp = W("secrets"), CRYp = W("crypto"), FLp = W("flags");
   await fsc.writeFile(SECp, await rdc("../packages/secrets/src/index.ts"));
-  await fsc.writeFile(CRYp, (await rdc("../packages/crypto/src/index.ts")).replace(/from "@platform\/core"/g, `from "${CB}"`));
-  await fsc.writeFile(FLp, (await rdc("../packages/flags/src/index.ts")).replace(/from "@platform\/core"/g, `from "${CB}"`));
+  await fsc.writeFile(CRYp, (await rdc("../packages/crypto/src/index.ts")).replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`));
+  await fsc.writeFile(FLp, (await rdc("../packages/flags/src/index.ts")).replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`));
   // ratelimit
   const RT = W("rlt"), RLim = W("rll"), RM = W("rlm"), RLB = W("rl");
-  await fsc.writeFile(RT, (await rdc("../packages/ratelimit/src/types.ts")).replace(/from "@platform\/core"/g, `from "${CB}"`));
-  await fsc.writeFile(RLim, (await rdc("../packages/ratelimit/src/limiter.ts")).replace(/from "@platform\/core"/g, `from "${CB}"`).replace(new RegExp('from "./types.ts"', "g"), `from "${RT}"`));
-  await fsc.writeFile(RM, (await rdc("../packages/ratelimit/src/memory.ts")).replace(/from "@platform\/core"/g, `from "${CB}"`).replace(new RegExp('from "./types.ts"', "g"), `from "${RT}"`));
-  await fsc.writeFile(RLB, `export * from "${RT}";\nexport * from "${RLim}";\nexport * from "${RM}";`);
+  await fsc.writeFile(RT, (await rdc("../packages/ratelimit/src/types.ts")).replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`));
+  await fsc.writeFile(RLim, (await rdc("../packages/ratelimit/src/limiter.ts")).replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`).replace(new RegExp('from "./types.ts"', "g"), `from "${toSpec(RT)}"`));
+  await fsc.writeFile(RM, (await rdc("../packages/ratelimit/src/memory.ts")).replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`).replace(new RegExp('from "./types.ts"', "g"), `from "${toSpec(RT)}"`));
+  await fsc.writeFile(RLB, `export * from "${toSpec(RT)}";\nexport * from "${toSpec(RLim)}";\nexport * from "${toSpec(RM)}";`);
   // app modules
   const SSm = W("ss"), FFm = W("ff");
   await fsc.writeFile(SSm, (await rdc("../apps/internal-app/src/server/secret-store.ts"))
-    .replace(/from "@platform\/secrets"/g, `from "${SECp}"`)
-    .replace(/from "@platform\/crypto"/g, `from "${CRYp}"`));
-  await fsc.writeFile(FFm, (await rdc("../apps/internal-app/src/server/feature-flags.ts")).replace(/from "@platform\/flags"/g, `from "${FLp}"`));
-  const SS = await import(SSm), FF = await import(FFm), RL = await import(RLB);
+    .replace(/from "@platform\/secrets"/g, `from "${toSpec(SECp)}"`)
+    .replace(/from "@platform\/crypto"/g, `from "${toSpec(CRYp)}"`));
+  await fsc.writeFile(FFm, (await rdc("../apps/internal-app/src/server/feature-flags.ts")).replace(/from "@platform\/flags"/g, `from "${toSpec(FLp)}"`));
+  const SS = await impFile(SSm), FF = await impFile(FFm), RL = await impFile(RLB);
   const MASTER = "master-key-abcdef";
 
   // secrets
@@ -9508,15 +9588,15 @@ section("saga");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z8-${name}-${sc}.ts`;
   const OBp = W("obs"), ARm = W("ar"), SCm = W("sc"), SUm = W("su");
   await fsc.writeFile(OBp, await rdc("../packages/observability/src/health.ts"));
   await fsc.writeFile(ARm, await rdc("../apps/internal-app/src/server/api-reference.ts"));
-  await fsc.writeFile(SCm, (await rdc("../apps/internal-app/src/server/status-checks.ts")).replace(/from "@platform\/observability"/g, `from "${OBp}"`));
+  await fsc.writeFile(SCm, (await rdc("../apps/internal-app/src/server/status-checks.ts")).replace(/from "@platform\/observability"/g, `from "${toSpec(OBp)}"`));
   await fsc.writeFile(SUm, await rdc("../apps/internal-app/src/server/setup.ts"));
-  const AR = await import(ARm), SC = await import(SCm), SU = await import(SUm);
+  const AR = await impFile(ARm), SC = await impFile(SCm), SU = await impFile(SUm);
 
   // APIリファレンス
   const spec = AR.openApiSpec("https://x.example");
@@ -9545,33 +9625,33 @@ section("saga");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const scc = Date.now();
+  const scc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z7-${name}-${scc}.ts`;
   // core + search
   const CE = W("ce"), CR = W("cr"), CB = W("core");
 section("core");
   await fsc.writeFile(CE, await rdc("../packages/core/src/error.ts"));
-  await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${CE}"`));
-  await fsc.writeFile(CB, `export * from "${CE}";\nexport * from "${CR}";`);
+  await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${toSpec(CE)}"`));
+  await fsc.writeFile(CB, `export * from "${toSpec(CE)}";\nexport * from "${toSpec(CR)}";`);
   const TK = W("tk"), BM = W("bm"), MA = W("ma"), SE = W("se");
   await fsc.writeFile(TK, await rdc("../packages/search/src/tokenize.ts"));
-  await fsc.writeFile(BM, (await rdc("../packages/search/src/bm25.ts")).replace(new RegExp('from "./tokenize.ts"', "g"), `from "${TK}"`).replace(/from "@platform\/core"/g, `from "${CB}"`));
+  await fsc.writeFile(BM, (await rdc("../packages/search/src/bm25.ts")).replace(new RegExp('from "./tokenize.ts"', "g"), `from "${toSpec(TK)}"`).replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`));
   await fsc.writeFile(MA, (await rdc("../packages/search/src/adapters/memory.ts"))
-    .replace(new RegExp('from "../bm25.ts"', "g"), `from "${BM}"`)
-    .replace(new RegExp('from "../tokenize.ts"', "g"), `from "${TK}"`)
-    .replace(new RegExp('from "../index.ts"', "g"), `from "${SE}"`)
-    .replace(/from "@platform\/core"/g, `from "${CB}"`));
+    .replace(new RegExp('from "../bm25.ts"', "g"), `from "${toSpec(BM)}"`)
+    .replace(new RegExp('from "../tokenize.ts"', "g"), `from "${toSpec(TK)}"`)
+    .replace(new RegExp('from "../index.ts"', "g"), `from "${toSpec(SE)}"`)
+    .replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`));
   await fsc.writeFile(SE, (await rdc("../packages/search/src/index.ts"))
-    .replace(/from "@platform\/core"/g, `from "${CB}"`)
-    .replace(new RegExp('from "./adapters/memory.ts"', "g"), `from "${MA}"`)
-    .replace(new RegExp('from "./bm25.ts"', "g"), `from "${BM}"`)
-    .replace(new RegExp('from "./tokenize.ts"', "g"), `from "${TK}"`).split("\n").filter((l) => !/meilisearch/.test(l)).join("\n"));
+    .replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`)
+    .replace(new RegExp('from "./adapters/memory.ts"', "g"), `from "${toSpec(MA)}"`)
+    .replace(new RegExp('from "./bm25.ts"', "g"), `from "${toSpec(BM)}"`)
+    .replace(new RegExp('from "./tokenize.ts"', "g"), `from "${toSpec(TK)}"`).split("\n").filter((l) => !/meilisearch/.test(l)).join("\n"));
   const DGm = W("dg"), ESm = W("es"), BKm = W("bk");
   await fsc.writeFile(DGm, await rdc("../apps/internal-app/src/server/digest.ts"));
-  await fsc.writeFile(ESm, (await rdc("../apps/internal-app/src/server/entity-search.ts")).replace(/from "@platform\/search"/g, `from "${SE}"`));
+  await fsc.writeFile(ESm, (await rdc("../apps/internal-app/src/server/entity-search.ts")).replace(/from "@platform\/search"/g, `from "${toSpec(SE)}"`));
   await fsc.writeFile(BKm, await rdc("../apps/internal-app/src/server/backup.ts"));
-  const DG = await import(DGm), ES = await import(ESm), BK = await import(BKm);
+  const DG = await impFile(DGm), ES = await impFile(ESm), BK = await impFile(BKm);
   const now = new Date("2025-06-10T12:00:00Z");
 
   // ダイジェスト + ストア
@@ -9601,36 +9681,36 @@ section("core");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const scc = Date.now();
+  const scc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z6-${name}-${scc}.ts`;
   // core + search
   const CE = W("ce"), CR = W("cr"), CB = W("core");
   await fsc.writeFile(CE, await rdc("../packages/core/src/error.ts"));
-  await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${CE}"`));
-  await fsc.writeFile(CB, `export * from "${CE}";\nexport * from "${CR}";`);
+  await fsc.writeFile(CR, (await rdc("../packages/core/src/result.ts")).replace(new RegExp('from "./error.ts"', "g"), `from "${toSpec(CE)}"`));
+  await fsc.writeFile(CB, `export * from "${toSpec(CE)}";\nexport * from "${toSpec(CR)}";`);
   const TK = W("tk"), BM = W("bm"), MA = W("ma"), SEp = W("se");
   await fsc.writeFile(TK, await rdc("../packages/search/src/tokenize.ts"));
-  await fsc.writeFile(BM, (await rdc("../packages/search/src/bm25.ts")).replace(new RegExp('from "./tokenize.ts"', "g"), `from "${TK}"`).replace(/from "@platform\/core"/g, `from "${CB}"`));
+  await fsc.writeFile(BM, (await rdc("../packages/search/src/bm25.ts")).replace(new RegExp('from "./tokenize.ts"', "g"), `from "${toSpec(TK)}"`).replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`));
   await fsc.writeFile(MA, (await rdc("../packages/search/src/adapters/memory.ts"))
-    .replace(new RegExp('from "../bm25.ts"', "g"), `from "${BM}"`)
-    .replace(new RegExp('from "../tokenize.ts"', "g"), `from "${TK}"`)
-    .replace(new RegExp('from "../index.ts"', "g"), `from "${SEp}"`)
-    .replace(/from "@platform\/core"/g, `from "${CB}"`));
+    .replace(new RegExp('from "../bm25.ts"', "g"), `from "${toSpec(BM)}"`)
+    .replace(new RegExp('from "../tokenize.ts"', "g"), `from "${toSpec(TK)}"`)
+    .replace(new RegExp('from "../index.ts"', "g"), `from "${toSpec(SEp)}"`)
+    .replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`));
   await fsc.writeFile(SEp, (await rdc("../packages/search/src/index.ts"))
-    .replace(/from "@platform\/core"/g, `from "${CB}"`)
-    .replace(new RegExp('from "./adapters/memory.ts"', "g"), `from "${MA}"`)
-    .replace(new RegExp('from "./bm25.ts"', "g"), `from "${BM}"`)
-    .replace(new RegExp('from "./tokenize.ts"', "g"), `from "${TK}"`).split("\n").filter((l) => !/meilisearch/.test(l)).join("\n"));
+    .replace(/from "@platform\/core"/g, `from "${toSpec(CB)}"`)
+    .replace(new RegExp('from "./adapters/memory.ts"', "g"), `from "${toSpec(MA)}"`)
+    .replace(new RegExp('from "./bm25.ts"', "g"), `from "${toSpec(BM)}"`)
+    .replace(new RegExp('from "./tokenize.ts"', "g"), `from "${toSpec(TK)}"`).split("\n").filter((l) => !/meilisearch/.test(l)).join("\n"));
   const BKm = W("bk"), ESm = W("es"), RSm = W("rs"), SIm = W("si"), AAm = W("aa");
   await fsc.writeFile(BKm, await rdc("../apps/internal-app/src/server/backup.ts"));
-  await fsc.writeFile(ESm, (await rdc("../apps/internal-app/src/server/entity-search.ts")).replace(/from "@platform\/search"/g, `from "${SEp}"`));
-  await fsc.writeFile(RSm, (await rdc("../apps/internal-app/src/server/restore.ts")).replace(new RegExp('from "./backup.ts"', "g"), `from "${BKm}"`));
+  await fsc.writeFile(ESm, (await rdc("../apps/internal-app/src/server/entity-search.ts")).replace(/from "@platform\/search"/g, `from "${toSpec(SEp)}"`));
+  await fsc.writeFile(RSm, (await rdc("../apps/internal-app/src/server/restore.ts")).replace(new RegExp('from "./backup.ts"', "g"), `from "${toSpec(BKm)}"`));
   await fsc.writeFile(SIm, (await rdc("../apps/internal-app/src/server/search-index.ts"))
-    .replace(/from "@platform\/search"/g, `from "${SEp}"`)
-    .replace(new RegExp('from "./entity-search.ts"', "g"), `from "${ESm}"`));
+    .replace(/from "@platform\/search"/g, `from "${toSpec(SEp)}"`)
+    .replace(new RegExp('from "./entity-search.ts"', "g"), `from "${toSpec(ESm)}"`));
   await fsc.writeFile(AAm, await rdc("../apps/internal-app/src/server/audit-archive.ts"));
-  const BK = await import(BKm), ES = await import(ESm), RS = await import(RSm), SI = await import(SIm), AA = await import(AAm);
+  const BK = await impFile(BKm), ES = await impFile(ESm), RS = await impFile(RSm), SI = await impFile(SIm), AA = await impFile(AAm);
   const now = new Date("2025-06-10T12:00:00Z");
 
   // 復元
@@ -9663,7 +9743,7 @@ section("core");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const scc = Date.now();
+  const scc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z5-${name}-${scc}.ts`;
   // csv-import: stub外部import(parseCsv/型のみ)
@@ -9679,7 +9759,7 @@ section("core");
   const NTm = W("nt"), DPm = W("dp");
   await fsc.writeFile(NTm, await rdc("../apps/internal-app/src/server/notification-templates.ts"));
   await fsc.writeFile(DPm, await rdc("../apps/internal-app/src/server/dashboard-prefs.ts"));
-  const CSV = await import(CSVm), NT = await import(NTm), DP = await import(DPm);
+  const CSV = await impFile(CSVm), NT = await impFile(NTm), DP = await impFile(DPm);
 
   // CSV: 商品・勘定科目
   const prod = CSV.parseProductCsv("SKU,名称,単位\nA001,ボールペン,本\nA002,ノート,冊\n,欠番,個");
@@ -9706,14 +9786,14 @@ section("core");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const scc = Date.now();
+  const scc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z4-${name}-${scc}.ts`;
   const NTm = W("nt"), ESm = W("es"), RPm = W("rp");
   await fsc.writeFile(NTm, await rdc("../apps/internal-app/src/server/notification-templates.ts"));
   await fsc.writeFile(ESm, await rdc("../apps/internal-app/src/server/export-schedule.ts"));
   await fsc.writeFile(RPm, await rdc("../apps/internal-app/src/server/reports.ts"));
-  const NT = await import(NTm), ES = await import(ESm), RP = await import(RPm);
+  const NT = await impFile(NTm), ES = await impFile(ESm), RP = await impFile(RPm);
   const now = new Date("2025-06-10T12:00:00Z");
 
   // 通知テンプレ上書き
@@ -9754,14 +9834,14 @@ section("core");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const scc = Date.now();
+  const scc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z3-${name}-${scc}.ts`;
   const TRm = W("tr"), RSm = W("rs"), DTm = W("dt");
   await fsc.writeFile(TRm, await rdc("../apps/internal-app/src/server/trend.ts"));
   await fsc.writeFile(RSm, await rdc("../apps/internal-app/src/server/report-schedule.ts"));
-  await fsc.writeFile(DTm, (await rdc("../apps/internal-app/src/server/dashboard-trend.ts")).replace(new RegExp('from "./trend.ts"', "g"), `from "${TRm}"`));
-  const RS = await import(RSm), DT = await import(DTm);
+  await fsc.writeFile(DTm, (await rdc("../apps/internal-app/src/server/dashboard-trend.ts")).replace(new RegExp('from "./trend.ts"', "g"), `from "${toSpec(TRm)}"`));
+  const RS = await impFile(RSm), DT = await impFile(DTm);
   const now = new Date("2025-06-10T12:00:00Z");
 
   // レポート配信スケジュール
@@ -9793,15 +9873,15 @@ section("core");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const scc = Date.now();
+  const scc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z2-${name}-${scc}.ts`;
   const TRm = W("tr"), RPm = W("rp"), RSm = W("rs"), DTm = W("dt");
   await fsc.writeFile(TRm, await rdc("../apps/internal-app/src/server/trend.ts"));
   await fsc.writeFile(RPm, await rdc("../apps/internal-app/src/server/reports.ts"));
   await fsc.writeFile(RSm, await rdc("../apps/internal-app/src/server/report-schedule.ts"));
-  await fsc.writeFile(DTm, (await rdc("../apps/internal-app/src/server/dashboard-trend.ts")).replace(new RegExp('from "./trend.ts"', "g"), `from "${TRm}"`));
-  const RP = await import(RPm), RS = await import(RSm), DT = await import(DTm);
+  await fsc.writeFile(DTm, (await rdc("../apps/internal-app/src/server/dashboard-trend.ts")).replace(new RegExp('from "./trend.ts"', "g"), `from "${toSpec(TRm)}"`));
+  const RP = await impFile(RPm), RS = await impFile(RSm), DT = await impFile(DTm);
 
   // レポート絞り込み
   const invoices = [{ number: "INV-1", issueDate: "2025-04-15", billTo: "A社", total: 100000, balance: 100000, dueDate: "2025-05-15", status: "未払" }, { number: "INV-2", issueDate: "2025-05-20", billTo: "B社", total: 50000, balance: 0, dueDate: "2025-06-20", status: "完済" }, { number: "INV-3", issueDate: "2025-06-01", billTo: "A社", total: 30000, balance: 30000, dueDate: "2025-07-01", status: "未払" }];
@@ -9829,15 +9909,15 @@ section("core");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const scc = Date.now();
+  const scc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z1-${name}-${scc}.ts`;
   const TRm = W("tr"), DTm = W("dt"), RPm = W("rp"), DLm = W("dl");
   await fsc.writeFile(TRm, await rdc("../apps/internal-app/src/server/trend.ts"));
-  await fsc.writeFile(DTm, (await rdc("../apps/internal-app/src/server/dashboard-trend.ts")).replace(new RegExp('from "./trend.ts"', "g"), `from "${TRm}"`));
+  await fsc.writeFile(DTm, (await rdc("../apps/internal-app/src/server/dashboard-trend.ts")).replace(new RegExp('from "./trend.ts"', "g"), `from "${toSpec(TRm)}"`));
   await fsc.writeFile(RPm, await rdc("../apps/internal-app/src/server/report-preset.ts"));
   await fsc.writeFile(DLm, await rdc("../apps/internal-app/src/server/delivery-log.ts"));
-  const DT = await import(DTm), RP = await import(RPm), DL = await import(DLm);
+  const DT = await impFile(DTm), RP = await impFile(RPm), DL = await impFile(DLm);
   const now = new Date("2025-06-10T12:00:00Z");
   const months = DT.recentMonths(now, 6);
 
@@ -9872,7 +9952,7 @@ section("core");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const scc = Date.now();
+  const scc = smokeStamp();
   const rdc = async (rel) => (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   const W = (name) => `${dc}/z0-${name}-${scc}.ts`;
   const RPm = W("rp"), ESm = W("es"), DLm = W("dl"), PPm = W("pp");
@@ -9880,7 +9960,7 @@ section("core");
   await fsc.writeFile(ESm, await rdc("../apps/internal-app/src/server/export-schedule.ts"));
   await fsc.writeFile(DLm, await rdc("../apps/internal-app/src/server/delivery-log.ts"));
   await fsc.writeFile(PPm, await rdc("../apps/internal-app/src/server/report-preset.ts"));
-  const RP = await import(RPm), ES = await import(ESm), DL = await import(DLm), PP = await import(PPm);
+  const RP = await impFile(RPm), ES = await impFile(ESm), DL = await impFile(DLm), PP = await impFile(PPm);
 
   ok("filterLabel: 片側指定の表示修正(from単独/to単独/両方/partner単独/空)",
     RP.filterLabel({ from: "2025-05-01" }) === "（2025-05-01〜）" && RP.filterLabel({ to: "2025-06-30" }) === "（〜2025-06-30）" && RP.filterLabel({ from: "2025-05-01", to: "2025-06-30" }) === "（2025-05-01〜2025-06-30）" && RP.filterLabel({ partner: "A社" }) === "（A社）" && RP.filterLabel({}) === "");
@@ -9901,10 +9981,10 @@ section("core");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const scc = Date.now();
+  const scc = smokeStamp();
   const IRp = `${dc}/w0-item-repo-${scc}.ts`;
   await fsc.writeFile(IRp, (await fsc.readFile(new URL("../apps/crud-template/src/server/item-repo.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  const IR = await import(IRp);
+  const IR = await impFile(IRp);
 
   const v1 = IR.validateItemInput({ code: "item-001", name: "ボールペン", note: " 黒 " });
   const v2 = IR.validateItemInput({ code: "x", name: "" });
@@ -9929,7 +10009,7 @@ section("core");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const scc = Date.now();
+  const scc = smokeStamp();
   const mcpx = `${dc}/w1-mcpx-${scc}.ts`;
   const repp = `${dc}/w1-rep-${scc}.ts`;
   const toolp = `${dc}/w1-tools-${scc}.ts`;
@@ -9937,10 +10017,10 @@ section("mcp");
   await fsc.writeFile(mcpx, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fsc.writeFile(repp, (await fsc.readFile(new URL("../apps/internal-app/src/server/reports.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   let tsrc = (await fsc.readFile(new URL("../apps/internal-app/src/server/mcp-tools.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-  tsrc = tsrc.replace('from "@platform/mcp"', `from "${mcpx}"`).replace('from "./reports.ts"', `from "${repp}"`);
+  tsrc = tsrc.replace('from "@platform/mcp"', `from "${toSpec(mcpx)}"`).replace('from "./reports.ts"', `from "${toSpec(repp)}"`);
   await fsc.writeFile(toolp, tsrc);
-  const M = await import(mcpx);
-  const T = await import(toolp);
+  const M = await impFile(mcpx);
+  const T = await impFile(toolp);
 
   const echoTools = [
     { name: "echo", description: "d", inputSchema: { type: "object" }, handler: (a) => M.textResult(`e:${a.m}`) },
@@ -9985,7 +10065,7 @@ section("mcp");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const scc = Date.now();
+  const scc = smokeStamp();
   const ap = `${dc}/w2-auth-${scc}.ts`;
   const rp = `${dc}/w2-repo-${scc}.ts`;
   // auth.ts は @platform/crypto を使う(パスワードの実装を基盤へ寄せたため)
@@ -9995,11 +10075,11 @@ section("mcp");
     (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/^import .*$/gm, "") +
     (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/^import .*$/gm, ""));
   await fsc.writeFile(cryptoP,
-    (await fsc.readFile(new URL("../packages/crypto/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${coreP}"`));
-  await fsc.writeFile(ap, (await fsc.readFile(new URL("../apps/equipment-app/src/server/auth.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/crypto"', `from "${cryptoP}"`));
+    (await fsc.readFile(new URL("../packages/crypto/src/index.ts", import.meta.url), "utf8")).replace('from "@platform/core"', `from "${toSpec(coreP)}"`));
+  await fsc.writeFile(ap, (await fsc.readFile(new URL("../apps/equipment-app/src/server/auth.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/crypto"', `from "${toSpec(cryptoP)}"`));
   await fsc.writeFile(rp, (await fsc.readFile(new URL("../apps/equipment-app/src/server/equipment-repo.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  const A = await import(ap);
-  const R = await import(rp);
+  const A = await impFile(ap);
+  const R = await impFile(rp);
 
   const secret = "smoke-secret";
   const payload = { email: "admin@example.com", name: "管理者", roles: ["admin"], exp: Math.floor(Date.now() / 1000) + 3600 };
@@ -10040,16 +10120,16 @@ section("mcp");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const scc = Date.now();
+  const scc = smokeStamp();
   const cep = `${dc}/w3-core-error-${scc}.ts`;
   const crp = `${dc}/w3-core-result-${scc}.ts`;
   const cop = `${dc}/w3-core-${scc}.ts`;
   const aip = `${dc}/w3-ai-${scc}.ts`;
   await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
-  await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
-  const AI = await import(aip);
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(cep)}"`));
+  await fsc.writeFile(cop, `export * from "${toSpec(cep)}";\nexport * from "${toSpec(crp)}";\n`);
+  await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(cop)}"`));
+  const AI = await impFile(aip);
 
   const A = { id: "anthropic", models: ["claude"], chat: async (r) => ({ text: `A:${r.maxTokens}`, usage: { inputTokens: 100, outputTokens: 50 } }) };
   const B = { id: "openai", models: ["gpt"], chat: async () => ({ text: "B", usage: { inputTokens: 10, outputTokens: 5 } }) };
@@ -10092,7 +10172,7 @@ section("mcp");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const scc = Date.now();
+  const scc = smokeStamp();
   const mcpx = `${dc}/w4-mcpx-${scc}.ts`;
   const repp = `${dc}/w4-rep-${scc}.ts`;
   const toolp = `${dc}/w4-tools-${scc}.ts`;
@@ -10100,10 +10180,10 @@ section("mcp");
   await fsc.writeFile(mcpx, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   await fsc.writeFile(repp, (await fsc.readFile(new URL("../apps/internal-app/src/server/reports.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   let tsrc = (await fsc.readFile(new URL("../apps/internal-app/src/server/mcp-tools.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-  tsrc = tsrc.replace('from "@platform/mcp"', `from "${mcpx}"`).replace('from "./reports.ts"', `from "${repp}"`);
+  tsrc = tsrc.replace('from "@platform/mcp"', `from "${toSpec(mcpx)}"`).replace('from "./reports.ts"', `from "${toSpec(repp)}"`);
   await fsc.writeFile(toolp, tsrc);
-  const M = await import(mcpx);
-  const T = await import(toolp);
+  const M = await impFile(mcpx);
+  const T = await impFile(toolp);
 
   const deps = {
     invoiceStore: { list: async () => [{ number: "INV-1", billTo: "A社", issueDate: "2025-06-01", status: "未払", totals: { total: 1000 }, balance: 1000 }, { number: "INV-2", billTo: "B社", issueDate: "2025-06-02", status: "完済", totals: { total: 500 }, balance: 0 }], get: async () => undefined },
@@ -10146,18 +10226,18 @@ section("mcp");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const scc = Date.now();
+  const scc = smokeStamp();
   const cep = `${dc}/w5-ce-${scc}.ts`;
   const crp = `${dc}/w5-cr-${scc}.ts`;
   const cop = `${dc}/w5-co-${scc}.ts`;
   const ragp = `${dc}/w5-rag-${scc}.ts`;
   await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
-  await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(cep)}"`));
+  await fsc.writeFile(cop, `export * from "${toSpec(cep)}";\nexport * from "${toSpec(crp)}";\n`);
   const rrp = `${dc}/w5-rerank-${scc}.ts`;
   await fsc.writeFile(rrp, await fsc.readFile(new URL("../packages/rag/src/rerank.ts", import.meta.url), "utf8"));
-  await fsc.writeFile(ragp, (await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`).replace('from "./rerank.ts"', `from "${rrp}"`));
-  const R = await import(ragp);
+  await fsc.writeFile(ragp, (await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(cop)}"`).replace('from "./rerank.ts"', `from "${toSpec(rrp)}"`));
+  const R = await impFile(ragp);
 
   const chunks = R.chunkDocument({ id: "D1", title: "就業規則", body: `総則\n\n${"あ".repeat(2000)}`, source: "wiki", acl: { roles: ["hr"] } }, { maxChars: 800, overlap: 100 });
   ok("チャンク: 各断片<=maxChars・id=docId#i・title/source/acl継承",
@@ -10200,23 +10280,23 @@ section("mcp");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const scc = Date.now();
+  const scc = smokeStamp();
   const cep = `${dc}/w6-ce-${scc}.ts`;
   const crp = `${dc}/w6-cr-${scc}.ts`;
   const cop = `${dc}/w6-co-${scc}.ts`;
   const aip = `${dc}/w6-ai-${scc}.ts`;
   const gwp = `${dc}/w6-gw-${scc}.ts`;
   await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
-  await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(cep)}"`));
+  await fsc.writeFile(cop, `export * from "${toSpec(cep)}";\nexport * from "${toSpec(crp)}";\n`);
+  await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(cop)}"`));
   // ai-gateway が読む featureEnv(env.ts)はテスト用スタブに差し替える
   const gwenv = `${dc}/w6-gwenv-${scc}.ts`;
   await fsc.writeFile(gwenv, `export const featureEnv = { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? "", OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "" };\n`);
-  await fsc.writeFile(gwp, (await fsc.readFile(new URL("../apps/internal-app/src/server/ai-gateway.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/ai"', `from "${aip}"`).replace(/from "\.\/env\.ts"/g, `from "${gwenv}"`));
+  await fsc.writeFile(gwp, (await fsc.readFile(new URL("../apps/internal-app/src/server/ai-gateway.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/ai"', `from "${toSpec(aip)}"`).replace(/from "\.\/env\.ts"/g, `from "${toSpec(gwenv)}"`));
   const before = process.env.ANTHROPIC_API_KEY;
   process.env.ANTHROPIC_API_KEY = "";
-  const G = await import(gwp);
+  const G = await impFile(gwp);
   ok("aiIsMock=true(キー未設定)・要約成功でusage計上・model=mock",
     G.aiIsMock === true && await (async () => { const r = await G.aiGateway.chat({ messages: [{ role: "user", content: "a".repeat(300) }], maxTokens: 512, user: "u@x" }); return r.ok && r.value.model === "mock" && r.value.usage.inputTokens > 0; })());
   const t = G.aiLogStore.totals();
@@ -10232,22 +10312,22 @@ section("mcp");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const scc = Date.now();
+  const scc = smokeStamp();
   const cep = `${dc}/w7-ce-${scc}.ts`;
   const crp = `${dc}/w7-cr-${scc}.ts`;
   const cop = `${dc}/w7-co-${scc}.ts`;
   const aip = `${dc}/w7-ai-${scc}.ts`;
   const ragp = `${dc}/w7-rag-${scc}.ts`;
   await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
-  await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(cep)}"`));
+  await fsc.writeFile(cop, `export * from "${toSpec(cep)}";\nexport * from "${toSpec(crp)}";\n`);
+  await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(cop)}"`));
   const rrp2 = ragp.replace(/\.ts$/, "-rerank.ts");
 section("rag");
   await fsc.writeFile(rrp2, await fsc.readFile(new URL("../packages/rag/src/rerank.ts", import.meta.url), "utf8"));
-  await fsc.writeFile(ragp, (await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`).replace('from "./rerank.ts"', `from "${rrp2}"`));
-  const AI = await import(aip);
-  const R = await import(ragp);
+  await fsc.writeFile(ragp, (await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(cop)}"`).replace('from "./rerank.ts"', `from "${toSpec(rrp2)}"`));
+  const AI = await impFile(aip);
+  const R = await impFile(ragp);
 
   const he = AI.createHashEmbedder(64);
   const [v1, v2, v3] = await he.embed(["賞与 の 計算", "賞与 の 支給", "天気 予報"]);
@@ -10297,7 +10377,7 @@ section("rag");
 // ── advisor: Package Finder + Duplicate Detector ──
 {
   section("advisor: find / duplicates");
-  const A = await import(new URL("./advisor.mjs", import.meta.url).href);
+  const A = await impFile(new URL("./advisor.mjs", import.meta.url).href);
   const pkgs = A.loadPackages();
   ok("loadPackages: 113件・category/exports/summary(ai=AI基盤)", pkgs.length === 113 && pkgs.find((p) => p.name === "ai").category === "AI基盤" && pkgs.find((p) => p.name === "mail").exports.length > 0);
   const hits = A.find(["mail", "送信"]);
@@ -10317,7 +10397,7 @@ section("rag");
   const dc = osc.tmpdir();
   const csvp = `${dc}/w9-csv-${Date.now()}.ts`;
   await fsc.writeFile(csvp, (await fsc.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  const C = await import(csvp);
+  const C = await impFile(csvp);
 
   const lines = ["id,name,dept", "1,山田,営業", "2,佐藤,開発", "3,鈴木,営業", "4,田中,人事"];
   let seen = []; let headerCols = null; let pr = [];
@@ -10354,35 +10434,35 @@ section("rag");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const base = `${dc}/wA-${sc}`;
   await fsc.mkdir(`${base}/search/adapters`, { recursive: true });
-  const mapCore = (t) => t.replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`);
+  const mapCore = (t) => t.replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`);
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
-  await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(`${base}/core-error.ts`)}"`));
+  await fsc.writeFile(`${base}/core.ts`, `export * from "${toSpec(`${base}/core-error.ts`)}";\nexport * from "${toSpec(`${base}/core-result.ts`)}";\n`);
   await fsc.writeFile(`${base}/search/tokenize.ts`, mapCore(await fsc.readFile(new URL("../packages/search/src/tokenize.ts", import.meta.url), "utf8")));
   await fsc.writeFile(`${base}/search/bm25.ts`, mapCore(await fsc.readFile(new URL("../packages/search/src/bm25.ts", import.meta.url), "utf8")));
   await fsc.writeFile(`${base}/search/adapters/memory.ts`, mapCore(await fsc.readFile(new URL("../packages/search/src/adapters/memory.ts", import.meta.url), "utf8")));
   await fsc.writeFile(`${base}/search/index.ts`, mapCore(await fsc.readFile(new URL("../packages/search/src/index.ts", import.meta.url), "utf8")).split("\n").filter((l) => !l.includes("meilisearch")).join("\n"));
   await fsc.writeFile(`${base}/ai.ts`, mapCore(await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")));
   await fsc.writeFile(`${base}/rerank.ts`, await fsc.readFile(new URL("../packages/rag/src/rerank.ts", import.meta.url), "utf8"));
-  await fsc.writeFile(`${base}/rag.ts`, mapCore(await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace('from "./rerank.ts"', `from "${base}/rerank.ts"`));
+  await fsc.writeFile(`${base}/rag.ts`, mapCore(await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace('from "./rerank.ts"', `from "${toSpec(`${base}/rerank.ts`)}"`));
   await fsc.writeFile(`${base}/utils-strings.ts`, (await fsc.readFile(new URL("../packages/utils/src/strings.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(`${base}/utils.ts`, `export * from "${base}/utils-strings.ts";\n`);
+  await fsc.writeFile(`${base}/utils.ts`, `export * from "${toSpec(`${base}/utils-strings.ts`)}";\n`);
   // rag-service が import する dictionary-store も合成(utils を参照)
-  await fsc.writeFile(`${base}/dictionary-store.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/dictionary-store.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/utils"', `from "${base}/utils.ts"`));
+  await fsc.writeFile(`${base}/dictionary-store.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/dictionary-store.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/utils"', `from "${toSpec(`${base}/utils.ts`)}"`));
   // rag-service が import する csv も合成(core を参照)
-  await fsc.writeFile(`${base}/csv.ts`, (await fsc.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fsc.writeFile(`${base}/csv.ts`, (await fsc.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`));
   let svc = (await fsc.readFile(new URL("../apps/internal-app/src/server/rag-service.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   svc = svc
-    .replace('from "@platform/rag"', `from "${base}/rag.ts"`)
-    .replace('from "@platform/search"', `from "${base}/search/index.ts"`)
-    .replace('from "@platform/ai"', `from "${base}/ai.ts"`)
-    .replace('from "@platform/utils"', `from "${base}/utils.ts"`)
-    .replace('from "@platform/csv"', `from "${base}/csv.ts"`);
+    .replace('from "@platform/rag"', `from "${toSpec(`${base}/rag.ts`)}"`)
+    .replace('from "@platform/search"', `from "${toSpec(`${base}/search/index.ts`)}"`)
+    .replace('from "@platform/ai"', `from "${toSpec(`${base}/ai.ts`)}"`)
+    .replace('from "@platform/utils"', `from "${toSpec(`${base}/utils.ts`)}"`)
+    .replace('from "@platform/csv"', `from "${toSpec(`${base}/csv.ts`)}"`);
   await fsc.writeFile(`${base}/rag-service.ts`, svc);
-  const S = await import(`${base}/rag-service.ts`);
+  const S = await impFile(`${base}/rag-service.ts`);
 
   await S.ensureSeeded();
   await S.ensureSeeded();
@@ -10406,7 +10486,7 @@ section("rag");
   const mp = `${osc.tmpdir()}/wB-mcp-${smokeStamp()}.ts`;
 section("mcp");
   await fsc.writeFile(mp, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  const M = await import(mp);
+  const M = await impFile(mp);
 
   const tools = [{ name: "echo", description: "d", inputSchema: { type: "object" }, handler: (a) => M.textResult(`e:${a.m}`), scopes: ["read"] }];
   const server = { name: "t", version: "1", tools };
@@ -10445,18 +10525,18 @@ section("mcp");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const cep = `${dc}/wC-ce-${sc}.ts`;
   const crp = `${dc}/wC-cr-${sc}.ts`;
   const cop = `${dc}/wC-co-${sc}.ts`;
   const ragp = `${dc}/wC-rag-${sc}.ts`;
   await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
-  await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(cep)}"`));
+  await fsc.writeFile(cop, `export * from "${toSpec(cep)}";\nexport * from "${toSpec(crp)}";\n`);
   const rrp2 = ragp.replace(/\.ts$/, "-rerank.ts");
   await fsc.writeFile(rrp2, await fsc.readFile(new URL("../packages/rag/src/rerank.ts", import.meta.url), "utf8"));
-  await fsc.writeFile(ragp, (await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`).replace('from "./rerank.ts"', `from "${rrp2}"`));
-  const R = await import(ragp);
+  await fsc.writeFile(ragp, (await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(cop)}"`).replace('from "./rerank.ts"', `from "${toSpec(rrp2)}"`));
+  const R = await impFile(ragp);
 
   const d = R.textToDocument({ id: "T1", title: "規程", text: "本文", source: "wiki", acl: { roles: ["hr"] } });
   ok("textToDocument: text→body・source/acl 継承", d.id === "T1" && d.body === "本文" && d.source === "wiki" && d.acl.roles[0] === "hr");
@@ -10499,16 +10579,16 @@ section("mcp");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const cep = `${dc}/wE-ce-${sc}.ts`;
   const crp = `${dc}/wE-cr-${sc}.ts`;
   const cop = `${dc}/wE-co-${sc}.ts`;
   const aip = `${dc}/wE-ai-${sc}.ts`;
   await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
-  await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
-  const AI = await import(aip);
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(cep)}"`));
+  await fsc.writeFile(cop, `export * from "${toSpec(cep)}";\nexport * from "${toSpec(crp)}";\n`);
+  await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(cop)}"`));
+  const AI = await impFile(aip);
 
   const store = AI.createMemoryAiLogStore();
   const P = { id: "gemini-img", models: ["gemini"], generate: async (r) => ({ images: Array(r.n).fill(`img:${r.prompt}:${r.image ? "edit" : "gen"}`) }) };
@@ -10539,7 +10619,7 @@ section("mcp");
 // ── erd: Prisma schema → Mermaid ER図 ──
 {
   section("erd: gen-erd (Prisma→Mermaid)");
-  const E = await import(new URL("./gen-erd.mjs", import.meta.url).href);
+  const E = await impFile(new URL("./gen-erd.mjs", import.meta.url).href);
   const schema = [
     "model Author {", "  id String @id", "  name String", "  books Book[]", "}",
     "model Book {", "  id String @id", "  title String", "  authorId String",
@@ -10562,13 +10642,13 @@ section("mcp");
   const fsc = await import("node:fs");
   const osc = await import("node:os");
   const dcc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const lockp = `${dcc}/wG-lock-${sc}.ts`;
   const lfp = `${dcc}/wG-lockfile-${sc}.ts`;
 section("cron");
   await (await import("node:fs/promises")).writeFile(lockp, (await (await import("node:fs/promises")).readFile(new URL("../packages/cron/src/lock.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await (await import("node:fs/promises")).writeFile(lfp, (await (await import("node:fs/promises")).readFile(new URL("../packages/cron/src/lock-file.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./lock.ts"', `from "${lockp}"`));
-  const L = await import(lfp);
+  await (await import("node:fs/promises")).writeFile(lfp, (await (await import("node:fs/promises")).readFile(new URL("../packages/cron/src/lock-file.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./lock.ts"', `from "${toSpec(lockp)}"`));
+  const L = await impFile(lfp);
   const dir = fsc.mkdtempSync(dcc + "/wG-flock-");
   const lf = dir + "/t.lock";
 
@@ -10608,7 +10688,7 @@ section("cron");
 // ── app-map: App Router → 画面/API 一覧 ──
 {
   section("app-map: gen-app-map");
-  const A = await import(new URL("./gen-app-map.mjs", import.meta.url).href);
+  const A = await impFile(new URL("./gen-app-map.mjs", import.meta.url).href);
   ok("toUrl: [id]→:id / (group)除去 / [...slug]→*slug / ルート→/",
     A.toUrl("/x/src/app", "/x/src/app/api/items/[code]/route.ts") === "/api/items/:code" &&
     A.toUrl("/x/src/app", "/x/src/app/(dash)/settings/route.ts") === "/settings" &&
@@ -10634,23 +10714,23 @@ section("cron");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const cep = `${dc}/wI-ce-${sc}.ts`;
   const crp = `${dc}/wI-cr-${sc}.ts`;
   const cop = `${dc}/wI-co-${sc}.ts`;
   const aip = `${dc}/wI-ai-${sc}.ts`;
   const gwp = `${dc}/wI-gw-${sc}.ts`;
   await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
-  await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(cep)}"`));
+  await fsc.writeFile(cop, `export * from "${toSpec(cep)}";\nexport * from "${toSpec(crp)}";\n`);
+  await fsc.writeFile(aip, (await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(cop)}"`));
   // ai-gateway が読む featureEnv(env.ts)はテスト用スタブに差し替える
   const gwenv = `${dc}/wI-gwenv-${sc}.ts`;
   await fsc.writeFile(gwenv, `export const featureEnv = { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? "", OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "" };\n`);
-  await fsc.writeFile(gwp, (await fsc.readFile(new URL("../apps/internal-app/src/server/ai-gateway.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/ai"', `from "${aip}"`).replace(/from "\.\/env\.ts"/g, `from "${gwenv}"`));
+  await fsc.writeFile(gwp, (await fsc.readFile(new URL("../apps/internal-app/src/server/ai-gateway.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/ai"', `from "${toSpec(aip)}"`).replace(/from "\.\/env\.ts"/g, `from "${toSpec(gwenv)}"`));
   const before = process.env.OPENAI_API_KEY;
   process.env.OPENAI_API_KEY = "";
-  const G = await import(gwp);
+  const G = await impFile(gwp);
   const r = await G.aiImageGateway.generate({ prompt: "会社ロゴを水彩風に", n: 1, user: "u@x" });
   ok("aiImageIsMock=true・モック生成でSVG data URL・aiLogStore(共通)に計上",
     G.aiImageIsMock === true && r.ok && r.value.images[0].startsWith("data:image/svg+xml;base64,") && r.value.model === "mock" && G.aiLogStore.totals().calls >= 1);
@@ -10665,16 +10745,16 @@ section("cron");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const cep = `${dc}/wJ-ce-${sc}.ts`;
   const crp = `${dc}/wJ-cr-${sc}.ts`;
   const cop = `${dc}/wJ-co-${sc}.ts`;
   const rpap = `${dc}/wJ-rpa-${sc}.ts`;
   await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
-  await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(rpap, (await fsc.readFile(new URL("../packages/rpa/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
-  const R = await import(rpap);
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(cep)}"`));
+  await fsc.writeFile(cop, `export * from "${toSpec(cep)}";\nexport * from "${toSpec(crp)}";\n`);
+  await fsc.writeFile(rpap, (await fsc.readFile(new URL("../packages/rpa/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(cop)}"`));
+  const R = await impFile(rpap);
 
   // 基本 + 監査
   {
@@ -10741,7 +10821,7 @@ section("cron");
   const rp = `${osc.tmpdir()}/wK-replay-${smokeStamp()}.ts`;
 section("security");
   await fsc.writeFile(rp, (await fsc.readFile(new URL("../packages/security/src/replay.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  const R = await import(rp);
+  const R = await impFile(rp);
 
   let clock = 1_000_000;
   const guard = R.createReplayGuard({ now: () => clock });
@@ -10772,7 +10852,7 @@ section("security");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const cep = `${dc}/wL-ce-${sc}.ts`;
   const crp = `${dc}/wL-cr-${sc}.ts`;
   const cop = `${dc}/wL-co-${sc}.ts`;
@@ -10781,15 +10861,15 @@ section("security");
   const cronp = `${dc}/wL-cron-${sc}.ts`;
   const svcp = `${dc}/wL-svc-${sc}.ts`;
   await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
-  await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(rpap, (await fsc.readFile(new URL("../packages/rpa/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(cep)}"`));
+  await fsc.writeFile(cop, `export * from "${toSpec(cep)}";\nexport * from "${toSpec(crp)}";\n`);
+  await fsc.writeFile(rpap, (await fsc.readFile(new URL("../packages/rpa/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(cop)}"`));
   await fsc.writeFile(clockp, (await fsc.readFile(new URL("../packages/cron/src/lock.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(cronp, `export { createMemoryLockStore } from "${clockp}";\n`);
+  await fsc.writeFile(cronp, `export { createMemoryLockStore } from "${toSpec(clockp)}";\n`);
   const onp = `${dc}/wL-on-${sc}.ts`;
-  await fsc.writeFile(onp, (await fsc.readFile(new URL("../packages/os-notify/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
-  await fsc.writeFile(svcp, (await fsc.readFile(new URL("../apps/internal-app/src/server/rpa-service.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/rpa"', `from "${rpap}"`).replace('from "@platform/cron"', `from "${cronp}"`).replace('from "@platform/os-notify"', `from "${onp}"`));
-  const S = await import(svcp);
+  await fsc.writeFile(onp, (await fsc.readFile(new URL("../packages/os-notify/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(cop)}"`));
+  await fsc.writeFile(svcp, (await fsc.readFile(new URL("../apps/internal-app/src/server/rpa-service.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/rpa"', `from "${toSpec(rpap)}"`).replace('from "@platform/cron"', `from "${toSpec(cronp)}"`).replace('from "@platform/os-notify"', `from "${toSpec(onp)}"`));
+  const S = await impFile(svcp);
 
   const r1 = await S.runDemoPointSync({ steps: 3 });
   const stepCount = S.rpaAuditLog.filter((e) => e.action === "step").length;
@@ -10821,7 +10901,7 @@ section("security");
 // ── depgraph: パッケージ依存グラフ生成 ──
 {
   section("depgraph: gen-depgraph");
-  const D = await import(new URL("./gen-depgraph.mjs", import.meta.url).href);
+  const D = await impFile(new URL("./gen-depgraph.mjs", import.meta.url).href);
   const nodes = D.collect();
   const data = D.build();
   const md = D.toMarkdown(data);
@@ -10837,7 +10917,7 @@ section("security");
   const osc = await import("node:os");
   const sp = `${osc.tmpdir()}/wK-strings-${smokeStamp()}.ts`;
   await fsc.writeFile(sp, (await fsc.readFile(new URL("../packages/utils/src/strings.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  const S = await import(sp);
+  const S = await impFile(sp);
 
   ok("replaceByDictionary: 単純置換・長いfrom優先・複数ルール・空from無視",
     S.replaceByDictionary("現地名で", [{ from: "現地名", to: "源氏名" }]) === "源氏名で" &&
@@ -10875,13 +10955,13 @@ section("security");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const base = `${dc}/wN-${sc}`;
   await fsc.mkdir(`${base}/search/adapters`, { recursive: true });
-  const mapCore = (t) => t.replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`);
+  const mapCore = (t) => t.replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`);
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
-  await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(`${base}/core-error.ts`)}"`));
+  await fsc.writeFile(`${base}/core.ts`, `export * from "${toSpec(`${base}/core-error.ts`)}";\nexport * from "${toSpec(`${base}/core-result.ts`)}";\n`);
 section("search");
   await fsc.writeFile(`${base}/search/tokenize.ts`, mapCore(await fsc.readFile(new URL("../packages/search/src/tokenize.ts", import.meta.url), "utf8")));
   await fsc.writeFile(`${base}/search/bm25.ts`, mapCore(await fsc.readFile(new URL("../packages/search/src/bm25.ts", import.meta.url), "utf8")));
@@ -10889,22 +10969,22 @@ section("search");
   await fsc.writeFile(`${base}/search/index.ts`, mapCore(await fsc.readFile(new URL("../packages/search/src/index.ts", import.meta.url), "utf8")).split("\n").filter((l) => !l.includes("meilisearch")).join("\n"));
   await fsc.writeFile(`${base}/ai.ts`, mapCore(await fsc.readFile(new URL("../packages/ai/src/index.ts", import.meta.url), "utf8")));
   await fsc.writeFile(`${base}/rerank.ts`, await fsc.readFile(new URL("../packages/rag/src/rerank.ts", import.meta.url), "utf8"));
-  await fsc.writeFile(`${base}/rag.ts`, mapCore(await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace('from "./rerank.ts"', `from "${base}/rerank.ts"`));
+  await fsc.writeFile(`${base}/rag.ts`, mapCore(await fsc.readFile(new URL("../packages/rag/src/index.ts", import.meta.url), "utf8")).replace('from "./rerank.ts"', `from "${toSpec(`${base}/rerank.ts`)}"`));
   await fsc.writeFile(`${base}/utils-strings.ts`, (await fsc.readFile(new URL("../packages/utils/src/strings.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(`${base}/utils.ts`, `export * from "${base}/utils-strings.ts";\n`);
+  await fsc.writeFile(`${base}/utils.ts`, `export * from "${toSpec(`${base}/utils-strings.ts`)}";\n`);
   // rag-service が import する dictionary-store も合成(utils を参照)
-  await fsc.writeFile(`${base}/dictionary-store.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/dictionary-store.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/utils"', `from "${base}/utils.ts"`));
+  await fsc.writeFile(`${base}/dictionary-store.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/dictionary-store.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/utils"', `from "${toSpec(`${base}/utils.ts`)}"`));
   // rag-service が import する csv も合成(core を参照)
-  await fsc.writeFile(`${base}/csv.ts`, (await fsc.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fsc.writeFile(`${base}/csv.ts`, (await fsc.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`));
   let svc = (await fsc.readFile(new URL("../apps/internal-app/src/server/rag-service.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   svc = svc
-    .replace('from "@platform/rag"', `from "${base}/rag.ts"`)
-    .replace('from "@platform/search"', `from "${base}/search/index.ts"`)
-    .replace('from "@platform/ai"', `from "${base}/ai.ts"`)
-    .replace('from "@platform/utils"', `from "${base}/utils.ts"`)
-    .replace('from "@platform/csv"', `from "${base}/csv.ts"`);
+    .replace('from "@platform/rag"', `from "${toSpec(`${base}/rag.ts`)}"`)
+    .replace('from "@platform/search"', `from "${toSpec(`${base}/search/index.ts`)}"`)
+    .replace('from "@platform/ai"', `from "${toSpec(`${base}/ai.ts`)}"`)
+    .replace('from "@platform/utils"', `from "${toSpec(`${base}/utils.ts`)}"`)
+    .replace('from "@platform/csv"', `from "${toSpec(`${base}/csv.ts`)}"`);
   await fsc.writeFile(`${base}/rag-service.ts`, svc);
-  const S = await import(`${base}/rag-service.ts`);
+  const S = await impFile(`${base}/rag-service.ts`);
 
   const n1 = S.normalizeTranscript("今日の議事六を確認、御社の方針とアイティー部門のケーピーアイ");
   ok("normalizeTranscript: 誤変換を辞書補正(議事録/弊社の方針/IT部門/KPI)・changed",
@@ -10937,16 +11017,16 @@ section("search");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const cep = `${dc}/wO-ce-${sc}.ts`;
   const crp = `${dc}/wO-cr-${sc}.ts`;
   const cop = `${dc}/wO-co-${sc}.ts`;
   const osp = `${dc}/wO-os-${sc}.ts`;
   await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
-  await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(osp, (await fsc.readFile(new URL("../packages/os-notify/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
-  const O = await import(osp);
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(cep)}"`));
+  await fsc.writeFile(cop, `export * from "${toSpec(cep)}";\nexport * from "${toSpec(crp)}";\n`);
+  await fsc.writeFile(osp, (await fsc.readFile(new URL("../packages/os-notify/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(cop)}"`));
+  const O = await impFile(osp);
 
   const win = O.buildNotifyCommand("win32", { title: "完了", message: "終了" });
   const mac = O.buildNotifyCommand("darwin", { title: "完了", message: "終了", sound: true });
@@ -10982,7 +11062,7 @@ section("search");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const cep = `${dc}/wP-ce-${sc}.ts`;
   const crp = `${dc}/wP-cr-${sc}.ts`;
   const cop = `${dc}/wP-co-${sc}.ts`;
@@ -10990,8 +11070,8 @@ section("search");
   const svcp = `${dc}/wP-svc-${sc}.ts`;
   const vp = `${dc}/wP-v-${sc}.ts`;
   await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
-  await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(cep)}"`));
+  await fsc.writeFile(cop, `export * from "${toSpec(cep)}";\nexport * from "${toSpec(crp)}";\n`);
   await fsc.writeFile(dbp, `export function normalizeBigInt(v){return typeof v==="bigint"?Number(v):v;}
 export let _calls=[];
 export async function rawQuery(_db,sql,params=[]){_calls.push({type:"query",sql,params});
@@ -11002,16 +11082,16 @@ export async function rawQuery(_db,sql,params=[]){_calls.push({type:"query",sql,
 export async function rawExecute(_db,sql,params=[]){_calls.push({type:"exec",sql,params});return {ok:true,value:1};}`);
   await fsc.writeFile(svcp, `export const db={};`);
   const csvp = `${dc}/wP-csv-${sc}.ts`;
-  await fsc.writeFile(csvp, (await fsc.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
+  await fsc.writeFile(csvp, (await fsc.readFile(new URL("../packages/csv/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(cop)}"`));
   let v = (await fsc.readFile(new URL("../apps/internal-app/src/server/db-viewer.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   v = v
-    .replace('from "@platform/db"', `from "${dbp}"`)
-    .replace('from "@platform/csv"', `from "${csvp}"`)
-    .replace('from "./services.ts"', `from "${svcp}"`)
-    .replace('from "@platform/core"', `from "${cop}"`);
+    .replace('from "@platform/db"', `from "${toSpec(dbp)}"`)
+    .replace('from "@platform/csv"', `from "${toSpec(csvp)}"`)
+    .replace('from "./services.ts"', `from "${toSpec(svcp)}"`)
+    .replace('from "@platform/core"', `from "${toSpec(cop)}"`);
   await fsc.writeFile(vp, v);
-  const V = await import(vp);
-  const DB = await import(dbp);
+  const V = await impFile(vp);
+  const DB = await impFile(dbp);
 
   ok("classifySql: read/write/danger 判定",
     V.classifySql("SELECT * FROM x").kind === "read" && V.classifySql("EXPLAIN SELECT 1").kind === "read" &&
@@ -11069,16 +11149,16 @@ export async function rawExecute(_db,sql,params=[]){_calls.push({type:"exec",sql
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const mp = `${dc}/wQ-m-${sc}.ts`;
   const ep = `${dc}/wQ-e-${sc}.ts`;
   const tp = `${dc}/wQ-t-${sc}.ts`;
 section("ui");
   await fsc.writeFile(mp, (await fsc.readFile(new URL("../packages/ui/src/lib/motion.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(ep, (await fsc.readFile(new URL("../packages/ui/src/lib/motion-extra.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('./motion.ts', mp));
-  await fsc.writeFile(tp, (await fsc.readFile(new URL("../packages/ui/src/lib/motion-tween.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('./motion-extra.ts', ep).replace('./motion.ts', mp));
-  const E = await import(ep);
-  const T = await import(tp);
+  await fsc.writeFile(ep, (await fsc.readFile(new URL("../packages/ui/src/lib/motion-extra.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('./motion.ts', toSpec(mp)));
+  await fsc.writeFile(tp, (await fsc.readFile(new URL("../packages/ui/src/lib/motion-tween.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('./motion-extra.ts', toSpec(ep)).replace('./motion.ts', toSpec(mp)));
+  const E = await impFile(ep);
+  const T = await impFile(tp);
   const near = (a, b, eps = 1e-6) => Math.abs(a - b) < eps;
 
   ok("easingExtra: 20種すべて端点0→0/1→1・加速減速の向き",
@@ -11106,7 +11186,7 @@ section("ui");
 // ── ci-log-report: CI 実走ログ解析 ──
 {
   section("ci-log-report: CI ログ解析");
-  const M = await import(new URL("./ci-log-report.mjs", import.meta.url).href);
+  const M = await impFile(new URL("./ci-log-report.mjs", import.meta.url).href);
   const failLog = [
     "2026-07-14T05:12:30.0000000Z ##[group]Run node tools/preflight.mjs",
     "2026-07-14T05:12:34.0000000Z ##[error]Process completed with exit code 1.",
@@ -11149,16 +11229,16 @@ section("ui");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const cep = `${dc}/wR-ce-${sc}.ts`;
   const crp = `${dc}/wR-cr-${sc}.ts`;
   const cop = `${dc}/wR-co-${sc}.ts`;
   const elp = `${dc}/wR-el-${sc}.ts`;
   await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
-  await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(elp, (await fsc.readFile(new URL("../packages/elearning/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
-  const E = await import(elp);
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(cep)}"`));
+  await fsc.writeFile(cop, `export * from "${toSpec(cep)}";\nexport * from "${toSpec(crp)}";\n`);
+  await fsc.writeFile(elp, (await fsc.readFile(new URL("../packages/elearning/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(cop)}"`));
+  const E = await impFile(elp);
 
   const course = { id: "c1", title: "セキュリティ", modules: [
     { id: "m1", title: "導入", lessons: [{ id: "l1", title: "動画", type: "video", estimatedMinutes: 10 }, { id: "l2", title: "記事", type: "article", estimatedMinutes: 5 }] },
@@ -11194,18 +11274,18 @@ section("ui");
   const fsc = await import("node:fs/promises");
   const osc = await import("node:os");
   const dc = osc.tmpdir();
-  const sc = Date.now();
+  const sc = smokeStamp();
   const cep = `${dc}/wS-ce-${sc}.ts`;
   const crp = `${dc}/wS-cr-${sc}.ts`;
   const cop = `${dc}/wS-co-${sc}.ts`;
   const elp = `${dc}/wS-el-${sc}.ts`;
   const svcp = `${dc}/wS-svc-${sc}.ts`;
   await fsc.writeFile(cep, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${cep}"`));
-  await fsc.writeFile(cop, `export * from "${cep}";\nexport * from "${crp}";\n`);
-  await fsc.writeFile(elp, (await fsc.readFile(new URL("../packages/elearning/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${cop}"`));
-  await fsc.writeFile(svcp, (await fsc.readFile(new URL("../apps/internal-app/src/server/elearning-service.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/elearning"', `from "${elp}"`));
-  const S = await import(svcp);
+  await fsc.writeFile(crp, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(cep)}"`));
+  await fsc.writeFile(cop, `export * from "${toSpec(cep)}";\nexport * from "${toSpec(crp)}";\n`);
+  await fsc.writeFile(elp, (await fsc.readFile(new URL("../packages/elearning/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(cop)}"`));
+  await fsc.writeFile(svcp, (await fsc.readFile(new URL("../apps/internal-app/src/server/elearning-service.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/elearning"', `from "${toSpec(elp)}"`));
+  const S = await impFile(svcp);
 
   const s0 = S.getLearningState("wS-u1");
   S.completeLesson("wS-u1", "l1");
@@ -11232,8 +11312,8 @@ section("ui");
   const base = `${osc.tmpdir()}/dstore-${smokeStamp()}`;
   await fsc.mkdir(base, { recursive: true });
   await fsc.writeFile(`${base}/utils.ts`, "export interface ReplacementRule { from: string; to: string; }\n");
-  await fsc.writeFile(`${base}/ds.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/dictionary-store.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/utils"', `from "${base}/utils.ts"`));
-  const { createDictionaryStore } = await import(`${base}/ds.ts`);
+  await fsc.writeFile(`${base}/ds.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/dictionary-store.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/utils"', `from "${toSpec(`${base}/utils.ts`)}"`));
+  const { createDictionaryStore } = await impFile(`${base}/ds.ts`);
 
   // メモリのみ
   const mem = createDictionaryStore({ seedReplacements: [{ from: "現地名", to: "源氏名" }], seedTerms: ["源氏名"] });
@@ -11285,14 +11365,14 @@ section("ui");
   const base = `${osc.tmpdir()}/theme-${smokeStamp()}`;
   await fsc.mkdir(base, { recursive: true });
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
-  await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(`${base}/core-error.ts`)}"`));
+  await fsc.writeFile(`${base}/core.ts`, `export * from "${toSpec(`${base}/core-error.ts`)}";\nexport * from "${toSpec(`${base}/core-result.ts`)}";\n`);
 section("color");
-  await fsc.writeFile(`${base}/color.ts`, (await fsc.readFile(new URL("../packages/color/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fsc.writeFile(`${base}/color.ts`, (await fsc.readFile(new URL("../packages/color/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`));
   for (const f of ["tokens", "css", "registry", "themes", "a11y", "derive", "serialize", "index"]) {
-    await fsc.writeFile(`${base}/${f}.ts`, (await fsc.readFile(new URL(`../packages/theme/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`).replace('from "@platform/color"', `from "${base}/color.ts"`));
+    await fsc.writeFile(`${base}/${f}.ts`, (await fsc.readFile(new URL(`../packages/theme/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`).replace('from "@platform/color"', `from "${toSpec(`${base}/color.ts`)}"`));
   }
-  const T = await import(`${base}/index.ts`);
+  const T = await impFile(`${base}/index.ts`);
 
   const vars = T.themeToCssVars(T.defaultTheme, "light");
   ok("themeToCssVars: 色+shape変数・darkは別値・CSSブロック生成",
@@ -11393,33 +11473,33 @@ section("color");
   const base = `${osc.tmpdir()}/gcsv-${smokeStamp()}`;
   await fsc.mkdir(`${base}/search/adapters`, { recursive: true });
   const mapCore = async (rel, extra) => {
-    let t = (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`);
+    let t = (await fsc.readFile(new URL(rel, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`);
     if (extra) t = extra(t);
     return t;
   };
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
-  await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(`${base}/core-error.ts`)}"`));
+  await fsc.writeFile(`${base}/core.ts`, `export * from "${toSpec(`${base}/core-error.ts`)}";\nexport * from "${toSpec(`${base}/core-result.ts`)}";\n`);
   await fsc.writeFile(`${base}/search/tokenize.ts`, await mapCore("../packages/search/src/tokenize.ts"));
   await fsc.writeFile(`${base}/search/bm25.ts`, await mapCore("../packages/search/src/bm25.ts"));
   await fsc.writeFile(`${base}/search/adapters/memory.ts`, await mapCore("../packages/search/src/adapters/memory.ts"));
   await fsc.writeFile(`${base}/search/index.ts`, await mapCore("../packages/search/src/index.ts", (t) => t.split("\n").filter((l) => !l.includes("meilisearch")).join("\n")));
   await fsc.writeFile(`${base}/ai.ts`, await mapCore("../packages/ai/src/index.ts"));
   await fsc.writeFile(`${base}/rerank.ts`, await fsc.readFile(new URL("../packages/rag/src/rerank.ts", import.meta.url), "utf8"));
-  await fsc.writeFile(`${base}/rag.ts`, (await mapCore("../packages/rag/src/index.ts")).replace('from "./rerank.ts"', `from "${base}/rerank.ts"`));
+  await fsc.writeFile(`${base}/rag.ts`, (await mapCore("../packages/rag/src/index.ts")).replace('from "./rerank.ts"', `from "${toSpec(`${base}/rerank.ts`)}"`));
   await fsc.writeFile(`${base}/utils-strings.ts`, (await fsc.readFile(new URL("../packages/utils/src/strings.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(`${base}/utils.ts`, `export * from "${base}/utils-strings.ts";\n`);
+  await fsc.writeFile(`${base}/utils.ts`, `export * from "${toSpec(`${base}/utils-strings.ts`)}";\n`);
   await fsc.writeFile(`${base}/csv.ts`, await mapCore("../packages/csv/src/index.ts"));
-  await fsc.writeFile(`${base}/dictionary-store.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/dictionary-store.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/utils"', `from "${base}/utils.ts"`));
+  await fsc.writeFile(`${base}/dictionary-store.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/dictionary-store.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/utils"', `from "${toSpec(`${base}/utils.ts`)}"`));
   let svc = (await fsc.readFile(new URL("../apps/internal-app/src/server/rag-service.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
   svc = svc
-    .replace('from "@platform/rag"', `from "${base}/rag.ts"`)
-    .replace('from "@platform/search"', `from "${base}/search/index.ts"`)
-    .replace('from "@platform/ai"', `from "${base}/ai.ts"`)
-    .replace('from "@platform/utils"', `from "${base}/utils.ts"`)
-    .replace('from "@platform/csv"', `from "${base}/csv.ts"`);
+    .replace('from "@platform/rag"', `from "${toSpec(`${base}/rag.ts`)}"`)
+    .replace('from "@platform/search"', `from "${toSpec(`${base}/search/index.ts`)}"`)
+    .replace('from "@platform/ai"', `from "${toSpec(`${base}/ai.ts`)}"`)
+    .replace('from "@platform/utils"', `from "${toSpec(`${base}/utils.ts`)}"`)
+    .replace('from "@platform/csv"', `from "${toSpec(`${base}/csv.ts`)}"`);
   await fsc.writeFile(`${base}/rag-service.ts`, svc);
-  const S = await import(`${base}/rag-service.ts`);
+  const S = await impFile(`${base}/rag-service.ts`);
 
   // エクスポート
   ok("CSV export: 置換ルール(from,to+議事六)・固有名詞(term+KPI)",
@@ -11473,15 +11553,17 @@ export const __store = () => store;
   // 実 core / color / theme を合成(validateTheme・deriveTheme を本物で使う)
 section("core");
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
-  await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  await fsc.writeFile(`${base}/color.ts`, (await fsc.readFile(new URL("../packages/color/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(`${base}/core-error.ts`)}"`));
+  await fsc.writeFile(`${base}/core.ts`, `export * from "${toSpec(`${base}/core-error.ts`)}";\nexport * from "${toSpec(`${base}/core-result.ts`)}";\n`);
+  await fsc.writeFile(`${base}/color.ts`, (await fsc.readFile(new URL("../packages/color/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`));
   for (const f of ["tokens", "css", "registry", "themes", "a11y", "derive", "serialize", "index"]) {
-    await fsc.writeFile(`${base}/${f}.ts`, (await fsc.readFile(new URL(`../packages/theme/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`).replace('from "@platform/color"', `from "${base}/color.ts"`));
+    await fsc.writeFile(`${base}/${f}.ts`, (await fsc.readFile(new URL(`../packages/theme/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`).replace('from "@platform/color"', `from "${toSpec(`${base}/color.ts`)}"`));
   }
-  await fsc.writeFile(`${base}/theme-setting.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/theme-setting.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/theme"', `from "${base}/index.ts"`).replace('from "@platform/core"', `from "${base}/core.ts"`));
-  const S = await import(`${base}/theme-setting.ts`);
-  const TH = await import(`${base}/index.ts`);
+  await fsc.writeFile(`${base}/theme-setting.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/theme-setting.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/theme"', `from "${toSpec(`${base}/index.ts`)}"`).replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`).replace('from "@platform/db"', `from "${toSpec(`${base}/db.ts`)}"`));
+  // toJson は Json 列に入れる値の型を通すだけ(実行時は素通し)
+  await fsc.writeFile(`${base}/db.ts`, "export function toJson(v) { return v; }");
+  const S = await impFile(`${base}/theme-setting.ts`);
+  const TH = await impFile(`${base}/index.ts`);
 
   // 未設定は既定
   const def = await S.getThemeSetting();
@@ -11535,7 +11617,7 @@ section("core");
 // ── gen-ref-site: リファレンスサイト生成 ──
 {
   section("gen-ref-site: リファレンスサイト");
-  const M = await import(new URL("./gen-ref-site.mjs", import.meta.url).href);
+  const M = await impFile(new URL("./gen-ref-site.mjs", import.meta.url).href);
   const pkgs = M.collectPackages();
   const apps = M.collectApps();
   const mer = M.loadDepGraphMermaid();
@@ -11684,8 +11766,8 @@ section("ui");
   const base = `${osc.tmpdir()}/env-${smokeStamp()}`;
   await fsc.mkdir(base, { recursive: true });
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
-  await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(`${base}/core-error.ts`)}"`));
+  await fsc.writeFile(`${base}/core.ts`, `export * from "${toSpec(`${base}/core-error.ts`)}";\nexport * from "${toSpec(`${base}/core-result.ts`)}";\n`);
   // zod は devDeps 未インストールのため、_def 構造を模したスタブで検証する
   await fsc.writeFile(`${base}/zod.ts`, `
 export const z = {
@@ -11707,10 +11789,10 @@ function mk(typeName, extra) {
 }
 `);
   let describeSrc = (await fsc.readFile(new URL("../packages/env/src/describe.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-  describeSrc = describeSrc.replace('from "@platform/core"', `from "${base}/core.ts"`).replace('from "zod"', `from "${base}/zod.ts"`);
+  describeSrc = describeSrc.replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`).replace('from "zod"', `from "${toSpec(`${base}/zod.ts`)}"`);
   await fsc.writeFile(`${base}/describe.ts`, describeSrc);
-  const E = await import(`${base}/describe.ts`);
-  const { z } = await import(`${base}/zod.ts`);
+  const E = await impFile(`${base}/describe.ts`);
+  const { z } = await impFile(`${base}/zod.ts`);
 
   // isSecretName / maskSecrets
   ok("isSecretName: KEY/SECRET/TOKEN/PASSWORD を秘密扱い・通常変数は対象外",
@@ -11765,25 +11847,25 @@ function mk(typeName, extra) {
   const base = `${osc.tmpdir()}/senv-${smokeStamp()}`;
   await fsc.mkdir(base, { recursive: true });
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
-  await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(`${base}/core-error.ts`)}"`));
+  await fsc.writeFile(`${base}/core.ts`, `export * from "${toSpec(`${base}/core-error.ts`)}";\nexport * from "${toSpec(`${base}/core-result.ts`)}";\n`);
   let dsrc = (await fsc.readFile(new URL("../packages/env/src/describe.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-  dsrc = dsrc.replace('import { z } from "zod";\n', "").replace('from "@platform/core"', `from "${base}/core.ts"`);
+  dsrc = dsrc.replace('import { z } from "zod";\n', "").replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`);
   dsrc = dsrc.replace(/z\.Zod\w+(<[^>]*>)?/g, "any").replace(/z\.ZodRawShape/g, "any");
   await fsc.writeFile(`${base}/describe.ts`, dsrc);
   // zod は未インストールのため、チェーン可能な Proxy スタブで parseEnv を素通しさせる
   await fsc.writeFile(`${base}/env.ts`, `
-export { requireEnv, optionalEnv, assertSecretStrength, checkSecretStrength } from "${base}/describe.ts";
+export { requireEnv, optionalEnv, assertSecretStrength, checkSecretStrength, isProductionRuntime, isBuildPhase, requiredAtRuntime } from "${toSpec(`${base}/describe.ts`)}";
 export function parseEnv(_schema, source = process.env) { return source; }
 const anyChain = new Proxy(function () {}, { get: (_t, p) => (p === "shape" ? {} : anyChain), apply: () => anyChain });
 export const z = anyChain;
 `);
-  await fsc.writeFile(`${base}/app-env.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/env.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/env"', `from "${base}/env.ts"`));
+  await fsc.writeFile(`${base}/app-env.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/env.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/env"', `from "${toSpec(`${base}/env.ts`)}"`));
 
   const saved = { NODE_ENV: process.env.NODE_ENV, SESSION_SECRET: process.env.SESSION_SECRET, SECRET_MASTER_KEY: process.env.SECRET_MASTER_KEY, DATABASE_URL: process.env.DATABASE_URL };
   process.env.NODE_ENV = "development";
   delete process.env.SESSION_SECRET; delete process.env.SECRET_MASTER_KEY;
-  const dev = await import(`${base}/app-env.ts?dev`);
+  const dev = await impFile(`${base}/app-env.ts?dev`);
   ok("開発: 秘密値未設定でも既定で継続(起動を止めない)",
     dev.serverEnv.SESSION_SECRET === "dev-session-secret-change-me" && dev.serverEnv.SECRET_MASTER_KEY === "dev-session-secret-change-me");
 
@@ -11791,18 +11873,29 @@ export const z = anyChain;
   process.env.DATABASE_URL = "postgres://x";
   delete process.env.SESSION_SECRET;
   let failFast = false;
-  try { await import(`${base}/app-env.ts?prod`); } catch (e) { const err = e.cause ?? e; failFast = String(err.message ?? err).includes("SESSION_SECRET"); }
+  try { await impFile(`${base}/app-env.ts?prod`); } catch (e) { const err = e.cause ?? e; failFast = String(err.message ?? err).includes("SESSION_SECRET"); }
   ok("本番: SESSION_SECRET 欠けは CONFIG で起動失敗(fail-fast)", failFast);
+
+  // **`next build` 中は必須チェックを見送る。** NODE_ENV=production でビルドが走るため、
+  // ここで落とすとビルドマシンに本番の秘密を置くまでビルドできない(実行時に改めて検証される)
+  process.env.NEXT_PHASE = "phase-production-build";
+  delete process.env.SESSION_SECRET;
+  let buildOk = false;
+  // **落ちないこと**を見る。スタブの parseEnv は process.env をそのまま返すので
+  // 値そのものは検証できない(本物の zod 検証は別のテストで見ている)
+  try { await impFile(`${base}/app-env.ts?build`); buildOk = true; } catch { buildOk = false; }
+  ok("本番ビルド中(NEXT_PHASE=phase-production-build): 秘密値が無くても既定で継続", buildOk);
+  delete process.env.NEXT_PHASE;
 
   // 弱い秘密値は本番で拒否される(強度チェック)
   process.env.SESSION_SECRET = "prod-secret";
   let weakRejected = false;
-  try { await import(`${base}/app-env.ts?weak`); } catch (e) { const err = e.cause ?? e; weakRejected = String(err.message ?? err).includes("強度"); }
+  try { await impFile(`${base}/app-env.ts?weak`); } catch (e) { const err = e.cause ?? e; weakRejected = String(err.message ?? err).includes("強度"); }
   ok("本番: 弱い秘密値(短い/既定値らしい)は CONFIG で起動失敗", weakRejected);
 
   // 十分に強い秘密値なら起動する
   process.env.SESSION_SECRET = "Xk9$mQ2#vL7@pR4!nT6&wY1%zB8^";
-  const prod = await import(`${base}/app-env.ts?prod2`);
+  const prod = await impFile(`${base}/app-env.ts?prod2`);
   ok("本番: 強い秘密値が揃えば起動・SECRET_MASTER_KEY は SESSION_SECRET を流用",
     prod.serverEnv.SESSION_SECRET === "Xk9$mQ2#vL7@pR4!nT6&wY1%zB8^" && prod.serverEnv.SECRET_MASTER_KEY === prod.serverEnv.SESSION_SECRET);
 
@@ -11925,24 +12018,24 @@ section("ui");
   const base = `${osc.tmpdir()}/cat-${smokeStamp()}`;
   await fsc.mkdir(base, { recursive: true });
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
-  await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  await fsc.writeFile(`${base}/mcp.ts`, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(`${base}/core-error.ts`)}"`));
+  await fsc.writeFile(`${base}/core.ts`, `export * from "${toSpec(`${base}/core-error.ts`)}";\nexport * from "${toSpec(`${base}/core-result.ts`)}";\n`);
+  await fsc.writeFile(`${base}/mcp.ts`, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`));
   await fsc.writeFile(`${base}/catalog.mts`, (await fsc.readFile(new URL("./lib/catalog.mts", import.meta.url), "utf8")).replace(/\.mjs"/g, '.mts"'));
   await fsc.writeFile(`${base}/tokenize.ts`, await fsc.readFile(new URL("../packages/search/src/tokenize.ts", import.meta.url), "utf8"));
-  await fsc.writeFile(`${base}/bm25.ts`, (await fsc.readFile(new URL("../packages/search/src/bm25.ts", import.meta.url), "utf8")).replace('from "./tokenize"', `from "${base}/tokenize.ts"`));
+  await fsc.writeFile(`${base}/bm25.ts`, (await fsc.readFile(new URL("../packages/search/src/bm25.ts", import.meta.url), "utf8")).replace('from "./tokenize"', `from "${toSpec(`${base}/tokenize.ts`)}"`));
   await fsc.writeFile(`${base}/doc-sections.mts`, await fsc.readFile(new URL("./lib/doc-sections.mts", import.meta.url), "utf8"));
   await fsc.writeFile(`${base}/rerank.ts`, await fsc.readFile(new URL("../packages/rag/src/rerank.ts", import.meta.url), "utf8"));
   await fsc.writeFile(`${base}/doc-search.mts`, (await fsc.readFile(new URL("./lib/doc-search.mts", import.meta.url), "utf8"))
-    .replace('from "@platform/search"', `from "${base}/bm25.ts"`)
-    .replace('from "@platform/rag"', `from "${base}/rerank.ts"`)
-    .replace(/from "\.\/doc-sections\.mjs"/g, `from "${base}/doc-sections.mts"`));
+    .replace('from "@platform/search"', `from "${toSpec(`${base}/bm25.ts`)}"`)
+    .replace('from "@platform/rag"', `from "${toSpec(`${base}/rerank.ts`)}"`)
+    .replace(/from "\.\/doc-sections\.mjs"/g, `from "${toSpec(`${base}/doc-sections.mts`)}"`));
   await fsc.writeFile(`${base}/catalog-tools.mts`, (await fsc.readFile(new URL("./lib/catalog-tools.mts", import.meta.url), "utf8"))
-    .replace('from "@platform/mcp"', `from "${base}/mcp.ts"`)
-    .replace('from "./catalog.mjs"', `from "${base}/catalog.mts"`)
-    .replace('from "./doc-search.mjs"', `from "${base}/doc-search.mts"`));
-  const C = await import(`${base}/catalog.mts`);
-  const T = await import(`${base}/catalog-tools.mts`);
+    .replace('from "@platform/mcp"', `from "${toSpec(`${base}/mcp.ts`)}"`)
+    .replace('from "./catalog.mjs"', `from "${toSpec(`${base}/catalog.mts`)}"`)
+    .replace('from "./doc-search.mjs"', `from "${toSpec(`${base}/doc-search.mts`)}"`));
+  const C = await impFile(`${base}/catalog.mts`);
+  const T = await impFile(`${base}/catalog-tools.mts`);
 
   const catalog = C.loadCatalog({ root });
   ok("loadCatalog: 113パッケージ・カテゴリ付き・全export網羅(api-surface + api-reference 併用)",
@@ -11966,7 +12059,7 @@ section("ui");
   const byName = (n) => tools.find((t) => t.name === n);
   // 資料検索(search_docs): 手順書・ADR を見出し単位で引けるか
   {
-    const D = await import(`${base}/doc-search.mts`);
+    const D = await impFile(`${base}/doc-search.mts`);
     const secs = D.loadDocSections(root);
     ok("loadDocSections: 資料を見出し単位に分割(500節以上・file/heading/body を持つ)",
       secs.length > 500 && secs.every((x) => x.file && x.heading && x.body) &&
@@ -12003,7 +12096,7 @@ section("ui");
   await fsc.rm(base, { recursive: true, force: true });
 
   // 手書き資料の数値ドリフト検出
-  const D = await import(new URL("./check-doc-numbers.mjs", import.meta.url).href);
+  const D = await impFile(new URL("./check-doc-numbers.mjs", import.meta.url).href);
   const { measured, issues } = D.check();
   ok(`check-doc-numbers: CLAUDE.md/architecture.md の数値が実態と一致(パッケージ ${measured.packages})`, issues.length === 0);
   ok("CLAUDE.md: MCP カタログの案内あり(AI が基盤検索の手段を知る)",
@@ -12026,14 +12119,14 @@ section("ui");
   const base = `${osc.tmpdir()}/sec-${smokeStamp()}`;
   await fsc.mkdir(base, { recursive: true });
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
-  await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(`${base}/core-error.ts`)}"`));
+  await fsc.writeFile(`${base}/core.ts`, `export * from "${toSpec(`${base}/core-error.ts`)}";\nexport * from "${toSpec(`${base}/core-result.ts`)}";\n`);
 section("env");
   let dsrc = (await fsc.readFile(new URL("../packages/env/src/describe.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-  dsrc = dsrc.replace('import { z } from "zod";\n', "").replace('from "@platform/core"', `from "${base}/core.ts"`);
+  dsrc = dsrc.replace('import { z } from "zod";\n', "").replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`);
   dsrc = dsrc.replace(/z\.Zod\w+(<[^>]*>)?/g, "any").replace(/z\.ZodRawShape/g, "any");
   await fsc.writeFile(`${base}/describe.ts`, dsrc);
-  const E = await import(`${base}/describe.ts`);
+  const E = await impFile(`${base}/describe.ts`);
 
   ok("checkSecretStrength: 開発既定値(change-me / dev- / admin1234)を error 検出",
     E.checkSecretStrength({ SESSION_SECRET: "dev-session-secret-change-me" })[0].level === "error" &&
@@ -12075,7 +12168,7 @@ section("env");
   const root = fileURLToPath(new URL("..", import.meta.url));
 
   // ポート: 重複なし・全アプリ明記・ドキュメント一致
-  const P = await import(new URL("./check-ports.mjs", import.meta.url).href);
+  const P = await impFile(new URL("./check-ports.mjs", import.meta.url).href);
   const { entries, issues } = P.check();
   ok(`ポート: 7アプリすべて --port 明記・重複なし・docs と一致(${entries.map((e) => e.port).join("/")})`,
     issues.length === 0 && entries.length === 7 && entries.every((e) => e.port !== null) &&
@@ -12087,24 +12180,24 @@ section("env");
   const base = `${osc.tmpdir()}/dm-${smokeStamp()}`;
   await fsc.mkdir(base, { recursive: true });
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
-  await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  await fsc.writeFile(`${base}/mcp.ts`, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(`${base}/core-error.ts`)}"`));
+  await fsc.writeFile(`${base}/core.ts`, `export * from "${toSpec(`${base}/core-error.ts`)}";\nexport * from "${toSpec(`${base}/core-result.ts`)}";\n`);
+  await fsc.writeFile(`${base}/mcp.ts`, (await fsc.readFile(new URL("../packages/mcp/src/index.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`));
   await fsc.writeFile(`${base}/catalog.mts`, (await fsc.readFile(new URL("./lib/catalog.mts", import.meta.url), "utf8")).replace(/\.mjs"/g, '.mts"'));
   await fsc.writeFile(`${base}/tokenize.ts`, await fsc.readFile(new URL("../packages/search/src/tokenize.ts", import.meta.url), "utf8"));
-  await fsc.writeFile(`${base}/bm25.ts`, (await fsc.readFile(new URL("../packages/search/src/bm25.ts", import.meta.url), "utf8")).replace('from "./tokenize"', `from "${base}/tokenize.ts"`));
+  await fsc.writeFile(`${base}/bm25.ts`, (await fsc.readFile(new URL("../packages/search/src/bm25.ts", import.meta.url), "utf8")).replace('from "./tokenize"', `from "${toSpec(`${base}/tokenize.ts`)}"`));
   await fsc.writeFile(`${base}/doc-sections.mts`, await fsc.readFile(new URL("./lib/doc-sections.mts", import.meta.url), "utf8"));
   await fsc.writeFile(`${base}/rerank.ts`, await fsc.readFile(new URL("../packages/rag/src/rerank.ts", import.meta.url), "utf8"));
   await fsc.writeFile(`${base}/doc-search.mts`, (await fsc.readFile(new URL("./lib/doc-search.mts", import.meta.url), "utf8"))
-    .replace('from "@platform/search"', `from "${base}/bm25.ts"`)
-    .replace('from "@platform/rag"', `from "${base}/rerank.ts"`)
-    .replace(/from "\.\/doc-sections\.mjs"/g, `from "${base}/doc-sections.mts"`));
+    .replace('from "@platform/search"', `from "${toSpec(`${base}/bm25.ts`)}"`)
+    .replace('from "@platform/rag"', `from "${toSpec(`${base}/rerank.ts`)}"`)
+    .replace(/from "\.\/doc-sections\.mjs"/g, `from "${toSpec(`${base}/doc-sections.mts`)}"`));
   await fsc.writeFile(`${base}/catalog-tools.mts`, (await fsc.readFile(new URL("./lib/catalog-tools.mts", import.meta.url), "utf8"))
-    .replace('from "@platform/mcp"', `from "${base}/mcp.ts"`)
-    .replace('from "./catalog.mjs"', `from "${base}/catalog.mts"`)
-    .replace('from "./doc-search.mjs"', `from "${base}/doc-search.mts"`));
-  const C = await import(`${base}/catalog.mts`);
-  const T = await import(`${base}/catalog-tools.mts`);
+    .replace('from "@platform/mcp"', `from "${toSpec(`${base}/mcp.ts`)}"`)
+    .replace('from "./catalog.mjs"', `from "${toSpec(`${base}/catalog.mts`)}"`)
+    .replace('from "./doc-search.mjs"', `from "${toSpec(`${base}/doc-search.mts`)}"`));
+  const C = await impFile(`${base}/catalog.mts`);
+  const T = await impFile(`${base}/catalog-tools.mts`);
 
   const demos = C.loadDemos({ root });
   ok("loadDemos: 統合デモサイトの nav.ts から80デモを読む(サイトの表示と検索結果が食い違わない)",
@@ -12138,12 +12231,12 @@ section("env");
   const fsc = await import("node:fs/promises");
 
   // パッケージ構成の規約(tsconfig/scripts 欠落は型チェックが素通りする)
-  const S = await import(new URL("./check-package-shape.mjs", import.meta.url).href);
+  const S = await impFile(new URL("./check-package-shape.mjs", import.meta.url).href);
   const shape = S.check();
   ok(`check-package-shape: 全パッケージが規約どおり(${shape.checked}件検査・対象外 ${shape.exempt.join(",")})`, shape.issues.length === 0);
 
   // 基盤同期ツール
-  const P = await import(new URL("./platform-sync.mjs", import.meta.url).href);
+  const P = await impFile(new URL("./platform-sync.mjs", import.meta.url).href);
   const changes = P.detectApiChanges();
   ok("platform-sync: 現状は破壊的変更なし(api-surface と一致)", changes.breaking.length === 0 && changes.ok);
   // 影響範囲の特定(実在する API で確認)
@@ -12215,7 +12308,7 @@ section("env");
   if (brokenLinks.length > 0) console.log("    切れリンク:", brokenLinks.join(", "));
 
   // 3. ポートの記載が check-ports の実態と一致
-  const P = await import(new URL("./check-ports.mjs", import.meta.url).href);
+  const P = await impFile(new URL("./check-ports.mjs", import.meta.url).href);
   const ports = P.collectPorts();
   const allPortsInGuide = ports.every((e) => guide.includes(`localhost:${e.port}`));
   ok(`導入ガイド: 全7アプリのURL(localhost:3000〜3006)を掲載`, allPortsInGuide);
@@ -12241,7 +12334,7 @@ section("env");
   const fsc = await import("node:fs/promises");
 
   // ドキュメントのリンク切れ・存在しないコマンド案内(初心者が詰む原因)
-  const D = await import(new URL("./check-docs-links.mjs", import.meta.url).href);
+  const D = await impFile(new URL("./check-docs-links.mjs", import.meta.url).href);
   const { scanned, issues } = D.check();
   ok(`check-docs-links: 手書き資料 ${scanned} ファイルの参照がすべて有効(コマンド実在・リンク・パス)`, issues.length === 0);
   if (issues.length > 0) console.log("   ", issues.slice(0, 3).join(" / "));
@@ -12370,7 +12463,7 @@ section("env");
     !setup.includes("dev -- -p 3004"));
 
   // ポート記述のドリフト検出が SETUP.md も見る
-  const P = await import(new URL("./check-ports.mjs", import.meta.url).href);
+  const P = await impFile(new URL("./check-ports.mjs", import.meta.url).href);
   const docs = P.docPorts();
   ok("check-ports: SETUP.md のポート表も突き合わせ対象(記述のドリフトを検出)",
     docs["platform-portal"] !== undefined && docs["internal-app"] !== undefined &&
@@ -12390,7 +12483,7 @@ section("env");
   for (const f of ["stats", "runner", "scenario", "index"]) {
     await fsc.writeFile(`${base}/${f}.ts`, (await fsc.readFile(new URL(`../packages/loadtest/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
   }
-  const L = await import(`${base}/index.ts`);
+  const L = await impFile(`${base}/index.ts`);
 
   const st = L.latencyStats([10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
   ok("loadtest latencyStats: count/min/max/mean/p50/p90/p95/p99・percentile は線形補間",
@@ -12435,7 +12528,7 @@ section("env");
     guide.includes("「テストが通りました」を信じないでください"));
 
   // ドキュメント重複検出
-  const D = await import(new URL("./check-docs-duplication.mjs", import.meta.url).href);
+  const D = await impFile(new URL("./check-docs-duplication.mjs", import.meta.url).href);
   const dup = D.check();
   ok(`check-docs-duplication: 重複なし(${dup.files} ファイル・ALLOW は理由付きで登録)`, dup.issues.length === 0);
 
@@ -12460,15 +12553,15 @@ section("env");
   await fsc.mkdir(base, { recursive: true });
   for (const f of ["stats", "runner", "scenario"]) {
     let src = (await fsc.readFile(new URL(`../packages/loadtest/src/${f}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-    src = src.replace('from "./stats.ts"', `from "${base}/stats.ts"`).replace('from "./runner.ts"', `from "${base}/runner.ts"`);
+    src = src.replace('from "./stats.ts"', `from "${toSpec(`${base}/stats.ts`)}"`).replace('from "./runner.ts"', `from "${toSpec(`${base}/runner.ts`)}"`);
     await fsc.writeFile(`${base}/${f}.ts`, src);
   }
-  await fsc.writeFile(`${base}/index.ts`, `export * from "${base}/stats.ts";\nexport * from "${base}/runner.ts";\nexport * from "${base}/scenario.ts";\n`);
+  await fsc.writeFile(`${base}/index.ts`, `export * from "${toSpec(`${base}/stats.ts`)}";\nexport * from "${toSpec(`${base}/runner.ts`)}";\nexport * from "${toSpec(`${base}/scenario.ts`)}";\n`);
   await fsc.writeFile(`${base}/scen.ts`, (await fsc.readFile(new URL("../demos/showcase/src/examples/loadtest-scenarios.ts", import.meta.url), "utf8"))
-    .replace('from "@platform/loadtest"', `from "${base}/index.ts"`)
+    .replace('from "@platform/loadtest"', `from "${toSpec(`${base}/index.ts`)}"`)
     .replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  const S = await import(`${base}/scen.ts`);
-  const L = await import(`${base}/index.ts`);
+  const S = await impFile(`${base}/scen.ts`);
+  const L = await impFile(`${base}/index.ts`);
 
   const fetchImpl = async (url) => ({ ok: !String(url).includes("fail"), status: String(url).includes("fail") ? 500 : 200 });
   const step = S.buildHttpStep({ baseUrl: "http://x", fetchImpl });
@@ -12498,7 +12591,7 @@ section("env");
     adr.includes("CI では性能を測らない") && adr.includes("偽の失敗") && adr.includes("見直す条件"));
 
   // E2E の Flaky リスク検査
-  const E = await import(new URL("./check-e2e-quality.mjs", import.meta.url).href);
+  const E = await impFile(new URL("./check-e2e-quality.mjs", import.meta.url).href);
   const e2e = E.check();
   ok(`check-e2e-quality: 固定待ち/CSSセレクタ無し・retries/trace 設定済み(${e2e.specs} spec)`,
     e2e.issues.length === 0 && e2e.specs >= 7);
@@ -12568,7 +12661,7 @@ section("env");
   await fsc.mkdir(base, { recursive: true });
 section("debug");
   await fsc.writeFile(`${base}/debug.ts`, (await fsc.readFile(new URL("../packages/debug/src/debug.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  const D = await import(`${base}/debug.ts`);
+  const D = await impFile(`${base}/debug.ts`);
 
   let t = 1000;
   const now = () => t;
@@ -12647,7 +12740,7 @@ section("debug");
   const base = `${osc.tmpdir()}/alrt-${smokeStamp()}`;
   await fsc.mkdir(base, { recursive: true });
   await fsc.writeFile(`${base}/alerting.ts`, (await fsc.readFile(new URL("../packages/observability/src/alerting.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  const A = await import(`${base}/alerting.ts`);
+  const A = await impFile(`${base}/alerting.ts`);
 
   const rules = [{
     name: "err", severity: "critical", forEvaluations: 2,
@@ -12702,10 +12795,10 @@ section("debug");
   await fsc.mkdir(base, { recursive: true });
 section("core");
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
-  await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  await fsc.writeFile(`${base}/task.ts`, (await fsc.readFile(new URL("../packages/task/src/task.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
-  const T = await import(`${base}/task.ts`);
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(`${base}/core-error.ts`)}"`));
+  await fsc.writeFile(`${base}/core.ts`, `export * from "${toSpec(`${base}/core-error.ts`)}";\nexport * from "${toSpec(`${base}/core-result.ts`)}";\n`);
+  await fsc.writeFile(`${base}/task.ts`, (await fsc.readFile(new URL("../packages/task/src/task.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`));
+  const T = await impFile(`${base}/task.ts`);
 
   const mk = (o) => ({ id: "t", title: "x", status: "todo", priority: "normal", createdAt: "2026-07-01T00:00:00Z", updatedAt: "2026-07-01T00:00:00Z", ...o });
   const today = new Date("2026-07-15T00:00:00Z");
@@ -12785,7 +12878,7 @@ section("core");
     !/^\s*[-|]\s*`pnpm changeset`.*雛形|変更を記録/m.test(claude));
 
   // 機械検査(規約は書くだけでは守られない)
-  const R = await import(new URL("./check-app-rules.mjs", import.meta.url).href);
+  const R = await impFile(new URL("./check-app-rules.mjs", import.meta.url).href);
   const r = R.check();
   // error は 0 であること。warn は「移行中」の指摘(生タグ等)なので許す。
   const errors = r.issues.filter((i) => i.level === "error");
@@ -12823,15 +12916,15 @@ section("core");
   const base = `${osc.tmpdir()}/tui-${smokeStamp()}`;
   await fsc.mkdir(base, { recursive: true });
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
-  await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  await fsc.writeFile(`${base}/task.ts`, (await fsc.readFile(new URL("../packages/task/src/task.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(`${base}/core-error.ts`)}"`));
+  await fsc.writeFile(`${base}/core.ts`, `export * from "${toSpec(`${base}/core-error.ts`)}";\nexport * from "${toSpec(`${base}/core-result.ts`)}";\n`);
+  await fsc.writeFile(`${base}/task.ts`, (await fsc.readFile(new URL("../packages/task/src/task.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`));
   // services(db)と env は差し替える(DB 接続を張らない)
   await fsc.writeFile(`${base}/services.ts`, `export const db = {};`);
   await fsc.writeFile(`${base}/env.ts`, `export const featureEnv = { TASK_PERSISTENCE: "" };`);
-  await fsc.writeFile(`${base}/task-repo.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/task-repo.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/task"', `from "${base}/task.ts"`).replace('from "./services.ts"', `from "${base}/services.ts"`).replace('from "./env.ts"', `from "${base}/env.ts"`));
-  const R = await import(`${base}/task-repo.ts`);
-  const T = await import(`${base}/task.ts`);
+  await fsc.writeFile(`${base}/task-repo.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/task-repo.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/task"', `from "${toSpec(`${base}/task.ts`)}"`).replace('from "./services.ts"', `from "${toSpec(`${base}/services.ts`)}"`).replace('from "./env.ts"', `from "${toSpec(`${base}/env.ts`)}"`));
+  const R = await impFile(`${base}/task-repo.ts`);
+  const T = await impFile(`${base}/task.ts`);
 
   // seed が入っていて、動かして確かめられる
   const seeded = await R.taskStore.list();
@@ -12889,7 +12982,7 @@ section("core");
 {
   section("docs: TSDoc の網羅性");
   const fsc = await import("node:fs/promises");
-  const T = await import(new URL("./check-tsdoc.mjs", import.meta.url).href);
+  const T = await impFile(new URL("./check-tsdoc.mjs", import.meta.url).href);
 
   // 検査ツールが動く
   const all = T.analyze();
@@ -12943,7 +13036,7 @@ section("core");
   ok(`gen-reference: 引数or戻り値つきのエントリが増えた(${withParams} 件)`, withParams >= 200);
 
   // サイトに描画される
-  const M = await import(new URL("./gen-ref-site.mjs", import.meta.url).href);
+  const M = await impFile(new URL("./gen-ref-site.mjs", import.meta.url).href);
   const pkgs = M.collectPackages();
   const coreP = pkgs.find((p) => p.name === "core");
   ok("collectPackages: 引数・戻り値・使用例を保持",
@@ -12974,7 +13067,7 @@ section("core");
 {
   section("docs: TSDoc 改善 / DB 方針の整合");
   const fsc = await import("node:fs/promises");
-  const T = await import(new URL("./check-tsdoc.mjs", import.meta.url).href);
+  const T = await impFile(new URL("./check-tsdoc.mjs", import.meta.url).href);
 
   // 認証・日付は誤用が事故に直結するため、重要関数を優先して完備にした
   const auth = T.analyze("auth");
@@ -13026,10 +13119,10 @@ section("datetime");
   const base = `${osc.tmpdir()}/faq-${smokeStamp()}`;
   await fsc.mkdir(base, { recursive: true });
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
-  await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  await fsc.writeFile(`${base}/faq.ts`, (await fsc.readFile(new URL("../packages/faq/src/faq.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
-  const F = await import(`${base}/faq.ts`);
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(`${base}/core-error.ts`)}"`));
+  await fsc.writeFile(`${base}/core.ts`, `export * from "${toSpec(`${base}/core-error.ts`)}";\nexport * from "${toSpec(`${base}/core-result.ts`)}";\n`);
+  await fsc.writeFile(`${base}/faq.ts`, (await fsc.readFile(new URL("../packages/faq/src/faq.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`));
+  const F = await impFile(`${base}/faq.ts`);
 
   const mk = (o) => ({ id: "f", question: "q", answer: "a", category: "経費", keywords: [], status: "published",
     helpful: 0, notHelpful: 0, views: 0, relatedIds: [], createdAt: "2026-07-01T00:00:00Z", updatedAt: "2026-07-01T00:00:00Z", ...o });
@@ -13076,10 +13169,10 @@ section("datetime");
   const base = `${osc.tmpdir()}/ctr-${smokeStamp()}`;
   await fsc.mkdir(base, { recursive: true });
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
-  await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  await fsc.writeFile(`${base}/contract.ts`, (await fsc.readFile(new URL("../packages/contract/src/contract.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
-  const C = await import(`${base}/contract.ts`);
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(`${base}/core-error.ts`)}"`));
+  await fsc.writeFile(`${base}/core.ts`, `export * from "${toSpec(`${base}/core-error.ts`)}";\nexport * from "${toSpec(`${base}/core-result.ts`)}";\n`);
+  await fsc.writeFile(`${base}/contract.ts`, (await fsc.readFile(new URL("../packages/contract/src/contract.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`));
+  const C = await impFile(`${base}/contract.ts`);
 
   const mk = (o) => ({ id: "c", title: "契約", partner: "A社", status: "active", startDate: "2026-01-01", endDate: "2026-12-31",
     renewalType: "manual", createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z", ...o });
@@ -13141,14 +13234,14 @@ section("datetime");
   const base = `${osc.tmpdir()}/fui-${smokeStamp()}`;
   await fsc.mkdir(base, { recursive: true });
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
-  await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  await fsc.writeFile(`${base}/faq.ts`, (await fsc.readFile(new URL("../packages/faq/src/faq.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(`${base}/core-error.ts`)}"`));
+  await fsc.writeFile(`${base}/core.ts`, `export * from "${toSpec(`${base}/core-error.ts`)}";\nexport * from "${toSpec(`${base}/core-result.ts`)}";\n`);
+  await fsc.writeFile(`${base}/faq.ts`, (await fsc.readFile(new URL("../packages/faq/src/faq.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`));
   await fsc.writeFile(`${base}/services.ts`, `export const db = {};`);
   await fsc.writeFile(`${base}/env.ts`, `export const featureEnv = { FAQ_PERSISTENCE: "" };`);
-  await fsc.writeFile(`${base}/faq-repo.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/faq-repo.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/faq"', `from "${base}/faq.ts"`).replace('from "./services.ts"', `from "${base}/services.ts"`).replace('from "./env.ts"', `from "${base}/env.ts"`));
-  const R = await import(`${base}/faq-repo.ts`);
-  const F = await import(`${base}/faq.ts`);
+  await fsc.writeFile(`${base}/faq-repo.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/faq-repo.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/faq"', `from "${toSpec(`${base}/faq.ts`)}"`).replace('from "./services.ts"', `from "${toSpec(`${base}/services.ts`)}"`).replace('from "./env.ts"', `from "${toSpec(`${base}/env.ts`)}"`));
+  const R = await impFile(`${base}/faq-repo.ts`);
+  const F = await impFile(`${base}/faq.ts`);
 
   const seeded = await R.faqStore.list();
   ok("faq-repo: seed 済み(DB無しで試せる)・公開/下書き/低評価が揃う",
@@ -13199,14 +13292,14 @@ section("datetime");
   const base = `${osc.tmpdir()}/cui-${smokeStamp()}`;
   await fsc.mkdir(base, { recursive: true });
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
-  await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
-  await fsc.writeFile(`${base}/contract.ts`, (await fsc.readFile(new URL("../packages/contract/src/contract.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(`${base}/core-error.ts`)}"`));
+  await fsc.writeFile(`${base}/core.ts`, `export * from "${toSpec(`${base}/core-error.ts`)}";\nexport * from "${toSpec(`${base}/core-result.ts`)}";\n`);
+  await fsc.writeFile(`${base}/contract.ts`, (await fsc.readFile(new URL("../packages/contract/src/contract.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`));
   await fsc.writeFile(`${base}/services.ts`, `export const db = {};`);
   await fsc.writeFile(`${base}/env.ts`, `export const featureEnv = { CONTRACT_PERSISTENCE: "" };`);
-  await fsc.writeFile(`${base}/contract-repo.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/contract-repo.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/contract"', `from "${base}/contract.ts"`).replace('from "./services.ts"', `from "${base}/services.ts"`).replace('from "./env.ts"', `from "${base}/env.ts"`));
-  const R = await import(`${base}/contract-repo.ts`);
-  const C = await import(`${base}/contract.ts`);
+  await fsc.writeFile(`${base}/contract-repo.ts`, (await fsc.readFile(new URL("../apps/internal-app/src/server/contract-repo.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/contract"', `from "${toSpec(`${base}/contract.ts`)}"`).replace('from "./services.ts"', `from "${toSpec(`${base}/services.ts`)}"`).replace('from "./env.ts"', `from "${toSpec(`${base}/env.ts`)}"`));
+  const R = await impFile(`${base}/contract-repo.ts`);
+  const C = await impFile(`${base}/contract.ts`);
 
   const seeded = await R.contractStore.list();
   ok("contract-repo: seed 済み(DB無しで試せる)・自動更新/手動/一回限り/期限切れが揃う",
@@ -13257,15 +13350,15 @@ section("datetime");
   const base = `${osc.tmpdir()}/wo-${smokeStamp()}`;
   await fsc.mkdir(base, { recursive: true });
   await fsc.writeFile(`${base}/core-error.ts`, (await fsc.readFile(new URL("../packages/core/src/error.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"'));
-  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${base}/core-error.ts"`));
-  await fsc.writeFile(`${base}/core.ts`, `export * from "${base}/core-error.ts";\nexport * from "${base}/core-result.ts";\n`);
+  await fsc.writeFile(`${base}/core-result.ts`, (await fsc.readFile(new URL("../packages/core/src/result.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "./error.ts"', `from "${toSpec(`${base}/core-error.ts`)}"`));
+  await fsc.writeFile(`${base}/core.ts`, `export * from "${toSpec(`${base}/core-error.ts`)}";\nexport * from "${toSpec(`${base}/core-result.ts`)}";\n`);
   for (const pkg of ["task", "faq", "contract"]) {
-    await fsc.writeFile(`${base}/${pkg}.ts`, (await fsc.readFile(new URL(`../packages/${pkg}/src/${pkg}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${base}/core.ts"`));
+    await fsc.writeFile(`${base}/${pkg}.ts`, (await fsc.readFile(new URL(`../packages/${pkg}/src/${pkg}.ts`, import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/core"', `from "${toSpec(`${base}/core.ts`)}"`));
   }
   let src = (await fsc.readFile(new URL("../demos/showcase/src/examples/workplace-ops.ts", import.meta.url), "utf8")).replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"');
-  for (const pkg of ["task", "faq", "contract"]) src = src.replace(`from "@platform/${pkg}"`, `from "${base}/${pkg}.ts"`);
+  for (const pkg of ["task", "faq", "contract"]) src = src.replace(`from "@platform/${pkg}"`, `from "${toSpec(`${base}/${pkg}.ts`)}"`);
   await fsc.writeFile(`${base}/wo.ts`, src);
-  const W = await import(`${base}/wo.ts`);
+  const W = await impFile(`${base}/wo.ts`);
 
   const today = new Date("2026-07-15T00:00:00Z");
   const b = { createdAt: "2026-01-01T00:00:00Z", updatedAt: "2026-01-01T00:00:00Z" };
@@ -13318,8 +13411,8 @@ section("datetime");
   await fsc.mkdir(base, { recursive: true });
   await fsc.writeFile(`${base}/ui.ts`, `export interface NavItem { label: string; href?: string; children?: NavItem[]; external?: boolean }\n`);
   await fsc.writeFile(`${base}/nav.ts`, (await fsc.readFile(new URL("../demos/showcase/src/lib/nav.ts", import.meta.url), "utf8"))
-    .replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/ui"', `from "${base}/ui.ts"`));
-  const N = await import(`${base}/nav.ts`);
+    .replace(/(from "\.{1,2}\/[^"]*)"/g, '$1.ts"').replace('from "@platform/ui"', `from "${toSpec(`${base}/ui.ts`)}"`));
+  const N = await impFile(`${base}/nav.ts`);
 
   ok("nav: 区分は3つ(基盤デモ/アプリデモ/使用例)・メニュー上は分かれて見える",
     N.SECTIONS.length === 3 &&
@@ -13534,5 +13627,38 @@ section("datetime");
   // 実際に @platform/ui の kanban.tsx / tree.tsx で付け忘れていた。
   ok('フックを使う .tsx にはすべて "use client" がある', missing.length === 0);
 }
+// ── 生成した一時ファイルに絶対パスの import が残っていないか、まとめて確かめる ──
+// smoke は 1000 箇所以上でコードを書き出す。個別に見ていては漏れる(実際に 7 回漏らした)。
+// **書き出したもの全部**を最後に走査すれば、どの形で埋め込まれていても捕まえられる。
+{
+  const fsFinal = await import("node:fs");
+  const bad = [];
+  // **この実行で作ったものだけ**を見る(一時ディレクトリには他のゴミも残っている)
+  for (const name of fsFinal.readdirSync(TMP)) {
+    if (!name.endsWith(".ts") && !name.endsWith(".mjs") && !name.endsWith(".js")) continue;
+    if (!name.includes(SMOKE_RUN)) continue;   // この実行で作ったものだけ
+    const full = `${TMP}/${name}`;
+    let src;
+    try { src = fsFinal.readFileSync(full, "utf8"); } catch { continue; }
+    // **`file://` でない絶対パス**が import 指定子に入っていないか。
+    // Windows の `C:\...` だけを見ると、**Linux では検出できない検査**になる
+    // (`/tmp/...` は素通り)。両方の OS で同じように捕まえる。
+    for (const m of src.matchAll(/(?:from|import)\s*\(?\s*["']([^"']+)["']/g)) {
+      const spec = m[1];
+      if (spec.startsWith("file://") || spec.startsWith("node:")) continue;
+      if (spec.startsWith(".")) continue;                 // 相対は問題ない
+      if (/^[A-Za-z]:[\\/]/.test(spec) || spec.startsWith("/")) {
+        bad.push(`${name} → ${spec}`);
+        break;
+      }
+    }
+  }
+  ok(
+    "生成した一時ファイルに絶対パスの import が無い(Windows で c: プロトコルとして落ちる)",
+    bad.length === 0,
+  );
+  if (bad.length > 0) for (const b of bad.slice(0, 5)) console.log(`     ${b}`);
+}
+
 console.log(`\n─────────────\n結果: ${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

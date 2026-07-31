@@ -3,7 +3,6 @@
  * チャットの吹き出し。自分の発言は右寄せ、他者は左寄せ+名前。chat パッケージ非依存。
  * @packageDocumentation
  */
-import * as React from "react";
 import { linkify } from "@platform/html";
 import { cn } from "../lib/cn";
 

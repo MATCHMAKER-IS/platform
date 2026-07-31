@@ -3,7 +3,6 @@
  * 共通 Pagination。ページ番号 + 前後移動(省略記号対応)。
  * @packageDocumentation
  */
-import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "../lib/cn";
 import { useT } from "./i18n-provider";

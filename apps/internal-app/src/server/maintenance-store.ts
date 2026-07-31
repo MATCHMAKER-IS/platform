@@ -15,7 +15,8 @@ export function createDbMaintenanceStore(): MaintenanceStore {
     async get(): Promise<MaintenanceState> {
       const row = await db.systemSetting.findUnique({ where: { key: KEY } });
       if (!row) return DEFAULT_STATE;
-      return { ...DEFAULT_STATE, ...(row.value as MaintenanceState) };
+      // Prisma の JsonValue からは直接変換できないので unknown を挟む
+      return { ...DEFAULT_STATE, ...(row.value as unknown as MaintenanceState) };
     },
     async set(state: MaintenanceState): Promise<void> {
       const value = { ...state, updatedAt: new Date().toISOString() };

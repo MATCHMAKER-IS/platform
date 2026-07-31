@@ -51,6 +51,19 @@ for (const c of checks) {
       .replace(/"generatedAt":\s*"[^"]*"/g, '"generatedAt": "DATE"');
   if (norm(before) !== norm(after)) {
     console.error(`❌ ${c.file} が古い可能性(生成し直すと差分)。\`node ${c.gen.join(" ")}\` を実行してコミットしてください`);
+    // **何が違うのかを出す。** 「差分がある」だけでは直しようがない。
+    // 環境差(改行コード・ロケール・生成物の混入)を切り分けるのに要る。
+    const a = norm(before).split("\n");
+    const b = norm(after).split("\n");
+    if (a.length !== b.length) console.error(`     行数: コミット済み ${a.length} / 生成後 ${b.length}`);
+    for (let i = 0, shown = 0; i < Math.max(a.length, b.length) && shown < 3; i += 1) {
+      if (a[i] === b[i]) continue;
+      const cut = (t) => (t === undefined ? "(行なし)" : t.length > 120 ? `${t.slice(0, 120)}…` : t);
+      console.error(`     ${i + 1} 行目:`);
+      console.error(`       コミット済み: ${cut(a[i])}`);
+      console.error(`       生成後      : ${cut(b[i])}`);
+      shown += 1;
+    }
     ng += 1;
   } else {
     console.log(`✅ ${c.file} は最新`);

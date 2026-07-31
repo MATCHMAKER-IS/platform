@@ -3,7 +3,6 @@
  * アイキャッチ（記事のヒーロー画像）。画像の上にタイトル・メタを重ねられる。
  * @packageDocumentation
  */
-import * as React from "react";
 import { cn } from "../lib/cn";
 
 /** {@link Eyecatch} の props。 */

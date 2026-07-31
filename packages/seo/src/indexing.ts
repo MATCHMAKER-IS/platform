@@ -60,6 +60,20 @@ export function xRobotsTag(visibility: SiteVisibility): string {
  *
  * @returns robots.txt の中身
  */
+/**
+ * **Next.js の App Router では使わない。**
+ * `app/robots.ts` はメタデータファイルとして特別扱いされ、
+ * `MetadataRoute.Robots` を返す `default` export を要求する。
+ * この関数は文字列を返すので、静的配信や Pages Router など
+ * **自分でレスポンスを組み立てる場面**で使う。
+ *
+ * ```ts
+ * // Next.js App Router ではこちら
+ * export default function robots(): MetadataRoute.Robots {
+ *   return { rules: [{ userAgent: "*", disallow: "/" }] };
+ * }
+ * ```
+ */
 export function internalRobotsTxt(): string {
   return buildRobotsTxt({ rules: [{ userAgent: "*", disallow: ["/"] }] });
 }

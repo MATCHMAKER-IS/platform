@@ -69,9 +69,11 @@ describe("モデルのルーティング", () => {
 
   it("モデル名の接頭辞で推測する(claude→anthropic / gpt→openai)", async () => {
     const gw = createAiGateway({ providers: [stubProvider("openai"), stubProvider("anthropic")], defaultModel: "x" });
-    expect((await gw.chat({ messages: hello, model: "claude-sonnet-4" })).ok && (await gw.chat({ messages: hello, model: "claude-sonnet-4" })).value?.provider).toBe("anthropic");
-    const r = await gw.chat({ messages: hello, model: "gpt-4o" });
-    expect(r.ok && r.value.provider).toBe("openai");
+    // 一度変数に受ける。2 回呼ぶと絞り込みが効かず、**呼び出し回数も 2 倍**になる
+    const claude = await gw.chat({ messages: hello, model: "claude-sonnet-4" });
+    expect(claude.ok && claude.value.provider).toBe("anthropic");
+    const gpt = await gw.chat({ messages: hello, model: "gpt-4o" });
+    expect(gpt.ok && gpt.value.provider).toBe("openai");
   });
 
   it("どれにも当たらなければ先頭のプロバイダを使う", async () => {

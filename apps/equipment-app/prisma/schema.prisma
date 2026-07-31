@@ -1,6 +1,9 @@
 // 備品管理の Prisma スキーマ(PostgreSQL)。備品 + 貸出履歴(子レコード)。
 generator client {
   provider = "prisma-client-js"
+  // **アプリごとに生成先を分ける。** 既定(node_modules/@prisma/client)のままだと
+  // 全アプリが 1 つの生成物を奪い合い、**最後に generate したアプリしか型が通らない**。
+  output   = "../src/generated/prisma"
 }
 
 datasource db {

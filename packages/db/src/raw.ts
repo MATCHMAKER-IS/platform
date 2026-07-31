@@ -11,7 +11,10 @@
  */
 
 import type { z } from "zod";
-import { PrismaClient, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+// **生成物の PrismaClient 型を使わない。** どの schema で生成したかに縛られるため
+// (理由は client-types.ts に詳述)
+import type { RawCapableClient, TransactionClient, TransactionClientOf } from "./client-types";
 import { AppError, ErrorCode, tryCatch, type Result } from "@platform/core";
 
 function toDbError(cause: unknown): AppError {
@@ -30,7 +33,7 @@ function toDbError(cause: unknown): AppError {
  * @returns 成功なら行配列の `ok`、失敗なら `DATABASE` の `err`
  */
 export async function queryRaw<T>(
-  db: PrismaClient,
+  db: RawCapableClient,
   query: Prisma.Sql,
 ): Promise<Result<T[]>> {
   const res = await tryCatch(() => db.$queryRaw<T[]>(query));
@@ -55,7 +58,7 @@ export async function queryRaw<T>(
  * ```
  */
 export async function queryRawValidated<S extends z.ZodTypeAny>(
-  db: PrismaClient,
+  db: RawCapableClient,
   query: Prisma.Sql,
   schema: S,
 ): Promise<Result<z.infer<S>[]>> {
@@ -86,7 +89,7 @@ export async function queryRawValidated<S extends z.ZodTypeAny>(
  * @returns 影響行数の `ok`、失敗なら `DATABASE` の `err`
  */
 export async function executeRaw(
-  db: PrismaClient,
+  db: RawCapableClient,
   query: Prisma.Sql,
 ): Promise<Result<number>> {
   const res = await tryCatch(() => db.$executeRaw(query));
@@ -111,11 +114,13 @@ export async function executeRaw(
  * });
  * ```
  */
-export async function transaction<T>(
-  db: PrismaClient,
-  fn: (tx: Prisma.TransactionClient) => Promise<T>,
+export async function transaction<TClient extends RawCapableClient, T>(
+  db: TClient,
+  fn: (tx: TransactionClientOf<TClient>) => Promise<T>,
 ): Promise<Result<T>> {
-  const res = await tryCatch(() => db.$transaction(fn));
+  // 実体は同じオブジェクト。型だけをクライアント側のものに合わせる
+  const run = fn as unknown as (tx: TransactionClient) => Promise<T>;
+  const res = await tryCatch(() => db.$transaction(run));
   return res.ok ? res : { ok: false, error: toDbError(res.error.cause ?? res.error) };
 }
 
@@ -154,7 +159,7 @@ export const sql = Prisma.sql;
  * ```
  */
 export async function rawQuery<T = Record<string, unknown>>(
-  db: PrismaClient,
+  db: RawCapableClient,
   sqlText: string,
   params: unknown[] = [],
 ): Promise<Result<T[]>> {
@@ -178,7 +183,7 @@ export async function rawQuery<T = Record<string, unknown>>(
  * @returns 影響行数
  */
 export async function rawExecute(
-  db: PrismaClient,
+  db: RawCapableClient,
   sqlText: string,
   params: unknown[] = [],
 ): Promise<Result<number>> {

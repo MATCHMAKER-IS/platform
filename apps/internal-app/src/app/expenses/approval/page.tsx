@@ -41,7 +41,7 @@ export default function ApprovalPage() {
       <div style={{ border: "1px solid var(--color-border)", borderRadius: 8, padding: "1rem", marginBottom: "1rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div><b>{req.expense.category}</b> {yen(req.expense.amount)} <span style={{ color: "var(--color-muted)" }}>/ 申請: {req.applicant}</span></div>
-          <Badge tone={badgeTone as never}>{statusLabel(req.state)}</Badge>
+          <Badge variant={badgeTone}>{statusLabel(req.state)}</Badge>
         </div>
         {req.expense.note && <div style={{ color: "var(--color-muted)", fontSize: ".9rem", marginTop: ".25rem" }}>{req.expense.note}</div>}
       </div>

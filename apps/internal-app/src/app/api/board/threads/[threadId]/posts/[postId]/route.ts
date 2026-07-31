@@ -30,7 +30,8 @@ async function handlePATCH(req: Request, ctx: { params: Promise<{ threadId: stri
 }
 
 async function handleDELETE(req: Request, ctx: { params: Promise<{ threadId: string; postId: string }> }): Promise<Response> {
-  const { postId } = await ctx.params;
+  // 監査ログに threadId も残すので、両方取り出す
+  const { threadId, postId } = await ctx.params;
   const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
   requirePermission(user, "board:post");
 

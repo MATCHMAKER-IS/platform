@@ -12,15 +12,18 @@
 > **Windows の 260 文字制限を超えます**。超えると `turbo` が
 > **ログも出さずクラッシュ**し、原因が分かりません。
 >
-> 1. リポジトリは**浅い場所**に置く（`C:\dev\platform` など。`Documents` の下は避ける）
-> 2. 長いパスを有効化する（管理者権限の PowerShell・要再起動）
+> **長いパスを有効化してください。**管理者権限の PowerShell で実行し、**Windows を再起動**します。
+> これが根本対処です。
 >
 > ```powershell
 > Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" `
 >   -Name LongPathsEnabled -Value 1
 > ```
 >
-> `node tools/check-path-length.mjs` で現状を測れます。
+> 有効化できない場合は、リポジトリを浅い場所（`C:\dev\platform` など）に置く方法もあります。
+> ただし**移動する前に `node_modules` を消すこと**。深いパスのせいで移動自体が失敗します。
+>
+> `node tools/check-path-length.mjs` で現状を測れます（有効化済みなら警告は出ません）。
 
 
 ## 全体の流れ

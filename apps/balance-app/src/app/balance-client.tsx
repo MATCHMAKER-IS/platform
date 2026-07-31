@@ -6,7 +6,10 @@
  * そのため、最新の残高だけでなく **最小とその日** を目立たせています。
  */
 import * as React from "react";
-import { LineChart, BarChart, Badge, Alert, Select, StatCard, DashboardGrid, DashboardWidget } from "@platform/ui";
+// **SimpleStatCard を使う。** @platform/ui には StatCard が 2 つあり、
+// 主(dashboard.tsx)は delta / trend / format を持つが **hint は無い**。
+// ここは「単位を添えるだけ」なので、hint を持つ SimpleStatCard(stat-card.tsx)が合う。
+import { LineChart, BarChart, Badge, Alert, Select, SimpleStatCard, DashboardGrid, DashboardWidget } from "@platform/ui";
 import type { BalanceView } from "../server/balance-service";
 
 const yen = (n: number) => `${n.toLocaleString()} 円`;
@@ -94,17 +97,17 @@ export function BalanceClient({ view }: { view: BalanceView }) {
       {summary && (
         <DashboardGrid>
           <DashboardWidget colSpan={3} bare>
-            <StatCard label="いまの残高" value={summary.latest.toLocaleString()} hint="円" />
+            <SimpleStatCard label="いまの残高" value={summary.latest.toLocaleString()} hint="円" />
           </DashboardWidget>
           <DashboardWidget colSpan={3} bare>
-            <StatCard
+            <SimpleStatCard
               label="期間中の増減"
               value={`${summary.change >= 0 ? "+" : ""}${summary.change.toLocaleString()}`}
               hint="円"
             />
           </DashboardWidget>
           <DashboardWidget colSpan={6} bare>
-            <StatCard
+            <SimpleStatCard
               label="いちばん少なかった日"
               value={summary.min.toLocaleString()}
               hint={`円（${summary.minDate}）— 資金繰りで最初に見るところ`}

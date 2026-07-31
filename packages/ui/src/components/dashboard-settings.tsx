@@ -3,7 +3,6 @@
  * ダッシュボードのウィジェット表示設定フォーム（チェックボックス）。
  * @packageDocumentation
  */
-import * as React from "react";
 import { cn } from "../lib/cn";
 
 /** {@link DashboardSettings} の props。 */

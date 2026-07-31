@@ -18,7 +18,13 @@ import { readdirSync, existsSync } from "node:fs";
 import path from "node:path";
 
 /** 走査から常に外すディレクトリ(生成物・依存)。 */
-const ALWAYS_SKIP = new Set(["node_modules", ".next", ".turbo", "dist", ".git", "coverage"]);
+const ALWAYS_SKIP = new Set([
+  "node_modules", ".next", ".turbo", "dist", ".git", "coverage",
+  // **生成物は検査しない。** Prisma の `src/generated/prisma/index.d.ts` は数万行あり、
+  // 「大きいファイル」「長い行」「相対 import の .js」を大量に誤検知する。
+  // 人が書いたものではないので、作法を問う意味がない。
+  "generated",
+]);
 
 /**
  * 走査の条件。

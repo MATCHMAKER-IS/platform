@@ -120,7 +120,10 @@ export interface NotificationStoreDb {
     findMany(args: { where: { userId: string; read?: boolean }; orderBy: { createdAt: "desc" }; take?: number }): Promise<NotificationRow[]>;
     count(args: { where: { userId: string; read: boolean } }): Promise<number>;
     update(args: { where: { id: string }; data: { read: boolean } }): Promise<unknown>;
-    updateMany(args: { where: { userId: string; read: boolean }; data: { read: boolean } }): Promise<unknown>;
+    // **`id` と `read` はどちらも任意**。markRead は `{ id, userId }` で絞り(他人の通知を
+    // 既読にできないようにする)、markAllRead は `{ userId, read: false }` で絞る。
+    // 型を狭めると、正しい呼び出しが型エラーになる。
+    updateMany(args: { where: { userId: string; id?: string; read?: boolean }; data: { read: boolean } }): Promise<unknown>;
   };
 }
 

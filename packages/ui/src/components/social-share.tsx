@@ -3,7 +3,6 @@
  * SNS シェアボタン。@platform/social の shareLinks で URL を生成し、新規タブで開く。
  * @packageDocumentation
  */
-import * as React from "react";
 import { cn } from "../lib/cn";
 
 /** シェアリンク（@platform/social の shareLinks の出力形）。 */

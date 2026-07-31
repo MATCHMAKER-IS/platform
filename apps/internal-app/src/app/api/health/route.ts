@@ -2,7 +2,7 @@
 /**
  * ヘルスチェック(liveness/readiness)。DB 等の依存を集約し 200/503 を返す。
  */
-import { runHealthChecks } from "@platform/observability";
+import { runHealthChecks, type HealthCheck } from "@platform/observability";
 import { db } from "../../../server/services";
 import { sql, queryRaw } from "@platform/db";
 import { zohoBreakerState } from "../../../server/zoho-client";
@@ -11,7 +11,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   const readiness = new URL(req.url).searchParams.get("type") !== "live";
-  const checks = readiness
+  // **型を明示する。** 三項で `{...} | {}` の union になると
+  // `Record<string, HealthCheck>` に代入できない(空側のキーが undefined 扱いになる)
+  const checks: Record<string, HealthCheck> = readiness
     ? {
         database: async () => { const r = await queryRaw(db, sql`SELECT 1`); if (!r.ok) throw new Error("db unreachable"); },
         zoho: async () => { if (zohoBreakerState() === "open") throw new Error("zoho circuit open"); },

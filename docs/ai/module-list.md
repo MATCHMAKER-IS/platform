@@ -13,7 +13,7 @@
 - **@platform/logger** — pino をラップした構造化ロガー。`console.log` の代わりにこれを使います。
   - 主なexport: ContextStore, DEFAULT_REDACT_PATHS, LogContext, LogLevel, Logger, LoggerOptions, …(全8)
 - **@platform/env** — 起動時に環境変数を zod で検証し、必須値が無ければ即失敗(fail-fast)させます。
-  - 主なexport: EnvVarInfo, SecretIssue, assertSecretStrength, checkSecretStrength, describeEnv, env, …(全13)
+  - 主なexport: EnvVarInfo, SecretIssue, assertSecretStrength, checkSecretStrength, describeEnv, env, …(全16)
 - **@platform/config** — **共有ビルド設定パッケージ**(ランタイムコードは持ちません)。
   - 主なexport: (api-surface未計上)
 - **@platform/validation** — zod をベースにした共通バリデーション。日本の業務アプリで頻出するパターンを集約しています。
@@ -60,7 +60,7 @@
 ## データ
 
 - **@platform/db** — Prisma をラップした DB アクセス部品。**通常の CRUD は Prisma Client**、
-  - 主なexport: AuditChangeEntry, AuditEntry, BulkInsertOptions, CursorPage, CursorPaginateOptions, DiffOptions, …(全63)
+  - 主なexport: AuditCapableClient, AuditChangeEntry, AuditEntry, BulkInsertOptions, CursorPage, CursorPaginateOptions, …(全70)
 - **@platform/cache** — キャッシュの共通部品(Adapter パターン)。
   - 主なexport: Cache, CacheAdapter, RedisCacheClient, RedisCacheConfig, createCache, createMemoryCache, …(全7)
 - **@platform/storage** — ファイル操作の共通部品(Adapter パターン)。保存先を意識せず使えます。

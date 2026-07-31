@@ -9,7 +9,7 @@
  * 起動直後や設定の読み込み中に振り分けられると、利用者がエラーを見る。
  */
 import { runHealthChecks } from "@platform/observability";
-import { env } from "../../../server/env";
+import { env, usePrisma } from "../../../server/env";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +18,9 @@ export async function GET(): Promise<Response> {
     {
         // 保存先。未設定ならメモリで動くが、再起動で消える
         "persistence": () => {
-          if (env.PERSISTENCE === "prisma" && !env.DATABASE_URL) {
+          // **`PERSISTENCE` は env のスキーマに無い。** 真偽値の `usePrisma` として
+          // 公開されている(server/env.ts)。生の環境変数を直接見ない
+          if (usePrisma && !env.DATABASE_URL) {
             throw new Error("PERSISTENCE=prisma には DATABASE_URL が必要です");
           }
         },

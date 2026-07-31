@@ -19,7 +19,8 @@ export const loginAudit = createLoginAudit({
       });
     } catch (e) {
       // 監査書き込みの失敗で本処理を止めない(ログには残す)
-      log.warn("login audit の記録に失敗しました", { error: String(e) });
+      // **pino 流儀: (obj, msg) の順。** メッセージを第 1 引数に書くと型が合わない
+      log.warn({ error: String(e) }, "login audit の記録に失敗しました");
     }
   },
 });

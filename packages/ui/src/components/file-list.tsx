@@ -3,7 +3,6 @@
  * ファイル一覧。名前・サイズ・種別・日時を表示し、開く/削除ボタンを出せる。画像はサムネイル表示。
  * @packageDocumentation
  */
-import * as React from "react";
 import { cn } from "../lib/cn";
 import { formatBytes } from "../lib/format-bytes";
 

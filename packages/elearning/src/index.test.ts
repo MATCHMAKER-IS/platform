@@ -59,8 +59,11 @@ describe("gradeQuiz", () => {
 
   it("合格ラインを指定できる(既定 0.6)", () => {
     const half = { q1: [0], q2: [1] }; // 1/2 = 0.5
-    expect(gradeQuiz(questions, half).ok && gradeQuiz(questions, half).value?.passed).toBe(false);
-    expect(gradeQuiz(questions, half, 0.5).ok && gradeQuiz(questions, half, 0.5).value?.passed).toBe(true);
+    // 一度変数に受ける。2 回呼ぶと絞り込みが効かない
+    const strict = gradeQuiz(questions, half);
+    expect(strict.ok && strict.value.passed).toBe(false);
+    const lenient = gradeQuiz(questions, half, 0.5);
+    expect(lenient.ok && lenient.value.passed).toBe(true);
   });
 
   it("設問が無ければ VALIDATION(0 除算にしない)", () => {

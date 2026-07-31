@@ -154,6 +154,77 @@ export function renderEnvExample(schema: z.ZodObject<z.ZodRawShape>, options: { 
 }
 
 /**
+ * **`next build` 中か**を判定する。
+ *
+ * ビルドは「ページデータの収集」でサーバ側モジュールを読み込むため、
+ * 起動時検証がそのまま走る。DB 接続情報などをビルドマシンに置きたくない場面で使う。
+ *
+ * @param source 環境変数(既定 `process.env`)
+ * @returns ビルド中なら true
+ */
+export function isBuildPhase(source: Record<string, string | undefined> = process.env): boolean {
+  return source.NEXT_PHASE === "phase-production-build";
+}
+
+/**
+ * **実行時は必須、ビルド中だけ既定値**にするスキーマを返す。
+ *
+ * `next build` はページデータ収集のためにサーバ側モジュールを読み込むので、
+ * `DATABASE_URL` のような値を必須にすると**ビルドマシンに本番の接続情報を置くまで
+ * ビルドできない**。実行時には元の検証がそのまま効くので、安全性は落ちない。
+ *
+ * **スキーマは呼び出し側が両方渡す。** ここで `z` を使うと、
+ * zod を持たない環境(smoke の軽量スタブなど)で読み込めなくなる。
+ *
+ * @param runtime 実行時に使う検証(`z.string().url()` など)
+ * @param build ビルド中に使うスキーマ(`z.string().default("...")` など)
+ * @returns ビルド中なら `build`、それ以外は `runtime`
+ *
+ * @example
+ * ```ts
+ * DATABASE_URL: requiredAtRuntime(
+ *   z.string().url(),
+ *   z.string().default("postgresql://build@localhost:5432/build"),
+ * ),
+ * ```
+ */
+export function requiredAtRuntime<TRuntime, TBuild>(runtime: TRuntime, build: TBuild): TRuntime {
+  // **戻り値は実行時の型に合わせる。** `z.string().url()` は `ZodString`、
+  // `z.string().default(...)` は `ZodDefault<ZodString>` と別の型なので、
+  // 同じ型引数にすると呼び出し側で型が合わない。
+  // 実行時に効くのは runtime 側なので、そちらの型として扱う。
+  return (isBuildPhase() ? build : runtime) as unknown as TRuntime;
+}
+
+/**
+ * **本番として動いているか**を判定する(ビルド中は false)。
+ *
+ * `NODE_ENV === "production"` だけで判定すると、**`next build` でも真になる**。
+ * ビルドは「ページデータの収集」でルートハンドラを読み込むため、
+ * 秘密値を必須にしていると **ビルドマシンに本番の秘密を置くまでビルドできない**。
+ *
+ * Next.js はビルド中に `NEXT_PHASE=phase-production-build` を設定するので、
+ * それを見て除外する。**本番で実際に起動したときだけ**必須チェックを効かせる。
+ *
+ * @param source 環境変数(既定 `process.env`)
+ * @returns 本番実行中なら true。**ビルド中は false**
+ *
+ * @example
+ * ```ts
+ * // アプリの env.ts
+ * if (isProductionRuntime()) {
+ *   const required = requireEnv(["SESSION_SECRET", "ADMIN_PASSWORD"]);
+ *   assertSecretStrength(required, { isProduction: true });
+ * }
+ * ```
+ */
+export function isProductionRuntime(source: Record<string, string | undefined> = process.env): boolean {
+  if (source.NODE_ENV !== "production") return false;
+  // next build 中は必須チェックを見送る(実行時に改めて検証される)
+  return source.NEXT_PHASE !== "phase-production-build";
+}
+
+/**
  * 必須の秘密値(SESSION_SECRET など)を検証付きで読む。
  * `process.env` を各所で直接読むのを避けるための入口。欠けていれば CONFIG エラー。
  *

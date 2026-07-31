@@ -6,7 +6,7 @@
 import { visibleBlocks, activeAnnouncements, activeBanners, rotateBanner, type Page, type PageBlock, type MenuItem, type Announcement, type Banner } from "@platform/site";
 import { embedIframe, embedHtml } from "@platform/html";
 import { categoryTree, filterByCategory, countByCategory, categoryPath, findCategoryBySlug, adjacentPosts, relatedPosts, allTags, postsByTag, type Category, type CategoryNode } from "@platform/board";
-import { createSearch, createBm25Index, type Search } from "@platform/search";
+import { createSearch, type Search, createMemorySearch } from "@platform/search";
 import { linkify, nl2br, escapeHtml } from "@platform/html";
 
 /** 描画用に正規化したブロック。text 系は安全な HTML を持つ。 */
@@ -150,7 +150,9 @@ export function createMemorySiteContent(seed: { pages: Page[]; menu: MenuItem[];
   const postsSorted = (seed.posts ?? []).slice().sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : a.publishedAt > b.publishedAt ? -1 : 0));
   const postBySlug = new Map(postsSorted.map((p) => [p.slug, p]));
   // 検索インデックス（BM25）。ページと記事をまとめて索引。初回検索時に遅延構築する。
-  const index: Search = createSearch(createBm25Index());
+  // **`createMemorySearch` は BM25 のラッパー**(内部で createBm25Index を使う)。
+  // `createSearch` が受けるのは SearchAdapter(非同期)で、Bm25Index(同期)は渡せない
+  const index: Search = createSearch(createMemorySearch());
   let indexed: Promise<unknown> | null = null;
   const ensureIndexed = () => {
     if (!indexed) {
