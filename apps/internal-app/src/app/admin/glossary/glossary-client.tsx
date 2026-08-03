@@ -1,7 +1,7 @@
 "use client";
 /** 補正辞書の管理。非エンジニアが表記ゆれ(from→to)と固有名詞を編集できる。 */
 import * as React from "react";
-import { Button, Input } from "@platform/ui";
+import { Button, Input, FileInput } from "@platform/ui";
 
 interface Rule { from: string; to: string; }
 
@@ -109,14 +109,19 @@ export function GlossaryClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <Button onClick={() => exportCsv("replacements")} style={{ ...input }}>置換ルールを書き出し</Button>
           <Button onClick={() => exportCsv("terms")} style={{ ...input }}>固有名詞を書き出し</Button>
-          <label style={{ ...input, cursor: "pointer", background: "#f9fafb" }}>
-            置換ルールを取込
-            <input type="file" accept=".csv" style={{ display: "none" }} onChange={(e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) void importCsv("replacements", f); }} />
-          </label>
-          <label style={{ ...input, cursor: "pointer", background: "#f9fafb" }}>
-            固有名詞を取込
-            <input type="file" accept=".csv" style={{ display: "none" }} onChange={(e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) void importCsv("terms", f); }} />
-          </label>
+          {/* FileInput は**選び直しできるよう値をリセットする**(同じ CSV をもう一度取り込める) */}
+          <FileInput
+            accept=".csv"
+            label="置換ルールを取込"
+            style={{ ...input, cursor: "pointer", background: "#f9fafb" }}
+            onSelect={(files) => { const f = files[0]; if (f) void importCsv("replacements", f); }}
+          />
+          <FileInput
+            accept=".csv"
+            label="固有名詞を取込"
+            style={{ ...input, cursor: "pointer", background: "#f9fafb" }}
+            onSelect={(files) => { const f = files[0]; if (f) void importCsv("terms", f); }}
+          />
         </div>
         {csvMsg && <p style={{ fontSize: 12, color: csvMsg.includes("取り込み") ? "var(--color-success, #16a34a)" : "var(--color-danger, #c00)", marginTop: 8 }}>{csvMsg}</p>}
         <p style={{ fontSize: 11, color: "var(--color-muted, #999)", marginTop: 6 }}>CSV は from,to（置換ルール）または term（固有名詞）の列。Excel で編集できます。</p>

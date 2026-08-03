@@ -253,8 +253,12 @@ export default function Page() {
                       ) : f.type === "date" ? (
                         <Input type="date" value={String(editing[f.key] ?? "")} onChange={(e) => setEditing({ ...editing, [f.key]: e.target.value })} style={sel} />
                       ) : f.type === "select" ? (
-                        <select value={String(editing[f.key])} onChange={(e) => setEditing({ ...editing, [f.key]: e.target.value })} style={sel}>
-                          {f.options!.map((o) => <option key={o} value={o}>{o}</option>)}</select>
+                        <Select
+                          value={String(editing[f.key])}
+                          onChange={(e) => setEditing({ ...editing, [f.key]: e.target.value })}
+                          style={sel}
+                          options={f.options!.map((o) => ({ label: o, value: o }))}
+                        />
                       ) : (
                         <Input value={String(editing[f.key] ?? "")} onChange={(e) => setEditing({ ...editing, [f.key]: f.type === "number" ? (Number(e.target.value) || 0) : e.target.value })} />
                       )}</>)}

@@ -1,7 +1,7 @@
 "use client";
 /** 全銀フォーマットのデモ: 総合振込データの生成・半角カナ変換・件数/合計の自動集計。 */
 import * as React from "react";
-import { Button, Input } from "@platform/ui";
+import { Button, Input, Select } from "@platform/ui";
 import { buildZenginTransfer, toHankakuKana, type Consignor, type TransferRecord, type AccountType } from "@platform/zengin";
 
 const ACCOUNT_TYPES: { value: AccountType; label: string }[] = [
@@ -127,13 +127,12 @@ export function ZenginDemo() {
                   <Input value={r.branchCode} onChange={(e) => update(i, { branchCode: e.target.value })} style={cell} />
                 </td>
                 <td style={{ padding: 4, width: 70 }}>
-                  <select value={r.accountType} onChange={(e) => update(i, { accountType: e.target.value as AccountType })} style={cell}>
-                    {ACCOUNT_TYPES.map((a) => (
-                      <option key={a.value} value={a.value}>
-                        {a.label}
-                      </option>
-                    ))}
-                  </select>
+                  <Select
+                    value={r.accountType}
+                    onChange={(e) => update(i, { accountType: e.target.value as AccountType })}
+                    style={cell}
+                    options={ACCOUNT_TYPES.map((a) => ({ label: a.label, value: a.value }))}
+                  />
                 </td>
                 <td style={{ padding: 4, width: 90 }}>
                   <Input value={r.accountNumber} onChange={(e) => update(i, { accountNumber: e.target.value })} style={cell} />

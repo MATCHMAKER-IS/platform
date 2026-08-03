@@ -10,7 +10,7 @@
  * 併せて、実基盤 @platform/media でどう書くかと、対応する ffmpeg コマンドを示す。
  */
 import * as React from "react";
-import { Badge, Alert, Button, Input } from "@platform/ui";
+import { Badge, Alert, Button, Input, FileInput } from "@platform/ui";
 
 const box: React.CSSProperties = { border: "1px solid var(--color-border)", borderRadius: "var(--radius)", background: "var(--color-surface)", padding: 16, marginBottom: 16 };
 const mono: React.CSSProperties = { fontFamily: "monospace", fontSize: 12 };
@@ -37,7 +37,6 @@ export default function Page() {
   const [at, setAt] = React.useState(1);
   const [err, setErr] = React.useState("");
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
-  const fileRef = React.useRef<HTMLInputElement | null>(null);
 
   const onPick = (file: File) => {
     setErr(""); setThumb(null);
@@ -84,9 +83,12 @@ export default function Page() {
 
       <div style={box}>
         <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>ファイルを選ぶ</div>
-        <input ref={fileRef} type="file" accept="video/*,audio/*" aria-label="動画または音声ファイルを選ぶ"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) onPick(f); }}
-          style={{ fontSize: 13 }} />
+        <FileInput
+          accept="video/*,audio/*"
+          aria-label="動画または音声ファイルを選ぶ"
+          onSelect={(files) => { const f = files[0]; if (f) onPick(f); }}
+          style={{ fontSize: 13 }}
+        />
         {err !== "" && <div style={{ marginTop: 10 }}><Alert variant="danger">{err}</Alert></div>}
 
         {probe && (

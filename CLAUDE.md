@@ -346,13 +346,14 @@ export function EnvSettingsTable({ rows, groupNotes, runtime }: EnvSettingsTable
 > **生タグの歯止め**: `<button>` / `<input>` / `<select>` / `<textarea>` の使用箇所数は
 > `tools/ui-raw-tag-limit.json` に上限として記録されている。**増やすと preflight が失敗する**。
 > 減らしたら `node tools/check-app-rules.mjs --set-limit` で上限を下げること。
-> 現在の残り(33)は、**機械的に置換すると壊れるもの**だけ:
-> - `<select>` 16 … 数値 value(`value={3}`)や `.filter().map()` を含み、options への変換に人の判断が要る
-> - `<input type="file">` 9 … `FileInput` は自前のボタンを描画するため、hidden + ラベルで起動している箇所は見た目が変わる
-> - `<input type="radio">` 5 … `RadioGroup` + `RadioGroupItem` へ構造ごと組み替える必要がある
-> - `<input>`(type 指定なし) 2 / `<input type="checkbox">` 1 … 上記いずれにも当てはまらない特殊形
+> 2026-07 に**すべて移行して 0 になった**(上限も 0)。移行先の対応:
+> - `<select>` → `Select`(`options` 配列を渡す。**`SelectOption.value` は string** なので数値は文字列にする)
+> - `<input type="file">` → `FileInput`(`label` を渡すとボタン風。**同じファイルを選び直せる**)
+> - `<input type="radio">` → `RadioGroup` + `RadioGroupItem`(既定は縦並び。横にするなら `className="flex"`)
+> - `<input type="checkbox">` → `Checkbox`(`onCheckedChange` で受ける)
 >
-> `<button>` と `<textarea>` の生タグは**残っていない**。
+> 移行の過程で**実際の不具合が 2 件**見つかった: アンケート回答の選択肢が `checked` を
+> 渡しておらず選んでも見た目が変わらなかった件と、CSV 取込で同じファイルを選び直せなかった件。
 >
 > これらは画面を動かして確かめながら、1つずつ置き換える。
 

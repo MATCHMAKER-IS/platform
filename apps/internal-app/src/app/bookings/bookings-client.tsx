@@ -4,7 +4,7 @@
  * 対象を選ぶ → 日付を選ぶ → 空き枠をクリック → 用件を入れて予約。
  */
 import * as React from "react";
-import { Button, Input } from "@platform/ui";
+import { Button, Input, Select } from "@platform/ui";
 
 interface Resource { id: string; name: string; kind: "room" | "equipment" | "event"; capacity: number; note?: string }
 interface SlotInfo { start: string; end: string; available: boolean; remaining: number }
@@ -129,13 +129,12 @@ export function BookingsClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
       <div style={card}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
           <div style={{ fontSize: 14, fontWeight: 700 }}>空き枠</div>
-          <select
+          <Select
             value={date}
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => { setDate(e.target.value); setPicked(null); }}
             style={{ padding: "4px 8px", border: "1px solid var(--color-border, #ddd)", borderRadius: 6, fontSize: 13 }}
-          >
-            {nextDays(14).map((d) => <option key={d} value={d}>{d}</option>)}
-          </select>
+            options={nextDays(14).map((d) => ({ label: d, value: d }))}
+          />
         </div>
 
         {slots.length === 0 && <p style={{ fontSize: 12, color: "var(--color-muted, #999)" }}>この日は休業です（土日は予約できません）。</p>}

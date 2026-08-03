@@ -12883,11 +12883,21 @@ section("core");
   // error は 0 であること。warn は「移行中」の指摘(生タグ等)なので許す。
   const errors = r.issues.filter((i) => i.level === "error");
   ok(`check-app-rules: apps/demos が基盤の役割を侵していない(${r.scanned} ファイル・error ${errors.length})`, errors.length === 0);
-  // 生タグ検査が生きていること。**移行が終わるまで warn が出続けるので、
-  // 「warn が 0 か」ではなく「検査が機能しているか」を見る**(骨抜き防止)。
-  const rawWarn = r.issues.find((i) => i.level === "warn" && i.message.includes("生タグ"));
-  ok("check-app-rules: 生タグ(<button>/<input>)を検出し、件数と --ui の案内を出す",
-    rawWarn !== undefined && /\d+ ファイル・\d+ 箇所/.test(rawWarn.message) && rawWarn.message.includes("--ui"));
+  // 生タグ検査が生きていること。**2026-08 に移行が完了して 0 件になった**ため、
+  // 「warn が出ているか」では検証できない(骨抜きでも緑になる)。
+  // 検出ロジック自体を直接呼んで確かめる。
+  {
+    const countRaw = (body) => {
+      const code = body.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+      return (code.match(/<button[\s>]/g) ?? []).length + (code.match(/<input[\s>]/g) ?? []).length;
+    };
+    ok("check-app-rules: 生タグ(<button>/<input>)を数えられる",
+      countRaw('<button onClick={f}>a</button><input type="text" />') === 2);
+    ok("check-app-rules: **コメント内の生タグは数えない**(直しようのない指摘を残さない)",
+      countRaw('// 生の <input> と違い…\n{/* <button> の話 */}\nconst x = 1;') === 0);
+    ok("check-app-rules: 現在の生タグは 0 件(移行完了・上限も 0)",
+      r.issues.every((i) => !i.message.includes("生タグ")));
+  }
   const tool = await fsc.readFile(new URL("./check-app-rules.mjs", import.meta.url), "utf8");
   ok("check-app-rules: 禁止ライブラリの直接 import と汎用処理の自作を検出・例外は理由付き",
     tool.includes("nodemailer") && tool.includes("@platform/mail") && tool.includes("@anthropic-ai/sdk") &&

@@ -7,7 +7,7 @@ import * as React from "react";
 // **SimpleStatCard を使う。** @platform/ui には StatCard が 2 つあり、
 // 主(dashboard.tsx)は delta / trend / format を持つが **hint / href は無い**。
 // ここは「値＋単位＋リンク」なので SimpleStatCard(stat-card.tsx)が合う。
-import { AuditLogView, Card, FileList, Input, List, SimpleStatCard, type AuditLogRow, type FileListItem } from "@platform/ui";
+import { AuditLogView, Card, ComboChart, FileList, Input, List, SimpleStatCard, type AuditLogRow, type FileListItem } from "@platform/ui";
 
 interface DashboardData {
   unreadCount: number;
@@ -153,26 +153,30 @@ export function DashboardClient({ fetchImpl }: DashboardClientProps) {
 
 function TrendChart({ points }: { points: { month: string; sales: number; outstanding: number; purchases: number; expenses: number }[] }) {
   if (points.length === 0) return null;
-  const w = 520, h = 160, pad = 28;
-  const max = Math.max(1, ...points.map((p) => Math.max(p.sales, p.purchases, p.expenses)));
-  const bw = (w - pad * 2) / points.length;
-  const y = (v: number) => h - pad - (v / max) * (h - pad * 2);
-  const line = points.map((p, i) => `${pad + bw * i + bw / 2},${y(p.outstanding)}`).join(" ");
+  // **グラフは @platform/ui の ComboChart に任せる**(軸・凡例・整形・ツールチップ込み)。
+  // 自前 SVG だと目盛りもツールチップも毎回作り直しになる
+  const data = points.map((p) => ({
+    month: `${p.month.slice(5)}月`,
+    sales: p.sales,
+    outstanding: p.outstanding,
+    purchases: p.purchases,
+    expenses: p.expenses,
+  }));
   return (
     <div className="rounded border border-neutral-200 p-4">
       <p className="mb-2 text-sm font-medium">売上・売掛の推移（直近6か月）</p>
-      <svg viewBox={`0 0 ${w} ${h}`} className="w-full" role="img" aria-label="売上と売掛残高の月次推移">
-        {points.map((p, i) => {
-          const bh = h - pad - y(p.sales);
-          return <rect key={p.month} x={pad + bw * i + bw * 0.2} y={y(p.sales)} width={bw * 0.6} height={Math.max(0, bh)} fill="#3b82f6" opacity={0.8} />;
-        })}
-        <polyline points={line} fill="none" stroke="var(--color-danger, #ef4444)" strokeWidth={2} />
-        {points.map((p, i) => <circle key={p.month} cx={pad + bw * i + bw / 2} cy={y(p.outstanding)} r={2.5} fill="var(--color-danger, #ef4444)" />)}
-        <polyline points={points.map((p, i) => `${pad + bw * i + bw / 2},${y(p.purchases)}`).join(" ")} fill="none" stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="4 2" />
-        <polyline points={points.map((p, i) => `${pad + bw * i + bw / 2},${y(p.expenses)}`).join(" ")} fill="none" stroke="#8b5cf6" strokeWidth={1.5} strokeDasharray="2 2" />
-        {points.map((p, i) => <text key={p.month} x={pad + bw * i + bw / 2} y={h - 8} textAnchor="middle" fontSize={9} fill="var(--color-muted, #888)">{p.month.slice(5)}月</text>)}
-      </svg>
-      <div className="mt-1 flex gap-4 text-xs text-neutral-500"><span><span className="mr-1 inline-block h-2 w-2 rounded-sm" style={{ background: "#3b82f6" }} />売上</span><span><span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: "var(--color-danger, #ef4444)" }} />売掛残高</span><span><span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: "#f59e0b" }} />仕入</span><span><span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: "#8b5cf6" }} />経費</span></div>
+      <ComboChart
+        data={data}
+        xKey="month"
+        height={200}
+        unit="currency"
+        series={[
+          { key: "sales", name: "売上", type: "bar" },
+          { key: "outstanding", name: "売掛残高", type: "line" },
+          { key: "purchases", name: "仕入", type: "line" },
+          { key: "expenses", name: "経費", type: "line" },
+        ]}
+      />
     </div>
   );
 }

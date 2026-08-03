@@ -6,7 +6,7 @@
  */
 import * as React from "react";
 import { createThemeRegistry, builtInThemes, themeToCssVars, deriveTheme, checkTheme, type ThemeMode, type Theme } from "@platform/theme";
-import { Button, Input, Select, SkinProvider, SkinSelector, useSkin } from "@platform/ui";
+import { Button, Input, Select, SkinProvider, SkinSelector, useSkin, FileInput } from "@platform/ui";
 
 // 標準テーマを登録したレジストリ(アプリ起動時に1回作る。独自テーマはここに register で足せる)。
 const registry = createThemeRegistry({ themes: builtInThemes });
@@ -196,10 +196,12 @@ function CustomThemeManager({ custom, onChanged }: { custom: Theme[]; onChanged:
 
       <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
         <Button onClick={exportJson} style={btn}>JSON で書き出し</Button>
-        <label style={{ ...btn, background: "var(--color-bg, #f9fafb)" }}>
-          JSON を取り込み
-          <input type="file" accept=".json,application/json" style={{ display: "none" }} onChange={(e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) void importJson(f); }} />
-        </label>
+        <FileInput
+          accept=".json,application/json"
+          label="JSON を取り込み"
+          style={{ ...btn, background: "var(--color-bg, #f9fafb)" }}
+          onSelect={(files) => { const f = files[0]; if (f) void importJson(f); }}
+        />
         {msg && <span style={{ fontSize: 12, color: msg.includes("失敗") ? "var(--color-danger, #c00)" : "var(--color-success, #16a34a)" }}>{msg}</span>}
       </div>
     </div>

@@ -2,7 +2,7 @@
 /** 在庫のデモ: 入出庫の履歴から現在庫を導出・発注点・発注量。 */
 import * as React from "react";
 import { UsesPackages } from "../../components/uses-packages";
-import { Button, Input } from "@platform/ui";
+import { Button, Input, Select } from "@platform/ui";
 import {
   onHand,
   summarize,
@@ -140,13 +140,12 @@ export default function Page() {
       <div style={box}>
         <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>② 入出庫を記録</h2>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          <select value={type} onChange={(e) => setType(e.target.value as MovementType)} style={{ ...field, width: 110 }}>
-            {(Object.keys(TYPE_LABEL) as MovementType[]).map((t) => (
-              <option key={t} value={t}>
-                {TYPE_LABEL[t]}
-              </option>
-            ))}
-          </select>
+          <Select
+            value={type}
+            onChange={(e) => setType(e.target.value as MovementType)}
+            style={{ ...field, width: 110 }}
+            options={(Object.keys(TYPE_LABEL) as MovementType[]).map((t) => ({ label: TYPE_LABEL[t], value: t }))}
+          />
           <Input type="number" value={qty} onChange={(e) => setQty(Number(e.target.value))} style={{ ...field, width: 90, textAlign: "right" }} />
           <Button
             onClick={add}

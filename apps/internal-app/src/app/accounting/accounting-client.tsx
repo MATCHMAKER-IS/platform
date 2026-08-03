@@ -1,7 +1,7 @@
 "use client";
 /** 会計。請求・入金・仕入から自動生成した仕訳と試算表を表示。貸借一致を確認できる。 */
 import * as React from "react";
-import { Button, Input, Select, Textarea } from "@platform/ui";
+import { Button, Input, Select, Textarea, FileInput } from "@platform/ui";
 
 interface Row { date: string; description: string; account: string; debit: number; credit: number; }
 interface Balance { account: string; debit: number; credit: number; balance: number; }
@@ -52,9 +52,8 @@ export function AccountingClient({ fetchImpl }: AccountingClientProps) {
   const TYPE_LABEL: Record<string, string> = { asset: "資産", liability: "負債", equity: "純資産", revenue: "収益", expense: "費用" };
 
 
-  const onJournalFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
+  /** 選ばれた CSV を読み込んでテキスト欄に入れる(FileInput は File を直接くれる)。 */
+  const onJournalFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = () => setJcsv(String(reader.result ?? ""));
     reader.readAsText(file);
@@ -175,7 +174,7 @@ export function AccountingClient({ fetchImpl }: AccountingClientProps) {
         {importing && (
           <div className="mb-3">
             <p className="mb-2 text-xs text-neutral-500">見出し「日付,摘要,勘定科目,借方,貸方,備考」。同じ日付＋摘要の行が 1 仕訳に束ねられ、貸借一致した仕訳のみ登録されます。取り込んだ仕訳は決算・元帳・仕訳帳に反映されます。</p>
-            <input type="file" accept=".csv,text/csv" onChange={onJournalFile} className="mb-2 block text-sm" />
+            <FileInput accept=".csv,text/csv" onSelect={(files) => { const f = files[0]; if (f) onJournalFile(f); }} className="mb-2 block text-sm" />
             <Textarea value={jcsv} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setJcsv(e.target.value)} rows={4} placeholder="日付,摘要,勘定科目,借方,貸方,備考&#10;2025-12-31,前払家賃,前払費用,50000,0,&#10;2025-12-31,前払家賃,支払家賃,0,50000," className="block w-full rounded border border-neutral-300 px-2 py-1 font-mono text-xs" />
             <div className="mt-2 flex items-center gap-3"><Button onClick={runJournalImport} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">取り込む</Button>{importMsg && <span className="text-xs text-neutral-600">{importMsg}</span>}</div>
           </div>

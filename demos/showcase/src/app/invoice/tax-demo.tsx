@@ -141,13 +141,12 @@ export function TaxDemo() {
 
         <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, marginTop: 12 }}>
           端数処理
-          <select value={rounding} onChange={(e) => setRounding(e.target.value as Rounding)} style={{ ...cell, width: 120 }}>
-            {ROUNDINGS.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.label}
-              </option>
-            ))}
-          </select>
+          <Select
+            value={rounding}
+            onChange={(e) => setRounding(e.target.value as Rounding)}
+            style={{ ...cell, width: 120 }}
+            options={ROUNDINGS.map((r) => ({ label: r.label, value: r.value }))}
+          />
         </label>
         <p style={{ fontSize: 12, color: "var(--color-muted)", marginTop: 6 }}>
           切り替えると 1 円単位で結果が変わります。<strong>どれを採用するかは自社で決めて統一する</strong>ものです

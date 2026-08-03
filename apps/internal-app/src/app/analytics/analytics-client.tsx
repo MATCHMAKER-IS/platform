@@ -1,7 +1,7 @@
 "use client";
 /** 経営分析。売上・仕入・経費・粗利の月次推移を折れ線＋棒グラフ（インラインSVG）で表示。 */
 import * as React from "react";
-import { Button } from "@platform/ui";
+import { Button, ComboChart } from "@platform/ui";
 
 interface Point { month: string; sales: number; purchases: number; expenses: number; profit: number; }
 interface Summary { totalSales: number; totalProfit: number; avgProfit: number; profitMoM: number; }
@@ -30,12 +30,14 @@ export function AnalyticsClient({ fetchImpl }: AnalyticsClientProps) {
   if (!data) return <div className="mx-auto max-w-4xl p-6"><h1 className="text-2xl font-bold">経営分析</h1><p className="mt-4 text-sm text-neutral-500">読み込み中…</p></div>;
 
   const pts = data.points;
-  const W = 640, H = 240, PAD = 40;
-  const maxVal = Math.max(1, ...pts.map((p) => Math.max(p.sales, p.purchases + p.expenses)));
-  const bx = (i: number) => PAD + (i + 0.5) * ((W - PAD * 2) / Math.max(1, pts.length));
-  const by = (v: number) => H - PAD - (v / maxVal) * (H - PAD * 2);
-  const barW = Math.max(6, (W - PAD * 2) / Math.max(1, pts.length) * 0.5);
-  const profitPath = pts.map((p, i) => `${i === 0 ? "M" : "L"}${bx(i).toFixed(1)},${by(p.profit).toFixed(1)}`).join(" ");
+  // **グラフは @platform/ui の ComboChart に任せる。** 軸・凡例・目盛り・整形・
+  // レスポンシブ・ツールチップが揃っており、自前 SVG では毎回作り直しになる
+  const chartData = pts.map((p) => ({
+    month: p.month.slice(5),
+    sales: p.sales,
+    cost: p.purchases + p.expenses,
+    profit: p.profit,
+  }));
 
   return (
     <div className="mx-auto max-w-4xl p-6">
@@ -51,26 +53,17 @@ export function AnalyticsClient({ fetchImpl }: AnalyticsClientProps) {
       </div>
 
       <div className="rounded border border-neutral-200 p-4">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="月次推移グラフ">
-          <line x1={PAD} y1={H - PAD} x2={W - PAD} y2={H - PAD} stroke="#d4d4d4" />
-          {pts.map((p, i) => {
-            const sh = by(p.purchases + p.expenses);
-            return (
-              <g key={p.month}>
-                <rect x={bx(i) - barW / 2} y={by(p.sales)} width={barW} height={H - PAD - by(p.sales)} fill="#bfdbfe" />
-                <rect x={bx(i) - barW / 2} y={sh} width={barW} height={H - PAD - sh} fill="#fca5a5" opacity={0.6} />
-                <text x={bx(i)} y={H - PAD + 14} textAnchor="middle" fontSize="9" fill="#737373">{p.month.slice(5)}</text>
-              </g>
-            );
-          })}
-          <path d={profitPath} fill="none" stroke="var(--color-success, #16a34a)" strokeWidth={2} />
-          {pts.map((p, i) => <circle key={p.month} cx={bx(i)} cy={by(p.profit)} r={2.5} fill="var(--color-success, #16a34a)" />)}
-        </svg>
-        <div className="mt-2 flex gap-4 text-xs text-neutral-500">
-          <span className="flex items-center gap-1"><span className="h-2 w-3 bg-blue-200"></span>売上</span>
-          <span className="flex items-center gap-1"><span className="h-2 w-3 bg-red-300 opacity-60"></span>仕入＋経費</span>
-          <span className="flex items-center gap-1"><span className="h-0.5 w-3 bg-green-600"></span>粗利</span>
-        </div>
+        <ComboChart
+          data={chartData}
+          xKey="month"
+          height={260}
+          unit="currency"
+          series={[
+            { key: "sales", name: "売上", type: "bar" },
+            { key: "cost", name: "仕入＋経費", type: "bar" },
+            { key: "profit", name: "粗利", type: "line" },
+          ]}
+        />
       </div>
 
       <table className="mt-4 w-full text-sm">

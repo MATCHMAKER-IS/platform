@@ -25,15 +25,14 @@ export function CashflowClient({ fetchImpl }: CashflowClientProps) {
 
   const rows = data.rows;
   const W = 640, H = 220, PAD = 40;
-  const vals = rows.flatMap((r) => [r.inflow, r.outflow]);
-  const maxVal = Math.max(1, ...vals);
-  const minCum = Math.min(0, ...rows.map((r) => r.cumulative));
-  const maxCum = Math.max(1, ...rows.map((r) => r.cumulative));
-  const bx = (i: number) => PAD + (i + 0.5) * ((W - PAD * 2) / Math.max(1, rows.length));
-  const by = (v: number) => H - PAD - (v / maxVal) * (H - PAD * 2) * 0.9;
-  const cy = (v: number) => H - PAD - ((v - minCum) / (maxCum - minCum || 1)) * (H - PAD * 2);
-  const barW = Math.max(5, (W - PAD * 2) / Math.max(1, rows.length) * 0.35);
-  const cumPath = rows.map((r, i) => `${i === 0 ? "M" : "L"}${bx(i).toFixed(1)},${cy(r.cumulative).toFixed(1)}`).join(" ");
+  // **グラフは @platform/ui の ComboChart に任せる**(軸・凡例・整形・ツールチップ込み)。
+  // 累計残は収支の積み上げなので、収入・支出と**同じ金額軸**で読める(第2軸は使わない)
+  const chartData = rows.map((r) => ({
+    month: r.month.slice(5),
+    inflow: r.inflow,
+    outflow: r.outflow,
+    cumulative: r.cumulative,
+  }));
 
   return (
     <div className="mx-auto max-w-4xl p-6">
@@ -48,23 +47,17 @@ export function CashflowClient({ fetchImpl }: CashflowClientProps) {
       </div>
 
       <div className="rounded border border-neutral-200 p-4">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="資金繰りグラフ">
-          <line x1={PAD} y1={H - PAD} x2={W - PAD} y2={H - PAD} stroke="#d4d4d4" />
-          {rows.map((r, i) => (
-            <g key={r.month}>
-              <rect x={bx(i) - barW - 1} y={by(r.inflow)} width={barW} height={H - PAD - by(r.inflow)} fill="#86efac" />
-              <rect x={bx(i) + 1} y={by(r.outflow)} width={barW} height={H - PAD - by(r.outflow)} fill="#fca5a5" />
-              <text x={bx(i)} y={H - PAD + 14} textAnchor="middle" fontSize="9" fill="#737373">{r.month.slice(5)}</text>
-            </g>
-          ))}
-          <path d={cumPath} fill="none" stroke="var(--color-primary, #2563eb)" strokeWidth={2} />
-          {rows.map((r, i) => <circle key={r.month} cx={bx(i)} cy={cy(r.cumulative)} r={2.5} fill="var(--color-primary, #2563eb)" />)}
-        </svg>
-        <div className="mt-2 flex gap-4 text-xs text-neutral-500">
-          <span className="flex items-center gap-1"><span className="h-2 w-3 bg-green-300"></span>収入</span>
-          <span className="flex items-center gap-1"><span className="h-2 w-3 bg-red-300"></span>支出</span>
-          <span className="flex items-center gap-1"><span className="h-0.5 w-3 bg-blue-600"></span>累計残</span>
-        </div>
+        <ComboChart
+          data={chartData}
+          xKey="month"
+          height={260}
+          unit="currency"
+          series={[
+            { key: "inflow", name: "収入", type: "bar" },
+            { key: "outflow", name: "支出", type: "bar" },
+            { key: "cumulative", name: "累計残", type: "line" },
+          ]}
+        />
       </div>
 
       <table className="mt-4 w-full text-sm">

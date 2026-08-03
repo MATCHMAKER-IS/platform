@@ -135,11 +135,16 @@ export function check() {
         //    `<button>` を inline style で作ると、基盤の h-9 を変えても追従せず、
         //    スキンを切り替えても変わらない。**基盤を使う理由そのものが消える**。
         if (/\.tsx$/.test(file)) {
+          // **コメントを除いてから数える。** 「生の <input> と違い…」のような
+          // 説明文まで数えると、直しようのない指摘が残り続ける(実際に誤検知した)。
+          const code = body
+            .replace(/\/\*[\s\S]*?\*\//g, "")   // ブロックコメント(JSX の {/* */} も含む)
+            .replace(/^\s*\/\/.*$/gm, "");        // 行コメント
           const raw = {
-            button: (body.match(/<button[\s>]/g) ?? []).length,
-            input: (body.match(/<input[\s>]/g) ?? []).length,
-            select: (body.match(/<select[\s>]/g) ?? []).length,
-            textarea: (body.match(/<textarea[\s>]/g) ?? []).length,
+            button: (code.match(/<button[\s>]/g) ?? []).length,
+            input: (code.match(/<input[\s>]/g) ?? []).length,
+            select: (code.match(/<select[\s>]/g) ?? []).length,
+            textarea: (code.match(/<textarea[\s>]/g) ?? []).length,
           };
           const total = raw.button + raw.input + raw.select + raw.textarea;
           if (total > 0) {

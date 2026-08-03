@@ -2,7 +2,7 @@
 /** 帳票デモ(@platform/report)。請求書の計算 + 印刷用HTMLプレビュー。 */
 import { useMemo, useState } from "react";
 import { calculateInvoice, renderInvoiceHtml, formatYen } from "@platform/report";
-import { PrintButton } from "@platform/ui";
+import { PrintButton, RadioGroup, RadioGroupItem } from "@platform/ui";
 import { pageCss } from "@platform/print";
 
 const lines = [
@@ -29,8 +29,18 @@ export function InvoiceDemo() {
       </p>
 
       <div style={{ display: "flex", gap: "1rem", alignItems: "center", marginBottom: "1rem" }}>
-        <label><input type="radio" checked={taxMode === "exclusive"} onChange={() => setTaxMode("exclusive")} /> 外税(税抜単価)</label>
-        <label><input type="radio" checked={taxMode === "inclusive"} onChange={() => setTaxMode("inclusive")} /> 内税(税込単価)</label>
+        <RadioGroup
+          value={taxMode}
+          onValueChange={(v: string) => setTaxMode(v as "exclusive" | "inclusive")}
+          className="flex items-center gap-4"
+        >
+          <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <RadioGroupItem value="exclusive" /> 外税(税抜単価)
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <RadioGroupItem value="inclusive" /> 内税(税込単価)
+          </label>
+        </RadioGroup>
         <span style={{ marginLeft: "auto" }}>合計: <strong>{formatYen(calc.total)}</strong>(税 {formatYen(calc.totalTax)})</span>
       </div>
 

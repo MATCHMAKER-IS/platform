@@ -139,11 +139,12 @@ export function ConvertersDemo() {
         <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>通貨</h2>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
           <Input type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} style={{ ...field, width: 120, textAlign: "right" }} />
-          <select value={from} onChange={(e) => setFrom(e.target.value as "JPY" | "USD" | "EUR")} style={{ ...field, width: 90 }}>
-            {["JPY", "USD", "EUR"].map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
+          <Select
+            value={from}
+            onChange={(e) => setFrom(e.target.value as "JPY" | "USD" | "EUR")}
+            style={{ ...field, width: 90 }}
+            options={["JPY", "USD", "EUR"].map((c) => ({ label: c, value: c }))}
+          />
           <span style={{ color: "var(--color-muted)" }}>→</span>
           <span style={{ fontSize: 18, fontWeight: 700 }}>{formatMoney(converted)}</span>
           <span style={{ fontSize: 12, color: "var(--color-muted)" }}>（レート {RATES[from]}）</span>

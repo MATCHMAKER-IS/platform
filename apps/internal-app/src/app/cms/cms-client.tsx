@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { Button, Checkbox, Input, Select, Textarea } from "@platform/ui";
+import { Button, Checkbox, Input, Select, Textarea, FileInput } from "@platform/ui";
 import { nl2br, linkify } from "@platform/html";
 import { filterPosts, diffRevisions, effectiveStatus } from "@platform/cms";
 
@@ -233,10 +233,12 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
             <Input type="datetime-local" value={editing.publishedAt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ publishedAt: e.target.value })} className="mt-1 block rounded border border-[var(--color-border)] px-2 py-1" />
           </label>
           <div className="flex items-center gap-2 text-sm">
-            <label className="cursor-pointer rounded border border-[var(--color-border)] px-3 py-1">
-              {uploading ? "アップロード中…" : "アイキャッチ画像を選択"}
-              <input type="file" accept="image/*" className="hidden" onChange={(e: React.ChangeEvent<HTMLInputElement & { files: FileList }>) => { const f = e.target.files[0]; if (f) void uploadEyecatch(f); }} />
-            </label>
+            <FileInput
+              accept="image/*"
+              label={uploading ? "アップロード中…" : "アイキャッチ画像を選択"}
+              className="cursor-pointer rounded border border-[var(--color-border)] px-3 py-1"
+              onSelect={(files) => { const f = files[0]; if (f) void uploadEyecatch(f); }}
+            />
             <Button type="button" onClick={openLibrary} className="rounded border border-[var(--color-border)] px-3 py-1">ライブラリから選択</Button>
             {editing.eyecatch && <img src={editing.eyecatch} alt="" className="h-10 w-16 rounded object-cover" />}
             <Button type="button" onClick={() => setPreview((v) => !v)} className="ml-auto rounded border border-[var(--color-border)] px-3 py-1">{preview ? "編集に戻る" : "プレビュー"}</Button>

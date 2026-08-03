@@ -1,7 +1,7 @@
 "use client";
 /** MCP のデモ: ツール定義・JSON-RPC の解析・isError の流儀・スコープ認可。 */
 import * as React from "react";
-import { Button, Textarea } from "@platform/ui";
+import { Button, Textarea, Select } from "@platform/ui";
 import { parseJsonRpc, textResult, jsonResult, errorResult, type McpToolDef, type McpToolResult } from "@platform/mcp";
 
 /** 在庫(モック)。 */
@@ -157,17 +157,12 @@ export function McpDemo() {
 
       <div style={box}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-          <select
+          <Select
             value={scopeSet}
             onChange={(e) => setScopeSet(e.target.value)}
             style={{ padding: "6px 10px", borderRadius: "var(--radius)", border: "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-fg)" }}
-          >
-            {Object.keys(SCOPE_SETS).map((k) => (
-              <option key={k} value={k}>
-                {k}
-              </option>
-            ))}
-          </select>
+            options={Object.keys(SCOPE_SETS).map((k) => ({ label: k, value: k }))}
+          />
           <Button
             onClick={run}
             style={{ padding: "6px 16px", borderRadius: "var(--radius)", border: "none", background: "var(--color-primary)", color: "var(--color-primary-fg)", cursor: "pointer" }}

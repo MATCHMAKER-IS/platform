@@ -1,7 +1,7 @@
 "use client";
 /** RAG のデモ: チャンク分割 → 索引 → 権限つき検索 → コンテキスト組み立て。 */
 import * as React from "react";
-import { Button, Input } from "@platform/ui";
+import { Button, Input, Select } from "@platform/ui";
 import {
   createRagStore,
   createMemoryVectorIndex,
@@ -140,17 +140,12 @@ export function RagDemo() {
 
       <div style={box}>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-          <select
+          <Select
             value={who}
             onChange={(e) => setWho(e.target.value)}
             style={{ padding: "6px 10px", borderRadius: "var(--radius)", border: "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-fg)" }}
-          >
-            {Object.keys(WHO).map((k) => (
-              <option key={k} value={k}>
-                {k}として検索
-              </option>
-            ))}
-          </select>
+            options={Object.keys(WHO).map((k) => ({ label: `${k}として検索`, value: k }))}
+          />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}

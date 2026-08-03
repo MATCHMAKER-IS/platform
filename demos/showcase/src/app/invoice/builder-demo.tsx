@@ -168,13 +168,12 @@ export function InvoiceBuilderDemo() {
           </label>
           <label style={{ fontSize: 12 }}>
             <div style={{ marginBottom: 4, color: "var(--color-muted)" }}>支払条件</div>
-            <select value={termIndex} onChange={(e) => setTermIndex(Number(e.target.value))} style={{ ...cell, width: 130 }}>
-              {TERMS.map((t, i) => (
-                <option key={t.label} value={i}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
+            <Select
+              value={termIndex}
+              onChange={(e) => setTermIndex(Number(e.target.value))}
+              style={{ ...cell, width: 130 }}
+              options={TERMS.map((t, i) => ({ label: t.label, value: String(i) }))}
+            />
           </label>
           <label style={{ fontSize: 12 }}>
             <div style={{ marginBottom: 4, color: "var(--color-muted)" }}>端数処理</div>

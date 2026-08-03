@@ -1,7 +1,7 @@
 "use client";
 /** 採番のデモ: 接頭辞・ゼロ埋め・期間リセット（年度/年/月）・原子的な発番。 */
 import * as React from "react";
-import { Button, Input } from "@platform/ui";
+import { Button, Input, Select } from "@platform/ui";
 import { createSequencer, createMemorySequenceStore, periodToken, type ResetPeriod } from "@platform/sequence";
 
 const RESETS: { value: ResetPeriod; label: string; hint: string }[] = [
@@ -93,13 +93,12 @@ export function SequenceDemo() {
           </label>
           <label style={{ fontSize: 12 }}>
             <div style={{ marginBottom: 4, color: "var(--color-muted)" }}>リセット周期</div>
-            <select value={resetPeriod} onChange={(e) => setResetPeriod(e.target.value as ResetPeriod)} style={{ ...field, width: 170 }}>
-              {RESETS.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
+            <Select
+              value={resetPeriod}
+              onChange={(e) => setResetPeriod(e.target.value as ResetPeriod)}
+              style={{ ...field, width: 170 }}
+              options={RESETS.map((r) => ({ label: r.label, value: r.value }))}
+            />
           </label>
           <label style={{ fontSize: 12 }}>
             <div style={{ marginBottom: 4, color: "var(--color-muted)" }}>発番日（変えられます）</div>

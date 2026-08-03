@@ -1,7 +1,7 @@
 "use client";
 /** 経費承認画面。ロールを切り替えて 承認/却下/差戻し を体験できるデモ。 */
 import { useState, type ChangeEvent } from "react";
-import { Button, Badge } from "@platform/ui";
+import { Badge, Button, Select } from "@platform/ui";
 import { formatNumber } from "@platform/utils";
 import { submitExpense, statusLabel, availableActions, actOn, type ExpenseRequest } from "../../../lib/expense-approval";
 import type { Actor } from "@platform/workflow";
@@ -48,9 +48,12 @@ export default function ApprovalPage() {
 
       <div style={{ marginBottom: "1rem" }}>
         <label style={{ marginRight: ".5rem", color: "var(--color-muted)" }}>操作ロール:</label>
-        <select value={role} onChange={(e: ChangeEvent<HTMLSelectElement>) => { setRole(e.target.value); setError(null); }} style={{ padding: ".25rem .5rem", border: "1px solid var(--color-border)", borderRadius: 6 }}>
-          {Object.keys(ROLES).map((r) => <option key={r} value={r}>{r}</option>)}
-        </select>
+        <Select
+          value={role}
+          onChange={(e: ChangeEvent<HTMLSelectElement>) => { setRole(e.target.value); setError(null); }}
+          style={{ padding: ".25rem .5rem", border: "1px solid var(--color-border)", borderRadius: 6 }}
+          options={Object.keys(ROLES).map((r) => ({ label: r, value: r }))}
+        />
       </div>
 
       {actions.length > 0 ? (

@@ -1,7 +1,7 @@
 "use client";
 /** アンケート一覧・作成。設問(単一/複数/評価/自由記述)を組み立てて公開する。 */
 import * as React from "react";
-import { Button, Checkbox, Input } from "@platform/ui";
+import { Button, Checkbox, Input, Select } from "@platform/ui";
 
 interface Survey { id: string; title: string; description: string; questions: unknown[]; status: string; createdAt: string; }
 type QType = "single" | "multi" | "text" | "rating";
@@ -70,9 +70,12 @@ export function SurveysClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
               <div key={i} className="rounded border border-neutral-200 p-2">
                 <div className="flex gap-2">
                   <Input value={q.text} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQ(i, { text: e.target.value })} placeholder={`設問 ${i + 1}`} className="flex-1 rounded border border-neutral-300 px-2 py-1 text-sm" />
-                  <select value={q.type} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setQ(i, { type: e.target.value as QType })} className="rounded border border-neutral-300 px-2 py-1 text-sm">
-                    {(Object.keys(TYPE_LABEL) as QType[]).map((t) => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
-                  </select>
+                  <Select
+                    value={q.type}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setQ(i, { type: e.target.value as QType })}
+                    className="rounded border border-neutral-300 px-2 py-1 text-sm"
+                    options={(Object.keys(TYPE_LABEL) as QType[]).map((t) => ({ label: TYPE_LABEL[t], value: t }))}
+                  />
                   {questions.length > 1 && <Button onClick={() => removeQ(i)} className="text-xs text-neutral-400 hover:underline">削除</Button>}
                 </div>
                 {(q.type === "single" || q.type === "multi") && <Input value={q.options} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQ(i, { options: e.target.value })} placeholder="選択肢（カンマ区切り）" className="mt-1 block w-full rounded border border-neutral-300 px-2 py-1 text-xs" />}

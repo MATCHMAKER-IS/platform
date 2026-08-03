@@ -8,7 +8,7 @@
  */
 import * as React from "react";
 import Link from "next/link";
-import { Button, Input, Badge, Alert, Separator } from "@platform/ui";
+import { Button, Input, Badge, Alert, Separator, Select } from "@platform/ui";
 import { buildAuthorizationUrl, accountsUrl, type ZohoDataCenter } from "@platform/zoho";
 
 const box: React.CSSProperties = {
@@ -90,11 +90,12 @@ export function ZohoDemo() {
         <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
           <label style={{ fontSize: 12 }}>
             <div style={{ marginBottom: 4, color: "var(--color-muted)" }}>データセンター</div>
-            <select value={dc} onChange={(e) => setDc(e.target.value as ZohoDataCenter)} style={selectStyle}>
-              {DATA_CENTERS.map((d) => (
-                <option key={d.dc} value={d.dc}>{d.label}</option>
-              ))}
-            </select>
+            <Select
+              value={dc}
+              onChange={(e) => setDc(e.target.value as ZohoDataCenter)}
+              style={selectStyle}
+              options={DATA_CENTERS.map((d) => ({ label: d.label, value: d.dc }))}
+            />
           </label>
           <label style={{ fontSize: 12 }}>
             <div style={{ marginBottom: 4, color: "var(--color-muted)" }}>Client ID</div>

@@ -8,7 +8,7 @@
  */
 import * as React from "react";
 import Link from "next/link";
-import { Alert, Button, Input, Separator } from "@platform/ui";
+import { Alert, Button, Input, Separator, Select } from "@platform/ui";
 import { buildGoogleAuthUrl } from "@platform/google";
 
 const box: React.CSSProperties = {
@@ -93,11 +93,12 @@ export function GoogleDemo() {
           </label>
           <label style={{ fontSize: 12 }}>
             <div style={{ marginBottom: 4, color: "var(--color-muted)" }}>スコープ</div>
-            <select value={presetKey} onChange={(e) => setPresetKey(e.target.value)} style={selectStyle}>
-              {SCOPE_PRESETS.map((p) => (
-                <option key={p.key} value={p.key}>{p.label}</option>
-              ))}
-            </select>
+            <Select
+              value={presetKey}
+              onChange={(e) => setPresetKey(e.target.value)}
+              style={selectStyle}
+              options={SCOPE_PRESETS.map((pr) => ({ label: pr.label, value: pr.key }))}
+            />
           </label>
         </div>
         <div style={{ fontSize: 11, color: "var(--color-muted)", marginBottom: 10 }}>

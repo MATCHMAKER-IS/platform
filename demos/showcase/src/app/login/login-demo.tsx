@@ -5,7 +5,7 @@
  * - ソーシャルは **認可 URL の組み立てまで**を見せる(実際の往復には Client ID と Secret が要る)。
  */
 import * as React from "react";
-import { Button, EmailLoginForm, type EmailLoginValues } from "@platform/ui";
+import { Button, EmailLoginForm, type EmailLoginValues, Select } from "@platform/ui";
 import { buildGoogleAuthUrl } from "@platform/google";
 import { buildAuthorizationUrl, accountsUrl, type ZohoDataCenter } from "@platform/zoho";
 
@@ -202,18 +202,13 @@ export function LoginDemo() {
             >
               Zoho でログイン
             </Button>
-            <select
+            <Select
               value={dc}
               onChange={(e) => setDc(e.target.value as ZohoDataCenter)}
               title="Zoho のデータセンター"
               style={{ width: 100, height: 40, borderRadius: "var(--radius)", border: "1px solid var(--color-border)", background: "var(--color-bg)", color: "var(--color-fg)", fontSize: 12 }}
-            >
-              {(["jp", "com", "eu", "in", "com.au", "ca"] as ZohoDataCenter[]).map((d) => (
-                <option key={d} value={d}>
-                  .{d}
-                </option>
-              ))}
-            </select>
+              options={(["jp", "com", "eu", "in", "com.au", "ca"] as ZohoDataCenter[]).map((d) => ({ label: d, value: d }))}
+            />
           </div>
         </div>
       </div>

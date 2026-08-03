@@ -4,29 +4,10 @@
  * ズーム表示・リサイズ・加工・トリミング。
  *
  * UI は **@platform/ui の部品だけ**で組む(CLAUDE.md「UI 部品は @platform/ui を使う」)。
- * ただし `<input type="file">` は基盤に受け皿が無いため生タグ(CLAUDE.md に既知の穴として記録)。
+ * ファイル選択は `@platform/ui` の `FileInput`(同じファイルを選び直せる)。
  */
 import * as React from "react";
-import {
-  resizeImage,
-  pixelate,
-  applyFilters,
-  flipImage,
-  convertFormat,
-  removeBackgroundColor,
-  maskImage,
-  downloadBlob,
-  ImageCropper,
-  ImageZoom,
-  useImageUpload,
-  fitScale,
-  formatScale,
-  Button,
-  Badge,
-  Alert,
-  Separator,
-  Slider,
-} from "@platform/ui";
+import { resizeImage, pixelate, applyFilters, flipImage, convertFormat, removeBackgroundColor, maskImage, downloadBlob, ImageCropper, ImageZoom, useImageUpload, fitScale, formatScale, Button, Badge, Alert, Separator, Slider, FileInput } from "@platform/ui";
 
 const box: React.CSSProperties = {
   border: "1px solid var(--color-border)",
@@ -36,7 +17,7 @@ const box: React.CSSProperties = {
   marginBottom: 16,
 };
 
-/** `<input type="file">` は基盤に部品が無いので、ここでスタイルを揃える。 */
+/** FileInput に渡す見た目(デモ内で揃えるため)。 */
 const fileInput: React.CSSProperties = {
   fontSize: 13,
   color: "var(--color-fg)",
@@ -88,10 +69,9 @@ export function ImageDemo() {
 
       <div style={box}>
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>画像を選ぶ</div>
-        <input
-          type="file"
+        <FileInput
           accept="image/*"
-          onChange={(e) => e.target.files?.[0] && void onPick(e.target.files[0])}
+          onSelect={(files) => { const f = files[0]; if (f) void onPick(f); }}
           style={fileInput}
         />
         {natural !== null && (
@@ -252,7 +232,8 @@ function UploadDemo() {
   });
   return (
     <div>
-      <input type="file" accept="image/*" onChange={up.onInputChange} style={fileInput} />
+      {/* useImageUpload は select(file) も返す。FileInput は File を直接くれる */}
+      <FileInput accept="image/*" onSelect={(files) => { const f = files[0]; if (f) void up.select(f); }} style={fileInput} />
       <div style={{ marginTop: 8, fontSize: 13 }}>
         {up.uploading ? "アップロード中…" : up.result ? `完了: ${(up.result.size / 1024).toFixed(0)}KB に縮小して送信` : "画像を選ぶと自動で縮小して送信します"}
         {up.error !== undefined && <span style={{ color: "var(--color-danger)" }}>{up.error}</span>}
