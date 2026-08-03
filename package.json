@@ -30,6 +30,7 @@
     "dev:demos": "pnpm --filter showcase-demo dev",
     "dev:equipment": "pnpm --filter equipment-app dev",
     "dev:internal": "pnpm --filter internal-app dev",
+    "dev:no-turbo": "pnpm -r --parallel run dev",
     "dev:portal": "pnpm --filter platform-portal dev",
     "dev:site": "pnpm --filter public-site dev",
     "docs:apps": "echo \"アプリ側ドキュメントは docs/apps/ を参照\"",

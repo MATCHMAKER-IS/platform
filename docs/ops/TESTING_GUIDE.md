@@ -29,6 +29,15 @@ turbo を経由しない代替を用意してある。
 ```bash
 pnpm build:no-turbo   # pnpm -r で依存順にビルド（遅いがログが出る）
 pnpm test:no-turbo    # vitest を直接実行
+pnpm dev:no-turbo     # 全アプリを一斉起動（turbo run dev の代替）
+```
+
+1 つだけ起動したいときは `--filter` を使う。**画面を見るだけならこちらが軽い。**
+
+```bash
+pnpm --filter showcase-demo dev      # http://localhost:3001（統合デモ）
+pnpm --filter internal-app dev       # http://localhost:3000
+pnpm --filter platform-portal dev    # http://localhost:3005
 ```
 
 デプロイ(Amplify)は `demos/showcase` だけをビルドするので、この問題の影響を受けない。
