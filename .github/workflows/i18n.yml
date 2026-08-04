@@ -35,7 +35,7 @@ jobs:
           echo "status=$?" >> "$GITHUB_OUTPUT"
       - name: Comment PR with i18n report
         if: always()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
