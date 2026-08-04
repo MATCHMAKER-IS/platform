@@ -35,7 +35,6 @@ export async function ensureDir(dir: string): Promise<void> {
  * テキストファイルを読む。
  *
  * @param p パス
- * @param encoding 文字コード(既定 utf8)
  * @returns 中身
  * @throws ファイルが無い・読めない場合(Node の例外がそのまま出る)
  */
@@ -74,8 +73,8 @@ export async function readJson<T = unknown>(p: string): Promise<T> {
  * **既定は 2 スペース整形**(Git の差分が読めるように。1 行 JSON だと差分が全行になる)。
  *
  * @param p パス
- * @param value 書き込む値
- * @param indent インデント(既定 2)
+ * @param data 書き込む値
+ * @param options インデント(既定 2)
  * @returns なし
  */
 export async function writeJson(p: string, data: unknown, options: { pretty?: boolean } = {}): Promise<void> {
@@ -90,7 +89,7 @@ export async function writeJson(p: string, data: unknown, options: { pretty?: bo
  * 直接書くと、中途半端な内容のファイルが残る(設定ファイルなら起動不能になる)。
  *
  * @param p パス
- * @param content 中身
+ * @param data 中身
  * @returns なし
  */
 export async function writeFileAtomic(p: string, data: string | Uint8Array): Promise<void> {
@@ -194,7 +193,7 @@ export interface WalkOptions {
  * **大きなディレクトリでは時間もメモリも食う**(全パスを配列に持つ)。
  * `node_modules` などを除外する `exclude` を渡すこと。
  *
- * @param dir ディレクトリのパス
+ * @param root ディレクトリのパス
  * @param options.exclude 除外するディレクトリ名
  * @returns ファイルのパスの配列
  */

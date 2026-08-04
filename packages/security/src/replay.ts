@@ -76,8 +76,8 @@ export interface ReplayGuardOptions {
  * const guard = createReplayGuard({}, createRedisReplayStore(redis));
  * ```
  *
- * @param store 検出ストア
  * @param options.windowMs 有効期間
+ * @param store 検出ストア
  * @returns ガード(**同じ nonce の再送を弾く**。傍受した正当なリクエストの再利用を防ぐ)
  */
 export function createReplayGuard(options: ReplayGuardOptions = {}, store?: ReplayStore): ReplayGuard {

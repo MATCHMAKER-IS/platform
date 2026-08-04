@@ -11,16 +11,28 @@ import { cn } from "../lib/cn";
 export interface SignaturePadProps {
   /** 描画が変わったとき(PNG dataURL)。空なら null。 */
   onChange?: (dataUrl: string | null) => void;
+  /**
+   * 保存ボタンを押したとき(PNG dataURL)。**渡すと保存ボタンが出る**。
+   *
+   * 「描くたびに通知」ではなく「押したときだけ確定」させたい場面向け。
+   * 承認画面のように**署名を意図的に確定させたい**ときはこちらを使う。
+   */
+  onSave?: (dataUrl: string) => void;
+  /** 保存ボタンの文言(既定「サインを保存」)。 */
+  saveLabel?: string;
   width?: number;
   height?: number;
   className?: string;
 }
 
 /** 手書き署名パッド。`clear()` はクリアボタンで実行。 */
-export function SignaturePad({ onChange, width = 400, height = 160, className }: SignaturePadProps) {
+export function SignaturePad({ onChange, onSave, saveLabel = "サインを保存", width = 400, height = 160, className }: SignaturePadProps) {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const drawing = React.useRef(false);
   const dirty = React.useRef(false);
+  // **保存ボタンの活性は state で持つ。** ref だけだと再描画されず、
+  // 描いてもボタンが押せないままになる
+  const [hasInk, setHasInk] = React.useState(false);
 
   const ctx = () => canvasRef.current?.getContext("2d") ?? null;
 
@@ -44,9 +56,11 @@ export function SignaturePad({ onChange, width = 400, height = 160, className }:
     c.lineTo(x, y);
     c.lineWidth = 2;
     c.lineCap = "round";
-    c.strokeStyle = "#0f172a";
+    // **線の色も変数から取る。** 直書きすると暗いテーマで見えなくなる
+    c.strokeStyle = getComputedStyle(canvasRef.current!).getPropertyValue("--color-fg").trim() || "#0f172a";
     c.stroke();
     dirty.current = true;
+    setHasInk(true);
   };
   const end = () => {
     if (!drawing.current) return;
@@ -58,6 +72,7 @@ export function SignaturePad({ onChange, width = 400, height = 160, className }:
     const c = ctx(); if (!c) return;
     c.clearRect(0, 0, width, height);
     dirty.current = false;
+    setHasInk(false);
     onChange?.(null);
   };
 
@@ -73,9 +88,21 @@ export function SignaturePad({ onChange, width = 400, height = 160, className }:
         onPointerLeave={end}
         className="touch-none rounded-[var(--radius)] border border-[var(--color-border)] bg-white"
       />
-      <button type="button" onClick={clear} className="self-start text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)]">
-        クリア
-      </button>
+      <div className="flex items-center gap-3">
+        <button type="button" onClick={clear} className="text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)]">
+          クリア
+        </button>
+        {onSave !== undefined && (
+          <button
+            type="button"
+            disabled={!hasInk}
+            onClick={() => { if (dirty.current) onSave(canvasRef.current!.toDataURL("image/png")); }}
+            className="rounded-[var(--radius)] bg-[var(--color-primary)] px-3 py-1 text-xs text-[var(--color-primary-fg)] disabled:opacity-40"
+          >
+            {saveLabel}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

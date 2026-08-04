@@ -9,17 +9,11 @@
  * <Countdown seconds={300} running={running} onDone={() => alert("終了")} />
  */
 import * as React from "react";
+import { formatClock } from "@platform/datetime";
 
-const pad = (n: number) => String(n).padStart(2, "0");
 
-/** 秒数を mm:ss / h:mm:ss の文字列にする。 */
-export function formatDuration(total: number): string {
-  const t = Math.max(0, Math.floor(total));
-  const h = Math.floor(t / 3600);
-  const m = Math.floor((t % 3600) / 60);
-  const s = t % 60;
-  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
-}
+// 時計表示は @platform/datetime の formatClock を使う(自前で持たない)。
+// 基盤の formatDuration は「1時間30分」形式で、カウントダウンには向かない
 
 export interface CountdownProps {
   /** 総秒数。 */
@@ -67,7 +61,7 @@ export function Countdown({ seconds, running = true, onDone, warnUnder = 60, sty
         ...style,
       }}
     >
-      {formatDuration(remaining)}
+      {formatClock(remaining)}
     </span>
   );
 }

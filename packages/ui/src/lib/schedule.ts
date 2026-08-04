@@ -56,7 +56,7 @@ function startOfDay(d: Date): Date {
  * 開始日だけで判定すると、途中の日にイベントが表示されない。
  *
  * @param event イベント
- * @param date 判定する日
+ * @param day 判定する日
  * @returns 掛かっていれば true
  */
 export function eventIntersectsDay(event: CalendarEvent, day: Date): boolean {
@@ -72,7 +72,7 @@ export function eventIntersectsDay(event: CalendarEvent, day: Date): boolean {
  * 「今日は祝日」は時刻に関係なく先に知りたい)。
  *
  * @param events イベントの配列
- * @param date 対象の日
+ * @param day 対象の日
  * @returns その日のイベント(**終日 → 開始時刻の昇順**)
  */
 export function eventsForDay<E extends CalendarEvent>(events: E[], day: Date): E[] {
@@ -94,7 +94,7 @@ export function eventsForDay<E extends CalendarEvent>(events: E[], day: Date): E
  * 重なりを検出して列に分け、幅と位置を計算する。
  *
  * @param events イベントの配列
- * @param date 対象の日
+ * @param day 対象の日
  * @returns 各イベントの位置(上端・高さ・列・列数)。**CSS でそのまま配置できる形**
  */
 export function layoutDayEvents<E extends CalendarEvent>(events: E[], day: Date): PositionedEvent<E>[] {
@@ -163,7 +163,6 @@ export interface MonthCell {
  * **前後の月の日も含める**(月の初日が水曜なら、日〜火は前月の日で埋める)。
  * これが無いとカレンダーの升目が崩れる。
  *
- * @param year 年
  * @param month 月(**1〜12**)
  * @param options.weekStartsOn 週の始まり(0=日曜・1=月曜)
  * @returns 週ごとの日付(**必要な週数だけ**。常に 6 週返すと空行が出る)
@@ -198,7 +197,6 @@ export function buildMonthGrid(month: Date, options?: { weekStartsOn?: 0 | 1; to
  * イベントを日ごとにまとめる(アジェンダ表示用)。
  *
  * @param events イベントの配列
- * @param range 表示する期間
  * @returns 日付とその日のイベント(**イベントが無い日は含まない**)
  */
 export function groupEventsByDay<E extends CalendarEvent>(events: E[]): { date: Date; events: E[] }[] {
@@ -223,7 +221,7 @@ export function groupEventsByDay<E extends CalendarEvent>(events: E[]): { date: 
 /**
  * 分を `H:MM` 表示にする(時間グリッドの軸ラベル用)。
  *
- * @param minutes 0:00 からの分
+ * @param hour 0:00 からの分
  * @returns `9:00` 形式(**時は 0 埋めしない**。軸ラベルは短い方が読みやすい)
  */
 export function formatHourLabel(hour: number): string {
@@ -419,7 +417,7 @@ export function eventsForResource<E extends CalendarEvent>(events: E[], resource
  *
  * @param events イベントの配列
  * @param resources リソース(会議室など)
- * @param date 対象の日
+ * @param day 対象の日
  * @returns リソースごとのレイアウト
  */
 export function layoutResourceDay<E extends CalendarEvent>(
@@ -435,4 +433,24 @@ export function layoutResourceDay<E extends CalendarEvent>(
       allDay: own.filter((e) => e.allDay && eventIntersectsDay(e, day)),
     };
   });
+}
+
+/**
+ * 曜日の文字色クラス。**日曜は赤・土曜は青**という日本のカレンダーの慣習。
+ *
+ * 色は**変数から取る**(直書きするとテーマを切り替えても変わらない)。
+ * 土曜は「青」だが、`--color-primary` はテーマで変わるため、
+ * **曜日の意味が色に埋もれない**よう info 相当として primary を使う。
+ *
+ * 3 つのカレンダー部品(schedule-calendar / mini-calendar / date-range-picker)で
+ * 同じ判定を書いていたので、ここに集約した。
+ *
+ * @param dayOfWeek 曜日(0=日 … 6=土)
+ * @param isHoliday 祝日か(祝日は日曜と同じ扱い)
+ * @returns Tailwind の文字色クラス
+ */
+export function weekdayColorClass(dayOfWeek: number, isHoliday = false): string {
+  if (isHoliday || dayOfWeek === 0) return "text-[var(--color-danger)]";
+  if (dayOfWeek === 6) return "text-[var(--color-primary)]";
+  return "text-[var(--color-fg)]";
 }

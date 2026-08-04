@@ -138,7 +138,7 @@ export function RichTextEditor({ value = "", onChange, className }: RichTextEdit
           <Redo className="h-4 w-4" />
         </button>
       </div>
-      <EditorContent editor={editor} className="prose max-w-none p-3 text-sm focus:outline-none [&_.ProseMirror]:min-h-[120px] [&_.ProseMirror]:outline-none" />
+      <EditorContent editor={editor} className="prose max-w-none rounded-[var(--radius)] p-3 text-sm focus:outline-none focus-within:ring-1 focus-within:ring-[var(--color-primary)] [&_.ProseMirror]:min-h-[120px] [&_.ProseMirror]:outline-none" />
     </div>
   );
 }

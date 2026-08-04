@@ -21,7 +21,7 @@ export interface Recipient {
  * **完全な検証はできない**(RFC 5322 は複雑すぎる)。**送ってみるまで届くか分からない**ので、
  * ここでは明らかな誤りだけを弾く。厳密にやりたいなら `@platform/validation` を使う。
  *
- * @param email メールアドレス
+ * @param s メールアドレス
  * @returns 形式が妥当そうなら true
  */
 export function isValidEmail(s: string): boolean {
@@ -31,8 +31,8 @@ export function isValidEmail(s: string): boolean {
 /**
  * 宛先を更新または追加する。
  *
- * @param recipients 現在の宛先
- * @param recipient 保存する宛先
+ * @param list 現在の宛先
+ * @param r 保存する宛先
  * @returns 更新した新しい配列
  */
 export function upsertRecipient(list: Recipient[], r: Recipient): Recipient[] {
@@ -44,7 +44,7 @@ export function upsertRecipient(list: Recipient[], r: Recipient): Recipient[] {
 /**
  * 宛先を削除する。
  *
- * @param recipients 現在の宛先
+ * @param list 現在の宛先
  * @param id 削除する id
  * @returns 削除した新しい配列
  */
@@ -57,7 +57,7 @@ export function removeRecipient(list: Recipient[], id: string): Recipient[] {
  *
  * **送信の前に通す**(形式が不正なアドレスに送ると、バウンスして送信者の評判が落ちる)。
  *
- * @param recipients 宛先の配列
+ * @param list 宛先の配列
  * @returns メール形式が妥当な宛先
  */
 export function validRecipients(list: Recipient[]): Recipient[] {
@@ -69,7 +69,7 @@ export function validRecipients(list: Recipient[]): Recipient[] {
  *
  * **Excel で編集して戻せる**ようにするため。
  *
- * @param recipients 宛先の配列
+ * @param list 宛先の配列
  * @returns CSV の行(オブジェクトの配列)
  */
 export function recipientsToRows(list: Recipient[]): Record<string, string>[] {

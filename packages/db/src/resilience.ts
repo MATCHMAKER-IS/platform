@@ -60,7 +60,6 @@ export async function transactionWithRetry<TClient extends RawCapableClient, T>(
  * データベース接続の疎通確認(SELECT 1)。ヘルスチェックエンドポイント向き。
  * @returns 疎通 OK なら `ok(true)`、失敗は `DATABASE` の `err`
  * @param db Prisma クライアント
- * @param options.timeoutMs タイムアウト
  */
 export async function checkDatabase(db: RawCapableClient): Promise<Result<true>> {
   const res = await tryCatch(() => db.$queryRaw`SELECT 1`);

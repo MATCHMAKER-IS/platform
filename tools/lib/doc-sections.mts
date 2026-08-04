@@ -89,7 +89,7 @@ export function loadDocSections(root: string): DocSection[] {
 
   for (const file of collectFiles(root)) {
     const rel = path.relative(root, file).replace(/\\/g, "/");
-    const lines = readFileSync(file, "utf8").split("\n");
+    const lines = readFileSync(file, "utf8").replace(/\r\n/g, "\n").split("\n");
 
     let heading = path.basename(rel);
     let level = 0;

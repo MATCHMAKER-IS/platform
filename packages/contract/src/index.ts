@@ -3,3 +3,5 @@
  * @packageDocumentation
  */
 export * from "./contract";
+export * from "./subcontract-act";
+export * from "./whistleblowing";

@@ -60,9 +60,20 @@ function TreeItem({ node, depth, expanded, toggle, selectedId, onSelect }: {
   const isSelected = selectedId === node.id;
   return (
     <li role="treeitem" aria-expanded={hasChildren ? isOpen : undefined} aria-selected={isSelected}>
+      {/* **キーボードでも選べるようにする。** onClick だけだと Tab で辿れず、
+          Enter でも反応しない。button にすると入れ子の開閉ボタンが
+          button の中の button になるため、tabIndex + キー操作で対応する */}
       <div
+        tabIndex={0}
+        onKeyDown={(e: React.KeyboardEvent) => {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect?.(node); }
+          // 右で開く・左で閉じる(ツリーの標準的な操作)
+          if (e.key === "ArrowRight" && hasChildren && !isOpen) { e.preventDefault(); toggle(node.id); }
+          if (e.key === "ArrowLeft" && hasChildren && isOpen) { e.preventDefault(); toggle(node.id); }
+        }}
         className={cn(
           "flex cursor-pointer items-center gap-1 rounded-md py-1 pr-2 hover:bg-[var(--color-subtle-strong)]",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]",
           isSelected && "bg-[var(--color-subtle-strong)] font-medium",
         )}
         style={{ paddingLeft: `${depth * 1.1 + 0.25}rem` }}

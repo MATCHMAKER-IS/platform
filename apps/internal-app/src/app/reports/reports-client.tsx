@@ -44,44 +44,44 @@ export function ReportsClient() {
   return (
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="mb-1 text-2xl font-bold">レポート/帳票</h1>
-      <p className="mb-4 text-sm text-neutral-600">定型レポートを表示（印刷でPDF化）またはCSV/Excelでダウンロードできます。売上・売掛は期間・取引先で絞り込めます。</p>
+      <p className="mb-4 text-sm text-[var(--color-muted)]">定型レポートを表示（印刷でPDF化）またはCSV/Excelでダウンロードできます。売上・売掛は期間・取引先で絞り込めます。</p>
 
-      <div className="mb-4 flex flex-wrap items-end gap-2 rounded border border-neutral-200 p-3">
-        <label className="text-xs text-neutral-500">発行日 From<Input type="date" value={from} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFrom(e.target.value)} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-        <label className="text-xs text-neutral-500">To<Input type="date" value={to} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTo(e.target.value)} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-        <label className="flex-1 text-xs text-neutral-500">取引先（完全一致）<Input value={partner} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPartner(e.target.value)} placeholder="株式会社サンプル" className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-        {(from || to || partner) && <Button onClick={() => { setFrom(""); setTo(""); setPartner(""); }} className="rounded px-2 py-1 text-xs text-blue-600">クリア</Button>}
+      <div className="mb-4 flex flex-wrap items-end gap-2 rounded border border-[var(--color-border)] p-3">
+        <label className="text-xs text-[var(--color-muted)]">発行日 From<Input type="date" value={from} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFrom(e.target.value)} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+        <label className="text-xs text-[var(--color-muted)]">To<Input type="date" value={to} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTo(e.target.value)} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+        <label className="flex-1 text-xs text-[var(--color-muted)]">取引先（完全一致）<Input value={partner} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPartner(e.target.value)} placeholder="株式会社サンプル" className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+        {(from || to || partner) && <Button onClick={() => { setFrom(""); setTo(""); setPartner(""); }} className="rounded px-2 py-1 text-xs text-[var(--color-primary)]">クリア</Button>}
       </div>
 
       {presets.length > 0 && (
         <div className="mb-4">
-          <p className="mb-1 text-xs text-neutral-500">保存済みプリセット</p>
+          <p className="mb-1 text-xs text-[var(--color-muted)]">保存済みプリセット</p>
           <ul className="flex flex-wrap gap-2">
             {presets.map((pr) => (
-              <li key={pr.id} className="flex items-center gap-1 rounded border border-neutral-200 px-2 py-1 text-xs">
-                <Button onClick={() => applyPreset(pr)} className="text-blue-600 hover:underline">{pr.name}</Button>
-                <Button onClick={() => removePreset(pr.id)} className="text-neutral-400 hover:text-red-600" aria-label="削除">×</Button>
+              <li key={pr.id} className="flex items-center gap-1 rounded border border-[var(--color-border)] px-2 py-1 text-xs">
+                <Button onClick={() => applyPreset(pr)} className="text-[var(--color-primary)] hover:underline">{pr.name}</Button>
+                <Button onClick={() => removePreset(pr.id)} className="text-[var(--color-muted)] hover:text-[var(--color-danger)]" aria-label="削除">×</Button>
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      <div className="mb-4 flex items-center gap-2 rounded border border-dashed border-neutral-300 p-2">
-        <Input value={presetName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPresetName(e.target.value)} placeholder="現在の条件をプリセット保存（名前）" className="flex-1 rounded border border-neutral-300 px-2 py-1 text-sm" />
-        <span className="text-xs text-neutral-400">保存先レポート:</span>
-        <Button onClick={() => savePreset("sales")} disabled={!presetName} className="rounded bg-neutral-100 px-2 py-1 text-xs disabled:opacity-50">売上</Button>
-        <Button onClick={() => savePreset("receivables")} disabled={!presetName} className="rounded bg-neutral-100 px-2 py-1 text-xs disabled:opacity-50">売掛</Button>
+      <div className="mb-4 flex items-center gap-2 rounded border border-dashed border-[var(--color-border)] p-2">
+        <Input value={presetName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPresetName(e.target.value)} placeholder="現在の条件をプリセット保存（名前）" className="flex-1 rounded border border-[var(--color-border)] px-2 py-1 text-sm" />
+        <span className="text-xs text-[var(--color-muted)]">保存先レポート:</span>
+        <Button onClick={() => savePreset("sales")} disabled={!presetName} className="rounded bg-[var(--color-subtle)] px-2 py-1 text-xs disabled:opacity-50">売上</Button>
+        <Button onClick={() => savePreset("receivables")} disabled={!presetName} className="rounded bg-[var(--color-subtle)] px-2 py-1 text-xs disabled:opacity-50">売掛</Button>
       </div>
 
       <ul className="space-y-3">
         {REPORTS.map((r) => (
-          <li key={r.type} className="flex items-center justify-between rounded border border-neutral-200 p-4">
-            <div><p className="text-sm font-medium">{r.label}</p><p className="text-xs text-neutral-500">{r.desc}{r.filterable && (from || to || partner) ? "・絞り込み適用" : ""}</p></div>
+          <li key={r.type} className="flex items-center justify-between rounded border border-[var(--color-border)] p-4">
+            <div><p className="text-sm font-medium">{r.label}</p><p className="text-xs text-[var(--color-muted)]">{r.desc}{r.filterable && (from || to || partner) ? "・絞り込み適用" : ""}</p></div>
             <div className="flex gap-2">
-              <a href={qs(r.type, "html", r.filterable)} target="_blank" rel="noreferrer" className="rounded border border-neutral-300 px-3 py-1.5 text-sm">表示/印刷</a>
-              <a href={qs(r.type, "csv", r.filterable)} className="rounded border border-neutral-300 px-3 py-1.5 text-sm">CSV</a>
-              <a href={qs(r.type, "xlsx", r.filterable)} className="rounded bg-neutral-900 px-3 py-1.5 text-sm text-white">Excel</a>
+              <a href={qs(r.type, "html", r.filterable)} target="_blank" rel="noreferrer" className="rounded border border-[var(--color-border)] px-3 py-1.5 text-sm">表示/印刷</a>
+              <a href={qs(r.type, "csv", r.filterable)} className="rounded border border-[var(--color-border)] px-3 py-1.5 text-sm">CSV</a>
+              <a href={qs(r.type, "xlsx", r.filterable)} className="rounded bg-[var(--color-fg)] px-3 py-1.5 text-sm text-white">Excel</a>
             </div>
           </li>
         ))}

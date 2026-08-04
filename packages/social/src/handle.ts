@@ -11,7 +11,7 @@ import { type SocialPlatform, PLATFORMS } from "./platforms";
  * **利用者は色々な形で入力する**(`@name`、`https://x.com/name`、` name `)。
  * 保存・比較の前に必ず通す。
  *
- * @param input 入力されたハンドル
+ * @param handle 入力されたハンドル
  * @returns 素のハンドル
  */
 export function normalizeHandle(handle: string): string {

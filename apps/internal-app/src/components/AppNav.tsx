@@ -41,25 +41,25 @@ export function AppNav({ fetchImpl }: AppNavProps) {
   const visible = MENU.filter((m) => (!m.feature || me.features[m.feature]) && featureAllowed(m.href));
 
   return (
-    <nav className="sticky top-0 z-30 flex items-center gap-1 overflow-x-auto border-b border-neutral-200 bg-white px-3 py-2 text-sm">
-      <span className="mr-2 font-semibold text-neutral-900">社内アプリ</span>
-      {visible.map((m) => <a key={m.href} href={m.href} className="whitespace-nowrap rounded px-2 py-1 text-neutral-600 hover:bg-neutral-100">{m.label}</a>)}
-      {isAdmin && <a href="/admin/ops" className="whitespace-nowrap rounded px-2 py-1 font-medium text-neutral-900 hover:bg-neutral-100" title="運用ダッシュボード(障害時はまずここ)">運用</a>}
-      {isAdmin && <a href="/admin/console" className="whitespace-nowrap rounded px-2 py-1 font-medium text-neutral-900 hover:bg-neutral-100">管理</a>}
-      {isAdmin && <a href="/admin/users" className="whitespace-nowrap rounded px-2 py-1 text-neutral-600 hover:bg-neutral-100">ユーザー</a>}
-      {isAdmin && <a href="/admin/features" className="whitespace-nowrap rounded px-2 py-1 text-neutral-600 hover:bg-neutral-100">機能設定</a>}
-      {isAdmin && <a href="/admin/insights" className="whitespace-nowrap rounded px-2 py-1 text-neutral-600 hover:bg-neutral-100">分析</a>}
-      {isAdmin && <a href="/admin/service-accounts" className="whitespace-nowrap rounded px-2 py-1 text-neutral-600 hover:bg-neutral-100">APIキー</a>}
-      {isAdmin && <a href="/admin/platform" className="whitespace-nowrap rounded px-2 py-1 text-neutral-600 hover:bg-neutral-100">秘密/フラグ</a>}
-      <a href="/search" className="whitespace-nowrap rounded px-2 py-1 text-neutral-600 hover:bg-neutral-100">検索</a>
-      {isAdmin && <a href="/reports" className="whitespace-nowrap rounded px-2 py-1 text-neutral-600 hover:bg-neutral-100">レポート</a>}
-      {isAdmin && <a href="/import" className="whitespace-nowrap rounded px-2 py-1 text-neutral-600 hover:bg-neutral-100">取込</a>}
-      {isAdmin && <a href="/developer" className="whitespace-nowrap rounded px-2 py-1 text-neutral-600 hover:bg-neutral-100">開発者</a>}
-      {isAdmin && <a href="/admin/backup" className="whitespace-nowrap rounded px-2 py-1 text-neutral-600 hover:bg-neutral-100">バックアップ</a>}
-      {isAdmin && <a href="/admin/data" className="whitespace-nowrap rounded px-2 py-1 text-neutral-600 hover:bg-neutral-100">データ管理</a>}
-      {isAdmin && <a href="/admin/automation" className="whitespace-nowrap rounded px-2 py-1 text-neutral-600 hover:bg-neutral-100">自動化</a>}
-      {isAdmin && <a href="/status" className="whitespace-nowrap rounded px-2 py-1 text-neutral-600 hover:bg-neutral-100">状態</a>}
-      <span className="ml-auto whitespace-nowrap text-xs text-neutral-400">{me.user.name}</span>
+    <nav className="sticky top-0 z-30 flex items-center gap-1 overflow-x-auto border-b border-[var(--color-border)] bg-white px-3 py-2 text-sm">
+      <span className="mr-2 font-semibold text-[var(--color-fg)]">社内アプリ</span>
+      {visible.map((m) => <a key={m.href} href={m.href} className="whitespace-nowrap rounded px-2 py-1 text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">{m.label}</a>)}
+      {isAdmin && <a href="/admin/ops" className="whitespace-nowrap rounded px-2 py-1 font-medium text-[var(--color-fg)] hover:bg-[var(--color-subtle)]" title="運用ダッシュボード(障害時はまずここ)">運用</a>}
+      {isAdmin && <a href="/admin/console" className="whitespace-nowrap rounded px-2 py-1 font-medium text-[var(--color-fg)] hover:bg-[var(--color-subtle)]">管理</a>}
+      {isAdmin && <a href="/admin/users" className="whitespace-nowrap rounded px-2 py-1 text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">ユーザー</a>}
+      {isAdmin && <a href="/admin/features" className="whitespace-nowrap rounded px-2 py-1 text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">機能設定</a>}
+      {isAdmin && <a href="/admin/insights" className="whitespace-nowrap rounded px-2 py-1 text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">分析</a>}
+      {isAdmin && <a href="/admin/service-accounts" className="whitespace-nowrap rounded px-2 py-1 text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">APIキー</a>}
+      {isAdmin && <a href="/admin/platform" className="whitespace-nowrap rounded px-2 py-1 text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">秘密/フラグ</a>}
+      <a href="/search" className="whitespace-nowrap rounded px-2 py-1 text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">検索</a>
+      {isAdmin && <a href="/reports" className="whitespace-nowrap rounded px-2 py-1 text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">レポート</a>}
+      {isAdmin && <a href="/import" className="whitespace-nowrap rounded px-2 py-1 text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">取込</a>}
+      {isAdmin && <a href="/developer" className="whitespace-nowrap rounded px-2 py-1 text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">開発者</a>}
+      {isAdmin && <a href="/admin/backup" className="whitespace-nowrap rounded px-2 py-1 text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">バックアップ</a>}
+      {isAdmin && <a href="/admin/data" className="whitespace-nowrap rounded px-2 py-1 text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">データ管理</a>}
+      {isAdmin && <a href="/admin/automation" className="whitespace-nowrap rounded px-2 py-1 text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">自動化</a>}
+      {isAdmin && <a href="/status" className="whitespace-nowrap rounded px-2 py-1 text-[var(--color-muted)] hover:bg-[var(--color-subtle)]">状態</a>}
+      <span className="ml-auto whitespace-nowrap text-xs text-[var(--color-muted)]">{me.user.name}</span>
     </nav>
   );
 }

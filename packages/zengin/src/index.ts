@@ -48,7 +48,7 @@ export interface Consignor {
  * **全銀システムは半角カナしか受け付けない**(1973 年制定の規格が今も現役)。
  * 全角カナや小文字が混じると、銀行のシステムで弾かれる。
  *
- * @param text 変換する文字列
+ * @param input 変換する文字列
  * @returns 半角カナ・英大文字に変換した文字列
  */
 export function toHankakuKana(input: string): string {
@@ -103,7 +103,7 @@ export function buildHeader(consignor: Consignor, params: { typeCode?: string; t
  *
  * **振込 1 件につき 1 レコード**。
  *
- * @param input 振込先の銀行・支店・口座・金額
+ * @param r 振込先の銀行・支店・口座・金額
  * @returns 120 バイトの固定長レコード
  * @throws {@link @platform/core#AppError} コード `VALIDATION` — 銀行コード・支店コード・口座番号の桁数が不正な場合(**桁が違うと振込が失敗し、組戻し手数料がかかる**)
  */

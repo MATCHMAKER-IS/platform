@@ -1,6 +1,7 @@
 /**
  * `@platform/payroll` — 勤怠・給与計算(労働基準法)。
- * 出退勤からの労働時間集計、時間外・深夜・法定休日の割増賃金、月次集計、給与明細の組み立て。
+ * 出退勤からの労働時間集計、時間外・深夜・法定休日の割増賃金、月次集計、給与明細の組み立て、
+ * **社会保険料の計算**(標準報酬月額の等級・労使折半・介護保険の年齢判定)。
  * 基盤は計算の部品のみを提供し、就業規則・料率などの方針はアプリ側で与える。
  * @packageDocumentation
  */
@@ -8,3 +9,6 @@ export * from "./worktime";
 export * from "./premium";
 export * from "./payslip";
 export * from "./render";
+export * from "./insurance";
+export * from "./withholding";
+export * from "./bonus";

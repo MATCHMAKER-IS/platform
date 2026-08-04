@@ -8,7 +8,7 @@ import { twMerge } from "tailwind-merge";
 
 /**
  * クラス名を結合し、競合する Tailwind ユーティリティを後勝ちで解決する。
- * @param inputs クラス値(文字列・条件・配列など)
+ * @param ...inputs クラス値(文字列・条件・配列など)
  * @returns 結合済みのクラス文字列
  */
 export function cn(...inputs: ClassValue[]): string {

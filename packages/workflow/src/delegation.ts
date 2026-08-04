@@ -25,7 +25,7 @@ export interface Delegation {
  * **代理承認**(出張・休暇中の承認を他の人に任せる)。期間で有効・無効が変わる。
  *
  * @param delegations 委任の配列
- * @param at 判定する時刻
+ * @param now 判定する時刻
  * @returns 有効な委任
  */
 export function activeDelegations(delegations: Delegation[], now: Date = new Date()): Delegation[] {

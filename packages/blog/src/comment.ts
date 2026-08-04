@@ -74,7 +74,7 @@ export function sortComments<T extends Comment>(comments: T[], order: "newest" |
  *
  * 「コメント 3 件」と出すとき、返信を数えないと実感と合わない。
  *
- * @param comments コメントのツリー
+ * @param nodes コメントのツリー
  * @returns 総数
  */
 export function countComments(nodes: CommentNode[]): number {

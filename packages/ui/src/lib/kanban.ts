@@ -42,7 +42,7 @@ export function moveCard<C extends KanbanCardLike>(
  * カラムごとの枚数を数える。
  *
  *
- * @param cards カードの配列
+ * @param columns カードの配列
  * @returns 列ごとの件数(**WIP 制限の判定に使う**)
  */
 export function countByColumn(columns: KanbanColumnLike[]): Record<string, number> {

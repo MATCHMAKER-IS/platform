@@ -50,52 +50,52 @@ export function UsersClient({ fetchImpl }: UsersClientProps) {
   return (
     <div className="mx-auto max-w-3xl p-6">
       <h1 className="mb-1 text-2xl font-bold">ユーザー・権限管理</h1>
-      <p className="mb-4 text-xs text-neutral-500">利用者とロールを管理します。認可はここで付与したロールに基づきます。</p>
-      {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-      {msg && <p className="mb-3 rounded bg-green-50 px-3 py-2 text-sm text-green-700">{msg}</p>}
+      <p className="mb-4 text-xs text-[var(--color-muted)]">利用者とロールを管理します。認可はここで付与したロールに基づきます。</p>
+      {error && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-danger)]">{error}</p>}
+      {msg && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-success)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-success)]">{msg}</p>}
       {tempPw && (
-        <div className="mb-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm">
-          <p className="text-amber-800">{tempPw.email} の一時パスワード（この画面でのみ表示。控えて本人へ伝えてください）:</p>
-          <p className="mt-1 font-mono text-base font-bold text-neutral-900">{tempPw.password}</p>
-          <Button onClick={() => setTempPw(null)} className="mt-1 text-xs text-neutral-500 hover:underline">閉じる</Button>
+        <div className="mb-3 rounded border border-[color-mix(in_srgb,var(--color-warning)_40%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_8%,transparent)] px-3 py-2 text-sm">
+          <p className="text-[var(--color-warning)]">{tempPw.email} の一時パスワード（この画面でのみ表示。控えて本人へ伝えてください）:</p>
+          <p className="mt-1 font-mono text-base font-bold text-[var(--color-fg)]">{tempPw.password}</p>
+          <Button onClick={() => setTempPw(null)} className="mt-1 text-xs text-[var(--color-muted)] hover:underline">閉じる</Button>
         </div>
       )}
 
-      <div className="mb-6 rounded border border-neutral-200 p-4">
+      <div className="mb-6 rounded border border-[var(--color-border)] p-4">
         <h2 className="mb-2 text-sm font-medium">ユーザーを追加 / 編集</h2>
         <div className="flex flex-col gap-2">
-          <label className="text-xs text-neutral-500">メールアドレス<Input value={form.email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, email: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-          <label className="text-xs text-neutral-500">氏名<Input value={form.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-          <label className="text-xs text-neutral-500">部門<Input value={form.department} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, department: e.target.value })} placeholder="営業部 / 経理部 など" className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-          <div className="text-xs text-neutral-500">ロール
+          <label className="text-xs text-[var(--color-muted)]">メールアドレス<Input value={form.email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, email: e.target.value })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+          <label className="text-xs text-[var(--color-muted)]">氏名<Input value={form.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+          <label className="text-xs text-[var(--color-muted)]">部門<Input value={form.department} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, department: e.target.value })} placeholder="営業部 / 経理部 など" className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+          <div className="text-xs text-[var(--color-muted)]">ロール
             <div className="mt-1 flex flex-wrap gap-2">
               {roles.map((r) => (
-                <Button key={r} onClick={() => toggleRole(r)} className={`rounded border px-2 py-1 text-xs ${form.roles.includes(r) ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-300 text-neutral-600"}`}>{ROLE_LABEL[r] ?? r}</Button>
+                <Button key={r} onClick={() => toggleRole(r)} className={`rounded border px-2 py-1 text-xs ${form.roles.includes(r) ? "border-[var(--color-fg)] bg-[var(--color-fg)] text-white" : "border-[var(--color-border)] text-[var(--color-muted)]"}`}>{ROLE_LABEL[r] ?? r}</Button>
               ))}
             </div>
           </div>
-          <div className="text-xs text-neutral-500">個別権限（ロールに追加で付与）
+          <div className="text-xs text-[var(--color-muted)]">個別権限（ロールに追加で付与）
             <div className="mt-1 flex flex-wrap gap-1">
               {perms.map((p) => (
-                <Button key={p.key} onClick={() => togglePerm(p.key)} className={`rounded border px-2 py-0.5 text-xs ${form.permissions.includes(p.key) ? "border-blue-600 bg-blue-600 text-white" : "border-neutral-300 text-neutral-600"}`}>{p.label}</Button>
+                <Button key={p.key} onClick={() => togglePerm(p.key)} className={`rounded border px-2 py-0.5 text-xs ${form.permissions.includes(p.key) ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white" : "border-[var(--color-border)] text-[var(--color-muted)]"}`}>{p.label}</Button>
               ))}
             </div>
           </div>
-          <Button onClick={save} className="mt-1 self-start rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">保存</Button>
+          <Button onClick={save} className="mt-1 self-start rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">保存</Button>
         </div>
       </div>
 
       <table className="w-full text-sm">
-        <thead><tr className="border-b border-neutral-200 text-left text-xs text-neutral-500"><th className="px-2 py-1">メール</th><th className="px-2 py-1">氏名</th><th className="px-2 py-1">部門</th><th className="px-2 py-1">ロール</th><th className="px-2 py-1">状態</th><th className="px-2 py-1"></th></tr></thead>
+        <thead><tr className="border-b border-[var(--color-border)] text-left text-xs text-[var(--color-muted)]"><th className="px-2 py-1">メール</th><th className="px-2 py-1">氏名</th><th className="px-2 py-1">部門</th><th className="px-2 py-1">ロール</th><th className="px-2 py-1">状態</th><th className="px-2 py-1"></th></tr></thead>
         <tbody>
           {users.map((u) => (
-            <tr key={u.email} className="border-b border-neutral-100">
+            <tr key={u.email} className="border-b border-[var(--color-border)]">
               <td className="px-2 py-1.5">{u.email}</td>
               <td className="px-2 py-1.5">{u.name}</td>
               <td className="px-2 py-1.5">{u.department || "—"}</td>
-              <td className="px-2 py-1.5">{u.roles.map((r) => ROLE_LABEL[r] ?? r).join("・") || "—"}{u.permissions.length > 0 && <span className="ml-1 text-xs text-blue-600">+{u.permissions.length}権限</span>}</td>
-              <td className="px-2 py-1.5">{u.active ? <span className="rounded bg-green-100 px-1.5 py-0.5 text-xs text-green-800">有効</span> : <span className="rounded bg-neutral-200 px-1.5 py-0.5 text-xs text-neutral-600">無効</span>}</td>
-              <td className="px-2 py-1.5 text-right"><span className="flex justify-end gap-2"><Button onClick={() => edit(u)} className="text-blue-600 hover:underline">編集</Button><Button onClick={() => reissue(u.email)} className="text-amber-700 hover:underline">パスワード再発行</Button><Button onClick={() => setActive(u.email, !u.active)} className="text-neutral-500 hover:underline">{u.active ? "無効化" : "有効化"}</Button></span></td>
+              <td className="px-2 py-1.5">{u.roles.map((r) => ROLE_LABEL[r] ?? r).join("・") || "—"}{u.permissions.length > 0 && <span className="ml-1 text-xs text-[var(--color-primary)]">+{u.permissions.length}権限</span>}</td>
+              <td className="px-2 py-1.5">{u.active ? <span className="rounded bg-[color-mix(in_srgb,var(--color-success)_15%,transparent)] px-1.5 py-0.5 text-xs text-[var(--color-success)]">有効</span> : <span className="rounded bg-[var(--color-subtle-strong)] px-1.5 py-0.5 text-xs text-[var(--color-muted)]">無効</span>}</td>
+              <td className="px-2 py-1.5 text-right"><span className="flex justify-end gap-2"><Button onClick={() => edit(u)} className="text-[var(--color-primary)] hover:underline">編集</Button><Button onClick={() => reissue(u.email)} className="text-[var(--color-warning)] hover:underline">パスワード再発行</Button><Button onClick={() => setActive(u.email, !u.active)} className="text-[var(--color-muted)] hover:underline">{u.active ? "無効化" : "有効化"}</Button></span></td>
             </tr>
           ))}
         </tbody>

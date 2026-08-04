@@ -82,7 +82,7 @@ export function createZohoTokenManager(config: TokenManagerConfig): ZohoTokenMan
  * 401 の場合は 1 度だけ強制更新して再試行する。
  *
  * @param manager トークンマネージャ
- * @param fetchImpl fetch の実装(テスト注入用)
+ * @param baseFetch fetch の実装(テスト注入用)
  * @returns 認証ヘッダを自動で付ける fetch。**トークンの更新も自動**(呼び出し側は意識しなくてよい)
  */
 export function createAuthedFetch(manager: ZohoTokenManager, baseFetch?: typeof fetch): typeof fetch {

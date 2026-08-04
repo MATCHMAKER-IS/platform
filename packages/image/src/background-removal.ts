@@ -29,8 +29,8 @@ export interface RemoveBgOptions {
  *
  * **有料 API**(1 枚ごとに課金)。大量処理の前に料金を確認すること。
  *
- * @param apiKey API キー
- * @param fetchImpl fetch の実装(テスト注入用)
+ * @param options.apiKey API キー
+ * @param options.fetchImpl fetch の実装(テスト注入用)
  * @returns 背景除去の実装
  */
 export function createRemoveBgRemover(options: RemoveBgOptions): BackgroundRemover {

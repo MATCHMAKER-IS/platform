@@ -16,4 +16,4 @@ WORKDIR /repo
 RUN npm install -g prisma@7.2.0
 COPY apps/internal-app/prisma ./apps/internal-app/prisma
 # DATABASE_URL は env_file から供給
-CMD ["prisma", "db", "push", "--schema=apps/internal-app/prisma/schema.prisma", "--skip-generate"]
+CMD ["prisma", "db", "push", "--schema=apps/internal-app/prisma/schema.prisma"]

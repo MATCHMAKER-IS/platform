@@ -54,8 +54,8 @@ export function variantInStock(variant: ProductVariant, quantity = 1): boolean {
  * 例: 色="赤" を選んだとき、在庫のあるサイズだけを有効化する(売り切れ組み合わせを無効表示)。
  *
  * @param variants バリエーションの配列
- * @param attribute 属性名
- * @param selected 既に選択された属性
+ * @param optionName 属性名
+ * @param partialSelection 既に選択された属性
  * @returns 選べる値(**在庫のある組み合わせだけ**。選べない色をグレーアウトするのに使う)
  */
 export function availableValues(variants: ProductVariant[], optionName: string, partialSelection: Record<string, string> = {}): string[] {

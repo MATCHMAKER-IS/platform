@@ -17,7 +17,7 @@ export const easing = {
 /**
  * 0–1 に丸める。
  *
- * @param value 値
+ * @param v 値
  * @returns 0–1 の値
  */
 export function clamp01(v: number): number {

@@ -108,8 +108,8 @@ function humanizeSegment(segment: string): string {
  * URL パスからパンくずを自動生成する(メニューが無い場合の簡易生成)。
  * 各セグメントを累積パスのリンクにし、ラベルは labels 優先、無ければ見出し化する。
  * 例: "/products/a" → [ホーム, 製品, 製品A]
- * @param menu メニュー(入れ子)
- * @param currentPath 現在のパス
+ * @param path メニュー(入れ子)
+ * @param options 現在のパス
  */
 export function breadcrumbFromPath(path: string, options: BreadcrumbFromPathOptions = {}): { label: string; href: string }[] {
   const segments = (path.split("?")[0] ?? "").split("/").filter(Boolean);

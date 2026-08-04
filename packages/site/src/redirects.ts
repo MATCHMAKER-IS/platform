@@ -32,7 +32,7 @@ function normalize(path: string): string {
  * ワイルドカード: from "/blog/*" は "/blog/..." に一致し、末尾を to の :splat に差し込む。
  *
  * @param rules リダイレクトのルール
- * @param from 元のパス
+ * @param path 元のパス
  * @returns 転送先。**該当が無ければ undefined**
  */
 export function resolveRedirect(rules: RedirectRule[], path: string): RedirectResult | null {

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   parseCookies, serializeCookie, clearCookie, createSession, createServerSession, type SessionStore,
 } from "./index";
@@ -33,10 +33,25 @@ describe("createSession(封緘クッキー)", () => {
     expect(data?.userId).toBe("u1");
   });
   it("期限切れは null", () => {
-    const s2 = createSession<{ x: number }>({ secret: "test-secret-value-1234567890", salt: "test-salt-1234", maxAgeSec: -1 });
-    const setCookie = s2.write({ x: 1 });
-    const value = setCookie.split(";")[0]!.split("=").slice(1).join("=");
-    expect(s2.read(`session=${value}`)).toBeNull();
+    // **時間を進めて期限切れを作る。**
+    // 以前は `maxAgeSec: -1` で「即座に期限切れ」を再現していたが、
+    // 負の値は**単位の間違い**(ミリ秒を渡した等)と区別できないため、
+    // 実装が起動時に落とすようになった。テストだけが古い形で残っていた。
+    vi.useFakeTimers();
+    try {
+      const s2 = createSession<{ x: number }>({ secret: "test-secret-value-1234567890", salt: "test-salt-1234", maxAgeSec: 1 });
+      const setCookie = s2.write({ x: 1 });
+      const value = setCookie.split(";")[0]!.split("=").slice(1).join("=");
+      expect(s2.read(`session=${value}`)?.x).toBe(1);
+      vi.advanceTimersByTime(2000);
+      expect(s2.read(`session=${value}`)).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it("負の秒数は起動時に落とす(単位の間違いを黙って無制限にしない)", () => {
+    expect(() => createSession({ secret: "test-secret-value-1234567890", salt: "test-salt-1234", maxAgeSec: -1 }))
+      .toThrow(/0 以上の秒数/);
   });
   it("別の秘密鍵では読めない", () => {
     const setCookie = session.write({ userId: "u1" });

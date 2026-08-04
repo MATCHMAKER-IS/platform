@@ -46,7 +46,7 @@ export function validateEmailLogin(
  * エラーが無い(送信可能)か。
  *
  *
- * @param form 入力内容
+ * @param errors 入力内容
  * @returns 送信できるか(**ボタンの活性を決める**)
  */
 export function isLoginFormValid(errors: LoginFormErrors): boolean {

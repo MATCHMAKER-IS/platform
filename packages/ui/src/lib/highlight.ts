@@ -26,7 +26,7 @@ export function queryTerms(query: string): string[] {
  * 連続一致はまとめ、非一致部分も 1 セグメントにまとめる。
  *
  * @param text 対象の文字列
- * @param terms 検索語
+ * @param query 検索語
  * @returns `{ text, matched }` の配列(**HTML を組み立てずに返す**ので、エスケープ漏れによる XSS を避けられる)
  */
 export function highlightSegments(text: string, query: string): HighlightSegment[] {

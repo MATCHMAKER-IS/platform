@@ -3,7 +3,7 @@
  * 実運用では Redis ストアに差し替え(createRedisStore)。
  * @packageDocumentation
  */
-import { createRateLimiter, createMemoryStore, type RateLimiter } from "@platform/ratelimit";
+import { createRateLimiter, createMemoryStore, type RateLimiter } from "@platform/ratelimit/browser";
 
 let loginLimiter: RateLimiter | null = null;
 

@@ -62,8 +62,8 @@ export interface QueryCache {
  * await qc.invalidateTag("orders"); // orders タグの全キャッシュを無効化
  * ```
  *
- * @param options.ttlMs 保持時間
- * @param options.maxSize 最大件数(**上限が無いとメモリを食い尽くす**)
+ * @param options.prefix キーの接頭辞(既定 `q`)
+ * @param options.defaultTtlSec 既定の保持時間(秒。既定 60)
  * @returns キャッシュ
  */
 export function createQueryCache(cache: Cache, options: QueryCacheOptions = {}): QueryCache {

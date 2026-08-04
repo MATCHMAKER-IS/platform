@@ -5,6 +5,7 @@
  * {@link createServerSession} を使う。
  * @packageDocumentation
  */
+import { AppError, ErrorCode } from "@platform/core";
 import { deriveKey, encrypt, decrypt } from "@platform/crypto";
 import { getCookie, serializeCookie, clearCookie, type CookieOptions } from "./cookie";
 
@@ -23,16 +24,57 @@ export interface SessionConfig {
   salt: string;
   /** クッキー名(既定 "session")。 */
   cookieName?: string;
-  /** 有効期間(秒、既定 7 日)。絶対的な上限(活動しても延長されない)。 */
+  /**
+   * 有効期間(秒、既定 7 日)。絶対的な上限(活動しても延長されない)。
+   *
+   * **`0` は無制限**(期限で切らない)。管理画面から設定させる場合、
+   * 入力欄を空にできないことが多いので `0` を「無制限」の入口として受ける。
+   */
   maxAgeSec?: number;
   /**
-   * 無操作タイムアウト(秒)。**既定 undefined = 無効**(無操作でもログアウトしない)。
+   * 無操作タイムアウト(秒)。**既定は無制限**(無操作でもログアウトしない)。
    * 設定すると、最後の活動から この秒数を超えたセッションを失効扱いにする。
    * 活動のたびに {@link Session.refresh} を呼ぶことで無操作タイマーがスライドする。
+   *
+   * **`0` と `undefined` はどちらも無制限。**
+   * 以前は `0` を渡すと「経過時間 > 0」が常に成立し、**設定した瞬間に全員が
+   * ログアウトする**状態だった。管理画面で「0 = 無制限」と案内しながら
+   * 実装が即失効では、設定した本人も締め出される。
    */
   idleTimeoutSec?: number;
   /** クッキー属性の上書き(dev では secure:false 等)。 */
   cookie?: CookieOptions;
+}
+
+/**
+ * クッキーに設定できる最大の寿命(秒)。
+ *
+ * 「無制限」でも**クッキー自体には有限の値を入れる**。
+ * 主要ブラウザは 400 日を超える寿命を 400 日へ丸めるため、それに合わせる
+ * (Infinity を入れると不正な属性になり、クッキーごと捨てられる)。
+ */
+export const MAX_COOKIE_AGE_SEC = 400 * 24 * 60 * 60;
+
+/**
+ * 秒数の設定を「上限(ミリ秒)」に直す。**`0` は無制限。**
+ *
+ * @param sec 設定値(未指定なら `fallbackSec`)
+ * @param fallbackSec 未指定時の既定。`null` なら未指定も無制限
+ * @param label 例外メッセージに出す設定名
+ * @returns 上限(ミリ秒)。**無制限なら `null`**
+ * @throws {@link @platform/core#AppError} コード `CONFIG` — 負の値の場合
+ */
+function limitMs(sec: number | undefined, fallbackSec: number | null, label: string): number | null {
+  const v = sec ?? fallbackSec;
+  if (v === null) return null;
+  // 負の値は「無制限のつもり」か「単位の間違い」か区別できない。
+  // **黙って無制限にすると、意図せず期限が消える**ので起動時に落とす
+  if (!Number.isFinite(v) || v < 0) {
+    throw new AppError(ErrorCode.CONFIG, `${label} は 0 以上の秒数で指定してください(0 は無制限)`, {
+      details: { [label]: sec },
+    });
+  }
+  return v === 0 ? null : v * 1000;
 }
 
 /** 封緘クッキーセッションの操作。 */
@@ -49,6 +91,27 @@ export interface Session<T> {
   refresh(cookieHeader: string | null | undefined): string | null;
   /** セッションを破棄する Set-Cookie 文字列を返す。 */
   destroy(): string;
+  /**
+   * 中身に加えて**発行時刻などのメタ情報**を返す(無効なら null)。
+   *
+   * 強制ログアウト(失効)の判定には**いつ発行されたか**が要る。
+   * `read` は中身しか返さないので、締め出しを実装するときはこちらを使う。
+   *
+   * @see {@link @platform/session#createRevocationGate}
+   */
+  inspect(cookieHeader: string | null | undefined): SessionInfo<T> | null;
+}
+
+/** {@link Session.inspect} が返すメタ情報つきのセッション。 */
+export interface SessionInfo<T> {
+  /** セッションの中身。 */
+  data: T;
+  /** 発行時刻(epoch ms)。**失効判定の基準**。 */
+  issuedAt: number;
+  /** 最終活動時刻(epoch ms)。 */
+  lastSeenAt: number;
+  /** 絶対期限(epoch ms)。**無制限なら null**。 */
+  expiresAt: number | null;
 }
 
 /**
@@ -62,8 +125,8 @@ export interface Session<T> {
  */
 interface SessionEnvelope<T> {
   data: T;
-  /** 絶対期限(epoch ms)。 */
-  exp: number;
+  /** 絶対期限(epoch ms)。**無制限なら null**。 */
+  exp: number | null;
   /** 発行時刻(epoch ms)。絶対上限の基準。 */
   iat?: number;
   /** 最終活動時刻(epoch ms)。無操作タイムアウトの基準。 */
@@ -82,7 +145,12 @@ interface SessionEnvelope<T> {
  * @returns セッション。`seal` で署名、`unseal` で検証
  */
 export function createSession<T>(config: SessionConfig): Session<T> {
-  const { secret, salt, cookieName = "session", maxAgeSec = 60 * 60 * 24 * 7, idleTimeoutSec, cookie } = config;
+  const { secret, salt, cookieName = "session", maxAgeSec, idleTimeoutSec, cookie } = config;
+  // **0 は無制限。** 既定は絶対期限 7 日 / 無操作は無制限
+  const maxAgeMs = limitMs(maxAgeSec, 60 * 60 * 24 * 7, "maxAgeSec");
+  const idleMs = limitMs(idleTimeoutSec, null, "idleTimeoutSec");
+  // 無制限でもクッキーには有限の値を入れる(属性が不正だと丸ごと捨てられる)
+  const cookieMaxAge = maxAgeMs === null ? MAX_COOKIE_AGE_SEC : Math.floor(maxAgeMs / 1000);
   // salt は必須(deriveKey が 8 文字未満なら AppError を投げる)
   const key = deriveKey(secret, salt);
   const now = () => Date.now();
@@ -93,9 +161,10 @@ export function createSession<T>(config: SessionConfig): Session<T> {
     if (!raw) return null;
     try {
       const env = JSON.parse(decrypt(raw, key)) as SessionEnvelope<T>;
-      if (typeof env.exp !== "number" || env.exp < now()) return null; // 絶対期限切れ
+      // exp は無制限のとき null。数値なら期限として判定する
+      if (env.exp !== null && (typeof env.exp !== "number" || env.exp < now())) return null;
       // 無操作タイムアウト(設定時のみ。旧クッキーで seen が無ければ判定しない)
-      if (idleTimeoutSec !== undefined && typeof env.seen === "number" && now() - env.seen > idleTimeoutSec * 1000) {
+      if (idleMs !== null && typeof env.seen === "number" && now() - env.seen > idleMs) {
         return null;
       }
       return env;
@@ -105,7 +174,7 @@ export function createSession<T>(config: SessionConfig): Session<T> {
   }
 
   function seal(env: SessionEnvelope<T>): string {
-    return serializeCookie(cookieName, encrypt(JSON.stringify(env), key), { ...cookie, maxAge: maxAgeSec });
+    return serializeCookie(cookieName, encrypt(JSON.stringify(env), key), { ...cookie, maxAge: cookieMaxAge });
   }
 
   return {
@@ -114,7 +183,7 @@ export function createSession<T>(config: SessionConfig): Session<T> {
     },
     write(data) {
       const t = now();
-      return seal({ data, exp: t + maxAgeSec * 1000, iat: t, seen: t });
+      return seal({ data, exp: maxAgeMs === null ? null : t + maxAgeMs, iat: t, seen: t });
     },
     refresh(cookieHeader) {
       const env = decode(cookieHeader);
@@ -124,6 +193,18 @@ export function createSession<T>(config: SessionConfig): Session<T> {
     },
     destroy() {
       return clearCookie(cookieName, cookie);
+    },
+    inspect(cookieHeader) {
+      const env = decode(cookieHeader);
+      if (!env) return null;
+      // iat / seen は古いクッキーに無いことがある。**発行時刻が分からないものは
+      // 「ずっと前に発行された」とみなす**(失効の判定で取りこぼさないため)
+      return {
+        data: env.data,
+        issuedAt: typeof env.iat === "number" ? env.iat : 0,
+        lastSeenAt: typeof env.seen === "number" ? env.seen : 0,
+        expiresAt: env.exp,
+      };
     },
   };
 }

@@ -98,7 +98,7 @@ export function once<A extends unknown[], R>(fn: (...args: A) => R): (...args: A
  *
  * **読む順に書ける**ので、こちらの方が直感的なことが多い。
  *
- * @param fns 適用する関数(左から順に)
+ * @param ...fns 適用する関数(左から順に)
  * @returns 合成した関数
  *
  * @example
@@ -115,7 +115,7 @@ export function pipe<T>(...fns: ((value: T) => T)[]): (value: T) => T {
  *
  * `compose(f, g)(x)` は `f(g(x))`。**{@link pipe} と逆**なので注意。
  *
- * @param fns 適用する関数(右から順に)
+ * @param ...fns 適用する関数(右から順に)
  * @returns 合成した関数
  */
 export function compose<T>(...fns: ((value: T) => T)[]): (value: T) => T {

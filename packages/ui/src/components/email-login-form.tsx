@@ -72,10 +72,10 @@ export function EmailLoginForm({
           autoComplete="email"
           value={email}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-          className={cn(fieldClass, touched && errors.email && "border-red-400")}
+          className={cn(fieldClass, touched && errors.email && "border-[color-mix(in_srgb,var(--color-danger)_70%,transparent)]")}
           aria-invalid={touched && !!errors.email}
         />
-        {touched && errors.email && <p className="mt-1 text-xs text-red-600">{errors.email}</p>}
+        {touched && errors.email && <p className="mt-1 text-xs text-[var(--color-danger)]">{errors.email}</p>}
       </div>
 
       <div>
@@ -89,10 +89,10 @@ export function EmailLoginForm({
           autoComplete="current-password"
           value={password}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-          className={cn(fieldClass, touched && errors.password && "border-red-400")}
+          className={cn(fieldClass, touched && errors.password && "border-[color-mix(in_srgb,var(--color-danger)_70%,transparent)]")}
           aria-invalid={touched && !!errors.password}
         />
-        {touched && errors.password && <p className="mt-1 text-xs text-red-600">{errors.password}</p>}
+        {touched && errors.password && <p className="mt-1 text-xs text-[var(--color-danger)]">{errors.password}</p>}
       </div>
 
       {showRemember && (

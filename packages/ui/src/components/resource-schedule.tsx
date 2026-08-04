@@ -68,7 +68,7 @@ export function ResourceSchedule({ date, resources, events, dayStartHour = 8, da
           <div key={resource.id} className="relative flex-1 border-l border-[var(--color-border)]" style={{ height: colHeight }}>
             {hours.map((h) => <div key={h} style={{ height: HOUR_PX }} className="border-b border-[var(--color-border)]" />)}
             {nowY !== null && nowY >= 0 && nowY <= colHeight && (
-              <div className="pointer-events-none absolute left-0 right-0 z-20 h-px bg-red-500" style={{ top: nowY }} aria-hidden />
+              <div className="pointer-events-none absolute left-0 right-0 z-20 h-px bg-[var(--color-danger)]" style={{ top: nowY }} aria-hidden />
             )}
             {positioned.map((p) => {
               const top = ((p.top - totalTop) / visibleFrac) * colHeight;

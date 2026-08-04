@@ -109,7 +109,7 @@ export function createFreeeTokenManager(config: FreeeTokenConfig): FreeeTokenMan
  * (何度も繰り返すと、認証が壊れているときに無限ループになる)。
  *
  * @param manager トークンマネージャ
- * @param fetchImpl fetch の実装(テスト注入用)
+ * @param baseFetch fetch の実装(テスト注入用)
  * @returns 認証ヘッダを自動で付ける fetch
  */
 export function createFreeeAuthedFetch(manager: FreeeTokenManager, baseFetch?: typeof fetch): typeof fetch {

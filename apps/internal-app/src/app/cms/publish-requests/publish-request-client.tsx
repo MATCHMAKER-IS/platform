@@ -40,18 +40,18 @@ export function PublishRequestClient({ fetchImpl }: PublishRequestClientProps) {
     <div className="mx-auto max-w-4xl p-6">
       <h1 className="mb-4 text-2xl font-bold">公開申請の承認</h1>
       <div className="mb-3 flex gap-1">
-        <Button onClick={() => setTab("pending")} className={tab === "pending" ? "rounded bg-neutral-900 px-3 py-1 text-sm text-white" : "rounded border border-neutral-300 px-3 py-1 text-sm"}>承認待ち</Button>
-        <Button onClick={() => setTab("all")} className={tab === "all" ? "rounded bg-neutral-900 px-3 py-1 text-sm text-white" : "rounded border border-neutral-300 px-3 py-1 text-sm"}>すべて</Button>
+        <Button onClick={() => setTab("pending")} className={tab === "pending" ? "rounded bg-[var(--color-fg)] px-3 py-1 text-sm text-white" : "rounded border border-[var(--color-border)] px-3 py-1 text-sm"}>承認待ち</Button>
+        <Button onClick={() => setTab("all")} className={tab === "all" ? "rounded bg-[var(--color-fg)] px-3 py-1 text-sm text-white" : "rounded border border-[var(--color-border)] px-3 py-1 text-sm"}>すべて</Button>
       </div>
       {requests.length === 0 ? (
-        <p className="text-sm text-neutral-500">{tab === "pending" ? "承認待ちの申請はありません。" : "申請はありません。"}</p>
+        <p className="text-sm text-[var(--color-muted)]">{tab === "pending" ? "承認待ちの申請はありません。" : "申請はありません。"}</p>
       ) : (
         <ul className="flex flex-col gap-2">
           {requests.map((r) => (
-            <li key={r.id} className="flex items-center justify-between rounded border border-neutral-200 px-3 py-2">
+            <li key={r.id} className="flex items-center justify-between rounded border border-[var(--color-border)] px-3 py-2">
               <div>
                 <p className="font-medium">{r.postSlug}</p>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-[var(--color-muted)]">
                   申請: {r.requestedBy}・{r.requestedAt.slice(0, 16).replace("T", " ")}
                   <span className="ml-2">{STATUS_LABEL[r.status] ?? r.status}</span>
                   {r.decidedBy && <span className="ml-2">→ {r.decidedBy}</span>}
@@ -60,8 +60,8 @@ export function PublishRequestClient({ fetchImpl }: PublishRequestClientProps) {
               </div>
               {r.status === "pending" && (
                 <div className="flex gap-2 text-sm">
-                  <Button onClick={() => decide(r.id, "approved")} className="rounded bg-green-600 px-3 py-1 text-white">承認して公開</Button>
-                  <Button onClick={() => decide(r.id, "rejected")} className="rounded border border-neutral-300 px-3 py-1">却下</Button>
+                  <Button onClick={() => decide(r.id, "approved")} className="rounded bg-[var(--color-success)] px-3 py-1 text-white">承認して公開</Button>
+                  <Button onClick={() => decide(r.id, "rejected")} className="rounded border border-[var(--color-border)] px-3 py-1">却下</Button>
                 </div>
               )}
             </li>

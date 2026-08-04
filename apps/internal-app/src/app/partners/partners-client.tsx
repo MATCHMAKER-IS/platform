@@ -81,98 +81,98 @@ export function PartnersClient({ fetchImpl, canWrite = true }: PartnersClientPro
       <div className="mb-1 flex items-center justify-between">
         <h1 className="text-2xl font-bold">取引先マスタ</h1>
         <span className="flex gap-2">
-          <a href="/api/partners/export" className="rounded border border-neutral-300 px-4 py-2 text-sm">CSV書出</a>
-          {canWrite && <Button onClick={() => setImporting((v) => !v)} className="rounded border border-neutral-300 px-4 py-2 text-sm">{importing ? "取込を閉じる" : "CSV取込"}</Button>}
-          <Button onClick={toggleBalances} className="rounded border border-neutral-300 px-4 py-2 text-sm">{balances ? "残高を閉じる" : "残高一覧"}</Button>
+          <a href="/api/partners/export" className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">CSV書出</a>
+          {canWrite && <Button onClick={() => setImporting((v) => !v)} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">{importing ? "取込を閉じる" : "CSV取込"}</Button>}
+          <Button onClick={toggleBalances} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">{balances ? "残高を閉じる" : "残高一覧"}</Button>
         </span>
       </div>
-      <p className="mb-4 text-xs text-neutral-500">得意先・仕入先・報酬支払先を一元管理します（1社が複数区分を持てます）。</p>
+      <p className="mb-4 text-xs text-[var(--color-muted)]">得意先・仕入先・報酬支払先を一元管理します（1社が複数区分を持てます）。</p>
       {balances && (
-        <div className="mb-6 rounded border border-neutral-200 p-4">
+        <div className="mb-6 rounded border border-[var(--color-border)] p-4">
           <h2 className="mb-2 text-sm font-medium">取引先残高（売掛・買掛）</h2>
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-neutral-200 text-left text-xs text-neutral-500"><th className="px-2 py-1">取引先</th><th className="px-2 py-1 text-right">売掛残</th><th className="px-2 py-1 text-right">買掛残</th><th className="px-2 py-1 text-right">差引</th></tr></thead>
+            <thead><tr className="border-b border-[var(--color-border)] text-left text-xs text-[var(--color-muted)]"><th className="px-2 py-1">取引先</th><th className="px-2 py-1 text-right">売掛残</th><th className="px-2 py-1 text-right">買掛残</th><th className="px-2 py-1 text-right">差引</th></tr></thead>
             <tbody>
               {balances.rows.filter((b) => b.receivable !== 0 || b.payable !== 0).map((b) => (
-                <tr key={b.code} className="border-b border-neutral-100"><td className="px-2 py-1.5">{b.name}</td><td className="px-2 py-1.5 text-right">{yen(b.receivable)}</td><td className="px-2 py-1.5 text-right">{yen(b.payable)}</td><td className={`px-2 py-1.5 text-right font-medium ${b.net < 0 ? "text-red-600" : ""}`}>{yen(b.net)}</td></tr>
+                <tr key={b.code} className="border-b border-[var(--color-border)]"><td className="px-2 py-1.5">{b.name}</td><td className="px-2 py-1.5 text-right">{yen(b.receivable)}</td><td className="px-2 py-1.5 text-right">{yen(b.payable)}</td><td className={`px-2 py-1.5 text-right font-medium ${b.net < 0 ? "text-[var(--color-danger)]" : ""}`}>{yen(b.net)}</td></tr>
               ))}
-              {balances.rows.filter((b) => b.receivable !== 0 || b.payable !== 0).length === 0 && <tr><td colSpan={4} className="px-2 py-3 text-center text-neutral-500">残高のある取引先はありません。</td></tr>}
-              <tr className="border-t-2 border-neutral-300 font-medium"><td className="px-2 py-1.5">合計</td><td className="px-2 py-1.5 text-right">{yen(balances.total.receivable)}</td><td className="px-2 py-1.5 text-right">{yen(balances.total.payable)}</td><td className="px-2 py-1.5 text-right">{yen(balances.total.net)}</td></tr>
+              {balances.rows.filter((b) => b.receivable !== 0 || b.payable !== 0).length === 0 && <tr><td colSpan={4} className="px-2 py-3 text-center text-[var(--color-muted)]">残高のある取引先はありません。</td></tr>}
+              <tr className="border-t-2 border-[var(--color-border)] font-medium"><td className="px-2 py-1.5">合計</td><td className="px-2 py-1.5 text-right">{yen(balances.total.receivable)}</td><td className="px-2 py-1.5 text-right">{yen(balances.total.payable)}</td><td className="px-2 py-1.5 text-right">{yen(balances.total.net)}</td></tr>
             </tbody>
           </table>
         </div>
       )}
-      {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-danger)]">{error}</p>}
       {importing && (
-        <div className="mb-6 rounded border border-neutral-200 p-4">
+        <div className="mb-6 rounded border border-[var(--color-border)] p-4">
           <h2 className="mb-2 text-sm font-medium">取引先を CSV で取り込み</h2>
-          <p className="mb-2 text-xs text-neutral-500">見出し「コード,名称,区分,連絡先」。区分は customer/supplier/payee をカンマ区切りで。既存コードは上書きされます。</p>
+          <p className="mb-2 text-xs text-[var(--color-muted)]">見出し「コード,名称,区分,連絡先」。区分は customer/supplier/payee をカンマ区切りで。既存コードは上書きされます。</p>
           <FileInput accept=".csv,text/csv" onSelect={onFile} className="mb-2 block text-sm" />
-          <Textarea value={csvText} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCsvText(e.target.value)} rows={5} placeholder="コード,名称,区分,連絡先&#10;P001,甲商事,&quot;customer,supplier&quot;,03-1234" className="block w-full rounded border border-neutral-300 px-2 py-1 font-mono text-xs" />
+          <Textarea value={csvText} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCsvText(e.target.value)} rows={5} placeholder="コード,名称,区分,連絡先&#10;P001,甲商事,&quot;customer,supplier&quot;,03-1234" className="block w-full rounded border border-[var(--color-border)] px-2 py-1 font-mono text-xs" />
           <div className="mt-2 flex items-center gap-3">
-            <Button onClick={runImport} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">取り込む</Button>
-            {importMsg && <span className="text-xs text-neutral-600">{importMsg}</span>}
+            <Button onClick={runImport} className="rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">取り込む</Button>
+            {importMsg && <span className="text-xs text-[var(--color-muted)]">{importMsg}</span>}
           </div>
         </div>
       )}
 
       <div className="mb-4 flex gap-1 text-sm">
-        <Button onClick={() => setFilter("")} className={`rounded px-3 py-1 ${filter === "" ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}>すべて</Button>
-        {ALL_KINDS.map((k) => <Button key={k} onClick={() => setFilter(k)} className={`rounded px-3 py-1 ${filter === k ? "bg-neutral-900 text-white" : "border border-neutral-300"}`}>{KIND_LABEL[k]}</Button>)}
+        <Button onClick={() => setFilter("")} className={`rounded px-3 py-1 ${filter === "" ? "bg-[var(--color-fg)] text-white" : "border border-[var(--color-border)]"}`}>すべて</Button>
+        {ALL_KINDS.map((k) => <Button key={k} onClick={() => setFilter(k)} className={`rounded px-3 py-1 ${filter === k ? "bg-[var(--color-fg)] text-white" : "border border-[var(--color-border)]"}`}>{KIND_LABEL[k]}</Button>)}
       </div>
 
       {canWrite && (
-        <div className="mb-6 rounded border border-neutral-200 p-4">
+        <div className="mb-6 rounded border border-[var(--color-border)] p-4">
           <h2 className="mb-3 text-sm font-medium">取引先を登録・更新</h2>
           <div className="flex flex-wrap items-end gap-2">
-            <label className="text-xs text-neutral-500">コード<Input value={form.code} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, code: e.target.value })} className="mt-0.5 block w-24 rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">名称<Input value={form.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">連絡先<Input value={form.contact} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, contact: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-[var(--color-muted)]">コード<Input value={form.code} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, code: e.target.value })} className="mt-0.5 block w-24 rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-[var(--color-muted)]">名称<Input value={form.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-[var(--color-muted)]">連絡先<Input value={form.contact} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, contact: e.target.value })} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
           </div>
           <div className="mt-2 flex gap-3 text-sm">
             {ALL_KINDS.map((k) => (
               <label key={k} className="flex items-center gap-1"><Checkbox  checked={form.kinds.includes(k)} onCheckedChange={() => toggleKind(k)} />{KIND_LABEL[k]}</label>
             ))}
-            <Button onClick={save} className="ml-auto rounded bg-neutral-900 px-4 py-1.5 text-white">保存</Button>
+            <Button onClick={save} className="ml-auto rounded bg-[var(--color-fg)] px-4 py-1.5 text-white">保存</Button>
           </div>
         </div>
       )}
 
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-neutral-200 text-left text-xs text-neutral-500">
+          <tr className="border-b border-[var(--color-border)] text-left text-xs text-[var(--color-muted)]">
             <th className="px-2 py-1">コード</th><th className="px-2 py-1">名称</th><th className="px-2 py-1">区分</th><th className="px-2 py-1">連絡先</th><th className="px-2 py-1"></th>
           </tr>
         </thead>
         <tbody>
           {partners.map((p) => (
-            <tr key={p.code} className="border-b border-neutral-100">
+            <tr key={p.code} className="border-b border-[var(--color-border)]">
               <td className="px-2 py-2 font-mono text-xs">{p.code}</td>
               <td className="px-2 py-2">{p.name}</td>
-              <td className="px-2 py-2"><span className="flex flex-wrap gap-1">{p.kinds.map((k) => <span key={k} className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs">{KIND_LABEL[k]}</span>)}</span></td>
-              <td className="px-2 py-2 text-xs text-neutral-500">{p.contact ?? ""}</td>
-              <td className="px-2 py-2 text-right"><span className="flex justify-end gap-2"><Button onClick={() => showActivity(p)} className="text-blue-600 hover:underline">取引</Button>{canWrite && <Button onClick={() => edit(p)} className="text-blue-600 hover:underline">編集</Button>}</span></td>
+              <td className="px-2 py-2"><span className="flex flex-wrap gap-1">{p.kinds.map((k) => <span key={k} className="rounded bg-[var(--color-subtle)] px-1.5 py-0.5 text-xs">{KIND_LABEL[k]}</span>)}</span></td>
+              <td className="px-2 py-2 text-xs text-[var(--color-muted)]">{p.contact ?? ""}</td>
+              <td className="px-2 py-2 text-right"><span className="flex justify-end gap-2"><Button onClick={() => showActivity(p)} className="text-[var(--color-primary)] hover:underline">取引</Button>{canWrite && <Button onClick={() => edit(p)} className="text-[var(--color-primary)] hover:underline">編集</Button>}</span></td>
             </tr>
           ))}
-          {partners.length === 0 && <tr><td colSpan={5} className="px-2 py-4 text-center text-sm text-neutral-500">取引先がありません。</td></tr>}
+          {partners.length === 0 && <tr><td colSpan={5} className="px-2 py-4 text-center text-sm text-[var(--color-muted)]">取引先がありません。</td></tr>}
         </tbody>
       </table>
 
       {activity && (
-        <div className="mt-6 rounded border border-neutral-200 p-4">
+        <div className="mt-6 rounded border border-[var(--color-border)] p-4">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-medium">取引先カルテ：{activity.name}（{activity.code}）</h2>
-            <Button onClick={() => setActivity(null)} className="text-xs text-neutral-500 hover:underline">閉じる</Button>
+            <Button onClick={() => setActivity(null)} className="text-xs text-[var(--color-muted)] hover:underline">閉じる</Button>
           </div>
           <div className="mb-3 grid grid-cols-3 gap-3 text-center text-sm">
-            <div className="rounded bg-neutral-50 p-2"><div className="text-xs text-neutral-500">請求（売上）</div><div className="font-medium">{yen(activity.data.totalBilled)}</div><div className="text-xs text-neutral-400">{activity.data.invoices.length}件</div></div>
-            <div className="rounded bg-neutral-50 p-2"><div className="text-xs text-neutral-500">発注（仕入）</div><div className="font-medium">{yen(activity.data.totalOrdered)}</div><div className="text-xs text-neutral-400">{activity.data.orders.length}件</div></div>
-            <div className="rounded bg-neutral-50 p-2"><div className="text-xs text-neutral-500">報酬支払</div><div className="font-medium">{yen(activity.data.totalPaid)}</div><div className="text-xs text-neutral-400">{activity.data.feePayments.length}件</div></div>
+            <div className="rounded bg-[var(--color-subtle)] p-2"><div className="text-xs text-[var(--color-muted)]">請求（売上）</div><div className="font-medium">{yen(activity.data.totalBilled)}</div><div className="text-xs text-[var(--color-muted)]">{activity.data.invoices.length}件</div></div>
+            <div className="rounded bg-[var(--color-subtle)] p-2"><div className="text-xs text-[var(--color-muted)]">発注（仕入）</div><div className="font-medium">{yen(activity.data.totalOrdered)}</div><div className="text-xs text-[var(--color-muted)]">{activity.data.orders.length}件</div></div>
+            <div className="rounded bg-[var(--color-subtle)] p-2"><div className="text-xs text-[var(--color-muted)]">報酬支払</div><div className="font-medium">{yen(activity.data.totalPaid)}</div><div className="text-xs text-[var(--color-muted)]">{activity.data.feePayments.length}件</div></div>
           </div>
-          {activity.data.invoices.length + activity.data.orders.length + activity.data.feePayments.length === 0 && <p className="text-xs text-neutral-500">この取引先に紐づく取引はまだありません。</p>}
-          {activity.data.invoices.map((i) => <div key={`i${i.number}`} className="flex justify-between border-b border-neutral-100 py-1 text-sm"><span>請求 {i.number}・{i.issueDate}</span><span>{yen(i.total)}</span></div>)}
-          {activity.data.orders.map((o) => <div key={`o${o.number}`} className="flex justify-between border-b border-neutral-100 py-1 text-sm"><span>発注 {o.number}・{o.orderDate}</span><span>{yen(o.total)}</span></div>)}
-          {activity.data.feePayments.map((f, i) => <div key={`f${i}`} className="flex justify-between border-b border-neutral-100 py-1 text-sm"><span>報酬 {f.category}・{f.paidAt}</span><span>{yen(f.base)}（源泉{yen(f.withholding)}）</span></div>)}
+          {activity.data.invoices.length + activity.data.orders.length + activity.data.feePayments.length === 0 && <p className="text-xs text-[var(--color-muted)]">この取引先に紐づく取引はまだありません。</p>}
+          {activity.data.invoices.map((i) => <div key={`i${i.number}`} className="flex justify-between border-b border-[var(--color-border)] py-1 text-sm"><span>請求 {i.number}・{i.issueDate}</span><span>{yen(i.total)}</span></div>)}
+          {activity.data.orders.map((o) => <div key={`o${o.number}`} className="flex justify-between border-b border-[var(--color-border)] py-1 text-sm"><span>発注 {o.number}・{o.orderDate}</span><span>{yen(o.total)}</span></div>)}
+          {activity.data.feePayments.map((f, i) => <div key={`f${i}`} className="flex justify-between border-b border-[var(--color-border)] py-1 text-sm"><span>報酬 {f.category}・{f.paidAt}</span><span>{yen(f.base)}（源泉{yen(f.withholding)}）</span></div>)}
         </div>
       )}
     </div>

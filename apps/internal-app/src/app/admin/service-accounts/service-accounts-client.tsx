@@ -33,36 +33,36 @@ export function ServiceAccountsClient({ fetchImpl }: { fetchImpl?: typeof fetch 
   return (
     <div className="mx-auto max-w-3xl p-6">
       <h1 className="mb-1 text-2xl font-bold">APIキー（サービスアカウント）</h1>
-      <p className="mb-4 text-xs text-neutral-500">外部システムやスクリプトが Bearer トークンで社内APIを呼ぶための鍵です。平文キーは発行直後の一度だけ表示されます。</p>
+      <p className="mb-4 text-xs text-[var(--color-muted)]">外部システムやスクリプトが Bearer トークンで社内APIを呼ぶための鍵です。平文キーは発行直後の一度だけ表示されます。</p>
 
       {issued && (
-        <div className="mb-4 rounded border border-amber-300 bg-amber-50 p-3">
-          <p className="text-sm font-medium text-amber-800">キーを発行しました（この画面を離れると再表示できません）:</p>
+        <div className="mb-4 rounded border border-[color-mix(in_srgb,var(--color-warning)_40%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_8%,transparent)] p-3">
+          <p className="text-sm font-medium text-[var(--color-warning)]">キーを発行しました（この画面を離れると再表示できません）:</p>
           <code className="mt-1 block break-all rounded bg-white px-2 py-1 text-sm">{issued}</code>
         </div>
       )}
-      {msg && <p className="mb-3 text-sm text-red-600">{msg}</p>}
+      {msg && <p className="mb-3 text-sm text-[var(--color-danger)]">{msg}</p>}
 
-      <div className="mb-6 rounded border border-neutral-200 p-4">
-        <label className="text-xs text-neutral-500">名前<Input value={name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)} placeholder="例: 経費精算バッチ" className="mt-0.5 mb-3 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-        <p className="mb-1 text-xs text-neutral-500">スコープ（権限）</p>
+      <div className="mb-6 rounded border border-[var(--color-border)] p-4">
+        <label className="text-xs text-[var(--color-muted)]">名前<Input value={name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)} placeholder="例: 経費精算バッチ" className="mt-0.5 mb-3 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+        <p className="mb-1 text-xs text-[var(--color-muted)]">スコープ（権限）</p>
         <div className="mb-3 flex flex-wrap gap-2">
-          {SCOPE_OPTIONS.map((s) => <label key={s} className="flex items-center gap-1 rounded border border-neutral-300 px-2 py-1 text-xs"><Checkbox  checked={scopes.includes(s)} onCheckedChange={() => toggleScope(s)} />{s}</label>)}
+          {SCOPE_OPTIONS.map((s) => <label key={s} className="flex items-center gap-1 rounded border border-[var(--color-border)] px-2 py-1 text-xs"><Checkbox  checked={scopes.includes(s)} onCheckedChange={() => toggleScope(s)} />{s}</label>)}
         </div>
-        <Button onClick={create} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">キーを発行</Button>
+        <Button onClick={create} className="rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white">キーを発行</Button>
       </div>
 
-      <div className="divide-y divide-neutral-100 rounded border border-neutral-200">
+      <div className="divide-y divide-neutral-100 rounded border border-[var(--color-border)]">
         {accounts.map((a) => (
           <div key={a.id} className="flex items-center justify-between px-3 py-2">
             <div>
-              <p className="text-sm font-medium">{a.name} <span className={`ml-1 rounded px-1.5 py-0.5 text-xs ${a.active ? "bg-green-100 text-green-800" : "bg-neutral-200 text-neutral-600"}`}>{a.active ? "有効" : "失効"}</span></p>
-              <p className="text-xs text-neutral-500"><code>{a.displayPrefix}…</code> [{a.scopes.join(", ")}]</p>
+              <p className="text-sm font-medium">{a.name} <span className={`ml-1 rounded px-1.5 py-0.5 text-xs ${a.active ? "bg-[color-mix(in_srgb,var(--color-success)_15%,transparent)] text-[var(--color-success)]" : "bg-[var(--color-subtle-strong)] text-[var(--color-muted)]"}`}>{a.active ? "有効" : "失効"}</span></p>
+              <p className="text-xs text-[var(--color-muted)]"><code>{a.displayPrefix}…</code> [{a.scopes.join(", ")}]</p>
             </div>
-            <Button onClick={() => setActive(a.id, !a.active)} className="text-xs text-blue-600 hover:underline">{a.active ? "失効させる" : "再有効化"}</Button>
+            <Button onClick={() => setActive(a.id, !a.active)} className="text-xs text-[var(--color-primary)] hover:underline">{a.active ? "失効させる" : "再有効化"}</Button>
           </div>
         ))}
-        {accounts.length === 0 && <p className="px-3 py-6 text-center text-sm text-neutral-500">APIキーはありません。</p>}
+        {accounts.length === 0 && <p className="px-3 py-6 text-center text-sm text-[var(--color-muted)]">APIキーはありません。</p>}
       </div>
     </div>
   );

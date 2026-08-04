@@ -29,7 +29,6 @@ export function accountsUrl(dc: ZohoDataCenter): string {
  * (Zoho 側が正しい DC を教えてくれるため、こちらの推測より確実)。
  *
  * @param dc データセンター
- * @param apiDomain トークン応答の api_domain(任意)
  * @returns API のドメイン
  */
 export function apiDomain(dc: ZohoDataCenter): string {
@@ -39,7 +38,7 @@ export function apiDomain(dc: ZohoDataCenter): string {
 /**
  * `api_domain` から DC を推定する。
  *
- * @param apiDomain トークン応答の api_domain
+ * @param apiDomainOrUrl トークン応答の api_domain
  * @returns 推定した DC。**不明なら `com`**(最も一般的なため)
  */
 export function detectDataCenter(apiDomainOrUrl: string): ZohoDataCenter {
@@ -59,7 +58,6 @@ export type ZohoService = "crm" | "books" | "desk" | "inventory" | "campaigns" |
  *
  * @param service サービス(`crm` / `books` / `desk` など)
  * @param dc データセンター
- * @param apiDomain トークン応答の api_domain(任意・優先される)
  * @returns ベース URL
  */
 export function serviceBaseUrl(service: ZohoService, dc: ZohoDataCenter): string {

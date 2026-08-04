@@ -10,7 +10,7 @@ export function SiteHeader({ siteName, nav }: { siteName: string; nav: NavItem[]
     if (query) (globalThis as unknown as { location: { href: string } }).location.href = `/search?q=${encodeURIComponent(query)}`;
   };
   return (
-    <header className="border-b border-neutral-200">
+    <header className="border-b border-[var(--color-border)]">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
         <a href="/" className="text-lg font-bold">{siteName}</a>
         <NavDropdown items={nav} />
@@ -20,10 +20,10 @@ export function SiteHeader({ siteName, nav }: { siteName: string; nav: NavItem[]
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQ(e.target.value)}
             onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") onSubmit(); }}
             placeholder="検索…"
-            className="w-32 rounded border border-neutral-300 px-2 py-1 text-sm sm:w-48"
+            className="w-32 rounded border border-[var(--color-border)] px-2 py-1 text-sm sm:w-48"
             aria-label="サイト内検索"
           />
-          <Button onClick={onSubmit} className="rounded bg-neutral-900 px-3 py-1 text-sm text-white">検索</Button>
+          <Button onClick={onSubmit} className="rounded bg-[var(--color-fg)] px-3 py-1 text-sm text-white">検索</Button>
         </div>
       </div>
     </header>

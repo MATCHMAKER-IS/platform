@@ -18,6 +18,8 @@
     "@platform/env": "workspace:*",
     "@platform/observability": "workspace:*",
     "@platform/ratelimit": "workspace:*",
+    "@platform/security": "workspace:*",
+    "@platform/seo": "workspace:*",
     "@platform/session": "workspace:*",
     "@platform/theme": "workspace:*",
     "@platform/ui": "workspace:*",

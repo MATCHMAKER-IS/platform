@@ -26,13 +26,13 @@ export default async function DynamicPage({ params }: { params: Promise<{ slug: 
   const announcements = await content.announcements(`/${slug}`);
   return (
     <main className="mx-auto max-w-3xl p-6">
-      <nav className="mb-4 text-xs text-neutral-500">
+      <nav className="mb-4 text-xs text-[var(--color-muted)]">
         {crumbs.map((c, i) => (
           <span key={c.href}>{i > 0 && " / "}<a href={c.href}>{c.label}</a></span>
         ))}
       </nav>
       {announcements.map((a) => (
-        <div key={a.id} className="mb-4 rounded bg-blue-50 px-3 py-2 text-sm text-blue-900">{a.message}</div>
+        <div key={a.id} className="mb-4 rounded bg-[color-mix(in_srgb,var(--color-primary)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-primary)]">{a.message}</div>
       ))}
       <h1 className="mb-4 text-2xl font-bold">{page.title}</h1>
       <BlockRenderer blocks={blocks} />

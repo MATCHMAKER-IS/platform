@@ -54,7 +54,7 @@ export interface Flags {
  * **同じ利用者は常に同じバケット**になる(乱数では毎回変わり、
  * A/B テストで「昨日は A、今日は B」となって結果が濁る)。
  *
- * @param key 利用者 ID など
+ * @param input 利用者 ID など
  * @returns 0〜99
  */
 export function bucketOf(input: string): number {

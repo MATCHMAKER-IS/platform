@@ -65,7 +65,7 @@ export function searchTransactions<T extends TransactionRecord>(records: T[], qu
  *
  * **税務調査で問われる**ので、実装した機能が要件を満たしているかを機械的に確認する。
  *
- * @param capability 実装した検索機能(どの項目が検索できるか)
+ * @param query 実装した検索機能(どの項目が検索できるか)
  * @returns 満たしているかと、**足りない要件**
  */
 export function meetsSearchRequirements(query: TransactionQuery): { ok: boolean; missing: string[] } {

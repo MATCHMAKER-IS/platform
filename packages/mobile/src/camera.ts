@@ -74,7 +74,7 @@ export async function listCameras(): Promise<CameraDevice[]> {
  * カメラのストリームを取得する。取得したストリームは <video> の srcObject に設定し、
  * 使い終わったら {@link stopStream} で停止すること。
  *
- * @param constraints カメラの条件
+ * @param input カメラの条件
  * @returns メディアストリーム
  * @throws 利用者が拒否した場合、または非対応の環境(**必ず捕まえて案内すること**)
  */

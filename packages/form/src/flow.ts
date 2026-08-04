@@ -23,7 +23,6 @@ export interface SubmitFlowState<T> {
 /**
  * 初期状態(入力画面)を作る。
  *
- * @param data 初期値(任意)
  * @returns 入力画面の状態
  */
 export function initialSubmitFlow<T>(): SubmitFlowState<T> {
@@ -85,7 +84,6 @@ export function submitFailed<T>(state: SubmitFlowState<T>, error: string): Submi
  * 送信に成功する。
  *
  * @param state 送信中の状態
- * @param result 送信結果(任意)
  * @returns 完了画面の状態
  */
 export function submitSucceeded<T>(state: SubmitFlowState<T>): SubmitFlowState<T> {
@@ -109,7 +107,7 @@ export const SUBMIT_PHASES: readonly SubmitPhase[] = ["input", "confirm", "compl
 /**
  * 段階の番号を返す(進捗表示用)。
  *
- * @param state フローの状態
+ * @param phase フローの状態
  * @returns 0=入力 / 1=確認 / 2=完了
  */
 export function phaseIndex(phase: SubmitPhase): number {

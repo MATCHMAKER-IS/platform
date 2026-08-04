@@ -6,7 +6,7 @@ export const CATEGORIES = {
   "基礎(型・共通)": ["core", "logger", "env", "config", "validation", "utils", "datetime", "context", "testing", "faker", "debug"],
   "セキュリティ": ["crypto", "security", "guard", "secrets", "pii", "apikey", "ratelimit", "access-review"],
   "認証・認可": ["auth", "session"],
-  "データ": ["db", "cache", "storage", "fs", "csv", "xlsx", "search"],
+  "データ": ["db", "cache", "storage", "web-storage", "fs", "csv", "xlsx", "search"],
   "通信": ["http", "net", "mail", "sms", "notify", "os-notify", "realtime", "integrations", "webhook"],
   "AI基盤": ["ai", "rag", "mcp"],
   "外部SaaS連携": ["zoho", "google", "microsoft", "slack", "notion", "line", "freee", "stripe", "paypal", "ekyc"],

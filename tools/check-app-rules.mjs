@@ -64,6 +64,35 @@ const SUSPICIOUS_FILES = {
   "crypto.ts": "@platform/crypto",
 };
 
+/**
+ * **定義していたら基盤の迂回を疑う**関数名と、使うべきパッケージ。
+ *
+ * 【なぜファイル名ではなく関数名で見るか】
+ * 以前は `SUSPICIOUS_FILES`(ファイル名の完全一致)だけだった。これは
+ * **`csv.ts` を `csv-export.ts` に改名するだけで素通り**し、そもそも
+ * `guard.ts` / `auth.ts` / `authorize.ts` は一覧に無かった。
+ *
+ * 実際 2026-08 の時点で、`@platform/validation`(58 個の公開 API)を
+ * 使っているアプリは **0 ファイル**、`@platform/guard` も使われず
+ * equipment-app と crud-template が独自の認可を持っていた。
+ * **基盤の中心的な約束が、機械的にはほとんど守られていなかった。**
+ *
+ * 判定は「その名前を**定義**していて、かつ対応するパッケージを
+ * import していない」。基盤を呼ぶ薄い包み(名前を揃えるための再輸出など)は
+ * import があるので当たらない。
+ */
+const BYPASS_SIGNATURES = [
+  { pkgs: ["@platform/guard", "@platform/auth"], names: ["requirePermission", "requireRole", "userCan", "hasPermission"], why: "認可" },
+  { pkgs: ["@platform/session", "@platform/auth"], names: ["createSession", "sessionFromRequest", "verifySession"], why: "セッション" },
+  { pkgs: ["@platform/validation"], names: ["validateEmail", "isValidEmail", "validateZipcode", "isValidZipcode", "validatePhone", "normalizeZipcode"], why: "入力検証" },
+  { pkgs: ["@platform/datetime"], names: ["toJst", "formatJstDate", "addBusinessDays", "isBusinessDay", "toWareki"], why: "日時" },
+  { pkgs: ["@platform/csv"], names: ["toCsv", "buildCsv", "parseCsv", "escapeCsv"], why: "CSV" },
+  { pkgs: ["@platform/logger"], names: ["createLogger"], why: "ログ" },
+  { pkgs: ["@platform/core", "@platform/net"], names: ["withRetry", "backoffDelay", "createCircuitBreaker"], why: "リトライ・耐障害" },
+  { pkgs: ["@platform/crypto"], names: ["hashPassword", "verifyPassword", "encryptField"], why: "暗号" },
+  { pkgs: ["@platform/phone"], names: ["formatJpPhone", "normalizePhone"], why: "電話番号" },
+];
+
 /** 例外(理由つきで許可)。 */
 const ALLOW = {
   "apps/internal-app/src/server/log-context.ts": "基盤の createContextStore を束ねるだけの配線",
@@ -161,6 +190,19 @@ export function check() {
             message: `${rel}: ${SUSPICIOUS_FILES[base]} の再実装ではありませんか(業務固有なら ALLOW に理由付きで登録してください)`,
           });
         }
+
+        // 3. 基盤にある関数を、基盤を使わずに**定義**していないか
+        for (const sig of BYPASS_SIGNATURES) {
+          if (sig.pkgs.some((pkg) => body.includes(`from "${pkg}"`))) continue;
+          for (const name of sig.names) {
+            // `export function x` / `function x` / `const x = ` のいずれか
+            const defined = new RegExp(`(?:export\\s+)?(?:async\\s+)?function\\s+${name}\\b|(?:const|let)\\s+${name}\\s*[:=]`).test(body);
+            if (defined) {
+              bypasses.push({ rel, name, why: sig.why, pkg: sig.pkgs[0] });
+              break; // 1 ファイル 1 領域につき 1 件
+            }
+          }
+        }
       }
     }
   }
@@ -223,8 +265,26 @@ function writeRawTagLimit(n) {
   writeFileSync(LIMIT_FILE, JSON.stringify(body, null, 2) + "\n");
 }
 
+const BYPASS_LIMIT_FILE = path.join(ROOT, "tools/app-bypass-limit.json");
+
+/** 基盤の迂回の上限を読む(無ければ 0)。 */
+function readBypassLimit() {
+  try { return JSON.parse(readFileSync(BYPASS_LIMIT_FILE, "utf8")).limit ?? 0; } catch { return 0; }
+}
+
+/** 上限を書き換える(**減らすときだけ**使う)。 */
+function writeBypassLimit(n) {
+  writeFileSync(BYPASS_LIMIT_FILE, JSON.stringify({
+    _comment: "基盤にある機能をアプリ側で定義している箇所の上限。増やさないための歯止め。減らしたら --set-bypass-limit で下げる。",
+    limit: n,
+  }, null, 2) + "\n");
+}
+
 /** 生タグを使っているファイル(要約用に貯める)。 */
 const rawTagFiles = [];
+
+/** 基盤を使わずに同等の関数を定義しているファイル(上限方式で見張る)。 */
+const bypasses = [];
 
 function main() {
   const { scanned, issues } = check();
@@ -235,10 +295,37 @@ function main() {
     console.log(`✅ 生タグの上限を ${total} に更新しました(これ以上は増やせません)`);
     return;
   }
+  // ---- 基盤の迂回(上限方式) ----
+  // 生タグと同じ作法。**いま在るものは責めず、増えないことだけを守る**。
+  // 減らしたら `--set-bypass-limit` で上限を下げる。
+  const bypassLimit = readBypassLimit();
+  if (process.argv.includes("--set-bypass-limit")) {
+    writeBypassLimit(bypasses.length);
+    console.log(`✅ 基盤の迂回の上限を ${bypasses.length} に更新しました`);
+    return;
+  }
+  if (bypasses.length > bypassLimit) {
+    issues.push({
+      level: "error",
+      message:
+        `基盤にある機能をアプリ側で定義している箇所が ${bypasses.length} 件に増えました(上限 ${bypassLimit})。\n`
+        + bypasses.map((b) => `     ${b.rel}: ${b.name}() → ${b.pkg}(${b.why})`).join("\n"),
+    });
+  } else if (bypasses.length > 0 && process.argv.includes("--bypass")) {
+    for (const b of bypasses) {
+      issues.push({ level: "warn", message: `${b.rel}: ${b.name}() を自作しています → ${b.pkg}(${b.why})` });
+    }
+  }
+
   const errors = issues.filter((i) => i.level === "error");
   const warns = issues.filter((i) => i.level === "warn");
 
   if (issues.length === 0) {
+    if (bypasses.length > 0) {
+      console.log(`✅ apps/demos は基盤の役割を侵していません(${scanned} ファイル検査)`);
+      console.log(`   ⚠ ただし基盤を使わず自作している箇所が ${bypasses.length} 件あります(上限 ${bypassLimit}・詳細は --bypass)`);
+      return;
+    }
     console.log(`✅ apps/demos は基盤の役割を侵していません(${scanned} ファイル検査)`);
     return;
   }

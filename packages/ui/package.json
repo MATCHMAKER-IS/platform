@@ -27,7 +27,9 @@
     "@platform/image": "workspace:*",
     "@platform/print": "workspace:*",
     "@platform/realtime": "workspace:*",
+    "@platform/theme": "workspace:*",
     "@platform/utils": "workspace:*",
+    "@platform/web-storage": "workspace:*",
     "@tiptap/core": "^2.11.0",
     "@tiptap/extension-color": "^2.11.0",
     "@tiptap/extension-text-style": "^2.11.0",
@@ -46,8 +48,7 @@
     "recharts": "^2.15.0",
     "sonner": "^1.7.2",
     "tailwind-merge": "^3.0.1",
-    "wavesurfer.js": "^7.8.6",
-    "@platform/theme": "workspace:*"
+    "wavesurfer.js": "^7.8.6"
   },
   "peerDependencies": {
     "react": "^19.0.0",

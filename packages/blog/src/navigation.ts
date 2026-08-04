@@ -18,7 +18,7 @@ export interface AdjacentPosts<T> {
  * newer=1つ新しい記事, older=1つ古い記事。公開記事のみ対象。
  *
  * @param posts 記事の配列
- * @param current 現在の記事
+ * @param currentId 現在の記事
  * @param now 判定する時点(テスト注入用)
  * @returns 前後の記事(**公開日順**。連載の順番で辿るなら seriesNavigation を使う)
  */
@@ -62,7 +62,7 @@ export function seriesPosts<T extends SeriesPost>(posts: T[], series: string, no
  * **公開日ではなく連載の順番**で決める(後から書いた第 1 話が「次」になっては困る)。
  *
  * @param posts 記事の配列
- * @param current 現在の記事
+ * @param currentId 現在の記事
  * @param now 判定する時点(テスト注入用)
  * @returns 前後の記事(**端なら undefined**)
  */

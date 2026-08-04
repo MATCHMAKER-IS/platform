@@ -28,7 +28,7 @@ export function isSafeIdentifier(name: string): boolean {
  *
  *
  * @param columns 対象のカラム(**検証済みであること**)
- * @param config 全文検索の設定
+ * @param language 全文検索の設定
  * @returns tsvector の式
  */
 export function buildTsVectorExpr(columns: string[], language: string): string {

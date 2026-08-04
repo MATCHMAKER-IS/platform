@@ -92,7 +92,7 @@ export function hasActiveChild(item: NavItem, currentPath: string): boolean {
  * 子を持つ項目は、表示可能な子が 1 つも残らなければ(空グループ)非表示にする。
  *
  * @param items ナビ項目
- * @param has 権限を判定する関数
+ * @param isAllowed 権限を判定する関数
  * @returns 権限のある項目だけ(**見えないページへのリンクを出さない**。押しても 403 では不親切)
  */
 export function filterNavByPermission(items: NavItem[], isAllowed: (permission: string) => boolean): NavItem[] {

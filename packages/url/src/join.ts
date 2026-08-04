@@ -12,7 +12,7 @@
  * `@platform/url` に集約する方針(ADR 0015)に合わせて移した。
  *
  * @param base     先頭のセグメント
- * @param segments 続けて結合するセグメント
+ * @param ...segments 続けて結合するセグメント
  * @returns 結合した URL
  *
  * @example

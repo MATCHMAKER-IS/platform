@@ -88,7 +88,7 @@ export function remainingCapacity(slots: Slot[], bookings: BookingInterval[], ca
  * **保存の直前に必ず確認する**(画面で選んでから保存までの間に、
  * 他の人が予約を入れることがある)。
  *
- * @param slot 予約したいスロット
+ * @param candidate 予約したいスロット
  * @param bookings 既存の予約
  * @param capacity 同時受入数
  * @returns 衝突すれば true

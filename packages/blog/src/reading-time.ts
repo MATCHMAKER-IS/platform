@@ -43,8 +43,8 @@ function countWords(text: string): number {
  * (日本語 400〜600 字/分、英語 200〜250 語/分が目安)。
  *
  * @param content 本文(Markdown 可)
- * @param options.japaneseCharsPerMinute 日本語の速さ(既定 500)
- * @param options.englishWordsPerMinute 英語の速さ(既定 220)
+ * @param options.cjkPerMinute 日本語(CJK)の速さ(文字/分。既定 500)
+ * @param options.wordsPerMinute 英語の速さ(語/分。既定 250)
  * @returns 分数(**最低 1 分**。「0 分で読めます」とは出さない)
  */
 export function readingTime(content: string, options: ReadingTimeOptions = {}): ReadingTime {

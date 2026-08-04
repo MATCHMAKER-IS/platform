@@ -81,7 +81,6 @@ export interface AiLogStore {
  *
  * **本番では DB 実装を使うこと**(コストの追跡は経理に関わるので、消えては困る)。
  *
- * @param seed 初期データ
  * @returns ログストア
  */
 export function createMemoryAiLogStore(): AiLogStore & {
@@ -165,7 +164,7 @@ const PREFIX_ROUTES: readonly (readonly [string, string])[] = [
  * - **コストを追跡できる**(全呼び出しがログに残る)
  * - **上限を設けられる**(暴走を止める)
  *
- * @param options.provider プロバイダ(Anthropic / OpenAI など)
+ * @param options.providers プロバイダの配列(Anthropic / OpenAI など)
  * @param options.logStore ログの保存先
  * @param options.limits 呼び出しの上限(任意)
  * @returns Gateway。`chat` で呼ぶ
@@ -369,7 +368,7 @@ export function createOpenAiEmbedder(opts: { apiKey: string; model?: string; fet
  * 語をハッシュして固定次元のバッグ・オブ・ワーズ的ベクトルにする。意味は捉えないが、
  * 同じ語を含む文の近さは反映され、パイプラインの結線確認に使える。
  *
- * @param dimensions 次元数(既定 384)
+ * @param dim 次元数(既定 384)
  * @returns 埋め込みを作る関数。**意味を捉えない**(ハッシュを並べるだけ)ので、
  *   本番の検索には使えない。**API キー無しで動く**ので、開発・テスト用
  */

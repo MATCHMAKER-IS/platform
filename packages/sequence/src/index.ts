@@ -107,7 +107,6 @@ export function createSequencer(store: SequenceStore, name: string, options: Seq
  * **本番では DB か Redis の実装に差し替えること**。請求書番号が重複すると、
  * 会計上の問題になる。
  *
- * @param seed 初期値
  * @returns ストア
  */
 export function createMemorySequenceStore(): SequenceStore & { reset(): void } {

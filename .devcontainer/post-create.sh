@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# devcontainer 初期化: .env(ホスト名を db/mailhog に置換)→ install → prisma → smoke
+# devcontainer 初期化: .env(ホスト名を db/mailpit に置換)→ install → prisma → smoke
 set -euo pipefail
-echo "▶ devcontainer post-create(ネットワーク内ホスト: db / mailhog)"
+echo "▶ devcontainer post-create(ネットワーク内ホスト: db / mailpit)"
 
 corepack enable
 
 for app in internal-app public-site crud-template equipment-app; do
   ex="apps/$app/.env.example"; dst="apps/$app/.env"
   if [ -f "$ex" ] && [ ! -f "$dst" ]; then
-    sed -e 's/@localhost:5432/@db:5432/g' -e 's/^SMTP_HOST=localhost/SMTP_HOST=mailhog/' "$ex" > "$dst"
-    echo "  ✓ $dst を作成(db/mailhog 向け)"
+    sed -e 's/@localhost:5432/@db:5432/g' -e 's/^SMTP_HOST=localhost/SMTP_HOST=mailpit/' "$ex" > "$dst"
+    echo "  ✓ $dst を作成(db/mailpit 向け)"
   fi
 done
 

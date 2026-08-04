@@ -99,7 +99,7 @@ export interface PageStore {
 /**
  * ページストアのメモリ実装(開発・テスト用)。
  *
- * @param seed 初期データ
+ * @param now 初期データ
  * @returns ページストア(**再起動で消える**)
  */
 export function createMemoryPageStore(now: () => string = () => new Date().toISOString()): PageStore {

@@ -71,23 +71,23 @@ export function CategoryClient({ fetchImpl }: CategoryClientProps) {
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h1 className="text-xl font-bold">カテゴリ</h1>
-          <Button onClick={() => { setEditing({ ...EMPTY }); setEditId(null); setError(""); }} className="rounded bg-neutral-900 px-3 py-1 text-sm text-white">追加</Button>
+          <Button onClick={() => { setEditing({ ...EMPTY }); setEditId(null); setError(""); }} className="rounded bg-[var(--color-fg)] px-3 py-1 text-sm text-white">追加</Button>
         </div>
         {editing && (
-          <div className="mb-4 flex flex-col gap-2 rounded border border-neutral-200 p-3">
-            {error && <p className="rounded bg-red-50 px-2 py-1 text-xs text-red-700">{error}</p>}
-            <Input value={editing.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ name: e.target.value })} placeholder="カテゴリ名" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
-            <Input value={editing.slug} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ slug: e.target.value })} placeholder="slug" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
+          <div className="mb-4 flex flex-col gap-2 rounded border border-[var(--color-border)] p-3">
+            {error && <p className="rounded bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] px-2 py-1 text-xs text-[var(--color-danger)]">{error}</p>}
+            <Input value={editing.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ name: e.target.value })} placeholder="カテゴリ名" className="rounded border border-[var(--color-border)] px-2 py-1 text-sm" />
+            <Input value={editing.slug} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ slug: e.target.value })} placeholder="slug" className="rounded border border-[var(--color-border)] px-2 py-1 text-sm" />
             <Select
-              value={editing.parentId} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set({ parentId: e.target.value })} className="rounded border border-neutral-300 px-2 py-1 text-sm"
+              value={editing.parentId} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => set({ parentId: e.target.value })} className="rounded border border-[var(--color-border)] px-2 py-1 text-sm"
               options={[
                 { label: "（親なし）", value: "" },
                 ...cats.filter((c) => c.id !== editId).map((c) => ({ label: c.name, value: c.id })),
               ]}
             />
             <div className="flex gap-2">
-              <Button onClick={save} className="rounded bg-neutral-900 px-3 py-1 text-sm text-white">保存</Button>
-              <Button onClick={() => { setEditing(null); setEditId(null); }} className="rounded border border-neutral-300 px-3 py-1 text-sm">キャンセル</Button>
+              <Button onClick={save} className="rounded bg-[var(--color-fg)] px-3 py-1 text-sm text-white">保存</Button>
+              <Button onClick={() => { setEditing(null); setEditId(null); }} className="rounded border border-[var(--color-border)] px-3 py-1 text-sm">キャンセル</Button>
             </div>
           </div>
         )}
@@ -96,14 +96,14 @@ export function CategoryClient({ fetchImpl }: CategoryClientProps) {
           getKey={(c) => c.id}
           onReorder={applyReorder}
           renderItem={(c) => (
-            <div className="flex items-center justify-between rounded border border-neutral-200 px-3 py-2 text-sm">
+            <div className="flex items-center justify-between rounded border border-[var(--color-border)] px-3 py-2 text-sm">
               <span>
-                {c.name} <span className="text-xs text-neutral-400">/{c.slug}</span>
-                {c.parentId && <span className="ml-1 text-xs text-neutral-400">← {nameOf(c.parentId)}</span>}
+                {c.name} <span className="text-xs text-[var(--color-muted)]">/{c.slug}</span>
+                {c.parentId && <span className="ml-1 text-xs text-[var(--color-muted)]">← {nameOf(c.parentId)}</span>}
               </span>
               <span className="flex gap-2">
-                <Button onClick={() => { setEditing({ name: c.name, slug: c.slug, parentId: c.parentId ?? "" }); setEditId(c.id); setError(""); }} className="text-blue-600">編集</Button>
-                <Button onClick={() => remove(c.id)} className="text-red-600">削除</Button>
+                <Button onClick={() => { setEditing({ name: c.name, slug: c.slug, parentId: c.parentId ?? "" }); setEditId(c.id); setError(""); }} className="text-[var(--color-primary)]">編集</Button>
+                <Button onClick={() => remove(c.id)} className="text-[var(--color-danger)]">削除</Button>
               </span>
             </div>
           )}
@@ -112,18 +112,18 @@ export function CategoryClient({ fetchImpl }: CategoryClientProps) {
 
       <section>
         <h1 className="mb-3 text-xl font-bold">タグ</h1>
-        <p className="mb-2 text-xs text-neutral-500">タグは記事から集計されます。リネームすると全記事に反映されます。</p>
+        <p className="mb-2 text-xs text-[var(--color-muted)]">タグは記事から集計されます。リネームすると全記事に反映されます。</p>
         <ul className="flex flex-col gap-1">
           {tags.map((t) => (
-            <li key={t.tag} className="flex items-center justify-between rounded border border-neutral-200 px-3 py-2 text-sm">
-              <span>#{t.tag} <span className="text-xs text-neutral-400">({t.count})</span></span>
+            <li key={t.tag} className="flex items-center justify-between rounded border border-[var(--color-border)] px-3 py-2 text-sm">
+              <span>#{t.tag} <span className="text-xs text-[var(--color-muted)]">({t.count})</span></span>
               <span className="flex gap-2">
-                <Button onClick={() => renameTag(t.tag)} className="text-blue-600">リネーム</Button>
-                <Button onClick={() => removeTag(t.tag)} className="text-red-600">削除</Button>
+                <Button onClick={() => renameTag(t.tag)} className="text-[var(--color-primary)]">リネーム</Button>
+                <Button onClick={() => removeTag(t.tag)} className="text-[var(--color-danger)]">削除</Button>
               </span>
             </li>
           ))}
-          {tags.length === 0 && <li className="text-sm text-neutral-400">タグはまだありません。</li>}
+          {tags.length === 0 && <li className="text-sm text-[var(--color-muted)]">タグはまだありません。</li>}
         </ul>
       </section>
     </div>

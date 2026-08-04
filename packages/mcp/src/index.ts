@@ -253,7 +253,7 @@ export async function serveStdio(options: McpServerOptions, io?: StdioLike, ctx:
 /**
  * Authorization ヘッダから Bearer トークンを取り出す。
  *
- * @param header Authorization ヘッダの値
+ * @param authorizationHeader Authorization ヘッダの値
  * @returns トークン。**無ければ null**
  */
 export function extractBearerToken(authorizationHeader: string | null | undefined): string | null {

@@ -41,19 +41,19 @@ export function HistoryClient({ fetchImpl }: HistoryClientProps) {
     <div className="mx-auto max-w-4xl p-6">
       <h1 className="mb-4 text-2xl font-bold">操作履歴</h1>
       <div className="mb-3 flex gap-1">
-        <Button onClick={() => setFilter("")} className={filter === "" ? "rounded bg-neutral-900 px-3 py-1 text-sm text-white" : "rounded border border-neutral-300 px-3 py-1 text-sm"}>すべて</Button>
+        <Button onClick={() => setFilter("")} className={filter === "" ? "rounded bg-[var(--color-fg)] px-3 py-1 text-sm text-white" : "rounded border border-[var(--color-border)] px-3 py-1 text-sm"}>すべて</Button>
         {kinds.map((k) => (
-          <Button key={k} onClick={() => setFilter(k)} className={filter === k ? "rounded bg-neutral-900 px-3 py-1 text-sm text-white" : "rounded border border-neutral-300 px-3 py-1 text-sm"}>
+          <Button key={k} onClick={() => setFilter(k)} className={filter === k ? "rounded bg-[var(--color-fg)] px-3 py-1 text-sm text-white" : "rounded border border-[var(--color-border)] px-3 py-1 text-sm"}>
             {k === "post" ? "記事" : k === "page" ? "ページ" : k === "announcement" ? "お知らせ" : k === "category" ? "カテゴリ" : "タグ"}
           </Button>
         ))}
       </div>
       {shown.length === 0 ? (
-        <p className="text-sm text-neutral-500">履歴がありません。</p>
+        <p className="text-sm text-[var(--color-muted)]">履歴がありません。</p>
       ) : (
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-neutral-200 text-left text-xs text-neutral-500">
+            <tr className="border-b border-[var(--color-border)] text-left text-xs text-[var(--color-muted)]">
               <th className="px-2 py-1">日時</th>
               <th className="px-2 py-1">操作</th>
               <th className="px-2 py-1">対象</th>
@@ -62,11 +62,11 @@ export function HistoryClient({ fetchImpl }: HistoryClientProps) {
           </thead>
           <tbody>
             {shown.map((r) => (
-              <tr key={r.seq} className="border-b border-neutral-100">
-                <td className="px-2 py-2 text-xs text-neutral-500">{r.at.slice(0, 16).replace("T", " ")}</td>
+              <tr key={r.seq} className="border-b border-[var(--color-border)]">
+                <td className="px-2 py-2 text-xs text-[var(--color-muted)]">{r.at.slice(0, 16).replace("T", " ")}</td>
                 <td className="px-2 py-2">{ACTION_LABEL[r.action] ?? r.action}</td>
-                <td className="px-2 py-2 font-mono text-xs text-neutral-600">{r.target}</td>
-                <td className="px-2 py-2 text-xs text-neutral-500">{r.actor}</td>
+                <td className="px-2 py-2 font-mono text-xs text-[var(--color-muted)]">{r.target}</td>
+                <td className="px-2 py-2 text-xs text-[var(--color-muted)]">{r.actor}</td>
               </tr>
             ))}
           </tbody>

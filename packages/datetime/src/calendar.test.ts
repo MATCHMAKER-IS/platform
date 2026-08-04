@@ -1,13 +1,5 @@
 import {
-  describe, it, expect } from "vitest"; import {   isLeapYear, daysInMonth, addDays, addMonths,
-  addYears, daysBetween, daysUntil, isPast, isFuture, isSameDay,
-  isToday, age, weekdayNameJa, isWeekend, quarter, startOfMonth,
-  endOfMonth, startOfWeek, formatDate, parseDate, holidayName, holidaysInYear,
-  isBusinessDay, addBusinessDays, businessDaysBetween, rangeContains, rangesOverlap, rangeIntersection,
-  rangeDays, eachDayOfRange, splitRangeByMonth, clampDate, toWareki, formatWareki,
-  formatRelativeDay, roundToNearestMinutes, floorToMinutes, ceilToMinutes, formatDuration, parseDuration,
-  businessMinutesBetween, todayJst, formatDateJst, dayNumber, dayNumberJst, dayOfWeek,
-  isBeforeDay, isAfterDay, utcDate, isHoliday,
+  describe, it, expect } from "vitest"; import {   isLeapYear, daysInMonth, addDays, addMonths, addYears, daysBetween, daysUntil, isPast, isFuture, isSameDay, isToday, age, weekdayNameJa, isWeekend, quarter, startOfMonth, endOfMonth, startOfWeek, formatDate, parseDate, holidayName, holidaysInYear, isBusinessDay, addBusinessDays, businessDaysBetween, rangeContains, rangesOverlap, rangeIntersection, rangeDays, eachDayOfRange, splitRangeByMonth, clampDate, toWareki, formatWareki, formatRelativeDay, roundToNearestMinutes, floorToMinutes, ceilToMinutes, formatDuration, parseDuration, businessMinutesBetween, todayJst, formatDateJst, dayNumber, dayNumberJst, dayOfWeek, isBeforeDay, isAfterDay, utcDate, isHoliday, formatClock,
 } from "./calendar";
 
 const D = (s: string) => new Date(s + "T00:00:00Z");
@@ -135,5 +127,29 @@ describe("JST の暦日(9 時間ずれ対策)", () => {
     for (const d of [utcDate(2026, 1, 1), utcDate(2026, 7, 29), utcDate(2026, 12, 31)]) {
       expect(dayNumberJst(d)).toBe(dayNumber(d));
     }
+  });
+});
+
+describe("formatClock(時計表示)", () => {
+  it("1 時間未満は mm:ss", () => {
+    expect(formatClock(0)).toBe("00:00");
+    expect(formatClock(9)).toBe("00:09");
+    expect(formatClock(90)).toBe("01:30");
+    expect(formatClock(3599)).toBe("59:59");
+  });
+
+  it("1 時間以上は h:mm:ss", () => {
+    expect(formatClock(3600)).toBe("1:00:00");
+    expect(formatClock(3661)).toBe("1:01:01");
+  });
+
+  it("負は 0 として扱う(「-01:30」と出さない)", () => {
+    expect(formatClock(-10)).toBe("00:00");
+  });
+
+  it("**桁が揃う**(formatDuration は揃わない)", () => {
+    // カウントダウンで毎秒幅が変わると読みにくい
+    expect(formatClock(65)).toBe("01:05");
+    expect(formatDuration(65)).toBe("1分5秒");
   });
 });

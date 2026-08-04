@@ -8,6 +8,13 @@
  * @packageDocumentation
  */
 
+/// <reference path="./ffprobe-static.d.ts" />
+// **この 1 行が無いと、別パッケージからコンパイルされたときに型が見つからない。**
+// `.d.ts` は同じフォルダに置いただけでは「そのパッケージの tsconfig の include」に
+// 入るだけで、`demos/showcase` のように**外から index.ts を辿ってきた場合**は
+// プログラムに含まれず、TS7016(暗黙の any)になる。
+// `barcode/src/index.ts` も同じ作法で参照している。
+
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegPath from "ffmpeg-static";
 import ffprobe from "ffprobe-static";

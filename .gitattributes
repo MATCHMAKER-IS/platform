@@ -1,0 +1,38 @@
+# 改行コードを **LF に固定**する。
+#
+# 【なぜ要るか】
+# Windows の Git は既定(`core.autocrlf=true`)で、**チェックアウト時に
+# 勝手に CRLF へ変換する**。すると行末に `\r` が残り、
+# 行単位で解析している道具が軒並み壊れる。
+#
+# 実際 2026-08 に、この指定が無いせいで smoke が Windows でだけ落ちた。
+# 壊れたのは advisor・リファレンスサイト生成・カタログ MCP・資料の節分割など、
+# **README や資料を行で読むもの全部**。しかも Linux の CI では再現しないため、
+# 「自分の環境だけおかしい」という最も追いにくい形になる。
+#
+# 開発者は Windows・CI は Linux という構成なので、ここを揃えないと
+# 「手元では落ちるが CI は緑」「CI は赤だが手元は緑」が日常的に起きる。
+* text=auto eol=lf
+
+# バイナリは触らない(改行変換をかけると壊れる)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.zip binary
+*.dump binary
+
+# **Windows のバッチだけは CRLF。**
+# cmd.exe は LF のみの .bat で、行の解釈を誤ることがある
+# (特に goto ラベルや行継続を含む場合)。
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# PowerShell は LF で問題ない(BOM 付き UTF-8 であることの方が重要。
+# 詳細は tools/smoke.mjs の「Windows setup 静的検証」)
+*.ps1 text eol=lf

@@ -42,7 +42,7 @@ export const MEMORANDUM_VALUE = 1;
 /**
  * 定額法の償却率を返す(1 ÷ 耐用年数)。
  *
- * @param usefulLife 耐用年数
+ * @param usefulLifeYears 耐用年数
  * @returns 償却率
  */
 export function straightLineRate(usefulLifeYears: number): number {
@@ -55,7 +55,7 @@ export function straightLineRate(usefulLifeYears: number): number {
  * 平成 24 年 4 月以降に取得した資産に適用される率。
  * **取得時期で率が変わる**(それ以前は 250% 定率法)ので、古い資産には使えない。
  *
- * @param usefulLife 耐用年数
+ * @param usefulLifeYears 耐用年数
  * @returns 償却率
  */
 export function decliningBalanceRate(usefulLifeYears: number): number {
@@ -133,9 +133,8 @@ export function decliningBalanceSchedule(cost: number, usefulLifeYears: number, 
 /**
  * 償却方法に応じてスケジュールを作る。
  *
- * @param method 方法(`straight-line` / `declining-balance`)
- * @param acquisitionCost 取得価額
- * @param usefulLife 耐用年数
+ * @param asset 対象資産(取得価額・耐用年数・償却方法 `straight_line` / `declining_balance`)
+ * @param startYear 償却を開始する年
  * @returns 年次の償却額と期末簿価
  */
 export function depreciationSchedule(asset: DepreciableAsset, startYear: number): ScheduleRow[] {
@@ -193,3 +192,5 @@ export function depreciationInYear(schedule: ScheduleRow[], year: number): numbe
 export function monthlyAmount(annual: number, months = 1): number {
   return Math.floor((annual / 12) * months);
 }
+
+export * from "./property-tax";

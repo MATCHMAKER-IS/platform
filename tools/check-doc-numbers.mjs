@@ -8,7 +8,7 @@
  *
  * 検査するのは「実態を数えれば分かる数値」だけ。文章の正しさは扱わない。
  */
-import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -52,6 +52,50 @@ export function measure() {
     demos: demoDirs.length,
     runnableDemos,
     componentDemos: demoDirs.length - runnableDemos,
+    // 検査ツールの数。**資料に「N 種類の検査」と書くとすぐ古くなる**
+    // (実際に 44 のまま残っていた)。実測から見張る
+    // E2E の本数は `test(` の数(ファイル数ではない)。
+    // 資料には「E2E 14 本」と書いてあり、ファイル数(7)と混同しやすい
+    e2eTests: (() => {
+      const dir = path.join(ROOT, "e2e");
+      if (!existsSync(dir)) return 0;
+      return readdirSync(dir)
+        .filter((f) => f.endsWith(".spec.ts"))
+        .reduce((n, f) => n + (readFileSync(path.join(dir, f), "utf8").match(/^test\(/gm)?.length ?? 0), 0);
+    })(),
+    // API ルートの本数(app/api/**/route.ts)。資料に「API 252 本」と書いてあり、
+    // 増減が分かりにくいので機械的に数える
+    apiRoutes: (() => {
+      let n = 0;
+      const walk = (dir) => {
+        if (!existsSync(dir)) return;
+        for (const e of readdirSync(dir, { withFileTypes: true })) {
+          if (e.name === "node_modules" || e.name === ".next") continue;
+          const fp = path.join(dir, e.name);
+          if (e.isDirectory()) walk(fp);
+          else if (e.name === "route.ts" && fp.includes(`${path.sep}api${path.sep}`)) n += 1;
+        }
+      };
+      walk(path.join(ROOT, "apps"));
+      walk(path.join(ROOT, "demos"));
+      return n;
+    })(),
+    // ラチェットの記録ファイルから上限を読む
+    ...(() => {
+      try {
+        const j = JSON.parse(readFileSync(path.join(ROOT, "tools/maintainability-limit.json"), "utf8"));
+        return { longLinesLimit: j.longLines, bigFilesLimit: j.bigFiles };
+      } catch {
+        return { longLinesLimit: 0, bigFilesLimit: 0 };
+      }
+    })(),
+    checks: readdirSync(path.join(ROOT, "tools"))
+      .filter((f) => f.startsWith("check-") && f.endsWith(".mjs")).length,
+    // GitHub Actions の数。資料の一覧と食い違うと、
+    // 「動いているはずのものが無い / 無いはずのものが動く」に気づけない
+    workflows: existsSync(path.join(ROOT, ".github/workflows"))
+      ? readdirSync(path.join(ROOT, ".github/workflows")).filter((f) => f.endsWith(".yml")).length
+      : 0,
   };
 }
 
@@ -60,6 +104,21 @@ export function measure() {
  * pattern は「数値部分を (\d+) で captureする正規表現」。
  */
 const RULES = [
+  { file: "docs/ops/CHECKS.md", pattern: /\*\*依存をインストールせずに (\d+) 種類の検査\*\*/, expect: (m) => m.checks, label: "CHECKS.md の検査の種類数" },
+  // HANDOVER にも同じ数字が 2 か所ある。**片方だけ直すとズレる**ので両方見る
+  { file: "docs/ops/HANDOVER.md", pattern: /\*\*(\d+) 種類の検査\*\*が `preflight`/, expect: (m) => m.checks, label: "HANDOVER の検査の種類数" },
+  { file: "docs/ops/HANDOVER.md", pattern: /\*\*検査 (\d+) 件すべてを分類済み\*\*/, expect: (m) => m.checks, label: "HANDOVER の verify-checks 分類数" },
+  { file: "docs/ops/HANDOVER.md", pattern: /E2E \*\*(\d+) 本\*\*/, expect: (m) => m.e2eTests, label: "HANDOVER の E2E 本数" },
+  { file: "docs/ops/HANDOVER.md", pattern: /API \*\*(\d+) 本すべて\*\*/, expect: (m) => m.apiRoutes, label: "HANDOVER の API 本数" },
+  // ラチェット(上限)の値。**手で書いた数値は必ず古くなる**ので、記録ファイルと照合する。
+  // 実際に「生タグ 33 / 色 67 / 未実戦 11」と書かれたまま、すべて 0 になっていた
+  { file: "docs/ops/HANDOVER.md", pattern: /\| 長い行（200 字超） \| ([\d,]+) \|/, expect: (m) => m.longLinesLimit, label: "HANDOVER の長い行の上限" },
+  { file: "docs/ops/CHECKS.md", pattern: /\| 大きいファイル・長い行 \| (\d+) 件/, expect: (m) => m.bigFilesLimit, label: "CHECKS.md の大きいファイルの上限" },
+  // HANDOVER は「引き継ぐ人が最初に読む」資料。ここの数値が古いと、
+  // 規模の見積もりを誤らせる(実際にアプリ 5→6、smoke 1,446→1,451 とずれていた)
+  { file: "docs/ops/HANDOVER.md", pattern: /\| アプリ \| \*\*(\d+) つ\*\*/, expect: (m) => m.apps, label: "HANDOVER のアプリ数" },
+  { file: "docs/ops/HANDOVER.md", pattern: /\*\*(\d+) 種類の検査\*\*が `preflight`/, expect: (m) => m.checks, label: "HANDOVER の検査の種類数" },
+  { file: "docs/ops/HANDOVER.md", pattern: /`docs\/ops\/CHECKS\.md` — (\d+) 種類の検査/, expect: (m) => m.checks, label: "HANDOVER の関連資料リンク" },
   { file: "CLAUDE.md", pattern: /(\d+)\s*パッケージのカテゴリ別インデックス/, expect: (m) => m.packages, label: "CLAUDE.md のパッケージ数" },
   // 統合により demos は 1 サイトのみ(以前の「コンポーネント型 26」は showcase に取り込み済み)
     // ルートの README も見る。ここは「初めて見る人が最初に読む」場所なので、
@@ -104,11 +163,72 @@ function checkDemoCounts(issues) {
     issues.push({ label: "docs/APPS_AND_DEMOS.md", message: "デモ本数の記述が見つかりません(書式変更?)" });
     return;
   }
+
+  // **`--fix` で書き直す。** デモの追加はよく起きるうえ、数値は nav.ts から
+  // 機械的に決まる。手で直させると、直す作業だけが残って中身の検査が形骸化する。
+  if (process.argv.includes("--fix")) {
+    // 検査の種類数も同じ理由で自動更新する(tools/check-*.mjs を数えるだけ)
+    const checks = readdirSync(path.join(ROOT, "tools"))
+      .filter((f) => f.startsWith("check-") && f.endsWith(".mjs")).length;
+    for (const rel of ["docs/ops/CHECKS.md", "docs/ops/HANDOVER.md"]) {
+      const fp = path.join(ROOT, rel);
+      if (!existsSync(fp)) continue;
+      const before = readFileSync(fp, "utf8");
+      const after = before
+        .replace(/\*\*依存をインストールせずに \d+ 種類の検査\*\*/, `**依存をインストールせずに ${checks} 種類の検査**`)
+        .replace(/\*\*\d+ 種類の検査\*\*が `preflight`/, `**${checks} 種類の検査**が \`preflight\``)
+        .replace(/`docs\/ops\/CHECKS\.md` — \d+ 種類の検査/, `\`docs/ops/CHECKS.md\` — ${checks} 種類の検査`);
+      if (after !== before) { writeFileSync(fp, after); console.log(`✏ ${rel} を更新: 検査 ${checks} 種類`); }
+    }
+    const fixed = body.replace(
+      m[0],
+      `基盤デモ ${platform} 本・アプリ画面デモ ${appDemos} 本・使用例 ${codeExamples} 本（計 ${all}）`,
+    );
+    if (fixed !== body) {
+      writeFileSync(doc, fixed);
+      console.log(`✏ docs/APPS_AND_DEMOS.md を更新: 基盤 ${platform} / アプリ ${appDemos} / 使用例 ${codeExamples} = ${all}`);
+    }
+    // HANDOVER の「N デモ」も揃える
+    const hand = path.join(ROOT, "docs/ops/HANDOVER.md");
+    if (existsSync(hand)) {
+      const hs = readFileSync(hand, "utf8");
+      const hf = hs.replace(/（\d+ デモ）/, `（${all} デモ）`);
+      if (hf !== hs) { writeFileSync(hand, hf); console.log(`✏ docs/ops/HANDOVER.md を更新: ${all} デモ`); }
+    }
+    return;
+  }
   if (Number(m[1]) !== platform) {
     issues.push({ label: "docs/APPS_AND_DEMOS.md", message: `基盤デモ ${m[1]} 本は古い値です(実際は ${platform})` });
   }
   if (Number(m[4]) !== all) {
     issues.push({ label: "docs/APPS_AND_DEMOS.md", message: `計 ${m[4]} は古い値です(実際は ${all})` });
+  }
+}
+
+/**
+ * GitHub Actions の一覧が資料と合っているか。
+ *
+ * ワークフローは増えても資料は自動で増えない。**動いているのに一覧に無い**と、
+ * 落ちたとき「これは何の確認か」が分からず、直しようがなくなる。
+ */
+function checkWorkflowDocs(issues) {
+  const dir = path.join(ROOT, ".github/workflows");
+  const doc = path.join(ROOT, "docs/ops/GITHUB_ACTIONS.md");
+  if (!existsSync(dir) || !existsSync(doc)) return;
+  const body = readFileSync(doc, "utf8");
+  const files = readdirSync(dir).filter((f) => f.endsWith(".yml"));
+  for (const f of files) {
+    // ワークフローの `name:` が資料に出てくるかを見る
+    const src = readFileSync(path.join(dir, f), "utf8");
+    const m = src.match(/^name:\s*(.+)$/m);
+    if (!m) continue;
+    const name = m[1].trim().replace(/^["']|["']$/g, "");
+    if (!body.includes(name)) {
+      issues.push({
+        label: "docs/ops/GITHUB_ACTIONS.md",
+        message: `ワークフロー「${name}」(${f}) が一覧にありません。動いているのに何の確認か分かりません`,
+      });
+    }
   }
 }
 
@@ -213,6 +333,7 @@ export function check() {
   checkExportCountEverywhere(m.exportsCount, issues);
   checkAppMetrics(issues);
   checkDemoCounts(issues);
+  checkWorkflowDocs(issues);
   for (const rule of RULES) {
     const p = path.join(ROOT, rule.file);
     if (!existsSync(p)) {
@@ -225,13 +346,14 @@ export function check() {
       issues.push({ label: rule.label, message: `${rule.file} に該当記述が見つかりません(パターン変更?)` });
       continue;
     }
-    const actual = Number(found[1]);
+    // 資料では「1,396 行」のようにカンマ区切りで書くので、除いてから数値にする
+    const actual = Number(String(found[1]).replace(/,/g, ""));
     const expected = rule.expect(m);
     if (actual !== expected) {
       issues.push({ label: rule.label, message: `${rule.file}: ${actual} と書かれていますが実際は ${expected} です` });
     }
     if (rule.second) {
-      const actual2 = Number(found[2]);
+      const actual2 = Number(String(found[2]).replace(/,/g, ""));
       const expected2 = rule.second(m);
       if (actual2 !== expected2) {
         issues.push({ label: rule.label, message: `${rule.file}: 分母が ${actual2} ですが実際は ${expected2} です` });

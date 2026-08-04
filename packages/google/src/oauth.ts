@@ -57,8 +57,10 @@ export interface GoogleTokenResult {
  * 認可コードをトークンに交換する(ログインのコールバックで呼ぶ)。
  *
  *
- * @param code 認可コード
- * @param config クライアント情報
+ * @param params.code 認可コード
+ * @param params.clientId クライアント ID
+ * @param params.clientSecret クライアントシークレット
+ * @param params.redirectUri リダイレクト先
  * @returns トークン
  * @throws {@link @platform/core#AppError} コード `EXTERNAL` — 交換に失敗した場合
  */

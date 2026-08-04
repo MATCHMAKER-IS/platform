@@ -202,7 +202,7 @@ export function isSameDay(a: Date, b: Date): boolean {
  * now より過去のインスタントか。
  *
  * @param date 判定する日付
- * @param today 基準日(テスト注入用)
+ * @param now 基準日(テスト注入用)
  * @returns 基準日より前なら true(**同じ日は false**)
  */
 export function isPast(date: Date, now: Date = new Date()): boolean {
@@ -213,7 +213,7 @@ export function isPast(date: Date, now: Date = new Date()): boolean {
  * now より未来のインスタントか。
  *
  * @param date 判定する日付
- * @param today 基準日(テスト注入用)
+ * @param now 基準日(テスト注入用)
  * @returns 基準日より後なら true(**同じ日は false**)
  */
 export function isFuture(date: Date, now: Date = new Date()): boolean {
@@ -224,7 +224,7 @@ export function isFuture(date: Date, now: Date = new Date()): boolean {
  * 今日(same day)か。
  *
  * @param date 判定する日付
- * @param today 基準日(テスト注入用)
+ * @param now 基準日(テスト注入用)
  * @returns 同じ暦日なら true(時刻は無視)
  */
 export function isToday(date: Date, now: Date = new Date()): boolean {
@@ -253,8 +253,8 @@ export function isAfterDay(a: Date, b: Date): boolean { return dayNumberJst(a) >
 /**
  * 生年月日から満年齢を求める。
  *
- * @param birthDate 生年月日
- * @param today 基準日(テスト注入用。既定は今日)
+ * @param birth 生年月日
+ * @param at 基準日(テスト注入用。既定は今日)
  * @returns 満年齢(誕生日前なら 1 歳少ない)
  */
 export function age(birth: Date, at: Date = new Date()): number {
@@ -360,7 +360,7 @@ export function formatDate(date: Date): string {
 /**
  * YYYY-MM-DD を UTC の Date にパース。不正は null。
  *
- * @param ymd YYYY-MM-DD 形式の文字列
+ * @param text YYYY-MM-DD 形式の文字列
  * @returns UTC 00:00:00 の Date
  * @throws {@link @platform/core#AppError} コード `VALIDATION` — 形式が不正、または実在しない日付の場合
  */
@@ -495,7 +495,6 @@ export function holidayName(date: Date): string | null {
  * 営業日(土日・祝日を除く)か。
  *
  * @param date 対象の日付
- * @param extraHolidays 会社独自の休業日(年末年始など)
  * @returns 平日かつ祝日でなければ true
  */
 export function isBusinessDay(date: Date): boolean {
@@ -507,7 +506,6 @@ export function isBusinessDay(date: Date): boolean {
  *
  * @param date 基準日
  * @param n 営業日数(**負なら過去**)
- * @param extraHolidays 会社独自の休業日
  * @returns n 営業日後の日付。土日祝を飛ばす
  */
 export function addBusinessDays(date: Date, n: number): Date {
@@ -526,7 +524,6 @@ export function addBusinessDays(date: Date, n: number): Date {
  *
  * @param a 始点
  * @param b 終点
- * @param extraHolidays 会社独自の休業日
  * @returns 営業日数(**始点を含み終点を含まない**。b が過去なら負)
  */
 export function businessDaysBetween(a: Date, b: Date): number {
@@ -682,7 +679,7 @@ export function formatWareki(date: Date, options: { useGannen?: boolean } = {}):
  * 相対的な日付表記(「今日」「明日」「3日前」など)。
  *
  * @param date 対象の日付
- * @param today 基準日(テスト注入用)
+ * @param now 基準日(テスト注入用)
  * @returns 「今日」「明日」「3日後」「2日前」など。人が読む画面向け
  */
 export function formatRelativeDay(date: Date, now: Date = new Date()): string {
@@ -715,7 +712,7 @@ export function addHours(date: Date, n: number): Date { return new Date(date.get
  * 最近接の step 分へ丸める。
  *
  * @param date 対象の日時
- * @param minutes 丸める単位(例: 15 なら 15 分刻み)
+ * @param step 丸める単位(例: 15 なら 15 分刻み)
  * @returns 最も近い刻みに丸めた新しい Date
  */
 export function roundToNearestMinutes(date: Date, step = 1): Date {
@@ -726,7 +723,7 @@ export function roundToNearestMinutes(date: Date, step = 1): Date {
  * step 分単位で切り捨て。
  *
  * @param date 対象の日時
- * @param minutes 刻み
+ * @param step 刻み
  * @returns 切り捨てた新しい Date(**勤怠の打刻でよく使う**)
  */
 export function floorToMinutes(date: Date, step = 1): Date {
@@ -737,12 +734,37 @@ export function floorToMinutes(date: Date, step = 1): Date {
  * step 分単位で切り上げ。
  *
  * @param date 対象の日時
- * @param minutes 刻み
+ * @param step 刻み
  * @returns 切り上げた新しい Date
  */
 export function ceilToMinutes(date: Date, step = 1): Date {
   const ms = step * 60_000;
   return new Date(Math.ceil(date.getTime() / ms) * ms);
+}
+
+/**
+ * 秒数を**時計表示**(`mm:ss` / `h:mm:ss`)にする。
+ *
+ * {@link formatDuration} は「1時間30分」のような**読み物向け**の表記。
+ * カウントダウン・タイマー・動画の再生位置には**桁が揃う時計表示**が要る
+ * (「1分5秒」では毎秒幅が変わって読みにくい)。
+ *
+ * @param seconds 秒数(**負は 0 として扱う**)
+ * @returns 1 時間未満なら `mm:ss`、以上なら `h:mm:ss`
+ *
+ * @example
+ * ```ts
+ * formatClock(90);    // "01:30"
+ * formatClock(3661);  // "1:01:01"
+ * ```
+ */
+export function formatClock(seconds: number): string {
+  const total = Math.max(0, Math.floor(seconds));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
 
 /** {@link formatDuration} のオプション。 */
@@ -794,10 +816,12 @@ export interface BusinessHours { openMinutes?: number; closeMinutes?: number }
 /**
  * start〜end の営業時間(分)。営業日かつ日次の営業時間帯のみ計上する(UTC 時刻基準)。
  *
- * @param a 始点の日時
- * @param b 終点の日時
- * @param hours 営業時間の設定(開始・終了・休憩)
- * @param extraHolidays 会社独自の休業日
+ * **会社独自の休業日は指定できない**(土日と祝日だけを除く)。
+ * 必要になったら `BusinessHours` に足すこと。
+ *
+ * @param start 始点の日時
+ * @param end 終点の日時
+ * @param options 営業時間の設定(開始・終了・休憩)
  * @returns 営業時間内の分数(**土日祝と営業時間外を除く**)
  */
 export function businessMinutesBetween(start: Date, end: Date, options: BusinessHours = {}): number {

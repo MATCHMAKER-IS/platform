@@ -106,7 +106,7 @@ export function parsePostbackData(data: string): Record<string, string> {
  * **返信(reply)とは別**。reply トークンは 1 回・短時間しか使えないので、
  * 後から送るなら push を使う(こちらは課金対象)。
  *
- * @param event イベント
+ * @param source イベント
  * @returns 宛先 ID。**取れなければ null**
  */
 export function eventSourceId(source: LineEventSource): string | undefined {

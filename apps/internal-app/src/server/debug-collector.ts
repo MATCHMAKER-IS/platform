@@ -11,6 +11,12 @@
 import { createDebugCollector } from "@platform/debug";
 import { featureEnv } from "./env";
 
+/**
+ * このアプリの Platform Debugger。
+ *
+ * `@platform/debug` の `createDebugCollector` で作った**インスタンス**
+ * (基盤の実装を使う)。保持件数やしきい値はアプリごとに変えるため、ここで組み立てる。
+ */
 export const debugCollector = createDebugCollector({
   enabled: featureEnv.DEBUG_TOOL,
   capacity: 50,

@@ -116,9 +116,9 @@ export interface StalledResult {
 /**
  * 滞留中の申請一覧から、催促・エスカレーションが必要なものだけを抽出する(cron 用)。
  *
- * @param requests 申請の配列
- * @param rules ルール
- * @param now 現在時刻(テスト注入用)
+ * @param items 申請の配列
+ * @param now ルール
+ * @param policy 現在時刻(テスト注入用)
  * @returns 滞留している申請(**承認者が見落としている可能性が高い**。放置すると業務が止まる)
  */
 export function findStalledApprovals(items: PendingItem[], now: Date, policy: SlaPolicy): StalledResult[] {

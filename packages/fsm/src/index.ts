@@ -22,7 +22,7 @@ export interface StateMachineDefinition<S extends string, E extends string> {
 /**
  * そのイベントで遷移できるかを判定する。
  *
- * @param definition 状態機械の定義
+ * @param def 状態機械の定義
  * @param state 現在の状態
  * @param event イベント
  * @returns 遷移できれば true
@@ -37,7 +37,7 @@ export function can<S extends string, E extends string>(def: StateMachineDefinit
  * **不正な遷移は null**(例外を投げない)。呼び出し側で「なぜできないか」を
  * 判断して、利用者に伝える。
  *
- * @param definition 状態機械の定義
+ * @param def 状態機械の定義
  * @param state 現在の状態
  * @param event イベント
  * @returns 次の状態。**遷移できなければ null**
@@ -51,7 +51,7 @@ export function transition<S extends string, E extends string>(def: StateMachine
  *
  * **画面のボタンを出し分ける**のに使う(できない操作のボタンを出さない)。
  *
- * @param definition 状態機械の定義
+ * @param def 状態機械の定義
  * @param state 現在の状態
  * @returns 発火できるイベント
  */
@@ -63,7 +63,7 @@ export function availableEvents<S extends string, E extends string>(def: StateMa
 /**
  * 終了状態かを判定する。
  *
- * @param definition 状態機械の定義
+ * @param def 状態機械の定義
  * @param state 状態
  * @returns 終了状態なら true(**ここから先には進めない**)
  */
@@ -104,7 +104,7 @@ export interface StateMachine<S extends string, E extends string> {
  * **純関数版({@link transition})と違い状態を持つ**。使い捨ての処理では
  * こちらが簡潔だが、状態の共有には注意すること。
  *
- * @param definition 状態機械の定義
+ * @param def 状態機械の定義
  * @param initial 初期状態(省略時は定義の初期状態)
  * @returns インスタンス(`send` で遷移)
  */

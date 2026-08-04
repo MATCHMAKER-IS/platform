@@ -1,12 +1,12 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 ============================================================================
  開発環境セットアップ（Windows / PowerShell 版・setup.sh と同等）。冪等・再実行安全。
 
-   pwsh scripts/setup.ps1              # フルセットアップ
-   pwsh scripts/setup.ps1 -Check       # 前提条件の確認のみ（何も変更しない）
-   pwsh scripts/setup.ps1 -SkipDocker  # Docker 起動を省略（DB を自前用意した場合）
-   pwsh scripts/setup.ps1 -SkipDb      # スキーマ適用（prisma db push）を省略
+   powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1              # フルセットアップ
+   powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1 -Check       # 前提条件の確認のみ（何も変更しない）
+   powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1 -SkipDocker  # Docker 起動を省略（DB を自前用意した場合）
+   powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1 -SkipDb      # スキーマ適用（prisma db push）を省略
 
  やること: 前提確認 → .env 準備 → Docker（PostgreSQL+Mailpit）起動 → アプリ別DB作成
            → pnpm install → prisma generate ×3 → prisma db push ×3 → スモーク検証
@@ -36,6 +36,49 @@ function Fail($m) { Write-Host "  ✗ $m" -ForegroundColor Red }
 function Test-Command($name) {
   $null = Get-Command $name -ErrorAction SilentlyContinue
   return $?
+}
+
+# ─────────────── ネイティブコマンドの呼び出し ───────────────
+# **PowerShell 5.1 は $ErrorActionPreference = "Stop" のとき、外部コマンドが
+# stderr に 1 行書いただけで「致命的エラー」として止まる。**
+# docker info は正常時でも `WARNING: No blkio throttle...` を stderr に出すため、
+# `if ($(docker info 2>$null; $?))` と書くと **Docker が動いていても落ちる**。
+# 2026-08 に実際に踏んだ。エラー文は PowerShell の内部エラー(NativeCommandError)で、
+# Docker の問題にしか見えず原因に辿り着けない。
+#
+# また `$?` は外部コマンドに対して当てにならない。**終了コードは $LASTEXITCODE を見る。**
+
+# 外部コマンドを黙って実行し、成功したかだけを返す。
+#
+# **`*> $null` を使わないこと。**
+# `pnpm` は corepack が置く **PowerShell スクリプト**(`pnpm.ps1`)として
+# 解決される。これに `*> $null` を付けると、コマンド自体が成功していても
+# **終了コード 1 が返る**。2026-08 に実際に踏み、
+# 「smoke は 1640 passed なのに setup だけが失敗する」という形になった。
+# 出力は変数で受けてから捨てる。
+function Test-Native([scriptblock]$Command) {
+  $prev = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  try {
+    $null = & $Command 2>&1
+    return ($LASTEXITCODE -eq 0)
+  } catch {
+    return $false
+  } finally {
+    $ErrorActionPreference = $prev
+  }
+}
+
+# 外部コマンドを実行し、失敗したらその場で止める(出力はそのまま見せる)。
+function Invoke-Native([scriptblock]$Command, [string]$What) {
+  $prev = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  try { & $Command } finally { $ErrorActionPreference = $prev }
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host ""
+    Fail "$What に失敗しました(終了コード $LASTEXITCODE)"
+    exit 1
+  }
 }
 
 # アプリ別 DB（docker-compose.yml の資格情報 app/app に合わせる）
@@ -71,8 +114,8 @@ if (Test-Command pnpm) { OK "pnpm $(pnpm -v)" }
 else { Warn "pnpm 未有効 — 後段で corepack enable を試みます" }
 
 if (-not $SkipDocker) {
-  if ((Test-Command docker) -and ($(docker compose version 2>$null; $?))) {
-    if ($(docker info 2>$null; $?)) { OK "Docker + compose（デーモン稼働中）" }
+  if ((Test-Command docker) -and (Test-Native { docker compose version })) {
+    if (Test-Native { docker info }) { OK "Docker + compose（デーモン稼働中）" }
     else { Fail "Docker はあるがデーモン未起動（Docker Desktop を起動）"; $PrereqNg = $true }
   } else {
     Fail "Docker / docker compose が見つかりません（-SkipDocker で省略可）"; $PrereqNg = $true
@@ -87,7 +130,7 @@ foreach ($port in @(5432, 1025, 8025)) {
 
 if ($Check) {
   Write-Host ""
-  if (-not $PrereqNg) { Write-Host "前提 OK。pwsh scripts/setup.ps1 でセットアップできます。" }
+  if (-not $PrereqNg) { Write-Host "前提 OK。powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1 でセットアップできます。" }
   else { Write-Host "上記 ✗ を解消してから再実行してください。" }
   exit 0
 }
@@ -105,13 +148,14 @@ foreach ($app in ($Apps + "public-site")) {
 
 # ─────────────────────────── 3. Docker インフラ起動 ───────────────────────────
 if (-not $SkipDocker) {
-  Step "PostgreSQL + Mailpit を起動（docker-compose.yml の db / mailhog）"
-  docker compose up -d db mailhog
+  Step "PostgreSQL + Mailpit を起動（docker-compose.yml の db / mailpit）"
+  Invoke-Native { docker compose up -d db mailpit } "PostgreSQL / Mailpit の起動"
   Write-Host "  DB の起動待ち" -NoNewline
   $ready = $false
   for ($i = 1; $i -le 30; $i++) {
-    docker compose exec -T db pg_isready -U app 2>$null | Out-Null
-    if ($?) { Write-Host ""; OK "PostgreSQL 準備完了"; $ready = $true; break }
+    if (Test-Native { docker compose exec -T db pg_isready -U app }) {
+      Write-Host ""; OK "PostgreSQL 準備完了"; $ready = $true; break
+    }
     Write-Host "." -NoNewline; Start-Sleep -Seconds 2
   }
   if (-not $ready) { Write-Host ""; Fail "DB が起動しません（docker compose logs db を確認）"; exit 1 }
@@ -119,10 +163,13 @@ if (-not $SkipDocker) {
   Step "アプリ別データベースの作成（冪等）"
   foreach ($app in $Apps) {
     $db = DbName $app
-    $exists = docker compose exec -T db psql -U app -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$db'"
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $exists = (docker compose exec -T db psql -U app -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$db'" 2>$null)
+    $ErrorActionPreference = $prev
     if ($exists -match "1") { OK "$db（既存）" }
     else {
-      docker compose exec -T db psql -U app -d postgres -c "CREATE DATABASE $db" | Out-Null
+      Invoke-Native { docker compose exec -T db psql -U app -d postgres -c "CREATE DATABASE $db" | Out-Null } "$db の作成"
       OK "$db を作成"
     }
   }
@@ -132,13 +179,13 @@ if (-not $SkipDocker) {
 
 # ─────────────────────────────── 4. 依存の導入 ───────────────────────────────
 Step "pnpm install（初回は数分）"
-if (-not (Test-Command pnpm)) { corepack enable }
-pnpm install
+if (-not (Test-Command pnpm)) { Invoke-Native { corepack enable } "corepack enable" }
+Invoke-Native { pnpm install } "pnpm install"
 
 # ─────────────────────────── 5. Prisma generate ───────────────────────────
 Step "Prisma クライアント生成（3 アプリ分。初回はエンジンを DL）"
 foreach ($app in $Apps) {
-  pnpm --filter @platform/db exec prisma generate --schema="../../apps/$app/prisma/schema.prisma" | Out-Null
+  Invoke-Native { pnpm --filter @platform/db exec prisma generate --schema="../../apps/$app/prisma/schema.prisma" | Out-Null } "$app の prisma generate"
   OK "$app"
 }
 
@@ -154,7 +201,7 @@ if (-not $SkipDb) {
     }
     if (-not $url) { $url = "postgresql://app:app@localhost:5432/$(DbName $app)" }
     $env:DATABASE_URL = $url
-    pnpm --filter @platform/db exec prisma db push --schema="../../apps/$app/prisma/schema.prisma" --skip-generate | Out-Null
+    Invoke-Native { pnpm --filter @platform/db exec prisma db push --schema="../../apps/$app/prisma/schema.prisma" | Out-Null } "$app の db push"
     OK "$app → $(DbName $app)"
   }
   Remove-Item Env:\DATABASE_URL -ErrorAction SilentlyContinue
@@ -164,10 +211,12 @@ if (-not $SkipDb) {
 
 # ─────────────────────────────── 7. 検証 ───────────────────────────────
 Step "検証（依存不要スモーク + 依存境界）"
-pnpm smoke | Out-Null
-if ($?) { OK "スモーク all pass" } else { Fail "スモーク失敗（pnpm smoke で詳細）"; exit 1 }
-node tools/check-deps.mjs | Out-Null
-if ($?) { OK "循環依存・層破りなし" }
+# **pnpm ではなく node を直に呼ぶ。** pnpm.ps1(シム)を挟むと、
+# 出力の扱いで終了コードが変わることがある。中身は同じコマンド
+if (Test-Native { node --experimental-strip-types tools/smoke.mjs }) { OK "スモーク all pass" }
+else { Fail "スモーク失敗（pnpm smoke で詳細）"; exit 1 }
+if (Test-Native { node tools/check-deps.mjs }) { OK "循環依存・層破りなし" }
+else { Fail "循環依存・層破りあり（node tools/check-deps.mjs で詳細）"; exit 1 }
 
 # ─────────────────────────────── 完了 ───────────────────────────────
 Write-Host @"

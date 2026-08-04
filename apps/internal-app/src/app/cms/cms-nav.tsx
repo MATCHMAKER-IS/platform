@@ -15,9 +15,9 @@ const LINKS = [
 
 export function CmsNav({ active }: { active: string }) {
   return (
-    <nav className="mx-auto flex max-w-4xl gap-2 border-b border-neutral-200 px-6 py-3">
+    <nav className="mx-auto flex max-w-4xl gap-2 border-b border-[var(--color-border)] px-6 py-3">
       {LINKS.map((l) => (
-        <a key={l.href} href={l.href} className={l.href === active ? "rounded bg-neutral-900 px-3 py-1 text-sm text-white" : "rounded px-3 py-1 text-sm hover:bg-neutral-100"}>
+        <a key={l.href} href={l.href} className={l.href === active ? "rounded bg-[var(--color-fg)] px-3 py-1 text-sm text-white" : "rounded px-3 py-1 text-sm hover:bg-[var(--color-subtle)]"}>
           {l.label}
         </a>
       ))}

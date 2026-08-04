@@ -3,9 +3,12 @@
  * メディア処理のデモ。
  *
  * 実処理（変換・音声抽出・トリミング）はサーバの ffmpeg が必要なので、
- * ここでは「ブラウザだけでできる範囲」を実際に動かして見せる:
- *   - 選んだ動画/音声のメタ情報を読む（probe 相当）
- *   - 指定秒のサムネイルを canvas で切り出す（thumbnail 相当）
+ * **メタ情報はサーバの ffprobe に読ませる**(`/api/media-probe` → `@platform/media`)。
+ * ブラウザの `<video>` では長さと解像度しか分からず、コーデック・ビットレート・
+ * 音声トラックが取れない。
+ *
+ * サムネイルの切り出しは canvas で完結するので、そのままブラウザで行う
+ * (「ブラウザでできること」と「サーバが要ること」の対比になっている)。
  * ファイルはどこにも送信されず、この画面の中だけで処理される。
  * 併せて、実基盤 @platform/media でどう書くかと、対応する ffmpeg コマンドを示す。
  */
@@ -15,7 +18,15 @@ import { Badge, Alert, Button, Input, FileInput } from "@platform/ui";
 const box: React.CSSProperties = { border: "1px solid var(--color-border)", borderRadius: "var(--radius)", background: "var(--color-surface)", padding: 16, marginBottom: 16 };
 const mono: React.CSSProperties = { fontFamily: "monospace", fontSize: 12 };
 
-type Probe = { name: string; sizeMB: string; type: string; durationSec: number; width: number; height: number };
+/** サーバの ffprobe が返すメタ情報(**ブラウザだけでは分からない項目を含む**)。 */
+interface ProbeInfo {
+  durationSec: number;
+  format: string;
+  bitrate: number;
+  video?: { codec: string; width: number; height: number; fps: number };
+  audio?: { codec: string; sampleRate: number; channels: number };
+}
+type Probe = { name: string; sizeMB: string; info: ProbeInfo };
 type Op = { method: string; desc: string; ffmpeg: string };
 
 const OPS: Op[] = [
@@ -36,27 +47,33 @@ export default function Page() {
   const [thumb, setThumb] = React.useState<string | null>(null);
   const [at, setAt] = React.useState(1);
   const [err, setErr] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
 
-  const onPick = (file: File) => {
-    setErr(""); setThumb(null);
-    const url = URL.createObjectURL(file);
+  /**
+   * メタ情報は**サーバの ffprobe** に読ませる(`/api/media-probe`)。
+   * ブラウザの `<video>` では長さと解像度しか分からず、コーデック・
+   * ビットレート・音声トラックが取れない。
+   */
+  const onPick = async (file: File) => {
+    setErr(""); setThumb(null); setProbe(null); setBusy(true);
+
+    // サムネイル抽出はブラウザで完結するので、その準備だけ先にしておく
     const v = document.createElement("video");
     v.preload = "metadata";
-    v.onloadedmetadata = () => {
-      setProbe({
-        name: file.name,
-        sizeMB: (file.size / 1024 / 1024).toFixed(2),
-        type: file.type || "(不明)",
-        durationSec: v.duration,
-        width: v.videoWidth,
-        height: v.videoHeight,
-      });
-      videoRef.current = v;
-      v.src = url; // サムネイル抽出用に保持
-    };
-    v.onerror = () => setErr("この形式はブラウザで読み取れませんでした（サーバ側の ffmpeg なら対応できる場合があります）");
-    v.src = url;
+    v.src = URL.createObjectURL(file);
+    videoRef.current = v;
+
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch("/api/media-probe", { method: "POST", body: form });
+    const json = (await res.json()) as { info?: ProbeInfo; error?: string };
+    if (json.error !== undefined || json.info === undefined) {
+      setErr(json.error ?? "解析できませんでした");
+    } else {
+      setProbe({ name: file.name, sizeMB: (file.size / 1024 / 1024).toFixed(2), info: json.info });
+    }
+    setBusy(false);
   };
 
   const capture = () => {
@@ -86,37 +103,51 @@ export default function Page() {
         <FileInput
           accept="video/*,audio/*"
           aria-label="動画または音声ファイルを選ぶ"
-          onSelect={(files) => { const f = files[0]; if (f) onPick(f); }}
+          onSelect={(files) => { const f = files[0]; if (f) void onPick(f); }}
           style={{ fontSize: 13 }}
         />
+        {busy && <p style={{ fontSize: 12, color: "var(--color-muted)" }}>サーバで解析しています…</p>}
         {err !== "" && <div style={{ marginTop: 10 }}><Alert variant="danger">{err}</Alert></div>}
 
         {probe && (
           <div style={{ marginTop: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>probe() 相当の結果</div>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>
+              probe() の結果（サーバの ffprobe）
+            </div>
             <table style={{ borderCollapse: "collapse", fontSize: 12.5 }}>
               <tbody>
                 {[
                   ["ファイル名", probe.name],
-                  ["種類", probe.type],
                   ["サイズ", `${probe.sizeMB} MB`],
-                  ["長さ", `${fmt(probe.durationSec)}（${probe.durationSec.toFixed(1)} 秒）`],
-                  ["解像度", probe.width > 0 ? `${probe.width} × ${probe.height}` : "（音声のみ）"],
+                  ["コンテナ形式", probe.info.format],
+                  ["長さ", `${fmt(probe.info.durationSec)}（${probe.info.durationSec.toFixed(1)} 秒）`],
+                  ["ビットレート", `${Math.round(probe.info.bitrate / 1000).toLocaleString()} kbps`],
+                  ["映像", probe.info.video
+                    ? `${probe.info.video.codec} / ${probe.info.video.width}×${probe.info.video.height} / ${probe.info.video.fps.toFixed(1)} fps`
+                    : "（なし・音声のみ）"],
+                  ["音声", probe.info.audio
+                    ? `${probe.info.audio.codec} / ${probe.info.audio.sampleRate.toLocaleString()} Hz / ${probe.info.audio.channels} ch`
+                    : "（なし）"],
                 ].map(([k, v]) => (
                   <tr key={k}><td style={{ padding: "3px 10px 3px 0", color: "var(--color-muted)" }}>{k}</td><td style={{ ...mono, padding: "3px 0" }}>{v}</td></tr>
                 ))}
               </tbody>
             </table>
+            <p style={{ fontSize: 11, color: "var(--color-muted)", marginTop: 8 }}>
+              <strong>コーデック・ビットレート・音声トラックはブラウザだけでは分かりません。</strong>
+              サーバの ffprobe に読ませています（<code>@platform/media</code> の <code>probe()</code>）。
+            </p>
           </div>
         )}
       </div>
 
-      {probe && probe.width > 0 && (
+      {/* 映像が無い(音声のみ)ファイルではサムネイルを作れないので、video の有無で判定する */}
+      {probe && probe.info.video !== undefined && probe.info.video.width > 0 && (
         <div style={box}>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>thumbnail() 相当</div>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 12 }}>
             <label style={{ display: "grid", gap: 4, fontSize: 12, color: "var(--color-muted)" }}>何秒地点
-              <Input type="number" min={0} max={Math.floor(probe.durationSec)} value={at} onChange={(e) => setAt(Number(e.target.value) || 0)} style={{ width: 100 }} />
+              <Input type="number" min={0} max={Math.floor(probe.info.durationSec)} value={at} onChange={(e) => setAt(Number(e.target.value) || 0)} style={{ width: 100 }} />
             </label>
             <Button size="sm" onClick={capture}>この秒で切り出す</Button>
           </div>

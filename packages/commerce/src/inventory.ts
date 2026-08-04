@@ -16,8 +16,8 @@ export interface StockLevel {
 /**
  * 在庫を作る。
  *
- * @param variantId 商品バリアント
- * @param quantity 数量
+ * @param available 商品バリアント
+ * @param reserved 数量
  * @returns 在庫
  */
 export function stock(available: number, reserved = 0): StockLevel {
@@ -29,7 +29,7 @@ export function stock(available: number, reserved = 0): StockLevel {
  *
  * **引当済みを除いた数**で見る(誰かがカートに入れている分は買えない)。
  *
- * @param stock 在庫
+ * @param level 在庫
  * @param quantity 欲しい数量
  * @returns 足りていれば true
  */
@@ -40,7 +40,7 @@ export function inStock(level: StockLevel, quantity = 1): boolean {
 /**
  * 在庫切れかを判定する。
  *
- * @param stock 在庫
+ * @param level 在庫
  * @returns 引当可能な数が 0 なら true
  */
 export function isOutOfStock(level: StockLevel): boolean {
@@ -57,7 +57,7 @@ export interface StockResult {
  * 在庫を引き当てる(available を減らし reserved を増やす)。
  * 在庫不足なら ok:false で在庫は変更しない。
  *
- * @param stock 在庫
+ * @param level 在庫
  * @param quantity 引き当てる数量
  * @returns 更新した在庫。**足りなければ元のまま**(勝手にマイナスにしない)
  */
@@ -72,7 +72,7 @@ export function reserveStock(level: StockLevel, quantity: number): StockResult {
  * **引当したまま放置すると、在庫があるのに買えない**状態になる。
  * カートに期限を設けて、自動で解放すること。
  *
- * @param stock 在庫
+ * @param level 在庫
  * @param quantity 解放する数量
  * @returns 更新した新しい在庫
  */
@@ -87,7 +87,7 @@ export function releaseStock(level: StockLevel, quantity: number): StockResult {
  * **`reserved` を減らすだけ**(`available` は引当の時点で減っている)。
  * ここで両方減らすと二重に減る。
  *
- * @param stock 在庫
+ * @param level 在庫
  * @param quantity 確定する数量
  * @returns 更新した新しい在庫
  */

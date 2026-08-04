@@ -140,7 +140,7 @@ export function productJsonLd(input: {
  *
  * **画面に表示している質問と回答だけ**を入れること(隠しコンテンツは違反)。
  *
- * @param items 質問と回答の配列
+ * @param qa 質問と回答の配列
  * @returns JSON-LD のオブジェクト
  */
 export function faqJsonLd(qa: { question: string; answer: string }[]): JsonLd {

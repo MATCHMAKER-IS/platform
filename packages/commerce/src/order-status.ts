@@ -49,7 +49,7 @@ export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
  *
  * **画面のボタンを出し分ける**のに使う。
  *
- * @param status 現在のステータス
+ * @param from 現在のステータス
  * @returns 遷移できるステータス
  */
 export function nextStatuses(from: OrderStatus): OrderStatus[] {

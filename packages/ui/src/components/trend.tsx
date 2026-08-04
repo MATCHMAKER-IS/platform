@@ -31,7 +31,7 @@ export function Trend({ current, previous, higherIsBetter = true, decimals = 1, 
   const up = pct > 0;
   const good = flat ? false : up === higherIsBetter;
   const arrow = flat ? "→" : up ? "▲" : "▼";
-  const color = flat ? "text-[var(--color-muted)]" : good ? "text-green-600" : "text-red-600";
+  const color = flat ? "text-[var(--color-muted)]" : good ? "text-[var(--color-success)]" : "text-[var(--color-danger)]";
   const text = flat || !Number.isFinite(pct) ? "±0%" : `${up ? "+" : ""}${pct.toFixed(decimals)}%`;
   return <span className={cn("inline-flex items-center gap-0.5 text-sm font-medium tabular-nums", color, className)}>{arrow}{text}</span>;
 }

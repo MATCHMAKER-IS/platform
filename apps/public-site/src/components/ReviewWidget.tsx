@@ -21,17 +21,17 @@ export function ReviewWidget({ subjectType, subjectId, apiBase = "", fetchImpl }
 
   if (!summary || summary.count === 0) return null;
   return (
-    <section className="rounded-lg border border-neutral-200 p-4">
+    <section className="rounded-lg border border-[var(--color-border)] p-4">
       <div className="mb-3 flex items-center gap-2">
         <h3 className="font-semibold">お客様の声</h3>
-        <span className="text-amber-600">{stars(Math.round(summary.average))} {summary.average.toFixed(1)}（{summary.count}件）</span>
+        <span className="text-[var(--color-warning)]">{stars(Math.round(summary.average))} {summary.average.toFixed(1)}（{summary.count}件）</span>
       </div>
       <ul className="space-y-3">
         {reviews.slice(0, 5).map((r, i) => (
-          <li key={i} className="border-b border-neutral-100 pb-2 last:border-0">
-            <div className="flex items-center justify-between"><span className="text-amber-500">{stars(r.rating)}</span><span className="text-xs text-neutral-400">{r.author}</span></div>
+          <li key={i} className="border-b border-[var(--color-border)] pb-2 last:border-0">
+            <div className="flex items-center justify-between"><span className="text-[var(--color-warning)]">{stars(r.rating)}</span><span className="text-xs text-[var(--color-muted)]">{r.author}</span></div>
             {r.title && <p className="text-sm font-medium">{r.title}</p>}
-            {r.comment && <p className="text-sm text-neutral-600">{r.comment}</p>}
+            {r.comment && <p className="text-sm text-[var(--color-muted)]">{r.comment}</p>}
           </li>
         ))}
       </ul>

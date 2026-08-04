@@ -25,7 +25,7 @@ function isPrismaKnownError(e: unknown): e is PrismaKnownError {
  * - P2034 書き込み競合/デッドロック → `CONFLICT`(409、{@link isRetryablePrismaError} が true)
  * - その他 → `DATABASE`(500)
  *
- * @param error Prisma のエラー
+ * @param e Prisma のエラー
  * @returns {@link @platform/core#AppError} に正規化したエラー(**Prisma のエラーコードをアプリの語彙に翻訳する**。
  *   `P2002` では何のことか分からない)
  */
@@ -52,7 +52,7 @@ export function mapPrismaError(e: unknown): AppError {
  * 再試行で回復しうる Prisma エラーか(デッドロック・シリアライズ失敗)。
  *
  *
- * @param error エラー
+ * @param e エラー
  * @returns 再試行で回復しうるなら true(**デッドロック・シリアライズ失敗**)。
  *   一意制約違反などは再試行しても無駄
  */

@@ -42,7 +42,7 @@ function loadCategories(root: string): Record<string, string> {
   if (!existsSync(f)) return {};
   const map: Record<string, string> = {};
   let current = "";
-  for (const line of readFileSync(f, "utf8").split("\n")) {
+  for (const line of readFileSync(f, "utf8").replace(/\r\n/g, "\n").split("\n")) {
     const cat = line.match(/^##\s+(.+)$/);
     if (cat && cat[1]) { current = cat[1].trim(); continue; }
     const pkg = line.match(/^-\s+\*\*@platform\/([a-z0-9-]+)\*\*/);
@@ -75,7 +75,7 @@ export function loadCatalog(deps: CatalogDeps): PackageEntry[] {
     let summary = "";
     const readme = path.join(pkgDir, name, "README.md");
     if (existsSync(readme)) {
-      const lines = readFileSync(readme, "utf8").split("\n").map((l) => l.trim()).filter(Boolean);
+      const lines = readFileSync(readme, "utf8").replace(/\r\n/g, "\n").split("\n").map((l) => l.trim()).filter(Boolean);
       summary = lines.find((l) => !l.startsWith("#")) ?? "";
     }
     // 説明付き API を優先し、api-surface にしか無いものは説明なしで足す
@@ -135,7 +135,7 @@ export function describePackage(catalog: PackageEntry[], root: string, name: str
   const pkg = catalog.find((p) => p.name === key);
   if (!pkg) return null;
   const readme = path.join(root, "packages", key, "README.md");
-  const doc = existsSync(readme) ? readFileSync(readme, "utf8") : `# ${pkg.full}\n\n${pkg.summary}`;
+  const doc = existsSync(readme) ? readFileSync(readme, "utf8").replace(/\r\n/g, "\n") : `# ${pkg.full}\n\n${pkg.summary}`;
   const apis = pkg.exports.length > 0
     ? "\n\n## 公開 API\n\n" + pkg.exports.map((e) => `- \`${e.name}\` (${e.kind})${e.summary ? ` — ${e.summary}` : ""}`).join("\n")
     : "";
@@ -167,7 +167,7 @@ export function loadDemos(deps: CatalogDeps): DemoEntry[] {
   // nav.ts の DemoEntry を読む(サイトの表示と検索結果が食い違わない)。
   const navPath = path.join(deps.root, "demos/showcase/src/lib/nav.ts");
   if (!existsSync(navPath)) return [];
-  const src = readFileSync(navPath, "utf8");
+  const src = readFileSync(navPath, "utf8").replace(/\r\n/g, "\n");
 
   const out: DemoEntry[] = [];
   // { href: "...", title: "...", desc: "...", packages: [...] } を拾う

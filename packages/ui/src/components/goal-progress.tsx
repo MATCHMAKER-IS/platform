@@ -42,7 +42,7 @@ export function GoalProgress({ label, actual, target, format = defaultFormat, cl
           <span className="font-semibold">{format(actual)}</span>
           <span className="text-[var(--color-muted)]"> / {format(target)}</span>
         </span>
-        <span className={cn("shrink-0 font-semibold tabular-nums", reached ? "text-green-600" : "text-[var(--color-fg)]")}>{rate}%</span>
+        <span className={cn("shrink-0 font-semibold tabular-nums", reached ? "text-[var(--color-success)]" : "text-[var(--color-fg)]")}>{rate}%</span>
       </div>
       <div className="relative h-2.5 overflow-hidden rounded-full bg-[var(--color-border)]/40">
         <div className="h-full rounded-full transition-[width]" style={{ width: `${fillPct}%`, background: color }} />

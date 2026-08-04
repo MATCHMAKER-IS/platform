@@ -93,6 +93,8 @@ export function AppSkin({ children, themes, defaultSkinId, defaultMode = "system
       {/* SSR ちらつき防止: React マウント前に、保存済みスキン/明暗を html 要素へ適用する。
           これがないとリロード時に一瞬デフォルトテーマが見える。localStorage と
           prefers-color-scheme を読んで data-skin / data-theme を先に立てる。 */}
+      {/* unsafe-html: 画面のちらつきを防ぐインラインスクリプト。
+          埋め込む値は JSON.stringify でエスケープしており、外部由来の HTML は入らない */}
       <script
         dangerouslySetInnerHTML={{
           __html: `(function(){try{

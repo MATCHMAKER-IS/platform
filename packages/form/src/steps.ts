@@ -18,8 +18,8 @@ export interface FormStep {
 /**
  * 指定したステップの、今表示されるフィールドを返す。
  *
- * @param fields フィールド定義の配列
- * @param step ステップ番号
+ * @param step フィールド定義の配列
+ * @param allFields ステップ番号
  * @param values 現在の入力値
  * @returns そのステップで表示するフィールド
  */
@@ -45,7 +45,7 @@ export interface StepProgress {
 /**
  * ステップの進捗を求める(プログレスバー用)。
  *
- * @param current 現在のステップ
+ * @param index 現在のステップ
  * @param total 全ステップ数
  * @returns 現在位置・全体・割合(0〜1)
  */
@@ -63,7 +63,7 @@ export function stepProgress(index: number, total: number): StepProgress {
 /**
  * 次のステップ番号を返す。
  *
- * @param current 現在のステップ
+ * @param index 現在のステップ
  * @param total 全ステップ数
  * @returns 次の番号。**最後なら据え置き**(範囲外に飛ばさない)
  */
@@ -74,7 +74,7 @@ export function nextStep(index: number, total: number): number {
 /**
  * 前のステップ番号を返す。
  *
- * @param current 現在のステップ
+ * @param index 現在のステップ
  * @returns 前の番号。**最初なら据え置き**(負にしない)
  */
 export function prevStep(index: number): number {
@@ -85,8 +85,8 @@ export function prevStep(index: number): number {
  * ステップ内の必須フィールドがすべて入力済みか(表示中のもののみ対象)。
  * バリデーションの詳細は zod スキーマに委ね、ここは「必須の空欄が無いか」の簡易判定。
  *
- * @param fields フィールド定義の配列
- * @param step ステップ番号
+ * @param step フィールド定義の配列
+ * @param allFields ステップ番号
  * @param values 入力値
  * @returns そのステップの必須項目がすべて埋まっていれば true(**次へ進めるかの判定**)
  */

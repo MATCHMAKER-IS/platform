@@ -9,3 +9,4 @@ export { ok, err, tryCatch, type Result, type Ok, type Err } from "./result";
 export { createLifecycle, type Lifecycle, type ShutdownHook, type LifecycleOptions } from "./lifecycle";
 export { installProcessGuards, type ProcessGuardOptions } from "./process-guard";
 export { createBulkhead, type Bulkhead, type BulkheadOptions } from "./bulkhead";
+export { createCircuitBreaker, type CircuitBreaker, type CircuitBreakerOptions, type CircuitState, type CircuitStats } from "./circuit-breaker";

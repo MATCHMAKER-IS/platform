@@ -35,7 +35,6 @@ export interface Bm25Index {
  * BM25 インデックスを作る。
  *
  *
- * @param docs 文書の配列
  * @param options.k1 / b BM25 のパラメータ(**既定で十分**。調整は効果を測ってから)
  * @returns 索引(**メモリ上の総当たり**。数万件が限界。それ以上は Meilisearch などを使う)
  

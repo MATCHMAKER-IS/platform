@@ -34,7 +34,7 @@ export function base32Encode(bytes: Uint8Array): string {
 /**
  * base32 文字列をバイト列にデコードする(大小・パディング・空白を許容)。
  *
- * @param text Base32 文字列
+ * @param input Base32 文字列
  * @returns バイト列
  * @throws {@link @platform/core#AppError} コード `VALIDATION` — Base32 として不正な文字が含まれる場合
  */
@@ -59,7 +59,7 @@ export function base32Decode(input: string): Uint8Array {
 /**
  * 認証アプリで使うシークレット(base32)を生成する。既定 20 バイト(160bit)。
  *
- * @param length バイト長(既定 20 = RFC 推奨)
+ * @param bytes バイト長(既定 20 = RFC 推奨)
  * @returns Base32 の秘密鍵。**利用者ごとに 1 つ生成し、DB に保存する**
  */
 export function generateTotpSecret(bytes = 20): string {
@@ -93,7 +93,7 @@ function counterBytes(counter: number): Buffer {
  *
  * @param secret Base32 の秘密鍵
  * @param counter カウンタ値
- * @param digits 桁数(既定 6)
+ * @param options 桁数(既定 6)
  * @returns HOTP コード(RFC 4226)
  */
 export function hotp(secret: string, counter: number, options: TotpOptions = {}): string {
@@ -119,8 +119,8 @@ function timeCounter(period: number, now: Date): number {
  * TOTP(RFC 6238): 現在時刻のコードを生成する。secret は base32。
  *
  * @param secret Base32 の秘密鍵
- * @param now 現在時刻(テスト注入用)
  * @param options 桁数・時間刻み(既定 6 桁 / 30 秒)
+ * @param now 現在時刻(テスト注入用)
  * @returns 現在時刻の TOTP コード(RFC 6238)
  */
 export function totp(secret: string, options: TotpOptions = {}, now: Date = new Date()): string {
@@ -140,8 +140,8 @@ export interface VerifyTotpOptions extends TotpOptions {
  *
  * @param secret Base32 の秘密鍵
  * @param code 利用者が入力したコード
- * @param now 現在時刻(テスト注入用)
  * @param options 許容する時刻のずれ(window。既定 1 = 前後 30 秒)
+ * @param now 現在時刻(テスト注入用)
  * @returns 一致すれば true。**端末の時計のずれを吸収するため前後の窓も見る**
  */
 export function verifyTotp(secret: string, code: string, options: VerifyTotpOptions = {}, now: Date = new Date()): boolean {

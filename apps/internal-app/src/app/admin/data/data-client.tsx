@@ -36,42 +36,42 @@ export function DataClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   return (
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="mb-1 text-2xl font-bold">データ管理</h1>
-      <div className="mb-4 flex gap-1 border-b border-neutral-200">
-        {TABS.map(([k, l]) => <Button key={k} onClick={() => setTab(k!)} className={`px-3 py-2 text-sm ${tab === k ? "border-b-2 border-neutral-900 font-medium" : "text-neutral-500"}`}>{l}</Button>)}
+      <div className="mb-4 flex gap-1 border-b border-[var(--color-border)]">
+        {TABS.map(([k, l]) => <Button key={k} onClick={() => setTab(k!)} className={`px-3 py-2 text-sm ${tab === k ? "border-b-2 border-[var(--color-fg)] font-medium" : "text-[var(--color-muted)]"}`}>{l}</Button>)}
       </div>
-      {msg && <p className="mb-3 text-sm text-red-600">{msg}</p>}
+      {msg && <p className="mb-3 text-sm text-[var(--color-danger)]">{msg}</p>}
 
       {tab === "restore" && (
-        <div className="rounded border border-neutral-200 p-4">
-          <p className="mb-2 text-xs text-neutral-500">バックアップ JSON を貼り付けます。安全なデータセット（設定・取引先）のみ適用され、それ以外はプレビュー扱いです。まず「プレビュー」で内容を確認してください。</p>
-          <Textarea value={json} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setJson(e.target.value)} rows={8} placeholder='{"app":"internal-app","version":1,"datasets":[...]}' className="block w-full rounded border border-neutral-300 px-2 py-1 font-mono text-xs" />
+        <div className="rounded border border-[var(--color-border)] p-4">
+          <p className="mb-2 text-xs text-[var(--color-muted)]">バックアップ JSON を貼り付けます。安全なデータセット（設定・取引先）のみ適用され、それ以外はプレビュー扱いです。まず「プレビュー」で内容を確認してください。</p>
+          <Textarea value={json} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setJson(e.target.value)} rows={8} placeholder='{"app":"internal-app","version":1,"datasets":[...]}' className="block w-full rounded border border-[var(--color-border)] px-2 py-1 font-mono text-xs" />
           <div className="mt-2 flex gap-2">
-            <Button onClick={() => void restore(true)} className="rounded border border-neutral-300 px-4 py-2 text-sm">プレビュー</Button>
-            <Button onClick={() => void restore(false)} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">復元を実行</Button>
+            <Button onClick={() => void restore(true)} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">プレビュー</Button>
+            <Button onClick={() => void restore(false)} className="rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white">復元を実行</Button>
           </div>
           {plan && (
             <div className="mt-3 text-sm">
               <p className="font-medium">内容:</p>
-              <ul className="mt-1 space-y-0.5">{plan.map((p) => <li key={p.name} className="text-xs">{p.name}: {p.count}件 {p.restorable ? <span className="text-green-600">復元可</span> : <span className="text-neutral-400">対象外</span>}</li>)}</ul>
-              {result && <p className="mt-2 text-xs text-neutral-600">{result.dryRun ? "プレビュー" : "適用"}: {result.applied.map((a) => `${a.name} ${a.count}件`).join("、") || "なし"}{result.skipped.length > 0 && `（スキップ: ${result.skipped.map((s) => s.name).join("、")}）`}</p>}
+              <ul className="mt-1 space-y-0.5">{plan.map((p) => <li key={p.name} className="text-xs">{p.name}: {p.count}件 {p.restorable ? <span className="text-[var(--color-success)]">復元可</span> : <span className="text-[var(--color-muted)]">対象外</span>}</li>)}</ul>
+              {result && <p className="mt-2 text-xs text-[var(--color-muted)]">{result.dryRun ? "プレビュー" : "適用"}: {result.applied.map((a) => `${a.name} ${a.count}件`).join("、") || "なし"}{result.skipped.length > 0 && `（スキップ: ${result.skipped.map((s) => s.name).join("、")}）`}</p>}
             </div>
           )}
         </div>
       )}
 
       {tab === "archive" && (
-        <div className="rounded border border-neutral-200 p-4">
-          <p className="mb-2 text-xs text-neutral-500">指定日以前の監査ログを整合性チェックサム付きでダウンロードします。監査はハッシュチェーンのため、破壊的削除は行わず長期保管用のエクスポートを提供します。</p>
-          <label className="text-xs text-neutral-500">この日付以前<Input type="date" value={before} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBefore(e.target.value)} className="ml-2 rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-          <div className="mt-3"><a href={`/api/admin/audit-archive?before=${before}T23:59:59Z`} className="inline-block rounded bg-neutral-900 px-4 py-2 text-sm text-white">アーカイブをダウンロード</a></div>
+        <div className="rounded border border-[var(--color-border)] p-4">
+          <p className="mb-2 text-xs text-[var(--color-muted)]">指定日以前の監査ログを整合性チェックサム付きでダウンロードします。監査はハッシュチェーンのため、破壊的削除は行わず長期保管用のエクスポートを提供します。</p>
+          <label className="text-xs text-[var(--color-muted)]">この日付以前<Input type="date" value={before} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBefore(e.target.value)} className="ml-2 rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+          <div className="mt-3"><a href={`/api/admin/audit-archive?before=${before}T23:59:59Z`} className="inline-block rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white">アーカイブをダウンロード</a></div>
         </div>
       )}
 
       {tab === "reindex" && (
-        <div className="rounded border border-neutral-200 p-4">
-          <p className="mb-2 text-xs text-neutral-500">横断検索のインデックスを、現在の請求・取引先・監査ログから再構築します。データ移行後や不整合時に実行してください。</p>
-          <Button onClick={() => void reindex()} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">インデックスを再構築</Button>
-          {reindexMsg && <p className="mt-2 text-sm text-neutral-700">{reindexMsg}</p>}
+        <div className="rounded border border-[var(--color-border)] p-4">
+          <p className="mb-2 text-xs text-[var(--color-muted)]">横断検索のインデックスを、現在の請求・取引先・監査ログから再構築します。データ移行後や不整合時に実行してください。</p>
+          <Button onClick={() => void reindex()} className="rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white">インデックスを再構築</Button>
+          {reindexMsg && <p className="mt-2 text-sm text-[var(--color-fg)]">{reindexMsg}</p>}
         </div>
       )}
     </div>

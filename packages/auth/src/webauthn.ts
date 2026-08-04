@@ -22,7 +22,7 @@ export function toBase64Url(bytes: Uint8Array): string {
 /**
  * base64url デコード → バイト列。
  *
- * @param text Base64URL 文字列
+ * @param input Base64URL 文字列
  * @returns バイト列
  */
 export function fromBase64Url(input: string): Uint8Array {
@@ -32,7 +32,7 @@ export function fromBase64Url(input: string): Uint8Array {
 /**
  * WebAuthn チャレンジ(base64url)を生成する。既定 32 バイト。
  *
- * @param length バイト長(既定 32)
+ * @param bytes バイト長(既定 32)
  * @returns Base64URL のチャレンジ。**毎回新しく作り、セッションに保存して使い捨てる**(再利用は攻撃を許す)
  */
 export function generateWebAuthnChallenge(bytes = 32): string {
@@ -65,7 +65,7 @@ export interface RegistrationOptionsInput {
  * * 登録用の PublicKeyCredentialCreationOptions(JSON 化可能な形)を組み立てる。
  * ブラウザの navigator.credentials.create() に渡す形の元データ。challenge は保存して検証時に照合する。
  *
- * @param params 利用者・RP(サービス)の情報
+ * @param input 利用者・RP(サービス)の情報
  * @returns ブラウザの `navigator.credentials.create()` に渡すオプション
  */
 export function webAuthnRegistrationOptions(input: RegistrationOptionsInput): Record<string, unknown> {
@@ -98,7 +98,7 @@ export interface AuthenticationOptionsInput {
 /**
  * 認証用の PublicKeyCredentialRequestOptions を組み立てる。
  *
- * @param params チャレンジと許可する認証器
+ * @param input チャレンジと許可する認証器
  * @returns ブラウザの `navigator.credentials.get()` に渡すオプション
  */
 export function webAuthnAuthenticationOptions(input: AuthenticationOptionsInput): Record<string, unknown> {
@@ -115,7 +115,7 @@ export function webAuthnAuthenticationOptions(input: AuthenticationOptionsInput)
 /**
  * clientDataJSON をデコードして解析する。
  *
- * @param clientDataJSON ブラウザから返る clientDataJSON(Base64URL)
+ * @param clientDataJSONBase64Url ブラウザから返る clientDataJSON(Base64URL)
  * @returns 解析した内容(type / challenge / origin)
  */
 export function decodeClientData(clientDataJSONBase64Url: string): { type: string; challenge: string; origin: string; crossOrigin?: boolean } {
@@ -133,7 +133,7 @@ export interface ClientDataVerification {
  * * clientDataJSON を検証する(WebAuthn の中核チェック)。
  * type(登録/認証)・challenge(発行値と一致)・origin(自サイト)を確認する。
  *
- * @param clientData 解析済みの clientData
+ * @param clientDataJSONBase64Url 解析済みの clientData
  * @param expected 期待する値(type / challenge / origin)
  * @returns すべて一致すれば true。**origin の検証を省くとフィッシングを許す**
  */
@@ -178,7 +178,7 @@ export interface AuthenticatorData {
 /**
  * authenticatorData(バイト列)を解析する。
  *
- * @param data authenticatorData のバイト列
+ * @param authData authenticatorData のバイト列
  * @returns RP ID ハッシュ・フラグ・署名カウンタ
  * @throws {@link @platform/core#AppError} コード `VALIDATION` — データが短すぎる場合
  */
@@ -202,7 +202,7 @@ export function parseAuthenticatorData(authData: Uint8Array): AuthenticatorData 
 /**
  * authenticatorData の rpIdHash が rpId と一致するか検証する。
  *
- * @param rpIdHash authenticatorData から取り出したハッシュ
+ * @param authData authenticatorData から取り出したハッシュ
  * @param rpId 期待する RP ID(ドメイン)
  * @returns 一致すれば true
  */
@@ -217,8 +217,8 @@ export function verifyRpIdHash(authData: Uint8Array, rpId: string): boolean {
 /**
  * 署名カウンタが進んだか(クローン検知)。stored 以下ならクローンの疑い。
  *
- * @param stored  前回保存した署名カウンタ
- * @param current 今回のカウンタ
+ * @param storedCount  前回保存した署名カウンタ
+ * @param newCount 今回のカウンタ
  * @returns 増えていれば true。**減っていたら認証器の複製を疑う**(0 のままの認証器は例外的に許す)
  */
 export function isSignCountValid(storedCount: number, newCount: number): boolean {
@@ -230,7 +230,7 @@ export function isSignCountValid(storedCount: number, newCount: number): boolean
 /**
  * * アサーション署名を検証する(認証時)。
  * 署名対象 = authenticatorData || SHA256(clientDataJSON)。登録時に保存した公開鍵(PEM)で検証する。
- * @param algorithm Node の verify に渡すアルゴリズム(ES256 は "sha256" を指定し鍵は EC)。
+ * @param params Node の verify に渡すアルゴリズム(ES256 は "sha256" を指定し鍵は EC)。
  *
  * @returns 署名が正しければ true
  */

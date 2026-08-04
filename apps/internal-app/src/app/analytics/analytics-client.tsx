@@ -27,7 +27,7 @@ export function AnalyticsClient({ fetchImpl }: AnalyticsClientProps) {
     })();
   }, [doFetch]);
 
-  if (!data) return <div className="mx-auto max-w-4xl p-6"><h1 className="text-2xl font-bold">経営分析</h1><p className="mt-4 text-sm text-neutral-500">読み込み中…</p></div>;
+  if (!data) return <div className="mx-auto max-w-4xl p-6"><h1 className="text-2xl font-bold">経営分析</h1><p className="mt-4 text-sm text-[var(--color-muted)]">読み込み中…</p></div>;
 
   const pts = data.points;
   // **グラフは @platform/ui の ComboChart に任せる。** 軸・凡例・目盛り・整形・
@@ -42,17 +42,17 @@ export function AnalyticsClient({ fetchImpl }: AnalyticsClientProps) {
   return (
     <div className="mx-auto max-w-4xl p-6">
       <h1 className="mb-1 text-2xl font-bold">経営分析</h1>
-      <p className="mb-4 text-xs text-neutral-500">{data.from} 〜 {data.to} の月次推移（売上＝棒、粗利＝折れ線）。</p>
-      <div className="mb-3 flex gap-1">{[3, 6, 12].map((m) => <Button key={m} onClick={() => setMonths(m)} className={`rounded px-2 py-1 text-xs ${months === m ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600"}`}>{m}か月</Button>)}</div>
+      <p className="mb-4 text-xs text-[var(--color-muted)]">{data.from} 〜 {data.to} の月次推移（売上＝棒、粗利＝折れ線）。</p>
+      <div className="mb-3 flex gap-1">{[3, 6, 12].map((m) => <Button key={m} onClick={() => setMonths(m)} className={`rounded px-2 py-1 text-xs ${months === m ? "bg-[var(--color-fg)] text-white" : "bg-[var(--color-subtle)] text-[var(--color-muted)]"}`}>{m}か月</Button>)}</div>
 
       <div className="mb-4 grid grid-cols-4 gap-3 text-center text-sm">
-        <div className="rounded border border-neutral-200 p-3"><div className="text-xs text-neutral-500">総売上</div><div className="mt-1 font-bold">{yen(data.summary.totalSales)}</div></div>
-        <div className="rounded border border-neutral-200 p-3"><div className="text-xs text-neutral-500">総粗利</div><div className="mt-1 font-bold">{yen(data.summary.totalProfit)}</div></div>
-        <div className="rounded border border-neutral-200 p-3"><div className="text-xs text-neutral-500">月平均粗利</div><div className="mt-1 font-bold">{yen(data.summary.avgProfit)}</div></div>
-        <div className="rounded border border-neutral-200 p-3"><div className="text-xs text-neutral-500">前月比（粗利）</div><div className={`mt-1 font-bold ${data.summary.profitMoM >= 0 ? "text-green-700" : "text-red-600"}`}>{data.summary.profitMoM >= 0 ? "+" : ""}{yen(data.summary.profitMoM)}</div></div>
+        <div className="rounded border border-[var(--color-border)] p-3"><div className="text-xs text-[var(--color-muted)]">総売上</div><div className="mt-1 font-bold">{yen(data.summary.totalSales)}</div></div>
+        <div className="rounded border border-[var(--color-border)] p-3"><div className="text-xs text-[var(--color-muted)]">総粗利</div><div className="mt-1 font-bold">{yen(data.summary.totalProfit)}</div></div>
+        <div className="rounded border border-[var(--color-border)] p-3"><div className="text-xs text-[var(--color-muted)]">月平均粗利</div><div className="mt-1 font-bold">{yen(data.summary.avgProfit)}</div></div>
+        <div className="rounded border border-[var(--color-border)] p-3"><div className="text-xs text-[var(--color-muted)]">前月比（粗利）</div><div className={`mt-1 font-bold ${data.summary.profitMoM >= 0 ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"}`}>{data.summary.profitMoM >= 0 ? "+" : ""}{yen(data.summary.profitMoM)}</div></div>
       </div>
 
-      <div className="rounded border border-neutral-200 p-4">
+      <div className="rounded border border-[var(--color-border)] p-4">
         <ComboChart
           data={chartData}
           xKey="month"
@@ -67,15 +67,15 @@ export function AnalyticsClient({ fetchImpl }: AnalyticsClientProps) {
       </div>
 
       <table className="mt-4 w-full text-sm">
-        <thead><tr className="border-b border-neutral-200 text-left text-xs text-neutral-500"><th className="px-2 py-1">月</th><th className="px-2 py-1 text-right">売上</th><th className="px-2 py-1 text-right">仕入</th><th className="px-2 py-1 text-right">経費</th><th className="px-2 py-1 text-right">粗利</th></tr></thead>
+        <thead><tr className="border-b border-[var(--color-border)] text-left text-xs text-[var(--color-muted)]"><th className="px-2 py-1">月</th><th className="px-2 py-1 text-right">売上</th><th className="px-2 py-1 text-right">仕入</th><th className="px-2 py-1 text-right">経費</th><th className="px-2 py-1 text-right">粗利</th></tr></thead>
         <tbody>
           {pts.map((p) => (
-            <tr key={p.month} className="border-b border-neutral-100">
+            <tr key={p.month} className="border-b border-[var(--color-border)]">
               <td className="px-2 py-1.5">{p.month}</td>
               <td className="px-2 py-1.5 text-right">{yen(p.sales)}</td>
               <td className="px-2 py-1.5 text-right">{yen(p.purchases)}</td>
               <td className="px-2 py-1.5 text-right">{yen(p.expenses)}</td>
-              <td className={`px-2 py-1.5 text-right font-medium ${p.profit < 0 ? "text-red-600" : ""}`}>{yen(p.profit)}</td>
+              <td className={`px-2 py-1.5 text-right font-medium ${p.profit < 0 ? "text-[var(--color-danger)]" : ""}`}>{yen(p.profit)}</td>
             </tr>
           ))}
         </tbody>

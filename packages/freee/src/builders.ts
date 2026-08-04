@@ -22,7 +22,7 @@ export interface DealDetail {
 /**
  * 取引明細を 1 行作る。
  *
- * @param input 勘定科目・金額・税区分など
+ * @param params 勘定科目・金額・税区分など
  * @returns 明細 1 行
  * @throws {@link @platform/core#AppError} コード `VALIDATION` — 金額が 0 以下、または勘定科目 ID が不正な場合
  */
@@ -53,7 +53,7 @@ export function dealDetail(params: {
  * **明細の合計が総額と一致するか検証する**。ずれたまま送ると freee 側で
  * エラーになるが、原因が分かりにくい。手元で弾く方が親切。
  *
- * @param input 取引の情報と明細
+ * @param params 取引の情報と明細
  * @returns freee API に渡すペイロード
  * @throws {@link @platform/core#AppError} コード `VALIDATION` — 明細の合計が総額と一致しない場合
  */
@@ -95,7 +95,7 @@ export interface InvoiceLine {
 /**
  * 請求書明細を 1 行作る(**金額 = 単価 × 数量を自動計算**)。
  *
- * @param input 品名・単価・数量・税区分
+ * @param params 品名・単価・数量・税区分
  * @returns 明細 1 行
  * @throws {@link @platform/core#AppError} コード `VALIDATION` — 単価または数量が負の場合
  */
@@ -123,7 +123,7 @@ export function invoiceLine(params: {
  *
  * **明細の合計は自動計算**するので、呼び出し側は明細を並べるだけでよい。
  *
- * @param input 請求書の情報と明細
+ * @param params 請求書の情報と明細
  * @returns freee API に渡すペイロード
  * @throws {@link @platform/core#AppError} コード `VALIDATION` — 明細が空、または不正な明細を含む場合
  */
@@ -172,7 +172,7 @@ export interface ManualJournalDetail {
  * **借方合計 = 貸方合計 を検証する**(複式簿記の必須条件)。
  * 一致しない仕訳を送ると、freee 側で拒否されるか、最悪そのまま登録されて帳簿が壊れる。
  *
- * @param input 日付・明細
+ * @param params 日付・明細
  * @returns freee API に渡すボディ
  * @throws {@link @platform/core#AppError} コード `VALIDATION` — 貸借が一致しない場合
  */

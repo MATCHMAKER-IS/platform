@@ -430,7 +430,7 @@ const css = buildThemeStylesheet(registry.list());   // [data-skin="acme"] { --c
         <Separator style={{ margin: "16px 0 12px" }} />
         <p style={{ fontSize: 11.5, color: "var(--color-muted)", lineHeight: 1.8, margin: 0 }}>
           <strong>アプリのコードに色を書かない</strong>のが要点です。
-          <code>bg-neutral-900</code> と直書きすると、<strong>スキンを切り替えても変わりません</strong>——
+          <code>bg-[var(--color-fg)]</code> と直書きすると、<strong>スキンを切り替えても変わりません</strong>——
           これは実際に起きた問題で、<code>CLAUDE.md</code> の「UI 部品は @platform/ui を使う」規約の理由の 1 つです。
           <br />
           <code>buildThemeStylesheet()</code> は<strong>全スキンの CSS を 1 枚にまとめます</strong>。

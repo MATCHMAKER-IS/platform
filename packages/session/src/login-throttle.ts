@@ -56,7 +56,7 @@ export interface ThrottleCheck {
  * **失敗が続いたらしばらく受け付けない**。これが無いと、パスワードを機械的に
  * 試され続ける。
  *
- * @param store 試行回数の保存先
+ * @param config.store 試行回数の保存先
  * @param options.maxAttempts 何回失敗したらロックするか
  * @param options.windowMs 試行を数える期間
  * @param options.lockMs ロックする時間

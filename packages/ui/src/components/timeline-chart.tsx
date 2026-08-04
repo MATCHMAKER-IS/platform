@@ -48,6 +48,14 @@ const PALETTE = ["var(--color-primary)", "#f59e0b", "#10b981", "#ef4444", "#8b5c
  * 重なりや空きが視覚的に分かるので、日程の調整に向く。
  */
 export function TimelineChart({ series, band, width = 480, height = 240, xLabels, showLegend = true, showTooltip = false, formatX, formatY, className }: TimelineChartProps) {
+  // **フックは早期 return より前で呼ぶ。**
+  // React はフックの呼び出し順で状態を対応づけるため、`return null` の後ろに
+  // 置くと**データが空のときだけ順序がずれ、別の状態を読んでしまう**。
+  // 以前はここが下にあり、`allX.length === 0` の分岐と組み合わさって
+  // 条件付き呼び出しになっていた(react-hooks/rules-of-hooks)。
+  const [hoverX, setHoverX] = React.useState<number | null>(null);
+  const svgRef = React.useRef<SVGSVGElement | null>(null);
+
   const allX: number[] = [];
   const allY: number[] = [];
   for (const s of series) for (const p of s.points) { allX.push(p.x); allY.push(p.y); }
@@ -64,8 +72,6 @@ export function TimelineChart({ series, band, width = 480, height = 240, xLabels
   const line = (pts: Array<{ x: number; y: number }>) => pts.map((p) => `${sx(p.x).toFixed(1)},${sy(p.y).toFixed(1)}`).join(" ");
 
   const uniqueXs = Array.from(new Set(allX)).sort((a, b) => a - b);
-  const [hoverX, setHoverX] = React.useState<number | null>(null);
-  const svgRef = React.useRef<SVGSVGElement | null>(null);
   const onMove = (e: React.MouseEvent) => {
     if (!showTooltip || !svgRef.current) return;
     const rect = svgRef.current.getBoundingClientRect();

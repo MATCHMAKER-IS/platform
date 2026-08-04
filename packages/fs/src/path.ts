@@ -8,14 +8,14 @@ import * as nodePath from "node:path";
 /**
  * パスを結合する。
  *
- * @param segments 結合するパス
+ * @param ...parts 結合するパス
  * @returns 結合したパス(`..` は畳まれる)
  */
 export function joinPath(...parts: string[]): string { return nodePath.join(...parts); }
 /**
  * 絶対パスへ解決する。
  *
- * @param segments 解決するパス
+ * @param ...parts 解決するパス
  * @returns 絶対パス(**カレントディレクトリ基準**なので、実行場所によって変わる)
  */
 export function resolvePath(...parts: string[]): string { return nodePath.resolve(...parts); }
@@ -63,7 +63,7 @@ export function withoutExt(p: string): string {
 /**
  * ファイル名を名前と拡張子に分解する。
  *
- * @param p パス
+ * @param filename パス
  * @returns `{ name, ext }`(**ext はドット無し**。`extname` とは違うので注意)
  */
 export function splitExt(filename: string): { name: string; ext: string } {
@@ -150,8 +150,8 @@ export function isSubPath(parent: string, child: string): boolean {
 /**
  * parent から child への相対パスを返す。
  *
- * @param parent 基準のパス
- * @param child 対象のパス
+ * @param from 基準のパス
+ * @param to 対象のパス
  * @returns 相対パス
  */
 export function relativePath(from: string, to: string): string { return nodePath.relative(from, to); }
@@ -172,7 +172,7 @@ const MIME: Record<string, string> = {
  * **これは推定であって検証ではない**。アップロードの検証には、
  * 中身を見る {@link detectFileType} を使うこと(拡張子は偽装できる)。
  *
- * @param p パス
+ * @param filename パス
  * @returns MIME タイプ。**不明なら `application/octet-stream`**
  */
 export function guessMimeType(filename: string): string {

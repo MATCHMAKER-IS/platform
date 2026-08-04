@@ -67,7 +67,7 @@ export function isBlockVisible(block: PageBlock, now: Date = new Date()): boolea
  *
  * **画面に出す前に必ず通す**。期間外のブロックが表示される事故を防ぐ。
  *
- * @param blocks ブロックの配列
+ * @param page ブロックの配列
  * @param now 判定する時点(テスト注入用)
  * @returns 表示対象のブロック(order 順)
  */
@@ -78,7 +78,7 @@ export function visibleBlocks(page: Page, now?: Date): PageBlock[] {
 /**
  * 指定した種類のブロックを返す。
  *
- * @param blocks ブロックの配列
+ * @param page ブロックの配列
  * @param type 種類
  * @returns その種類のブロック
  */
@@ -89,7 +89,7 @@ export function blocksByType(page: Page, type: BlockType): PageBlock[] {
 /**
  * ブロックを ID で探す。
  *
- * @param blocks ブロックの配列
+ * @param page ブロックの配列
  * @param id ID
  * @returns 見つかったブロック。**無ければ undefined**
  */
@@ -103,8 +103,8 @@ export function findBlock(page: Page, id: string): PageBlock | undefined {
  * 管理画面のドラッグ&ドロップに使う。
  *
  * @param blocks ブロックの配列
- * @param from 移動元の位置
- * @param to 移動先の位置
+ * @param fromIndex 移動元の位置
+ * @param toIndex 移動先の位置
  * @returns 並べ替えた**新しい配列**(元は変更しない)。**範囲外の位置なら元のまま**
  */
 export function reorderBlocks(blocks: PageBlock[], fromIndex: number, toIndex: number): PageBlock[] {

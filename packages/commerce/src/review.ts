@@ -10,7 +10,7 @@ export type RatingDistribution = Record<1 | 2 | 3 | 4 | 5, number>;
 /**
  * 平均評価を返す。
  *
- * @param reviews レビューの配列
+ * @param ratings レビューの配列
  * @returns 平均(**小数第 1 位に丸め**)。**件数 0 なら 0**
  */
 export function averageRating(ratings: number[]): number {
@@ -25,7 +25,7 @@ export function averageRating(ratings: number[]): number {
  * **分布を見せる**と、平均だけより実態が伝わる(平均 3.0 でも、
  * 「全部 3」と「5 と 1 が半々」では意味が違う)。
  *
- * @param reviews レビューの配列
+ * @param ratings レビューの配列
  * @returns 1〜5 それぞれの件数(**範囲外の評価は無視**)
  */
 export function ratingDistribution(ratings: number[]): RatingDistribution {
@@ -49,7 +49,7 @@ export interface RatingSummary {
 /**
  * 評価の要約を作る。
  *
- * @param reviews レビューの配列
+ * @param ratings レビューの配列
  * @returns 平均・件数・分布・割合(**そのまま描画できる形**)
  */
 export function ratingSummary(ratings: number[]): RatingSummary {

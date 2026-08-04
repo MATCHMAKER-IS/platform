@@ -68,7 +68,7 @@ export function FileUpload({ onFilesChange, accept, multiple = false, hint, clas
         onDrop={(e) => { e.preventDefault(); setDragging(false); update(e.dataTransfer.files); }}
         className={cn(
           "flex cursor-pointer flex-col items-center justify-center gap-1 rounded-[var(--radius)] border-2 border-dashed p-6 text-center text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]",
-          dragging ? "border-[var(--color-primary)] bg-teal-50" : "border-[var(--color-border)]",
+          dragging ? "border-[var(--color-primary)] bg-[color-mix(in_srgb,var(--color-success)_8%,transparent)]" : "border-[var(--color-border)]",
         )}
       >
         <Upload className="h-6 w-6 text-[var(--color-muted)]" />

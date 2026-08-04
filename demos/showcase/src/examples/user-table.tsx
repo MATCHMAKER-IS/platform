@@ -41,8 +41,14 @@ export function UserTable({ users, onExport }: UserTableProps) {
 
   // 1) カスタムフィルタ(役割)→ 2) queryRows(検索/ソート/ページング)
   const filtered = React.useMemo(() => (role === "all" ? users : users.filter((u) => u.role === role)), [users, role]);
-  const query: TableQuery = { search, searchKeys: ["name", "email"], sortKey: sortKey as string, sortDir, page, pageSize: PAGE_SIZE };
-  const result = React.useMemo(() => queryRows(filtered, query), [filtered, search, sortKey, sortDir, page]);
+  // **query は useMemo の中で組む。** 外で作ると毎回新しいオブジェクトになり、
+  // 依存配列に入れられない(入れると毎描画で再計算になる)。
+  // 外に置いたまま中身だけを依存に並べると、react-hooks/exhaustive-deps が
+  // 「query が足りない」と警告する
+  const result = React.useMemo(() => {
+    const query: TableQuery = { search, searchKeys: ["name", "email"], sortKey: sortKey as string, sortDir, page, pageSize: PAGE_SIZE };
+    return queryRows(filtered, query);
+  }, [filtered, search, sortKey, sortDir, page]);
 
   // 条件変更でページを先頭に戻す
   React.useEffect(() => { setPage(1); }, [search, role, sortKey, sortDir]);

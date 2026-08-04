@@ -10,7 +10,7 @@ export type Gravity = "center" | "north" | "south" | "east" | "west" | "northeas
 /**
  * 位置指定を sharp の gravity 文字列に変換する。
  *
- * @param position 位置(`top-left` など)
+ * @param g 位置(`top-left` など)
  * @returns sharp の gravity
  */
 export function gravityToSharp(g: Gravity): string {

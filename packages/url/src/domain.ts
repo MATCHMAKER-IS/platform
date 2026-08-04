@@ -21,7 +21,7 @@ const MULTI_PART_SUFFIXES = new Set([
  * **比較の前に必ず通す**。`Example.COM` と `example.com.` と `example.com:443` は
  * すべて同じホストだが、文字列としては違う。
  *
- * @param host ホスト名または URL
+ * @param hostname ホスト名または URL
  * @returns 正規化したホスト名
  */
 export function normalizeHostname(hostname: string): string {

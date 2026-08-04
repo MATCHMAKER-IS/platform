@@ -20,8 +20,8 @@ export interface RouteRule<Ctx> {
  * コンテキスト(金額・部門など)からルート(WorkflowDefinition)を決定する。
  * 上から評価し、最初に条件を満たしたルールの steps を採用する。どれも満たさなければ例外。
  *
- * @param request 申請
- * @param routes ルートの定義
+ * @param rules 申請
+ * @param ctx ルートの定義
  * @returns 適用するルート
  * @throws {@link @platform/core#AppError} コード `CONFIG` — 該当するルートが無い場合(**申請を宙ぶらりんにしない**)
  */

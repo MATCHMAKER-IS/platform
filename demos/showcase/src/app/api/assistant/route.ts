@@ -14,6 +14,26 @@
  */
 import { NextResponse } from "next/server";
 import { createAiGateway, type AiProvider, type AiCallLog } from "@platform/ai";
+import { createRateLimiter, createMemoryStore } from "@platform/ratelimit/browser";
+
+/**
+ * **回数を制限する。** AI の呼び出しは 1 回ごとに費用が出るため、
+ * 認証の要らない口を無防備に置くと、**叩かれた分だけ請求が来る**。
+ *
+ * メモリ実装なのでサーバごとに数える(複数台なら Redis 実装に差し替える)。
+ * 1 分あたり 10 回は、人が使う分には十分で、機械的な連打は止まる程度。
+ */
+const limiter = createRateLimiter({
+  store: createMemoryStore(),
+  limit: 10,
+  windowSeconds: 60,
+});
+
+/** 呼び出し元を見分ける。プロキシ経由なら `x-forwarded-for` の先頭。 */
+function clientKey(req: Request): string {
+  const fwd = req.headers.get("x-forwarded-for");
+  return fwd ? (fwd.split(",")[0] ?? "unknown").trim() : "unknown";
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,6 +82,15 @@ function anthropicProvider(apiKey: string): AiProvider {
 }
 
 export async function POST(req: Request): Promise<Response> {
+  // **本文を読む前に判定する。** 読んでから弾くと、その分の資源は使われている
+  const rl = await limiter.check(`assistant:${clientKey(req)}`);
+  if (rl.ok && !rl.value.allowed) {
+    return NextResponse.json(
+      { ok: false, message: "呼び出しが多すぎます。しばらく待ってからやり直してください" },
+      { status: 429, headers: { "Retry-After": "60" } },
+    );
+  }
+
   let body: { question?: string; context?: string; history?: { role: "user" | "assistant"; content: string }[] };
   try {
     body = (await req.json()) as typeof body;

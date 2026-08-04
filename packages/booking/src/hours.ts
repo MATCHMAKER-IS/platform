@@ -24,7 +24,7 @@ export type WeeklyHours = Partial<Record<Weekday, TimeRange[]>>;
  *
  * **深夜営業は 24 時を超える**(`26:00` = 翌 2:00)ので、Date ではなく分で扱う。
  *
- * @param hhmm `HH:MM` 形式
+ * @param time `HH:MM` 形式
  * @returns 0 時からの分
  */
 export function timeToMinutes(time: string): number {

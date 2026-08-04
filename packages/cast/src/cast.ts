@@ -41,7 +41,7 @@ export function activeCasts<T extends Cast>(casts: T[]): T[] {
  * タグで絞り込む(**いずれかを含む** = OR 条件)。
  *
  * @param casts キャストの配列
- * @param tags 絞り込むタグ
+ * @param tag 絞り込むタグ
  * @returns いずれかのタグを持つキャスト
  */
 export function castsByTag<T extends Cast>(casts: T[], tag: string): T[] {
@@ -75,7 +75,7 @@ export function tagCounts(casts: Cast[]): { tag: string; count: number }[] {
  * 新人かを判定する(入店から指定日数以内)。
  *
  * @param cast キャスト
- * @param days 新人とみなす日数(既定 90)
+ * @param withinDays 新人とみなす日数(既定 90)
  * @param now 基準日(テスト注入用)
  * @returns 新人なら true。**入店日が無ければ false**
  */
@@ -89,7 +89,7 @@ export function isNewcomer(cast: Cast, withinDays = 30, now: Date = new Date()):
  * 新人のキャストを返す。
  *
  * @param casts キャストの配列
- * @param days 新人とみなす日数(既定 90)
+ * @param withinDays 新人とみなす日数(既定 90)
  * @param now 基準日(テスト注入用)
  * @returns 新人(**入店日の新しい順**)
  */

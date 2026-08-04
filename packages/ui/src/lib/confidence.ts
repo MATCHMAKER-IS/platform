@@ -27,7 +27,7 @@ export type ConfidenceProfile = keyof typeof CONFIDENCE_PROFILES;
  * **用途で基準が違う**(請求書は厳しく、メモは緩く)。プロファイル名で
  * 選べるようにしてある。
  *
- * @param input しきい値の数値、またはプロファイル名(`strict` / `normal` / `loose`)
+ * @param t しきい値の数値、またはプロファイル名(`strict` / `normal` / `loose`)
  * @returns 具体的なしきい値
  */
 export function resolveThresholds(t?: ConfidenceThresholds | ConfidenceProfile): ConfidenceThresholds {

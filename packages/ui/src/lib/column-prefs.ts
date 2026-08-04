@@ -36,7 +36,7 @@ export function applyColumnPrefs<C extends { key: string }>(columns: C[], prefs?
  *
  *
  * @param prefs 現在の設定
- * @param id 対象の列
+ * @param key 対象の列
  * @returns 更新した新しい設定
  */
 export function toggleColumnHidden(prefs: ColumnPrefs, key: string): ColumnPrefs {

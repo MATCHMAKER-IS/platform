@@ -46,7 +46,11 @@ function stripComments(src) {
     .replace(/([^:])\/\/[^\n]*/g, "$1"); // 行コメント(URL の :// を避け、直前が : でないもの)
 }
 
-const files = walk(path.join(ROOT, "apps")).concat(walk(path.join(ROOT, "demos")));
+// **packages も見る。** 基盤の UI 部品にも JSX があり、壊れれば
+// それを使う全画面のビルドが落ちる。2026-08 まで対象外だった
+const files = walk(path.join(ROOT, "apps"))
+  .concat(walk(path.join(ROOT, "demos")))
+  .concat(walk(path.join(ROOT, "packages")));
 
 let errors = 0;
 let warnings = 0;

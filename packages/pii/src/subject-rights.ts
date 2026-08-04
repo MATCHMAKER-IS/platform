@@ -50,8 +50,8 @@ export interface DisclosureReport {
  * 本人の保有個人データから開示レポートを組み立てる。
  * 各データにカテゴリ情報(利用目的・保持期間・第三者提供先)を付与して返す。
  *
- * @param subject 本人
- * @param sources データの所在(テーブルごと)
+ * @param input.subject 本人
+ * @param input.sources データの所在(テーブルごと)
  * @returns 開示レポート(**本人に渡す形**)
  */
 export function buildDisclosureReport(input: {

@@ -3,3 +3,4 @@
  * @packageDocumentation
  */
 export * from "./quote";
+export * from "./pricing";

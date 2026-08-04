@@ -8,9 +8,7 @@
 import * as React from "react";
 import { addMonths, addDays, isHoliday as isHolidayRaw, holidayName as holidayNameRaw } from "@platform/datetime";
 import { cn } from "../lib/cn";
-import {
-  type CalendarEvent, buildMonthGrid, eventsForDay, layoutDayEvents, groupEventsByDay, formatEventTime, nowOffset,
-} from "../lib/schedule";
+import { type CalendarEvent, buildMonthGrid, eventsForDay, layoutDayEvents, groupEventsByDay, formatEventTime, nowOffset, weekdayColorClass } from "../lib/schedule";
 import { CalendarLegend, type CalendarCategory } from "./calendar-legend";
 
 /** カレンダーのビュー種別。 */
@@ -191,8 +189,8 @@ function MonthView({ date, events, weekStartsOn, onEventClick, onDateClick, onRa
                   "mb-0.5 flex h-6 w-6 items-center justify-center rounded-full text-xs",
                   cell.isToday && "bg-[var(--color-primary)] font-semibold text-[var(--color-primary-fg)]",
                   !cell.isToday && !cell.inMonth && "text-[var(--color-muted)]",
-                  !cell.isToday && cell.inMonth && (hol || wd === 0) && "text-red-500",
-                  !cell.isToday && cell.inMonth && wd === 6 && "text-sky-600",
+                  // 日曜・祝日は赤、土曜は青(基盤の共通判定。直書きしない)
+                  !cell.isToday && cell.inMonth && weekdayColorClass(wd, Boolean(hol)),
                 )}
                 title={holidayName(cell.date) ?? undefined}
               >
@@ -336,8 +334,8 @@ function TimeGridView({ days, events, dayStartHour, dayEndHour, onEventClick, on
                 if (y < 0 || y > colHeight) return null;
                 return (
                   <div className="pointer-events-none absolute left-0 right-0 z-20 flex items-center" style={{ top: y }} aria-hidden>
-                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
-                    <span className="h-px flex-1 bg-red-500" />
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-danger)]" />
+                    <span className="h-px flex-1 bg-[var(--color-danger)]" />
                   </div>
                 );
               })()}
@@ -384,7 +382,7 @@ function AgendaView({ events, onEventClick, onDateClick }: {
         <div key={i} className="flex gap-4 p-3">
           <button type="button" onClick={() => onDateClick?.(g.date)} className="w-24 shrink-0 text-left">
             <div className="text-sm font-semibold">{g.date.getMonth() + 1}月{g.date.getDate()}日</div>
-            <div className={cn("text-xs", isHoliday(g.date) || g.date.getDay() === 0 ? "text-red-500" : g.date.getDay() === 6 ? "text-sky-600" : "text-[var(--color-muted)]")}>{weekdayJa(g.date)}{holidayName(g.date) ? ` ${holidayName(g.date)}` : ""}</div>
+            <div className={cn("text-xs", isHoliday(g.date) || g.date.getDay() === 0 ? "text-[var(--color-danger)]" : g.date.getDay() === 6 ? "text-[var(--color-primary)]" : "text-[var(--color-muted)]")}>{weekdayJa(g.date)}{holidayName(g.date) ? ` ${holidayName(g.date)}` : ""}</div>
           </button>
           <ul className="flex-1 space-y-1">
             {g.events.map((e) => (

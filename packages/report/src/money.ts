@@ -25,7 +25,7 @@ export function roundAmount(value: number, mode: RoundingMode = "round"): number
 /**
  * 円表記にする。
  *
- * @param amount 金額
+ * @param value 金額
  * @returns `¥1,234` 形式(**桁区切りつき**。帳票では必須)
  */
 export function formatYen(value: number): string {

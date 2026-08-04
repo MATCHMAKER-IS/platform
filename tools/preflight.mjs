@@ -1,7 +1,7 @@
 /**
  * オフライン検証ゲートの一括実行(依存インストール不要)。人も CI(boundaries)もこれ1本。
  *   node tools/preflight.mjs      (= pnpm verify:offline)
- * 内容: smoke / check-deps / api-surface(差分検査) / check-core-signatures / check-schema ×3 / check-env-example / check-generated / check-doc-numbers / check-ports / check-package-shape / check-docs-links / check-docs-duplication / check-docs-orphans / check-doc-apis / check-e2e-quality / check-package-rules / check-app-rules / check-api-auth / check-auth-stub / check-permissions / check-reimplementation / check-handmade-chart / check-utc-date / check-test-setup / check-path-length / check-dom-lib / check-result-narrowing / check-react-import / check-showcase-deps / check-app-transpile / check-syntax / check-jsx-tags / check-a11y / check-pwa / check-maintainability / check-hardcoded-colors / check-contract / check-drill / check-imports / check-lockfile / check-build-ready / setup.sh 構文
+ * 内容: smoke / check-deps / api-surface(差分検査) / check-core-signatures / check-schema ×3 / check-env-example / check-generated / check-doc-numbers / check-ports / check-package-shape / check-docs-links / check-docs-duplication / check-docs-orphans / check-doc-apis / check-tsdoc-params / check-e2e-quality / check-package-rules / check-app-rules / check-api-auth / check-auth-stub / check-permissions / check-reimplementation / check-handmade-chart / check-utc-date / check-test-setup / check-path-length / check-dom-lib / check-result-narrowing / check-react-import / check-showcase-deps / check-app-transpile / check-syntax / check-jsx-tags / check-a11y / check-pwa / check-maintainability / check-hardcoded-colors / check-contract / check-drill / check-imports / check-lockfile / check-build-ready / verify-checks / setup.sh 構文
  */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -54,10 +54,14 @@ allOk = run("check-generated", "node", ["tools/check-generated.mjs"]) && allOk; 
 allOk = run("check-doc-numbers", "node", ["tools/check-doc-numbers.mjs"]) && allOk;  // 手書き資料の数値ドリフト(AIが読む前提資料)
 allOk = run("check-ports", "node", ["tools/check-ports.mjs"]) && allOk;  // 開発ポートの重複(pnpm dev は一斉起動するため)
 allOk = run("check-package-shape", "node", ["tools/check-package-shape.mjs"]) && allOk;  // tsconfig/scripts 欠落(型チェックが素通りする)
-allOk = run("check-docs-links", "node", ["tools/check-docs-links.mjs"]) && allOk;  // 手書き資料のリンク切れ・存在しないコマンド案内
+allOk = run("check-docs-links", "node", ["tools/check-docs-links.mjs"]) && allOk;
+// **資料に書いたコマンドが実際に動くか。** 書いてあるのに動かないと、
+// 読む側は資料全体を信用しなくなる
+allOk = run("check-doc-commands", "node", ["tools/check-doc-commands.mjs"]) && allOk;  // 手書き資料のリンク切れ・存在しないコマンド案内
 run("check-docs-duplication", "node", ["tools/check-docs-duplication.mjs"]);
 allOk = run("check-docs-orphans", "node", ["tools/check-docs-orphans.mjs"]) && allOk;  // どこからも辿り着けない資料を検出  // 資料の重複(警告のみ・CI は落とさない)
 allOk = run("check-doc-apis", "node", ["tools/check-doc-apis.mjs"]) && allOk;  // 資料のコード例が実在する API を使っているか
+allOk = run("check-tsdoc-params", "node", ["tools/check-tsdoc-params.mjs"]) && allOk;  // TSDoc の @param が実装と一致するか(並び順の食い違いは黙って壊れる)
 allOk = run("check-e2e-quality", "node", ["tools/check-e2e-quality.mjs"]) && allOk;  // E2E の Flaky リスク(固定待ち等)
 allOk = run("check-package-rules", "node", ["tools/check-package-rules.mjs"]) && allOk;  // 基盤自身が作法を守っているか
 allOk = run("check-app-rules", "node", ["tools/check-app-rules.mjs"]) && allOk;  // apps が基盤の役割を侵していないか(CLAUDE.md の規約)
@@ -85,6 +89,20 @@ allOk = run("check-drill", "node", ["tools/check-drill.mjs"]) && allOk;  // 復�
 allOk = run("check-imports", "node", ["tools/check-imports.mjs"]) && allOk;  // 存在しない名前の取り込み(next build が落ちる)
 allOk = run("check-lockfile", "node", ["tools/check-lockfile.mjs"]) && allOk;  // pnpm-lock.yaml と package.json の一致(CI の frozen-lockfile で落ちる前に検知。Amplify で実際に落ちた)
 allOk = run("check-build-ready", "node", ["tools/check-build-ready.mjs"]) && allOk;  // next build が通る前提(エントリ/重複export/use client/import)
+// **検査そのものが生きているか**を確かめる。
+// わざと違反したファイルを一時的に置き、赤になることを見る(終わったら消す)。
+// 検査が緑でも「何も見ていない」ことがあるため、最後に必ず通す。
+// **CI が壊れると、検査すべてが動かなくなる**(落ちるのではなく走らない)。
+// ワークフローは手元で試しにくいので、機械的に拾えるものだけ先に見る。
+// **XSS の入口を塞ぐ。** dangerouslySetInnerHTML に外部由来の文字列を渡すと、
+// その画面を開いた人のセッションが奪われる
+// **付け忘れても画面は動く**ので、動作確認では気づけない
+// **連打されるだけで被害が出る**口を塞ぐ(AI の費用・ディスク・CPU)
+allOk = run("check-rate-limit", "node", ["tools/check-rate-limit.mjs"]) && allOk;
+allOk = run("check-security-headers", "node", ["tools/check-security-headers.mjs"]) && allOk;
+allOk = run("check-unsafe-html", "node", ["tools/check-unsafe-html.mjs"]) && allOk;
+allOk = run("check-workflows", "node", ["tools/check-workflows.mjs"]) && allOk;
+allOk = run("verify-checks(検査の自己検証)", "node", ["tools/verify-checks.mjs"]) && allOk;
 allOk = run("advisor(dup検出)", "node", ["tools/advisor.mjs", "dup"]) && allOk;
 if (existsSync("/bin/bash") || existsSync("/usr/bin/bash")) {
   allOk = run("setup.sh 構文", "bash", ["-n", "scripts/setup.sh"]) && allOk;

@@ -394,30 +394,67 @@ export function check() {
     // node:crypto は通る(polyfill がある)ので挙げない。実際 /pii や /dencho は動いている。
     const FATAL = ["node:fs", "node:os", "node:child_process", "node:net", "node:worker_threads"];
 
-    // パッケージのバレルが FATAL を引き込むか(1 段だけ辿る)。
+    // **サーバ専用の npm パッケージ**。
+    // これらは `node:` 接頭辞なしで `fs` / `net` / `dns` / `tls` を require するため、
+    // 上の FATAL(接頭辞つき)では引っかからない。実際 2026-08 に
+    // `@platform/jobs`(bullmq)・`@platform/sms`(twilio)・`@platform/ratelimit`(ioredis)を
+    // client から import していて、**typecheck も lint も smoke も通るのに
+    // next build だけが 14 件のエラーで落ちた**。
+    const SERVER_ONLY_DEPS = ["bullmq", "ioredis", "twilio", "nodemailer", "@aws-sdk/", "sharp", "fluent-ffmpeg", "playwright"];
+
+    // **サブパス(`@platform/x/browser` 等)も同じ危険がある。**
+    // 「サブパスなら安全」と決めつけていたため、`@platform/sms/browser` が
+    // `./index`(twilio を再 export)を経由していることを見逃した。
+    // client 向けに用意した入口が、実は SDK を引き込んでいる——という
+    // **最も気づきにくい形**なので、入口はすべて同じ基準で見る。
+    //
+    // パッケージのバレルとサブパスが FATAL を引き込むか(1 段だけ辿る)。
     // `createGuardedJob` は node に依存しないのに、バレルが lock-file.ts(node:fs)を
     // 再 export しているせいで client から使えなかった(実際に /cron が落ちた)。
     const barrelPullsNode = new Map();
     const pkgsDir = path.join(ROOT, "packages");
     if (existsSync(pkgsDir)) {
       for (const pkg of readdirSync(pkgsDir)) {
-        const barrel = path.join(pkgsDir, pkg, "src/index.ts");
+        // package.json の exports に載っている入口すべてを見る
+        const pkgJsonPath = path.join(pkgsDir, pkg, "package.json");
+        if (!existsSync(pkgJsonPath)) continue;
+        const exportsField = JSON.parse(readFileSync(pkgJsonPath, "utf8")).exports ?? {};
+        const entries = typeof exportsField === "string" ? { ".": exportsField } : exportsField;
+        for (const [sub, rel] of Object.entries(entries)) {
+        if (typeof rel !== "string" || !/\.tsx?$/.test(rel)) continue;
+        const barrel = path.join(pkgsDir, pkg, rel);
         if (!existsSync(barrel)) continue;
-        const src = readFileSync(barrel, "utf8");
-        const targets = new Set();
-        for (const m of src.matchAll(/(?:export|import)\s+(?:type\s+)?(?:\*|\{[^}]*\})\s*from\s*"(\.[^"]+)"/g)) {
-          targets.add(m[1]);
-        }
+        const specifier = sub === "." ? `@platform/${pkg}` : `@platform/${pkg}${sub.slice(1)}`;
+        // **相対 export/import を最後まで辿る。**
+        // 1 段だけだと `browser.ts → index.ts → transports/twilio.ts` の
+        // 2 段先を見逃す(実際にこれで `@platform/sms/browser` が素通りした)。
         let hit = null;
-        for (const rel of targets) {
-          const base = path.resolve(path.dirname(barrel), rel);
-          for (const cand of [`${base}.ts`, path.join(base, "index.ts")]) {
-            if (!existsSync(cand)) continue;
-            const body = readFileSync(cand, "utf8");
-            for (const n of FATAL) if (body.includes(`"${n}"`)) hit = n;
+        const seen = new Set();
+        const walk = (file) => {
+          if (hit !== null || seen.has(file) || !existsSync(file)) return;
+          seen.add(file);
+          // **型だけの import/export は実行時に消える**ので追わない。
+          // `import type { TypedQueue } from "./index"` のような行まで辿ると、
+          // 実際にはバンドルされない経路で SDK に到達し、誤検出になる
+          // (`@platform/jobs/browser` がこれで赤くなった)。
+          const body = readFileSync(file, "utf8")
+            .split("\n")
+            .filter((l) => !/^\s*(?:import|export)\s+type\s/.test(l))
+            .join("\n");
+          for (const n of FATAL) if (body.includes(`"${n}"`)) { hit = n; return; }
+          for (const d of SERVER_ONLY_DEPS) {
+            if (new RegExp(`from\\s+"${d.replace(/[/]/g, "\\/")}`).test(body)) { hit = d; return; }
           }
+          for (const m of body.matchAll(/(?:export|import)\s+(?:type\s+)?(?:\*|\{[^}]*\})\s*from\s*"(\.[^"]+)"/g)) {
+            const base = path.resolve(path.dirname(file), m[1]);
+            for (const cand of [`${base}.ts`, `${base}.tsx`, path.join(base, "index.ts")]) {
+              if (existsSync(cand)) { walk(cand); break; }
+            }
+          }
+        };
+        walk(barrel);
+        if (hit) barrelPullsNode.set(specifier, hit);
         }
-        if (hit) barrelPullsNode.set(`@platform/${pkg}`, hit);
       }
     }
 
@@ -431,7 +468,7 @@ export function check() {
       // **行頭の import 行だけ**を見る。<pre> に載せたサンプルコードの import を
       // 本物と誤認しないため(検査 I で同じ間違いをした)。
       const importLines = [...s.matchAll(/^import\s[^\n]*$/gm)].map((x) => x[0]).join("\n");
-      for (const m of importLines.matchAll(/from\s+"(@platform\/[\w-]+)"/g)) {
+      for (const m of importLines.matchAll(/from\s+"(@platform\/[\w-]+(?:\/[\w-]+)?)"/g)) {
         const bad = barrelPullsNode.get(m[1]);
         if (!bad) continue;
         issues.push(

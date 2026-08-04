@@ -1,0 +1,77 @@
+# 放置されがちな運用タスクを、Issue にして督促する（月次）。
+#
+# 目的:
+#   「やった方がいいが、緊急ではない」ことは必ず後回しになる。
+#   preflight の警告は毎日目に入るが、**目に入り続けると見えなくなる**。
+#   月に 1 度 Issue を立て、担当と期限が付く形にする。
+#
+# 対象:
+#   1. 復元訓練 … バックアップから戻せるかを一度も試していないと、
+#                 バックアップが無いのとほとんど同じ
+#   2. 契約テストの記録 … 実 API の応答を記録していないと、
+#                         「モックでは通るが本物では動かない」を検出できない
+#   3. 未実戦のパッケージ … どこからも使われていない = 動作が未確認
+#
+# 動き:
+#   - それぞれの状態を検査ツールで調べる
+#   - 対応が要るものがあれば Issue を作る（既にあれば更新する）
+#   - すべて解消していれば何もしない
+name: ops-reminder
+
+on:
+  schedule:
+    - cron: "0 0 1 * *" # 毎月 1 日 9:00 JST
+  workflow_dispatch: # 手動でも回せる
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # 依存を入れずに調べられるものだけを見る（速い・壊れにくい）
+      - name: Collect
+        id: collect
+        run: node tools/ops-reminder.mjs > reminder.md
+        continue-on-error: true
+
+      - name: Open or update issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('reminder.md', 'utf8');
+
+            // 対応が要るものが無ければ Issue を作らない。
+            // **毎月「やることはありません」と通知すると、通知そのものが無視される**
+            if (body.includes('対応が必要なものはありません')) {
+              console.log('対応不要のため Issue は作りません');
+              return;
+            }
+
+            const title = '運用タスクの確認（月次）';
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'ops-reminder',
+            });
+            const existing = issues.find((i) => i.title === title);
+            if (existing) {
+              await github.rest.issues.update({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: existing.number, body,
+              });
+              console.log(`既存の Issue #${existing.number} を更新しました`);
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title, body, labels: ['ops-reminder'],
+              });
+              console.log('Issue を作成しました');
+            }

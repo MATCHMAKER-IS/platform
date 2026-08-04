@@ -41,7 +41,7 @@ export function nextThemePreference(current: ThemePreference): ThemePreference {
  *
  * **`system` を選べない**ので、OS 追従が要るなら {@link cycleThemePreference} を使う。
  *
- * @param current 現在のテーマ
+ * @param resolved 現在のテーマ
  * @returns 反転したテーマ
  */
 export function toggleTheme(resolved: ResolvedTheme): ResolvedTheme {
@@ -64,7 +64,7 @@ interface ClassListEl {
 /**
  * 要素に解決済みテーマを適用する(Tailwind の dark クラス + data-theme 属性)。
  * SSR では要素を渡さなければ何もしない。
- * @param theme 適用するテーマ
+ * @param resolved 適用するテーマ
  * @param element 適用先(省略時は documentElement)
  */
 export function applyTheme(resolved: ResolvedTheme, element?: ClassListEl): void {

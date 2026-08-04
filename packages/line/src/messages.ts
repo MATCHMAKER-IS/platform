@@ -104,7 +104,7 @@ export function uriAction(label: string, uri: string): LineAction {
  *
  *
  * @param message 元のメッセージ
- * @param items クイックリプライの項目(**最大 13 件**)
+ * @param actions クイックリプライの項目(**最大 13 件**)
  * @returns クイックリプライ付きのメッセージ(**トーク下部にボタンが並ぶ**。選択肢を示すと会話が進みやすい)
  */
 export function withQuickReply(message: LineMessage, actions: LineAction[]): LineMessage {

@@ -89,8 +89,8 @@ done
 
 # ─────────────────────────── 3. Docker インフラ起動 ───────────────────────────
 if [ "$SKIP_DOCKER" -eq 0 ]; then
-  step "PostgreSQL + Mailpit を起動(docker-compose.yml の db / mailhog)"
-  docker compose up -d db mailhog
+  step "PostgreSQL + Mailpit を起動(docker-compose.yml の db / mailpit)"
+  docker compose up -d db mailpit
   printf '  DB の起動待ち'
   for i in $(seq 1 30); do
     if docker compose exec -T db pg_isready -U app >/dev/null 2>&1; then echo ""; ok "PostgreSQL 準備完了"; break; fi
@@ -130,7 +130,7 @@ if [ "$SKIP_DB" -eq 0 ]; then
   for app in "${APPS[@]}"; do
     url=$(grep -E '^DATABASE_URL=' "apps/$app/.env" 2>/dev/null | tail -1 | cut -d= -f2- || true)
     [ -z "$url" ] && url="postgresql://app:app@localhost:5432/$(db_name "$app")"
-    DATABASE_URL="$url" pnpm --filter @platform/db exec prisma db push --schema="../../apps/$app/prisma/schema.prisma" --skip-generate >/dev/null
+    DATABASE_URL="$url" pnpm --filter @platform/db exec prisma db push --schema="../../apps/$app/prisma/schema.prisma" >/dev/null
     ok "$app → $(db_name "$app")"
   done
 else

@@ -17,7 +17,7 @@ export interface InvoiceNumberOptions {
  * 連番から請求書番号を作る(例: INV-202507-0001)。
  *
  *
- * @param seq 連番
+ * @param sequence 連番
  * @param options.prefix / date 形式の指定
  * @returns 請求書番号(`INV-202507-0001`)。**飛び番や重複は会計上の問題になる**ので、採番は `@platform/sequence` に任せる
  */

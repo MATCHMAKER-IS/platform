@@ -76,6 +76,9 @@ export function normalizeSpace(input: string): string {
  * @returns 制御文字を除いた文字列
  */
 export function stripControlChars(input: string): string {
-  // eslint-disable-next-line no-control-regex
+  // 制御文字を**意図して**対象にしている(それがこの関数の目的)。
+  // 以前は `no-control-regex` の無効化コメントを置いていたが、
+  // このリポジトリの eslint 設定はその規則を有効にしていないため、
+  // **未使用の指示**として警告になっていた。
   return input.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\uFEFF]/g, "");
 }

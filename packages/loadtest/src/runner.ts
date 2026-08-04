@@ -111,7 +111,7 @@ export async function runLoad(request: RequestFn, options: LoadOptions): Promise
  *
  * **CI のログで一目で分かる**形にする(詳細は JSON で別途出す)。
  *
- * @param result 実行結果
+ * @param r 実行結果
  * @returns 1 行のサマリー
  */
 export function formatResult(r: LoadResult): string {

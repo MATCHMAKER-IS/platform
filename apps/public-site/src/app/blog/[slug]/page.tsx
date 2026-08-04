@@ -26,21 +26,21 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
     <main className="mx-auto max-w-3xl p-6">
       {post.eyecatch && <Eyecatch image={post.eyecatch} title={post.title} className="mb-6" />}
       <h1 className="mb-2 text-2xl font-bold">{post.title}</h1>
-      <p className="mb-4 text-xs text-neutral-500">{post.publishedAt.slice(0, 10)}</p>
-      <article className="leading-relaxed [&_a]:text-blue-600 [&_a]:underline" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
+      <p className="mb-4 text-xs text-[var(--color-muted)]">{post.publishedAt.slice(0, 10)}</p>
+      <article className="leading-relaxed [&_a]:text-[var(--color-primary)] [&_a]:underline" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
       {post.tags && post.tags.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2">
-          {post.tags.map((t) => <a key={t} href={`/blog/tag/${encodeURIComponent(t)}`} className="rounded bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600 hover:bg-neutral-200">#{t}</a>)}
+          {post.tags.map((t) => <a key={t} href={`/blog/tag/${encodeURIComponent(t)}`} className="rounded bg-[var(--color-subtle)] px-2 py-0.5 text-xs text-[var(--color-muted)] hover:bg-[var(--color-subtle-strong)]">#{t}</a>)}
         </div>
       )}
-      <div className="mt-6 border-t border-neutral-100 pt-4">
+      <div className="mt-6 border-t border-[var(--color-border)] pt-4">
         <p className="mb-2 text-sm font-medium">この記事をシェア</p>
         <SocialShare links={links} />
       </div>
 
-      <nav className="mt-8 flex justify-between gap-4 border-t border-neutral-100 pt-4 text-sm">
-        {adj.prev ? <a href={`/blog/${adj.prev.slug}`} className="text-blue-700 hover:underline">← {adj.prev.title}</a> : <span />}
-        {adj.next ? <a href={`/blog/${adj.next.slug}`} className="text-right text-blue-700 hover:underline">{adj.next.title} →</a> : <span />}
+      <nav className="mt-8 flex justify-between gap-4 border-t border-[var(--color-border)] pt-4 text-sm">
+        {adj.prev ? <a href={`/blog/${adj.prev.slug}`} className="text-[var(--color-primary)] hover:underline">← {adj.prev.title}</a> : <span />}
+        {adj.next ? <a href={`/blog/${adj.next.slug}`} className="text-right text-[var(--color-primary)] hover:underline">{adj.next.title} →</a> : <span />}
       </nav>
 
       {related.length > 0 && (
@@ -48,9 +48,9 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
           <h2 className="mb-3 text-lg font-semibold">関連記事</h2>
           <ul className="grid gap-4 sm:grid-cols-3">
             {related.map((r) => (
-              <li key={r.slug} className="rounded border border-neutral-200 p-3">
+              <li key={r.slug} className="rounded border border-[var(--color-border)] p-3">
                 {r.eyecatch && <a href={`/blog/${r.slug}`}><img src={r.eyecatch} alt="" className="mb-2 h-24 w-full rounded object-cover" loading="lazy" /></a>}
-                <a href={`/blog/${r.slug}`} className="text-sm font-medium hover:text-blue-700">{r.title}</a>
+                <a href={`/blog/${r.slug}`} className="text-sm font-medium hover:text-[var(--color-primary)]">{r.title}</a>
               </li>
             ))}
           </ul>

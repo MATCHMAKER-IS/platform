@@ -26,7 +26,7 @@ export interface RenderedEmail {
  * HTML の特殊文字をエスケープする。
  *
  *
- * @param text 対象の文字列
+ * @param value 対象の文字列
  * @returns エスケープした文字列(**メール本文に利用者の入力を埋め込むときは必ず通す**)
  */
 export function escapeHtml(value: string): string {
@@ -80,7 +80,7 @@ export interface HtmlEmailLayoutOptions {
  * 本文 HTML を、レスポンシブな標準メールレイアウトで包む。
  * bodyHtml は既にエスケープ済み/信頼できる HTML であること(renderEmailTemplate の html はエスケープ済み)。
  *
- * @param body 本文の HTML
+ * @param bodyHtml 本文の HTML
  * @param options.title / preheader 見出しとプレビュー文
  * @returns メール用の HTML(**インライン CSS**。メーラーは `<style>` を落とすことがある)
  */

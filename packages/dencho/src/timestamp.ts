@@ -40,7 +40,7 @@ function sign(dataHash: string, time: string, secret: string): string {
  *
  * @param dataHash データのハッシュ
  * @param secret 署名鍵
- * @param now 現在時刻(テスト注入用)
+ * @param time 現在時刻(テスト注入用)
  * @returns トークン
  */
 export function createTimestampToken(dataHash: string, secret: string, time: Date = new Date()): TimestampToken {
@@ -52,8 +52,8 @@ export function createTimestampToken(dataHash: string, secret: string, time: Dat
  * タイムスタンプトークンを検証する。
  *
  * @param token トークン
- * @param dataHash 検証するデータのハッシュ
- * @param secret 署名鍵
+ * @param secret 検証するデータのハッシュ
+ * @param expectedDataHash 署名鍵
  * @returns 署名が正当で、データが改ざんされていなければ true
  */
 export function verifyTimestampToken(token: TimestampToken, secret: string, expectedDataHash?: string): boolean {

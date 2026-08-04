@@ -210,7 +210,7 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
       {editing ? (
         <div className="flex flex-col gap-3 rounded border border-[var(--color-border)] p-4">
           <h2 className="text-lg font-semibold">{originalSlug ? "記事を編集" : "新規記事"}</h2>
-          {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+          {error && <p className="rounded bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-danger)]">{error}</p>}
           <label className="text-sm">slug<Input value={editing.slug} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ slug: e.target.value })} placeholder="my-post" className="mt-1 w-full rounded border border-[var(--color-border)] px-2 py-1" /></label>
           <label className="text-sm">タイトル<Input value={editing.title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ title: e.target.value })} className="mt-1 w-full rounded border border-[var(--color-border)] px-2 py-1" /></label>
           <label className="text-sm">カテゴリ
@@ -266,7 +266,7 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
             <div className="rounded border border-[var(--color-border)] bg-[var(--color-muted-bg,#fafafa)] p-4">
               {editing.eyecatch && <img src={editing.eyecatch} alt="" className="mb-3 h-40 w-full rounded object-cover" />}
               <h3 className="mb-1 text-xl font-bold">{editing.title || "(無題)"}</h3>
-              <div className="leading-relaxed [&_a]:text-blue-600 [&_a]:underline" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
+              <div className="leading-relaxed [&_a]:text-[var(--color-primary)] [&_a]:underline" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
             </div>
           )}
           <div className="flex gap-2">
@@ -290,8 +290,8 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
                     <li key={r.id} className="flex items-center justify-between rounded border border-[var(--color-border)] px-2 py-1 text-sm">
                       <span>v{r.version}・{r.title} <span className="text-xs text-[var(--color-muted)]">{r.savedAt.slice(0, 16).replace("T", " ")}・{r.savedBy}</span></span>
                       <span className="flex gap-3">
-                        <Button type="button" onClick={() => showDiff(r)} className="text-blue-600 hover:underline">現在と比較</Button>
-                        <Button type="button" onClick={() => restoreRevision(r.id)} className="text-blue-600 hover:underline">この版に戻す</Button>
+                        <Button type="button" onClick={() => showDiff(r)} className="text-[var(--color-primary)] hover:underline">現在と比較</Button>
+                        <Button type="button" onClick={() => restoreRevision(r.id)} className="text-[var(--color-primary)] hover:underline">この版に戻す</Button>
                       </span>
                     </li>
                   ))}
@@ -303,13 +303,13 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
                     <span className="font-medium">v{diff.version} → 現在の差分</span>
                     <Button type="button" onClick={() => setDiff(null)} className="text-xs text-[var(--color-muted)]">閉じる</Button>
                   </div>
-                  {diff.result.titleChanged && <p className="text-xs">タイトル: <span className="text-red-600 line-through">{diff.result.titleFrom}</span> → <span className="text-green-700">{diff.result.titleTo}</span></p>}
+                  {diff.result.titleChanged && <p className="text-xs">タイトル: <span className="text-[var(--color-danger)] line-through">{diff.result.titleFrom}</span> → <span className="text-[var(--color-success)]">{diff.result.titleTo}</span></p>}
                   {diff.result.statusChanged && <p className="text-xs">状態: {diff.result.statusFrom} → {diff.result.statusTo}</p>}
                   {diff.result.categoryChanged && <p className="text-xs">カテゴリ: {diff.result.categoryFrom ?? "（なし）"} → {diff.result.categoryTo ?? "（なし）"}</p>}
                   {diff.result.bodyChanged ? (
                     <pre className="mt-1 overflow-x-auto rounded bg-[var(--color-surface)] p-2 text-xs leading-relaxed">
                       {diff.result.body.map((l, i) => (
-                        <div key={i} className={l.type === "add" ? "bg-green-50 text-green-800" : l.type === "del" ? "bg-red-50 text-red-700 line-through" : "text-[var(--color-muted)]"}>
+                        <div key={i} className={l.type === "add" ? "bg-[color-mix(in_srgb,var(--color-success)_8%,transparent)] text-[var(--color-success)]" : l.type === "del" ? "bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] text-[var(--color-danger)] line-through" : "text-[var(--color-muted)]"}>
                           {l.type === "add" ? "+ " : l.type === "del" ? "- " : "  "}{l.text || " "}
                         </div>
                       ))}
@@ -357,7 +357,7 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
               // **effectiveStatus は関数**(CmsPost のプロパティではない)。
               // 予約日時を過ぎたものを published として扱う
               const eff = effectiveStatus(p);
-              const badge = eff === "published" ? "rounded bg-green-100 px-1.5 py-0.5 text-xs text-green-700" : eff === "scheduled" ? "rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-700" : "rounded bg-neutral-100 px-1.5 py-0.5 text-xs text-neutral-600";
+              const badge = eff === "published" ? "rounded bg-[color-mix(in_srgb,var(--color-success)_15%,transparent)] px-1.5 py-0.5 text-xs text-[var(--color-success)]" : eff === "scheduled" ? "rounded bg-[color-mix(in_srgb,var(--color-warning)_15%,transparent)] px-1.5 py-0.5 text-xs text-[var(--color-warning)]" : "rounded bg-[var(--color-subtle)] px-1.5 py-0.5 text-xs text-[var(--color-muted)]";
               const label = eff === "published" ? "公開中" : eff === "scheduled" ? "予約" : "下書き";
               return (
                 <tr key={p.slug} className="border-b border-[var(--color-border)]">
@@ -365,12 +365,12 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
                   <td className="px-2 py-2 text-[var(--color-muted)]">{p.slug}</td>
                   <td className="px-2 py-2">
                     <span className={badge}>{label}</span>
-                    {eff === "scheduled" && <span className="ml-2 text-xs text-amber-600">{untilLabel(p.publishedAt)}</span>}
+                    {eff === "scheduled" && <span className="ml-2 text-xs text-[var(--color-warning)]">{untilLabel(p.publishedAt)}</span>}
                   </td>
                   <td className="px-2 py-2 text-xs text-[var(--color-muted)]">{p.updatedAt.slice(0, 10)}</td>
                   <td className="px-2 py-2 text-right">
-                    <Button onClick={() => startEdit(p)} className="mr-2 text-blue-600 hover:underline">編集</Button>
-                    <Button onClick={() => remove(p.slug)} className="text-red-600 hover:underline">削除</Button>
+                    <Button onClick={() => startEdit(p)} className="mr-2 text-[var(--color-primary)] hover:underline">編集</Button>
+                    <Button onClick={() => remove(p.slug)} className="text-[var(--color-danger)] hover:underline">削除</Button>
                   </td>
                 </tr>
               );

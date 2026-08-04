@@ -13,7 +13,13 @@ import { readFileSync, existsSync, writeFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
-const read = (rel) => (existsSync(path.join(ROOT, rel)) ? readFileSync(path.join(ROOT, rel), "utf8") : "");
+// **改行コードを LF に揃えてから使う。**
+// Windows の checkout(core.autocrlf)で CRLF になると、
+// 行単位の解析が軒並み外れる。.gitattributes で防いでいるが、
+// ZIP 展開や手作業のコピーではそれが効かないので、読む側でも吸収する。
+const read = (rel) => (existsSync(path.join(ROOT, rel))
+  ? readFileSync(path.join(ROOT, rel), "utf8").replace(/\r\n/g, "\n")
+  : "");
 
 function loadPackages() {
   const surface = JSON.parse(read("docs/platform/api-surface.json") || "{}");

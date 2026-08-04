@@ -110,7 +110,7 @@ export interface FeedbackAggregate {
  * **修正率が高い項目 = AI が苦手な項目**。確信度が高いのに修正率も高いなら、
  * **AI が自信満々に間違えている**(最も危険な状態)。
  *
- * @param records フィードバック記録
+ * @param feedbacks フィードバック記録
  * @returns 項目ごとの修正率と平均確信度
  */
 export function aggregateOcrFeedback(feedbacks: OcrFeedback[]): FeedbackAggregate {

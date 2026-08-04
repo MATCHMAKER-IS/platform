@@ -71,7 +71,7 @@ export function countBy<T, K extends string | number>(array: T[], keyOf: (item: 
 /**
  * 複数配列を要素ごとに束ねる(短い方に合わせる)。
  *
- * @param arrays 束ねる配列(可変長)
+ * @param ...arrays 束ねる配列(可変長)
  */
 export function zip<T extends unknown[][]>(...arrays: T): { [K in keyof T]: T[K] extends (infer U)[] ? U : never }[] {
   const len = Math.min(...arrays.map((a) => a.length));

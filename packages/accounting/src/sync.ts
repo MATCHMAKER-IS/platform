@@ -45,7 +45,7 @@ export function entryKey(entry: JournalEntry): string {
  * **送る前に確認する**のが安全。
  *
  * @param entries 仕訳の配列
- * @param knownAccounts 登録済みの科目名
+ * @param accountItemIds 登録済みの科目 ID
  * @returns 送信ペイロードと、未登録の科目名
  */
 export function prepareBatch(entries: JournalEntry[], accountItemIds: Record<string, number>): PreparedBatch {

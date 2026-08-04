@@ -32,7 +32,7 @@ export interface NoticeBoardProps extends React.HTMLAttributes<HTMLElement> {
 }
 
 const LEVEL_DOT: Record<NoticeLevel, string> = {
-  info: "bg-sky-500", important: "bg-red-500", warning: "bg-amber-500", success: "bg-emerald-500",
+  info: "bg-[var(--color-primary)]", important: "bg-[var(--color-danger)]", warning: "bg-[var(--color-warning)]", success: "bg-[var(--color-success)]",
 };
 
 /** お知らせ一覧。未読ドット・カテゴリ・日付を表示。 */

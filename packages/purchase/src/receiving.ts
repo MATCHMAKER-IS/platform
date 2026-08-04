@@ -31,7 +31,7 @@ export type PurchaseStatus = "draft" | "ordered" | "partially_received" | "recei
 /**
  * 明細ごとの入荷状況を集計する。
  *
- * @param order 発注書
+ * @param lines 発注書
  * @param receipts 入荷の記録
  * @returns 明細ごとの発注数・入荷数・残
  */
@@ -49,7 +49,7 @@ export function receivingStatus(lines: PurchaseLine[], receipts: Receipt[]): Lin
  *
  * **未入荷を放置しない**ため(発注したのに届いていないものを可視化する)。
  *
- * @param order 発注書
+ * @param lines 発注書
  * @param receipts 入荷の記録
  * @returns 残数の合計
  */
@@ -82,7 +82,7 @@ export function purchaseStatus(
  * **発注より多く届くのは異常**(誤配送・入力ミス)。検収の前に気づく必要がある
  * (受け入れてしまうと、請求と合わなくなる)。
  *
- * @param order 発注書
+ * @param lines 発注書
  * @param receipts 入荷の記録
  * @returns 過入荷の明細と超過数
  */

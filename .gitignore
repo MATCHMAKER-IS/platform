@@ -10,3 +10,6 @@ docs/platform/api
 
 # Prisma の生成物（アプリごとに output で分けている。generate で作られる）
 apps/*/src/generated/
+
+# 復元訓練で作るダンプ(業務データそのもの。**絶対に追跡しない**)
+ops/drills/dumps/

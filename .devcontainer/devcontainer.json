@@ -2,7 +2,7 @@
   "name": "platform",
   "dockerComposeFile": ["../docker-compose.yml", "docker-compose.yml"],
   "service": "workspace",
-  "runServices": ["db", "mailhog"],
+  "runServices": ["db", "mailpit"],
   "workspaceFolder": "/workspaces/platform",
   "forwardPorts": [3000, 3001, 3002, 3003, 3004, 5432, 8025],
   "portsAttributes": {

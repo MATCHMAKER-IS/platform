@@ -44,7 +44,7 @@ export interface BulkInsertOptions {
  * if (res.ok) console.log(`${res.value.count} 件挿入`);
  * ```
  *
- * @param model Prisma のモデル
+ * @param delegate Prisma のモデル
  * @param rows 挿入する行
  * @param options.chunkSize 1 回の件数(**大きすぎるとクエリ長の上限に当たる**)
  * @returns 挿入件数
@@ -125,8 +125,8 @@ export async function bulkUpsert<TClient extends RawCapableClient, Row, T>(
  * if (res.ok) console.log(res.value.id); // 生成された ID
  * ```
  *
- * @param model Prisma のモデル
- * @param row 挿入する行
+ * @param delegate Prisma のモデル
+ * @param data 挿入する行
  * @returns 挿入した行
  */
 export async function insertReturning<T>(

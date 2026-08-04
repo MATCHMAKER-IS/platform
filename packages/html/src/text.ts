@@ -20,7 +20,7 @@ export function textToHtml(input: string, options: { xhtml?: boolean } = {}): st
  * 文字列を最大長で切り詰める。
  *
  * @param input 対象の文字列
- * @param maxLength 最大文字数(**suffix を含めた合計**)
+ * @param max 最大文字数(**suffix を含めた合計**)
  * @param suffix 省略記号(既定 `…`)
  * @returns 切り詰めた文字列。短ければそのまま
  */

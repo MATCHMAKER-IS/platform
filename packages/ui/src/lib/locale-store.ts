@@ -14,7 +14,7 @@ export interface LocaleStore {
  * 文字列が対応ロケールか。
  *
  *
- * @param value 判定する値
+ * @param v 判定する値
  * @returns 対応するロケールなら true(**型ガード**)
  */
 export function isLocale(v: unknown): v is Locale {

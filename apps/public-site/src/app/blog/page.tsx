@@ -20,11 +20,11 @@ export default async function BlogIndex() {
         <h1 className="mb-4 text-2xl font-bold">ブログ</h1>
         <ul className="flex flex-col gap-6">
           {posts.map((p) => (
-            <li key={p.slug} className="flex flex-col gap-2 border-b border-neutral-100 pb-4">
+            <li key={p.slug} className="flex flex-col gap-2 border-b border-[var(--color-border)] pb-4">
               {p.eyecatch && <a href={`/blog/${p.slug}`}><img src={p.eyecatch} alt="" className="h-40 w-full rounded object-cover" loading="lazy" /></a>}
-              <a href={`/blog/${p.slug}`} className="text-lg font-semibold hover:text-blue-700">{p.title}</a>
-              <p className="text-xs text-neutral-500">{p.publishedAt.slice(0, 10)}</p>
-              {p.excerpt && <p className="text-sm text-neutral-600">{p.excerpt}</p>}
+              <a href={`/blog/${p.slug}`} className="text-lg font-semibold hover:text-[var(--color-primary)]">{p.title}</a>
+              <p className="text-xs text-[var(--color-muted)]">{p.publishedAt.slice(0, 10)}</p>
+              {p.excerpt && <p className="text-sm text-[var(--color-muted)]">{p.excerpt}</p>}
             </li>
           ))}
         </ul>

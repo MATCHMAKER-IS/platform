@@ -27,7 +27,6 @@ export interface RoomMember {
  * ルームを作成する。
  *
  * @param input 名前・メンバーなど
- * @param now 現在時刻(テスト注入用)
  * @returns 作成したルーム
  * @throws {@link @platform/core#AppError} コード `VALIDATION` — 名前が空の場合
  */
@@ -63,7 +62,7 @@ export function unreadCount(messages: ChatMessage[], member: RoomMember): number
  * 既読にする。
  *
  * @param member メンバー
- * @param now 既読の時刻(省略時は現在)
+ * @param at 既読の時刻(省略時は現在)
  * @returns 更新した**新しい**メンバー(元は変更しない)
  */
 export function markRead(member: RoomMember, at?: string): RoomMember {
@@ -89,7 +88,7 @@ export function firstUnread(messages: ChatMessage[], member: RoomMember): ChatMe
  * **動きのあるルームを上に**出す(名前順だと、活発なルームが埋もれる)。
  *
  * @param rooms ルームの配列
- * @param messages 全メッセージ(roomId で紐づける)
+ * @param messagesByRoom 全メッセージ(roomId で紐づける)
  * @returns 最新メッセージの新しい順。**メッセージが無いルームは最後**
  */
 export function sortRoomsByActivity(rooms: ChatRoom[], messagesByRoom: Record<string, ChatMessage[]>): ChatRoom[] {

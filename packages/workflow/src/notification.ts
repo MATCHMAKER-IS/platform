@@ -18,9 +18,9 @@ export interface WorkflowNotification {
  * if (n) await notifier.notify(n);
  * ```
  *
- * @param request 申請
- * @param from 前の状態
- * @param to 次の状態
+ * @param prev 申請
+ * @param next 前の状態
+ * @param meta 次の状態
  * @returns 通知の内容。**通知不要な遷移なら null**(全部の遷移を通知すると、誰も読まなくなる)
  */
 export function notificationForTransition(

@@ -50,7 +50,7 @@ export function buildRobotsTxt(input: RobotsTxtInput): string {
  *
  * **公開サイト用**。社内ツールには {@link internalRobotsTxt} を使うこと。
  *
- * @param sitemapUrl サイトマップの URL
+ * @param sitemap サイトマップの URL
  * @returns robots.txt の中身
  */
 export function allowAllRobotsTxt(sitemap?: string): string {

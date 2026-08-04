@@ -105,6 +105,20 @@ export interface ErrorEnvelope {
 }
 
 /**
+ * `details` を外に出してよいエラーコード。
+ *
+ * **入力の誤りだけ**を許す。利用者が直せる情報(どの項目が不正か)は返す価値があるが、
+ * それ以外の `details` には**内部の事情**が入りうる:
+ *   - DB のエラーなら テーブル名・カラム名
+ *   - 外部連携なら 接続先の URL・応答の中身
+ *   - 認可なら 存在するはずのリソース ID
+ *
+ * 「個人情報を含めないこと」と書くだけでは守れない。**既定で出さない**方が安全で、
+ * 出したいときは呼び出し側が `message` に含める(そこは意識して書く場所になる)。
+ */
+const DETAILS_SAFE_CODES: readonly string[] = [ErrorCode.VALIDATION];
+
+/**
  * エラーを標準エンベロープに変換する。API レスポンス生成に使う。
  *
  * **内部の詳細は漏らさない**: AppError 以外は「予期しないエラー」に丸める
@@ -119,9 +133,18 @@ export interface ErrorEnvelope {
  * return Response.json(toErrorEnvelope(e, span.traceId), { status: httpStatusFor(e) });
  * ```
  */
+
 export function toErrorEnvelope(error: unknown, traceId?: string): ErrorEnvelope {
   if (error instanceof AppError) {
-    return { error: { code: error.code, message: error.message, ...(traceId ? { traceId } : {}), ...(error.details ? { details: error.details } : {}) } };
+    const showDetails = error.details !== undefined && DETAILS_SAFE_CODES.includes(error.code);
+    return {
+      error: {
+        code: error.code,
+        message: error.message,
+        ...(traceId ? { traceId } : {}),
+        ...(showDetails ? { details: error.details } : {}),
+      },
+    };
   }
   return { error: { code: "UNKNOWN", message: "予期しないエラーが発生しました", ...(traceId ? { traceId } : {}) } };
 }

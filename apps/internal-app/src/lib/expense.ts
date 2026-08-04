@@ -75,7 +75,13 @@ export interface ExpenseSummary {
   outliers: Expense[];
 }
 
-/** 経費全体のサマリを算出する。 */
+/**
+ * 経費全体のサマリを算出する。
+ *
+ * `@platform/analytics` にも `summarize` があるが**別物**(あちらはアクセス解析の
+ * ページビュー集計)。名前が同じだけで、扱う対象が違うため統合しない。
+ * 金額の合計は `@platform/utils` の `sum` を使っている(基盤の実装を使う)。
+ */
 export function summarize(expenses: readonly Expense[]): ExpenseSummary {
   const amounts = expenses.map((e) => e.amount);
   return {

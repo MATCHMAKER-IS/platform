@@ -13,6 +13,11 @@
   --color-primary: #0f766e;
   --color-primary-fg: #ffffff;
   --color-danger: #b91c1c;
+  /* 状態色。**AppSkin(@platform/theme)がテーマごとに上書きする**が、
+     素の HTML やテーマ未適用の画面でも壊れないよう既定値を置く。
+     値は derive.ts の STATUS(light)と揃えてある。 */
+  --color-success: #16a34a;
+  --color-warning: #d97706;
   --radius: 0.5rem;
   --font-sans: "Inter", system-ui, "Hiragino Sans", "Noto Sans JP", sans-serif;
 }

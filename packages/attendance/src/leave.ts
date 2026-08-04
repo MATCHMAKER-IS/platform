@@ -189,7 +189,6 @@ export function leaveBalance(grants: LeaveGrant[], taken: LeaveTaken[], asOf: st
  *
  * @param grant 対象の付与
  * @param taken 取得の履歴
- * @param asOf  基準日
  * @returns 義務の対象か・取得済み日数・不足日数・期限
  */
 export function mandatoryLeaveStatus(

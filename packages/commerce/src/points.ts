@@ -19,7 +19,7 @@ export interface PointTransaction {
  *
  * **端数は切り捨て**(切り上げると、店側が損をする)。
  *
- * @param amount 購入額
+ * @param purchaseAmount 購入額
  * @param rate 還元率(既定 0.01 = 1%)
  * @returns ポイント数
  */
@@ -76,7 +76,7 @@ export function redeemPoints(balance: number, requested: number, orderAmount?: n
  * 不信感につながる)。**概算**(先入先出で消費したと仮定)。
  *
  * @param transactions 取引履歴
- * @param until この日までに失効する分
+ * @param before この日までに失効する分
  * @param now 基準日(テスト注入用)
  * @returns 失効するポイント数
  */

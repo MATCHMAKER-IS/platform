@@ -72,104 +72,104 @@ export function AdminConsoleClient({ fetchImpl }: AdminConsoleClientProps) {
 
   const TABS = [["broadcast", "お知らせ配信"], ["settings", "システム設定"], ["audit", "監査ダッシュボード"], ["permissions", "権限マトリクス"], ["health", "ヘルス"], ["logins", "ログイン監視"], ["alerts", "監査アラート"]];
   const bar = (c: Count[]) => { const max = Math.max(1, ...c.map((x) => x.count)); return c.slice(0, 12).map((x) => (
-    <div key={x.key} className="flex items-center gap-2 text-xs"><span className="w-40 truncate text-neutral-600">{x.key}</span><span className="h-3 rounded bg-blue-500" style={{ width: `${(x.count / max) * 60}%` }}></span><span className="text-neutral-500">{x.count}</span></div>
+    <div key={x.key} className="flex items-center gap-2 text-xs"><span className="w-40 truncate text-[var(--color-muted)]">{x.key}</span><span className="h-3 rounded bg-[var(--color-primary)]" style={{ width: `${(x.count / max) * 60}%` }}></span><span className="text-[var(--color-muted)]">{x.count}</span></div>
   )); };
 
   return (
     <div className="mx-auto max-w-4xl p-6">
       <h1 className="mb-1 text-2xl font-bold">管理コンソール</h1>
-      <p className="mb-4 text-xs text-neutral-500">管理者向けの運用機能をまとめています。</p>
-      {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-      <div className="mb-4 flex flex-wrap gap-1 border-b border-neutral-200">
-        {TABS.map(([k, label]) => <Button key={k} onClick={() => setTab(k!)} className={`px-3 py-2 text-sm ${tab === k ? "border-b-2 border-neutral-900 font-medium" : "text-neutral-500"}`}>{label}</Button>)}
+      <p className="mb-4 text-xs text-[var(--color-muted)]">管理者向けの運用機能をまとめています。</p>
+      {error && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-danger)]">{error}</p>}
+      <div className="mb-4 flex flex-wrap gap-1 border-b border-[var(--color-border)]">
+        {TABS.map(([k, label]) => <Button key={k} onClick={() => setTab(k!)} className={`px-3 py-2 text-sm ${tab === k ? "border-b-2 border-[var(--color-fg)] font-medium" : "text-[var(--color-muted)]"}`}>{label}</Button>)}
       </div>
 
       {tab === "broadcast" && (
-        <div className="rounded border border-neutral-200 p-4">
+        <div className="rounded border border-[var(--color-border)] p-4">
           <h2 className="mb-2 text-sm font-medium">全体周知（有効な全利用者の受信箱へ配信）</h2>
           <div className="flex flex-col gap-2">
-            <Input value={bc.subject} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBc({ ...bc, subject: e.target.value })} placeholder="件名" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
-            <Textarea value={bc.body} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBc({ ...bc, body: e.target.value })} rows={5} placeholder="本文" className="rounded border border-neutral-300 px-2 py-1 text-sm" />
-            <div className="flex items-center gap-3"><Button onClick={sendBroadcast} className="self-start rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">配信する</Button>{bcMsg && <span className="text-xs text-neutral-600">{bcMsg}</span>}</div>
+            <Input value={bc.subject} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBc({ ...bc, subject: e.target.value })} placeholder="件名" className="rounded border border-[var(--color-border)] px-2 py-1 text-sm" />
+            <Textarea value={bc.body} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBc({ ...bc, body: e.target.value })} rows={5} placeholder="本文" className="rounded border border-[var(--color-border)] px-2 py-1 text-sm" />
+            <div className="flex items-center gap-3"><Button onClick={sendBroadcast} className="self-start rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">配信する</Button>{bcMsg && <span className="text-xs text-[var(--color-muted)]">{bcMsg}</span>}</div>
           </div>
         </div>
       )}
 
       {tab === "settings" && settings && (
-        <div className="rounded border border-neutral-200 p-4">
+        <div className="rounded border border-[var(--color-border)] p-4">
           <h2 className="mb-3 text-sm font-medium">システム設定</h2>
           <div className="grid grid-cols-2 gap-3">
-            <label className="text-xs text-neutral-500">会社名<Input value={settings.companyName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, companyName: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">決算月<Input type="number" value={settings.fiscalClosingMonth} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, fiscalClosingMonth: Number(e.target.value) })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">消費税率（例 0.10）<Input value={settings.consumptionTaxRate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, consumptionTaxRate: Number(e.target.value) })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">送信メール既定From<Input value={settings.mailFrom} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, mailFrom: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">請求書番号の接頭辞<Input value={settings.invoicePrefix} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, invoicePrefix: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">承認で署名必須の金額（円・0で無効）<Input type="number" value={settings.signatureThreshold} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, signatureThreshold: Number(e.target.value) })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-[var(--color-muted)]">会社名<Input value={settings.companyName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, companyName: e.target.value })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-[var(--color-muted)]">決算月<Input type="number" value={settings.fiscalClosingMonth} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, fiscalClosingMonth: Number(e.target.value) })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-[var(--color-muted)]">消費税率（例 0.10）<Input value={settings.consumptionTaxRate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, consumptionTaxRate: Number(e.target.value) })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-[var(--color-muted)]">送信メール既定From<Input value={settings.mailFrom} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, mailFrom: e.target.value })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-[var(--color-muted)]">請求書番号の接頭辞<Input value={settings.invoicePrefix} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, invoicePrefix: e.target.value })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-[var(--color-muted)]">承認で署名必須の金額（円・0で無効）<Input type="number" value={settings.signatureThreshold} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, signatureThreshold: Number(e.target.value) })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
           </div>
-          <div className="mt-3 flex items-center gap-3"><Button onClick={saveSettings} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">保存</Button>{setMsg && <span className="text-xs text-neutral-600">{setMsg}</span>}</div>
+          <div className="mt-3 flex items-center gap-3"><Button onClick={saveSettings} className="rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">保存</Button>{setMsg && <span className="text-xs text-[var(--color-muted)]">{setMsg}</span>}</div>
         </div>
       )}
 
       {tab === "audit" && audit && (
-        <div className="rounded border border-neutral-200 p-4">
+        <div className="rounded border border-[var(--color-border)] p-4">
           <h2 className="mb-2 text-sm font-medium">監査ダッシュボード（直近1000件・計 {audit.total} 件）</h2>
           <div className="grid grid-cols-2 gap-4">
-            <div><h3 className="mb-1 text-xs font-medium text-neutral-500">操作種別</h3><div className="space-y-1">{bar(audit.byAction)}</div></div>
-            <div><h3 className="mb-1 text-xs font-medium text-neutral-500">操作者</h3><div className="space-y-1">{bar(audit.byActor)}</div></div>
+            <div><h3 className="mb-1 text-xs font-medium text-[var(--color-muted)]">操作種別</h3><div className="space-y-1">{bar(audit.byAction)}</div></div>
+            <div><h3 className="mb-1 text-xs font-medium text-[var(--color-muted)]">操作者</h3><div className="space-y-1">{bar(audit.byActor)}</div></div>
           </div>
         </div>
       )}
 
       {tab === "permissions" && matrix && (
-        <div className="overflow-x-auto rounded border border-neutral-200 p-4">
+        <div className="overflow-x-auto rounded border border-[var(--color-border)] p-4">
           <h2 className="mb-2 text-sm font-medium">権限マトリクス（ロール × 機能）</h2>
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-neutral-200 text-xs text-neutral-500"><th className="px-2 py-1 text-left">機能</th>{matrix.roles.map((r) => <th key={r} className="px-2 py-1 text-center">{ROLE_LABEL[r] ?? r}</th>)}</tr></thead>
-            <tbody>{matrix.rows.map((row) => <tr key={row.key} className="border-b border-neutral-100"><td className="px-2 py-1.5">{row.label}</td>{row.allow.map((a, i) => <td key={i} className="px-2 py-1.5 text-center">{a ? <span className="text-green-600">✓</span> : <span className="text-neutral-300">—</span>}</td>)}</tr>)}</tbody>
+            <thead><tr className="border-b border-[var(--color-border)] text-xs text-[var(--color-muted)]"><th className="px-2 py-1 text-left">機能</th>{matrix.roles.map((r) => <th key={r} className="px-2 py-1 text-center">{ROLE_LABEL[r] ?? r}</th>)}</tr></thead>
+            <tbody>{matrix.rows.map((row) => <tr key={row.key} className="border-b border-[var(--color-border)]"><td className="px-2 py-1.5">{row.label}</td>{row.allow.map((a, i) => <td key={i} className="px-2 py-1.5 text-center">{a ? <span className="text-[var(--color-success)]">✓</span> : <span className="text-[color-mix(in_srgb,var(--color-primary-fg)_75%,transparent)]">—</span>}</td>)}</tr>)}</tbody>
           </table>
         </div>
       )}
 
       {tab === "health" && health && (
-        <div className="rounded border border-neutral-200 p-4">
-          <h2 className="mb-2 flex items-center gap-2 text-sm font-medium">システムヘルス {health.healthy ? <span className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-800">正常</span> : <span className="rounded bg-red-100 px-2 py-0.5 text-xs text-red-800">要確認</span>}</h2>
-          <div className="mb-3 flex flex-wrap gap-3">{Object.entries(health.counts).map(([k, v]) => <div key={k} className="rounded bg-neutral-50 px-3 py-2 text-center"><div className="text-xs text-neutral-500">{k}</div><div className="text-lg font-bold">{v}</div></div>)}</div>
-          <ul className="space-y-1 text-sm">{health.checks.map((c, i) => <li key={i} className="flex items-center gap-2">{c.ok ? <span className="text-green-600">✓</span> : <span className="text-red-600">✗</span>}<span>{c.name}</span>{c.detail && <span className="text-xs text-neutral-400">（{c.detail}）</span>}</li>)}</ul>
+        <div className="rounded border border-[var(--color-border)] p-4">
+          <h2 className="mb-2 flex items-center gap-2 text-sm font-medium">システムヘルス {health.healthy ? <span className="rounded bg-[color-mix(in_srgb,var(--color-success)_15%,transparent)] px-2 py-0.5 text-xs text-[var(--color-success)]">正常</span> : <span className="rounded bg-[color-mix(in_srgb,var(--color-danger)_15%,transparent)] px-2 py-0.5 text-xs text-[var(--color-danger)]">要確認</span>}</h2>
+          <div className="mb-3 flex flex-wrap gap-3">{Object.entries(health.counts).map(([k, v]) => <div key={k} className="rounded bg-[var(--color-subtle)] px-3 py-2 text-center"><div className="text-xs text-[var(--color-muted)]">{k}</div><div className="text-lg font-bold">{v}</div></div>)}</div>
+          <ul className="space-y-1 text-sm">{health.checks.map((c, i) => <li key={i} className="flex items-center gap-2">{c.ok ? <span className="text-[var(--color-success)]">✓</span> : <span className="text-[var(--color-danger)]">✗</span>}<span>{c.name}</span>{c.detail && <span className="text-xs text-[var(--color-muted)]">（{c.detail}）</span>}</li>)}</ul>
         </div>
       )}
 
       {tab === "logins" && logins && (
-        <div className="rounded border border-neutral-200 p-4">
+        <div className="rounded border border-[var(--color-border)] p-4">
           <h2 className="mb-2 text-sm font-medium">ログイン監視</h2>
           <div className="mb-3 flex gap-3">
-            <div className="rounded bg-neutral-50 px-3 py-2 text-center"><div className="text-xs text-neutral-500">総数</div><div className="text-lg font-bold">{logins.summary.total}</div></div>
-            <div className="rounded bg-green-50 px-3 py-2 text-center"><div className="text-xs text-green-700">成功</div><div className="text-lg font-bold text-green-700">{logins.summary.success}</div></div>
-            <div className="rounded bg-red-50 px-3 py-2 text-center"><div className="text-xs text-red-700">失敗</div><div className="text-lg font-bold text-red-700">{logins.summary.failure}</div></div>
+            <div className="rounded bg-[var(--color-subtle)] px-3 py-2 text-center"><div className="text-xs text-[var(--color-muted)]">総数</div><div className="text-lg font-bold">{logins.summary.total}</div></div>
+            <div className="rounded bg-[color-mix(in_srgb,var(--color-success)_8%,transparent)] px-3 py-2 text-center"><div className="text-xs text-[var(--color-success)]">成功</div><div className="text-lg font-bold text-[var(--color-success)]">{logins.summary.success}</div></div>
+            <div className="rounded bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] px-3 py-2 text-center"><div className="text-xs text-[var(--color-danger)]">失敗</div><div className="text-lg font-bold text-[var(--color-danger)]">{logins.summary.failure}</div></div>
           </div>
           <table className="w-full text-sm">
-            <thead><tr className="border-b border-neutral-200 text-left text-xs text-neutral-500"><th className="px-2 py-1">日時</th><th className="px-2 py-1">利用者</th><th className="px-2 py-1">イベント</th></tr></thead>
-            <tbody>{logins.recent.map((r, i) => <tr key={i} className="border-b border-neutral-100"><td className="px-2 py-1.5 text-xs">{(r.at ?? "").replace("T", " ").slice(0, 16)}</td><td className="px-2 py-1.5">{r.actor}</td><td className="px-2 py-1.5">{r.action}</td></tr>)}</tbody>
+            <thead><tr className="border-b border-[var(--color-border)] text-left text-xs text-[var(--color-muted)]"><th className="px-2 py-1">日時</th><th className="px-2 py-1">利用者</th><th className="px-2 py-1">イベント</th></tr></thead>
+            <tbody>{logins.recent.map((r, i) => <tr key={i} className="border-b border-[var(--color-border)]"><td className="px-2 py-1.5 text-xs">{(r.at ?? "").replace("T", " ").slice(0, 16)}</td><td className="px-2 py-1.5">{r.actor}</td><td className="px-2 py-1.5">{r.action}</td></tr>)}</tbody>
           </table>
-          {logins.recent.length === 0 && <p className="text-xs text-neutral-500">ログインイベントはまだありません。</p>}
+          {logins.recent.length === 0 && <p className="text-xs text-[var(--color-muted)]">ログインイベントはまだありません。</p>}
         </div>
       )}
 
       {tab === "alerts" && alerts && (
-        <div className="rounded border border-neutral-200 p-4">
+        <div className="rounded border border-[var(--color-border)] p-4">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-sm font-medium">監査アラート（大量削除・ログイン失敗の連続・深夜帯の操作）</h2>
-            <Button onClick={dispatchAlerts} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">管理者へ通知</Button>
+            <Button onClick={dispatchAlerts} className="rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">管理者へ通知</Button>
           </div>
-          {alertMsg && <p className="mb-2 text-xs text-neutral-600">{alertMsg}</p>}
+          {alertMsg && <p className="mb-2 text-xs text-[var(--color-muted)]">{alertMsg}</p>}
           {alerts.length === 0 ? (
-            <p className="rounded bg-green-50 px-3 py-2 text-sm text-green-700">検出された異常はありません。</p>
+            <p className="rounded bg-[color-mix(in_srgb,var(--color-success)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-success)]">検出された異常はありません。</p>
           ) : (
             <ul className="space-y-2">
               {alerts.map((a, i) => (
-                <li key={i} className={`rounded border-l-4 px-3 py-2 text-sm ${a.level === "critical" ? "border-red-500 bg-red-50" : "border-amber-400 bg-amber-50"}`}>
-                  <span className={`mr-2 rounded px-1.5 py-0.5 text-xs ${a.level === "critical" ? "bg-red-600 text-white" : "bg-amber-500 text-white"}`}>{a.level === "critical" ? "重大" : "警告"}</span>
+                <li key={i} className={`rounded border-l-4 px-3 py-2 text-sm ${a.level === "critical" ? "border-[var(--color-danger)] bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)]" : "border-[color-mix(in_srgb,var(--color-warning)_70%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_8%,transparent)]"}`}>
+                  <span className={`mr-2 rounded px-1.5 py-0.5 text-xs ${a.level === "critical" ? "bg-[var(--color-danger)] text-white" : "bg-[var(--color-warning)] text-white"}`}>{a.level === "critical" ? "重大" : "警告"}</span>
                   <span className="font-medium">{a.title}</span>
-                  <p className="mt-0.5 text-xs text-neutral-600">{a.detail}</p>
+                  <p className="mt-0.5 text-xs text-[var(--color-muted)]">{a.detail}</p>
                 </li>
               ))}
             </ul>

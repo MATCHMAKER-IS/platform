@@ -8,7 +8,7 @@
  * arr に item を追加し、最大 max 件に丸めた新配列を返す。
  *
  *
- * @param buffer 現在のバッファ
+ * @param arr 現在のバッファ
  * @param item 追加する要素
  * @param max 保持する件数
  * @returns 更新したバッファ(**末尾 max 件に丸める**)
@@ -23,7 +23,7 @@ export function appendCapped<T>(arr: T[], item: T, max: number): T[] {
  * arr に複数 items を追加し、最大 max 件に丸める。
  *
  *
- * @param buffer 現在のバッファ
+ * @param arr 現在のバッファ
  * @param items 追加する要素
  * @param max 保持する件数
  * @returns 更新したバッファ

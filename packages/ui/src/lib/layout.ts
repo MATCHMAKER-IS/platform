@@ -27,7 +27,7 @@ export function clampSpan(span: number, min = 1, max = 12): number {
 /**
  * ウィジェットを移動する(ドラッグ&ドロップ)。
  *
- * @param items 現在の配置
+ * @param list 現在の配置
  * @param fromId 移動するウィジェット
  * @param toId 移動先の位置
  * @returns 移動後の**新しい配列**(元は変更しない)

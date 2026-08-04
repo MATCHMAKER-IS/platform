@@ -91,8 +91,11 @@ export interface DailyWorkInput {
  * 1 日の勤怠を区分ごとの時間に分ける。
  * 休憩は実労働時間から差し引く。深夜時間は勤務区間全体に対して計算する(休憩の深夜控除はしない簡易版)。
  *
- * @param work 勤務時間帯
- * @param scheduled 所定労働時間
+ * @param input.startMin 始業(0 時からの分)
+ * @param input.endMin 終業(0 時からの分)
+ * @param input.breakMinutes 休憩(分。任意)
+ * @param input.legalDailyMinutes 法定労働時間(分。既定 480)
+ * @param input.isHoliday 法定休日か
  * @returns 所定内・時間外・深夜に分けた分数(**重複して数える**。深夜の時間外は両方に計上され、割増も加算される)
  */
 export function splitDailyWork(input: DailyWorkInput): WorkSplit {

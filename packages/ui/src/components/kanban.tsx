@@ -62,6 +62,8 @@ export function Kanban({ columns, onMove, onCardClick, readOnly, className, ...p
             <span className="rounded-full bg-[var(--color-subtle-strong)] px-2 text-xs text-[var(--color-muted)]">{col.cards.length}</span>
           </div>
           <div className="flex flex-1 flex-col gap-2 p-2">
+            {/* **キーボードでも開けるようにする。** ドラッグ移動はマウス前提だが、
+                カードを開くことまでできないのは困る(tabIndex + Enter/Space) */}
             {col.cards.map((card, idx) => (
               <div
                 key={card.id}
@@ -70,6 +72,10 @@ export function Kanban({ columns, onMove, onCardClick, readOnly, className, ...p
                 onDragOver={readOnly ? undefined : (e) => e.preventDefault()}
                 onDrop={readOnly ? undefined : (e) => { e.stopPropagation(); if (dragId.current) { onMove?.(dragId.current, col.id, idx); dragId.current = null; } }}
                 onClick={() => onCardClick?.(card, col.id)}
+                tabIndex={onCardClick ? 0 : undefined}
+                onKeyDown={onCardClick ? (e: React.KeyboardEvent) => {
+                  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onCardClick(card, col.id); }
+                } : undefined}
                 className={cn(
                   "cursor-pointer rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] p-2.5 text-sm shadow-sm hover:shadow",
                   !readOnly && "active:cursor-grabbing",

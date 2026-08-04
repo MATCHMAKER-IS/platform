@@ -82,7 +82,7 @@ export function trackingPixel(src: string, options: { width?: number; height?: n
  * 信頼済みの生 HTML をそのまま返す（管理者が入力した計測タグ等）。
  * ユーザー入力には使わないこと（XSS になる）。用途を明示するためのラッパー。
  *
- * @param html 生の HTML(**信頼済みであること**)
+ * @param trustedHtml 生の HTML(**信頼済みであること**)
  * @returns そのままの HTML
  */
 export function embedHtml(trustedHtml: string): string {
@@ -95,7 +95,7 @@ export function embedHtml(trustedHtml: string): string {
  * **{@link embedInlineScript} と対比するための関数**。同じ文字列でも、
  * スクリプトとして出すか、テキストとして出すかで意味がまったく違う。
  *
- * @param text 表示するテキスト
+ * @param html 表示するテキスト
  * @returns エスケープ済みの文字列
  */
 export function embedAsText(html: string): string {

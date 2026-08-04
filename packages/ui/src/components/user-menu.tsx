@@ -78,7 +78,7 @@ export function UserMenu({ name, detail, avatar, items, className }: UserMenuPro
           {items.map((item, i) => {
             const cls = cn(
               "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition-colors",
-              item.danger ? "text-[var(--color-danger)] hover:bg-red-50" : "text-[var(--color-fg)] hover:bg-[var(--color-subtle)]",
+              item.danger ? "text-[var(--color-danger)] hover:bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)]" : "text-[var(--color-fg)] hover:bg-[var(--color-subtle)]",
               item.separated && "mt-1 border-t border-[var(--color-border)] pt-2.5",
             );
             const inner = (

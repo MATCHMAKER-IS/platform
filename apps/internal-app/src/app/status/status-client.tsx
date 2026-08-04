@@ -13,30 +13,30 @@ export function StatusClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   const load = React.useCallback(async () => { try { const r = await doFetch("/api/status"); setReport((await r.json()) as Report); } catch { /* noop */ } }, [doFetch]);
   React.useEffect(() => { void load(); }, [load]);
 
-  if (!report) return <div className="mx-auto max-w-2xl p-6 text-sm text-neutral-500">確認中…</div>;
+  if (!report) return <div className="mx-auto max-w-2xl p-6 text-sm text-[var(--color-muted)]">確認中…</div>;
   return (
     <div className="mx-auto max-w-2xl p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">システムステータス</h1>
-        <Button onClick={() => void load()} className="rounded border border-neutral-300 px-3 py-1 text-sm">更新</Button>
+        <Button onClick={() => void load()} className="rounded border border-[var(--color-border)] px-3 py-1 text-sm">更新</Button>
       </div>
-      <div className={`mb-4 rounded p-4 ${report.status === "healthy" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"}`}>
+      <div className={`mb-4 rounded p-4 ${report.status === "healthy" ? "bg-[color-mix(in_srgb,var(--color-success)_8%,transparent)] text-[var(--color-success)]" : "bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] text-[var(--color-danger)]"}`}>
         <span className="text-lg font-semibold">{report.status === "healthy" ? "✓ 全システム正常" : "⚠ 一部に問題があります"}</span>
         <span className="ml-3 text-sm">{report.summary.up}/{report.summary.total} 稼働中</span>
       </div>
-      <ul className="divide-y divide-neutral-100 rounded border border-neutral-200">
+      <ul className="divide-y divide-neutral-100 rounded border border-[var(--color-border)]">
         {report.checks.map((c) => (
           <li key={c.name} className="flex items-center justify-between px-4 py-3">
             <span className="text-sm font-medium">{LABEL[c.name] ?? c.name}</span>
             <span className="flex items-center gap-2 text-sm">
-              {c.error && <span className="text-xs text-red-500">{c.error}</span>}
-              <span className="text-xs text-neutral-400">{c.durationMs}ms</span>
-              <span className={`rounded px-2 py-0.5 text-xs ${c.status === "up" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{c.status === "up" ? "稼働中" : "停止"}</span>
+              {c.error && <span className="text-xs text-[var(--color-danger)]">{c.error}</span>}
+              <span className="text-xs text-[var(--color-muted)]">{c.durationMs}ms</span>
+              <span className={`rounded px-2 py-0.5 text-xs ${c.status === "up" ? "bg-[color-mix(in_srgb,var(--color-success)_15%,transparent)] text-[var(--color-success)]" : "bg-[color-mix(in_srgb,var(--color-danger)_15%,transparent)] text-[var(--color-danger)]"}`}>{c.status === "up" ? "稼働中" : "停止"}</span>
             </span>
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-xs text-neutral-400">最終確認: {new Date(report.timestamp).toLocaleString("ja-JP")}</p>
+      <p className="mt-2 text-xs text-[var(--color-muted)]">最終確認: {new Date(report.timestamp).toLocaleString("ja-JP")}</p>
     </div>
   );
 }

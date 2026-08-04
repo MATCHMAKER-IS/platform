@@ -29,17 +29,17 @@ export function RespondClient({ surveyId, fetchImpl }: { surveyId: string; fetch
     else setError(((await r.json()) as { error?: string }).error ?? "送信に失敗しました");
   };
 
-  if (done) return <div className="mx-auto max-w-2xl p-6"><p className="rounded bg-green-50 px-4 py-3 text-green-700">ご回答ありがとうございました。</p></div>;
-  if (!survey) return <div className="mx-auto max-w-2xl p-6 text-sm text-neutral-500">読み込み中…</div>;
+  if (done) return <div className="mx-auto max-w-2xl p-6"><p className="rounded bg-[color-mix(in_srgb,var(--color-success)_8%,transparent)] px-4 py-3 text-[var(--color-success)]">ご回答ありがとうございました。</p></div>;
+  if (!survey) return <div className="mx-auto max-w-2xl p-6 text-sm text-[var(--color-muted)]">読み込み中…</div>;
 
   return (
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="text-2xl font-bold">{survey.title}</h1>
-      {survey.description && <p className="mb-4 mt-1 text-sm text-neutral-600">{survey.description}</p>}
-      {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {survey.description && <p className="mb-4 mt-1 text-sm text-[var(--color-muted)]">{survey.description}</p>}
+      {error && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-danger)]">{error}</p>}
       <div className="space-y-4">
         {survey.questions.map((q) => (
-          <div key={q.id} className="rounded border border-neutral-200 p-3">
+          <div key={q.id} className="rounded border border-[var(--color-border)] p-3">
             <p className="mb-2 text-sm font-medium">{q.text}</p>
             {q.type === "single" && (
               /* **選択状態を value で渡す。** 生 input のときは checked を渡しておらず、
@@ -68,12 +68,12 @@ export function RespondClient({ surveyId, fetchImpl }: { surveyId: string; fetch
                 ))}
               </div>
             )}
-            {q.type === "text" && <Textarea onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setText(q.id, e.target.value)} rows={3} className="block w-full rounded border border-neutral-300 px-2 py-1 text-sm" />}
-            {q.type === "rating" && <div className="flex gap-2">{[1, 2, 3, 4, 5].map((n) => <Button key={n} onClick={() => setRating(q.id, n)} className={`h-8 w-8 rounded-full border text-sm ${answers[q.id]?.rating === n ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-300"}`}>{n}</Button>)}</div>}
+            {q.type === "text" && <Textarea onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setText(q.id, e.target.value)} rows={3} className="block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" />}
+            {q.type === "rating" && <div className="flex gap-2">{[1, 2, 3, 4, 5].map((n) => <Button key={n} onClick={() => setRating(q.id, n)} className={`h-8 w-8 rounded-full border text-sm ${answers[q.id]?.rating === n ? "border-[var(--color-fg)] bg-[var(--color-fg)] text-white" : "border-[var(--color-border)]"}`}>{n}</Button>)}</div>}
           </div>
         ))}
       </div>
-      <Button onClick={submit} className="mt-4 rounded bg-neutral-900 px-6 py-2 text-sm text-white">送信</Button>
+      <Button onClick={submit} className="mt-4 rounded bg-[var(--color-fg)] px-6 py-2 text-sm text-white">送信</Button>
     </div>
   );
 }

@@ -72,8 +72,8 @@ function pay(hourlyWage: number, minutes: number, rate: number): number {
  * モデル: 全ての非休日労働に基本(1.0)、時間外にさらに割増、深夜は全区分に加算、
  * 法定休日は基本+休日割増で別建て(休日には時間外の概念なし)。
  *
- * @param summary 月次の集計
- * @param hourlyRate 時間単価
+ * @param input 月次の集計
+ * @param rates 時間単価
  * @returns 割増ごとの金額と合計
  */
 export function calcPay(input: PayInput, rates: PremiumRates = DEFAULT_PREMIUM_RATES): PayBreakdown {

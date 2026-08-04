@@ -23,10 +23,10 @@ export function SetupClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
     else setMsg(((await r.json()) as { error?: string }).error ?? "セットアップに失敗しました");
   };
 
-  if (!state) return <div className="mx-auto max-w-md p-6 text-sm text-neutral-500">確認中…</div>;
+  if (!state) return <div className="mx-auto max-w-md p-6 text-sm text-[var(--color-muted)]">確認中…</div>;
   if (done || state.initialized) return (
     <div className="mx-auto max-w-md p-6">
-      <div className="rounded bg-green-50 p-4 text-green-800">
+      <div className="rounded bg-[color-mix(in_srgb,var(--color-success)_8%,transparent)] p-4 text-[var(--color-success)]">
         <p className="font-semibold">セットアップ完了</p>
         <p className="mt-1 text-sm">管理者アカウントで <a href="/login" className="underline">ログイン</a> してください。</p>
       </div>
@@ -36,15 +36,15 @@ export function SetupClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   return (
     <div className="mx-auto max-w-md p-6">
       <h1 className="mb-1 text-2xl font-bold">初期セットアップ</h1>
-      <p className="mb-4 text-sm text-neutral-600">最初の管理者アカウントと会社情報を設定します。</p>
-      {msg && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{msg}</p>}
+      <p className="mb-4 text-sm text-[var(--color-muted)]">最初の管理者アカウントと会社情報を設定します。</p>
+      {msg && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-danger)]">{msg}</p>}
       <div className="space-y-3">
-        <label className="block text-xs text-neutral-500">会社名<Input value={form.companyName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, companyName: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm" /></label>
-        <label className="block text-xs text-neutral-500">管理者名<Input value={form.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm" /></label>
-        <label className="block text-xs text-neutral-500">メールアドレス<Input type="email" value={form.email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, email: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm" /></label>
-        <label className="block text-xs text-neutral-500">パスワード（8文字以上）<Input type="password" value={form.password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, password: e.target.value })} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1.5 text-sm" /></label>
+        <label className="block text-xs text-[var(--color-muted)]">会社名<Input value={form.companyName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, companyName: e.target.value })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1.5 text-sm" /></label>
+        <label className="block text-xs text-[var(--color-muted)]">管理者名<Input value={form.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, name: e.target.value })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1.5 text-sm" /></label>
+        <label className="block text-xs text-[var(--color-muted)]">メールアドレス<Input type="email" value={form.email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, email: e.target.value })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1.5 text-sm" /></label>
+        <label className="block text-xs text-[var(--color-muted)]">パスワード（8文字以上）<Input type="password" value={form.password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, password: e.target.value })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1.5 text-sm" /></label>
       </div>
-      <Button onClick={submit} className="mt-4 w-full rounded bg-neutral-900 px-6 py-2.5 text-sm text-white">セットアップを完了</Button>
+      <Button onClick={submit} className="mt-4 w-full rounded bg-[var(--color-fg)] px-6 py-2.5 text-sm text-white">セットアップを完了</Button>
     </div>
   );
 }

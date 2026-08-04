@@ -68,7 +68,7 @@ export function LoginCard({
       </div>
 
       {error != null && (
-        <div className="mb-4 rounded-[var(--radius)] border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+        <div className="mb-4 rounded-[var(--radius)] border border-[color-mix(in_srgb,var(--color-danger)_25%,transparent)] bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-danger)]" role="alert">
           {error}
         </div>
       )}

@@ -31,8 +31,8 @@ export function FreshnessIndicator({ updatedAt, now = Date.now(), staleAfterMinu
   const ms = updatedAt instanceof Date ? updatedAt.getTime() : updatedAt;
   const stale = now - ms > staleAfterMinutes * 60_000;
   return (
-    <span className={cn("inline-flex items-center gap-1.5 text-xs", stale ? "text-amber-600" : "text-[var(--color-muted)]", className)}>
-      <span className={cn("size-1.5 rounded-full", stale ? "bg-amber-500" : "bg-green-500")} aria-hidden />
+    <span className={cn("inline-flex items-center gap-1.5 text-xs", stale ? "text-[var(--color-warning)]" : "text-[var(--color-muted)]", className)}>
+      <span className={cn("size-1.5 rounded-full", stale ? "bg-[var(--color-warning)]" : "bg-[var(--color-success)]")} aria-hidden />
       <span>{label}: {relativeTime(ms, now)}</span>
     </span>
   );

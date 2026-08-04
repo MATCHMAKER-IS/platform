@@ -2,7 +2,14 @@ import * as React from "react";
 import { SlideGallery } from "@platform/ui";
 import { type RenderedBlock } from "../server/site-content";
 
-/** 描画モデルの配列を React 要素にする。text は安全な HTML（エスケープ済み）を挿入。 */
+/**
+ * 描画モデルの配列を React 要素にする。
+ *
+ * unsafe-html: **HTML は `site-content.ts` で無害化済み**。
+ *   - `text`  … `linkify()` がエスケープしてから URL をリンク化する
+ *   - `embed` … `sanitizeEmbed()` が script と on* を落とす（iframe は許す）
+ * ここで再度サニタイズすると、リンクや iframe まで消えてしまう。
+ */
 export function BlockRenderer({ blocks }: { blocks: RenderedBlock[] }) {
   return (
     <div className="flex flex-col gap-4">

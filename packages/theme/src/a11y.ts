@@ -79,7 +79,6 @@ export function checkThemeContrast(theme: Theme, mode: ThemeMode): ThemeContrast
  * light だけ確認して見落とす典型。
  *
  * @param theme テーマ
- * @param level 達成基準(既定 AA)
  * @returns light / dark それぞれの検査結果
  */
 export function checkTheme(theme: Theme): ThemeContrastReport[] {

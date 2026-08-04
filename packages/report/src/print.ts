@@ -103,7 +103,7 @@ import { renderInvoiceHtml, renderQuotationHtml, renderDeliveryNoteHtml } from "
 /**
  * 請求書を印刷・PDF 用の HTML で生成する。
  *
- * @param invoice 請求書
+ * @param doc 請求書
  * @param options 用紙・向き・余白
  * @returns 印刷用の HTML
  */
@@ -113,7 +113,7 @@ export function printableInvoiceHtml(doc: InvoiceDocument, options: PrintOptions
 /**
  * 見積書を印刷・PDF 用の HTML で生成する。
  *
- * @param quote 見積書
+ * @param doc 見積書
  * @param options 用紙・向き・余白
  * @returns 印刷用の HTML
  */
@@ -123,7 +123,7 @@ export function printableQuotationHtml(doc: InvoiceDocument, options: PrintOptio
 /**
  * 納品書を印刷・PDF 用の HTML で生成する。
  *
- * @param delivery 納品書
+ * @param doc 納品書
  * @param options 用紙・向き・余白
  * @returns 印刷用の HTML
  */

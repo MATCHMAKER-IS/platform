@@ -67,7 +67,7 @@ export function findCategoryBySlug(categories: Category[], slug: string): Catego
  * 「親カテゴリを選んだら子カテゴリの記事も出す」ために使う。
  *
  * @param categories カテゴリの配列
- * @param rootId 起点のカテゴリ ID
+ * @param categoryId 起点のカテゴリ ID
  * @returns 子孫の ID(自分を含む)
  */
 export function descendantIds(categories: Category[], categoryId: string): string[] {

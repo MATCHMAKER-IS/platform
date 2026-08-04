@@ -24,8 +24,6 @@ export interface ParallelState {
 /**
  * 並列承認の初期状態を作る。
  *
- * @param roles 承認が必要なロール
- * @param mode `all`(全員)/ `any`(誰か 1 人)
  * @returns 初期状態
  */
 export function startParallel(): ParallelState {
@@ -36,9 +34,9 @@ export function startParallel(): ParallelState {
  * 承認を記録する(actor が持つロールのうち、まだ承認されていない必要ロールを承認済みにする)。
  * 対象ロールを持たない場合や既に承認済みの場合は状態を変えない。
  *
- * @param state 現在の状態
- * @param role 承認したロール
- * @param userId 承認した人
+ * @param step 現在の状態
+ * @param state 承認したロール
+ * @param actor 承認した人
  * @returns 更新した**新しい状態**(**同じロールの二重承認は無視**)
  */
 export function recordParallelApproval(

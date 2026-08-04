@@ -68,7 +68,7 @@ export function createLoginAudit(sink: LoginAuditSink, options?: { now?: () => D
  * **パスワードやトークンをログに残さない**ため。ログは広く読まれるので、
  * ここで落としておかないと漏洩経路になる。
  *
- * @param event 監査イベント
+ * @param e 監査イベント
  * @returns 表示用の要約(1 行)
  */
 export function summarizeLoginEvent(e: LoginAuditEvent): string {

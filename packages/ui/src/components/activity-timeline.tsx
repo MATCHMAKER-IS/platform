@@ -29,9 +29,9 @@ export interface ActivityTimelineProps extends React.HTMLAttributes<HTMLOListEle
 
 const DOT_COLOR: Record<TimelineStatus, string> = {
   default: "bg-[var(--color-primary)]",
-  success: "bg-emerald-500",
-  warning: "bg-amber-500",
-  danger: "bg-red-500",
+  success: "bg-[var(--color-success)]",
+  warning: "bg-[var(--color-warning)]",
+  danger: "bg-[var(--color-danger)]",
   muted: "bg-[var(--color-subtle-strong)]",
 };
 

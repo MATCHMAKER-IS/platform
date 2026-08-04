@@ -57,8 +57,8 @@ export function computeDiscount(coupon: Coupon, subtotal: number): number {
  *
  * **0 円未満にはしない**(割引額が小計を超えても、マイナスにはならない)。
  *
- * @param coupon クーポン
  * @param subtotal 小計
+ * @param coupon クーポン
  * @returns 割引後の小計
  */
 export function applyDiscount(subtotal: number, coupon: Coupon): number {

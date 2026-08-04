@@ -29,9 +29,9 @@ export function MailboxIndicator({ fetchImpl }: MailboxIndicatorProps) {
 
   if (!ready) return null;
   return (
-    <a href="/mailbox" title="受信箱" className="fixed right-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white shadow-md hover:bg-neutral-50">
+    <a href="/mailbox" title="受信箱" className="fixed right-4 top-4 z-40 flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border)] bg-white shadow-md hover:bg-[var(--color-subtle)]">
       <span aria-hidden className="text-lg">✉</span>
-      {unread > 0 && <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-bold text-white">{unread > 99 ? "99+" : unread}</span>}
+      {unread > 0 && <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-danger)] px-1 text-[11px] font-bold text-white">{unread > 99 ? "99+" : unread}</span>}
       <span className="sr-only">受信箱（未読 {unread} 件）</span>
     </a>
   );

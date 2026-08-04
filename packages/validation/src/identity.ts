@@ -18,7 +18,7 @@ export type IdentityDocumentType =
 /**
  * 全角英数を半角に、空白・ハイフンを除去して正規化する。
  *
- * @param input 入力された番号(全角・空白・区切りが混ざってよい)
+ * @param value 入力された番号(全角・空白・区切りが混ざってよい)
  * @returns 正規化した文字列。**検証の前に必ず通す**(人の手入力は揺れる)
  */
 export function normalizeDocumentNumber(value: string): string {
@@ -32,7 +32,7 @@ export function normalizeDocumentNumber(value: string): string {
  * * 運転免許証番号(12 桁の数字)。
  * 公的なチェックディジット仕様は公開されていないため書式のみ検証する。
  *
- * @param input 運転免許証番号(12 桁)
+ * @param value 運転免許証番号(12 桁)
  * @returns 桁数とチェックディジットが正しければ true
  */
 export function isValidDriversLicenseNumber(value: string): boolean {
@@ -43,7 +43,7 @@ export function isValidDriversLicenseNumber(value: string): boolean {
  * * 日本国旅券(パスポート)番号。
  * 現行様式は英字2 + 数字7(例 TK1234567)。旧様式(英字1 + 数字8)も許容する。
  *
- * @param input パスポート番号
+ * @param value パスポート番号
  * @returns 形式(英字 2 + 数字 7)が正しければ true。**チェックディジットは無いので形式のみ**
  */
 export function isValidJapanPassportNumber(value: string): boolean {
@@ -56,7 +56,7 @@ export function isValidJapanPassportNumber(value: string): boolean {
  * 書式は 英字2 + 数字8 + 英字2(計12桁)。書式のみ検証する
  * (検査数字アルゴリズムは非公開情報を含むため実装しない)。
  *
- * @param input 在留カード番号
+ * @param value 在留カード番号
  * @returns 形式とチェックディジットが正しければ true
  */
 export function isValidResidenceCardNumber(value: string): boolean {
@@ -67,7 +67,7 @@ export function isValidResidenceCardNumber(value: string): boolean {
  * 種別を指定して本人確認書類番号を検証する。my_number/health_insurance は別途専用関数/任意様式。
  *
  * @param type 書類の種類
- * @param input 番号
+ * @param value 番号
  * @returns 判定結果と、不正なら理由。**種類ごとに検証の強さが違う**(パスポートは形式のみ)
  */
 export function validateIdentityDocument(type: IdentityDocumentType, value: string): boolean {

@@ -156,7 +156,7 @@ function wordConfidence(words: Wordish[] | undefined, token: string, fallback: n
  * OCR 結果(テキスト + 単語)から、フィールドごとの信頼度つきで抽出する。
  * 各値に対応する単語の信頼度を割り当てる(見つからなければ overall を使用)。
  *
- * @param text OCR のテキスト
+ * @param result OCR のテキスト
  * @returns 抽出結果と**確信度**(低いものは人の確認を促す。全部を信じさせない)
  */
 export function extractReceiptFieldsWithConfidence(
@@ -184,7 +184,7 @@ export interface ReceiptImportItem {
 /**
  * 複数の OCR 結果から一括抽出する。
  *
- * @param texts OCR のテキストの配列
+ * @param results OCR のテキストの配列
  * @returns 各テキストの抽出結果
  */
 export function extractReceiptsFromResults(results: { text: string }[]): ReceiptFields[] {

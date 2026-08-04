@@ -73,7 +73,7 @@ export function ContextMenu({ items, children, className }: ContextMenuProps) {
               onClick={() => { setPos(null); item.onSelect?.(); }}
               className={cn(
                 "flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-sm transition-colors disabled:opacity-40",
-                item.danger ? "text-[var(--color-danger)] hover:bg-red-50" : "text-[var(--color-fg)] hover:bg-[var(--color-subtle)]",
+                item.danger ? "text-[var(--color-danger)] hover:bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)]" : "text-[var(--color-fg)] hover:bg-[var(--color-subtle)]",
                 item.separated && "mt-1 border-t border-[var(--color-border)] pt-2",
               )}
             >

@@ -149,8 +149,8 @@ export function arcPath(cx: number, cy: number, r: number, startAngle: number, e
  *
  * **円周を破線として扱い、見せる長さを変える**のが定石(SVG で弧を描くより簡単)。
  *
- * @param radius 半径
  * @param progress 進捗(0–1)
+ * @param radius 半径
  * @returns `stroke-dashoffset` の値
  */
 export function ringDashOffset(progress: number, radius: number): number {

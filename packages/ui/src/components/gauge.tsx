@@ -34,7 +34,7 @@ export function Gauge({ value, target = 100, size = 120, label, className }: Gau
   const cy = size - 10;
   const circumference = Math.PI * r; // 半円
   const dash = circumference * ratio;
-  const color = ratio >= 1 ? "text-green-600" : ratio >= 0.7 ? "text-[var(--color-primary)]" : "text-amber-500";
+  const color = ratio >= 1 ? "text-[var(--color-success)]" : ratio >= 0.7 ? "text-[var(--color-primary)]" : "text-[var(--color-warning)]";
   const arc = (rr: number) => `M ${cx - rr} ${cy} A ${rr} ${rr} 0 0 1 ${cx + rr} ${cy}`;
   return (
     <div className={cn("inline-flex flex-col items-center", className)}>

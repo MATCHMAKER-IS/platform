@@ -33,6 +33,14 @@ const ALIASES: Record<string, string> = {
   "決済": "stripe paypal payments",
 };
 
+/**
+ * このデモサイトのコマンドパレット。
+ *
+ * 見た目と検索は `@platform/ui` の `CommandPalette` が持つ(基盤の実装を使う)。
+ * ここが足すのは**このサイト固有の配線**: ⌘K の購読・Next.js のルーター・
+ * nav.ts からのコマンド生成。基盤側は状態を持たない(open を props で受ける)ため、
+ * 開閉の管理は利用側の責任。
+ */
 export function CommandPalette() {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);

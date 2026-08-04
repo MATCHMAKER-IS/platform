@@ -11,6 +11,7 @@
  *  A11Y003 正の tabIndex                  … Tab 順が DOM と食い違い、操作不能になりやすい
  *  A11Y004 <html> に lang が無い          … 読み上げの言語が誤判定される
  *  A11Y005 アイコンだけのボタンに名前が無い … 「ボタン」としか読まれず用途が分からない
+ *  A11Y006 outline を消して代替が無い       … キーボードで「今どこにいるか」が分からない
  *
  * 実行: node tools/check-a11y.mjs
  */
@@ -19,7 +20,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const TARGET_DIRS = ["apps", "demos"];
+// **packages も見る。** 基盤の UI 部品は全画面で使われるので、
+// ここに問題があると影響範囲が最も広い。2026-08 まで対象外になっており、
+// フォーカスの輪郭を消したまま代替が無い箇所が 6 件残っていた。
+const TARGET_DIRS = ["apps", "demos", "packages"];
 
 /** 走査対象の .tsx を集める。 */
 function collect(dir, out = []) {
@@ -121,6 +125,10 @@ for (const dir of TARGET_DIRS) {
         if (!/\bonClick\s*=/.test(tag)) continue;
         // role を付ける / aria-hidden(背景オーバーレイ等)なら意図的とみなす
         if (/\brole\s*=|\baria-hidden\s*=/.test(tag)) continue;
+        // **キーボードで操作できるなら通す。** メッセージが「keyboard 操作を付ける」と
+        // 言っているのに、付けても消えないのでは直しようがない。
+        // Tab で到達でき(tabIndex)、キーで反応する(onKeyDown)ことを見る。
+        if (/\btabIndex\s*=/.test(tag) && /\bonKeyDown\s*=/.test(tag)) continue;
         add(file, lineOf(src, index), "A11Y002", `<${t}> に onClick があります(button を使うか role と keyboard 操作を付ける)`);
       }
     }
@@ -136,6 +144,27 @@ for (const dir of TARGET_DIRS) {
       if (!/\blang\s*=/.test(tag)) add(file, lineOf(src, index), "A11Y004", "<html> に lang がありません(lang=\"ja\")");
     }
 
+    // A11Y006: フォーカスの輪郭を消したまま、代わりの目印が無い
+    //
+    // **`outline-none` だけ書いて放置する**のが最も多い事故。見た目は整うが、
+    // キーボードで辿ったときに「今どこにいるか」が分からなくなる。
+    // 社内システムは毎日・長時間・キーボード中心で使われるので、実害が大きい。
+    //
+    // className の書き方は `"..."` / `` `...` `` / `cn(...)` と幅があり、
+    // 途中に改行やコメントも入る。**構文を追わず、同じ文字列リテラルの中を見る**。
+    for (const m of src.matchAll(/"([^"\n]*\boutline-none\b[^"\n]*)"/g)) {
+      const cls = m[1];
+      // 代わりの目印として認めるもの: ring / border の色変え / 背景色の変化
+      if (/focus(-visible|-within)?:(ring|border|bg)-|data-\[state=/.test(cls)) continue;
+      // フォーカスを受けない容器(Radix の Content 等)は対象外
+      if (/\b(z-50|shadow-lg|pt-4)\b/.test(cls)) continue;
+      // 入れ子セレクタだけの指定(`[&_.ProseMirror]:outline-none`)は、
+      // 外側で focus-within を出していれば足りる
+      if (/^\[&/.test(cls.trim())) continue;
+      add(file, lineOf(src, m.index), "A11Y006",
+        "フォーカスの輪郭(outline)を消していますが、代わりの目印がありません(focus-visible:ring など)");
+    }
+
     // A11Y005: アイコンだけのボタンに名前が無い
     for (const { tag, index, end } of findTags(src, "button")) {
       if (hasName(tag) || /\/>$/.test(tag)) continue;
@@ -149,7 +178,7 @@ for (const dir of TARGET_DIRS) {
 }
 
 if (violations.length === 0) {
-  console.log("✅ アクセシビリティの静的検査に違反はありません(img/クリック可能要素/tabIndex/lang/アイコンボタン)");
+  console.log("✅ アクセシビリティの静的検査に違反はありません(img/クリック可能要素/tabIndex/lang/アイコンボタン/フォーカス表示)");
   process.exit(0);
 }
 

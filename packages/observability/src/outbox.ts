@@ -49,7 +49,7 @@ export interface RelayOptions {
  * これで「DB は更新されたのに通知されない」を防ぐ。
  *
  * @param store Outbox ストア
- * @param send 送信する関数
+ * @param dispatch 送信する関数
  * @param options.batchSize 1 回に処理する件数
  * @param options.maxAttempts 最大試行回数(**超えたら諦めて dead 扱い**。無限に再試行しない)
  * @returns 成功・失敗・諦めた件数
@@ -89,7 +89,7 @@ export async function relayOutbox(store: OutboxStore, dispatch: OutboxDispatcher
  * **本番では SQL 実装を使うこと**(メモリだとプロセスが落ちたら通知が消える。
  * それでは Outbox の意味が無い)。
  *
- * @param seed 初期データ
+ * @param now 初期データ
  * @returns Outbox ストア
  */
 export function createMemoryOutboxStore(now: () => number = () => Date.now()): OutboxStore & { add(topic: string, payload: unknown): OutboxMessage; all(): OutboxMessage[] } {

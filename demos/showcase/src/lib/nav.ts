@@ -90,6 +90,8 @@ export const PLATFORM_DEMOS: DemoEntry[] = [
     packages: ["apikey"] , group: "認証・セキュリティ" },
   { href: "/audit", title: "監査・ガード", desc: "変更前後の差分抽出・redact/ignore・ハッシュチェーンで改ざん検知",
     packages: ["audit"] , group: "認証・セキュリティ" },
+  { href: "/access-review", title: "権限の棚卸し", desc: "退職者に残った権限・期限の無い強い権限・期限切れを洗い出す／退職時の停止手順",
+    packages: ["access-review"] , group: "認証・セキュリティ" },
 
   // ── 業務ドメイン ──
   { href: "/quote", title: "見積・発注", desc: "有効期限・受注/失注・請求書への変換(金額が必ず一致する)",
@@ -162,6 +164,12 @@ export const PLATFORM_DEMOS: DemoEntry[] = [
     packages: ["integrations"] , group: "外部サービス連携" },
   { href: "/freee", title: "SaaS連携(freee/Google/Zoho)", desc: "取引・証憑・振替伝票・人事労務。経費の仕訳をそのまま送る",
     packages: ["freee", "integrations"] , group: "外部サービス連携" },
+  { href: "/notion", title: "Notion 連携", desc: "データベース照会・ページ作成／ページ送りを自動でたどる queryAll（100 件で切れる事故を防ぐ）",
+    packages: ["notion"] , group: "外部サービス連携" },
+  { href: "/microsoft", title: "Microsoft 365 連携", desc: "Entra ID の OAuth と Graph／空き時間の照会は「見えない」と「空き」を区別する",
+    packages: ["microsoft"] , group: "外部サービス連携" },
+  { href: "/paypal", title: "PayPal 決済", desc: "注文→承認→入金の確定／**承認しただけでは入金されない**ことを確かめられる",
+    packages: ["paypal"] , group: "外部サービス連携" },
 
   { href: "/payments", title: "決済(Stripe/PayPal)", desc: "注文→確定→部分返金・冪等キーで二重課金防止・失敗ケース・イベント履歴",
     packages: ["stripe", "paypal"], group: "外部サービス連携" },

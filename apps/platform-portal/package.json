@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@platform/observability": "workspace:*",
+    "@platform/security": "workspace:*",
+    "@platform/seo": "workspace:*",
     "@platform/theme": "workspace:*",
     "@platform/ui": "workspace:*",
     "next": "16.2.0",

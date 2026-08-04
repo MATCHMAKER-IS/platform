@@ -92,7 +92,7 @@ export function createI18n(options: I18nOptions): Translator {
  * **ドメインごとに辞書を分けて管理**し、使うときに結合する
  * (1 つの巨大な辞書だと、誰が何を触ってよいか分からなくなる)。
  *
- * @param catalogs 辞書の配列
+ * @param ...catalogsList 辞書の配列
  * @returns 結合した辞書。**同じキーは後勝ち**
  */
 export function mergeCatalogs(...catalogsList: Catalogs[]): Catalogs {
@@ -112,8 +112,8 @@ export function mergeCatalogs(...catalogsList: Catalogs[]): Catalogs {
  * **ドメインが違えば同じ言葉でも訳が違う**(「申請」が経費と勤怠で別の英語になる)。
  * 名前空間で分けることで衝突を防ぐ。
  *
- * @param catalog 辞書
- * @param prefix 接頭辞
+ * @param prefix 辞書
+ * @param catalogs 接頭辞
  * @returns キーに接頭辞を付けた辞書
  */
 export function namespaced(prefix: string, catalogs: Catalogs): Catalogs {
@@ -133,7 +133,6 @@ export function namespaced(prefix: string, catalogs: Catalogs): Catalogs {
  * **完全一致 → 言語のみ一致 → 既定**の順で探す(`ja-JP` が無くても `ja` があれば使う)。
  *
  * @param input 言語文字列(`ja-JP,ja;q=0.9,en;q=0.8` など)
- * @param supported 対応しているロケール
  * @param fallback 見つからないときの既定
  * @returns ロケール
  */

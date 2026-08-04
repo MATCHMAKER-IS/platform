@@ -27,7 +27,6 @@ export interface JobDefinition<T> {
  * ```
  *
  * @param name ジョブ名
- * @param handler 処理
  * @returns ジョブ定義(**名前で登録するので、重複しないこと**)
  */
 export function defineJob<T>(name: string): JobDefinition<T> {

@@ -29,9 +29,12 @@ export interface GenerateApiKeyOptions {
 /**
  * API キーをハッシュ化する(保存・照合の両方で使う)。
  *
- * @param key 平文のキー
- * @param secret pepper(**環境変数から**)
- * @returns ハッシュ
+ * **pepper(サーバ側の秘密)は使っていない。** キーは 24 バイトの乱数なので、
+ * 総当たりが現実的でないことに依存している。**利用者が決めた文字列を
+ * キーにできる形へ変えるなら、pepper か遅いハッシュに切り替えること**。
+ *
+ * @param plaintext 平文のキー
+ * @returns ハッシュ(SHA-256 の 16 進表記)
  */
 export function hashApiKey(plaintext: string): string {
   return createHash("sha256").update(plaintext).digest("hex");
@@ -44,7 +47,7 @@ export function hashApiKey(plaintext: string): string {
  * 利用者が紛失したら再発行しかない。**画面で「今だけ表示」と明示すること**。
  *
  * @param options.prefix 接頭辞(`sk_live_` など。**用途を見分けやすくする**)
- * @param options.secret pepper
+ * @param options.bytes ランダム部のバイト数(既定 24)
  * @returns 平文のキー(**一度だけ**)と、保存するレコード
  */
 export function generateApiKey(options: GenerateApiKeyOptions = {}): GeneratedApiKey {
@@ -64,9 +67,8 @@ export function generateApiKey(options: GenerateApiKeyOptions = {}): GeneratedAp
  * **タイミング攻撃対策**(比較にかかる時間で正解の桁数を推測されないよう、
  * 定数時間で比較する)。素朴な `===` では漏れる。
  *
- * @param key 平文のキー
- * @param hash 保存されたハッシュ
- * @param secret pepper
+ * @param plaintext 平文のキー
+ * @param storedHash 保存されたハッシュ
  * @returns 一致すれば true
  */
 export function verifyApiKey(plaintext: string, storedHash: string): boolean {

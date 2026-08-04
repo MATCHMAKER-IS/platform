@@ -16,7 +16,7 @@ export interface CmsStore {
 /**
  * 記事ストアのメモリ実装(開発・テスト用)。
  *
- * @param seed 初期データ
+ * @param now 初期データ
  * @returns 記事ストア(再起動で消える)
  */
 export function createMemoryCmsStore(now: () => string = () => new Date().toISOString()): CmsStore {

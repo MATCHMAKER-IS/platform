@@ -12,7 +12,7 @@ export interface SseEvent { event?: string; data: string; id?: string; retry?: n
  * **末尾の空行が区切り**(`\n\n`)。これが無いとクライアントはイベントを受け取れない。
  * **データに改行が含まれる場合は行ごとに `data:` を付ける**必要がある(この関数が処理する)。
  *
- * @param event イベント名・データ・ID
+ * @param ev イベント名・データ・ID
  * @returns ワイヤ形式の文字列
  */
 export function formatSseEvent(ev: SseEvent): string {

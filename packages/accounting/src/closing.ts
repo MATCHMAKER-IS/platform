@@ -64,7 +64,7 @@ export interface ProfitAndLoss {
  * **収益は貸方、費用は借方**に立つので、それぞれ逆向きに集計する。
  *
  * @param entries 仕訳の配列
- * @param accountTypes 科目 → 区分 の対応(既定は {@link defaultAccountTypes})
+ * @param types 科目 → 区分 の対応(既定は {@link defaultAccountTypes})
  * @returns 収益・費用・純利益(= 収益 - 費用)
  */
 export function profitAndLoss(entries: JournalEntry[], types: AccountTypeMap = defaultAccountTypes()): ProfitAndLoss {
@@ -93,7 +93,7 @@ export interface BalanceSheet {
  * **資産 = 負債 + 純資産**が成り立つのが正しい状態。崩れているなら仕訳のどこかが誤っている。
  *
  * @param entries 仕訳の配列
- * @param accountTypes 科目 → 区分 の対応(既定は {@link defaultAccountTypes})
+ * @param types 科目 → 区分 の対応(既定は {@link defaultAccountTypes})
  * @returns 資産・負債・純資産の合計
  */
 export function balanceSheet(entries: JournalEntry[], types: AccountTypeMap = defaultAccountTypes()): BalanceSheet {
@@ -145,7 +145,7 @@ export function departmentSummary(entries: JournalEntry[]): DepartmentBalance[] 
  * 全社合計とは一致しないことがある(共通費の配賦は別途)。
  *
  * @param entries 仕訳の配列
- * @param accountTypes 科目 → 区分 の対応(既定は {@link defaultAccountTypes})
+ * @param types 科目 → 区分 の対応(既定は {@link defaultAccountTypes})
  * @returns 部門ごとの収益・費用・純利益
  */
 export function profitAndLossByDepartment(entries: JournalEntry[], types: AccountTypeMap = defaultAccountTypes()): Record<string, ProfitAndLoss> {

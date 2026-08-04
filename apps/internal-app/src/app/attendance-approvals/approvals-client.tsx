@@ -35,30 +35,30 @@ export function ApprovalsClient({ fetchImpl }: ApprovalsClientProps) {
   return (
     <div className="mx-auto max-w-3xl p-6">
       <h1 className="mb-1 text-2xl font-bold">勤怠承認</h1>
-      <p className="mb-4 text-xs text-neutral-500">部下から申請された月次勤怠を承認または却下します。</p>
-      {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      <p className="mb-4 text-xs text-[var(--color-muted)]">部下から申請された月次勤怠を承認または却下します。</p>
+      {error && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-danger)]">{error}</p>}
 
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-neutral-200 text-left text-xs text-neutral-500">
+          <tr className="border-b border-[var(--color-border)] text-left text-xs text-[var(--color-muted)]">
             <th className="px-2 py-1">従業員</th><th className="px-2 py-1">対象月</th><th className="px-2 py-1">申請日時</th><th className="px-2 py-1 text-right">操作</th>
           </tr>
         </thead>
         <tbody>
           {pending.map((a) => (
-            <tr key={`${a.userId}:${a.month}`} className="border-b border-neutral-100">
+            <tr key={`${a.userId}:${a.month}`} className="border-b border-[var(--color-border)]">
               <td className="px-2 py-2">{a.userId}</td>
               <td className="px-2 py-2">{a.month}</td>
-              <td className="px-2 py-2 text-xs text-neutral-500">{a.submittedAt.slice(0, 16).replace("T", " ")}</td>
+              <td className="px-2 py-2 text-xs text-[var(--color-muted)]">{a.submittedAt.slice(0, 16).replace("T", " ")}</td>
               <td className="px-2 py-2 text-right">
                 <span className="flex justify-end gap-2">
-                  <Button onClick={() => decide(a, "approve")} className="rounded bg-green-600 px-3 py-1 text-xs text-white">承認</Button>
-                  <Button onClick={() => decide(a, "reject")} className="rounded border border-neutral-300 px-3 py-1 text-xs">却下</Button>
+                  <Button onClick={() => decide(a, "approve")} className="rounded bg-[var(--color-success)] px-3 py-1 text-xs text-white">承認</Button>
+                  <Button onClick={() => decide(a, "reject")} className="rounded border border-[var(--color-border)] px-3 py-1 text-xs">却下</Button>
                 </span>
               </td>
             </tr>
           ))}
-          {pending.length === 0 && <tr><td colSpan={4} className="px-2 py-4 text-center text-sm text-neutral-500">承認待ちの申請はありません。</td></tr>}
+          {pending.length === 0 && <tr><td colSpan={4} className="px-2 py-4 text-center text-sm text-[var(--color-muted)]">承認待ちの申請はありません。</td></tr>}
         </tbody>
       </table>
     </div>

@@ -22,6 +22,8 @@
     "@platform/freee": "workspace:*",
     "@platform/logger": "workspace:*",
     "@platform/observability": "workspace:*",
+    "@platform/security": "workspace:*",
+    "@platform/seo": "workspace:*",
     "@platform/theme": "workspace:*",
     "@platform/ui": "workspace:*",
     "@prisma/client": "^7.2.0",

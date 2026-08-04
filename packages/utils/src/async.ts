@@ -40,7 +40,6 @@ export class TimeoutError extends Error {
  *
  * @param promise 対象の Promise
  * @param ms タイムアウト(ミリ秒)
- * @param message エラーメッセージ(任意)
  * @returns 元の Promise の結果
  * @throws {@link TimeoutError} — 指定時間を超えた場合
  */

@@ -127,7 +127,7 @@ function applyOp(img: SharpInstance, op: ImageOp): SharpInstance {
  * if (res.ok) await storage.put("photos/1.webp", res.value);
  * ```
  *
- * @param sharpFactory sharp のインスタンス(**依存を注入する**ので、テストでモックできる)
+ * @param sharp sharp のインスタンス(**依存を注入する**ので、テストでモックできる)
  * @returns 画像処理。**すべてのメソッドは Result 型を返す**(壊れた画像で例外を投げない)
  */
 export function createImageProcessor(sharp?: SharpFactory): ImageProcessor {

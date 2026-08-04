@@ -78,90 +78,90 @@ export function AutomationClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   return (
     <div className="mx-auto max-w-3xl p-6">
       <h1 className="mb-1 text-2xl font-bold">自動化</h1>
-      <div className="mb-4 flex gap-1 border-b border-neutral-200">
-        {[["export", "エクスポート予約"], ["reports", "レポート配信"], ["log", "配信ログ"], ["templates", "通知テンプレート"]].map(([k, l]) => <Button key={k} onClick={() => setTab(k!)} className={`px-3 py-2 text-sm ${tab === k ? "border-b-2 border-neutral-900 font-medium" : "text-neutral-500"}`}>{l}</Button>)}
+      <div className="mb-4 flex gap-1 border-b border-[var(--color-border)]">
+        {[["export", "エクスポート予約"], ["reports", "レポート配信"], ["log", "配信ログ"], ["templates", "通知テンプレート"]].map(([k, l]) => <Button key={k} onClick={() => setTab(k!)} className={`px-3 py-2 text-sm ${tab === k ? "border-b-2 border-[var(--color-fg)] font-medium" : "text-[var(--color-muted)]"}`}>{l}</Button>)}
       </div>
-      {msg && <p className="mb-3 rounded bg-green-50 px-3 py-2 text-sm text-green-700">{msg}</p>}
+      {msg && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-success)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-success)]">{msg}</p>}
 
       {tab === "export" && (
         <div>
-          <div className="mb-4 flex items-end gap-2 rounded border border-neutral-200 p-3">
-            <label className="text-xs text-neutral-500">種別<Select value={newType} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewType(e.target.value)} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" options={[{ label: "バックアップ", value: "backup" }, { label: "取引先", value: "partners" }, { label: "請求", value: "invoices" }, { label: "監査ログ", value: "audit" }]} /></label>
-            <label className="text-xs text-neutral-500">頻度<Select value={newFreq} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewFreq(e.target.value)} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" options={[{ label: "毎日", value: "daily" }, { label: "毎週", value: "weekly" }, { label: "毎月", value: "monthly" }]} /></label>
-            <Button onClick={addSchedule} className="rounded bg-neutral-900 px-3 py-1.5 text-sm text-white">追加</Button>
+          <div className="mb-4 flex items-end gap-2 rounded border border-[var(--color-border)] p-3">
+            <label className="text-xs text-[var(--color-muted)]">種別<Select value={newType} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewType(e.target.value)} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" options={[{ label: "バックアップ", value: "backup" }, { label: "取引先", value: "partners" }, { label: "請求", value: "invoices" }, { label: "監査ログ", value: "audit" }]} /></label>
+            <label className="text-xs text-[var(--color-muted)]">頻度<Select value={newFreq} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewFreq(e.target.value)} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" options={[{ label: "毎日", value: "daily" }, { label: "毎週", value: "weekly" }, { label: "毎月", value: "monthly" }]} /></label>
+            <Button onClick={addSchedule} className="rounded bg-[var(--color-fg)] px-3 py-1.5 text-sm text-white">追加</Button>
           </div>
-          <ul className="mb-4 divide-y divide-neutral-100 rounded border border-neutral-200">
+          <ul className="mb-4 divide-y divide-neutral-100 rounded border border-[var(--color-border)]">
             {schedules.map((s) => (
               <li key={s.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                <span><span className={`mr-2 rounded px-1.5 py-0.5 text-xs ${s.enabled ? "bg-green-100 text-green-800" : "bg-neutral-200 text-neutral-600"}`}>{s.enabled ? "有効" : "停止"}</span>{TYPE_LABEL[s.type] ?? s.type} / {s.frequency === "daily" ? "毎日" : s.frequency === "weekly" ? "毎週" : "毎月"}{s.lastRunAt && <span className="ml-2 text-xs text-neutral-400">前回: {s.lastRunAt.slice(0, 10)}</span>}</span>
-                <span className="flex gap-2 text-xs"><Button onClick={() => toggle(s.id, !s.enabled)} className="text-blue-600 hover:underline">{s.enabled ? "停止" : "有効化"}</Button><Button onClick={() => remove(s.id)} className="text-red-600 hover:underline">削除</Button></span>
+                <span><span className={`mr-2 rounded px-1.5 py-0.5 text-xs ${s.enabled ? "bg-[color-mix(in_srgb,var(--color-success)_15%,transparent)] text-[var(--color-success)]" : "bg-[var(--color-subtle-strong)] text-[var(--color-muted)]"}`}>{s.enabled ? "有効" : "停止"}</span>{TYPE_LABEL[s.type] ?? s.type} / {s.frequency === "daily" ? "毎日" : s.frequency === "weekly" ? "毎週" : "毎月"}{s.lastRunAt && <span className="ml-2 text-xs text-[var(--color-muted)]">前回: {s.lastRunAt.slice(0, 10)}</span>}</span>
+                <span className="flex gap-2 text-xs"><Button onClick={() => toggle(s.id, !s.enabled)} className="text-[var(--color-primary)] hover:underline">{s.enabled ? "停止" : "有効化"}</Button><Button onClick={() => remove(s.id)} className="text-[var(--color-danger)] hover:underline">削除</Button></span>
               </li>
             ))}
-            {schedules.length === 0 && <li className="px-3 py-4 text-center text-xs text-neutral-500">予約はありません。</li>}
+            {schedules.length === 0 && <li className="px-3 py-4 text-center text-xs text-[var(--color-muted)]">予約はありません。</li>}
           </ul>
           <h3 className="mb-1 text-sm font-medium">実行履歴</h3>
-          <ul className="divide-y divide-neutral-100 rounded border border-neutral-200 text-xs">
-            {history.map((h) => <li key={h.id} className="flex justify-between px-3 py-1.5"><span>{h.at.slice(0, 16).replace("T", " ")} {TYPE_LABEL[h.type] ?? h.type}</span><span className={h.status === "success" ? "text-green-600" : "text-red-600"}>{h.status === "success" ? `${h.recordCount}件` : "失敗"}</span></li>)}
-            {history.length === 0 && <li className="px-3 py-4 text-center text-neutral-500">履歴はありません。cron から /api/admin/export-scan を実行してください。</li>}
+          <ul className="divide-y divide-neutral-100 rounded border border-[var(--color-border)] text-xs">
+            {history.map((h) => <li key={h.id} className="flex justify-between px-3 py-1.5"><span>{h.at.slice(0, 16).replace("T", " ")} {TYPE_LABEL[h.type] ?? h.type}</span><span className={h.status === "success" ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"}>{h.status === "success" ? `${h.recordCount}件` : "失敗"}</span></li>)}
+            {history.length === 0 && <li className="px-3 py-4 text-center text-[var(--color-muted)]">履歴はありません。cron から /api/admin/export-scan を実行してください。</li>}
           </ul>
         </div>
       )}
 
       {tab === "reports" && (
         <div>
-          <p className="mb-2 text-xs text-neutral-500">定型レポートを定期生成し、宛先へメール＋受信箱で配信します。</p>
-          <div className="mb-4 flex items-end gap-2 rounded border border-neutral-200 p-3">
-            <label className="text-xs text-neutral-500">レポート<Select value={rType} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRType(e.target.value)} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" options={[{ label: "売上", value: "sales" }, { label: "売掛", value: "receivables" }, { label: "在庫", value: "inventory" }]} /></label>
-            <label className="text-xs text-neutral-500">頻度<Select value={rFreq} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRFreq(e.target.value)} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" options={[{ label: "毎日", value: "daily" }, { label: "毎週", value: "weekly" }, { label: "毎月", value: "monthly" }]} /></label>
-            <label className="flex-1 text-xs text-neutral-500">宛先（カンマ区切り / role:admin 等）<Input value={rTo} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRTo(e.target.value)} placeholder="boss@example.com, role:finance" className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <Button onClick={addReport} className="rounded bg-neutral-900 px-3 py-1.5 text-sm text-white">追加</Button>
+          <p className="mb-2 text-xs text-[var(--color-muted)]">定型レポートを定期生成し、宛先へメール＋受信箱で配信します。</p>
+          <div className="mb-4 flex items-end gap-2 rounded border border-[var(--color-border)] p-3">
+            <label className="text-xs text-[var(--color-muted)]">レポート<Select value={rType} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRType(e.target.value)} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" options={[{ label: "売上", value: "sales" }, { label: "売掛", value: "receivables" }, { label: "在庫", value: "inventory" }]} /></label>
+            <label className="text-xs text-[var(--color-muted)]">頻度<Select value={rFreq} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRFreq(e.target.value)} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" options={[{ label: "毎日", value: "daily" }, { label: "毎週", value: "weekly" }, { label: "毎月", value: "monthly" }]} /></label>
+            <label className="flex-1 text-xs text-[var(--color-muted)]">宛先（カンマ区切り / role:admin 等）<Input value={rTo} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRTo(e.target.value)} placeholder="boss@example.com, role:finance" className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+            <Button onClick={addReport} className="rounded bg-[var(--color-fg)] px-3 py-1.5 text-sm text-white">追加</Button>
           </div>
-          <ul className="divide-y divide-neutral-100 rounded border border-neutral-200">
+          <ul className="divide-y divide-neutral-100 rounded border border-[var(--color-border)]">
             {reportScheds.map((s) => (
               <li key={s.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                <span><span className={`mr-2 rounded px-1.5 py-0.5 text-xs ${s.enabled ? "bg-green-100 text-green-800" : "bg-neutral-200 text-neutral-600"}`}>{s.enabled ? "有効" : "停止"}</span>{RLABEL[s.reportType] ?? s.reportType}レポート / {s.frequency === "daily" ? "毎日" : s.frequency === "weekly" ? "毎週" : "毎月"} → {s.recipient}{s.lastSentAt && <span className="ml-2 text-xs text-neutral-400">前回: {s.lastSentAt.slice(0, 10)}</span>}</span>
-                <span className="flex gap-2 text-xs"><Button onClick={() => toggleReport(s.id, !s.enabled)} className="text-blue-600 hover:underline">{s.enabled ? "停止" : "有効化"}</Button><Button onClick={() => removeReport(s.id)} className="text-red-600 hover:underline">削除</Button></span>
+                <span><span className={`mr-2 rounded px-1.5 py-0.5 text-xs ${s.enabled ? "bg-[color-mix(in_srgb,var(--color-success)_15%,transparent)] text-[var(--color-success)]" : "bg-[var(--color-subtle-strong)] text-[var(--color-muted)]"}`}>{s.enabled ? "有効" : "停止"}</span>{RLABEL[s.reportType] ?? s.reportType}レポート / {s.frequency === "daily" ? "毎日" : s.frequency === "weekly" ? "毎週" : "毎月"} → {s.recipient}{s.lastSentAt && <span className="ml-2 text-xs text-[var(--color-muted)]">前回: {s.lastSentAt.slice(0, 10)}</span>}</span>
+                <span className="flex gap-2 text-xs"><Button onClick={() => toggleReport(s.id, !s.enabled)} className="text-[var(--color-primary)] hover:underline">{s.enabled ? "停止" : "有効化"}</Button><Button onClick={() => removeReport(s.id)} className="text-[var(--color-danger)] hover:underline">削除</Button></span>
               </li>
             ))}
-            {reportScheds.length === 0 && <li className="px-3 py-4 text-center text-xs text-neutral-500">配信予約はありません。cron から /api/admin/report-scan を実行してください。</li>}
+            {reportScheds.length === 0 && <li className="px-3 py-4 text-center text-xs text-[var(--color-muted)]">配信予約はありません。cron から /api/admin/report-scan を実行してください。</li>}
           </ul>
         </div>
       )}
 
       {tab === "log" && (
         <div>
-          <p className="mb-2 text-xs text-neutral-500">レポート配信の実行履歴です（いつ・何を・誰に）。</p>
-          <ul className="divide-y divide-neutral-100 rounded border border-neutral-200 text-xs">
+          <p className="mb-2 text-xs text-[var(--color-muted)]">レポート配信の実行履歴です（いつ・何を・誰に）。</p>
+          <ul className="divide-y divide-neutral-100 rounded border border-[var(--color-border)] text-xs">
             {deliveryLog.map((d) => (
               <li key={d.id} className="px-3 py-2">
                 <div className="flex justify-between">
                   <span className="font-medium">{d.at.slice(0, 16).replace("T", " ")} {RLABEL[d.reportType] ?? d.reportType}レポート</span>
-                  <span className={d.status === "sent" ? "text-green-600" : "text-neutral-400"}>{d.status === "sent" ? `${d.recipientCount}名に配信` : "宛先なし"}</span>
+                  <span className={d.status === "sent" ? "text-[var(--color-success)]" : "text-[var(--color-muted)]"}>{d.status === "sent" ? `${d.recipientCount}名に配信` : "宛先なし"}</span>
                 </div>
-                {d.recipients.length > 0 && <div className="mt-0.5 truncate text-neutral-400">{d.recipients.join(", ")}</div>}
+                {d.recipients.length > 0 && <div className="mt-0.5 truncate text-[var(--color-muted)]">{d.recipients.join(", ")}</div>}
               </li>
             ))}
-            {deliveryLog.length === 0 && <li className="px-3 py-4 text-center text-neutral-500">配信ログはありません。cron から /api/admin/report-scan を実行すると記録されます。</li>}
+            {deliveryLog.length === 0 && <li className="px-3 py-4 text-center text-[var(--color-muted)]">配信ログはありません。cron から /api/admin/report-scan を実行すると記録されます。</li>}
           </ul>
         </div>
       )}
 
       {tab === "templates" && (
         <div>
-          <p className="mb-2 text-xs text-neutral-500">通知文面を編集します（空欄は既定を使用）。<code>{'{{var}}'}</code> は変数です。</p>
+          <p className="mb-2 text-xs text-[var(--color-muted)]">通知文面を編集します（空欄は既定を使用）。<code>{'{{var}}'}</code> は変数です。</p>
           {Object.values(templates).map((tpl) => (
-            <div key={tpl.event} className="mb-4 rounded border border-neutral-200 p-3">
+            <div key={tpl.event} className="mb-4 rounded border border-[var(--color-border)] p-3">
               <p className="mb-2 text-sm font-medium"><code>{tpl.event}</code></p>
               {(["ja", "en", "zh", "ko"] as const).map((loc) => (
                 <div key={loc} className="mb-2">
-                  <p className="text-xs text-neutral-400">{loc}</p>
-                  <Input defaultValue={tpl.locales[loc]?.title ?? ""} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOverride(tpl.event, loc, "title", e.target.value)} placeholder="タイトル" className="mb-1 block w-full rounded border border-neutral-300 px-2 py-1 text-xs" />
-                  <Input defaultValue={tpl.locales[loc]?.body ?? ""} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOverride(tpl.event, loc, "body", e.target.value)} placeholder="本文" className="block w-full rounded border border-neutral-300 px-2 py-1 text-xs" />
+                  <p className="text-xs text-[var(--color-muted)]">{loc}</p>
+                  <Input defaultValue={tpl.locales[loc]?.title ?? ""} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOverride(tpl.event, loc, "title", e.target.value)} placeholder="タイトル" className="mb-1 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-xs" />
+                  <Input defaultValue={tpl.locales[loc]?.body ?? ""} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOverride(tpl.event, loc, "body", e.target.value)} placeholder="本文" className="block w-full rounded border border-[var(--color-border)] px-2 py-1 text-xs" />
                 </div>
               ))}
             </div>
           ))}
-          <Button onClick={saveTpl} className="rounded bg-neutral-900 px-6 py-2 text-sm text-white">保存</Button>
+          <Button onClick={saveTpl} className="rounded bg-[var(--color-fg)] px-6 py-2 text-sm text-white">保存</Button>
         </div>
       )}
     </div>

@@ -86,8 +86,8 @@ export function pickBanner(banners: Banner[], r: number): Banner | null {
  * 表示対象を絞ってから重み付きで 1 つ選ぶ(実際に使うのはこちら)。
  *
  * @param banners バナーの配列
- * @param context パス・枠・時点
- * @param r 0〜1 の乱数
+ * @param currentPath パス・枠・時点
+ * @param options 0〜1 の乱数
  * @returns 選ばれたバナー。対象が無ければ null
  */
 export function rotateBanner(banners: Banner[], currentPath: string, options: { now?: Date; slot?: string; random?: () => number } = {}): Banner | null {

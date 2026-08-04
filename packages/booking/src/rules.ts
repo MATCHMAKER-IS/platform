@@ -26,7 +26,7 @@ export interface RuleCheck {
  * 1 年先の予約は営業時間が変わるかもしれない)。
  *
  * @param bookingAt 予約日時
- * @param rules 最短・最長のリードタイム
+ * @param window 最短・最長のリードタイム
  * @param now 現在時刻(テスト注入用)
  * @returns 受付できれば true
  */
@@ -46,7 +46,7 @@ export function isWithinBookingWindow(bookingAt: string | Date, window: BookingW
  * 料金の計算はアプリ側)。
  *
  * @param bookingAt 予約日時
- * @param deadlineMinutes 開始の何分前まで
+ * @param cancelDeadlineMinutes 開始の何分前まで
  * @param now 現在時刻(テスト注入用)
  * @returns キャンセルできれば true
  */
@@ -59,8 +59,8 @@ export function canCancel(bookingAt: string | Date, cancelDeadlineMinutes: numbe
 /**
  * 人数が制約を満たすかを判定する。
  *
- * @param partySize 人数
- * @param rules 最小・最大
+ * @param size 人数
+ * @param limits 最小・最大
  * @returns 満たせば true
  */
 export function validatePartySize(size: number, limits: { min?: number; max?: number }): RuleCheck {

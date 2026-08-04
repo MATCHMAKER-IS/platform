@@ -19,6 +19,13 @@ export interface PayPalConfig {
   clientSecret: string;
   /** 実行環境(既定: "live")。 */
   environment?: "live" | "sandbox";
+  /**
+   * fetch の実装(テスト・デモで差し替える)。
+   *
+   * **`globalThis.fetch` を書き換えないこと。** その方法だと同じプロセスの
+   * 他の通信まで奪ってしまう。ここに渡せば、このクライアントの中だけで済む。
+   */
+  fetchImpl?: typeof fetch;
 }
 
 /** PayPal クライアント。 */
@@ -55,7 +62,8 @@ function baseUrl(env: "live" | "sandbox"): string {
 export function createPayPalClient(config: PayPalConfig): PayPalClient {
   const env = config.environment ?? "live";
   const base = baseUrl(env);
-  const api = createApiClient({ baseUrl: base });
+  const doFetch = config.fetchImpl ?? fetch;
+  const api = createApiClient({ baseUrl: base, ...(config.fetchImpl ? { fetchImpl: config.fetchImpl } : {}) });
 
   let token: { value: string; expiresAt: number } | null = null;
 
@@ -63,7 +71,7 @@ export function createPayPalClient(config: PayPalConfig): PayPalClient {
     if (token && token.expiresAt > Date.now() + 30_000) return { ok: true, value: token.value };
     const basic = btoa(`${config.clientId}:${config.clientSecret}`);
     const res = await tryCatch(async () => {
-      const r = await fetch(`${base}/v1/oauth2/token`, {
+      const r = await doFetch(`${base}/v1/oauth2/token`, {
         method: "POST",
         headers: {
           Authorization: `Basic ${basic}`,

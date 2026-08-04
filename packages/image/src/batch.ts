@@ -14,7 +14,6 @@
  * @param items 処理する項目
  * @param fn 処理する関数
  * @param concurrency 並列数(**無制限にしない**。画像処理はメモリを食う)
- * @param onProgress 各完了時に呼ばれる(任意)
  * @returns 結果の配列(**入力と同じ順序**)
  */
 export async function mapWithConcurrency<T, R>(

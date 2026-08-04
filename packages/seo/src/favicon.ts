@@ -27,7 +27,7 @@ export interface FaviconConfig {
 /**
  * ファビコン等の link / meta タグを生成する。
  *
- * @param input 各サイズのアイコン・テーマ色など
+ * @param config 各サイズのアイコン・テーマ色など
  * @returns head に入れる HTML 文字列
  */
 export function faviconLinks(config: FaviconConfig): string {
@@ -49,7 +49,7 @@ export function faviconLinks(config: FaviconConfig): string {
  *
  * App Router の `metadata` にそのまま渡せる。
  *
- * @param input 各サイズのアイコン
+ * @param config 各サイズのアイコン
  * @returns Next.js の icons オブジェクト
  */
 export function faviconMetadata(config: FaviconConfig): { icon?: (string | { url: string; type?: string; sizes?: string })[]; apple?: string; other?: { rel: string; url: string }[] } {

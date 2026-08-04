@@ -88,7 +88,7 @@ export function hslToRgb(hsl: Hsl): Rgb {
  * **単純な明るさではない**。人の目は緑に敏感なので、RGB に重み付けする
  * (緑 0.7152・赤 0.2126・青 0.0722)。
  *
- * @param color hex または RGB
+ * @param rgb hex または RGB
  * @returns 0(黒)〜1(白)
  */
 export function relativeLuminance(rgb: Rgb): number {

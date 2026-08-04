@@ -20,7 +20,7 @@ export function ReviewsClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="mb-4 text-2xl font-bold">口コミ</h1>
       <div className="mb-4 flex flex-wrap gap-2">
-        {SUBJECTS.map((s) => <Button key={s.id} onClick={() => setSel(s)} className={`rounded-full border px-3 py-1 text-sm ${sel.id === s.id ? "border-neutral-900 bg-neutral-900 text-white" : "border-neutral-300"}`}>{s.label}</Button>)}
+        {SUBJECTS.map((s) => <Button key={s.id} onClick={() => setSel(s)} className={`rounded-full border px-3 py-1 text-sm ${sel.id === s.id ? "border-[var(--color-fg)] bg-[var(--color-fg)] text-white" : "border-[var(--color-border)]"}`}>{s.label}</Button>)}
       </div>
       <ReviewSection subjectType={sel.type} subjectId={sel.id} canModerate={isAdmin} />
     </div>

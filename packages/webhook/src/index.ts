@@ -15,9 +15,9 @@ import { createHmac, timingSafeEqual } from "node:crypto";
  * **タイミング安全な比較**を使う(素朴な `===` だと、比較にかかる時間から
  * 正解の桁数を推測される)。
  *
- * @param payload 受け取った本文(**パースする前の生の文字列**。整形すると署名が合わない)
- * @param signature 署名ヘッダの値
- * @param secret 共有シークレット
+ * @param params.payload 受け取った本文(**パースする前の生の文字列**。整形すると署名が合わない)
+ * @param params.signature 署名ヘッダの値
+ * @param params.secret 共有シークレット
  * @returns 正当なら true
  */
 export function verifyHmacSignature(params: {

@@ -10,7 +10,7 @@
 export {
   parseCookies, getCookie, serializeCookie, clearCookie, type CookieOptions,
 } from "./cookie";
-export { createSession, type Session, type SessionConfig } from "./session";
+export { createSession, MAX_COOKIE_AGE_SEC, type Session, type SessionConfig, type SessionInfo } from "./session";
 export {
   createServerSession, type ServerSession, type ServerSessionConfig, type SessionStore,
 } from "./store-session";
@@ -18,3 +18,4 @@ export * from "./idle-timer";
 export * from "./login-throttle";
 export * from "./step-up";
 export * from "./login-audit";
+export * from "./revocation";

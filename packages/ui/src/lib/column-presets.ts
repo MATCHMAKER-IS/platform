@@ -19,7 +19,7 @@ export interface ColumnPreset {
 /**
  * プリセットを更新または追加する。
  *
- * @param presets 現在のプリセット
+ * @param list 現在のプリセット
  * @param preset 保存するプリセット
  * @returns 更新した**新しい配列**(id が一致すれば更新、無ければ追加)
  */
@@ -32,7 +32,7 @@ export function upsertPreset(list: ColumnPreset[], preset: ColumnPreset): Column
 /**
  * プリセットを削除する。
  *
- * @param presets 現在のプリセット
+ * @param list 現在のプリセット
  * @param id 削除する id
  * @returns 削除した新しい配列
  */
@@ -43,7 +43,7 @@ export function removePreset(list: ColumnPreset[], id: string): ColumnPreset[] {
 /**
  * プリセットを id で探す。
  *
- * @param presets プリセットの配列
+ * @param list プリセットの配列
  * @param id 探す id
  * @returns プリセット。**無ければ undefined**
  */
@@ -57,7 +57,7 @@ export function findPreset(list: ColumnPreset[], id: string): ColumnPreset | und
  * **共有プリセットは全員に見える**ので、誤って個人の設定を共有しないよう
  * 画面で明確に分ける。
  *
- * @param presets プリセットの配列
+ * @param list プリセットの配列
  * @returns 共有と個人それぞれの配列
  */
 export function splitPresets(list: ColumnPreset[]): { shared: ColumnPreset[]; personal: ColumnPreset[] } {
@@ -116,8 +116,8 @@ export function createColumnPresetStore(options: ColumnPresetStoreOptions): Colu
  *
  * **初回表示で使う**(何も選ばれていないときの列構成)。
  *
- * @param presets プリセットの配列
- * @param tableId テーブル
+ * @param list.presets プリセットの配列
+ * @param list.tableId テーブル
  * @returns 既定のプリセット。**無ければ undefined**
  */
 export function defaultPreset(list: ColumnPreset[]): ColumnPreset | undefined {

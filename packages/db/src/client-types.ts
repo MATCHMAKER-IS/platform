@@ -73,7 +73,7 @@ export interface AuditCapableClient {
  * 型引数に期待する形を書くと、その形として扱える。
  *
  * @param tx トランザクションクライアント
- * @param model モデル名(`"expense"` など。**生成物のプロパティ名**)
+ * @param name モデル名(`"expense"` など。**生成物のプロパティ名**)
  * @returns そのモデルのデリゲート
  *
  * @example

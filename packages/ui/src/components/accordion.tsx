@@ -49,7 +49,9 @@ export const AccordionTrigger = React.forwardRef<
     <Primitive.Trigger
       ref={ref}
       className={cn(
-        "flex flex-1 items-center justify-between py-3 text-sm font-medium text-[var(--color-fg)] focus-visible:outline-none [&[data-state=open]>svg]:rotate-180",
+        // **outline を消したら代替を出す。** 消しただけだとキーボードで辿ったとき
+        // 「今どこにいるか」が分からなくなる(社内システムはキーボード中心で使われる)
+        "flex flex-1 items-center justify-between py-3 text-sm font-medium text-[var(--color-fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2 rounded-[var(--radius)] [&[data-state=open]>svg]:rotate-180",
         className,
       )}
       {...props}

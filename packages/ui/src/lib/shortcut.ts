@@ -31,7 +31,7 @@ const MOD_TOKENS = new Set(["mod", "cmdctrl"]);
  *
  * **`mod` は Mac なら ⌘、他なら Ctrl**。これを使うと、OS ごとに書き分けなくてよい。
  *
- * @param combo `mod+shift+k` のような文字列
+ * @param input `mod+shift+k` のような文字列
  * @returns 解析した修飾キーとキー
  */
 export function parseShortcut(input: string): ParsedShortcut {
@@ -51,8 +51,8 @@ export function parseShortcut(input: string): ParsedShortcut {
 /**
  * キー入力がショートカットに一致するかを判定する。
  *
- * @param event キーイベント
- * @param combo ショートカット文字列
+ * @param chord キーイベント
+ * @param shortcut ショートカット文字列
  * @param isMac Mac か(**`mod` の解決に使う**)
  * @returns 一致すれば true
  */
@@ -69,7 +69,7 @@ export function matchShortcut(chord: KeyChord, shortcut: ParsedShortcut, isMac: 
  * **Mac は記号(⌘⇧K)、他は語(Ctrl+Shift+K)**。OS の慣習に合わせないと、
  * 利用者は自分のキーボードのどれを押すか分からない。
  *
- * @param combo ショートカット文字列
+ * @param shortcut ショートカット文字列
  * @param isMac Mac か
  * @returns 表示用の文字列
  */
@@ -89,7 +89,7 @@ export function formatShortcut(shortcut: ParsedShortcut, isMac: boolean): string
  *
  * **Vim 風の連続キー**(g を押してから h)。同時押しとは区別が要る。
  *
- * @param combo ショートカット文字列
+ * @param input ショートカット文字列
  * @returns 連続入力なら true
  */
 export function isSequence(input: string): boolean {
@@ -99,7 +99,7 @@ export function isSequence(input: string): boolean {
 /**
  * 連続入力をキーの配列に分解する。
  *
- * @param combo `g h` のような文字列
+ * @param input `g h` のような文字列
  * @returns `["g", "h"]`
  */
 export function parseSequence(input: string): string[] {
@@ -110,8 +110,8 @@ export function parseSequence(input: string): string[] {
  * 入力履歴が目的の連続入力にどこまで一致しているか。
  * 履歴の末尾が連続入力の「先頭からの一致」になっているかを見る(g→h の途中で g だけなら partial)。
  *
- * @param pressed 押されたキーの列
- * @param combo 連続入力のショートカット
+ * @param history 押されたキーの列
+ * @param sequence 連続入力のショートカット
  * @returns 一致すれば true(**途中まで一致していれば待つ**)
  */
 export function sequenceMatches(history: string[], sequence: string[]): "complete" | "partial" | "none" {

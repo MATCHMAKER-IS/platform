@@ -99,6 +99,18 @@ let __smokeTmpSeq = 0;
 /** @param {string} name 末尾に付ける識別子(拡張子込みでよい) */
 const smokeTmp = (name) => `${TMP}/smoke-${SMOKE_RUN}-${__smokeTmpSeq++}-${name}`;
 /** ファイル名に使うプロセス一意トークン(既存の `Date.now()` 置き換え用)。 */
+/**
+ * `@platform/security` の sanitizeEmbed のスタブ。
+ *
+ * 本物は `sanitize-html` に依存するため、依存なしで動く smoke では読めない。
+ * ここで見たいのは「**利用側がサニタイズを通しているか**」であって、
+ * sanitize-html 自体の正しさではない(そちらは security 側のテストの担当)。
+ */
+const SEC_STUB_SRC =
+  'export function sanitizeEmbed(h) {\n' +
+  '  return h.replace(/<script[\\s\\S]*?<\\/script>/gi, "").replace(/\\son\\w+="[^"]*"/gi, "");\n}\n';
+let SECFAKE = "";
+
 const smokeStamp = () => `${Date.now()}-${SMOKE_RUN}-${__smokeTmpSeq++}`;
 
 // ---- 実ソース: validation/japan.ts(チェックディジット・カナ・Luhn) ----
@@ -1883,8 +1895,11 @@ section("login rate limit");
     await fs.writeFile(`${base}/${f}.ts`, await mapCore(`../packages/ratelimit/src/${f}.ts`));
   }
   await fs.writeFile(`${base}/entry.ts`, `export * from "${toSpec(`${base}/types.ts`)}";\nexport * from "${toSpec(`${base}/memory.ts`)}";\nexport * from "${toSpec(`${base}/limiter.ts`)}";\n`);
+  // **サブパスにも一致させる。** `@platform/ratelimit/browser` へ切り替えたとき、
+  // 固定文字列の置換が外れて「モジュールが見つからない」で落ちた
   await fs.writeFile(`${base}/login-limit.ts`,
-    (await fs.readFile(new URL("../apps/equipment-app/src/server/login-limit.ts", import.meta.url), "utf8")).replace('from "@platform/ratelimit"', `from "${toSpec(`${base}/entry.ts`)}"`));
+    (await fs.readFile(new URL("../apps/equipment-app/src/server/login-limit.ts", import.meta.url), "utf8"))
+      .replace(/from "@platform\/ratelimit(\/browser)?"/, `from "${toSpec(`${base}/entry.ts`)}"`));
   const L = await impFile(`${base}/login-limit.ts`);
 
   // 同じメールで 5 回までは通り、6 回目で止まる
@@ -2598,7 +2613,7 @@ section("api instrumentation (all shapes)");
   const lc = `${TMP}/inst2-lc-${stamp}.ts`;
   await fs.writeFile(lc, `export const logContext={run:(c,fn)=>fn(),get:()=>({}),set(){},provider:()=>({})};`);
   const coreShim = `${TMP}/inst2-core-${stamp}.ts`;
-  await fs.writeFile(coreShim, `export class AppError extends Error { constructor(c,m,o){ super(m); this.code=c; this.details=o?.details; } } const P={VALIDATION:400,NOT_FOUND:404,UNAUTHORIZED:401,FORBIDDEN:403,RATE_LIMITED:429,CONFLICT:409,EXTERNAL:502,DATABASE:503,CONFIG:500,INTERNAL:500}; export function httpStatusFor(e){ return e instanceof AppError ? P[e.code] : 500; } export function toErrorEnvelope(e,traceId){ if(e instanceof AppError) return { error:{ code:e.code, message:e.message, ...(traceId?{traceId}:{}) } }; return { error:{ code:"UNKNOWN", message:"予期しないエラーが発生しました", ...(traceId?{traceId}:{}) } }; }`);
+  await fs.writeFile(coreShim, `export class AppError extends Error { constructor(c,m,o){ super(m); this.code=c; this.details=o?.details; } } const P={VALIDATION:400,NOT_FOUND:404,UNAUTHORIZED:401,FORBIDDEN:403,RATE_LIMITED:429,CONFLICT:409,EXTERNAL:502,DATABASE:503,CONFIG:500,INTERNAL:500}; export function httpStatusFor(e){ return e instanceof AppError ? P[e.code] : 500; } export function toErrorEnvelope(e,traceId){ if(e instanceof AppError) return { error:{ code:e.code, message:e.message, ...(traceId?{traceId}:{}), ...(e.code==="VALIDATION"&&e.details?{details:e.details}:{}) } }; return { error:{ code:"UNKNOWN", message:"予期しないエラーが発生しました", ...(traceId?{traceId}:{}) } }; }`);
   // Platform Debugger の収集器(開発時のみ有効)。ここでは無効相当のスタブで差し替える
   const dbgc = `${TMP}/inst2-dbg-${stamp}.ts`;
   await fs.writeFile(dbgc, `export const debugCollector={enabled:false,start(){},record(){},finish(){},list:()=>[],get:()=>undefined,clear(){},summarize:()=>({})};`);
@@ -3093,9 +3108,81 @@ section("error policy / bulkhead / process guards");
   ok("再試行分類(EXTERNAL可/VALIDATION不可/未分類不可)", isRetryable(new AppError(ErrorCode.EXTERNAL, "x")) === true &&
      isRetryable(new AppError(ErrorCode.VALIDATION, "x")) === false &&
      isRetryable(new Error("x")) === false);
-  ok("エラーエンベロープ(traceId + 内部秘匿)", toErrorEnvelope(new AppError(ErrorCode.NOT_FOUND, "x", { details: { id: 1 } }), "t1").error.traceId === "t1" && toErrorEnvelope(new Error("secret")).error.code === "UNKNOWN");
+  // **details は VALIDATION のときだけ外に出す。**
+  // それ以外(DB・外部連携・認可)の details には内部の事情が入りうる:
+  // テーブル名・接続先 URL・存在するリソース ID など。
+  // 「個人情報を含めないこと」と書くだけでは守れないので、既定で出さない。
+  ok("エラーエンベロープ(traceId + 内部秘匿 + details は VALIDATION のみ)",
+    toErrorEnvelope(new AppError(ErrorCode.NOT_FOUND, "x", { details: { id: 1 } }), "t1").error.traceId === "t1" &&
+    toErrorEnvelope(new Error("secret")).error.code === "UNKNOWN" &&
+    toErrorEnvelope(new AppError(ErrorCode.NOT_FOUND, "x", { details: { table: "users" } })).error.details === undefined &&
+    toErrorEnvelope(new AppError(ErrorCode.DATABASE, "x", { details: { sql: "SELECT …" } })).error.details === undefined &&
+    toErrorEnvelope(new AppError(ErrorCode.VALIDATION, "x", { details: { field: "email" } })).error.details?.field === "email");
 
   const bh = await w("bh", (await fs.readFile(new URL("../packages/core/src/bulkhead.ts", import.meta.url), "utf8")).replace('from "./error"', `from "${toSpec(err)}"`));
+  const cb = await w("cb", (await fs.readFile(new URL("../packages/core/src/circuit-breaker.ts", import.meta.url), "utf8")).replace('from "./error"', `from "${toSpec(err)}"`));
+  const CB = await impFile(cb);
+
+  // **相手が落ちているのに呼び続けると、自分まで巻き込まれて落ちる。**
+  // 1 回の呼び出しがタイムアウトまで数秒かかると、待ちが積み上がって
+  // 接続が枯渇し、無関係な機能まで応答しなくなる。
+  {
+    let t = 0;
+    const breaker = CB.createCircuitBreaker({ failureThreshold: 3, resetTimeoutMs: 1_000, now: () => t });
+    const boom = () => Promise.reject(new Error("boom"));
+    for (let i = 0; i < 3; i += 1) { try { await breaker.execute(boom); } catch { /* 期待どおり */ } }
+
+    ok("CircuitBreaker 失敗が閾値に達したら open(以降は**呼ばずに**即座に失敗)",
+      breaker.stats().state === "open" &&
+      await (async () => {
+        try { await breaker.execute(() => Promise.resolve("ok")); return false; }
+        catch { return breaker.stats().rejectedCalls === 1; }
+      })());
+
+    t = 1_001;
+    ok("CircuitBreaker 一定時間後は half-open(様子見)・成功すれば closed に戻る",
+      breaker.stats().state === "half-open" &&
+      (await breaker.execute(() => Promise.resolve("ok"))) === "ok" &&
+      breaker.stats().state === "closed");
+  }
+
+  // **half-open で失敗したら即座に open へ戻す。**
+  // まだ回復していない相手に流し続けると、回復しかけたところを潰す
+  {
+    let t = 0;
+    const breaker = CB.createCircuitBreaker({ failureThreshold: 2, resetTimeoutMs: 100, now: () => t });
+    const boom = () => Promise.reject(new Error("x"));
+    for (let i = 0; i < 2; i += 1) { try { await breaker.execute(boom); } catch { /* 期待どおり */ } }
+    t = 101;
+    const wasHalfOpen = breaker.stats().state === "half-open";
+    try { await breaker.execute(boom); } catch { /* 期待どおり */ }
+    ok("CircuitBreaker half-open で失敗したら**即座に open へ戻す**(回復しかけを潰さない)",
+      wasHalfOpen && breaker.stats().state === "open");
+  }
+
+  // **相手のせいでない失敗は数えない。**
+  // 入力が不正(400)で遮断すると、正しい要求まで通らなくなる
+  {
+    const breaker = CB.createCircuitBreaker({
+      failureThreshold: 2, resetTimeoutMs: 100,
+      isFailure: (e) => !(e instanceof E.AppError && e.code === E.ErrorCode.VALIDATION),
+    });
+    for (let i = 0; i < 5; i += 1) {
+      try { await breaker.execute(() => Promise.reject(new E.AppError(E.ErrorCode.VALIDATION, "入力が不正"))); }
+      catch { /* 期待どおり */ }
+    }
+    ok("CircuitBreaker **入力エラーでは遮断しない**(相手が落ちたわけではない)",
+      breaker.stats().state === "closed");
+  }
+
+  ok("CircuitBreaker 手動で開閉できる(相手のメンテナンス中・復旧確認時)",
+    (() => {
+      const breaker = CB.createCircuitBreaker({ failureThreshold: 3, resetTimeoutMs: 1_000 });
+      breaker.trip();
+      const opened = breaker.stats().state === "open";
+      breaker.reset();
+      return opened && breaker.stats().state === "closed";
+    })());
   const { createBulkhead } = await impFile(bh);
   const defer = () => { let r; const p = new Promise((res) => { r = res; }); return { p, resolve: r }; };
   const b = createBulkhead({ maxConcurrent: 2 });
@@ -3568,7 +3655,11 @@ section("session: idle timeout / idle timer / login throttle");
   await fs.writeFile(cryptoF, "export function deriveKey(s){return s} export function encrypt(t){return Buffer.from(t,'utf8').toString('base64')} export function decrypt(x){return Buffer.from(x,'base64').toString('utf8')}");
   const cookieF = `${TMP}/sess-cookie-${stamp}.ts`;
   await fs.writeFile(cookieF, "export function getCookie(h,n){ if(!h) return undefined; for(const p of h.split(';')){ const [k,v]=p.trim().split('='); if(k===n) return v; } return undefined } export function serializeCookie(n,v,o){ return `${n}=${v}; Max-Age=${o?.maxAge??0}` } export function clearCookie(n){ return `${n}=; Max-Age=0` }");
+  // session.ts は 0=無制限 の判定で AppError を投げるため core も要る
+  const coreF = `${TMP}/sess-core-${stamp}.ts`;
+  await fs.writeFile(coreF, "export class AppError extends Error{constructor(c,m,o){super(m);this.code=c;this.details=o?.details;}}\nexport const ErrorCode={CONFIG:'CONFIG'};\n");
   const sessSrc = (await fs.readFile(new URL("../packages/session/src/session.ts", import.meta.url), "utf8"))
+    .replace('from "@platform/core"', `from "${toSpec(coreF)}"`)
     .replace('from "@platform/crypto"', `from "${toSpec(cryptoF)}"`)
     .replace('from "./cookie"', `from "${toSpec(cookieF)}"`);
   const sessF = `${TMP}/sess-session-${stamp}.ts`; await fs.writeFile(sessF, sessSrc);
@@ -3582,6 +3673,22 @@ section("session: idle timeout / idle timer / login throttle");
   const noIdle = S.createSession({ secret: "z".repeat(32), salt: "smoke-salt-2", maxAgeSec: 3600 });
   const cn = noIdle.write({ u: "2" });
   ok("session 既定は無操作でもOK", noIdle.read("session=" + cn.split("session=")[1].split(";")[0])?.u === "2");
+  // **0 は無制限。** 以前は「経過時間 > 0」が常に成立し、
+  // 「0 = 無制限」と案内しながら**設定した瞬間に全員が落ちる**状態だった
+  const zero = S.createSession({ secret: "w".repeat(32), salt: "smoke-salt-3", maxAgeSec: 0, idleTimeoutSec: 0 });
+  const cz = zero.write({ u: "3" });
+  const cookieZ = "session=" + cz.split("session=")[1].split(";")[0];
+  await new Promise((r) => setTimeout(r, 20));
+  ok("session 0 は無制限(即ログアウトにしない)", zero.read(cookieZ)?.u === "3");
+  ok("session 無制限でもクッキーには有限の寿命を入れる(不正な属性だと丸ごと捨てられる)",
+    cz.includes(`Max-Age=${S.MAX_COOKIE_AGE_SEC}`));
+  const zi = zero.inspect(cookieZ);
+  ok("session inspect は発行時刻を返す(失効判定に要る)・無制限なら expiresAt は null",
+    zi !== null && typeof zi.issuedAt === "number" && zi.expiresAt === null);
+  let cfgErr = "";
+  try { S.createSession({ secret: "v".repeat(32), salt: "smoke-salt-4", idleTimeoutSec: -1 }); }
+  catch (e) { cfgErr = e.code; }
+  ok("session 負の秒数は起動時に落とす(単位間違いを黙って無制限にしない)", cfgErr === "CONFIG");
 
   // idle timer(スケジューラ注入)
   const IT = await impFile(new URL("../packages/session/src/idle-timer.ts", import.meta.url));
@@ -4075,6 +4182,75 @@ section("payroll: worktime / premium / payslip");
   const W = await impFile(new URL("../packages/payroll/src/worktime.ts", import.meta.url));
   const P = await impFile(new URL("../packages/payroll/src/premium.ts", import.meta.url));
   const S = await impFile(new URL("../packages/payroll/src/payslip.ts", import.meta.url));
+  const I = await impFile(new URL("../packages/payroll/src/insurance.ts", import.meta.url));
+
+  // 社会保険料。**額面ではなく標準報酬月額**に料率を掛ける(等級で丸める)。
+  // これを知らずに額面へ直接掛けると、毎月わずかにずれ続け、年末に大きく合わなくなる。
+  const rates = I.REFERENCE_RATES_2026_TOKYO;
+  const ded = I.calcInsuranceDeduction({ monthlyPay: 305_000, birthDate: "1990-05-15", targetMonth: "2026-08" }, rates);
+  ok("社会保険 標準報酬月額で丸める(305,000 → 300,000 等級)",
+    ded.pensionStandardMonthly === 300_000 && ded.pension === 27_450);
+  ok("社会保険 **雇用保険だけ額面に直接**(等級を使わない・50 銭ちょうどは切り捨て)",
+    ded.employmentInsurance === 1_677);
+  ok("社会保険 **厚生年金は 65 万円で頭打ち**(健康保険はまだ増える)",
+    (() => {
+      const a = I.calcInsuranceDeduction({ monthlyPay: 700_000, birthDate: "1990-01-01", targetMonth: "2026-08" }, rates);
+      const b = I.calcInsuranceDeduction({ monthlyPay: 2_000_000, birthDate: "1990-01-01", targetMonth: "2026-08" }, rates);
+      return a.pension === b.pension && b.health > a.health;
+    })());
+  ok("社会保険 介護は 40 歳から(**1 日生まれは前月から**・誕生日の前日で判定)",
+    I.isLongTermCareTarget("1986-04-01", "2026-03") === true &&
+    I.isLongTermCareTarget("1986-04-02", "2026-03") === false &&
+    I.isLongTermCareTarget("1986-04-02", "2026-04") === true &&
+    I.calcInsuranceDeduction({ monthlyPay: 300_000, birthDate: "2000-01-01", targetMonth: "2026-08" }, rates).longTermCare === 0);
+  ok("社会保険 端数は 50 銭以下切り捨て・超は切り上げ(四捨五入ではない)",
+    I.roundPremium(100.5) === 100 && I.roundPremium(100.51) === 101);
+
+  // 源泉徴収。**税額表を引く**(計算式では再現できない)。
+  // 月額表は給与所得控除・基礎控除・扶養控除が織り込まれており、素朴な段階税率だと
+  // 実際の表と数千円ずれる(255,930 円・扶養 1 人で 5,130 円のところ 11,000 円超になる)。
+  const WH = await impFile(new URL("../packages/payroll/src/withholding.ts", import.meta.url));
+  const table = { year: "2026", rows: [
+    { from: 0, to: 254_000, tax: [6_640, 5_020, 3_410, 1_790, 170, 0, 0, 0] },
+    { from: 254_000, to: 257_000, tax: [6_750, 5_130, 3_510, 1_890, 280, 0, 0, 0] },
+    { from: 257_000, to: Number.POSITIVE_INFINITY, tax: [6_850, 5_240, 3_620, 2_000, 380, 0, 0, 0] },
+  ] };
+  ok("源泉徴収 税額表を引く(扶養の列を見る・実際の表の値と一致)",
+    WH.lookupWithholdingTax(table, 255_930, 1) === 5_130 &&
+    WH.lookupWithholdingTax(table, 255_930, 0) === 6_750);
+  ok("源泉徴収 **社会保険料を引いた後**の額で引く(順序を誤ると毎月多く天引きする)",
+    (() => {
+      const d = WH.buildMonthlyDeductions({ grossPay: 300_000, socialInsurance: 44_070, dependents: 1, table, residentTax: 12_000 });
+      return d.taxableAmount === 255_930 && d.incomeTax === 5_130 && d.netPay === 300_000 - (44_070 + 5_130 + 12_000);
+    })());
+  // 賞与。**月給とは計算方法が違う**。同じつもりで実装すると必ず合わない。
+  const BN = await impFile(new URL("../packages/payroll/src/bonus.ts", import.meta.url));
+  ok("賞与 標準賞与額は **1,000 円未満切り捨て**(月給の等級表とは違う)",
+    BN.standardBonus(456_789) === 456_000 && BN.standardBonus(999) === 0);
+  ok("賞与 **厚生年金は 1 回ごとに 150 万円**まで(累計ではない)",
+    (() => {
+      const c = BN.calcBonusInsurance({ bonusAmount: 2_000_000, yearlyBonusSoFar: 0, isLongTermCareTarget: false }, rates);
+      return c.pensionTargetAmount === 1_500_000 && c.cappedByLimit === true;
+    })());
+  ok("賞与 **健康保険は年度累計で 573 万円**まで(既に使った分を差し引く)",
+    BN.calcBonusInsurance({ bonusAmount: 1_000_000, yearlyBonusSoFar: 5_500_000, isLongTermCareTarget: false }, rates)
+      .healthTargetAmount === 230_000);
+  ok("賞与 源泉徴収は **前月の給与**で税率を決める(賞与額ではない)",
+    (() => {
+      const t = { year: "2026", rows: [
+        { dependents: 1, from: 0, to: 243_000, rate: 0.02042 },
+        { dependents: 1, from: 243_000, to: Number.POSITIVE_INFINITY, rate: 0.04084 },
+      ] };
+      // 同じ賞与額でも、前月の給与が違えば税額が変わる
+      const low = BN.bonusWithholdingTax(t, { bonusAfterInsurance: 700_000, previousMonthPay: 200_000, dependents: 1 });
+      const high = BN.bonusWithholdingTax(t, { bonusAfterInsurance: 700_000, previousMonthPay: 300_000, dependents: 1 });
+      return low === Math.floor(700_000 * 0.02042) && high === Math.floor(700_000 * 0.04084) && high > low;
+    })());
+
+  ok("源泉徴収 表の穴を検出(隙間・重なり・列不足・扶養が増えて税額が上がる)",
+    WH.validateWithholdingTable(table).length === 0 &&
+    WH.validateWithholdingTable({ year: "x", rows: [{ from: 0, to: 100, tax: [0, 1, 0, 0, 0, 0, 0, 0] }] }).length > 0 &&
+    WH.validateWithholdingTable({ year: "x", rows: [{ from: 0, to: 100, tax: [0, 0] }] }).length > 0);
   const t = W.parseTimeToMinutes;
   ok("勤怠 深夜窓(22-24=120/20-翌6=420/昼=0)", W.nightMinutes(t("22:00"), 1440) === 120 && W.nightMinutes(t("20:00"), 1440 + t("06:00")) === 420 && W.nightMinutes(t("09:00"), t("18:00")) === 0);
   ok("勤怠 区分(8h→残業0/10h→残業120/法定休日→全休日)", W.splitDailyWork({ startMin: t("09:00"), endMin: t("18:00"), breakMinutes: 60 }).overtimeMinutes === 0 &&
@@ -5547,6 +5723,782 @@ section("payslip-html / sync-job");
 }
 
 // ---- 勤怠CSV取込(実 @platform/csv) + 給与明細一括PDF生成 ----
+section("storage: ファイル操作(コピー・移動・整理)");
+{
+  const fsst = await import("node:fs/promises");
+  const st = smokeStamp();
+  // 型だけの依存(Result / Storage)を落として単体で読む
+  const OPC = `${TMP}/st-core-${st}.ts`;
+  // **スタブは本物と同じ形にする。** ここが `error: Error` のままだったため、
+  // `new Error(...)` を返している実装(型としては AppError が必要)を
+  // smoke が通してしまい、**型エラーが typecheck まで表に出なかった**。
+  // smoke は型検査をしない(node が型を落として実行するだけ)ので、
+  // **スタブが緩いと誤りを覆い隠す**。
+  await fsst.writeFile(OPC,
+    "export class AppError extends Error { constructor(code, message, o){ super(message); this.code=code; this.cause=o?.cause; } }\n"
+    + "export const ErrorCode = { VALIDATION: 'VALIDATION', CONFLICT: 'CONFLICT' };\n"
+    + "export function ok(value){ return { ok: true, value }; }\n"
+    + "export function err(error){ return { ok: false, error }; }\n"
+    + "export type Result<T> = { ok: true; value: T } | { ok: false; error: AppError };\n");
+  const OPI = `${TMP}/st-idx-${st}.ts`;
+  await fsst.writeFile(OPI, "export interface Storage { put(k: string, b: Uint8Array): Promise<unknown>; get(k: string): Promise<unknown>; delete(k: string): Promise<unknown>; exists(k: string): Promise<unknown>; list(p?: string): Promise<unknown>; }\n");
+  const OPr = `${TMP}/st-op-${st}.ts`;
+  await fsst.writeFile(OPr, (await fsst.readFile(new URL("../packages/storage/src/operations.ts", import.meta.url), "utf8"))
+    .replace('from "@platform/core"', `from "${toSpec(OPC)}"`)
+    .replace('from "./index"', `from "${toSpec(OPI)}"`));
+  const OP = await impFile(OPr);
+
+  /** メモリ実装。 */
+  const makeStorage = () => {
+    const store = new Map();
+    return {
+      store,
+      async put(k, b) { store.set(k, b); return { ok: true, value: undefined }; },
+      async get(k) { return store.has(k) ? { ok: true, value: store.get(k) } : { ok: false, error: new Error("無い") }; },
+      async delete(k) { store.delete(k); return { ok: true, value: undefined }; },
+      async exists(k) { return { ok: true, value: store.has(k) }; },
+      async list(p) { return { ok: true, value: [...store.keys()].filter((k) => p === undefined || k.startsWith(p)) }; },
+    };
+  };
+
+  // **既定では上書きしない。** 同じ名前で上書きして元に戻せなくなる事故を防ぐ
+  ok("ストレージ コピーは既定で上書きしない(overwrite: true で明示)",
+    await (async () => {
+      const s = makeStorage();
+      await s.put("a.txt", new Uint8Array([1]));
+      await s.put("b.txt", new Uint8Array([2]));
+      const denied = await OP.copyFile(s, "a.txt", "b.txt");
+      const allowed = await OP.copyFile(s, "a.txt", "b.txt", { overwrite: true });
+      return denied.ok === false && allowed.ok === true;
+    })());
+
+  // **保存を確認してから元を消す。** 逆にすると失敗時にファイルが消えてなくなる
+  ok("ストレージ 移動は保存してから元を消す",
+    await (async () => {
+      const s = makeStorage();
+      await s.put("draft/x.pdf", new Uint8Array([1]));
+      const r = await OP.moveFile(s, "draft/x.pdf", "approved/x.pdf");
+      return r.ok && s.store.has("approved/x.pdf") && !s.store.has("draft/x.pdf");
+    })());
+
+  // **空の接頭辞は全件削除になる。** 受け付けない
+  ok("ストレージ 空の接頭辞での一括削除を拒む(全件削除を防ぐ)",
+    (await OP.deleteByPrefix(makeStorage(), "")).ok === false);
+
+  // **まず数えてから消す**という使い方ができる
+  ok("ストレージ dryRun で対象を数えられる(消しすぎを防ぐ)",
+    await (async () => {
+      const s = makeStorage();
+      for (const k of ["tmp/a", "tmp/b", "keep/c"]) await s.put(k, new Uint8Array(1));
+      const dry = await OP.deleteByPrefix(s, "tmp/", { dryRun: true });
+      const kept = s.store.size === 3;
+      await OP.deleteByPrefix(s, "tmp/");
+      return dry.value.succeeded === 2 && kept && s.store.size === 1;
+    })());
+
+  // **移動先が移動元の内側だと、同じファイルを繰り返し移す**ことになる
+  ok("ストレージ 移動先が移動元の内側なら拒む(invoices/ → invoices/old/)",
+    (await OP.movePrefix(makeStorage(), "inv/", "inv/old/")).ok === false);
+
+  ok("ストレージ 接頭辞ごと移せる(フォルダ名の変更に相当)",
+    await (async () => {
+      const s = makeStorage();
+      for (const k of ["inv/2025/a", "inv/2025/b"]) await s.put(k, new Uint8Array(1));
+      const r = await OP.movePrefix(s, "inv/2025/", "archive/2025/");
+      return r.value.succeeded === 2 && s.store.has("archive/2025/a") && !s.store.has("inv/2025/a");
+    })());
+
+  // **どこから手を付けるか**が分かるよう、多い順に返す
+  ok("ストレージ 使用量を接頭辞ごとに集計する(多い順)",
+    await (async () => {
+      const s = makeStorage();
+      await s.put("users/1/a", new Uint8Array(100));
+      await s.put("logs/x", new Uint8Array(10));
+      const u = await OP.calcUsage(s);
+      return u.value.fileCount === 2 && u.value.totalBytes === 110 && u.value.byPrefix[0].prefix === "users/";
+    })());
+
+  // **ストレージは更新日時を持たない実装もある**ため、キーの日付で判断する
+  ok("ストレージ キーの日付から古いファイルを探す",
+    JSON.stringify(OP.findOlderThan(["logs/2024-12-01/a", "logs/2026-01-01/b"], "2025-01-01")) === '["logs/2024-12-01/a"]');
+}
+
+section("db: 踏み台(bastion)経由の接続");
+{
+  const fstn = await import("node:fs/promises");
+  const TN = await impFile(new URL("../packages/db/src/tunnel.ts", import.meta.url));
+
+  // **BASTION_HOST が無ければ null。** 本番は同じ VPC 内なので踏み台を経由しない
+  ok("踏み台 BASTION_HOST が無ければ null(本番は直接つなぐ)",
+    TN.tunnelConfigFromEnv({ DATABASE_URL: "postgresql://a:b@db.rds.amazonaws.com:5432/app" }) === null);
+
+  // **DATABASE_URL から DB のホストを自動で取る**(二重に書かせない)
+  ok("踏み台 DATABASE_URL から接続先を読み取る(BASTION_DB_HOST は省略できる)",
+    (() => {
+      const c = TN.tunnelConfigFromEnv({
+        BASTION_HOST: "bastion.example.com",
+        DATABASE_URL: "postgresql://a:b@db.xxx.rds.amazonaws.com:5432/app?schema=public",
+      });
+      return c.dbHost === "db.xxx.rds.amazonaws.com" && c.dbPort === 5432 && c.bastionUser === "ec2-user";
+    })());
+
+  ok("踏み台 BASTION_DB_HOST を指定すれば DATABASE_URL より優先する",
+    TN.tunnelConfigFromEnv({
+      BASTION_HOST: "b.example.com",
+      BASTION_DB_HOST: "別のdb.rds.amazonaws.com",
+      DATABASE_URL: "postgresql://a:b@db.rds.amazonaws.com:5432/app",
+    }).dbHost === "別のdb.rds.amazonaws.com");
+
+  // **接続先が分からないまま進めない**(黙って localhost につながると事故になる)
+  ok("踏み台 接続先が分からなければ例外(黙って localhost につながない)",
+    (() => {
+      try { TN.tunnelConfigFromEnv({ BASTION_HOST: "b.example.com" }); return false; }
+      catch { return true; }
+    })());
+
+  // **ホストとポートだけを差し替える。** ユーザー・パスワード・DB 名・クエリは保つ
+  ok("踏み台 接続文字列はホストとポートだけ差し替える(?schema= などを保つ)",
+    (() => {
+      const u = new URL("postgresql://appuser:p%40ss@db.xxx.rds.amazonaws.com:5432/app?schema=public&sslmode=require");
+      u.hostname = "127.0.0.1";
+      u.port = "15432";
+      const out = u.toString();
+      return out.includes("appuser") && out.includes("p%40ss") && out.includes("/app") &&
+        out.includes("schema=public") && out.includes("sslmode=require") && out.includes("127.0.0.1:15432");
+    })());
+
+  // **ssh コマンドを使う理由**を明記してあること(次の人が ssh2 に置き換えないように)
+  ok("踏み台 ssh コマンドを使う理由が書いてある(鍵の扱いを OS に任せる)",
+    (await fstn.readFile(new URL("../packages/db/src/tunnel.ts", import.meta.url), "utf8"))
+      .includes("鍵の扱いを OS に任せられる"));
+}
+
+section("http: ページング");
+{
+  const PG = await impFile(new URL("../packages/http/src/paging.ts", import.meta.url));
+
+  // **不正な値でエラーにしない。** 一覧が見えないより、既定で見える方がよい
+  ok("ページング 不正な値は既定に丸める(page=abc → 1・limit=-1 → 20)",
+    PG.parseOffsetPaging({ page: "abc" }).page === 1 &&
+    PG.parseOffsetPaging({ limit: "-1" }).limit === 20);
+
+  // **上限は必ず守る。** 大きい値を通すと 1 回の要求で記憶域を食い尽くされる
+  ok("ページング **上限を必ず守る**(limit=100000 → 200)",
+    PG.parseOffsetPaging({ limit: "100000" }).limit === PG.MAX_LIMIT);
+
+  ok("ページング page は 1 始まり・offset を計算する",
+    PG.parseOffsetPaging({ page: "3", limit: "10" }).offset === 20);
+
+  // **形を揃える。** API ごとに total があったり無かったりすると画面が作り分けを強いられる
+  ok("ページング 総ページ数・前後の有無を返す",
+    (() => {
+      const p = PG.buildOffsetPage([1, 2, 3], 25, PG.parseOffsetPaging({ page: "2", limit: "10" }));
+      return p.totalPages === 3 && p.hasNext === true && p.hasPrev === true;
+    })());
+
+  // **limit+1 件取ってから渡す。** 総件数を数えずに「次があるか」が分かる
+  ok("ページング カーソル方式は 1 件多く取って次の有無を判定する",
+    (() => {
+      const c = PG.buildCursorPage([{ id: "a" }, { id: "b" }, { id: "c" }], 2, (r) => r.id);
+      return c.items.length === 2 && c.nextCursor === "b" && c.hasNext === true;
+    })());
+
+  ok("ページング 末尾ならカーソルを返さない",
+    (() => {
+      const c = PG.buildCursorPage([{ id: "a" }], 2, (r) => r.id);
+      return c.hasNext === false && c.nextCursor === undefined;
+    })());
+
+  // **クエリの値をそのまま ORDER BY に渡さない**(全表走査・インジェクションの入口)
+  ok("ページング 並び順は**許可した項目だけ**受け付ける(それ以外は既定に戻る)",
+    (() => {
+      const fb = { field: "createdAt", direction: "desc" };
+      const ok1 = PG.parseSort({ sort: "-name" }, ["name"], fb);
+      const ng = PG.parseSort({ sort: "password" }, ["name"], fb);
+      return ok1.field === "name" && ok1.direction === "desc" && ng.field === "createdAt";
+    })());
+
+  // **次の頁の URL を機械に組み立てさせない**(1 頁目を繰り返す事故が起きる)
+  ok("ページング Link ヘッダを組み立てる(1 頁だけなら空)",
+    (() => {
+      const p = PG.buildOffsetPage([1], 25, PG.parseOffsetPaging({ page: "2", limit: "10" }));
+      const link = PG.buildLinkHeader("https://x.example/api/items?q=a", p);
+      const single = PG.buildLinkHeader("https://x.example/a", PG.buildOffsetPage([1], 5, PG.parseOffsetPaging({ limit: "10" })));
+      return link.includes('rel="next"') && link.includes("q=a") && single === "";
+    })());
+}
+
+section("cache: タグによる無効化");
+{
+  const fstg = await import("node:fs/promises");
+  const stamp = smokeStamp();
+  // @platform/core の Result 型と Cache 型は型だけなので、落として単体で読む
+  const CORE = `${TMP}/tg-core-${stamp}.ts`;
+  await fstg.writeFile(CORE, "export type Result<T> = { ok: true; value: T } | { ok: false; error: Error };\n");
+  const IDX = `${TMP}/tg-idx-${stamp}.ts`;
+  await fstg.writeFile(IDX, "export interface Cache { get<T>(k: string): Promise<unknown>; set<T>(k: string, v: T, t?: number): Promise<unknown>; delete(k: string): Promise<unknown>; getOrSet<T>(k: string, t: number, l: () => Promise<T>): Promise<unknown>; getOrSetSwr<T>(k: string, o: unknown, l: () => Promise<T>): Promise<unknown>; }\n");
+  const TGr = `${TMP}/tg-${stamp}.ts`;
+  await fstg.writeFile(TGr, (await fstg.readFile(new URL("../packages/cache/src/tagged.ts", import.meta.url), "utf8"))
+    .replace('from "@platform/core"', `from "${toSpec(CORE)}"`)
+    .replace('from "./index"', `from "${toSpec(IDX)}"`));
+  const TG = await impFile(TGr);
+
+  /** メモリ実装(smoke は依存なしで動く)。 */
+  const makeCache = () => {
+    const store = new Map();
+    return {
+      async get(k) { return { ok: true, value: store.has(k) ? store.get(k) : null }; },
+      async set(k, v) { store.set(k, v); return { ok: true, value: undefined }; },
+      async delete(k) { store.delete(k); return { ok: true, value: undefined }; },
+      async getOrSet(k, _t, loader) {
+        if (store.has(k)) return { ok: true, value: store.get(k) };
+        const v = await loader(); store.set(k, v); return { ok: true, value: v };
+      },
+      async getOrSetSwr() { return { ok: false, error: new Error("未使用") }; },
+    };
+  };
+
+  // **キーを列挙しなくてよい**のが要点。何件キャッシュしていても 1 回の操作で消える
+  ok("タグ無効化 タグを消すと、そのタグの付いたキャッシュが未ヒットになる",
+    await (async () => {
+      const t = TG.createTaggedCache(makeCache());
+      let calls = 0;
+      const load = async () => { calls += 1; return "見積"; };
+      await t.getOrSet("quote:1001", ["customer:42"], 300, load);
+      await t.getOrSet("quote:1001", ["customer:42"], 300, load);
+      const cachedOnce = calls === 1;
+      await t.invalidate("customer:42");
+      await t.getOrSet("quote:1001", ["customer:42"], 300, load);
+      return cachedOnce && calls === 2;
+    })());
+
+  // **タグの並び順に依存させない**(呼び出し側で順序が揺れても同じ値を指す)
+  ok("タグ無効化 タグの並び順が違っても同じキーを指す",
+    await (async () => {
+      const t = TG.createTaggedCache(makeCache());
+      await t.set("q", ["b", "a"], "X");
+      return (await t.get("q", ["a", "b"])).value === "X";
+    })());
+
+  ok("タグ無効化 複数タグのうち**片方を消せば無効**・無関係なタグは残る",
+    await (async () => {
+      const t = TG.createTaggedCache(makeCache());
+      await t.set("q2", ["customer:1", "product:9"], "Y");
+      await t.set("q3", ["customer:2"], "Z");
+      await t.invalidate("product:9");
+      const gone = (await t.get("q2", ["customer:1", "product:9"])).value === null;
+      const kept = (await t.get("q3", ["customer:2"])).value === "Z";
+      return gone && kept;
+    })());
+
+  // **タグ名の付け方が揺れると、無効化しても消えない事故**が起きる
+  ok("タグ無効化 tag() でタグ名を揃える(大文字小文字・前後の空白を吸収)",
+    TG.tag("Customer", 42) === "customer:42" && TG.tag(" product ", " A-1 ") === "product:A-1");
+}
+
+section("csv: 取り込み(文字コード・型変換・エラー行)");
+{
+  const CI = await impFile(new URL("../packages/csv/src/import.ts", import.meta.url));
+
+  // **日本の業務では Shift_JIS の CSV が今も主流**(会計ソフト・銀行の明細)。
+  // UTF-8 として読むと文字化けし、「データが壊れている」と誤解される
+  ok("CSV取込 文字コードを判定する(BOM 優先・Shift_JIS を見分ける)",
+    CI.detectEncoding(new Uint8Array([0xef, 0xbb, 0xbf, 0x41])) === "utf-8" &&
+    CI.detectEncoding(new TextEncoder().encode("日付,金額")) === "utf-8" &&
+    CI.detectEncoding(new Uint8Array([0x93, 0xFA, 0x95, 0x74])) === "shift_jis" &&
+    CI.detectEncoding(new Uint8Array([0xff, 0xfe, 0x41, 0x00])) === "utf-16le");
+
+  // **人が手で作った CSV は表記が揺れる**。毎回手直しさせない
+  ok("CSV取込 数値の表記ゆれを吸収(カンマ・円・¥・全角・括弧は負)",
+    CI.coerceValue("1,000", "number") === 1000 &&
+    CI.coerceValue("1000円", "number") === 1000 &&
+    CI.coerceValue("¥1,000", "number") === 1000 &&
+    CI.coerceValue("１２３", "number") === 123 &&
+    CI.coerceValue("(500)", "number") === -500);
+
+  ok("CSV取込 日付の表記ゆれを吸収して YYYY-MM-DD に揃える",
+    CI.coerceValue("2026/8/3", "date") === "2026-08-03" &&
+    CI.coerceValue("2026.8.3", "date") === "2026-08-03" &&
+    CI.coerceValue("２０２６年８月３日", "date") === "2026-08-03" &&
+    CI.coerceValue("2026-13-01", "date") === undefined);
+
+  const rows = [
+    { "日付": "2026/8/1", "額": "1,000", "摘要": "A" },
+    { "日付": "", "額": "2000", "摘要": "B" },
+    { "日付": "2026/8/3", "額": "abc", "摘要": "C" },
+    { "日付": "2026/8/4", "額": "3000", "摘要": "D" },
+  ];
+  const cols = [
+    { header: "日付", field: "date", type: "date", required: true },
+    { header: "金額", field: "amount", type: "number", required: true, aliases: ["額"] },
+    { header: "摘要", field: "note", type: "string" },
+  ];
+  const r = CI.importRows(rows, cols);
+
+  // **1 行の誤りで全部止めない。** 997 行の正しいデータも取り込めなくなる
+  ok("CSV取込 **成功した行と失敗した行を両方返す**(1 行の誤りで全部止めない)",
+    r.rows.length === 2 && r.errors.length === 2);
+
+  // **見出しの表記ゆれは別名で吸収**(毎回テンプレートを送り直すより早い)
+  ok("CSV取込 見出しの別名を解決する(「額」→「金額」)",
+    r.missingColumns.length === 0 && r.rows[0].amount === 1000);
+
+  // **画面で「3 行目」と言われて探せる**よう、見出し行を 1 行目として数える
+  ok("CSV取込 行番号は見出し行を含む(画面と CSV で一致する)",
+    r.errors[0].line === 3 && r.errors[1].line === 4);
+
+  // **エラー一覧を出すだけだと、100 件を手作業で直すことになる**
+  ok("CSV取込 失敗した行だけの CSV を作れる(直して再取り込みできる)",
+    (() => {
+      const csv = CI.errorRowsToCsv(r.errors, ["日付", "額", "摘要"]);
+      return csv.startsWith("エラー内容,元の行番号,") && csv.includes("「日付」が空です") && csv.split("\n").length === 3;
+    })());
+}
+
+section("purchase: 三点照合(発注・入荷・請求)");
+{
+  const TW = await impFile(new URL("../packages/purchase/src/three-way-match.ts", import.meta.url));
+  const ordered = [{ description: "部品A", quantity: 10, unitPrice: 1_000 }];
+
+  ok("三点照合 3 者が一致すれば支払ってよい",
+    TW.threeWayMatch({ orderNumber: "PO1", ordered, received: ordered, invoiced: ordered }).payable === true);
+
+  // **頼んでいないものに払わない**
+  ok("三点照合 発注していない品目の請求は止める",
+    (() => {
+      const r = TW.threeWayMatch({
+        orderNumber: "PO2", ordered, received: ordered,
+        invoiced: [...ordered, { description: "部品X", quantity: 1, unitPrice: 5_000 }],
+      });
+      return r.payable === false && r.mismatches.some((m) => m.kind === "not-ordered");
+    })());
+
+  // **届いていないものに払わない。** 支払可能額は入荷と請求の小さい方
+  ok("三点照合 入荷より多い請求は止める(支払可能額は入荷分まで)",
+    (() => {
+      const r = TW.threeWayMatch({
+        orderNumber: "PO3", ordered,
+        received: [{ description: "部品A", quantity: 8, unitPrice: 1_000 }], invoiced: ordered,
+      });
+      return r.payable === false && r.payableAmount === 8_000;
+    })());
+
+  // **合計が同じでも内訳が違えば止める。**
+  // 数量を減らして単価を上げると合計は同じになるため、金額だけ見ると素通りする
+  ok("三点照合 **合計が同じでも単価が違えば止める**(10個×1,000 → 5個×2,000)",
+    TW.threeWayMatch({
+      orderNumber: "PO4", ordered, received: ordered,
+      invoiced: [{ description: "部品A", quantity: 5, unitPrice: 2_000 }],
+    }).payable === false);
+
+  // **端数で毎回止めない。** 形骸化すると本当の水増しを見逃す
+  ok("三点照合 端数程度の差は許容する(既定 10 円)・大きい差は止める",
+    TW.threeWayMatch({
+      orderNumber: "PO5", ordered, received: ordered,
+      invoiced: [{ description: "部品A", quantity: 10, unitPrice: 1_000.5 }],
+    }).payable === true &&
+    TW.threeWayMatch({
+      orderNumber: "PO6", ordered, received: ordered,
+      invoiced: [{ description: "部品A", quantity: 10, unitPrice: 2_000 }],
+    }).payable === false);
+
+  // **同じ請求書で二度払う**のは頻繁に起きる(原本と写しが別々に回る等)
+  const history = [
+    { invoiceNumber: "INV-100", supplier: "A社", amount: 50_000, paidOn: "2026-06-01" },
+  ];
+  ok("二重払い 請求書番号が同じなら certain・番号違いでも同額同社で近い日なら likely",
+    TW.findDuplicatePayments({ invoiceNumber: "INV-100", supplier: "A社", amount: 50_000, paidOn: "2026-08-01" }, history)[0].confidence === "certain" &&
+    TW.findDuplicatePayments({ invoiceNumber: "INV-999", supplier: "A社", amount: 50_000, paidOn: "2026-07-01" }, history)[0].confidence === "likely" &&
+    TW.findDuplicatePayments({ invoiceNumber: "INV-999", supplier: "A社", amount: 50_000, paidOn: "2026-10-01" }, history).length === 0);
+}
+
+section("quote: 値引き・改訂・粗利");
+{
+  // pricing.ts は @platform/invoice から**型だけ**を取るので、
+  // 型を落とせば単体で読める(実装への依存が無い)
+  const fsqp = await import("node:fs/promises");
+  const QPr = `${TMP}/q-pricing-${smokeStamp()}.ts`;
+  await fsqp.writeFile(QPr, (await fsqp.readFile(new URL("../packages/quote/src/pricing.ts", import.meta.url), "utf8"))
+    .replace(/import type \{ InvoiceLine \} from "@platform\/invoice";/, "type InvoiceLine = { description: string; quantity: number; unitPrice: number; taxRate?: number; discount?: number };"));
+  const QP2 = await impFile(QPr);
+
+  const lines = [
+    { description: "A", quantity: 1, unitPrice: 70_000 },
+    { description: "B", quantity: 1, unitPrice: 30_000 },
+  ];
+
+  // **税込金額から単純に引かない。** 税率が混在すると消費税額が合わなくなる
+  ok("値引き 全体値引きを明細へ**比例配分**(7:3 なら 7,000 と 3,000)",
+    (() => {
+      const d = QP2.applyDiscount(lines, { type: "amount", value: 10_000 });
+      return d.lines[0].discount === 7_000 && d.lines[1].discount === 3_000 && d.discountTotal === 10_000;
+    })());
+
+  ok("値引き 率でも指定できる・**総額を超えない**(マイナスの見積は作れない)",
+    QP2.applyDiscount(lines, { type: "rate", value: 0.1 }).discountTotal === 10_000 &&
+    QP2.applyDiscount(lines, { type: "amount", value: 999_999 }).discountTotal === 100_000);
+
+  // **前の版を消さない**。「言った・言わない」の証拠になる
+  const v1 = [{ description: "開発", quantity: 1, unitPrice: 1_000_000 }, { description: "保守", quantity: 1, unitPrice: 200_000 }];
+  const v2 = [{ description: "開発", quantity: 1, unitPrice: 1_000_000 }, { description: "保守", quantity: 3, unitPrice: 200_000 }, { description: "研修", quantity: 1, unitPrice: 100_000 }];
+  let revs = QP2.addRevision([], v1, { revisedOn: "2026-07-01", changeReason: "初版" });
+  revs = QP2.addRevision(revs, v2, { revisedOn: "2026-08-01", changeReason: "保守を3年に延長" });
+
+  ok("改訂 版を重ねても前の版が残る・差分を取れる",
+    (() => {
+      const d = QP2.diffRevisions(revs, 1, 2);
+      return revs.length === 2 && revs[0].lines.length === 2 &&
+        d.added.length === 1 && d.changed.length === 1 && d.totalDiff === 500_000;
+    })());
+
+  // **理由の記録を必須にする**。無いと後から正しい版が分からない
+  ok("改訂 変更理由が空なら受け付けない",
+    (() => {
+      try { QP2.addRevision(revs, v2, { revisedOn: "2026-08-02", changeReason: "  " }); return false; }
+      catch { return true; }
+    })());
+
+  // **原価が分からない明細を無視しない**。無視すると粗利が過大に出る
+  const costs = [{ description: "開発", unitCost: 600_000 }, { description: "保守", unitCost: 80_000 }];
+  ok("粗利 原価が未設定の明細を**挙げる**(無視すると粗利が過大に出る)",
+    QP2.calcMargin(v2, costs).missingCost.length === 1);
+
+  ok("粗利 目標粗利率を保てる値引きの上限を出す(**原価不明なら 0**・憶測で答えない)",
+    QP2.maxDiscountForMargin(v2, [costs[0]], 0.25) === 0 &&
+    QP2.maxDiscountForMargin(v1, costs, 0.25) > 0);
+}
+
+section("contract: 内部通報(公益通報者保護法)");
+{
+  const WB = await impFile(new URL("../packages/contract/src/whistleblowing.ts", import.meta.url));
+  const today = new Date("2026-08-03");
+
+  // **通報者を特定できる情報を漏らすと個人が処罰される**(30 万円以下の罰金・法第21条)。
+  // 氏名だけでなく所属も落とす(少人数の部署なら「経理部の誰か」でも特定できる)
+  ok("内部通報 **通報者の氏名も所属も落とす**(所属だけでも特定されうる)",
+    (() => {
+      const masked = WB.maskReporter({
+        id: "R1", channel: "internal", receivedOn: "2026-07-01",
+        reporterName: "山田", reporterDepartment: "経理部", content: "…", status: "received",
+      });
+      return !("reporterName" in masked) && !("reporterDepartment" in masked) && masked.anonymous === false;
+    })());
+
+  // **書面で指定された従事者だけ**が通報者の情報に触れられる
+  ok("内部通報 従事者は**書面での指定**が要る(役職では見られない・解任後も不可)",
+    WB.canAccess({ id: "h1", name: "佐藤" }, today) === false &&
+    WB.canAccess({ id: "h1", name: "佐藤", designatedOn: "2025-01-01" }, today) === true &&
+    WB.canAccess({ id: "h1", name: "佐藤", designatedOn: "2025-01-01", revokedOn: "2026-01-01" }, today) === false);
+
+  // **20 営業日**を過ぎると、通報者が報道機関へ通報しても保護される
+  ok("内部通報 20 営業日以内に調査開始を通知しないと挙げる",
+    WB.checkReportHandling([
+      { id: "R1", channel: "internal", receivedOn: "2026-06-01", content: "…", status: "received" },
+    ], today).some((i) => i.severity === "urgent" && i.message.includes("報道機関")));
+
+  // **集計に個別の内容も通報者の情報も含めない**
+  ok("内部通報 集計は件数だけ(内容も通報者も含めない)",
+    (() => {
+      const s = WB.summarizeReports([
+        { id: "R1", channel: "internal", receivedOn: "2026-05-01", closedOn: "2026-05-20", content: "秘密の内容", status: "resolved", reporterName: "A" },
+        { id: "R2", channel: "external", receivedOn: "2026-08-01", content: "秘密の内容", status: "investigating" },
+      ]);
+      return !JSON.stringify(s).includes("秘密の内容") && s.total === 2 && s.anonymousRatio === 0.5;
+    })());
+
+  // **300 人超は義務・300 人以下は努力義務**(法第11条)
+  ok("内部通報 300 人超は体制整備が義務(窓口・従事者・不利益取扱いの禁止)",
+    (() => {
+      const big = WB.checkSystem({ employeeCount: 400, hasChannel: false, handlers: [], hasProtectionPolicy: false }, today);
+      const small = WB.checkSystem({ employeeCount: 300, hasChannel: true, handlers: [{ id: "h", name: "A", designatedOn: "2025-01-01" }], hasProtectionPolicy: true }, today);
+      return big.required === true && big.issues.length === 3 && small.required === false && small.issues.length === 0;
+    })());
+}
+
+section("tax: 印紙税(収入印紙)");
+{
+  const ST = await impFile(new URL("../packages/tax/src/stamp-tax.ts", import.meta.url));
+
+  // **電子契約は課税されない**(文書を作成していないため)。1 通あたり数万円が浮く
+  ok("印紙税 **電子契約は課税されない**(紙なら 1,000 万円の請負で 2 万円)",
+    ST.stampTax({ type: "contract", amount: 10_000_000 }).tax === 20_000 &&
+    ST.stampTax({ type: "contract", amount: 10_000_000, electronic: true }).tax === 0);
+
+  // **貼り忘れは過怠税で 3 倍**
+  ok("印紙税 貼り忘れると過怠税で 3 倍",
+    ST.stampTax({ type: "contract", amount: 10_000_000 }).penaltyIfMissing === 60_000);
+
+  // **第 7 号(基本契約書)は金額によらず一律 4,000 円**
+  ok("印紙税 基本契約書は金額によらず一律 4,000 円(個別の請負とは違う)",
+    ST.stampTax({ type: "basic-agreement", amount: 100_000_000 }).tax === 4_000 &&
+    ST.stampTax({ type: "basic-agreement", amount: 100_000 }).tax === 4_000);
+
+  // **領収書は 5 万円未満なら非課税**。知らずに貼ると無駄になる
+  ok("印紙税 領収書は 5 万円未満なら非課税",
+    ST.stampTax({ type: "receipt", amount: 49_999 }).tax === 0 &&
+    ST.stampTax({ type: "receipt", amount: 50_000 }).tax === 200);
+
+  // **書き方だけで税額が変わる**(消費税を区分記載すれば税抜で判定できる)
+  ok("印紙税 消費税を区分記載すると税抜で判定できる(段をまたぐと差が出る)",
+    (() => {
+      const c = ST.compareByTaxNotation(999_999, 99_999, "contract");
+      const same = ST.compareByTaxNotation(1_000_000, 100_000, "contract");
+      return c.withSeparateTax === 200 && c.withoutSeparateTax === 400 && same.difference === 0;
+    })());
+
+  ok("印紙税 電子化で年間いくら浮くかを出せる",
+    ST.savingsByGoingElectronic([{ type: "contract", amount: 10_000_000, count: 12 }]).savings === 240_000);
+}
+
+section("contract: 下請法(下請代金支払遅延等防止法)");
+{
+  const SA = await impFile(new URL("../packages/contract/src/subcontract-act.ts", import.meta.url));
+
+  // **「うちは中小だから関係ない」は誤り。** 相手がより小さければ適用される
+  ok("下請法 **中小企業同士でも適用される**(1,000 万円の区分)",
+    SA.appliesSubcontractAct({ type: "program", ownCapital: 50_000_000, partnerCapital: 5_000_000 }).applies === true &&
+    SA.appliesSubcontractAct({ type: "program", ownCapital: 50_000_000, partnerCapital: 20_000_000 }).applies === false);
+
+  // **取引の種類で基準が変わる。** システム開発は 3 億円、デザインは 5,000 万円
+  ok("下請法 プログラム作成は 3 億円・情報成果物は 5,000 万円の基準",
+    SA.appliesSubcontractAct({ type: "program", ownCapital: 100_000_000, partnerCapital: 60_000_000 }).applies === false &&
+    SA.appliesSubcontractAct({ type: "creative", ownCapital: 100_000_000, partnerCapital: 40_000_000 }).applies === true);
+
+  // **支払期日は暦日で 60 日**。「月末締め翌々月末払い」は月によって超える
+  ok("下請法 支払期日は受領から **60 日(暦日)**(翌々月末払いは超えることがある)",
+    SA.paymentDeadline("2026-01-31") === "2026-04-01");
+
+  const today = new Date("2026-08-03");
+  const issues = SA.checkSubcontractCompliance([
+    { id: "A", type: "program", orderedOn: "2026-05-01", amount: 1_000_000 },
+    { id: "B", type: "program", orderedOn: "2026-05-01", documentIssuedOn: "2026-05-01", receivedOn: "2026-05-31", paymentDueOn: "2026-08-31", amount: 1_000_000 },
+  ], today);
+
+  ok("下請法 **口頭発注は違反**(3 条書面の交付義務)",
+    issues.some((i) => i.orderId === "A" && i.severity === "violation" && i.message.includes("口頭発注")));
+  ok("下請法 支払期日が 60 日を超える発注を挙げる",
+    issues.some((i) => i.orderId === "B" && i.message.includes("60 日")));
+
+  // 遅延利息は年 14.6%(法定)
+  ok("下請法 遅延利息は年 14.6%(100 万円・30 日で 12,000 円)",
+    SA.lateInterest(1_000_000, "2026-03-31", "2026-04-30") === 12_000 &&
+    SA.lateInterest(1_000_000, "2026-03-31", "2026-03-31") === 0);
+}
+
+section("attendance: 健康診断(労働安全衛生法)");
+{
+  const HC = await impFile(new URL("../packages/attendance/src/health-checkup.ts", import.meta.url));
+  const today = new Date("2026-08-03");
+
+  // **深夜業に常時従事する人は年 2 回**(規則第45条)。年 1 回で済ませると違反
+  ok("健康診断 深夜業などの特定業務は **6 か月ごと**(通常は 1 年ごと)",
+    JSON.stringify(HC.requiredKinds({ name: "A", hiredOn: "2020-01-01" })) === '["periodic"]' &&
+    JSON.stringify(HC.requiredKinds({ name: "B", hiredOn: "2020-01-01", specialWork: true })) === '["special"]' &&
+    HC.nextDueDate("2026-05-20", "special") === "2026-11-20" &&
+    HC.nextDueDate("2025-05-20", "periodic") === "2026-05-20");
+
+  // **前回の受診日から起算する**(年度ではない)
+  ok("健康診断 期限は前回の受診日から起算(月末は末日に丸める)",
+    HC.nextDueDate("2026-01-31", "special").startsWith("2026-07"));
+
+  const targets = [
+    { name: "山田", hiredOn: "2020-04-01" },
+    { name: "佐藤", hiredOn: "2020-04-01", specialWork: true },
+    { name: "退職者", hiredOn: "2020-04-01", leftOn: "2026-03-31" },
+  ];
+  const records = [
+    { name: "山田", kind: "hire", examinedOn: "2020-04-01", notifiedToWorker: true },
+    { name: "山田", kind: "periodic", examinedOn: "2025-05-20", notifiedToWorker: true },
+    { name: "佐藤", kind: "hire", examinedOn: "2020-04-01", notifiedToWorker: true },
+    { name: "佐藤", kind: "special", examinedOn: "2026-05-20", notifiedToWorker: true, hasAbnormality: true },
+  ];
+  const issues = HC.checkCheckupStatus(targets, records, today);
+
+  ok("健康診断 期限切れを挙げる・**退職者は対象外**",
+    issues.some((i) => i.name === "山田" && i.severity === "overdue") &&
+    !issues.some((i) => i.name === "退職者"));
+
+  // **異常所見を放置すると、後の労災認定で不利になる**(法第66条の4)
+  ok("健康診断 異常所見があるのに医師の意見を聴いていないことを挙げる",
+    issues.some((i) => i.name === "佐藤" && i.severity === "follow-up" && i.message.includes("医師の意見")));
+
+  ok("健康診断 実施率と**50 人以上は労基署への報告が必要**",
+    (() => {
+      const s = HC.summarizeCheckups(targets, records, 60, today);
+      const small = HC.summarizeCheckups(targets, records, 30, today);
+      return s.targetCount === 2 && s.rate === 0.5 && s.reportRequired === true && small.reportRequired === false;
+    })());
+}
+
+section("attendance: 法定三帳簿(労働者名簿・賃金台帳・出勤簿)");
+{
+  const LL = await impFile(new URL("../packages/attendance/src/legal-ledger.ts", import.meta.url));
+  const worker = { name: "山田", birthDate: "1990-01-01", history: "営業部", gender: "男", address: "東京都", hiredOn: "2020-04-01" };
+
+  // **30 人未満なら「従事する業務の種類」は省略できる**(施行規則第53条)
+  ok("法定三帳簿 業務の種類は 30 人未満なら省略可・30 人以上は必要",
+    LL.checkWorkerRecords([worker], 20).length === 0 &&
+    LL.checkWorkerRecords([worker], 45).some((i) => i.message.includes("従事する業務の種類")));
+
+  // **退職したら事由も要る**(解雇なら理由まで)
+  ok("法定三帳簿 退職したら事由の記載が要る",
+    LL.checkWorkerRecords([{ ...worker, jobType: "営業", leftOn: "2025-03-31" }], 45)
+      .some((i) => i.message.includes("事由")));
+
+  // **「その他」でまとめるのは不備**。種類ごとに分ける
+  ok("法定三帳簿 賃金は**種類ごとに分けて記載**(「その他」でまとめない)",
+    LL.checkWageLedger([{
+      name: "山田", gender: "男", period: "2026-07", workDays: 20, workHours: 160,
+      overtimeHours: 10, nightHours: 0, holidayHours: 0,
+      payments: [{ name: "基本給", amount: 300_000 }, { name: "その他", amount: 50_000 }], deductions: [],
+    }]).some((i) => i.message.includes("種類ごとに分けて")));
+
+  // **「出勤」だけでは足りない**。時刻が無いと割増賃金を計算できない
+  ok("法定三帳簿 出勤簿は始業・終業の**時刻**が要る(休日は不要)",
+    LL.checkAttendanceRecords([{ date: "2026-07-01" }], "山田").length === 1 &&
+    LL.checkAttendanceRecords([{ date: "2026-07-05", dayType: "法定休日" }], "山田").length === 0);
+
+  // **起算日が帳簿ごとに違う**。一律「退職から 5 年」で消すと違反になる
+  ok("法定三帳簿 保存期限の起算日は帳簿ごとに違う(名簿は退職日・台帳は最終記入日)",
+    (() => {
+      const today = new Date("2026-08-03");
+      const w = LL.checkRetention({ kind: "worker", target: "山田", startsOn: "2020-03-31" }, today);
+      const g = LL.checkRetention({ kind: "wage", target: "山田", startsOn: "2025-12-31" }, today);
+      return w.mustKeep === false && g.mustKeep === true && g.keepUntil === "2030-12-30";
+    })());
+
+  ok("法定三帳簿 在職中は保存期間を起算しない(退職するまで持ち続ける)",
+    LL.retentionStartForWorker(worker) === undefined &&
+    LL.retentionStartForWorker({ ...worker, leftOn: "2025-03-31" }) === "2025-03-31");
+}
+
+section("attendance: ストレスチェック(労働安全衛生法)");
+{
+  const SC = await impFile(new URL("../packages/attendance/src/stress-check.ts", import.meta.url));
+
+  // **点数の向きが逆の設問がある**。ここを間違えると判定が真逆になる
+  ok("ストレスチェック 逆転設問は 5 から引く(向きを間違えると判定が真逆になる)",
+    (() => {
+      const qs = [{ no: 1, area: "workload" }, { no: 2, area: "workload", reversed: true }];
+      return SC.scoreStressCheck(qs, { 1: 4, 2: 4 }).workload === 5;
+    })());
+
+  // 高ストレス者の判定(厚労省の推奨値)
+  ok("ストレスチェック B が 77 点以上なら単独で高ストレス",
+    (() => {
+      const qs = Array.from({ length: 29 }, (_, i) => ({ no: i + 1, area: "response" }));
+      const high = SC.scoreStressCheck(qs, Object.fromEntries(qs.map((q) => [q.no, 3])));
+      const low = SC.scoreStressCheck(qs, Object.fromEntries(qs.map((q) => [q.no, 2])));
+      return high.highStress === true && high.reason === "response" && low.highStress === false;
+    })());
+
+  // **10 人未満は集計しない。** 平均から個人の結果を推測できてしまうため
+  ok("ストレスチェック **10 人未満の集団は集計しない**(個人が推測できる)",
+    (() => {
+      const one = { workload: 40, response: 60, support: 20, highStress: false, reason: "none", missing: [] };
+      const nine = Array.from({ length: 9 }, () => ({ group: "営業", score: one }));
+      return SC.aggregateByGroup(nine).length === 0 && SC.aggregateByGroup([...nine, nine[0]]).length === 1;
+    })());
+
+  ok("ストレスチェック 未回答を挙げる(揃っていないと判定は信頼できない)",
+    SC.scoreStressCheck([{ no: 1, area: "workload" }, { no: 2, area: "response" }], { 1: 3 }).missing.length === 1);
+
+  // **50 人以上は年 1 回が義務**。期限が来ても誰も教えてくれない
+  ok("ストレスチェック 50 人以上は年 1 回が義務・50 人未満は努力義務",
+    (() => {
+      const notYet = SC.checkCompliance({ employeeCount: 80, checkedCount: 0 });
+      const small = SC.checkCompliance({ employeeCount: 30, checkedCount: 0 });
+      const overdue = SC.checkCompliance(
+        { employeeCount: 80, checkedCount: 70, lastConductedOn: "2025-01-01", reportedToLabourOffice: true },
+        new Date("2026-08-03"));
+      return notYet.required === true && notYet.issues.length > 0 &&
+        small.required === false && small.issues.length === 0 &&
+        overdue.issues.some((i) => i.includes("年 1 回"));
+    })());
+}
+
+section("depreciation: 償却資産税(固定資産税)");
+{
+  const PT = await impFile(new URL("../packages/depreciation/src/property-tax.ts", import.meta.url));
+  const machine = { name: "機械", acquisitionCost: 1_000_000, acquiredOn: "2024-06", usefulLifeYears: 5 };
+
+  // **会計の減価償却とは別物**。旧定率法・半年償却・5% 下げ止まり。
+  // 会計上 1 円になった資産でも、償却資産税では 5% が残り続けて課税される。
+  ok("償却資産税 取得年は**半年分**だけ償却(会計のような月割りではない)",
+    PT.evaluateAsset(machine, 2025).value === 815_500);
+  ok("償却資産税 **取得価額の 5% で下げ止まる**(会計は 1 円まで償却する)",
+    (() => {
+      const v = PT.evaluateAsset(machine, 2040);
+      return v.value === 50_000 && v.atFloor === true;
+    })());
+  ok("償却資産税 10 万円未満は対象外・除却済みは外す",
+    PT.isTaxable({ name: "椅子", acquisitionCost: 99_999, acquiredOn: "2024-01", usefulLifeYears: 5 }, 2026) === false &&
+    PT.isTaxable({ ...machine, disposedOn: "2025-03" }, 2026) === false &&
+    PT.isTaxable(machine, 2026) === true);
+  ok("償却資産税 **免税点 150 万円未満は課税されないが申告は要る**",
+    (() => {
+      const d = PT.buildDeclaration([machine], 2026);
+      return d.belowThreshold === true && d.tax === 0 && d.taxableBase > 0;
+    })());
+  ok("償却資産税 課税標準は 1,000 円未満・税額は 100 円未満を切り捨て",
+    (() => {
+      const big = Array.from({ length: 3 }, (_, i) => ({ name: `設備${i}`, acquisitionCost: 3_000_000, acquiredOn: "2024-01", usefulLifeYears: 10 }));
+      const d = PT.buildDeclaration(big, 2026);
+      return d.taxableBase % 1000 === 0 && d.tax % 100 === 0 && d.tax > 0;
+    })());
+  // **捨てた資産を外し忘れると払い続ける**。最も多い誤り
+  ok("償却資産税 耐用年数を大きく過ぎた資産を「まだ使っているか」と挙げる",
+    PT.findStaleAssets([{ name: "旧サーバ", acquisitionCost: 500_000, acquiredOn: "2015-04", usefulLifeYears: 5 }], 2026).length === 1);
+}
+
+section("attendance: 時間外労働の上限規制(36協定)");
+{
+  const OT = await impFile(new URL("../packages/attendance/src/overtime-limit.ts", import.meta.url));
+  const H = 60;
+
+  // **単月は「100 時間未満」**。ちょうど 100 時間は違反。
+  // ここを「以下」と実装すると、違反を見逃したまま毎月通してしまう。
+  ok("36協定 単月は 100 時間**未満**(ちょうど 100 時間は違反)",
+    OT.checkOvertimeLimits([{ month: "2026-04", overtimeMinutes: 100 * H, holidayMinutes: 0 }])
+      .some((v) => v.kind === "single-month" && v.severity === "violation") &&
+    !OT.checkOvertimeLimits([{ month: "2026-04", overtimeMinutes: 99 * H + 59, holidayMinutes: 0 }])
+      .some((v) => v.kind === "single-month" && v.severity === "violation"));
+
+  // **平均は「80 時間以内」**。ちょうど 80 時間は適法(単月とは扱いが違う)
+  ok("36協定 複数月平均は 80 時間**以内**(ちょうど 80 時間は適法)",
+    !OT.checkOvertimeLimits([
+      { month: "2026-04", overtimeMinutes: 80 * H, holidayMinutes: 0 },
+      { month: "2026-05", overtimeMinutes: 80 * H, holidayMinutes: 0 },
+    ]).some((v) => v.kind === "average"));
+
+  // **休日労働は 100 時間・80 時間の判定に含める**(月 45 時間の方は含めない)
+  ok("36協定 単月・平均の判定には休日労働を含める",
+    OT.checkOvertimeLimits([{ month: "2026-04", overtimeMinutes: 60 * H, holidayMinutes: 45 * H }])
+      .some((v) => v.kind === "single-month" && v.severity === "violation"));
+
+  // **どの区間を取っても**平均 80 時間を超えてはいけない
+  ok("36協定 2〜6 か月のどの区間でも平均を見る",
+    OT.checkOvertimeLimits([
+      { month: "2026-04", overtimeMinutes: 20 * H, holidayMinutes: 0 },
+      { month: "2026-05", overtimeMinutes: 95 * H, holidayMinutes: 0 },
+      { month: "2026-06", overtimeMinutes: 95 * H, holidayMinutes: 0 },
+    ]).some((v) => v.kind === "average"));
+
+  // 月 45 時間を超えてよいのは年 6 回まで
+  ok("36協定 月 45 時間超は年 6 回まで(7 回目で違反)",
+    OT.checkOvertimeLimits(
+      Array.from({ length: 7 }, (_, i) => ({ month: `2026-${String(i + 1).padStart(2, "0")}`, overtimeMinutes: 50 * H, holidayMinutes: 0 })),
+      OT.SPECIAL_CLAUSE_LIMITS,
+    ).some((v) => v.kind === "exceed-count" && v.severity === "violation"));
+
+  // **上限に達してから知らせても遅い**。あと何時間かを出せる
+  ok("36協定 あと何時間残業できるかを返す(効いている規制も分かる)",
+    (() => {
+      const r = OT.remainingOvertime([], { month: "2026-04", overtimeMinutes: 40 * H, holidayMinutes: 0 }, OT.SPECIAL_CLAUSE_LIMITS);
+      return r.remainingMinutes === 40 * H && r.binding === "average";
+    })());
+}
+
 section("attendance-import / payslip-batch");
 {
   const fs31 = await import("node:fs/promises"); const st31 = smokeStamp();
@@ -6964,10 +7916,16 @@ section("audit");
 
   // site-content(実ソース)
   const CONTENT = `${dp}/ps-content-${sp}.ts`;
+  SECFAKE = `${dp}/sec-stub-${sp}.ts`;
+  await fsp.writeFile(SECFAKE, SEC_STUB_SRC);
+  // sanitize-html は依存が要るので、**同じ規則の簡易版**を置く。
+  // ここで見たいのは「site-content が sanitizeEmbed を通しているか」であって、
+  // sanitize-html 自体の正しさではない(そちらは security 側のテストの担当)
   await fsp.writeFile(CONTENT, (await rdp("../apps/public-site/src/server/site-content.ts"))
     .replace(/from "@platform\/site"/g, `from "${toSpec(SITEBARREL)}"`)
     .replace(/from "@platform\/html"/g, `from "${toSpec(HTMLBARREL)}"`)
     .replace(/from "@platform\/search"/g, `from "${toSpec(SEARCHFAKE)}"`)
+    .replace(/from "@platform\/security"/g, `from "${toSpec(SECFAKE)}"`)
     .replace(/from "@platform\/board"/g, `from "${toSpec(BOARDBARREL)}"`));
 
   const C = await impFile(CONTENT);
@@ -7137,7 +8095,8 @@ section("seo");
     .replace(/from "@platform\/site"/g, `from "${toSpec(SB)}"`)
     .replace(/from "@platform\/html"/g, `from "${toSpec(HB)}"`)
     .replace(/from "@platform\/board"/g, `from "${toSpec(BB)}"`)
-    .replace(/from "@platform\/search"/g, `from "${toSpec(SF)}"`));
+    .replace(/from "@platform\/search"/g, `from "${toSpec(SF)}"`)
+    .replace(/from "@platform\/security"/g, `from "${toSpec(SECFAKE)}"`));
 
   const C = await impFile(CT);
   const cats = [
@@ -7309,7 +8268,8 @@ section("seo");
     .replace(/from "@platform\/site"/g, `from "${toSpec(SB)}"`)
     .replace(/from "@platform\/html"/g, `from "${toSpec(HB)}"`)
     .replace(/from "@platform\/board"/g, `from "${toSpec(BB)}"`)
-    .replace(/from "@platform\/search"/g, `from "${toSpec(SF)}"`));
+    .replace(/from "@platform\/search"/g, `from "${toSpec(SF)}"`)
+    .replace(/from "@platform\/security"/g, `from "${toSpec(SECFAKE)}"`));
   // preview(実ソース)。siteEnv(env.ts)はテスト用スタブに差し替える
   const PVENV = `${de}/xe-pvenv-${se}.ts`;
   // 実 env.ts は起動時に固定するが、この検証は token の有無を動的に切り替えるため getter で読む
@@ -7326,11 +8286,17 @@ section("seo");
 
   const gal = C.renderBlock({ id: "g", type: "gallery", data: { images: [{ src: "/1.png", alt: "1", caption: "c" }, { src: "/2.png" }, { alt: "no-src" }] } });
   const emb = C.renderBlock({ id: "e", type: "embed", data: { src: "https://youtube.com/embed/x", title: "動画", height: 400 } });
-  const emb2 = C.renderBlock({ id: "e2", type: "embed", data: { html: "<script src=\"https://gtag.js\"></script>" } });
-  ok("renderBlock(gallery: 有効2件+caption / embed iframe: src→iframe+lazy+height / embed html: 信頼済みそのまま / text不変)",
+  // **raw HTML の埋め込みはサニタイズされる。**
+  // 以前は「信頼済み(管理者が入力)」として素通ししており、`<script>` がそのまま
+  // 画面に出ていた。管理画面に入れる人が増えれば前提は崩れるし、
+  // 乗っ取られた 1 アカウントで全ページに仕込まれる。
+  const emb2 = C.renderBlock({ id: "e2", type: "embed", data: { html: '<script src="https://gtag.js"></script><p>本文</p>' } });
+  const emb3 = C.renderBlock({ id: "e3", type: "embed", data: { html: '<img src=x onerror="alert(1)">' } });
+  ok("renderBlock(gallery: 有効2件+caption / embed iframe: src→iframe+lazy+height / embed html: **script は落ちる** / text不変)",
     gal.kind === "gallery" && gal.images.length === 2 && gal.images[0].caption === "c" &&
     emb.kind === "embed" && emb.html.includes("<iframe") && emb.html.includes('loading="lazy"') && emb.html.includes('height="400"') &&
-    emb2.kind === "embed" && emb2.html === '<script src="https://gtag.js"></script>' &&
+    emb2.kind === "embed" && !emb2.html.includes("<script") && emb2.html.includes("本文") &&
+    emb3.kind === "embed" && !emb3.html.includes("onerror") &&
     C.renderBlock({ id: "t", type: "text", data: { text: "見て https://x.com" } }).html.includes('href="https://x.com"'));
 
   const posts = [
@@ -7854,9 +8820,10 @@ section("tax");
   await fsc.writeFile(IDn, await rdc("../packages/invoice/src/dunning.ts"));
   await fsc.writeFile(IV, `export * from "${toSpec(IL)}";\nexport * from "${toSpec(II)}";\nexport * from "${toSpec(IP)}";\nexport * from "${toSpec(IRc)}";\nexport * from "${toSpec(IDn)}";\nexport type { Rounding } from "${toSpec(TX)}";`);
   // quote
-  const QQ = W("qq"), QT = W("q");
+  const QQ = W("qq"), QT = W("q"), QP = W("qp");
   await fsc.writeFile(QQ, (await rdc("../packages/quote/src/quote.ts")).replace(/from "@platform\/invoice"/g, `from "${toSpec(IV)}"`));
-  await fsc.writeFile(QT, `export * from "${toSpec(QQ)}";`);
+  await fsc.writeFile(QP, (await rdc("../packages/quote/src/pricing.ts")).replace(/from "@platform\/invoice"/g, `from "${toSpec(IV)}"`));
+  await fsc.writeFile(QT, `export * from "${toSpec(QQ)}";\nexport * from "${toSpec(QP)}";`);
   // purchase(order + receiving)
   const PO = W("po"), PRc = W("prc"), PT = W("pur");
   await fsc.writeFile(PO, (await rdc("../packages/purchase/src/purchase-order.ts")).replace(/from "@platform\/invoice"/g, `from "${toSpec(IV)}"`));
@@ -8110,7 +9077,12 @@ section("core");
   await fsc.writeFile(PRr, (await rdc("../apps/internal-app/src/server/payroll-repo.ts")).replace(/from "@platform\/payroll"/g, `from "${toSpec(PB)}"`));
   await fsc.writeFile(FEr, (await rdc("../apps/internal-app/src/server/freee-export.ts")).replace(/from "@platform\/accounting"/g, `from "${toSpec(AB)}"`));
   await fsc.writeFile(AAr, (await rdc("../apps/internal-app/src/server/attendance-approval-repo.ts")).replace(/from "@platform\/workflow"/g, `from "${toSpec(WF)}"`));
-  await fsc.writeFile(PSr, (await rdc("../apps/internal-app/src/server/pdf-service.ts")).replace(/from "@platform\/pdf"/g, `from "${toSpec(PD)}"`));
+  // **用紙設定は @platform/report に委譲している**ので、そのスタブも要る
+  const RPr = W("report");
+  await fsc.writeFile(RPr, 'export function printPageCss(o = {}) { const f = o.format ?? "A4"; const m = o.margin ?? "15mm"; return `@page { size: ${f}; margin: ${m}; }`; }');
+  await fsc.writeFile(PSr, (await rdc("../apps/internal-app/src/server/pdf-service.ts"))
+    .replace(/from "@platform\/pdf"/g, `from "${toSpec(PD)}"`)
+    .replace(/from "@platform\/report"/g, `from "${toSpec(RPr)}"`));
 
   const PR = await impFile(PRr), FE = await impFile(FEr), AA = await impFile(AAr), PS = await impFile(PSr), AC = await impFile(AB);
 
@@ -8327,7 +9299,7 @@ section("accounting");
 
   // depreciation(外部依存なし)
   const DEP = W("dep"), DEPB = W("depb");
-  await fsc.writeFile(DEP, await rdc("../packages/depreciation/src/index.ts"));
+  await fsc.writeFile(DEP, (await rdc("../packages/depreciation/src/index.ts")).replace(/from "\.\/property-tax(\.ts)?"/g, `from "${toSpec(new URL("../packages/depreciation/src/property-tax.ts", import.meta.url).href)}"`));
   await fsc.writeFile(DEPB, `export * from "${toSpec(DEP)}";`);
   // app repos
   const ASr = W("asset"), BUr = W("budget"), PTr = W("partner");
@@ -8406,7 +9378,7 @@ section("accounting");
 
   // depreciation + asset-repo
   const DEP = W("dep"), DEPB = W("depb"), ASr = W("asset");
-  await fsc.writeFile(DEP, await rdc("../packages/depreciation/src/index.ts"));
+  await fsc.writeFile(DEP, (await rdc("../packages/depreciation/src/index.ts")).replace(/from "\.\/property-tax(\.ts)?"/g, `from "${toSpec(new URL("../packages/depreciation/src/property-tax.ts", import.meta.url).href)}"`));
   await fsc.writeFile(DEPB, `export * from "${toSpec(DEP)}";`);
   await fsc.writeFile(ASr, (await rdc("../apps/internal-app/src/server/asset-repo.ts")).replace(/from "@platform\/depreciation"/g, `from "${toSpec(DEPB)}"`));
   // accounting(journal+entries+closing+tax-report)
@@ -8745,7 +9717,7 @@ section("core");
   const CSV = W("csv");
   await fsc.writeFile(CSV, await rdc("../packages/csv/src/index.ts"));
   const DEP = W("dep"), DEPB = W("depb");
-  await fsc.writeFile(DEP, await rdc("../packages/depreciation/src/index.ts"));
+  await fsc.writeFile(DEP, (await rdc("../packages/depreciation/src/index.ts")).replace(/from "\.\/property-tax(\.ts)?"/g, `from "${toSpec(new URL("../packages/depreciation/src/property-tax.ts", import.meta.url).href)}"`));
   await fsc.writeFile(DEPB, `export * from "${toSpec(DEP)}";`);
   const AJ = W("accj"), AE = W("acce"), AB = W("acc");
   await fsc.writeFile(AJ, await rdc("../packages/accounting/src/journal.ts"));
@@ -10379,7 +11351,7 @@ section("rag");
   section("advisor: find / duplicates");
   const A = await impFile(new URL("./advisor.mjs", import.meta.url).href);
   const pkgs = A.loadPackages();
-  ok("loadPackages: 113件・category/exports/summary(ai=AI基盤)", pkgs.length === 113 && pkgs.find((p) => p.name === "ai").category === "AI基盤" && pkgs.find((p) => p.name === "mail").exports.length > 0);
+  ok("loadPackages: 114件・category/exports/summary(ai=AI基盤)", pkgs.length === 114 && pkgs.find((p) => p.name === "ai").category === "AI基盤" && pkgs.find((p) => p.name === "mail").exports.length > 0);
   const hits = A.find(["mail", "送信"]);
   ok("find: mailがトップ・score降順・該当なしは空(新規作成の合図)", hits[0].name === "mail" && hits.every((h, i, a) => i === 0 || a[i - 1].score >= h.score) && A.find(["xyzzy_nonexistent"]).length === 0);
   const d = A.duplicates();
@@ -10905,8 +11877,8 @@ section("security");
   const nodes = D.collect();
   const data = D.build();
   const md = D.toMarkdown(data);
-  ok("depgraph: 113パッケージ収集・coreが被依存トップ・カテゴリ間flowchart・被依存/依存元表",
-    Object.keys(nodes).length === 113 && nodes.rag.deps.includes("core") && data.topDepended[0][0] === "core" && data.topDepended[0][1] > 30 && md.includes("flowchart LR") && md.includes("被依存トップ12") && md.includes("@platform/core"));
+  ok("depgraph: 114パッケージ収集・coreが被依存トップ・カテゴリ間flowchart・被依存/依存元表",
+    Object.keys(nodes).length === 114 && nodes.rag.deps.includes("core") && data.topDepended[0][0] === "core" && data.topDepended[0][1] > 30 && md.includes("flowchart LR") && md.includes("被依存トップ12") && md.includes("@platform/core"));
 }
 
 
@@ -10940,8 +11912,54 @@ section("security");
   section("scripts: Windows setup 静的検証");
   const fsc = await import("node:fs");
   const balance = (s, open, close) => { let d = 0; for (const c of s) { if (c === open) d += 1; else if (c === close) d -= 1; } return d; };
-  const ps1 = fsc.readFileSync(new URL("../scripts/setup.ps1", import.meta.url), "utf8");
-  const bat = fsc.readFileSync(new URL("../scripts/setup.bat", import.meta.url), "utf8");
+  // 改行コードを揃える(Windows の checkout で CRLF になっても判定を変えない)
+  const lf = (t) => t.replace(/\r\n/g, "\n");
+  const ps1 = lf(fsc.readFileSync(new URL("../scripts/setup.ps1", import.meta.url), "utf8"));
+  const bat = lf(fsc.readFileSync(new URL("../scripts/setup.bat", import.meta.url), "utf8"));
+  // **文字コードは「読めるか」に直結する。** 構文が正しくても、
+  // Windows PowerShell 5.1 は BOM の無い .ps1 を CP932 として読むため、
+  // 日本語を含む文字列の引用符が壊れて **構文エラーで起動すらしない**。
+  // 実際 2026-08 にこれで setup が動かず、原因が
+  // 「スクリプトのバグ」に見えて特定に時間がかかった。
+  // 静的検証はしていたのに、Node が UTF-8 で読むので**素通りしていた**。
+  {
+    const ps1Bytes = fsc.readFileSync(new URL("../scripts/setup.ps1", import.meta.url));
+    const batBytes = fsc.readFileSync(new URL("../scripts/setup.bat", import.meta.url));
+    const hasBom = (b) => b[0] === 0xef && b[1] === 0xbb && b[2] === 0xbf;
+
+    ok("setup.ps1: BOM 付き UTF-8(無いと PowerShell 5.1 が CP932 で読み、日本語で構文エラーになる)",
+      hasBom(ps1Bytes));
+    // .bat は逆。BOM を付けると cmd.exe が先頭行を「∩╗┐@echo」として読む
+    ok("setup.bat: BOM は付けない(cmd.exe が先頭行を読み違える)", !hasBom(batBytes));
+    ok("setup.bat: 先頭で chcp 65001(BOM を付けられない代わりにコードページを UTF-8 にする)",
+      /^@echo off[\s\S]{0,400}?chcp 65001/.test(bat));
+  }
+
+  // **外部コマンドを `if ($(cmd; $?))` の形で判定しない。**
+  // PowerShell 5.1 は ErrorActionPreference=Stop のとき、外部コマンドが
+  // stderr に 1 行書いただけで止まる。`docker info` は正常時でも
+  // `WARNING: No blkio throttle...` を出すため、**Docker が動いていても落ちた**。
+  // `$?` も外部コマンドには当てにならない($LASTEXITCODE を見る)。
+  ok("setup.ps1: 外部コマンドは Test-Native / Invoke-Native 経由(stderr で誤って止まらない)",
+    ps1.includes("function Test-Native") && ps1.includes("function Invoke-Native")
+    && ps1.includes("$LASTEXITCODE")
+    // **コメントを除いてから見る。** 危険な書き方の説明そのものを
+    // 違反と数えてしまう(実際に誤検知した)
+    && !/\$\(\s*docker[^)]*\$\?\s*\)/.test(ps1.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n")));
+  // **`*> $null` は使わない。**
+  // `pnpm` は corepack が置く PowerShell スクリプト(pnpm.ps1)として解決され、
+  // これに `*> $null` を付けると**成功していても終了コード 1 が返る**。
+  // 2026-08、「smoke は 1640 passed なのに setup だけ失敗する」形で踏んだ。
+  // `| Out-Null` は問題ない(パイプであってリダイレクトではない)。
+  ok("setup.ps1: `*> $null` を使わない(pnpm.ps1 が成功時も終了コード 1 を返す)",
+    !/\*>\s*\$null/.test(ps1.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n")));
+  // 検証は shim を挟まず node を直に呼ぶ
+  ok("setup.ps1: 検証は node を直に呼ぶ(pnpm のシムを経由しない)",
+    /node --experimental-strip-types tools\/smoke\.mjs/.test(ps1));
+
+  ok("setup.ps1: 案内する起動コマンドが PowerShell 5.1 で動く形(pwsh を前提にしない)",
+    !/pwsh scripts\/setup\.ps1/.test(ps1));
+
   ok("実 setup.ps1: 波括弧/丸括弧均衡・param(Check/SkipDocker/SkipDb)・ErrorActionPreference",
     balance(ps1, "(", ")") === 0 && balance(ps1, "{", "}") === 0 && /param\s*\(/.test(ps1) && ["Check", "SkipDocker", "SkipDb"].every((x) => new RegExp(`\\[switch\\]\\$${x}`).test(ps1)) && /\$ErrorActionPreference\s*=/.test(ps1));
   ok("実 setup.bat: @echo off・goto ラベル整合・ExecutionPolicy Bypass で ps1 実行",
@@ -11421,6 +12439,31 @@ section("color");
       }
       return true;
     })());
+  // **検査の「対象範囲」を守る。** 2026-08 に check-a11y と check-jsx-tags が
+  // packages を見ていないことが分かった(緑なのに守れていない状態)。
+  // 検査を足すときは「何を見ていないか」も確かめること。
+  {
+    const jsxSrc = await fsc.readFile(new URL("./check-jsx-tags.mjs", import.meta.url), "utf8");
+    ok("check-jsx-tags: packages も検査する(基盤の .tsx が壊れると全画面のビルドが落ちる)",
+      jsxSrc.includes('walk(path.join(ROOT, "packages"))'));
+    const colorSrc = await fsc.readFile(new URL("./check-hardcoded-colors.mjs", import.meta.url), "utf8");
+    ok("check-hardcoded-colors: 基盤とアプリを別々に数える(混ぜると基盤の 0 が守れない)",
+      colorSrc.includes("appFiles") && colorSrc.includes("hardcoded-colors-app-limit.json"));
+  }
+
+  // check-a11y そのものが機能しているか。
+  // **2026-08 まで packages が検査対象から外れていた**(基盤の UI 部品は
+  // 全画面で使われるのに一度も見られておらず、実際に 4 件の違反が残っていた)。
+  {
+    const a11ySrc = await fsc.readFile(new URL("./check-a11y.mjs", import.meta.url), "utf8");
+    ok("check-a11y: packages も検査する(基盤の UI 部品こそ影響範囲が広い)",
+      /TARGET_DIRS\s*=\s*\[[^\]]*"packages"/.test(a11ySrc));
+    ok("check-a11y: onKeyDown + tabIndex を付ければ A11Y002 は消える(直しようがある指摘にする)",
+      a11ySrc.includes("tabIndex") && a11ySrc.includes("onKeyDown"));
+    ok("check-a11y: outline を消して代替が無い場合を検出する(A11Y006)",
+      a11ySrc.includes("A11Y006") && a11ySrc.includes("outline-none"));
+  }
+
   // 以前は「残る警告は補助テキストのみ」を許容していたが、その補助テキストこそが
   // 読めない箇所だった(7 スキンが AA 未達・最低 2.83:1)。muted を調整して全スキンが AA を満たす。
   ok("a11y: findContrastIssues は空(全 14 スキン × light/dark が AA を満たす)",
@@ -11621,13 +12664,13 @@ section("core");
   const pkgs = M.collectPackages();
   const apps = M.collectApps();
   const mer = M.loadDepGraphMermaid();
-  ok("collect: 113パッケージ(全@platform/・過半exports)・6アプリ(internal多数)",
-    pkgs.length === 113 && pkgs.every((p) => p.full.startsWith("@platform/")) && pkgs.filter((p) => p.exports.length > 0).length > 40 &&
+  ok("collect: 114パッケージ(全@platform/・過半exports)・6アプリ(internal多数)",
+    pkgs.length === 114 && pkgs.every((p) => p.full.startsWith("@platform/")) && pkgs.filter((p) => p.exports.length > 0).length > 40 &&
     apps.length === 6 && apps.find((a) => a.name === "internal-app").pages.length > 10 && apps.find((a) => a.name === "internal-app").apis.length > 10);
   const erds = M.collectErds();
   const adrs = M.collectAdrs();
-  ok("collectErds/collectAdrs: 4 ER図(erDiagram)・19 ADR(タイトル/状態)",
-    erds.length === 4 && erds.every((e) => e.mermaid.includes("erDiagram")) && adrs.length === 19 && adrs[0].title.includes("ADR"));
+  ok("collectErds/collectAdrs: 4 ER図(erDiagram)・20 ADR(タイトル/状態)",
+    erds.length === 4 && erds.every((e) => e.mermaid.includes("erDiagram")) && adrs.length === 20 && adrs[0].title.includes("ADR"));
   const themesInfo = M.collectThemes();
   ok("collectThemes: 14スキン(id/name/色/角丸/フォントをソースから抽出)",
     themesInfo.length === 14 && themesInfo.every((t) => t.id && t.name && t.colors.primary) &&
@@ -11919,8 +12962,19 @@ export const z = anyChain;
       try { entries = await fsc.readdir(dir, { withFileTypes: true }); } catch { return files; }
       for (const e of entries) {
         const p = `${dir}/${e.name}`;
-        if (e.isDirectory()) files = files.concat(await walk(p));
-        else if (/\.tsx?$/.test(e.name) && !e.name.includes(".test.")) files.push(p);
+        // **生成物は見ない。**
+        // `apps/*/src/generated/` は Prisma が作るクライアントで、
+        // 中に `process.env.DATABASE_URL` がある。除外しないと
+        // **`prisma generate` を実行した環境だけがこの検査で落ちる**
+        // = setup を完走した人が全員落ちる(2026-08 に実際に踏んだ)。
+        // .gitignore でも追跡対象外にしている。
+        if (e.isDirectory()) {
+          if (e.name === "generated" || e.name === "node_modules") continue;
+          files = files.concat(await walk(p));
+        } else if (/\.tsx?$/.test(e.name)
+          && !e.name.includes(".test.") && !e.name.includes(".generated.")) {
+          files.push(p);
+        }
       }
       return files;
     };
@@ -12038,8 +13092,8 @@ section("ui");
   const T = await impFile(`${base}/catalog-tools.mts`);
 
   const catalog = C.loadCatalog({ root });
-  ok("loadCatalog: 113パッケージ・カテゴリ付き・全export網羅(api-surface + api-reference 併用)",
-    catalog.length === 113 && catalog.find((p) => p.name === "theme").category !== "未分類" &&
+  ok("loadCatalog: 114パッケージ・カテゴリ付き・全export網羅(api-surface + api-reference 併用)",
+    catalog.length === 114 && catalog.find((p) => p.name === "theme").category !== "未分類" &&
     catalog.find((p) => p.name === "theme").exports.some((e) => e.name === "deriveTheme") &&
     catalog.filter((p) => p.exports.length > 0).length > 90);
   ok("searchCatalog: パッケージ名完全一致が最上位・API名/日本語説明でも見つかる・該当なしは空",
@@ -12051,7 +13105,7 @@ section("ui");
     C.describePackage(catalog, root, "theme").includes("公開 API") &&
     C.describePackage(catalog, root, "@platform/csv") !== null &&
     C.describePackage(catalog, root, "ghost") === null &&
-    Object.values(C.listByCategory(catalog)).flat().length === 113);
+    Object.values(C.listByCategory(catalog)).flat().length === 114);
 
   // MCP ツール(AI が呼ぶ形)
   // ツールは名前で引く(順序に依存しない)
@@ -12089,9 +13143,9 @@ section("ui");
   const d1 = await byName("describe_package").handler({ name: "theme" });
   const d2 = await byName("describe_package").handler({ name: "ghost" });
   const l1 = await byName("list_platform").handler({});
-  ok("MCP describe_package/list_platform: 詳細返却・無いものはsearch誘導・カテゴリ別113件",
+  ok("MCP describe_package/list_platform: 詳細返却・無いものはsearch誘導・カテゴリ別114件",
     d1.content[0].text.includes("deriveTheme") && d2.isError === true && d2.content[0].text.includes("search_platform") &&
-    l1.content[0].text.includes("113 件"));
+    l1.content[0].text.includes("114 件"));
 
   await fsc.rm(base, { recursive: true, force: true });
 
@@ -12200,8 +13254,11 @@ section("env");
   const T = await impFile(`${base}/catalog-tools.mts`);
 
   const demos = C.loadDemos({ root });
-  ok("loadDemos: 統合デモサイトの nav.ts から80デモを読む(サイトの表示と検索結果が食い違わない)",
-    demos.length === 80 && demos.every((d) => d.name && d.summary && Array.isArray(d.packages)) &&
+  // **件数を決め打ちしない。** デモを 1 つ足すたびにこの表明が落ちると、
+  // 「数字を直す作業」だけが残り、本来守りたい「食い違わないこと」が見えなくなる。
+  // 見るのは「nav.ts から読めること」と「各デモが必要な情報を持つこと」。
+  ok("loadDemos: 統合デモサイトの nav.ts を読める(サイトの表示と検索結果が食い違わない)",
+    demos.length > 50 && demos.every((d) => d.name && d.summary && Array.isArray(d.packages)) &&
     demos.find((d) => d.name === "theme").packages.includes("theme") &&
     demos.find((d) => d.name === "apps-internal").packages.includes("contract"));
   ok("searchDemos: パッケージ名/日本語/@platform付きで引ける・該当なしは空",
@@ -13427,9 +14484,12 @@ section("datetime");
   ok("nav: 区分は3つ(基盤デモ/アプリデモ/使用例)・メニュー上は分かれて見える",
     N.SECTIONS.length === 3 &&
     N.SECTIONS.map((s) => s.title).join(",") === "基盤デモ,アプリデモ,使用例");
-  ok("nav: 基盤デモ64・アプリデモ7・使用例9 = 80件(data-console は画面を持つので基盤デモ側)",
-    N.PLATFORM_DEMOS.length === 64 && N.APP_DEMOS.length === 7 && N.CODE_EXAMPLES.length === 9 &&
-    N.allDemos().length === 80);
+  // **3 区分の合計が全体と一致するか**を見る(件数そのものは追わない)。
+  // どれかの区分に入れ忘れると、画面には出るのに一覧から漏れる
+  ok("nav: 3 区分の合計が allDemos と一致(どの区分にも入れ忘れていない)",
+    N.PLATFORM_DEMOS.length + N.APP_DEMOS.length + N.CODE_EXAMPLES.length === N.allDemos().length &&
+    N.APP_DEMOS.length === 7 && N.CODE_EXAMPLES.length === 9 &&
+    N.PLATFORM_DEMOS.some((d) => d.href === "/data-console"));
   ok("buildNavItems: 区分ごとに入れ子(1サイトだが別物として映る)",
     N.buildNavItems().length === 3 && N.buildNavItems().every((n) => Array.isArray(n.children) && n.children.length > 0));
 
@@ -13668,6 +14728,615 @@ section("datetime");
     bad.length === 0,
   );
   if (bad.length > 0) for (const b of bad.slice(0, 5)) console.log(`     ${b}`);
+}
+
+// ---- web-storage(端末に残す設定・下書き) ----
+section("web-storage: localStorage / sessionStorage");
+{
+  const WS = await (async () => {
+    const fsw = await import("node:fs/promises");
+    // AppError / ok / err だけを使う。**本物と同じ形**にする
+    // (スタブが古いまま緑になる事故を避けるため、最小限に留める)
+    const shim = `${TMP}/ws-core-${Math.random().toString(36).slice(2)}.ts`;
+    await fsw.writeFile(shim,
+      "export class AppError extends Error { constructor(code, message, o){ super(message); this.code=code; this.cause=o?.cause; } }\n"
+      + "export const ErrorCode = { CONFIG: 'CONFIG', CONFLICT: 'CONFLICT' };\n"
+      + "export function ok(value){ return { ok: true, value }; }\n"
+      + "export function err(error){ return { ok: false, error }; }\n");
+    const src = (await fsw.readFile(new URL("../packages/web-storage/src/web-storage.ts", import.meta.url), "utf8"))
+      .replace('from "@platform/core"', `from "${toSpec(shim)}"`);
+    const f = `${TMP}/ws-mod-${Math.random().toString(36).slice(2)}.ts`;
+    await fsw.writeFile(f, src);
+    const m = await impFile(f);
+    await fsw.rm(shim); await fsw.rm(f);
+    return m;
+  })();
+
+  const isTheme = (v) => v === "light" || v === "dark" || v === "system";
+
+  const mem = WS.createMemoryWebStorage();
+  const s = WS.createWebStorage({ key: "theme", fallback: "system", validate: isTheme, namespace: "app-a", storage: mem });
+
+  ok("web-storage 鍵に接頭辞と版が付く(同一オリジンでの衝突を防ぐ)", s.resolvedKey === "app-a:v1:theme");
+  ok("web-storage 未保存なら fallback(例外を投げない)", s.get() === "system");
+  ok("web-storage 書いたものが読める", s.set("dark").ok === true && s.get() === "dark");
+
+  // **古い形が端末に残っている**状況。as T で信じると画面に流れ込む
+  mem.setItem("app-a:v1:theme", JSON.stringify({ t: Date.now(), v: { old: 1 } }));
+  ok("web-storage 形が違えば無かったことにする(前の版のデータが残る)", s.get() === "system");
+
+  mem.setItem("app-a:v1:theme", "{壊れている");
+  ok("web-storage JSON が壊れていても落ちない(手で書き換えられる)", s.get() === "system");
+
+  // 版を上げると前の鍵は読まれない
+  const v1 = WS.createWebStorage({ key: "k", fallback: 0, storage: mem, version: 1 });
+  v1.set(7);
+  ok("web-storage 版を上げると前の値は読まれない",
+    WS.createWebStorage({ key: "k", fallback: 0, storage: mem, version: 2 }).get() === 0);
+
+  // TTL(下書きの保持)
+  let now = 1_000;
+  const d = WS.createWebStorage({ key: "draft", fallback: "", storage: mem, ttlMs: 60_000, now: () => now });
+  d.set("書きかけ");
+  now = 30_000;
+  const inTtl = d.get() === "書きかけ";
+  now = 100_000;
+  ok("web-storage TTL 期限内は読め、超えたら fallback", inTtl && d.get() === "");
+
+  // **サーバ側**(保存先が無い)。ReferenceError にしない
+  ok("web-storage サーバ側の get は fallback(ReferenceError にしない)",
+    WS.createWebStorage({ key: "k", fallback: "既定" }).get() === "既定");
+  ok("web-storage サーバ側の set は err(黙って成功にしない)",
+    WS.createWebStorage({ key: "k", fallback: 0 }).set(1).ok === false);
+
+  // 容量超過・プライベートモード
+  const full = { ...WS.createMemoryWebStorage(), setItem: () => { throw new Error("QuotaExceededError"); } };
+  const quota = WS.createWebStorage({ key: "k", fallback: 0, storage: full }).set(1);
+  ok("web-storage 容量超過は err で返る(例外で画面を止めない)",
+    quota.ok === false && String(quota.error.message).includes("容量超過"));
+
+  // 接頭辞つき一括削除。**他アプリの分を巻き込まない**
+  const m2 = WS.createMemoryWebStorage();
+  m2.setItem("app-a:v1:x", "1"); m2.setItem("app-a:v1:y", "2"); m2.setItem("app-b:v1:z", "3");
+  const removed = WS.clearNamespace("app-a", "local", m2);
+  ok("web-storage clearNamespace は接頭辞が合うものだけ消す",
+    removed === 2 && m2.getItem("app-b:v1:z") === "3" && m2.getItem("app-a:v1:x") === null);
+
+  // 購読はイベントの無い環境でも関数を返す(呼ぶ側に分岐を書かせない)
+  const off = s.subscribe(() => {});
+  ok("web-storage subscribe は常に解除関数を返す", typeof off === "function");
+}
+
+// ---- session: 強制ログアウト(締め出し) ----
+section("session: 強制ログアウト・締め出し");
+{
+  const RV = await (async () => {
+    const fsr = await import("node:fs/promises");
+    const shim = `${TMP}/rv-core-${Math.random().toString(36).slice(2)}.ts`;
+    await fsr.writeFile(shim,
+      "export class AppError extends Error { constructor(c,m,o){ super(m); this.code=c; this.details=o?.details; } }\n"
+      + "export const ErrorCode = { CONFIG: 'CONFIG', VALIDATION: 'VALIDATION' };\n");
+    const src = (await fsr.readFile(new URL("../packages/session/src/revocation.ts", import.meta.url), "utf8"))
+      .replace('from "@platform/core"', `from "${toSpec(shim)}"`);
+    const f = `${TMP}/rv-mod-${Math.random().toString(36).slice(2)}.ts`;
+    await fsr.writeFile(f, src);
+    const m = await impFile(f);
+    await fsr.rm(shim); await fsr.rm(f);
+    return m;
+  })();
+
+  const clock = { t: 1_000 };
+  const now = () => clock.t;
+  const gate = RV.createRevocationGate({ store: RV.createMemoryRevocationStore(now), now });
+
+  ok("失効 何もしなければ通る", (await gate.check("u42", 900)).allowed === true);
+
+  clock.t = 2_000;
+  await gate.revokeUser("u42");
+  const d1 = await gate.check("u42", 900);
+  ok("失効 失効より前に発行されたセッションは通らない", d1.allowed === false && d1.kind === "revoked");
+  ok("失効 失効より後に発行されたものは通る(再ログインできる)", (await gate.check("u42", 2_500)).allowed === true);
+  ok("失効 他の利用者を巻き込まない", (await gate.check("u99", 900)).allowed === true);
+
+  clock.t = 3_000;
+  await gate.revokeAll();
+  ok("失効 revokeAll は全員に効く",
+    (await gate.check("u1", 900)).allowed === false && (await gate.check("u2", 900)).allowed === false);
+  ok("失効 revokeAll 後に発行されたものは通る", (await gate.check("u1", 3_500)).allowed === true);
+
+  clock.t = 4_000;
+  await gate.block("u7", { reason: "退職(2026-08-31)", by: "admin" });
+  const b1 = await gate.check("u7", Number.MAX_SAFE_INTEGER);
+  ok("締め出し 既存セッションも止まる(ログイン拒否だけでは今の画面が使える)",
+    b1.allowed === false && b1.kind === "blocked");
+  ok("締め出し 再ログインも拒否する(追い出すだけでは戻ってこられる)",
+    (await gate.checkLogin("u7")).allowed === false);
+  const list = await gate.listBlocked();
+  ok("締め出し 一覧に理由と操作者が残る(監査)",
+    list.length === 1 && list[0].userId === "u7" && list[0].block.by === "admin");
+  await gate.unblock("u7");
+  ok("締め出し 解除するとログインできる", (await gate.checkLogin("u7")).allowed === true);
+
+  await gate.block("u8", { reason: "調査中", until: 5_000 });
+  const inWindow = (await gate.checkLogin("u8")).allowed === false;
+  clock.t = 6_000;
+  ok("締め出し 期限つきは自動で解ける", inWindow && (await gate.checkLogin("u8")).allowed === true);
+
+  let rejected = false;
+  try { await gate.block("u9", { reason: "   " }); } catch { rejected = true; }
+  ok("締め出し 理由が無ければ拒否(後から解除の可否を判断できない)", rejected);
+}
+
+// ---- ui/lib: 一覧のクエリと選択(全アプリの一覧画面が通る) ----
+// **@platform/ui は 833 export・19,877 行あるのにテストが 16 件**しかなく、
+// しかも全部 src/lib(純ロジック)側。ここは全アプリの一覧画面が通る中核なので、
+// 依存なしで動かせる範囲だけでも押さえておく。
+section("ui/lib: table(検索・ソート・ページング・選択)");
+{
+  const T = await impFile(new URL("../packages/ui/src/lib/table.ts", import.meta.url));
+  const rows = [
+    { id: "a", name: "田中", score: 30 },
+    { id: "b", name: "佐藤", score: 10 },
+    { id: "c", name: "鈴木", score: 20 },
+    { id: "d", name: "田村", score: null },
+  ];
+
+  // **順序が重要**: 検索 → ソート → ページング。
+  // ページングを先にすると「1 ページ目の中だけ検索」になる
+  const hit = T.queryRows(rows, { search: "田", searchKeys: ["name"], pageSize: 10 });
+  ok("ui/table 検索は全行にかかる(ページングより先)", hit.total === 2 && hit.rows.length === 2);
+
+  const asc = T.queryRows(rows, { sortKey: "score", sortDir: "asc", pageSize: 10 });
+  ok("ui/table 数値は数値として並ぶ(文字列比較にしない)",
+    asc.rows.map((r) => r.score).slice(0, 3).join(",") === "10,20,30");
+
+  // **null は末尾**。先頭に来ると「未入力が最重要」に見える
+  ok("ui/table null は昇順・降順とも末尾に置く",
+    asc.rows[3].score === null &&
+    T.queryRows(rows, { sortKey: "score", sortDir: "desc", pageSize: 10 }).rows[3].score === null);
+
+  // 元配列を壊さない(ソートは複製してから)
+  const before = rows.map((r) => r.id).join(",");
+  T.queryRows(rows, { sortKey: "score" });
+  ok("ui/table ソートが元の配列を壊さない", rows.map((r) => r.id).join(",") === before);
+
+  // ページ番号は範囲に丸める。**存在しないページで空になると「消えた」に見える**
+  const over = T.queryRows(rows, { page: 99, pageSize: 2 });
+  ok("ui/table 範囲外のページは最終ページに丸める", over.page === 2 && over.rows.length === 2);
+  ok("ui/table 0 件でも pageCount は 1(0 だと割り算が壊れる)",
+    T.queryRows([], {}).pageCount === 1);
+
+  // 選択状態
+  const keys = rows.map((r) => r.id);
+  let sel = T.emptySelection();
+  sel = T.toggleRow(sel, "a");
+  ok("ui/table 選択のトグル(選ぶ→選ばれる)", T.isRowSelected(sel, "a") && T.selectionCount(sel) === 1);
+  sel = T.toggleRow(sel, "a");
+  ok("ui/table 選択のトグル(もう一度で外れる)", !T.isRowSelected(sel, "a"));
+
+  // **中間状態**。全選択チェックの見た目を決める
+  sel = T.toggleRow(T.emptySelection(), "a");
+  ok("ui/table 一部だけ選択なら indeterminate(全選択にしない)",
+    T.isIndeterminate(sel, keys) && !T.isAllSelected(sel, keys));
+  const all = T.toggleAll(T.emptySelection(), keys);
+  ok("ui/table 全選択→全解除",
+    T.isAllSelected(all, keys) && T.selectionCount(T.toggleAll(all, keys)) === 0);
+  ok("ui/table 空の一覧で isAllSelected が true にならない(全選択の見た目が出てしまう)",
+    !T.isAllSelected(T.emptySelection(), []));
+}
+
+section("ui/lib: formatBytes(容量表示)");
+{
+  const F = await impFile(new URL("../packages/ui/src/lib/format-bytes.ts", import.meta.url));
+  ok("ui/formatBytes 0 は \"0 B\"", F.formatBytes(0) === "0 B");
+  // **1024 基準**。1000 基準と混ぜると OS の表示と食い違う
+  ok("ui/formatBytes 1024 基準(1536 → 1.5 KB)", F.formatBytes(1536) === "1.5 KB");
+  ok("ui/formatBytes B は小数を付けない(1023 → 1023 B)", F.formatBytes(1023) === "1023 B");
+  // **負値・NaN で NaN を画面に出さない**
+  ok("ui/formatBytes 負値・NaN は \"-\"", F.formatBytes(-1) === "-" && F.formatBytes(NaN) === "-");
+  ok("ui/formatBytes 単位を超えても TB で止める",
+    F.formatBytes(1024 ** 6).endsWith(" TB"));
+}
+
+// ---- ui/lib: grid(表計算風グリッドの選択・仮想化・貼り付け) ----
+section("ui/lib: grid(範囲選択・仮想化・TSV)");
+{
+  const G = await impFile(new URL("../packages/ui/src/lib/grid.ts", import.meta.url));
+
+  // **逆方向のドラッグ**。右下から左上へ選んでも同じ範囲になること
+  const a = G.normalizeCellRange({ row: 3, col: 4 }, { row: 1, col: 2 });
+  ok("ui/grid 逆方向のドラッグでも範囲が正しい",
+    a.r0 === 1 && a.c0 === 2 && a.r1 === 3 && a.c1 === 4);
+  ok("ui/grid inRange は境界を含む", G.inRange(a, 1, 2) && G.inRange(a, 3, 4) && !G.inRange(a, 0, 2));
+
+  // Excel へ貼れる形。**CSV だと値にカンマがあると崩れる**のでタブ区切り
+  const rows = [{ n: "田中", v: 10 }, { n: "佐藤", v: 20 }];
+  ok("ui/grid 範囲を TSV にする(Excel に貼れる)",
+    G.rangeToTsv(rows, ["n", "v"], { r0: 0, c0: 0, r1: 1, c1: 1 }) === "田中\t10\n佐藤\t20");
+  // 欠けたセルは空文字。**undefined と書かない**
+  ok("ui/grid 存在しないセルは空文字(undefined を出さない)",
+    G.rangeToTsv(rows, ["n"], { r0: 0, c0: 0, r1: 5, c1: 0 }).split("\n")[5] === "");
+
+  // 固定列の左オフセット(sticky で重ねるので累積幅が要る)
+  ok("ui/grid 固定列のオフセットは累積幅",
+    G.stickyLeftOffsets([100, 50, 80], 3).join(",") === "0,100,150");
+
+  // **最小幅を下回らせない。** 0 にすると列が消えて戻せなくなる
+  ok("ui/grid 列幅は最小幅を下回らない",
+    G.applyColumnResize([120], 0, -500)[0] === 48);
+  ok("ui/grid 列幅は変化量を足す", G.applyColumnResize([120], 0, 30)[0] === 150);
+
+  // 仮想化。引数は (scrollTop, rowHeight, viewportHeight, total, overscan)
+  const vis = G.computeVisibleRange(0, 40, 400, 1000, 6);
+  ok("ui/grid 先頭では start が 0(負にしない)", vis.start === 0 && vis.topPad === 0);
+  const mid = G.computeVisibleRange(4000, 40, 400, 1000, 6);
+  ok("ui/grid 中間では前後に overscan を取る", mid.start === 100 - 6 && mid.end > mid.start);
+  ok("ui/grid 上下パディングの合計が総高と釣り合う",
+    mid.topPad + (mid.end - mid.start) * 40 + mid.bottomPad === 1000 * 40);
+  // **rowHeight が 0 だと 0 除算**。全件返して落とさない
+  ok("ui/grid rowHeight が 0 でも壊れない(0 除算しない)",
+    G.computeVisibleRange(0, 0, 400, 50).end === 50);
+
+  // Excel からの貼り付けを受ける
+  ok("ui/grid TSV を 2 次元配列にする",
+    JSON.stringify(G.parseTsv("a\tb\nc\td")) === JSON.stringify([["a", "b"], ["c", "d"]]));
+  const withHeader = G.tsvToRows("n\tv\n田中\t10", ["n", "v"], { header: true });
+  ok("ui/grid ヘッダ行を飛ばして行に変換",
+    withHeader.length === 1 && withHeader[0].n === "田中" && withHeader[0].v === "10");
+}
+
+// ---- 復元訓練ツール(pnpm drill) ----
+// **訓練の手順そのものが壊れていないか**を、DB なしで確かめる。
+// 手順が動かないことに障害の最中に気づくのが最悪
+section("drill: 復元訓練の手順");
+{
+  const { spawnSync: sp } = await import("node:child_process");
+  const r = sp(process.execPath, [fileURLToPath(new URL("../tools/drill.mjs", import.meta.url)), "--dry"],
+    { encoding: "utf8" });
+  const out = `${r.stdout}${r.stderr}`;
+
+  ok("drill --dry は DB も PostgreSQL クライアントも無しで通る", r.status === 0);
+
+  // **本番に復元しない**ことがいちばん大事。復元先は毎回新しい DB
+  ok("drill 復元先は毎回新しい DB(既存に上書きしない)", /restore_drill_\d{14}/.test(out));
+  ok("drill 手順は 取得 → 空DB作成 → 復元 の順", (() => {
+    const i1 = out.indexOf("pg_dump"), i2 = out.indexOf("CREATE DATABASE"), i3 = out.indexOf("pg_restore");
+    return i1 >= 0 && i2 > i1 && i3 > i2;
+  })());
+  // 既存 DB を消す操作を含まないこと(**取り違え事故の芽を残さない**)
+  ok("drill DROP DATABASE を実行手順に含まない(後片付けは案内だけ)",
+    !/\$ .*DROP DATABASE/.test(out));
+
+  // 接続文字列をそのまま出さない(ログ・画面共有に残る)
+  ok("drill パスワードを伏せて表示する", out.includes(":***@") && !out.includes(":app@localhost:5432/app("));
+
+  // 鍵が無ければ言う。**DB だけ戻せても暗号化項目は読めない**
+  ok("drill 秘密鍵が無ければ警告する", out.includes("秘密鍵が環境にありません"));
+}
+
+// ---- Prisma に廃止済みオプションを渡していないか ----
+// **Prisma 7 で `db push --skip-generate` が廃止された。**
+// 付けたままだと「unknown or unexpected option」で失敗するが、
+// 使う場所が setup(sh/ps1)・tools/db.mjs・CI・Dockerfile に散っていたため、
+// **1 か所直しても他が残る**。2026-08 に実際に setup が止まった。
+section("prisma: 廃止済みオプションを渡していないか");
+{
+  const fsp = await import("node:fs/promises");
+  const targets = [
+    "scripts/setup.sh", "scripts/setup.ps1", "tools/db.mjs",
+    ".github/workflows/e2e.yml", "apps/internal-app/Dockerfile.migrate",
+  ];
+  // 「使うな」と書いた説明文まで違反に数えないよう、コメント行は除く
+  const stripComments = (t) => t.split("\n")
+    .filter((l) => !/^\s*(#|\/\/|REM\b|\*)/.test(l)).join("\n");
+
+  let found = [];
+  for (const rel of targets) {
+    const body = stripComments(
+      (await fsp.readFile(new URL(`../${rel}`, import.meta.url), "utf8")).replace(/\r\n/g, "\n"));
+    if (/db\s+push[^\n]*--skip-generate/.test(body)) found.push(rel);
+  }
+  ok(`prisma db push に --skip-generate を渡していない(Prisma 7 で廃止)${found.length > 0 ? ` → ${found.join(", ")}` : ""}`,
+    found.length === 0);
+
+  // generate は別コマンドとして残っていること(push から外した分の担保)
+  const dbTool = (await fsp.readFile(new URL("../tools/db.mjs", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
+  ok("prisma generate は別コマンドとして残っている(push で生成しなくなった分)",
+    /generate:\s*\[/.test(dbTool));
+}
+
+// ---- docker-compose: 初回の取得量と再現性 ----
+// 2026-08、初回セットアップで **1 レイヤの取得に 20 分**かかった。
+// 通信速度もあるが、**要らないものまで取得していた**のが効いている。
+section("docker-compose: 既定で起動するもの / 版の固定");
+{
+  const fsp = await import("node:fs/promises");
+  // **改行コードを揃えてから解析する。**
+  // Windows で checkout すると CRLF になり、行末に \r が残る。
+  // `/^ {2}(\w+):$/m` のような「行末で終わる」判定が**すべて外れる**。
+  // 環境によって検査結果が変わるのが最も質が悪い。
+  const yml = (await fsp.readFile(new URL("../docker-compose.yml", import.meta.url), "utf8"))
+    .replace(/\r\n/g, "\n");
+  const pkg = JSON.parse(await fsp.readFile(new URL("../package.json", import.meta.url), "utf8"));
+
+  // サービス名(行頭 2 スペース + 名前 + コロン)
+  const services = [...yml.matchAll(/^ {2}([a-z][a-z0-9-]*):$/gm)].map((m) => m[1]);
+  ok("compose: db と mailpit がある", services.includes("db") && services.includes("mailpit"));
+
+  // **開発に要らないものは profiles に入れる。**
+  // 入れないと `docker compose up -d` が全部を起動・取得する
+  // **コメントを除いてから見る。** 「ここから下は profiles: optional」のような
+  // 説明文を設定と取り違える(実際に誤検知した)
+  const withoutComments = yml.split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
+  const block = (name) => {
+    const i = withoutComments.indexOf(`\n  ${name}:`);
+    const rest = withoutComments.slice(i + 1);
+    const next = rest.search(/\n {2}[a-z][a-z0-9-]*:|\nvolumes:/);
+    return next === -1 ? rest : rest.slice(0, next);
+  };
+  for (const optional of ["meilisearch", "redis"]) {
+    ok(`compose: ${optional} は既定で起動しない(profiles: optional)`,
+      /profiles:\s*\["optional"\]/.test(block(optional)));
+  }
+  for (const required of ["db", "mailpit"]) {
+    ok(`compose: ${required} は profiles に入れない(開発に必須)`,
+      !/profiles:/.test(block(required)));
+  }
+
+  // **`latest` を使わない。** 日によって中身が変わり、環境が揃わない
+  const images = [...withoutComments.matchAll(/^\s+image:\s*(\S+)$/gm)].map((m) => m[1]);
+  const floating = images.filter((i) => i.endsWith(":latest") || !i.includes(":"));
+  ok(`compose: すべて版を固定(latest を使わない)${floating.length > 0 ? ` → ${floating.join(", ")}` : ""}`,
+    floating.length === 0);
+
+  // 起動コマンドはサービスを明示する(引数なしだと optional 以外の全部が上がる)
+  ok("db:up / db:down は db と mailpit を名指しする",
+    pkg.scripts["db:up"].includes("db mailpit") && pkg.scripts["db:down"].includes("db mailpit"));
+
+  // 名前と中身を揃える(mailhog という名前で mailpit を動かしていた)
+  ok("compose: サービス名と image が食い違わない(mailhog という名前で mailpit を動かさない)",
+    !/mailhog/.test(yml.replace(/^\s*#.*$/gm, "")));
+}
+
+// ---- 改行コード(Windows で checkout すると CRLF になる) ----
+// **開発者は Windows・CI は Linux** という構成なので、ここを揃えないと
+// 「手元では落ちるが CI は緑」が日常的に起きる。
+// 2026-08、`.gitattributes` が無いために Windows でだけ smoke が落ちた。
+// 壊れたのは advisor・リファレンスサイト・カタログ MCP・資料の節分割——
+// **README や資料を行で読むもの全部**だった。
+section("改行コード: LF に固定されているか");
+{
+  const fsp = await import("node:fs/promises");
+  const attrs = await fsp.readFile(new URL("../.gitattributes", import.meta.url), "utf8")
+    .catch(() => "");
+
+  ok(".gitattributes がある(無いと Windows の checkout で CRLF になる)", attrs !== "");
+  ok(".gitattributes が既定を LF に固定している(* text=auto eol=lf)",
+    /^\*\s+text=auto\s+eol=lf/m.test(attrs));
+  // **.bat だけは CRLF。** cmd.exe が LF のみのバッチで解釈を誤ることがある
+  ok(".gitattributes が .bat だけ CRLF にしている(cmd.exe 向け)",
+    /\*\.bat\s+text\s+eol=crlf/.test(attrs));
+
+  // 道具が CRLF でも壊れないこと。**.gitattributes は ZIP 展開や手コピーには効かない**ので、
+  // 読む側でも吸収しておく(二重の守り)
+  const mustNormalize = [
+    "tools/advisor.mjs", "tools/gen-ref-site.mjs",
+    "tools/lib/catalog.mts", "tools/lib/doc-sections.mts",
+  ];
+  const missing = [];
+  for (const rel of mustNormalize) {
+    const body = await fsp.readFile(new URL(`../${rel}`, import.meta.url), "utf8");
+    // readFileSync(...) の直後に .replace(/\r\n/g, "\n") が付いているか
+    const reads = [...body.matchAll(/readFileSync\([^)]*"utf8"\)(\s*\.replace\(\/\\r\\n\/g)?/g)];
+    const rawTextReads = reads.filter((m) => m[1] === undefined
+      && !/JSON\.parse/.test(body.slice(Math.max(0, m.index - 40), m.index)));
+    if (rawTextReads.length > 0) missing.push(`${rel}(${rawTextReads.length})`);
+  }
+  ok(`資料を行で読む道具は CRLF を正規化している${missing.length > 0 ? ` → ${missing.join(", ")}` : ""}`,
+    missing.length === 0);
+}
+
+// ---- JSX コメントの位置 ----
+// `{/* ... */}` は **JSX 要素の中にしか置けない**。
+// `return (` や `map((x) => (` の直後に書くと構文エラーになる。
+// 2026-08、`command-palette.tsx` と `log-viewer.tsx` がこの形で、
+// **typecheck で 22 件のエラー**になった。
+// `check-syntax` なら捕まえられるが、あれは TypeScript の導入が要る。
+// **依存なしで動く smoke でも弾けるようにする**(書いた直後に気づける)。
+section("JSX: コメントを要素の外に置いていないか");
+{
+  const fsp = await import("node:fs/promises");
+  const roots = ["packages", "apps", "demos"];
+  const walkTsx = async (dir) => {
+    let out = [];
+    let entries;
+    try { entries = await fsp.readdir(dir, { withFileTypes: true }); } catch { return out; }
+    for (const e of entries) {
+      const p = `${dir}/${e.name}`;
+      if (e.isDirectory()) {
+        // 生成物と依存は見ない
+        if (["node_modules", "generated", ".next", "dist"].includes(e.name)) continue;
+        out = out.concat(await walkTsx(p));
+      } else if (e.name.endsWith(".tsx")) out.push(p);
+    }
+    return out;
+  };
+
+  // `return (` / `=> (` の**次の行**が `{/*` で始まっていたら誤り
+  const bad = [];
+  for (const root of roots) {
+    for (const f of await walkTsx(fileURLToPath(new URL(`../${root}`, import.meta.url)))) {
+      const body = (await fsp.readFile(f, "utf8")).replace(/\r\n/g, "\n");
+      for (const m of body.matchAll(/(?:return\s*\(|=>\s*\()\s*\n\s*\{\/\*/g)) {
+        bad.push(`${f.split(/[\\/]/).slice(-2).join("/")}:${body.slice(0, m.index).split("\n").length}`);
+      }
+    }
+  }
+  ok(`JSX コメントが要素の外に無い(要素の外だと構文エラー)${bad.length > 0 ? ` → ${bad.slice(0, 5).join(", ")}` : ""}`,
+    bad.length === 0);
+}
+
+// ---- package.json のスクリプトが Windows で動くか ----
+// **開発者は Windows・CI は Linux。**
+// `rm -rf` のような shell のコマンドを直に書くと、**Windows でだけ壊れる**。
+// 2026-08、`pnpm clean`(と、それを呼ぶ `pnpm fresh`)が
+// 「'rm' は、内部コマンドまたは外部コマンド…として認識されていません」で止まった。
+section("package.json: Windows で動かないコマンドを使っていないか");
+{
+  const fsp = await import("node:fs/promises");
+  const pkg = JSON.parse(await fsp.readFile(new URL("../package.json", import.meta.url), "utf8"));
+
+  // cmd.exe に無いもの。`node`・`pnpm`・`docker` は問題ない
+  const UNIX_ONLY = ["rm", "cp", "mv", "cat", "touch", "ls", "chmod", "which", "sed", "grep", "mkdir"];
+  const offenders = [];
+  for (const [name, cmd] of Object.entries(pkg.scripts ?? {})) {
+    for (const c of UNIX_ONLY) {
+      // コマンドとして先頭に立つ場合だけを見る(`&&` や `|` の直後も含む)
+      if (new RegExp(`(^|&&|\\||;)\\s*${c}\\s`).test(cmd)) {
+        offenders.push(`${name}: ${c}`);
+      }
+    }
+  }
+  ok(`package.json のスクリプトが Windows で動く(shell 依存のコマンドを使わない)${offenders.length > 0 ? ` → ${offenders.join(", ")}` : ""}`,
+    offenders.length === 0);
+
+  // 掃除は Node で行う(OS を選ばない)
+  ok("clean / clean:build は Node のスクリプト(rm -rf を使わない)",
+    (pkg.scripts["clean"] ?? "").includes("tools/clean.mjs")
+    && (pkg.scripts["clean:build"] ?? "").includes("tools/clean.mjs"));
+  // **既定で node_modules を消さない。** 消すのは --all のときだけ
+  ok("clean:build は node_modules を消さない(--all を付けない)",
+    !(pkg.scripts["clean:build"] ?? "").includes("--all"));
+}
+
+// ---- 型宣言(.d.ts)が外から見えるか ----
+// `.d.ts` を同じフォルダに置くだけでは、**そのパッケージの tsconfig の
+// include に入るだけ**。`demos/showcase` のように**外から index.ts を
+// 辿ってきた場合はプログラムに含まれず**、TS7016(暗黙の any)になる。
+// 2026-08、`packages/media` がこれで落ちた(`barcode` は参照済みだった)。
+section("型宣言: .d.ts が /// <reference> されているか");
+{
+  const fsp = await import("node:fs/promises");
+  const walk = async (dir) => {
+    let out = [];
+    let entries;
+    try { entries = await fsp.readdir(dir, { withFileTypes: true }); } catch { return out; }
+    for (const e of entries) {
+      const p = `${dir}/${e.name}`;
+      if (e.isDirectory()) {
+        if (["node_modules", "generated", "dist"].includes(e.name)) continue;
+        out = out.concat(await walk(p));
+      } else if (e.name.endsWith(".ts")) out.push(p);
+    }
+    return out;
+  };
+
+  const files = await walk(fileURLToPath(new URL("../packages", import.meta.url)));
+  const decls = files.filter((f) => f.endsWith(".d.ts"));
+  const sources = files.filter((f) => !f.endsWith(".d.ts"));
+  const unreferenced = [];
+  for (const d of decls) {
+    const name = d.split(/[\\/]/).pop();
+    const pkg = d.replace(/\\/g, "/").split("/packages/")[1].split("/")[0];
+    let found = false;
+    for (const src of sources) {
+      if (!src.replace(/\\/g, "/").includes(`/packages/${pkg}/`)) continue;
+      const body = await fsp.readFile(src, "utf8");
+      if (body.includes(`reference path="./${name}"`)) { found = true; break; }
+    }
+    if (!found) unreferenced.push(`${pkg}/${name}`);
+  }
+  ok(`型宣言(.d.ts)はすべて /// <reference> されている${unreferenced.length > 0 ? ` → ${unreferenced.join(", ")}` : ""}`,
+    unreferenced.length === 0);
+
+  // **.d.ts にトップレベルの import/export を書かない。**
+  // 書くと「モジュール」になり、`declare module` が
+  // **既存モジュールの拡張**として扱われて宣言にならない
+  const asModule = [];
+  for (const d of decls) {
+    const body = (await fsp.readFile(d, "utf8")).replace(/\r\n/g, "\n");
+    // **インデントの無い行だけを見る。** `declare module { … }` の**内側**の
+    // export は正しい書き方なので、字下げされているものは対象外
+    // (最初に書いたときこれで誤検知した)
+    const topLevel = body.split("\n")
+      .filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l))
+      .filter((l) => /^(import|export)\s/.test(l));
+    if (topLevel.length > 0) {
+      asModule.push(d.split(/[\\/]/).pop());
+    }
+  }
+  ok(`型宣言にトップレベルの import/export が無い(あると宣言でなく拡張になる)${asModule.length > 0 ? ` → ${asModule.join(", ")}` : ""}`,
+    asModule.length === 0);
+}
+
+// ---- ESLint が TypeScript を対象にしているか ----
+// **ESLint 9 は既定で `.js` 系しか見ない。**
+// `files` を書かないと TS が 1 ファイルも lint されず、
+// `eslint src` は「all of the files matching the glob pattern "src" are ignored」で
+// 異常終了する。2026-08 まで `pnpm lint` が動いていなかった。
+// 「lint が緑」ではなく「そもそも走っていない」状態は、
+// **検査があるつもりで無い**という最も質の悪い形になる。
+section("eslint: TypeScript を対象にしているか");
+{
+  const fsp = await import("node:fs/promises");
+  const cfg = await fsp.readFile(new URL("../eslint.config.mjs", import.meta.url), "utf8");
+  const pkg = JSON.parse(await fsp.readFile(new URL("../package.json", import.meta.url), "utf8"));
+
+  ok("eslint 設定が .ts / .tsx を files に含む(無いと TS が 1 件も lint されない)",
+    /files:\s*\[[^\]]*\bts\b[^\]]*\]/.test(cfg) && /tsx/.test(cfg));
+  // 型注釈は既定の espree では読めない
+  ok("eslint 設定が TypeScript のパーサを指定している",
+    /parser:\s*tsParser/.test(cfg) && cfg.includes("@typescript-eslint/parser"));
+  ok("パーサが devDependencies に宣言されている",
+    "@typescript-eslint/parser" in (pkg.devDependencies ?? {}));
+  // **無効化コメントが指すルールは、設定で有効になっていること。**
+  // 10 ファイルが `react-hooks/exhaustive-deps` を無効化していたが
+  // ルール自体が未設定で、ESLint が「そんな規則は無い」と**エラー**にしていた
+  ok("react-hooks が設定されている(無効化コメントが宙に浮かない)",
+    /"react-hooks":\s*reactHooks/.test(cfg)
+    && "eslint-plugin-react-hooks" in (pkg.devDependencies ?? {}));
+  // 誤検出だらけのルールは、本物を埋もれさせるので切る
+  ok("detect-object-injection を切っている(TS の型付きアクセスにも一律で出るため)",
+    /"security\/detect-object-injection":\s*"off"/.test(cfg));
+  // 生成物は対象外(数万行あり、直しようもない)
+  // **無効化コメントは、そのルールが設定されている前提。**
+  // 設定に無いルールを指すと ESLint は「そんな規則は無い」と**エラー**にする。
+  // 2026-08、`react-hooks/exhaustive-deps`(10 ファイル)と
+  // `@next/next/no-img-element`(3 ファイル)がこの形で残っていた。
+  {
+    const walk = async (dir) => {
+      let out = [];
+      let entries;
+      try { entries = await fsp.readdir(dir, { withFileTypes: true }); } catch { return out; }
+      for (const e of entries) {
+        const p = `${dir}/${e.name}`;
+        if (e.isDirectory()) {
+          if (["node_modules", "generated", ".next", "dist"].includes(e.name)) continue;
+          out = out.concat(await walk(p));
+        } else if (/\.tsx?$/.test(e.name)) out.push(p);
+      }
+      return out;
+    };
+    // 設定で有効にしているルールの接頭辞。ここに無いものは指せない
+    const ENABLED_PREFIXES = ["security/", "boundaries/", "react-hooks/"];
+    const dangling = [];
+    for (const root of ["packages", "apps", "demos", "tools"]) {
+      for (const f of await walk(fileURLToPath(new URL(`../${root}`, import.meta.url)))) {
+        const body = (await fsp.readFile(f, "utf8")).replace(/\r\n/g, "\n");
+        for (const m of body.matchAll(/eslint-disable(?:-next-line|-line)?\s+([A-Za-z0-9@/_-]+)/g)) {
+          const rule = m[1];
+          // 接頭辞の無い素の ESLint ルールは、設定に入れていないので指せない
+          const known = ENABLED_PREFIXES.some((p2) => rule.startsWith(p2));
+          if (!known) dangling.push(`${f.split(/[\\/]/).slice(-2).join("/")}: ${rule}`);
+        }
+      }
+    }
+    ok(`eslint の無効化コメントが実在するルールを指している${dangling.length > 0 ? ` → ${dangling.slice(0, 5).join(", ")}` : ""}`,
+      dangling.length === 0);
+  }
+
+  ok("eslint 設定が生成物と依存を ignores に入れている",
+    /ignores:/.test(cfg) && cfg.includes("**/generated/**") && cfg.includes("**/node_modules/**"));
 }
 
 console.log(`\n─────────────\n結果: ${pass} passed, ${fail} failed`);

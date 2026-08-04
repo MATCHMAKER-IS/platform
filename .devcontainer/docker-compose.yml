@@ -10,7 +10,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      mailhog:
+      mailpit:
         condition: service_started
 
   db:

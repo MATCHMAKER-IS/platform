@@ -49,7 +49,7 @@ export function staffSlots(slots: Slot[], shifts: Shift[]): Slot[] {
  *
  * @param slots スロットの配列
  * @param shifts シフトの配列
- * @param bookings 既存の予約
+ * @param staffBookings 既存の予約
  * @returns そのスタッフが**対応でき、かつ空いている**スロット
  */
 export function staffAvailableSlots(slots: Slot[], shifts: Shift[], staffBookings: BookingInterval[]): Slot[] {

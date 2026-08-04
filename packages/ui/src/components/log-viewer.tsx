@@ -45,10 +45,29 @@ export interface LogViewerProps {
   className?: string;
 }
 
-const LEVEL_TEXT: Record<LogLevel, string> = { error: "text-red-600", warn: "text-amber-600", info: "text-blue-600", debug: "text-[var(--color-muted)]" };
+// **色は変数から取る。** 直書きするとテーマを切り替えても変わらない。
+// 背景は color-mix で薄めた同じ色を使うので、テーマに追従する。
+const LEVEL_TEXT: Record<LogLevel, string> = {
+  error: "text-[var(--color-danger)]",
+  warn: "text-[var(--color-warning)]",
+  info: "text-[var(--color-primary)]",
+  debug: "text-[var(--color-muted)]",
+};
 const LEVEL_BORDER: Record<LogLevel, string> = { error: "border-l-red-400", warn: "border-l-amber-400", info: "border-l-blue-400", debug: "border-l-slate-300" };
-const LEVEL_MARK: Record<LogLevel, string> = { error: "bg-red-200 text-red-900", warn: "bg-amber-200 text-amber-900", info: "bg-blue-200 text-blue-900", debug: "bg-yellow-200" };
-const LEVEL_BG: Record<LogLevel, string> = { error: "bg-red-400", warn: "bg-amber-400", info: "bg-blue-400", debug: "bg-[var(--color-subtle-strong)]" };
+/** 検索一致の目印。**背景は薄く、文字は元の色**(濃い背景に濃い文字だと読めない)。 */
+const LEVEL_MARK: Record<LogLevel, string> = {
+  error: "bg-[color-mix(in_srgb,var(--color-danger)_25%,transparent)] text-[var(--color-danger)]",
+  warn: "bg-[color-mix(in_srgb,var(--color-warning)_25%,transparent)] text-[var(--color-warning)]",
+  info: "bg-[color-mix(in_srgb,var(--color-primary)_25%,transparent)] text-[var(--color-primary)]",
+  debug: "bg-[var(--color-subtle-strong)]",
+};
+/** 時系列バーの色。面で見せるので、文字色より少し薄める。 */
+const LEVEL_BG: Record<LogLevel, string> = {
+  error: "bg-[color-mix(in_srgb,var(--color-danger)_70%,transparent)]",
+  warn: "bg-[color-mix(in_srgb,var(--color-warning)_70%,transparent)]",
+  info: "bg-[color-mix(in_srgb,var(--color-primary)_70%,transparent)]",
+  debug: "bg-[var(--color-subtle-strong)]",
+};
 
 /** ログ/長文ビューア。 */
 /**
@@ -135,7 +154,7 @@ export function LogViewer({
             </button>
           ))}
           <input value={regex} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRegex(e.target.value)} placeholder="/regex/"
-            className="ml-1 w-28 rounded border border-[var(--color-border)] bg-transparent px-2 py-0.5 font-mono outline-none" />
+            className="ml-1 w-28 rounded border border-[var(--color-border)] bg-transparent px-2 py-0.5 font-mono outline-none focus-visible:border-[var(--color-primary)]" />
           <div className="ml-auto flex items-center gap-1">
             <span className="text-[var(--color-muted)]">{rendered.length} 行</span>
             <button type="button" onClick={() => setFollowing((f) => !f)} className={cn("rounded px-2 py-0.5 hover:bg-[var(--color-muted)]/15", following && "text-[var(--color-primary)] font-semibold")}>{following ? "追尾中" : "追尾"}</button>
@@ -165,12 +184,22 @@ export function LogViewer({
       )}
       {showTimeline && buckets.length > 0 && (
         <div className="flex items-end gap-px border-b border-[var(--color-border)] px-2 py-1" style={{ height: 44 }} title="時系列(レベル別件数)">
+          {/* **button にする。** div + onClick はキーボードで押せない
+              (Tab で辿れず、Enter でも反応しない) */}
           {buckets.map((b, i) => (
-            <div key={i} onClick={() => jumpTo(b.start)} title={new Date(b.start).toLocaleTimeString()} className="flex flex-1 cursor-pointer flex-col-reverse hover:opacity-70" style={{ height: "100%" }}>
+            <button
+              key={i}
+              type="button"
+              onClick={() => jumpTo(b.start)}
+              title={new Date(b.start).toLocaleTimeString()}
+              aria-label={`${new Date(b.start).toLocaleTimeString()} へ移動`}
+              className="flex flex-1 cursor-pointer flex-col-reverse rounded-sm hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
+              style={{ height: "100%" }}
+            >
               {LOG_LEVELS.map((lvl) => b.counts[lvl] > 0 && (
                 <div key={lvl} className={LEVEL_BG[lvl]} style={{ height: `${(b.counts[lvl] / maxBucket) * 100}%` }} />
               ))}
-            </div>
+            </button>
           ))}
         </div>
       )}

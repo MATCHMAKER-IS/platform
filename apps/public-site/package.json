@@ -18,6 +18,7 @@
     "@platform/html": "workspace:*",
     "@platform/observability": "workspace:*",
     "@platform/search": "workspace:*",
+    "@platform/security": "workspace:*",
     "@platform/seo": "workspace:*",
     "@platform/site": "workspace:*",
     "@platform/social": "workspace:*",

@@ -163,7 +163,7 @@ function TrendChart({ points }: { points: { month: string; sales: number; outsta
     expenses: p.expenses,
   }));
   return (
-    <div className="rounded border border-neutral-200 p-4">
+    <div className="rounded border border-[var(--color-border)] p-4">
       <p className="mb-2 text-sm font-medium">売上・売掛の推移（直近6か月）</p>
       <ComboChart
         data={data}

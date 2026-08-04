@@ -10,7 +10,7 @@
  * **記事タイトルに `&` が入るだけで RSS が壊れる**(リーダーが読めなくなる)。
  * XML に埋め込む値は必ず通す。
  *
- * @param value 対象の文字列
+ * @param text 対象の文字列
  * @returns エスケープした文字列
  */
 export function escapeXml(text: string): string {
@@ -53,7 +53,7 @@ function toRfc822(iso: string): string {
 /**
  * RSS 2.0 のフィード XML を生成する。
  *
- * @param posts 記事の配列(**公開済みのものだけを渡すこと**)
+ * @param meta 記事の配列(**公開済みのものだけを渡すこと**)
  * @param options.title / description / baseUrl サイトの情報
  * @returns RSS の XML 文字列
  */
@@ -93,8 +93,7 @@ export interface SitemapUrl {
 /**
  * サイトマップ XML を生成する(検索エンジン向け)。
  *
- * @param posts 記事の配列(**公開済みのものだけ**)
- * @param baseUrl サイトの URL
+ * @param urls サイトマップに載せる URL(`loc` は絶対 URL にすること)
  * @returns サイトマップの XML 文字列
  */
 export function buildSitemap(urls: SitemapUrl[]): string {

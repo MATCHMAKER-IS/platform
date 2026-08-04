@@ -27,7 +27,7 @@ export function Highlight({ text, query, caseSensitive, className, markClassName
     <span className={className}>
       {segments.map((s, i) =>
         s.match ? (
-          <mark key={i} className={cn("rounded bg-yellow-200 px-0.5 text-inherit", markClassName)}>{s.text}</mark>
+          <mark key={i} className={cn("rounded bg-[color-mix(in_srgb,var(--color-warning)_25%,transparent)] px-0.5 text-inherit", markClassName)}>{s.text}</mark>
         ) : (
           <span key={i}>{s.text}</span>
         ),

@@ -31,7 +31,7 @@ export function FieldReview({ fields, threshold = 70, onConfirm, className }: Fi
   return (
     <div className={cn("flex flex-col gap-3", className)}>
       {reviewCount > 0 && (
-        <div className="flex items-center gap-2 text-sm text-amber-700">
+        <div className="flex items-center gap-2 text-sm text-[var(--color-warning)]">
           <AlertTriangle className="h-4 w-4" />
           {reviewCount} 件は読み取り信頼度が低いため確認してください。
         </div>
@@ -39,7 +39,7 @@ export function FieldReview({ fields, threshold = 70, onConfirm, className }: Fi
       {fields.map((f) => {
         const warn = needsReview(f.confidence, threshold);
         return (
-          <div key={f.key} className={cn("rounded-[var(--radius)] border p-3", warn ? "border-amber-400 bg-amber-50/50" : "border-[var(--color-border)]")}>
+          <div key={f.key} className={cn("rounded-[var(--radius)] border p-3", warn ? "border-[color-mix(in_srgb,var(--color-warning)_70%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_8%,transparent)]/50" : "border-[var(--color-border)]")}>
             <div className="mb-1 flex items-center justify-between">
               <label className="text-sm font-medium text-[var(--color-fg)]">{f.label}</label>
               {f.confidence != null && (

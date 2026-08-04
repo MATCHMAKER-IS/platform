@@ -117,7 +117,7 @@ export function StatCard({ label, value, format, currency, delta, trend = "flat"
   const displayValue = typeof value === "number" && format
     ? (format === "currency" ? i18n.currency(value, currency ?? "JPY") : i18n.n(value))
     : value;
-  const trendColor = trend === "up" ? "text-emerald-600" : trend === "down" ? "text-red-600" : "text-[var(--color-muted)]";
+  const trendColor = trend === "up" ? "text-[var(--color-success)]" : trend === "down" ? "text-[var(--color-danger)]" : "text-[var(--color-muted)]";
   return (
     <div className={cn("rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg)] p-4", className)}>
       <div className="flex items-center justify-between">

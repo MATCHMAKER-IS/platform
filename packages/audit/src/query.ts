@@ -32,7 +32,7 @@ export function filterByTarget(log: AuditEntry[], target: string): AuditEntry[] 
  * `expense.` で経費関連すべてを拾える(`expense.create` / `expense.approve` など)。
  *
  * @param log 監査ログ
- * @param action 操作(前方一致)
+ * @param actionPrefix 操作(前方一致)
  * @returns その操作の履歴
  */
 export function filterByAction(log: AuditEntry[], actionPrefix: string): AuditEntry[] {

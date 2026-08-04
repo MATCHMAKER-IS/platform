@@ -43,7 +43,7 @@ const SHORTCUTS: [string, string][] = [
 ];
 
 const EXAMPLE_UI = `// ❌ 生タグ + 直書き（サイズ・色・アクセシビリティが基盤に追従しない）
-<Button className="rounded bg-neutral-900 px-3 py-1.5 text-white">保存</Button>
+<Button className="rounded bg-[var(--color-fg)] px-3 py-1.5 text-white">保存</Button>
 
 // ✅ 基盤の部品を使う
 import { Button, Input } from "@platform/ui";

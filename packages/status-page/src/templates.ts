@@ -42,7 +42,7 @@ function paragraphs(message: string | string[]): string {
  * 汎用ステータスページを HTML 文字列で生成する。
  * インライン CSS・レスポンシブ・ダークモード対応。外部リソースを一切読み込まない。
  *
- * @param content 画面の内容(タイトル・メッセージなど)
+ * @param options 画面の内容(タイトル・メッセージなど)
  * @returns HTML。**外部依存なし**(CSS もインライン。障害時に CDN が死んでいても表示できる)
  */
 export function renderStatusPage(options: StatusPageOptions): string {

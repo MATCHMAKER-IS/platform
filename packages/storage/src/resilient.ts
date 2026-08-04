@@ -30,7 +30,7 @@ async function retry<T>(fn: () => Promise<T>, o: Required<Pick<StorageRetryOptio
  * Adapter をリトライでラップする(put/get/delete/exists/list に適用)。
  *
  *
- * @param storage 元のストレージ
+ * @param adapter 元のストレージ
  * @param options.attempts 最大試行回数
  * @returns ラップしたストレージ(**恒久エラーは再試行しない**)
  */

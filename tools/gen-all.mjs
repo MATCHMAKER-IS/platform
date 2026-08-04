@@ -15,6 +15,9 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
 /** 生成ステップ(順序に意味がある。2 パス回す)。 */
 const STEPS = [
+  // 資料に書いたデモ本数を nav.ts に合わせる(**手で直させない**。
+  // デモを足すたびに数字を直す作業だけが残ると、検査そのものが疎まれる)
+  ["check-doc-numbers.mjs", "--fix"],
   ["gen-module-list.mjs"],
   ["advisor.mjs", "report"],
   ["gen-reference.mjs"],

@@ -59,8 +59,8 @@ export function reviewItems(fields: FormField[], values: Record<string, unknown>
  * 詳細画面の項目一覧を作る(全フィールドを対象。表示条件は無視して定義順に並べる)。
  * レコードを description-list 等で表示するのに使う。
  *
- * @param record 任意のオブジェクト
- * @param labels 項目名 → 表示名 の対応(任意)
+ * @param fields 任意のオブジェクト
+ * @param record 項目名 → 表示名 の対応(任意)
  * @returns 表示用の項目リスト(**フィールド定義が無いデータ向け**)
  */
 export function describeRecord(fields: FormField[], record: Record<string, unknown>): ReviewItem[] {

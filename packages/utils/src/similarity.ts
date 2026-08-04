@@ -105,9 +105,9 @@ export function jaroWinkler(a: string, b: string, prefixScale = 0.1): number {
  *
  * 「もしかして: ◯◯」の実装に使う。
  *
- * @param input 入力文字列
+ * @param query 入力文字列
  * @param candidates 候補
- * @param threshold この類似度を下回れば「該当なし」(既定 0.7)
+ * @param options この類似度を下回れば「該当なし」(既定 0.7)
  * @returns 最も似ているものと類似度。**閾値未満なら undefined**
  *   (無理に候補を出すと、かえって混乱させる)
  */

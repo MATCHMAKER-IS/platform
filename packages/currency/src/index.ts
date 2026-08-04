@@ -63,7 +63,7 @@ export interface Money { amount: number; currency: string }
  * 金額を作る(**通貨の桁で丸める**)。
  *
  * @param amount 金額
- * @param code 通貨コード
+ * @param currency 通貨コード
  * @returns 金額オブジェクト(通貨と数値の組)
  */
 export function money(amount: number, currency: string): Money {
@@ -73,8 +73,9 @@ export function money(amount: number, currency: string): Money {
 /**
  * 通貨記号つきで整形する。
  *
- * @param money 金額
- * @param options.locale ロケール(既定 ja-JP)
+ * @param m 金額
+ * @param options.symbol 通貨記号を付けるか
+ * @param options.code 通貨コードを付けるか
  * @returns `¥1,234` / `$1,234.56` 形式
  */
 export function formatMoney(m: Money, options: { symbol?: boolean; code?: boolean } = {}): string {
@@ -92,7 +93,7 @@ export function formatMoney(m: Money, options: { symbol?: boolean; code?: boolea
  * **`rate` の向きに注意**(「1 from = rate to」)。逆に取ると桁が大きく狂う。
  * **換算先の通貨桁で丸める**(円なら整数に)。
  *
- * @param money 換算する金額
+ * @param m 換算する金額
  * @param to 換算先の通貨
  * @param rate レート(**1 from = rate to**)
  * @returns 換算した金額
@@ -135,7 +136,7 @@ export function sumMoney(items: readonly Money[]): Money | null {
  *
  *
  * @param items 金額の配列(**通貨が混在してよい**)
- * @param base 基準通貨
+ * @param baseCurrency 基準通貨
  * @param rates レート表
  * @returns 基準通貨での合計。**レートが無い通貨があれば除外せずエラー**(黙って計算から漏らさない)
  */

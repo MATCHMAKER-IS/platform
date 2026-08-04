@@ -5,6 +5,12 @@ on:
   schedule:
     - cron: "0 3 * * 1"
 
+# **必要な権限だけを与える。** 既定の GITHUB_TOKEN は広い権限を持つため、
+# 明示して絞る（漏れたトークンでできることを減らす）
+permissions:
+  contents: read
+  security-events: write  # 解析結果を Security タブに出す
+
 jobs:
   analyze:
     runs-on: ubuntu-latest

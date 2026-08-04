@@ -39,7 +39,7 @@ function encodeHeader(value: string): string {
  * GmailMessageInput から RFC822 の生メールを組み立てる。
  *
  *
- * @param message 宛先・件名・本文
+ * @param msg 宛先・件名・本文
  * @returns RFC 2822 形式を base64url にした文字列(**Gmail API はこの形式を要求する**)
  */
 export function buildRawEmail(msg: GmailMessageInput): string {

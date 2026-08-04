@@ -53,7 +53,9 @@ for (const app of targets) {
   const schema = `../../apps/${app}/prisma/schema.prisma`;
   const prismaArgs = {
     generate: ["generate", `--schema=${schema}`],
-    push: ["db", "push", `--schema=${schema}`, "--skip-generate"],
+    // Prisma 7 で `--skip-generate` は廃止(付けると「unknown or unexpected option」で失敗)。
+    // generate は別コマンド(`pnpm db generate`)で明示的に流す
+    push: ["db", "push", `--schema=${schema}`],
     migrate: ["migrate", "dev", `--schema=${schema}`],
     studio: ["studio", `--schema=${schema}`],
     validate: ["validate", `--schema=${schema}`],

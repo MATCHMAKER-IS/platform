@@ -35,8 +35,12 @@ await session.destroy(req.headers.get("cookie")); // サーバ側で失効
 
 ## 無操作タイムアウト(自動ログアウト)
 
-**既定は無効(無操作でもログアウトしません)。** `idleTimeoutSec` を設定すると、最後の活動から
+**既定は無制限(無操作でもログアウトしません)。** `idleTimeoutSec` を設定すると、最後の活動から
 その秒数を超えたセッションを失効扱いにします。絶対期限(`maxAgeSec`)は活動しても延長されません。
+
+**`0` は「無制限」です**(`undefined` と同じ)。管理画面から設定させる場合、入力欄を空にできない
+ことが多いので `0` を無制限の入口として受けます。負の秒数は**起動時に例外**にします
+(単位の間違いなのか無制限のつもりなのか区別できず、黙って無制限にすると期限が消えるため)。
 
 ```ts
 const session = createSession<{ userId: string }>({
@@ -119,3 +123,58 @@ await audit.allSessionsRevoked({ subject: email });
 ```
 サンプルアプリ(`apps/internal-app`)は Zoho ログインのコールバック/ログアウトに配線済みです。
 
+
+## 強制ログアウト(締め出し)
+
+「今ログインしている人を今すぐ追い出す」ための部品です。退職・異動、乗っ取りの疑い、
+権限変更(**古いセッションは古い権限のまま**)、障害時の緊急停止で使います。
+
+```ts
+import { createRevocationGate, createMemoryRevocationStore } from "@platform/session";
+
+const gate = createRevocationGate({ store });   // 本番は Redis 等を渡す
+
+// 各リクエスト: 発行時刻を見て失効を判定する
+const info = session.inspect(req.headers.get("cookie"));
+if (!info) return redirectToLogin();
+const d = await gate.check(info.data.userId, info.issuedAt);
+if (!d.allowed) return logoutWith(d.reason);
+
+// ログイン処理の冒頭でも見る(**追い出しただけでは再ログインで戻ってくる**)
+const canLogin = await gate.checkLogin(userId);
+```
+
+| 操作 | 効果 |
+|---|---|
+| `revokeUser(userId)` | その人の**全端末**のセッションを失効。ログインは可能 |
+| `revokeAll()` | **全員**を失効(緊急停止)。**操作した本人も落ちます** |
+| `block(userId, { reason, until?, by? })` | 失効 **+ ログイン拒否**。理由は必須 |
+| `unblock(userId)` | 締め出しの解除(失効した既存セッションは戻りません) |
+| `listBlocked()` | 締め出し中の一覧(理由・操作者・時刻) |
+
+### 仕組み(なぜセッションを消して回らないか)
+
+`createServerSession` なら `destroyAllForUser` で消せますが、**封緘クッキー方式には
+サーバ側の記録が無く、消す対象が存在しません**。クッキーは利用者の手元にあり、
+こちらから取り上げられません。
+
+そこで「**いつ以降に発行されたセッションなら有効か**」を 1 つの時刻として持ちます。
+
+```
+  revoke:user:u42 = 10:00  → u42 の 10:00 より前に発行されたセッションが無効
+  revoke:all      = 10:00  → 全員の 10:00 より前に発行されたセッションが無効
+```
+
+記録は**利用者 1 人につき 1 件**で、セッションが何個あっても増えません。
+どちらのセッション方式にも同じように効きます。
+
+### 注意
+
+- **`createMemoryRevocationStore` は複数台では使えません。** 片方のサーバだけ締め出しが効かず、
+  「追い出したはずの人がリロードすると戻ってくる」状態になります。Redis 等へ差し替えてください。
+- 失効記録の保持期間(`ttlSec`、既定 400 日)は**セッションの絶対期限より長く**します。
+  短いと記録が消えた後に古いセッションが復活します。
+- `block` の理由は必須です。理由が残らないと、**後から誰も解除してよいか判断できません**。
+- 恒久的なアカウント停止は、利用者マスタ側(アプリ)の責務です。ここは
+  「今すぐ止める」ための仕組みで、退職処理そのものではありません
+  (`@platform/access-review` の停止手順と対で使ってください)。

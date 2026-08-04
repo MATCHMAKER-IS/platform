@@ -4,7 +4,8 @@
  * @packageDocumentation
  */
 import { visibleBlocks, activeAnnouncements, activeBanners, rotateBanner, type Page, type PageBlock, type MenuItem, type Announcement, type Banner } from "@platform/site";
-import { embedIframe, embedHtml } from "@platform/html";
+import { embedIframe } from "@platform/html";
+import { sanitizeEmbed } from "@platform/security";
 import { categoryTree, filterByCategory, countByCategory, categoryPath, findCategoryBySlug, adjacentPosts, relatedPosts, allTags, postsByTag, type Category, type CategoryNode } from "@platform/board";
 import { createSearch, type Search, createMemorySearch } from "@platform/search";
 import { linkify, nl2br, escapeHtml } from "@platform/html";
@@ -50,10 +51,14 @@ export function renderBlock(block: PageBlock): RenderedBlock {
       return { kind: "gallery", images };
     }
     case "embed": {
-      // 信頼済みの埋め込み（管理者が入力）。iframe URL 指定なら iframe を組み立て、raw HTML ならそのまま。
+      // 埋め込み。iframe の URL 指定なら組み立て、raw HTML なら**サニタイズしてから**返す。
+      //
+      // 以前は「管理者が入力するから安全」として素通ししていたが、
+      // **管理画面に入れる人が増えれば前提は崩れる**し、乗っ取られた 1 アカウントで
+      // 全ページに script を仕込まれる。iframe は許すが script と on* は落とす。
       const src = asString(d.src);
       if (src) return { kind: "embed", html: embedIframe(src, { title: asString(d.title) || undefined, ...(typeof d.height === "number" ? { height: d.height } : {}) }) };
-      return { kind: "embed", html: embedHtml(asString(d.html)) };
+      return { kind: "embed", html: sanitizeEmbed(asString(d.html)) };
     }
     default:
       return { kind: "unknown", type: block.type };

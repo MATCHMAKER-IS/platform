@@ -250,7 +250,7 @@ export function createRagStore(options: RagStoreOptions): RagStore {
  * **引用元を必ず付ける**。AI の回答に根拠を示せないと、利用者は検証できない
  * (そして AI は自信満々に間違える)。
  *
- * @param results 検索結果
+ * @param hits 検索結果
  * @param options.maxChars 最大文字数(**トークン上限に収める**)
  * @returns 文脈テキスト(引用元つき)
  */
@@ -309,7 +309,6 @@ export function cosineSimilarity(a: number[], b: number[]): number {
  * **総当たりで計算する**ので、件数が増えると遅い(数千件が限界)。
  * 本番では専用のベクトル DB(pgvector・Qdrant など)を使うこと。
  *
- * @param seed 初期データ
  * @returns ベクトル索引
  */
 export function createMemoryVectorIndex(): VectorIndex {
@@ -399,7 +398,7 @@ export function textToDocument(input: { id: string; title: string; text: string;
  * 各行は "列名: 値" の行テキストに整形する。
  *
  * @param rows DB の行
- * @param mapper 行 → 文書 の変換
+ * @param options 行 → 文書 の変換
  * @returns 文書の配列
  */
 export function rowsToDocuments(

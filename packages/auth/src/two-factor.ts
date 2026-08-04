@@ -26,7 +26,7 @@ export interface TwoFactorConfig {
 /**
  * 有効化されている 2FA 手段を返す。
  *
- * @param state 利用者の 2 要素認証の設定
+ * @param config 利用者の 2 要素認証の設定
  * @returns 使える方式(totp / webauthn / backup)。**空なら 2 要素認証は未設定**
  */
 export function availableMethods(config: TwoFactorConfig): TwoFactorMethod[] {
@@ -40,7 +40,7 @@ export function availableMethods(config: TwoFactorConfig): TwoFactorMethod[] {
 /**
  * 2FA が有効か(いずれかの手段が登録済み)。
  *
- * @param state 利用者の設定
+ * @param config 利用者の設定
  * @returns 1 つでも方式が有効なら true
  */
 export function isTwoFactorEnabled(config: TwoFactorConfig): boolean {

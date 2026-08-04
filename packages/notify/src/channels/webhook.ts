@@ -9,7 +9,6 @@ import type { NotifyChannel, NotifyMessage } from "../index";
  * @param url 送信先 URL
  * @param format メッセージ→ペイロード変換(既定: `{ text, level }`)
  *
- * @param options 送信の設定
  * @returns Webhook のチャネル。**任意の URL に POST する**(受け手側で自由に処理できる)
  * @throws {@link @platform/core#AppError} コード `EXTERNAL` — 送信に失敗した場合(`send` 実行時)
  */
@@ -27,7 +26,7 @@ export function createWebhookChannel(url: string, format?: (m: NotifyMessage) =>
  * Discord Webhook チャネル(content フィールドに送る)。
  *
  *
- * @param options 送信の設定
+ * @param webhookUrl 送信の設定
  * @returns Discord のチャネル。**Webhook URL を使う**
  * @throws {@link @platform/core#AppError} コード `EXTERNAL` — 送信に失敗した場合(`send` 実行時)
  */

@@ -95,8 +95,7 @@ export function parseAddress(input: string): EmailAddress | null {
  * {name, email} を "山田 <yamada@example.jp>" に整形する。
  *
  *
- * @param name 表示名
- * @param email メールアドレス
+ * @param addr 宛先(表示名とメールアドレス)
  * @returns `山田 <yamada@example.jp>` 形式(**表示名に `,` や `<` があれば引用符で囲む**)
  */
 export function formatAddress(addr: EmailAddress): string {

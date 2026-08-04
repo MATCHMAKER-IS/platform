@@ -15,6 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # **履歴を全部取る。** 既定は浅いクローン(depth 1)なので、
+          # `git diff origin/main...HEAD` が失敗し、影響範囲を出せない
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22

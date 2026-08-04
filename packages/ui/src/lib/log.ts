@@ -71,8 +71,8 @@ export interface LogFilter {
 /**
  * ログを絞り込む。
  *
- * @param lines 解析済みの行
- * @param filter レベル・キーワード・時間範囲
+ * @param parsed 解析済みの行
+ * @param options レベル・キーワード・時間範囲
  * @returns 条件に合う行
  */
 export function filterLogLines(parsed: LogLine[], options: LogFilter = {}): LogLine[] {
@@ -98,7 +98,7 @@ export function filterLogLines(parsed: LogLine[], options: LogFilter = {}): LogL
  *
  * **エラーが何件あるかを一目で**(全部読まずに済む)。
  *
- * @param lines 解析済みの行
+ * @param parsed 解析済みの行
  * @returns レベル → 件数
  */
 export function countByLevel(parsed: LogLine[]): Record<LogLevel | "none", number> {
@@ -133,7 +133,7 @@ export interface TimeBucket { start: number; counts: Record<LogLevel | "none", n
  *
  * **エラーがいつ集中したかが分かる**(件数だけでは「いつ」が見えない)。
  *
- * @param lines 解析済みの行
+ * @param parsed 解析済みの行
  * @param intervalMs 集計の単位
  * @returns 時刻と件数(**タイムスタンプの無い行は除外**)
  */
@@ -251,7 +251,7 @@ export function parseStructuredLog(line: string): StructuredLog | null {
  *
  * **チャートをクリックしてその時刻に飛ぶ**のに使う。
  *
- * @param lines 解析済みの行
+ * @param parsed 解析済みの行
  * @param ms epoch ミリ秒
  * @returns 原インデックス。**無ければ -1**
  */
@@ -265,7 +265,7 @@ export function firstLineIndexAtOrAfter(parsed: LogLine[], ms: number): number {
  *
  * **絞り込みの選択肢を作る**のに使う(どんなフィールドがあるか、事前には分からない)。
  *
- * @param lines 解析済みの行
+ * @param parsed 解析済みの行
  * @returns キーの配列(**出現順・重複なし**)
  */
 export function collectFieldKeys(parsed: LogLine[]): string[] {
@@ -284,7 +284,7 @@ export function collectFieldKeys(parsed: LogLine[]): string[] {
  * **「どの API がエラーを出しているか」を絞り込む前に見せる**(選択肢に件数が
  * 付いていると、どこを見るべきか分かる)。
  *
- * @param lines 解析済みの行
+ * @param parsed 解析済みの行
  * @param key フィールドキー
  * @returns 値と件数(**多い順**)
  */
@@ -304,8 +304,8 @@ export function fieldFacets(parsed: LogLine[], key: string): Array<{ value: stri
  * **キー間は AND、値内は OR**(`level=[error,warn]` かつ `service=[api]`)。
  * これがログ検索の直感に合う(「エラーか警告で、かつ API のもの」)。
  *
- * @param lines 解析済みの行
- * @param facets キー → 値の配列。**値が空のキーは無視**(絞り込まない)
+ * @param parsed 解析済みの行
+ * @param filters キー → 値の配列。**値が空のキーは無視**(絞り込まない)
  * @returns 条件に合う行
  */
 export function filterByFields(parsed: LogLine[], filters: Record<string, string[]>): LogLine[] {

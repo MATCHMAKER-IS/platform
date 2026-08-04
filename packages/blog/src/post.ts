@@ -56,7 +56,7 @@ export function publishedPosts<T extends BlogPost>(posts: T[], now: Date = new D
  * タグで絞り込む(**いずれかを含む** = OR 条件)。
  *
  * @param posts 記事の配列
- * @param tags 絞り込むタグ
+ * @param tag 絞り込むタグ
  * @returns いずれかのタグを持つ記事
  */
 export function postsByTag<T extends BlogPost>(posts: T[], tag: string): T[] {

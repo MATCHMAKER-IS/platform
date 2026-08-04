@@ -33,23 +33,23 @@ export function ImportClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
     <div className="mx-auto max-w-2xl p-6">
       <h1 className="mb-4 text-2xl font-bold">CSVインポート</h1>
       <div className="mb-3 flex gap-2">
-        {TARGETS.map((t) => <Button key={t.key} onClick={() => { setTarget(t); setCsv(""); setErrors(null); setResult(""); }} className={`rounded px-3 py-1.5 text-sm ${target.key === t.key ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600"}`}>{t.label}</Button>)}
+        {TARGETS.map((t) => <Button key={t.key} onClick={() => { setTarget(t); setCsv(""); setErrors(null); setResult(""); }} className={`rounded px-3 py-1.5 text-sm ${target.key === t.key ? "bg-[var(--color-fg)] text-white" : "bg-[var(--color-subtle)] text-[var(--color-muted)]"}`}>{t.label}</Button>)}
       </div>
-      <p className="mb-1 text-xs text-neutral-500">列: {target.columns}</p>
-      <Textarea value={csv} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCsv(e.target.value)} rows={8} placeholder={target.sample} className="block w-full rounded border border-neutral-300 px-2 py-1 font-mono text-xs" />
+      <p className="mb-1 text-xs text-[var(--color-muted)]">列: {target.columns}</p>
+      <Textarea value={csv} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCsv(e.target.value)} rows={8} placeholder={target.sample} className="block w-full rounded border border-[var(--color-border)] px-2 py-1 font-mono text-xs" />
       <div className="mt-2 flex gap-2">
-        <Button onClick={() => void send(true)} className="rounded border border-neutral-300 px-4 py-2 text-sm">プレビュー（検証）</Button>
-        <Button onClick={() => void send(false)} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">インポート実行</Button>
-        <Button onClick={() => setCsv(target.sample)} className="rounded px-3 py-2 text-xs text-blue-600">サンプルを入力</Button>
+        <Button onClick={() => void send(true)} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">プレビュー（検証）</Button>
+        <Button onClick={() => void send(false)} className="rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white">インポート実行</Button>
+        <Button onClick={() => setCsv(target.sample)} className="rounded px-3 py-2 text-xs text-[var(--color-primary)]">サンプルを入力</Button>
       </div>
-      {result && <p className="mt-3 rounded bg-neutral-100 px-3 py-2 text-sm text-neutral-700">{result}</p>}
+      {result && <p className="mt-3 rounded bg-[var(--color-subtle)] px-3 py-2 text-sm text-[var(--color-fg)]">{result}</p>}
       {errors && errors.length > 0 && (
-        <div className="mt-3 rounded border border-red-200 bg-red-50 p-3">
-          <p className="mb-1 text-sm font-medium text-red-700">検証エラー（{errors.length}件）</p>
-          <ul className="space-y-0.5 text-xs text-red-600">{errors.map((e, i) => <li key={i}>{e.line}行目: {e.message}</li>)}</ul>
+        <div className="mt-3 rounded border border-[color-mix(in_srgb,var(--color-danger)_25%,transparent)] bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] p-3">
+          <p className="mb-1 text-sm font-medium text-[var(--color-danger)]">検証エラー（{errors.length}件）</p>
+          <ul className="space-y-0.5 text-xs text-[var(--color-danger)]">{errors.map((e, i) => <li key={i}>{e.line}行目: {e.message}</li>)}</ul>
         </div>
       )}
-      {validCount !== null && errors && errors.length === 0 && <p className="mt-2 text-sm text-green-600">エラーはありません。インポートを実行できます。</p>}
+      {validCount !== null && errors && errors.length === 0 && <p className="mt-2 text-sm text-[var(--color-success)]">エラーはありません。インポートを実行できます。</p>}
     </div>
   );
 }

@@ -14,9 +14,9 @@ export function SiteSidebar({ categories, banner }: { categories: CatItem[]; ban
         <ul className="flex flex-col gap-1 text-sm">
           {categories.map((c) => (
             <li key={c.id}>
-              <a href={`/blog/category/${c.slug}`} className="flex items-center justify-between hover:text-blue-600">
+              <a href={`/blog/category/${c.slug}`} className="flex items-center justify-between hover:text-[var(--color-primary)]">
                 <span>{c.name}</span>
-                <span className="text-xs text-neutral-500">{c.count}</span>
+                <span className="text-xs text-[var(--color-muted)]">{c.count}</span>
               </a>
             </li>
           ))}
@@ -24,7 +24,7 @@ export function SiteSidebar({ categories, banner }: { categories: CatItem[]; ban
       </section>
       {banner && (
         <section>
-          <h3 className="mb-2 text-xs font-semibold text-neutral-400">スポンサー</h3>
+          <h3 className="mb-2 text-xs font-semibold text-[var(--color-muted)]">スポンサー</h3>
           <BannerAd image={banner.image} href={banner.href} alt={banner.alt} sponsored={banner.sponsored} />
         </section>
       )}

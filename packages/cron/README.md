@@ -28,3 +28,19 @@ try { await runRpa(); } finally { release(); }
 ```
 
 分散(複数インスタンス)環境では `createRedisLockStore` を、単一ホストでは `createFileLockStore` を選びます。
+
+## 画面から使う入口(`@platform/cron/browser`)
+
+バレル(`@platform/cron`)は `lock-file.ts`(`node:fs`)を再 export するため、
+`"use client"` から import すると **Turbopack が `node:fs` を解決できずビルドが落ちます**
+(`the chunking context does not support external modules (request: node:fs)`)。
+
+多重実行防止・分散ロック・実行統計は node に依存しないので、管理画面でジョブの状態を
+見せるような用途はこちらを使います。
+
+```tsx
+"use client";
+import { createGuardedJob, createMemoryLockStore } from "@platform/cron/browser";
+```
+
+**cron 式の解析(croner)とファイルロックはサーバ専用**なので、ここには含みません。

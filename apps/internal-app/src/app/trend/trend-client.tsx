@@ -28,20 +28,20 @@ export function TrendClient({ fetchImpl }: TrendClientProps) {
     <div className="mx-auto max-w-4xl p-6">
       <div className="mb-1 flex items-center justify-between">
         <h1 className="text-2xl font-bold">年次推移</h1>
-        <label className="text-xs text-neutral-500">表示年数
+        <label className="text-xs text-[var(--color-muted)]">表示年数
           <Select
             value={years}
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setYears(Number(e.target.value))}
-            className="ml-1 rounded border border-neutral-300 px-2 py-1 text-sm"
+            className="ml-1 rounded border border-[var(--color-border)] px-2 py-1 text-sm"
             options={YEAR_OPTIONS}
           />
         </label>
       </div>
-      <p className="mb-4 text-xs text-neutral-500">売上・費用（棒）と当期純利益（折れ線）の推移です。手動仕訳・減価償却・科目マスタを反映して集計しています。</p>
+      <p className="mb-4 text-xs text-[var(--color-muted)]">売上・費用（棒）と当期純利益（折れ線）の推移です。手動仕訳・減価償却・科目マスタを反映して集計しています。</p>
 
       {data && (() => {
         const pts = data.trend;
-        if (pts.length === 0) return <p className="text-sm text-neutral-500">データがありません。</p>;
+        if (pts.length === 0) return <p className="text-sm text-[var(--color-muted)]">データがありません。</p>;
         // **グラフは @platform/ui の ComboChart に任せる**(軸・凡例・整形・ツールチップ込み)。
         // 純利益は負にもなるので、部品側が 0 を跨ぐ軸を描く
         const chartData = pts.map((p) => ({
@@ -70,18 +70,18 @@ export function TrendClient({ fetchImpl }: TrendClientProps) {
 
       {data && (
         <table className="mt-6 w-full text-sm">
-          <thead><tr className="border-b border-neutral-200 text-left text-xs text-neutral-500"><th className="px-2 py-1">年度</th><th className="px-2 py-1 text-right">売上</th><th className="px-2 py-1 text-right">費用</th><th className="px-2 py-1 text-right">純利益</th><th className="px-2 py-1 text-right">純利益 前年比</th></tr></thead>
+          <thead><tr className="border-b border-[var(--color-border)] text-left text-xs text-[var(--color-muted)]"><th className="px-2 py-1">年度</th><th className="px-2 py-1 text-right">売上</th><th className="px-2 py-1 text-right">費用</th><th className="px-2 py-1 text-right">純利益</th><th className="px-2 py-1 text-right">純利益 前年比</th></tr></thead>
           <tbody>
             {data.trend.map((p) => (
-              <tr key={p.year} className="border-b border-neutral-100">
+              <tr key={p.year} className="border-b border-[var(--color-border)]">
                 <td className="px-2 py-1.5">{p.year}</td>
                 <td className="px-2 py-1.5 text-right">{yen(p.revenue)}</td>
                 <td className="px-2 py-1.5 text-right">{yen(p.expense)}</td>
-                <td className={`px-2 py-1.5 text-right font-medium ${p.netIncome < 0 ? "text-red-600" : ""}`}>{yen(p.netIncome)}</td>
-                <td className={`px-2 py-1.5 text-right text-xs ${(p.growth ?? 0) < 0 ? "text-red-600" : "text-neutral-600"}`}>{p.growth === null ? "—" : `${p.growth >= 0 ? "+" : ""}${Math.round(p.growth * 1000) / 10}%`}</td>
+                <td className={`px-2 py-1.5 text-right font-medium ${p.netIncome < 0 ? "text-[var(--color-danger)]" : ""}`}>{yen(p.netIncome)}</td>
+                <td className={`px-2 py-1.5 text-right text-xs ${(p.growth ?? 0) < 0 ? "text-[var(--color-danger)]" : "text-[var(--color-muted)]"}`}>{p.growth === null ? "—" : `${p.growth >= 0 ? "+" : ""}${Math.round(p.growth * 1000) / 10}%`}</td>
               </tr>
             ))}
-            <tr className="border-t-2 border-neutral-300 font-medium"><td className="px-2 py-1.5">期間合計</td><td className="px-2 py-1.5 text-right">{yen(data.totals.revenue)}</td><td className="px-2 py-1.5 text-right">{yen(data.totals.expense)}</td><td className="px-2 py-1.5 text-right">{yen(data.totals.netIncome)}</td><td></td></tr>
+            <tr className="border-t-2 border-[var(--color-border)] font-medium"><td className="px-2 py-1.5">期間合計</td><td className="px-2 py-1.5 text-right">{yen(data.totals.revenue)}</td><td className="px-2 py-1.5 text-right">{yen(data.totals.expense)}</td><td className="px-2 py-1.5 text-right">{yen(data.totals.netIncome)}</td><td></td></tr>
           </tbody>
         </table>
       )}

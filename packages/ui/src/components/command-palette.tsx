@@ -67,8 +67,18 @@ export function CommandPalette({ open, onOpenChange, commands, onSelect, placeho
   // グループ表示のためのフラットな通し番号(active と対応)
   let runningIndex = -1;
 
+  // 背景のオーバーレイ。クリックで閉じるのはマウス利用者向けの補助で、
+  // **キーボードからは Escape で閉じられる**(下の onKeyDown)。
+  // aria-hidden にして読み上げの対象から外す。
+  //
+  // ※ JSX コメント(`{/* */}`)は**要素の中にしか置けない**。
+  //    `return (` の直後に書くと構文エラーになる。
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-[10vh]" onClick={() => onOpenChange(false)}>
+    <div
+      aria-hidden={true}
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-[10vh]"
+      onClick={() => onOpenChange(false)}
+    >
       <div
         role="dialog"
         aria-modal="true"
@@ -85,7 +95,7 @@ export function CommandPalette({ open, onOpenChange, commands, onSelect, placeho
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
             placeholder={placeholder}
-            className="h-12 flex-1 bg-transparent text-sm text-[var(--color-fg)] placeholder:text-[var(--color-muted)] focus:outline-none"
+            className="h-12 flex-1 rounded-[var(--radius)] bg-transparent px-1 text-sm text-[var(--color-fg)] placeholder:text-[var(--color-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
             aria-label={placeholder}
           />
         </div>

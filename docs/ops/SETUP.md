@@ -44,7 +44,7 @@ Windows は **WSL2 または PowerShell/バッチ**で実行できます(下記�
 |---|---|---|
 | 1 | 前提確認 | Node≥22 / corepack / Docker 稼働 / ポート使用状況(5432, 1025, 8025) |
 | 2 | .env 準備 | 各アプリの `.env.example` → `.env` コピー(**既存は上書きしない**) |
-| 3 | インフラ起動 | `docker compose up -d db mailhog`(既存 docker-compose.yml を利用)+ 起動待ち |
+| 3 | インフラ起動 | `pnpm db:up`(既存 docker-compose.yml を利用)+ 起動待ち |
 | 4 | DB 作成 | アプリ別 DB(`app` / `app_crud` / `app_equipment`)を psql で冪等作成 |
 | 5 | 依存導入 | `pnpm install` |
 | 6 | Prisma generate | 3 アプリのスキーマ分。**install 直後に必須**(無いと typecheck / dev が失敗) |
@@ -111,7 +111,7 @@ prisma CLI は `@platform/db`(^7.2.0)に集約しています。初回 generate 
 ```bash
 corepack enable
 cp apps/internal-app/.env.example apps/internal-app/.env   # 他3アプリも同様
-docker compose up -d db mailhog
+pnpm db:up
 docker compose exec -T db psql -U app -d postgres -c "CREATE DATABASE app_crud"
 docker compose exec -T db psql -U app -d postgres -c "CREATE DATABASE app_equipment"
 pnpm install
@@ -123,10 +123,10 @@ pnpm smoke
 
 ホストに Node / pnpm を入れずに、**Docker だけで同一環境**を立ち上げる選択肢(VS Code「Reopen in Container」/ Codespaces)。
 
-- 構成: `.devcontainer/` — ベースの docker-compose.yml に workspace(Node 22)を重ね、db / mailhog を同時起動
-- 初期化は全自動: post-create が `.env` を作成(ホスト名を **db / mailhog** に自動置換)→ pnpm install → prisma generate / db push → smoke
+- 構成: `.devcontainer/` — ベースの docker-compose.yml に workspace(Node 22)を重ね、db / mailpit を同時起動
+- 初期化は全自動: post-create が `.env` を作成(ホスト名を **db / mailpit** に自動置換)→ pnpm install → prisma generate / db push → smoke
 - ポート 3000〜3004 / 8025 は自動フォワード。既存 DB ボリュームでも `tools/create-app-dbs.mjs` が不足 DB を冪等作成
-- 注意: コンテナ内の接続先は `@db:5432` / `SMTP_HOST=mailhog`(localhost ではない)
+- 注意: コンテナ内の接続先は `@db:5432` / `SMTP_HOST=mailpit`(localhost ではない)
 
 ## よく使うショートカット
 
@@ -166,12 +166,20 @@ PowerShell から:
 
 ```powershell
 # 前提確認のみ（何も変更しない）
-pwsh scripts/setup.ps1 -Check
+powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1 -Check
 # フルセットアップ
-pwsh scripts/setup.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 # Docker を使わない場合
-pwsh scripts/setup.ps1 -SkipDocker
+powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1 -SkipDocker
 ```
+
+> **`-ExecutionPolicy Bypass` を毎回付けています。** 既定の Windows では
+> 署名の無いスクリプトが実行できず、`.\scripts\setup.ps1` と打つと
+> 「デジタル署名されていません」で止まるためです。この指定は**そのコマンドの間だけ**
+> 有効で、システム設定は変えません。毎回打つのが面倒なら
+> `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` を一度実行しておきます。
+>
+> **PowerShell 7(`pwsh`)は不要です。** 標準の Windows PowerShell 5.1 で動きます。
 
 コマンドプロンプト（cmd）やエクスプローラーからのダブルクリックなら、バッチ版が簡単です（実行ポリシーの回避も内包）:
 

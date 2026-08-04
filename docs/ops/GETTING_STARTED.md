@@ -8,7 +8,7 @@
 
 
 > **Windows の人は最初に読んでください。**
-> このリポジトリは 113 パッケージあり、pnpm が深い階層を作るため
+> このリポジトリは 114 パッケージあり、pnpm が深い階層を作るため
 > **Windows の 260 文字制限を超えます**。超えると `turbo` が
 > **ログも出さずクラッシュ**し、原因が分かりません。
 >
@@ -224,10 +224,17 @@ git config --global user.email "yamada@example.com"
 ## Windows
 
 ```powershell
-.\scripts\setup.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 ```
 
-> **エラーが出る場合**: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` を実行してから、もう一度。これは「このセッションだけスクリプト実行を許可する」という意味で、PowerShell を閉じれば元に戻ります。
+> **`-ExecutionPolicy Bypass` は最初から付けてください。** 既定の Windows では
+> 署名の無いスクリプトを実行できず、`.\scripts\setup.ps1` とだけ打つと
+> 「デジタル署名されていません」で止まります。この指定は**そのコマンドの間だけ**
+> 有効で、システム設定は変わりません。
+>
+> **`bash scripts/setup.sh` は使わないでください。** Windows では WSL が呼ばれます。
+> WSL を入れていない、あるいは壊れている場合、`Failed to mount C:\` のような
+> 見当違いのエラーが出て原因が分かりません。`.ps1` を使えば WSL は不要です。
 
 ## Mac
 

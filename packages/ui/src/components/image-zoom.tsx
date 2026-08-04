@@ -102,7 +102,12 @@ export function ImageZoom({ src, alt = "", height = 360, limits, onScaleChange, 
         className="relative w-full overflow-hidden rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg)] touch-none select-none"
         style={{ height, cursor: state.scale > 1 ? (dragRef.current ? "grabbing" : "grab") : "zoom-in" }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {/* **next/image ではなく素の img を使う。**
+            @platform/ui は Next 専用ではなく、拡大縮小のために
+            画像の実寸を自前で扱う(next/image の最適化と噛み合わない)。
+            以前は @next/next/no-img-element の無効化コメントを置いていたが、
+            **このパッケージでは Next の Lint ルール自体が設定されていない**ため、
+            存在しないルールを指す指示になっていた */}
         <img
           src={url}
           alt={alt}

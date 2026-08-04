@@ -65,7 +65,6 @@ export function themeToCssVars(theme: Theme, mode: ThemeMode): Record<string, st
  * **`<style>` 用**(インラインスタイル用ではない)。
  *
  * @param vars CSS 変数のマップ
- * @param selector セレクタ(既定 `:root`)
  * @returns `:root{--color-primary:#fff;...}` 形式
  */
 export function cssVarsToString(vars: Record<string, string>): string {
@@ -78,8 +77,8 @@ export function cssVarsToString(vars: Record<string, string>): string {
  * セレクタ付きの CSS ブロックを生成する。
  * 既定は `:root`。data-skin / data-theme で上書きしたい場合はセレクタを渡す。
  *
- * @param mode スキンの 1 モード
- * @param shape 形の設定
+ * @param theme スキンの 1 モード
+ * @param mode 形の設定
  * @param selector セレクタ(既定 `:root`)
  * @returns CSS ブロックの文字列
  */

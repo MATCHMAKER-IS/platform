@@ -31,3 +31,21 @@ applyWithholding(500_000); // { base:500000, withholding:51050, net:448950 }
 標準税率は 100万円以下 10.21% / 超過分 20.42%(円未満切り捨て)。消費税が区分記載されている場合は
 税抜(報酬本体)を対象にしてください。司法書士等の定額控除型は `withholdingTaxFlat(base, deduction)` を使います。
 
+
+## 印紙税(`@platform/tax/stamp`)
+
+契約書や領収書を**紙で作ると課税されます**。貼り忘れると過怠税として本来の
+3 倍(自主的に申し出れば 1.1 倍)を取られます。
+
+```ts
+import { stampTax, savingsByGoingElectronic } from "@platform/tax/stamp";
+
+stampTax({ documentType: "contract-work", amount: 5_000_000 });  // 請負契約書
+savingsByGoingElectronic([{ documentType: "receipt", amount: 300_000, count: 120 }]);
+```
+
+- **電子契約は課税されません。** 印紙税は「文書の作成」に対する税なので、PDF を
+  メールで送るだけなら課税文書を作成したことになりません(国税庁の見解)。
+  契約書 1 通あたり数万円が浮くため、電子契約に切り替える経済的な根拠になります。
+  ただし**電子で締結したものを印刷して押印すると課税されます**。
+- 第 2 号(請負)と第 7 号(継続的取引)で税額が違う点に注意してください。

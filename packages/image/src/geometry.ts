@@ -81,7 +81,7 @@ export function mimeForFormat(format: ImageFormat): string {
  *
  * **これは推定**(拡張子は偽装できる)。検証には `@platform/fs` の `detectFileType` を使う。
  *
- * @param ext 拡張子(`.jpg` など)
+ * @param nameOrExt 拡張子(`.jpg` など)
  * @returns フォーマット。**不明なら null**
  */
 export function formatFromExtension(nameOrExt: string): ImageFormat | null {

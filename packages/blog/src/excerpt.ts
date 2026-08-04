@@ -43,7 +43,7 @@ export interface ExcerptOptions {
  * 元が短ければそのまま返す。
  *
  * @param content 本文(Markdown 可)
- * @param maxLength 最大文字数
+ * @param options 最大文字数
  * @returns 抜粋。**語境界で丸める**(単語の途中で切らない)。元が短ければそのまま
  */
 export function excerpt(content: string, options: ExcerptOptions = {}): string {

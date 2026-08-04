@@ -68,15 +68,15 @@ export function PageClient({ fetchImpl }: PageClientProps) {
     <div className="mx-auto max-w-4xl p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">固定ページ管理</h1>
-        <Button onClick={startNew} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">新規ページ</Button>
+        <Button onClick={startNew} className="rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white">新規ページ</Button>
       </div>
 
       {editing ? (
-        <div className="flex flex-col gap-3 rounded border border-neutral-200 p-4">
+        <div className="flex flex-col gap-3 rounded border border-[var(--color-border)] p-4">
           <h2 className="text-lg font-semibold">{originalSlug !== null ? "ページを編集" : "新規ページ"}</h2>
-          {error && <p className="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-          <label className="text-sm">slug（空欄でトップページ）<Input value={editing.slug} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ slug: e.target.value })} placeholder="about" className="mt-1 w-full rounded border border-neutral-300 px-2 py-1" /></label>
-          <label className="text-sm">タイトル<Input value={editing.title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ title: e.target.value })} className="mt-1 w-full rounded border border-neutral-300 px-2 py-1" /></label>
+          {error && <p className="rounded bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-danger)]">{error}</p>}
+          <label className="text-sm">slug（空欄でトップページ）<Input value={editing.slug} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ slug: e.target.value })} placeholder="about" className="mt-1 w-full rounded border border-[var(--color-border)] px-2 py-1" /></label>
+          <label className="text-sm">タイトル<Input value={editing.title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ title: e.target.value })} className="mt-1 w-full rounded border border-[var(--color-border)] px-2 py-1" /></label>
           <div>
             <p className="mb-2 text-sm font-medium">本文ブロック</p>
             <BlockEditor blocks={editing.blocks} onChange={(blocks: EditableBlock[]) => set({ blocks })} />
@@ -86,14 +86,14 @@ export function PageClient({ fetchImpl }: PageClientProps) {
             公開する
           </label>
           <div className="flex gap-2">
-            <Button onClick={save} disabled={saving} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white disabled:opacity-50">{saving ? "保存中…" : "保存"}</Button>
-            <Button onClick={() => { setEditing(null); setOriginalSlug(null); }} className="rounded border border-neutral-300 px-4 py-2 text-sm">キャンセル</Button>
+            <Button onClick={save} disabled={saving} className="rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white disabled:opacity-50">{saving ? "保存中…" : "保存"}</Button>
+            <Button onClick={() => { setEditing(null); setOriginalSlug(null); }} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">キャンセル</Button>
           </div>
         </div>
       ) : (
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-neutral-200 text-left text-xs text-neutral-500">
+            <tr className="border-b border-[var(--color-border)] text-left text-xs text-[var(--color-muted)]">
               <th className="px-2 py-1">タイトル</th>
               <th className="px-2 py-1">slug</th>
               <th className="px-2 py-1">状態</th>
@@ -102,13 +102,13 @@ export function PageClient({ fetchImpl }: PageClientProps) {
           </thead>
           <tbody>
             {pages.map((p) => (
-              <tr key={p.slug} className="border-b border-neutral-200">
+              <tr key={p.slug} className="border-b border-[var(--color-border)]">
                 <td className="px-2 py-2 font-medium">{p.title}</td>
-                <td className="px-2 py-2 text-neutral-500">{p.slug === "" ? "(トップ)" : p.slug}</td>
-                <td className="px-2 py-2"><span className={p.status === "published" ? "rounded bg-green-100 px-1.5 py-0.5 text-xs text-green-700" : "rounded bg-neutral-100 px-1.5 py-0.5 text-xs text-neutral-600"}>{p.status === "published" ? "公開中" : "下書き"}</span></td>
+                <td className="px-2 py-2 text-[var(--color-muted)]">{p.slug === "" ? "(トップ)" : p.slug}</td>
+                <td className="px-2 py-2"><span className={p.status === "published" ? "rounded bg-[color-mix(in_srgb,var(--color-success)_15%,transparent)] px-1.5 py-0.5 text-xs text-[var(--color-success)]" : "rounded bg-[var(--color-subtle)] px-1.5 py-0.5 text-xs text-[var(--color-muted)]"}>{p.status === "published" ? "公開中" : "下書き"}</span></td>
                 <td className="px-2 py-2 text-right">
-                  <Button onClick={() => startEdit(p)} className="mr-2 text-blue-600 hover:underline">編集</Button>
-                  <Button onClick={() => remove(p.slug)} className="text-red-600 hover:underline">削除</Button>
+                  <Button onClick={() => startEdit(p)} className="mr-2 text-[var(--color-primary)] hover:underline">編集</Button>
+                  <Button onClick={() => remove(p.slug)} className="text-[var(--color-danger)] hover:underline">削除</Button>
                 </td>
               </tr>
             ))}

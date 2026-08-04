@@ -462,7 +462,7 @@ export function removeSuffix(str: string, suffix: string): string {
  * ユーザー入力を HTML として表示するなら {@link escapeHtml} を使うこと
  * (タグを除去しても `javascript:` の URL などは残る)。
  *
- * @param str 対象の文字列
+ * @param html 対象の文字列
  * @returns タグを除いた文字列
  */
 export function stripHtml(html: string): string {
@@ -505,9 +505,9 @@ export function unescapeHtml(str: string): string {
  * 先頭と末尾だけ残す(「これは自分の情報だ」と分かる最小限)。
  *
  * @param str 対象の文字列
- * @param keepStart 先頭に残す文字数(既定 1)
- * @param keepEnd 末尾に残す文字数(既定 0)
- * @param maskChar マスク文字(既定 `*`)
+ * @param options.keepStart 先頭に残す文字数(既定 1)
+ * @param options.keepEnd 末尾に残す文字数(既定 **1**)
+ * @param options.maskChar マスク文字(既定 `*`)
  * @returns マスクした文字列。**残す文字数が元の長さ以上なら全マスク**(情報を漏らさない安全側)
  */
 export function mask(str: string, options: { keepStart?: number; keepEnd?: number; maskChar?: string } = {}): string {
@@ -732,7 +732,7 @@ function randomBytes(n: number): Uint8Array {
  * これはテストデータやサンプル ID 向け。
  *
  * @param length 長さ
- * @param charset 使う文字(既定は英数字)
+ * @param alphabet 使う文字(既定は英数字)
  * @returns ランダムな文字列
  */
 export function randomString(length = 12, alphabet: string = ALNUM): string {

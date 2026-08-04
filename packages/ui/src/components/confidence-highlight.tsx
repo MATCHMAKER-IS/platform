@@ -21,8 +21,8 @@ export interface ConfidenceHighlightProps {
 
 const TIER_CLASS: Record<ConfidenceTier, string> = {
   high: "bg-transparent",
-  medium: "bg-amber-100 text-amber-900",
-  low: "bg-red-100 text-red-900 underline decoration-wavy decoration-red-400",
+  medium: "bg-[color-mix(in_srgb,var(--color-warning)_15%,transparent)] text-[var(--color-warning)]",
+  low: "bg-[color-mix(in_srgb,var(--color-danger)_15%,transparent)] text-[var(--color-danger)] underline decoration-wavy decoration-red-400",
 };
 
 /** 信頼度で色分けした OCR テキスト。 */

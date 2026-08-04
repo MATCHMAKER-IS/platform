@@ -3,7 +3,10 @@
  * ここは「送る文面」を作るだけ(sms は auth に依存しない)。
  * @packageDocumentation
  */
-import type { SmsMessage } from "./index";
+// **`./index` ではなく `./core` から取る。** index は Twilio SDK を再 export しており、
+// 型だけの import でも「その入口が SDK を引き込む」と判定されてしまう
+// (実行時には消えるが、静的解析からは区別できない)。
+import type { SmsMessage } from "./core";
 
 /** {@link buildOtpSms} のオプション。 */
 export interface OtpSmsOptions {
@@ -23,7 +26,6 @@ export interface OtpSmsOptions {
  * 認証コード SMS を組み立てる。iOS/Android の自動入力に配慮し、コードは分かりやすく提示する。
  * 既定文面: 「【アプリ名】認証コード: 123456(5分間有効)」
  *
- * @param code OTP コード
  * @param options.appName アプリ名
  * @returns SMS 本文(**短く保つ**。長いと分割されて課金が倍になる)
  */

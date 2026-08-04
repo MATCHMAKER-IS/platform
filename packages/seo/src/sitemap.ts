@@ -17,7 +17,7 @@ export interface SitemapEntry {
  *
  * **公開しているページだけ**を入れること(下書きや管理画面を載せると漏洩する)。
  *
- * @param urls URL の配列(更新日・優先度・更新頻度を指定できる)
+ * @param entries URL の配列(更新日・優先度・更新頻度を指定できる)
  * @returns sitemap.xml の文字列
  */
 export function buildSitemap(entries: SitemapEntry[]): string {

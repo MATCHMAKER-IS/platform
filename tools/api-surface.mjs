@@ -1,68 +1,40 @@
 #!/usr/bin/env node
 /**
  * 公開 API サーフェスのスナップショット検査(オフライン)。
- *  - 各パッケージ src/index.ts の export 名を収集し、スナップショットと比較。
+ *  - 各パッケージの **package.json `exports` に載っている入口すべて**から
+ *    export 名を収集し、スナップショットと比較。
  *  - export の「削除・リネーム」を破壊的変更として検出(追加は許容=警告)。
  * 使い方:
  *   node tools/api-surface.mjs          … スナップショットと比較(CI 用。差分あれば exit 1)
  *   node tools/api-surface.mjs --update … スナップショットを再生成
+ *
+ * 【なぜ index.ts だけでは足りないか】
+ * `@platform/db/tunnel` のように **バレルから再 export しない**サブパスがある。
+ * ブラウザから使う部分を切り出す(`@platform/fs/magic`)、node 依存を
+ * 引き込ませない(`@platform/db/tunnel`)といった理由で、これは意図的な設計。
+ *
+ * だが index.ts だけを見ていたため、**サブパスの公開 API は記録されず**、
+ * 削除しても検知されず、module-list.md にも出ないので**誰も存在に気づけない**
+ * 状態だった(2026-08 時点で 13 パッケージ・4 件は追加直後で未記載)。
+ * 入口は package.json の `exports` が正解を持っているので、そこから辿る。
+ *
+ * 【記録の形と、その限界】
+ * キーは**パッケージ名 1 つ**にして、サブパスの export も同じ配列へ統合する。
+ * `surface["@platform/db"]` で引く利用側(module-list・advisor・portal 等)を
+ * そのまま動かすため。
+ *
+ * この形だと、**同じ名前が入口を移った場合は検出できない**
+ * (バレル → サブパスへの移動は利用側にとって破壊的だが、名前は残るため)。
+ * 入口ごとに記録すれば検出できるが、キーが「パッケージ名」でなくなり
+ * 利用側 6 箇所の書き換えが要る。**入口の移動は稀**なので、
+ * 名前の削除を確実に捉える方を採った。
  */
 import { readFileSync, readdirSync, existsSync, writeFileSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join } from "node:path";
+import { collectPackageSurface } from "./lib/package-surface.mjs";
 
 const ROOT = process.cwd();
 const SNAPSHOT = join(ROOT, "docs/platform/api-surface.json");
-
-const EXPORT_DECL = /export\s+(?:async\s+)?(?:function|const|class|interface|type|enum)\s+([A-Za-z0-9_$]+)/g;
-// `export { a, b }` と `export type { A, B }` の両方を拾う。
-// type を落とすと、型だけを外に出しているパッケージ(theme など)の記録が空になる。
-const EXPORT_NAMED = /export\s+(?:type\s+)?\{([^}]*)\}/g;
-
-/** ソースから export 名を抽出(re-export の `X as Y` は Y を採用)。 */
-function extractExports(src) {
-  const names = new Set();
-  for (const m of src.matchAll(EXPORT_DECL)) names.add(m[1]);
-  for (const m of src.matchAll(EXPORT_NAMED)) {
-    for (const part of m[1].split(",")) {
-      const token = part.trim().replace(/^type\s+/, "");
-      if (!token) continue;
-      const asMatch = token.split(/\s+as\s+/);
-      const name = (asMatch[1] ?? asMatch[0]).trim();
-      if (/^[A-Za-z0-9_$]+$/.test(name)) names.add(name);
-    }
-  }
-  return [...names].sort();
-}
-
-/** index.ts の `export * from "./x"` を辿って集約(拡張子なし・.js 付きの両対応)。 */
-function collectPackageSurface(pkgDir) {
-  const indexPath = join(pkgDir, "src/index.ts");
-  if (!existsSync(indexPath)) return null;
-  const seen = new Set();
-  const names = new Set();
-  function walk(filePath) {
-    if (seen.has(filePath) || !existsSync(filePath)) return;
-    seen.add(filePath);
-    const src = readFileSync(filePath, "utf8");
-    for (const n of extractExports(src)) names.add(n);
-    for (const m of src.matchAll(/export\s+\*\s+from\s+["']([^"']+)["']/g)) {
-      if (!m[1].startsWith(".")) continue;
-      // 拡張子は付いていないのが既定(moduleResolution: Bundler)。
-      // 古いコードが .js を付けている場合にも備える。
-      const stem = m[1].replace(/\.js$/, "");
-      // 相対パスは**そのファイルのある場所**から解決する。
-      // src/ 起点で解決すると、入れ子(src/core/index.ts の "./datacenter")を辿れず、
-      // その配下の export がすべて記録から漏れる(実際に @platform/zoho で起きていた)。
-      const fromDir = dirname(filePath);
-      for (const cand of [`${stem}.ts`, `${stem}.tsx`, `${stem}/index.ts`]) {
-        const p = join(fromDir, cand);
-        if (existsSync(p)) { walk(p); break; }
-      }
-    }
-  }
-  walk(indexPath);
-  return [...names].sort();
-}
 
 function collectAll() {
   const surface = {};
@@ -71,9 +43,10 @@ function collectAll() {
     if (!entry.isDirectory()) continue;
     const pkgPath = join(base, entry.name, "package.json");
     if (!existsSync(pkgPath)) continue;
-    const name = JSON.parse(readFileSync(pkgPath, "utf8")).name;
-    const s = collectPackageSurface(join(base, entry.name));
-    if (s) surface[name] = s;
+    const pkgJson = JSON.parse(readFileSync(pkgPath, "utf8"));
+    const s = collectPackageSurface(join(base, entry.name), pkgJson);
+    // 記録するのは名前だけ。complete(数え切れたか)は check-imports が使う
+    if (s) surface[pkgJson.name] = s.names;
   }
   return surface;
 }

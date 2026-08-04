@@ -48,7 +48,7 @@ function robotsForVisibilityInline(visibility: "public" | "internal"): RobotsDir
 /**
  * robots の content 文字列を組み立てる。
  *
- * @param options index / follow / archive などの指定
+ * @param directive index / follow / archive などの指定
  * @returns `"index, follow"` 形式の文字列
  */
 export function robotsContent(directive: RobotsDirective): string {
@@ -140,7 +140,7 @@ export function buildMeta(input: MetaInput): MetaResult {
  *
  * **値はエスケープ済み**({@link escapeAttribute} を内部で通す)。
  *
- * @param meta メタ情報
+ * @param result メタ情報
  * @returns head に入れる HTML 文字列
  */
 export function renderMeta(result: MetaResult): string {

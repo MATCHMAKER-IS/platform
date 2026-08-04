@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
 
+# **必要な権限だけを与える。** 既定の GITHUB_TOKEN は広い権限を持つため、
+# 明示して絞る（漏れたトークンでできることを減らす）
+permissions:
+  contents: read
+  pull-requests: write  # PR にコメントする
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -68,7 +74,11 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: "22" }
       - run: node tools/doctor.mjs  # 環境診断(Node/生成物 等)。必須項目 NG なら失敗
-      - run: node tools/preflight.mjs  # smoke/check-deps/api-surface/schema×3/env-example/advisor/setup構文 を一括
+      # 42 種類の検査を一括で流す（内訳は docs/ops/CHECKS.md）。
+      # **最後に verify-checks が「検査そのものが生きているか」を確かめる**。
+      # 検査が緑でも、対象範囲が抜けていて何も見ていないことがある
+      # （実際に check-a11y が packages を見ておらず、違反 10 件が放置されていた）。
+      - run: node tools/preflight.mjs
       - run: node tools/check-generated.mjs  # 生成物(module-list/advisor-report)の drift 検出
       - run: node tools/check-win-setup.mjs  # Windows セットアップ(ps1/bat)の静的検証
 
@@ -99,6 +109,26 @@ jobs:
         with: { node-version: "22" }
       - name: setup スクリプト静的検査
         run: node tools/check-win-setup.mjs
+
+      # smoke を Windows でも走らせる。
+      #
+      # **開発者は Windows、CI は Linux** という食い違いが、実際に事故を生んだ。
+      # 2026-08 に smoke が Windows でだけ落ちる問題を 4 種類踏んでいる:
+      #   1. `/tmp` の直書き（Windows に無い）
+      #   2. 動的 import に絶対パス（`C:\...` が `c:` プロトコルと解釈される）
+      #   3. 生成コードへのパス埋め込み（同上）
+      #   4. URL とパスの混同（`.pathname` が `/C:/...` になる）
+      #
+      # どれも Linux では通るため、**手元で試すまで誰も気づけなかった**。
+      # smoke は依存のインストールが要らないので、ここで走らせても速い。
+      - name: Smoke（Windows でも通ること）
+        run: node --experimental-strip-types tools/smoke.mjs
+
+      # Windows のパス長 260 文字。pnpm は深い階層を作るため、
+      # 浅い場所に置かないと超える（実測 265 文字で踏んだ）
+      - name: パス長の確認
+        run: node tools/check-path-length.mjs
+        continue-on-error: true  # node_modules が無いと測れないため、参考情報として出す
 
   # CI が失敗したとき、失敗ジョブのログを取得して要約し、PR にコメントする。
   # ci-log-report.mjs でステップ別の失敗理由・エラー行を抽出する。

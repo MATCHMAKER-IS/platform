@@ -87,7 +87,6 @@ export function printHtml(html: string, options: PrintOptions = {}): Promise<Res
 /**
  * ページ全体を印刷する。
  *
- * @param options 用紙・向き・余白
  * @returns なし(**印刷ダイアログが開く**)
  */
 export function printPage(): Result<void> {

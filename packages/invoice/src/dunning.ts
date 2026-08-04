@@ -20,7 +20,7 @@ export const DUNNING_THRESHOLDS: { level: Exclude<DunningLevel, "none">; minOver
  *
  * **段階を踏む**(いきなり法的措置を匂わせない)。取引先との関係を壊さずに回収する。
  *
- * @param daysOverdue 期限からの経過日数
+ * @param overdueDays 期限からの経過日数
  * @returns レベル(`reminder` / `warning` / `final`)
  */
 export function dunningLevel(overdueDays: number): DunningLevel {

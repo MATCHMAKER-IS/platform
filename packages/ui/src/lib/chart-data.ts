@@ -20,7 +20,7 @@ export function sparklineData(values: readonly number[]): Array<{ i: number; val
  *
  *
  * @param values 数値の配列
- * @param binCount ビンの数
+ * @param options ビンの数
  * @returns グラフに渡す形
  */
 export function histogramData(values: readonly number[], options?: HistogramOptions): Array<{ label: string; count: number; start: number; end: number }> {

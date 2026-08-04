@@ -6,6 +6,7 @@
 import * as React from "react";
 import { startOfMonth, endOfMonth, dayOfWeek, dayNumber, isHoliday, holidayName, isSameDay, addMonths } from "@platform/datetime";
 import { cn } from "../lib/cn";
+import { weekdayColorClass } from "../lib/schedule";
 
 /** 選択された期間。 */
 export interface PickedRange { start: Date; end: Date | null }
@@ -59,13 +60,14 @@ export function DateRangePicker({ value, onChange, month, className }: DateRange
         <button type="button" onClick={() => setViewMonth((m) => addMonths(m, 1))} className="px-1 text-[var(--color-muted)] hover:text-[var(--color-fg)]">›</button>
       </div>
       <div className="grid grid-cols-7 gap-0.5 text-center">
-        {WEEK_HEAD.map((w, i) => <div key={w} className={cn("py-1 text-xs font-medium", i === 0 && "text-red-500", i === 6 && "text-blue-500", i > 0 && i < 6 && "text-[var(--color-muted)]")}>{w}</div>)}
+        {WEEK_HEAD.map((w, i) => <div key={w} className={cn("py-1 text-xs font-medium", i > 0 && i < 6 ? "text-[var(--color-muted)]" : weekdayColorClass(i))}>{w}</div>)}
         {cells.map((d, i) => {
           if (!d) return <div key={i} />;
           const dow = dayOfWeek(d);
           const selectedEnd = cur && (isSameDay(d, cur.start) || (cur.end && isSameDay(d, cur.end)));
           const within = inRange(d) && !selectedEnd;
-          const color = isHoliday(d) || dow === 0 ? "text-red-500" : dow === 6 ? "text-blue-500" : "text-[var(--color-fg)]";
+          // 日曜・祝日は赤、土曜は青(基盤の共通判定。直書きしない)
+          const color = weekdayColorClass(dow, isHoliday(d));
           return (
             <button key={i} type="button" onClick={() => click(d)} title={holidayName(d) ?? undefined}
               className={cn("aspect-square rounded tabular-nums hover:bg-[var(--color-muted)]/15", color, within && "bg-[var(--color-primary)]/15", selectedEnd && "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary)]")}>

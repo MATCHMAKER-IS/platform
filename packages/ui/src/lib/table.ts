@@ -106,7 +106,7 @@ export function isRowSelected(selection: Selection, key: string): boolean {
  * **表示中の行だけを見る**(絞り込み中なら、絞り込んだ結果の全選択)。
  *
  * @param selection 選択状態
- * @param visibleKeys 表示中の行のキー
+ * @param keys 表示中の行のキー
  * @returns すべて選択されていれば true。**表示が 0 件なら false**
  */
 export function isAllSelected(selection: Selection, keys: string[]): boolean {
@@ -120,7 +120,7 @@ export function isAllSelected(selection: Selection, keys: string[]): boolean {
  * チェックボックスの見た目で伝える。
  *
  * @param selection 選択状態
- * @param visibleKeys 表示中の行のキー
+ * @param keys 表示中の行のキー
  * @returns 一部だけ選択されていれば true
  */
 export function isIndeterminate(selection: Selection, keys: string[]): boolean {

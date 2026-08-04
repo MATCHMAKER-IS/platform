@@ -32,7 +32,7 @@ export interface SagaResult {
  * 打ち消し自体が失敗しても他の打ち消しは続行し、compensationErrors に記録する。
  *
  * @param steps ステップの配列
- * @param context 各ステップに渡す文脈
+ * @param ctx 各ステップに渡す文脈
  * @returns 実行結果。**途中で失敗したら、成功済みのステップを逆順で補償する**(取り消せない副作用があるなら Saga には向かない)
  */
 export async function runSaga<C>(steps: SagaStep<C>[], ctx: C): Promise<SagaResult> {
@@ -69,7 +69,7 @@ export async function runSaga<C>(steps: SagaStep<C>[], ctx: C): Promise<SagaResu
  * 逆順に取り消していく。
  *
  * @param name ステップ名
- * @param execute 実行する処理
+ * @param run 実行する処理
  * @param compensate **取り消す処理**(失敗時に逆順で呼ばれる)
  * @returns ステップ定義
  */

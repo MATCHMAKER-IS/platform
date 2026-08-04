@@ -56,7 +56,12 @@ export function viewOf(asset: FixedAsset, asOfYear: number): AssetView {
   return { ...asset, bookValue: bookValueAt(schedule, asOfYear, asset.cost), currentYearDepreciation: depreciationInYear(schedule, asOfYear), accumulated: asset.cost - bookValueAt(schedule, asOfYear, asset.cost), disposed: false };
 }
 
-/** 台帳サマリーを集計する。 */
+/**
+ * 台帳サマリーを集計する。
+ *
+ * `@platform/analytics` の `summarize` とは**別物**(あちらはアクセス解析の
+ * ページビュー集計)。名前が同じだけなので統合しない。基盤の実装を使う箇所は使っている。
+ */
 export function summarize(views: AssetView[]): AssetSummary {
   return {
     totalCost: views.reduce((s, a) => s + a.cost, 0),

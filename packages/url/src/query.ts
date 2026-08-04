@@ -7,7 +7,7 @@
 /**
  * クエリ文字列をオブジェクトに解析する。
  *
- * @param query クエリ文字列(先頭の `?` はあってもなくてもよい)
+ * @param search クエリ文字列(先頭の `?` はあってもなくてもよい)
  * @returns キー → 値。**同名キーが複数あれば配列**(`?a=1&a=2` → `{ a: ["1","2"] }`)
  */
 export function parseQuery(search: string): Record<string, string | string[]> {

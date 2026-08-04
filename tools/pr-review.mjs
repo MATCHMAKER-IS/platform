@@ -48,6 +48,18 @@ if (dup.ok) {
   } catch { /* ignore */ }
 }
 
+// **変更した基盤がどこに影響するか。**
+// `@platform/core` は 59 パッケージから直接使われているが、
+// PR の画面には「変更したファイル」しか出ないため、影響範囲が見えないまま通ってしまう。
+try {
+  const base = process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : "origin/main";
+  const impact = execFileSync(process.execPath, ["tools/impact.mjs", "--base", base], { cwd: ROOT, encoding: "utf8" });
+  if (!impact.includes("基盤(`packages/`)の変更はありません")) {
+    lines.push("");
+    lines.push(impact.trim());
+  }
+} catch { /* 差分が取れない環境では出さない */ }
+
 lines.push("");
 lines.push("> このサマリは `node tools/pr-review.mjs` による決定的チェックです。新規パッケージを追加した場合は、重複がないか Advisor の数値を確認してください。");
 lines.push("> 詳細な講評が必要なら、この事実を `@platform/ai`(AI Gateway)に渡して LLM レビューを追加できます（APIキー設定時）。");

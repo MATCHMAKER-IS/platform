@@ -6,7 +6,7 @@ import { Button, Checkbox, Input } from "@platform/ui";
 interface Day { date: string; clockIn: string; clockOut: string; breakMinutes?: number; isHoliday?: boolean; totalMinutes: number; overtimeMinutes: number; nightMinutes: number; holidayMinutes: number; }
 interface Approval { status: string; submittedAt: string; history: { action: string; actor: string }[]; }
 interface Summary { month: string; days: Day[]; totalMinutes: number; overtimeMinutes: number; nightMinutes: number; holidayMinutes: number; approval?: Approval | null; }
-const APPROVAL_LABEL: Record<string, { label: string; cls: string }> = { pending: { label: "承認待ち", cls: "bg-amber-100 text-amber-800" }, approved: { label: "承認済", cls: "bg-green-100 text-green-800" }, rejected: { label: "却下", cls: "bg-red-100 text-red-800" } };
+const APPROVAL_LABEL: Record<string, { label: string; cls: string }> = { pending: { label: "承認待ち", cls: "bg-[color-mix(in_srgb,var(--color-warning)_15%,transparent)] text-[var(--color-warning)]" }, approved: { label: "承認済", cls: "bg-[color-mix(in_srgb,var(--color-success)_15%,transparent)] text-[var(--color-success)]" }, rejected: { label: "却下", cls: "bg-[color-mix(in_srgb,var(--color-danger)_15%,transparent)] text-[var(--color-danger)]" } };
 
 const hm = (min: number) => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, "0")}`;
 
@@ -50,56 +50,56 @@ export function AttendanceClient({ fetchImpl }: AttendanceClientProps) {
         <h1 className="text-2xl font-bold">勤怠</h1>
         <div className="flex items-center gap-2">
           {summary?.approval && <span className={`rounded px-2 py-0.5 text-xs ${APPROVAL_LABEL[summary.approval.status]?.cls ?? ""}`}>{APPROVAL_LABEL[summary.approval.status]?.label ?? summary.approval.status}</span>}
-          {(!summary?.approval || summary.approval.status === "rejected") && <Button onClick={submitMonth} className="rounded bg-neutral-900 px-3 py-1.5 text-sm text-white">月次を申請</Button>}
-          <Input type="month" value={month} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMonth(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-sm" />
+          {(!summary?.approval || summary.approval.status === "rejected") && <Button onClick={submitMonth} className="rounded bg-[var(--color-fg)] px-3 py-1.5 text-sm text-white">月次を申請</Button>}
+          <Input type="month" value={month} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMonth(e.target.value)} className="rounded border border-[var(--color-border)] px-2 py-1 text-sm" />
         </div>
       </div>
-      {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-      {msg && <p className="mb-3 rounded bg-green-50 px-3 py-2 text-sm text-green-700">{msg}</p>}
+      {error && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-danger)]">{error}</p>}
+      {msg && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-success)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-success)]">{msg}</p>}
 
       {summary && (
         <div className="mb-4 grid grid-cols-4 gap-2 text-center text-sm">
-          <div className="rounded bg-neutral-50 p-3"><div className="text-xs text-neutral-500">実労働</div><div className="font-medium">{hm(summary.totalMinutes)}</div></div>
-          <div className="rounded bg-amber-50 p-3"><div className="text-xs text-amber-700">時間外</div><div className="font-medium">{hm(summary.overtimeMinutes)}</div></div>
-          <div className="rounded bg-indigo-50 p-3"><div className="text-xs text-indigo-700">深夜</div><div className="font-medium">{hm(summary.nightMinutes)}</div></div>
-          <div className="rounded bg-red-50 p-3"><div className="text-xs text-red-700">法定休日</div><div className="font-medium">{hm(summary.holidayMinutes)}</div></div>
+          <div className="rounded bg-[var(--color-subtle)] p-3"><div className="text-xs text-[var(--color-muted)]">実労働</div><div className="font-medium">{hm(summary.totalMinutes)}</div></div>
+          <div className="rounded bg-[color-mix(in_srgb,var(--color-warning)_8%,transparent)] p-3"><div className="text-xs text-[var(--color-warning)]">時間外</div><div className="font-medium">{hm(summary.overtimeMinutes)}</div></div>
+          <div className="rounded bg-[color-mix(in_srgb,var(--color-primary)_8%,transparent)] p-3"><div className="text-xs text-[var(--color-primary)]">深夜</div><div className="font-medium">{hm(summary.nightMinutes)}</div></div>
+          <div className="rounded bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] p-3"><div className="text-xs text-[var(--color-danger)]">法定休日</div><div className="font-medium">{hm(summary.holidayMinutes)}</div></div>
         </div>
       )}
 
-      <div className="mb-6 rounded border border-neutral-200 p-4">
+      <div className="mb-6 rounded border border-[var(--color-border)] p-4">
         <h2 className="mb-3 text-sm font-medium">打刻を記録</h2>
         <div className="flex flex-wrap items-end gap-2">
-          <label className="text-xs text-neutral-500">日付<Input type="date" value={form.date} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, date: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-          <label className="text-xs text-neutral-500">出勤<Input type="time" value={form.clockIn} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, clockIn: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-          <label className="text-xs text-neutral-500">退勤<Input type="time" value={form.clockOut} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, clockOut: e.target.value })} className="mt-0.5 block rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-          <label className="text-xs text-neutral-500">休憩(分)<Input value={form.breakMinutes} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, breakMinutes: e.target.value })} inputMode="numeric" className="mt-0.5 block w-20 rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-          <label className="flex items-center gap-1 text-xs text-neutral-600"><Checkbox  checked={form.isHoliday} onCheckedChange={(v) => setForm({ ...form, isHoliday: !!v })} />法定休日</label>
-          <Button onClick={submit} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">記録</Button>
+          <label className="text-xs text-[var(--color-muted)]">日付<Input type="date" value={form.date} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, date: e.target.value })} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+          <label className="text-xs text-[var(--color-muted)]">出勤<Input type="time" value={form.clockIn} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, clockIn: e.target.value })} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+          <label className="text-xs text-[var(--color-muted)]">退勤<Input type="time" value={form.clockOut} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, clockOut: e.target.value })} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+          <label className="text-xs text-[var(--color-muted)]">休憩(分)<Input value={form.breakMinutes} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, breakMinutes: e.target.value })} inputMode="numeric" className="mt-0.5 block w-20 rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+          <label className="flex items-center gap-1 text-xs text-[var(--color-muted)]"><Checkbox  checked={form.isHoliday} onCheckedChange={(v) => setForm({ ...form, isHoliday: !!v })} />法定休日</label>
+          <Button onClick={submit} className="rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">記録</Button>
         </div>
-        <p className="mt-2 text-xs text-neutral-400">退勤が出勤より前の場合は日をまたぐ勤務として扱います。深夜は 22:00〜翌5:00。</p>
+        <p className="mt-2 text-xs text-[var(--color-muted)]">退勤が出勤より前の場合は日をまたぐ勤務として扱います。深夜は 22:00〜翌5:00。</p>
       </div>
 
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-neutral-200 text-left text-xs text-neutral-500">
+          <tr className="border-b border-[var(--color-border)] text-left text-xs text-[var(--color-muted)]">
             <th className="px-2 py-1">日付</th><th className="px-2 py-1">出勤</th><th className="px-2 py-1">退勤</th><th className="px-2 py-1 text-right">休憩</th>
             <th className="px-2 py-1 text-right">実働</th><th className="px-2 py-1 text-right">時間外</th><th className="px-2 py-1 text-right">深夜</th><th className="px-2 py-1">区分</th>
           </tr>
         </thead>
         <tbody>
           {(summary?.days ?? []).map((d) => (
-            <tr key={d.date} className="border-b border-neutral-100">
+            <tr key={d.date} className="border-b border-[var(--color-border)]">
               <td className="px-2 py-2">{d.date}</td>
               <td className="px-2 py-2">{d.clockIn}</td>
               <td className="px-2 py-2">{d.clockOut}</td>
-              <td className="px-2 py-2 text-right text-neutral-500">{d.breakMinutes ?? 0}分</td>
+              <td className="px-2 py-2 text-right text-[var(--color-muted)]">{d.breakMinutes ?? 0}分</td>
               <td className="px-2 py-2 text-right font-medium">{hm(d.totalMinutes)}</td>
-              <td className="px-2 py-2 text-right">{d.overtimeMinutes > 0 ? <span className="text-amber-700">{hm(d.overtimeMinutes)}</span> : "—"}</td>
-              <td className="px-2 py-2 text-right">{d.nightMinutes > 0 ? <span className="text-indigo-700">{hm(d.nightMinutes)}</span> : "—"}</td>
-              <td className="px-2 py-2">{d.isHoliday && <span className="rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-700">休日</span>}</td>
+              <td className="px-2 py-2 text-right">{d.overtimeMinutes > 0 ? <span className="text-[var(--color-warning)]">{hm(d.overtimeMinutes)}</span> : "—"}</td>
+              <td className="px-2 py-2 text-right">{d.nightMinutes > 0 ? <span className="text-[var(--color-primary)]">{hm(d.nightMinutes)}</span> : "—"}</td>
+              <td className="px-2 py-2">{d.isHoliday && <span className="rounded bg-[color-mix(in_srgb,var(--color-danger)_15%,transparent)] px-1.5 py-0.5 text-xs text-[var(--color-danger)]">休日</span>}</td>
             </tr>
           ))}
-          {(summary?.days.length ?? 0) === 0 && <tr><td colSpan={8} className="px-2 py-4 text-center text-sm text-neutral-500">この月の打刻はありません。</td></tr>}
+          {(summary?.days.length ?? 0) === 0 && <tr><td colSpan={8} className="px-2 py-4 text-center text-sm text-[var(--color-muted)]">この月の打刻はありません。</td></tr>}
         </tbody>
       </table>
     </div>

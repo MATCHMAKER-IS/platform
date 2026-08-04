@@ -51,58 +51,58 @@ export function SurveysClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
     <div className="mx-auto max-w-3xl p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">アンケート</h1>
-        <Button onClick={() => setCreating((v) => !v)} className="rounded bg-neutral-900 px-4 py-2 text-sm text-white">{creating ? "閉じる" : "新規作成"}</Button>
+        <Button onClick={() => setCreating((v) => !v)} className="rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white">{creating ? "閉じる" : "新規作成"}</Button>
       </div>
-      {msg && <p className="mb-3 rounded bg-neutral-100 px-3 py-2 text-sm text-neutral-700">{msg}</p>}
+      {msg && <p className="mb-3 rounded bg-[var(--color-subtle)] px-3 py-2 text-sm text-[var(--color-fg)]">{msg}</p>}
 
       {creating && (
-        <div className="mb-6 rounded border border-neutral-200 p-4">
-          <label className="text-xs text-neutral-500">タイトル<Input value={title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)} className="mt-0.5 mb-2 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-          <label className="text-xs text-neutral-500">説明<Input value={desc} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDesc(e.target.value)} className="mt-0.5 mb-3 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
+        <div className="mb-6 rounded border border-[var(--color-border)] p-4">
+          <label className="text-xs text-[var(--color-muted)]">タイトル<Input value={title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)} className="mt-0.5 mb-2 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+          <label className="text-xs text-[var(--color-muted)]">説明<Input value={desc} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDesc(e.target.value)} className="mt-0.5 mb-3 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
           <div className="mb-3 grid grid-cols-2 gap-2">
-            <label className="text-xs text-neutral-500">配信対象の部門（カンマ区切り・空=全員）<Input value={depts} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDepts(e.target.value)} placeholder="営業部, 経理部" className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">配信対象のロール（カンマ区切り）<Input value={roles} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRoles(e.target.value)} placeholder="manager, finance" className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-neutral-500">回答締切（任意）<Input type="datetime-local" value={closesAt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setClosesAt(e.target.value)} className="mt-0.5 block w-full rounded border border-neutral-300 px-2 py-1 text-sm" /></label>
-            <label className="flex items-center gap-2 pt-4 text-xs text-neutral-600"><Checkbox  checked={anonymous} onCheckedChange={(v) => setAnonymous(!!v)} />匿名回答にする（回答者を記録しない）</label>
+            <label className="text-xs text-[var(--color-muted)]">配信対象の部門（カンマ区切り・空=全員）<Input value={depts} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDepts(e.target.value)} placeholder="営業部, 経理部" className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-[var(--color-muted)]">配信対象のロール（カンマ区切り）<Input value={roles} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRoles(e.target.value)} placeholder="manager, finance" className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-[var(--color-muted)]">回答締切（任意）<Input type="datetime-local" value={closesAt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setClosesAt(e.target.value)} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+            <label className="flex items-center gap-2 pt-4 text-xs text-[var(--color-muted)]"><Checkbox  checked={anonymous} onCheckedChange={(v) => setAnonymous(!!v)} />匿名回答にする（回答者を記録しない）</label>
           </div>
           <div className="space-y-2">
             {questions.map((q, i) => (
-              <div key={i} className="rounded border border-neutral-200 p-2">
+              <div key={i} className="rounded border border-[var(--color-border)] p-2">
                 <div className="flex gap-2">
-                  <Input value={q.text} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQ(i, { text: e.target.value })} placeholder={`設問 ${i + 1}`} className="flex-1 rounded border border-neutral-300 px-2 py-1 text-sm" />
+                  <Input value={q.text} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQ(i, { text: e.target.value })} placeholder={`設問 ${i + 1}`} className="flex-1 rounded border border-[var(--color-border)] px-2 py-1 text-sm" />
                   <Select
                     value={q.type}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setQ(i, { type: e.target.value as QType })}
-                    className="rounded border border-neutral-300 px-2 py-1 text-sm"
+                    className="rounded border border-[var(--color-border)] px-2 py-1 text-sm"
                     options={(Object.keys(TYPE_LABEL) as QType[]).map((t) => ({ label: TYPE_LABEL[t], value: t }))}
                   />
-                  {questions.length > 1 && <Button onClick={() => removeQ(i)} className="text-xs text-neutral-400 hover:underline">削除</Button>}
+                  {questions.length > 1 && <Button onClick={() => removeQ(i)} className="text-xs text-[var(--color-muted)] hover:underline">削除</Button>}
                 </div>
-                {(q.type === "single" || q.type === "multi") && <Input value={q.options} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQ(i, { options: e.target.value })} placeholder="選択肢（カンマ区切り）" className="mt-1 block w-full rounded border border-neutral-300 px-2 py-1 text-xs" />}
+                {(q.type === "single" || q.type === "multi") && <Input value={q.options} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQ(i, { options: e.target.value })} placeholder="選択肢（カンマ区切り）" className="mt-1 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-xs" />}
               </div>
             ))}
           </div>
-          <div className="mt-2 flex gap-2"><Button onClick={addQ} className="rounded border border-neutral-300 px-3 py-1 text-xs">設問を追加</Button><Button onClick={create} className="rounded bg-neutral-900 px-4 py-1 text-sm text-white">作成</Button></div>
+          <div className="mt-2 flex gap-2"><Button onClick={addQ} className="rounded border border-[var(--color-border)] px-3 py-1 text-xs">設問を追加</Button><Button onClick={create} className="rounded bg-[var(--color-fg)] px-4 py-1 text-sm text-white">作成</Button></div>
         </div>
       )}
 
-      <div className="divide-y divide-neutral-100 rounded border border-neutral-200">
+      <div className="divide-y divide-neutral-100 rounded border border-[var(--color-border)]">
         {surveys.map((s) => (
           <div key={s.id} className="flex items-center justify-between px-3 py-2">
             <div>
-              <p className="text-sm font-medium">{s.title} <span className={`ml-1 rounded px-1.5 py-0.5 text-xs ${s.status === "open" ? "bg-green-100 text-green-800" : s.status === "closed" ? "bg-neutral-200 text-neutral-600" : "bg-amber-100 text-amber-800"}`}>{STATUS_LABEL[s.status]}</span></p>
-              <p className="text-xs text-neutral-500">{s.questions.length}問</p>
+              <p className="text-sm font-medium">{s.title} <span className={`ml-1 rounded px-1.5 py-0.5 text-xs ${s.status === "open" ? "bg-[color-mix(in_srgb,var(--color-success)_15%,transparent)] text-[var(--color-success)]" : s.status === "closed" ? "bg-[var(--color-subtle-strong)] text-[var(--color-muted)]" : "bg-[color-mix(in_srgb,var(--color-warning)_15%,transparent)] text-[var(--color-warning)]"}`}>{STATUS_LABEL[s.status]}</span></p>
+              <p className="text-xs text-[var(--color-muted)]">{s.questions.length}問</p>
             </div>
             <div className="flex gap-2 text-xs">
-              <a href={`/surveys/${s.id}`} className="text-blue-600 hover:underline">回答</a>
-              <a href={`/surveys/${s.id}/results`} className="text-blue-600 hover:underline">集計</a>
-              {s.status === "draft" && <Button onClick={() => setStatus(s.id, "open")} className="text-green-700 hover:underline">公開</Button>}
-              {s.status === "open" && <Button onClick={() => remind(s.id)} className="text-amber-700 hover:underline">リマインド</Button>}
-              {s.status === "open" && <Button onClick={() => setStatus(s.id, "closed")} className="text-neutral-500 hover:underline">終了</Button>}
+              <a href={`/surveys/${s.id}`} className="text-[var(--color-primary)] hover:underline">回答</a>
+              <a href={`/surveys/${s.id}/results`} className="text-[var(--color-primary)] hover:underline">集計</a>
+              {s.status === "draft" && <Button onClick={() => setStatus(s.id, "open")} className="text-[var(--color-success)] hover:underline">公開</Button>}
+              {s.status === "open" && <Button onClick={() => remind(s.id)} className="text-[var(--color-warning)] hover:underline">リマインド</Button>}
+              {s.status === "open" && <Button onClick={() => setStatus(s.id, "closed")} className="text-[var(--color-muted)] hover:underline">終了</Button>}
             </div>
           </div>
         ))}
-        {surveys.length === 0 && <p className="px-3 py-6 text-center text-sm text-neutral-500">アンケートはありません。</p>}
+        {surveys.length === 0 && <p className="px-3 py-6 text-center text-sm text-[var(--color-muted)]">アンケートはありません。</p>}
       </div>
     </div>
   );

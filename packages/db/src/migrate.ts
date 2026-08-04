@@ -24,8 +24,8 @@ export interface MigrateOptions {
  * const res = await runMigrations();
  * if (!res.ok) { logger.error(res.error); process.exit(1); }
  * ```
- * @param options.dir マイグレーションのディレクトリ
- * @param options.dryRun 実行せずに確認だけするか
+ * @param options.cwd 実行ディレクトリ(prisma/ を含むパッケージのルート)
+ * @param options.schemaPath schema.prisma のパス(既定はプロジェクト設定に従う)
  */
 export function runMigrations(options: MigrateOptions = {}): Promise<Result<void>> {
   return new Promise((resolve) => {

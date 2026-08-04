@@ -49,8 +49,8 @@ export function lotBalances(movements: LotMovement[]): LotBalance[] {
  * **食品・医薬品では廃棄損に直結する**。早めに気づいて値引きや優先出荷を判断する。
  *
  * @param movements 入出庫の履歴
- * @param days 何日以内か
  * @param asOf 基準日(テスト注入用)
+ * @param days 何日以内か
  * @returns 期限が近いロット(**期限の近い順**)
  */
 export function expiringSoon(movements: LotMovement[], asOf: string, days: number): LotBalance[] {

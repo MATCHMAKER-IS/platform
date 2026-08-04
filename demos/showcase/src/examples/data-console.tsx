@@ -48,8 +48,11 @@ export function DataConsole({ rows }: DataConsoleProps) {
   );
 
   // 検索・ソート・ページングは queryRows(純ロジック)に任せる
-  const query: TableQuery = { search, searchKeys: ["customer", "cast"], sortKey, sortDir, page, pageSize: PAGE_SIZE };
-  const result = React.useMemo(() => queryRows(filtered, query), [filtered, search, sortKey, sortDir, page]);
+  // query は useMemo の中で組む(外で作ると毎回新しいオブジェクトになる)
+  const result = React.useMemo(() => {
+    const query: TableQuery = { search, searchKeys: ["customer", "cast"], sortKey, sortDir, page, pageSize: PAGE_SIZE };
+    return queryRows(filtered, query);
+  }, [filtered, search, sortKey, sortDir, page]);
 
   // フィルタ/検索変更時はページを先頭へ
   React.useEffect(() => { setPage(1); }, [search, status]);

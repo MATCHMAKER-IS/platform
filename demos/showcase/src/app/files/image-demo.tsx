@@ -239,7 +239,9 @@ function UploadDemo() {
         {up.error !== undefined && <span style={{ color: "var(--color-danger)" }}>{up.error}</span>}
       </div>
       {up.preview != null && (
-        // eslint-disable-next-line @next/next/no-img-element
+        // ブラウザで作った blob URL のプレビューなので next/image は使えない。
+        // 以前は @next/next/no-img-element の無効化を置いていたが、
+        // このリポジトリの eslint 設定に Next の規則は入れていない
         <img src={up.preview} alt="プレビュー" style={{ maxWidth: 200, marginTop: 8, borderRadius: "var(--radius)" }} />
       )}
       <p style={{ fontSize: 12, color: "var(--color-muted)", marginTop: 10, lineHeight: 1.8 }}>

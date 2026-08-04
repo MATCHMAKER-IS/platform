@@ -21,6 +21,7 @@
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { collectPackageSurface } from "./lib/package-surface.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SURFACE = path.join(ROOT, "docs/platform/api-surface.json");
@@ -36,11 +37,15 @@ const surface = new Map(
 );
 
 /**
- * 検査から外すもの。
- * - サブパス(`@platform/net/browser` 等)は surface が持たないため対象外
- * - `@platform/*` のような総称表記
+ * `@platform/db/tunnel` → `@platform/db`(記録はパッケージ単位のため)。
+ *
+ * 以前はサブパスを丸ごと対象外にしていたが、api-surface が
+ * **サブパスの export も記録するようになった**ので検査できる。
  */
-const isTarget = (mod) => surface.has(mod);
+const packageOf = (mod) => mod.split("/").slice(0, 2).join("/");
+
+/** `@platform/*` のような総称表記や、記録の無いものは対象外。 */
+const isTarget = (mod) => surface.has(packageOf(mod));
 
 /**
  * 「`@platform/xxx` の `foo()`」という書き方も拾う。
@@ -68,6 +73,17 @@ function checkInlineMentions(file, rel, body, issues) {
   return checked;
 }
 
+/** **名前を数え切れないパッケージ**(外部を丸ごと再 export しているもの)。 */
+const INCOMPLETE = new Set();
+for (const e of readdirSync(path.join(ROOT, "packages"), { withFileTypes: true })) {
+  if (!e.isDirectory()) continue;
+  const pj = path.join(ROOT, "packages", e.name, "package.json");
+  if (!existsSync(pj)) continue;
+  const pkgJson = JSON.parse(readFileSync(pj, "utf8"));
+  const s = collectPackageSurface(path.join(ROOT, "packages", e.name), pkgJson);
+  if (s !== null && !s.complete) INCOMPLETE.add(pkgJson.name);
+}
+
 const docs = [];
 const walk = (dir) => {
   if (!existsSync(dir)) return;
@@ -83,9 +99,19 @@ for (const f of ["CLAUDE.md", "README.md", "CONTRIBUTING.md"]) {
   const p = path.join(ROOT, f);
   if (existsSync(p)) docs.push(p);
 }
+// **各パッケージの README も資料である。**
+// CLAUDE.md は「使い方は packages/<n>/README.md を見る」と案内しており、
+// 人も AI もまずここを読む。にもかかわらず 2026-08 まで検査対象外で、
+// `@platform/net` の README が**移動済みの `buildQuery`** を import する例を
+// 載せたまま緑になっていた(この検査が防ぐはずの、まさにその事故)。
+for (const e of readdirSync(path.join(ROOT, "packages"), { withFileTypes: true })) {
+  if (!e.isDirectory()) continue;
+  const p = path.join(ROOT, "packages", e.name, "README.md");
+  if (existsSync(p)) docs.push(p);
+}
 
 // import { A, B as C, type D } from "@platform/xxx"
-const IMPORT = /import\s+(?:type\s+)?\{([^}]+)\}\s*from\s*["'](@platform\/[a-z0-9-]+)["']/g;
+const IMPORT = /import\s+(?:type\s+)?\{([^}]+)\}\s*from\s*["'](@platform\/[a-z0-9-]+(?:\/[a-z0-9./-]+)?)["']/g;
 
 const issues = [];
 let checked = 0;
@@ -100,6 +126,9 @@ for (const file of docs) {
   for (const m of body.matchAll(IMPORT)) {
     const mod = m[2];
     if (!isTarget(mod)) continue;
+    // 名前を数え切れないパッケージは判定できない(`@platform/ui/icons` は
+    // lucide-react を丸ごと再 export しており、実在する例を誤検知する)
+    if (INCOMPLETE.has(packageOf(mod))) continue;
     const line = body.slice(0, m.index).split("\n").length;
     if (lines[line - 1]?.includes("doc-apis:ignore")) continue;
     checked += 1;
@@ -109,7 +138,7 @@ for (const file of docs) {
       .map((s) => s.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0].trim())
       .filter((s) => s !== "");
 
-    const exported = surface.get(mod);
+    const exported = surface.get(packageOf(mod));
     for (const n of names) {
       if (!exported.has(n)) {
         issues.push({ rel, line, message: `${mod} に ${n} はありません(移動・改名された可能性)` });

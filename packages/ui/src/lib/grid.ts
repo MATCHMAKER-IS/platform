@@ -86,10 +86,10 @@ export function stickyLeftOffsets(widths: number[], stickyCount: number): number
 /**
  * 列幅を変更する(ドラッグでのリサイズ)。
  *
- * @param columns 列定義
+ * @param widths 列定義
  * @param index 対象の列
  * @param delta 変化量(px)
- * @param minWidth 最小幅(**これ以下にしない**。0 にすると列が消えて戻せなくなる)
+ * @param min 最小幅(**これ以下にしない**。0 にすると列が消えて戻せなくなる)
  * @returns 更新した列定義
  */
 export function applyColumnResize(widths: number[], index: number, delta: number, min = 48): number[] {
@@ -105,9 +105,9 @@ export function applyColumnResize(widths: number[], index: number, delta: number
  * 上下にパディングを入れてスクロールバーの長さを保つ。
  *
  * @param scrollTop スクロール位置
- * @param viewportHeight 表示領域の高さ
- * @param rowHeight 行の高さ
- * @param totalRows 総行数
+ * @param rowHeight 表示領域の高さ
+ * @param viewportHeight 行の高さ
+ * @param total 総行数
  * @param overscan 前後に余分に描く行数(**スクロール時のちらつきを防ぐ**)
  * @returns 描画する範囲と上下のパディング
  */
@@ -126,7 +126,7 @@ export function computeVisibleRange(
  *
  * **Excel からの貼り付けを受け取る**のに使う。
  *
- * @param tsv TSV 文字列
+ * @param text TSV 文字列
  * @returns 2 次元配列
  */
 export function parseTsv(text: string): string[][] {

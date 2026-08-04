@@ -43,7 +43,7 @@ function matches(buf: Uint8Array, sig: Signature): boolean {
  * **拡張子は偽装できる**(`virus.exe` を `photo.jpg` にリネームできる)。
  * 中身を見ることで、本当の種別が分かる。
  *
- * @param bytes ファイルの先頭バイト(**16 バイトあれば足りる**)
+ * @param buffer ファイルの先頭バイト(**16 バイトあれば足りる**)
  * @returns 判定した種別。**不明なら null**
  */
 export function detectFileType(buffer: Uint8Array): FileTypeInfo | null {
@@ -58,8 +58,8 @@ export function detectFileType(buffer: Uint8Array): FileTypeInfo | null {
  *
  * **拡張子ではなく中身で判定する**ので、偽装を弾ける。
  *
- * @param bytes ファイルの先頭バイト
- * @param allowed 許可する拡張子
+ * @param buffer ファイルの先頭バイト
+ * @param allowedExts 許可する拡張子
  * @returns 許可された種別なら true。**判定できない場合も false**(安全側)
  */
 export function isAllowedFileType(buffer: Uint8Array, allowedExts: readonly string[]): boolean {
@@ -73,8 +73,8 @@ export function isAllowedFileType(buffer: Uint8Array, allowedExts: readonly stri
  * **一致しないファイルは疑う**。悪意が無くても(拡張子の付け間違い)、
  * 開けないファイルを保存させないために有用。
  *
- * @param bytes ファイルの先頭バイト
- * @param filename ファイル名
+ * @param filename ファイルの先頭バイト
+ * @param buffer ファイル名
  * @returns 一致すれば true。**判定できない場合は true**(未知の形式を一律に弾かない)
  */
 export function extensionMatchesContent(filename: string, buffer: Uint8Array): boolean {

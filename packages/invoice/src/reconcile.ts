@@ -32,8 +32,8 @@ export interface ApplyPaymentResult {
  * **古い期限から順に充当する**のが会計の慣習。新しいものから充当すると、
  * 古い債権がいつまでも残り、年齢表が実態と合わなくなる。
  *
- * @param payment 入金
- * @param invoices 請求書の配列
+ * @param invoices 入金
+ * @param amount 請求書の配列
  * @returns 充当の内訳と、**充当しきれなかった額**
  */
 export function applyPayment(invoices: OpenInvoice[], amount: number): ApplyPaymentResult {
@@ -54,8 +54,8 @@ export function applyPayment(invoices: OpenInvoice[], amount: number): ApplyPaym
 /**
  * 複数の入金を順に充当する。
  *
- * @param payments 入金の配列
  * @param invoices 請求書の配列
+ * @param payments 入金の配列
  * @returns 充当の内訳
  */
 export function reconcile(invoices: OpenInvoice[], payments: number[]): ApplyPaymentResult {
@@ -75,7 +75,6 @@ export function reconcile(invoices: OpenInvoice[], payments: number[]): ApplyPay
  * 未収残高の合計を返す(繰越額)。
  *
  * @param invoices 請求書の配列
- * @param payments 入金の配列
  * @returns 合計残高
  */
 export function outstandingTotal(invoices: OpenInvoice[]): number {

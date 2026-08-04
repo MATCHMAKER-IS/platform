@@ -62,7 +62,7 @@ function makeCanvas(w: number, h: number): { canvas: HTMLCanvasElement; ctx: Can
  * アスペクト比を保って縮小(アップロード前の実用サイズ化)。
  *
  *
- * @param image 元の画像
+ * @param source 元の画像
  * @param options.width / height 目標のサイズ
  * @param options.fit 収め方(`cover` / `contain`)
  * @returns 変換後の Blob(**ブラウザ内で完結**。サーバに送らないので機密画像も扱える)
@@ -194,7 +194,7 @@ export async function flipImage(source: Source, opts: { horizontal?: boolean; ve
  * 形式変換(jpg/png/webp)。
  *
  *
- * @param image 元の画像
+ * @param source 元の画像
  * @param format 変換先(`webp` / `jpeg` / `png`)
  * @param quality 品質(0〜1)
  * @returns 変換後の Blob。**webp は容量が小さい**が、古いブラウザでは表示できない
@@ -216,9 +216,9 @@ export async function convertFormat(source: Source, format: ImageFormat, quality
  * 指定色に近い背景を透明にする(背景白抜き)。単色/近単色の背景向け。
  *
  *
- * @param image 元の画像
- * @param color 透過にする色
- * @param tolerance 許容差(**0 だと厳密一致**。JPEG は圧縮でわずかに色がずれるので、少し許容する)
+ * @param source 元の画像
+ * @param options 透過にする色
+ * @param format 許容差(**0 だと厳密一致**。JPEG は圧縮でわずかに色がずれるので、少し許容する)
  * @returns 変換後の Blob
  *
  * @param image 元の画像

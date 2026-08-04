@@ -284,7 +284,9 @@ export function BarcodeDemo() {
 
         {totp !== "" && (
           <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap", marginTop: 12 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {/* data URL の画像なので next/image は使えない(最適化の対象外)。
+                以前は @next/next/no-img-element の無効化を置いていたが、
+                このリポジトリの eslint 設定に Next の規則は入れていない */}
             <img src={totp} alt="TOTP 登録用 QR" style={{ width: 180, height: 180, border: "1px solid var(--color-border)", borderRadius: "var(--radius)" }} />
             <p style={{ fontSize: 12, color: "var(--color-muted)", lineHeight: 1.8, flex: 1, minWidth: 240 }}>
               <strong>ここは PNG（<code>qrDataUrl()</code>）です。</strong>

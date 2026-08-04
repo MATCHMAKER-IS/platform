@@ -80,7 +80,7 @@ function isOptional(schema: z.ZodTypeAny): boolean {
  * describeEnv(schema); // => [{ name: "DATABASE_URL", required: true, type: "文字列(URL)", ... }]
  * ```
  *
- * @param env 環境変数
+ * @param schema 環境変数
  * @returns 変数の一覧(**秘密はマスク済み**。そのまま画面に出せる)
  */
 export function describeEnv(schema: z.ZodObject<z.ZodRawShape>): EnvVarInfo[] {
@@ -107,7 +107,7 @@ export function describeEnv(schema: z.ZodObject<z.ZodRawShape>): EnvVarInfo[] {
  * 環境変数の値をログに出せる形にマスクする。秘密値は `***` にする。
  * 障害調査で「今の設定」を出したいが、鍵は出したくない場面で使う。
  *
- * @param env 環境変数
+ * @param values 環境変数
  * @returns マスクした環境変数(**ログや画面に出す前に必ず通す**)
  */
 export function maskSecrets(values: Record<string, unknown>): Record<string, string> {

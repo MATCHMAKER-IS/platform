@@ -1,10 +1,10 @@
 # Advisor レポート(自動生成)
 
-> 再生成: `node tools/advisor.mjs report`。生成日: 2026-08-03
+> 再生成: `node tools/advisor.mjs report`。生成日: 2026-08-04
 
 重複や似た API は「わざと(層が違う)」の場合もあります。這は**再利用の当たりを付ける入口**であり、機械的な指摘です。
 
-## 同名 export(82 組)
+## 同名 export(93 組)
 
 | export | 提供パッケージ |
 |---|---|
@@ -44,7 +44,17 @@
 | `groupByDate` | @platform/chat, @platform/ui |
 | `markRead` | @platform/chat, @platform/ui |
 | `unreadCount` | @platform/chat, @platform/ui |
+| `RevisionDiff` | @platform/cms, @platform/quote |
+| `diffRevisions` | @platform/cms, @platform/quote |
 | `recentPosts` | @platform/cms, @platform/social |
+| `applyDiscount` | @platform/commerce, @platform/quote |
+| `canAccess` | @platform/contract, @platform/rag |
+| `CircuitBreaker` | @platform/core, @platform/observability |
+| `CircuitBreakerOptions` | @platform/core, @platform/observability |
+| `CircuitState` | @platform/core, @platform/observability |
+| `createCircuitBreaker` | @platform/core, @platform/observability |
+| `ImportResult` | @platform/csv, @platform/importer |
+| `CursorPage` | @platform/db, @platform/http |
 | `RetryOptions` | @platform/db, @platform/net, @platform/notify, @platform/utils |
 | `Progress` | @platform/elearning, @platform/ui |
 | `z` | @platform/env, @platform/validation |
@@ -53,6 +63,7 @@
 | `FieldType` | @platform/form, @platform/ui |
 | `InvoiceLine` | @platform/freee, @platform/invoice, @platform/report |
 | `buildInvoice` | @platform/freee, @platform/invoice |
+| `copyFile` | @platform/fs, @platform/storage |
 | `transition` | @platform/fsm, @platform/task |
 | `escapeHtml` | @platform/html, @platform/mail, @platform/utils |
 | `normalizeNewlines` | @platform/html, @platform/utils |

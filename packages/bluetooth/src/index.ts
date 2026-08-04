@@ -155,7 +155,7 @@ export async function connectBluetooth(options: ConnectOptions): Promise<Result<
  * 電池残量(%)を読む簡易ヘルパー(battery_service / battery_level)。
  * 事前に `optionalServices: ["battery_service"]` などで許可されている必要がある。
  *
- * @param device 接続済みのデバイス
+ * @param conn 接続済みのデバイス
  * @returns 0〜100(%)。**Battery Service に対応していないデバイスでは失敗**
  */
 export async function readBatteryLevel(conn: BluetoothConnection): Promise<Result<number>> {
@@ -179,7 +179,7 @@ export interface DeviceInformation {
  * @remarks Web Bluetooth は音声再生の制御はできない(音声は OS 側の従来 Bluetooth 経由)。
  * イヤホンで取得できるのは、機器が BLE GATT で公開する電池残量・機器情報などに限られる。
  *
- * @param device 接続済みのデバイス
+ * @param conn 接続済みのデバイス
  * @returns 製造元・型番・シリアルなど。**対応していない項目は undefined**
  */
 export async function readDeviceInformation(conn: BluetoothConnection): Promise<Result<DeviceInformation>> {

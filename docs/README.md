@@ -11,6 +11,7 @@
 | 知りたいこと | 読むもの |
 |---|---|
 | **引き継ぐ人へ**（いまどこまでできているか・何が残っているか） | [ops/HANDOVER.md](ops/HANDOVER.md) |
+| **はじめて触る**（今日、動くところまで） | [ops/FIRST_HOUR.md](ops/FIRST_HOUR.md) |
 | **環境を作りたい**（何も入っていない PC から） | [ops/GETTING_STARTED.md](ops/GETTING_STARTED.md) |
 | 開発〜テスト〜公開の流れを知りたい | [ops/GETTING_STARTED_2.md](ops/GETTING_STARTED_2.md) |
 | **Git / GitHub が初めて** | [ops/GIT_GUIDE.md](ops/GIT_GUIDE.md) |
@@ -22,6 +23,7 @@
 | 知りたいこと | 読むもの |
 |---|---|
 | **どのコマンドを打てばいいか** | [ops/COMMANDS.md](ops/COMMANDS.md) |
+| **CI（push すると自動で走るもの）** | [ops/GITHUB_ACTIONS.md](ops/GITHUB_ACTIONS.md) |
 | **基盤にどんな部品があるか** | `pnpm dev:portal`（:3005）で検索 / [ai/module-list.md](ai/module-list.md) |
 | どう書くのが正解か（定型コード） | [ai/patterns.md](ai/patterns.md) |
 | 設計のルール（層・依存の向き） | [ai/architecture.md](ai/architecture.md) |
@@ -112,6 +114,7 @@ GitHub の **Issues → New issue → 「オンボーディング」** テンプ
 ## 読む順番（新しく入った人向け）
 
 ```
+0. docs/ops/FIRST_HOUR.md           まず動かす（1時間）
 1. docs/ops/GETTING_STARTED.md      環境を作る
 2. docs/ops/GIT_GUIDE.md            Git が初めてなら
 3. docs/ops/GETTING_STARTED_2.md    開発の流れを知る
@@ -130,7 +133,7 @@ GitHub の **Issues → New issue → 「オンボーディング」** テンプ
 pnpm site        # 生成 → docs/site/index.html をブラウザで開く
 ```
 
-113 パッケージ・465 API・ER 図・ADR・各アプリの画面/API を**検索**できます。`main` に push すると GitHub Pages に自動公開されます。
+114 パッケージ・465 API・ER 図・ADR・各アプリの画面/API を**検索**できます。`main` に push すると GitHub Pages に自動公開されます。
 
 ---
 

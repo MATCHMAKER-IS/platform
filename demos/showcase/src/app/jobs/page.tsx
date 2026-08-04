@@ -3,11 +3,11 @@
 import * as React from "react";
 import { Button } from "@platform/ui";
 import { CronDemo } from "./cron-demo";
-import { JobsQueueDemo } from "./queue-demo";
+import { JobsDemo } from "./jobs-demo";
 
 const TABS = [
   { id: "cron", label: "定期実行（cron）", Comp: CronDemo },
-  { id: "queue", label: "ジョブキュー", Comp: JobsQueueDemo },
+  { id: "queue", label: "ジョブキュー", Comp: JobsDemo },
 ] as const;
 
 export default function Page() {

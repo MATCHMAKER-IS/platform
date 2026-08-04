@@ -16,7 +16,7 @@ export function LanguageSwitcher({ fetchImpl, onChange }: { fetchImpl?: typeof f
   if (!data) return null;
   return (
     <Select
-      value={data.locale} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => void load(e.target.value)} className="rounded border border-neutral-300 px-2 py-1 text-xs" aria-label="言語"
+      value={data.locale} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => void load(e.target.value)} className="rounded border border-[var(--color-border)] px-2 py-1 text-xs" aria-label="言語"
       options={[
         ...data.locales.map((l) => ({ label: l.label, value: String(l.code) })),
       ]}

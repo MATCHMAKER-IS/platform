@@ -30,7 +30,7 @@ function collectPackages() {
     let summary = "";
     const readme = path.join(pkgDir, name, "README.md");
     if (existsSync(readme)) {
-      const lines = readFileSync(readme, "utf8").split("\n").map((l) => l.trim()).filter(Boolean);
+      const lines = readFileSync(readme, "utf8").replace(/\r\n/g, "\n").split("\n").map((l) => l.trim()).filter(Boolean);
       summary = lines.find((l) => !l.startsWith("#")) ?? "";
     }
     const exportsList = (apiRef[full] ?? []).map((e) => ({
@@ -52,7 +52,7 @@ function collectPackages() {
 function loadDepGraphMermaid() {
   const f = path.join(ROOT, "docs/platform/depgraph.md");
   if (!existsSync(f)) return "";
-  const m = readFileSync(f, "utf8").match(/```mermaid\n([\s\S]*?)```/);
+  const m = readFileSync(f, "utf8").replace(/\r\n/g, "\n").match(/```mermaid\n([\s\S]*?)```/);
   return m ? m[1].trim() : "";
 }
 
@@ -87,7 +87,7 @@ function collectErds() {
   const erds = [];
   for (const file of readdirSync(dir).filter((f) => f.endsWith(".md"))) {
     const name = file.replace(/\.md$/, "");
-    const body = readFileSync(path.join(dir, file), "utf8");
+    const body = readFileSync(path.join(dir, file), "utf8").replace(/\r\n/g, "\n");
     const m = body.match(/```mermaid\n([\s\S]*?)```/);
     if (m) erds.push({ name, mermaid: m[1].trim() });
   }
@@ -100,7 +100,7 @@ function collectAdrs() {
   if (!existsSync(dir)) return [];
   const adrs = [];
   for (const file of readdirSync(dir).filter((f) => /^\d{4}.*\.md$/.test(f)).sort()) {
-    const body = readFileSync(path.join(dir, file), "utf8");
+    const body = readFileSync(path.join(dir, file), "utf8").replace(/\r\n/g, "\n");
     const lines = body.split("\n");
     const title = (lines.find((l) => l.startsWith("# ")) ?? "").replace(/^#\s*/, "").trim();
     const statusLine = lines.find((l) => l.includes("状態:")) ?? "";
@@ -119,7 +119,7 @@ function collectAdrs() {
 function collectThemes() {
   const f = path.join(ROOT, "packages/theme/src/themes.ts");
   if (!existsSync(f)) return [];
-  const src = readFileSync(f, "utf8");
+  const src = readFileSync(f, "utf8").replace(/\r\n/g, "\n");
   const themes = [];
   // export const xxxTheme: Theme = { id: "...", name: "...", description: "...", shape: {...}, modes: { light: { ... } } }
   const blockRe = /export const \w+Theme: Theme = \{([\s\S]*?)\n\};/g;

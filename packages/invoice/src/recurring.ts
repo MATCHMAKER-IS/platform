@@ -91,8 +91,8 @@ export function billingDatesBetween(schedule: RecurringSchedule, from: string, t
  * 復旧時にまとめて処理できる(取りこぼさない)。
  *
  * @param schedule 定期請求の設定
- * @param lastIssuedAt 前回の請求日
- * @param asOf 基準日(テスト注入用)
+ * @param asOf 前回の請求日
+ * @param lastBilled 基準日(テスト注入用)
  * @returns 請求すべきなら true
  */
 export function dueForBilling(schedule: RecurringSchedule, asOf: string, lastBilled?: string): boolean {

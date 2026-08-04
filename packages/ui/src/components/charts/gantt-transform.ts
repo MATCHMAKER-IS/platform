@@ -30,7 +30,6 @@ const ms = (v: number | Date): number => (v instanceof Date ? v.getTime() : v);
  * タスク配列を、共通の最小時刻を基準としたオフセット+期間に変換する。
  *
  * @param tasks タスクの配列
- * @param range 表示する期間
  */
 export function toGanttRows(tasks: GanttTask[]): { rows: GanttRow[]; min: number; max: number } {
   if (tasks.length === 0) return { rows: [], min: 0, max: 0 };

@@ -78,7 +78,7 @@ export interface AnnouncementStore {
 /**
  * お知らせストアのメモリ実装(開発・テスト用)。
  *
- * @param seed 初期データ
+ * @param genId 初期データ
  * @returns お知らせストア(再起動で消える)
  */
 export function createMemoryAnnouncementStore(genId: () => string = () => `ann_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`): AnnouncementStore {

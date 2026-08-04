@@ -51,7 +51,7 @@ export interface Repository<T> {
  * await users.remove(id);                        // deletedAt をセット(ソフト削除)
  * ```
  *
- * @param model Prisma のモデル
+ * @param delegate Prisma のモデル
  * @param options.toDomain / toRow ドメインと行の変換
  * @returns リポジトリ(**Prisma の型をアプリに漏らさない**)
  */

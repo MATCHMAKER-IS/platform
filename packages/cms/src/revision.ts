@@ -28,7 +28,6 @@ export interface Revision {
  * 誤って消した内容を戻すこともできる。
  *
  * @param post 記事
- * @param editor 編集者
  * @returns リビジョンのスナップショット
  */
 export function snapshotOf(post: CmsPost): Omit<Revision, "id" | "postSlug" | "version" | "savedBy" | "savedAt"> {

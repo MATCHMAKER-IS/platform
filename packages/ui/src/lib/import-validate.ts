@@ -40,7 +40,7 @@ function isNumberLike(s: string): boolean {
  * 利用者は全部見直すことになる)。
  *
  * @param rows 取り込む行
- * @param rules 検証ルール
+ * @param fields 検証ルール
  * @returns 行・セル単位のエラー
  */
 export function validateImportRows(rows: Record<string, unknown>[], fields: ImportField[]): ImportValidation {
@@ -76,7 +76,7 @@ export function validateImportRows(rows: Record<string, unknown>[], fields: Impo
  * **エラーをセルの位置に表示する**ため。一覧の下にまとめて出すより、
  * 該当セルを赤くする方が直せる。
  *
- * @param errors 検証結果
+ * @param validation 検証結果
  * @returns `(row, key)` → エラーメッセージ を返す関数
  */
 export function cellErrorLookup(validation: ImportValidation): (rowIndex: number, key: string) => string | null {
@@ -88,7 +88,7 @@ export function cellErrorLookup(validation: ImportValidation): (rowIndex: number
 /**
  * エラーを含む行のインデックスを返す。
  *
- * @param errors 検証結果
+ * @param validation 検証結果
  * @returns 行インデックスの配列(**重複なし・昇順**)
  */
 export function errorRowIndices(validation: ImportValidation): number[] {
@@ -101,7 +101,7 @@ export function errorRowIndices(validation: ImportValidation): number[] {
  * **元インデックスを付ける**(「3 行目を直して」と伝えるため。抽出後の番号では通じない)。
  *
  * @param rows 全行
- * @param errors 検証結果
+ * @param validation 検証結果
  * @returns エラー行と元インデックス
  */
 export function filterErrorRows<T>(rows: T[], validation: ImportValidation): { row: T; index: number }[] {
@@ -115,8 +115,8 @@ export interface ImportSummary { total: number; valid: number; errorRows: number
 /**
  * 検証結果の要約を作る。
  *
- * @param rows 全行
- * @param errors 検証結果
+ * @param validation.rows 全行
+ * @param validation.errors 検証結果
  * @returns 総数・有効・無効の件数
  */
 export function summarizeImport(validation: ImportValidation): ImportSummary {
@@ -176,7 +176,7 @@ export function buildImportHistory(
  * **挿入があり、まだロールバックしていない**ときだけ。二重に取り消すと、
  * 別の取り込みで入れたデータまで消える。
  *
- * @param history 履歴行
+ * @param status 履歴行
  * @returns ロールバックできれば true
  */
 export function canRollback(status: ImportHistoryRow["status"]): boolean {
@@ -203,7 +203,7 @@ export function canRollbackWith(status: ImportHistoryRow["status"], actorRoles: 
  * **1 行の不備で全体を止めない**(100 件中 1 件が悪いだけで全部やり直しは現実的でない)。
  *
  * @param rows 全行
- * @param errors 検証結果
+ * @param validation 検証結果
  * @returns 有効な行
  */
 export function validRows<T>(rows: T[], validation: ImportValidation): T[] {
@@ -217,7 +217,7 @@ export function validRows<T>(rows: T[], validation: ImportValidation): T[] {
  * **有効な分は保存し、無効な分は直してもらう**という流れに使う。
  *
  * @param rows 全行
- * @param errors 検証結果
+ * @param validation 検証結果
  * @returns 有効行と無効行(**それぞれ元インデックス付き**)
  */
 export function partitionRows<T>(rows: T[], validation: ImportValidation): { valid: { row: T; index: number }[]; invalid: { row: T; index: number }[] } {

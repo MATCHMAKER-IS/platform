@@ -32,7 +32,6 @@ export interface ScheduledReminder {
  *
  * @param bookingAt 予約日時
  * @param rules ルール(何分前に送るか)
- * @param now 現在時刻(テスト注入用)
  * @returns 発火予定(**発火時刻の昇順**)
  */
 export function reminderSchedule(bookingAt: string | Date, rules: ReminderRule[]): ScheduledReminder[] {
@@ -49,7 +48,7 @@ export function reminderSchedule(bookingAt: string | Date, rules: ReminderRule[]
  * このキーで送信済みを判定する)。
  *
  * @param bookingId 予約
- * @param minutesBefore 何分前か
+ * @param reminder 何分前か
  * @returns 一意キー
  */
 export function reminderKey(bookingId: string, reminder: { channel: ReminderChannel; beforeMinutes: number }): string {
@@ -87,7 +86,7 @@ export type ReminderTiming = "day_before" | "same_day" | "soon";
  *
  * **文面を変える**のに使う(前日と 1 時間前では、伝えるべきことが違う)。
  *
- * @param minutesBefore 何分前か
+ * @param beforeMinutes 何分前か
  * @returns 区分(`day-before` / `hours-before` / `soon`)
  */
 export function reminderTiming(beforeMinutes: number): ReminderTiming {
@@ -99,8 +98,10 @@ export function reminderTiming(beforeMinutes: number): ReminderTiming {
 /**
  * リマインダーの本文を組み立てる(日本語)。
  *
- * @param booking 予約
- * @param minutesBefore 何分前か
+ * @param input.bookingAt 予約日時
+ * @param input.beforeMinutes 何分前の通知か
+ * @param input.customerName 宛名(任意)
+ * @param input.place 場所(任意)
  * @returns 本文(**区分に応じて文面を変える**)
  */
 export function reminderMessage(input: {

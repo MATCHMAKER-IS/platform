@@ -15,7 +15,7 @@ export const PREFECTURES = [
 /**
  * 全角カタカナ(長音符・スペース含む)のみか。
  *
- * @param input 判定する文字列
+ * @param s 判定する文字列
  * @returns 全角カタカナ(と長音・空白)だけなら true
  */
 export function isKatakana(s: string): boolean {
@@ -25,7 +25,7 @@ export function isKatakana(s: string): boolean {
 /**
  * 全角ひらがな(長音符・スペース含む)のみか。
  *
- * @param input 判定する文字列
+ * @param s 判定する文字列
  * @returns ひらがな(と長音・空白)だけなら true
  */
 export function isHiragana(s: string): boolean {
@@ -53,7 +53,7 @@ export function computeMyNumberCheckDigit(first11: string): number {
 /**
  * マイナンバー(12 桁 + チェックディジット)が妥当か。
  *
- * @param input マイナンバー(12 桁)
+ * @param s マイナンバー(12 桁)
  * @returns 桁数とチェックディジットが正しければ true。**マイナンバーはログに残さないこと**
  */
 export function isValidMyNumber(s: string): boolean {
@@ -80,7 +80,7 @@ export function computeCorporateCheckDigit(last12: string): number {
 /**
  * 法人番号(13 桁、先頭がチェックディジット)が妥当か。
  *
- * @param input 法人番号(13 桁)
+ * @param s 法人番号(13 桁)
  * @returns 桁数とチェックディジットが正しければ true
  */
 export function isValidCorporateNumber(s: string): boolean {
@@ -91,7 +91,7 @@ export function isValidCorporateNumber(s: string): boolean {
 /**
  * 半角カタカナ(ﾊﾝｶｸ)のみか。
  *
- * @param input 判定する文字列
+ * @param s 判定する文字列
  * @returns 半角カナが含まれていれば true(**銀行振込のデータで使う**)
  */
 export function isHalfWidthKana(s: string): boolean {

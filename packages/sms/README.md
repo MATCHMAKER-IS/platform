@@ -23,3 +23,16 @@ buildOtpSms({ to: "+819012345678", code: "123456", appName: "社内システム"
 ```
 `template`(`{code}` / `{app}` / `{minutes}`)で文面を上書きできます。文字数・分割数は `smsInfo` で確認できます。
 
+
+## ブラウザから使う入口(`@platform/sms/browser`)
+
+バレル(`@platform/sms`)は **Twilio SDK** を読み込みます。Twilio は `fs` / `net` / `tls`
+を使うため、`"use client"` から import すると **`next build` が落ちます**。
+
+```tsx
+"use client";
+import { createSms, createMemoryTransport, smsInfo } from "@platform/sms/browser";
+```
+
+含むもの: 送信の組み立て・文字数計算・メモリ実装(**呼び出し方は Twilio でも同じ**)。
+含まないもの: `createTwilioTransport`(サーバ専用)。

@@ -2,6 +2,7 @@
  * レイアウト保存アダプタ。localStorage 実装と、DB 用の非同期ストアインターフェイス。
  * @packageDocumentation
  */
+import { createWebStorage } from "@platform/web-storage";
 import type { DashboardLayout } from "./layout";
 
 /** レイアウトの保存先。load/save のみ(同期・非同期どちらも可)。 */
@@ -18,18 +19,18 @@ export interface LayoutStore {
  * @returns ストア。**端末ごとの設定**(別の PC では引き継がれない)
  */
 export function createLocalStorageLayoutStore(key: string): LayoutStore {
+  // 保存の作法(サーバ側での不在・容量超過・壊れた JSON)は
+  // **@platform/web-storage に集約**してある。ここで書き直さない
+  const store = createWebStorage<DashboardLayout | null>({
+    key,
+    fallback: null,
+    namespace: "ui",
+  });
   return {
-    load() {
-      if (typeof localStorage === "undefined") return null;
-      try {
-        const raw = localStorage.getItem(key);
-        return raw ? (JSON.parse(raw) as DashboardLayout) : null;
-      } catch { return null; }
-    },
-    save(layout) {
-      if (typeof localStorage === "undefined") return;
-      try { localStorage.setItem(key, JSON.stringify(layout)); } catch { /* 容量超過等は無視 */ }
-    },
+    load: () => store.get(),
+    // 保存できなくても画面は続ける(レイアウトは失っても業務が止まらない)。
+    // **利用者に伝えたい場面では `createWebStorage` を直接使い、Result を見ること**
+    save: (layout) => { store.set(layout); },
   };
 }
 

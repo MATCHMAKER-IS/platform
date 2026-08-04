@@ -6,8 +6,8 @@
 /**
  * 支払期限を求める(発行日からの日数)。
  *
- * @param issuedAt 発行日
- * @param days 日数
+ * @param issueDate 発行日
+ * @param termDays 日数
  * @returns 支払期限
  */
 export function dueDateFrom(issueDate: string | Date, termDays: number): string {
@@ -23,7 +23,7 @@ export function dueDateFrom(issueDate: string | Date, termDays: number): string 
  *
  * **日本の商習慣で最も多い支払条件**。
  *
- * @param date 基準日
+ * @param issueDate 基準日
  * @returns 翌月末の日付
  */
 export function endOfNextMonth(issueDate: string | Date): string {
@@ -41,7 +41,7 @@ export type PaymentStatus = "draft" | "issued" | "paid" | "overdue" | "cancelled
  * 入金状況から状態を判定する。
  *
  * @param invoice 請求書
- * @param payments 入金の配列
+ * @param now 入金の配列
  * @returns `unpaid` / `partial` / `paid` / `overpaid`(**過入金も検出する**。
  *   放置すると返金漏れになる)
  */
@@ -61,8 +61,8 @@ export function paymentStatus(
 /**
  * 未収残高を返す。
  *
- * @param invoice 請求書
- * @param payments 入金の配列
+ * @param total 請求書
+ * @param paidAmount 入金の配列
  * @returns 残高(**過入金ならマイナス**)
  */
 export function balanceDue(total: number, paidAmount: number): number {
@@ -72,7 +72,7 @@ export function balanceDue(total: number, paidAmount: number): number {
 /**
  * 支払期限までの日数を返す。
  *
- * @param invoice 請求書
+ * @param dueDate 請求書
  * @param now 基準日(テスト注入用)
  * @returns 残り日数(**過ぎていれば負**)
  */

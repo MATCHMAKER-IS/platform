@@ -20,6 +20,7 @@
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { collectPackageSurface } from "./lib/package-surface.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SURFACE = path.join(ROOT, "docs/platform/api-surface.json");
@@ -31,8 +32,53 @@ if (!existsSync(SURFACE)) {
 
 const surface = JSON.parse(readFileSync(SURFACE, "utf8"));
 
-/** import { A, B as C, type D } from "@platform/xxx" */
-const IMPORT = /import\s+(?:type\s+)?\{([^}]+)\}\s*from\s*["'](@platform\/[a-z0-9-]+)["']/g;
+/**
+ * **名前を数え切れないパッケージ**。検査から外す。
+ *
+ * `@platform/ui/icons` は `export * from "lucide-react"` で外部を丸ごと
+ * 再 export しており、記録に名前が載らない。そのまま検査すると
+ * **実在する `import { Home } from "@platform/ui/icons"` を「存在しない」と
+ * 報告する**(誤検知は検査そのものを信用されなくする)。
+ */
+const INCOMPLETE = new Set();
+for (const dir of readdirSync(path.join(ROOT, "packages"), { withFileTypes: true })) {
+  if (!dir.isDirectory()) continue;
+  const pkgPath = path.join(ROOT, "packages", dir.name, "package.json");
+  if (!existsSync(pkgPath)) continue;
+  const pkgJson = JSON.parse(readFileSync(pkgPath, "utf8"));
+  const s = collectPackageSurface(path.join(ROOT, "packages", dir.name), pkgJson);
+  if (s !== null && !s.complete) INCOMPLETE.add(pkgJson.name);
+}
+
+/**
+ * コメントを空白に置き換える。
+ *
+ * TSDoc の `@example` には `import { Home } from "@platform/ui/icons";` のような
+ * **使用例**が書いてある。取り除かずに走査すると、説明のためのコードを
+ * 実際の import と取り違える(実際に 2 件を誤検知した)。
+ * 長さを保つために同じ字数の空白へ置き換える。
+ */
+function stripComments(src) {
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .replace(/(^|[^:])\/\/[^\n]*/g, (m, p1) => p1 + " ".repeat(m.length - p1.length));
+}
+
+/**
+ * import { A, B as C, type D } from "@platform/xxx"(サブパスも拾う)。
+ *
+ * `@platform/db/tunnel` のようなサブパスも対象にする。
+ * 以前はサブパスを正規表現から外していたが、api-surface が
+ * **サブパスの export も記録するようになった**ので検証できる
+ * (それまでは 13 パッケージのサブパス import が丸ごと未検査だった)。
+ */
+const IMPORT = /import\s+(?:type\s+)?\{([^}]+)\}\s*from\s*["'](@platform\/[a-z0-9-]+(?:\/[a-z0-9./-]+)?)["']/g;
+
+/** `@platform/db/tunnel` → `@platform/db`(記録はパッケージ単位のため)。 */
+function packageOf(specifier) {
+  const parts = specifier.split("/");
+  return `${parts[0]}/${parts[1]}`;
+}
 
 function collect(dir, out = []) {
   if (!existsSync(dir)) return out;
@@ -57,13 +103,17 @@ let checked = 0;
 
 for (const f of files) {
   const rel = path.relative(ROOT, f).replace(/\\/g, "/");
-  const body = readFileSync(f, "utf8");
+  const body = stripComments(readFileSync(f, "utf8"));
 
   for (const m of body.matchAll(IMPORT)) {
-    const pkg = m[2];
-    // サブパス(@platform/net/browser 等)は surface が持たないので対象外
+    const specifier = m[2];
+    const pkg = packageOf(specifier);
+    // 記録に無いパッケージ(@platform/config のようにランタイムコードを
+    // 持たないもの)は対象外
     const exported = surface[pkg];
     if (!exported) continue;
+    // 名前を数え切れないパッケージは判定できない(誤検知になる)
+    if (INCOMPLETE.has(pkg)) continue;
 
     const names = m[1]
       .split(",")
@@ -77,7 +127,7 @@ for (const f of files) {
         // どのパッケージにあるかを示す(直す手間を減らす)
         const found = Object.entries(surface).filter(([, v]) => v.includes(n)).map(([k]) => k);
         const hint = found.length > 0 ? ` → ${found.join(" か ")} にあります` : "";
-        issues.push(`${rel}: ${pkg} に ${n} はありません${hint}`);
+        issues.push(`${rel}: ${specifier} に ${n} はありません${hint}`);
       }
     }
   }

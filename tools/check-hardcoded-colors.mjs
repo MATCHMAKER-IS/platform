@@ -51,7 +51,16 @@ function collect(dir, out = []) {
   return out;
 }
 
-const files = collect(path.join(ROOT, "packages/ui/src"));
+// **基盤とアプリを分けて数える。**
+// 基盤(packages/ui)は部品として全画面に影響するので 0 を保つ。
+// アプリ・デモは画面固有の色付けもあるため、上限方式で増やさないことだけを守る。
+// 混ぜて 1 つの上限にすると、アプリで増やした分だけ基盤で増やせてしまう。
+const uiFiles = collect(path.join(ROOT, "packages/ui/src"));
+const appFiles = [
+  ...collect(path.join(ROOT, "apps")),
+  ...collect(path.join(ROOT, "demos")),
+];
+const files = uiFiles;
 const rows = [];
 let total = 0;
 
@@ -64,6 +73,28 @@ for (const f of files) {
   total += hits.length;
 }
 rows.sort((a, b) => b.count - a.count);
+
+// アプリ・デモ側も同じ規則で数える(上限は別に持つ)
+const appRows = [];
+let appTotal = 0;
+for (const f of appFiles) {
+  const base = path.basename(f);
+  if (ALLOW[base]) continue;
+  const hits = readFileSync(f, "utf8").match(COLOR_CLASS) ?? [];
+  if (hits.length === 0) continue;
+  appRows.push({ rel: path.relative(ROOT, f).replace(/\\/g, "/"), count: hits.length, sample: [...new Set(hits)].slice(0, 3) });
+  appTotal += hits.length;
+}
+appRows.sort((a, b) => b.count - a.count);
+
+const APP_LIMIT_FILE = new URL("./hardcoded-colors-app-limit.json", import.meta.url);
+function readAppLimit() {
+  try {
+    return JSON.parse(readFileSync(APP_LIMIT_FILE, "utf8")).limit ?? Number.MAX_SAFE_INTEGER;
+  } catch {
+    return Number.MAX_SAFE_INTEGER;
+  }
+}
 
 function readLimit() {
   try {
@@ -79,12 +110,21 @@ if (process.argv.includes("--set-limit")) {
     limit: total,
     updatedAt: new Date().toISOString().slice(0, 10),
   }, null, 2)}\n`);
-  console.log(`✅ 上限を ${total} に更新しました`);
+  writeFileSync(APP_LIMIT_FILE, `${JSON.stringify({
+    _comment: "アプリ・デモの中に直書きされた色クラスの数。基盤(packages/ui)とは別に数える(混ぜるとアプリで増やした分だけ基盤で増やせてしまう)。増やさないことだけを守る。",
+    limit: appTotal,
+    updatedAt: new Date().toISOString().slice(0, 10),
+  }, null, 2)}\n`);
+  console.log(`✅ 上限を更新しました(基盤 ${total} / アプリ ${appTotal})`);
   process.exit(0);
 }
 
 if (process.argv.includes("--list")) {
   for (const r of rows) console.log(`  ${String(r.count).padStart(3)} 箇所  ${r.rel}  (${r.sample.join(", ")})`);
+  if (appRows.length > 0) {
+    console.log("  --- アプリ・デモ ---");
+    for (const r of appRows.slice(0, 20)) console.log(`  ${String(r.count).padStart(3)} 箇所  ${r.rel}  (${r.sample.join(", ")})`);
+  }
 }
 
 const limit = readLimit();
@@ -102,5 +142,25 @@ if (total > 0) {
   process.exit(0);
 }
 
-console.log("✅ UI 部品に直書きされた色はありません");
-process.exit(0);
+const appLimit = readAppLimit();
+if (appTotal > appLimit) {
+  console.log(`❌ アプリ・デモの直書き色が ${appTotal} 箇所に増えました(上限 ${appLimit})。`);
+  console.log("   一覧: node tools/check-hardcoded-colors.mjs --list");
+  process.exitCode = 1;
+} else if (appTotal > 0) {
+  console.log(`⚠ アプリ・デモの直書き色が ${appTotal} 箇所あります(上限 ${appLimit}・${appRows.length} ファイル)`);
+  if (appTotal < appLimit) console.log(`   ${appLimit - appTotal} 箇所減りました。--set-limit で上限を下げてください`);
+}
+
+// **最終行に要約を出す。** preflight は最後の行だけを一覧に載せるので、
+// ここでアプリ側の状況も伝えないと警告が埋もれる。
+// ただし**上限超過のときは ✅ を出さない**(最終行が緑だと、赤い行が埋もれる)。
+if (process.exitCode === 1) {
+  console.log(`❌ アプリ・デモの直書き色が上限を超えています(${appTotal} > ${appLimit})`);
+} else if (appTotal > 0) {
+  console.log(`✅ UI 部品に直書きされた色はありません(アプリ・デモは ${appTotal} 箇所・上限 ${appLimit})`);
+} else {
+  console.log("✅ 直書きされた色はありません(基盤・アプリとも)");
+}
+// **`process.exit(0)` で終わらない。** exitCode を上書きしてしまい、
+// 上限超過を検出しても呼び出し側は成功と受け取る(実際にそうなっていた)。

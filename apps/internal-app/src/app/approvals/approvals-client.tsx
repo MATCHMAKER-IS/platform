@@ -35,31 +35,31 @@ export function ApprovalsClient({ fetchImpl }: ApprovalsClientProps) {
   return (
     <div className="mx-auto max-w-3xl p-6">
       <h1 className="mb-1 text-2xl font-bold">承認インボックス</h1>
-      <p className="mb-4 text-xs text-neutral-500">発注・請求の承認待ちです。金額に応じて段数が変わります（〜10万:1段、〜50万:2段、それ以上:3段）。各段の担当ロールのみ承認できます。</p>
-      {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      <p className="mb-4 text-xs text-[var(--color-muted)]">発注・請求の承認待ちです。金額に応じて段数が変わります（〜10万:1段、〜50万:2段、それ以上:3段）。各段の担当ロールのみ承認できます。</p>
+      {error && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-danger)]">{error}</p>}
 
-      {pending.length === 0 && <p className="rounded border border-neutral-200 p-6 text-center text-sm text-neutral-500">承認待ちの申請はありません。</p>}
+      {pending.length === 0 && <p className="rounded border border-[var(--color-border)] p-6 text-center text-sm text-[var(--color-muted)]">承認待ちの申請はありません。</p>}
 
       <div className="space-y-3">
         {pending.map((a) => (
-          <div key={`${a.docType}:${a.docNumber}`} className="rounded border border-neutral-200 p-4">
+          <div key={`${a.docType}:${a.docNumber}`} className="rounded border border-[var(--color-border)] p-4">
             <div className="flex items-center justify-between">
               <div>
-                <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs">{DOC_LABEL[a.docType] ?? a.docType}</span>
+                <span className="rounded bg-[var(--color-subtle)] px-1.5 py-0.5 text-xs">{DOC_LABEL[a.docType] ?? a.docType}</span>
                 <span className="ml-2 font-medium">{a.docNumber}</span>
-                <span className="ml-2 text-sm text-neutral-500">{yen(a.amount)}</span>
+                <span className="ml-2 text-sm text-[var(--color-muted)]">{yen(a.amount)}</span>
               </div>
-              <span className="text-xs text-neutral-500">{a.currentStep + 1} / {a.totalSteps} 段目</span>
+              <span className="text-xs text-[var(--color-muted)]">{a.currentStep + 1} / {a.totalSteps} 段目</span>
             </div>
             {a.history.length > 0 && (
-              <div className="mt-2 text-xs text-neutral-500">
+              <div className="mt-2 text-xs text-[var(--color-muted)]">
                 {a.history.map((h, i) => <span key={i} className="mr-3">✓ {h.step}（{h.actor}）</span>)}
               </div>
             )}
             <ApprovalSignaturePanel docType={a.docType} docNumber={a.docNumber} required={a.amount >= 1000000} />
             <div className="mt-3 flex gap-2">
-              <Button onClick={() => decide(a, "approve")} className="rounded bg-neutral-900 px-4 py-1.5 text-sm text-white">承認</Button>
-              <Button onClick={() => decide(a, "reject")} className="rounded border border-red-300 px-4 py-1.5 text-sm text-red-700">却下</Button>
+              <Button onClick={() => decide(a, "approve")} className="rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">承認</Button>
+              <Button onClick={() => decide(a, "reject")} className="rounded border border-[color-mix(in_srgb,var(--color-danger)_40%,transparent)] px-4 py-1.5 text-sm text-[var(--color-danger)]">却下</Button>
             </div>
           </div>
         ))}

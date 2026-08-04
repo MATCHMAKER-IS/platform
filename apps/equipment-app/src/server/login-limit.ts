@@ -12,7 +12,7 @@
  * メモリだとサーバが複数台になった瞬間に、台数分だけ試行できてしまう。
  * @packageDocumentation
  */
-import { createRateLimiter, createMemoryStore, type RateLimiter } from "@platform/ratelimit";
+import { createRateLimiter, createMemoryStore, type RateLimiter } from "@platform/ratelimit/browser";
 
 /** メール単位: 15 分で 5 回まで。 */
 const byEmail: RateLimiter = createRateLimiter({ store: createMemoryStore(), limit: 5, windowSeconds: 15 * 60 });

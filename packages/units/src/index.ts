@@ -58,15 +58,14 @@ export function convertTemperature(value: number, from: TempUnit, to: TempUnit):
 }
 
 /**
- * 換算して指定桁で丸める(表示用)。
+ * 指定桁で丸める(表示用)。
  *
+ * **単位の換算はしない**(換算は `convertLength` などの各関数を使う)。
  * **計算の途中では丸めないこと**(誤差が積み重なる)。表示の直前だけに使う。
  *
  * @param value 値
- * @param from 変換元の単位
- * @param to 変換先の単位
- * @param decimals 小数桁
- * @returns 換算して丸めた値
+ * @param digits 小数桁(既定 2)
+ * @returns 丸めた値
  */
 export function round(value: number, digits = 2): number {
   const f = Math.pow(10, digits);

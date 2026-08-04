@@ -27,9 +27,14 @@ turbo 2.10.5 は **Windows で `0xC0000409`(スタック破壊)により落ち�
 turbo を経由しない代替を用意してある。
 
 ```bash
-pnpm build:no-turbo   # pnpm -r で依存順にビルド（遅いがログが出る）
-pnpm test:no-turbo    # vitest を直接実行
-pnpm dev:no-turbo     # 全アプリを一斉起動（turbo run dev の代替）
+# **これらが既定です。** turbo は Windows で動かないため、
+# pnpm dev / build / test はすべて turbo を通りません（そのまま使えます）
+pnpm build            # 依存順にビルド（遅いがログが出る）
+pnpm test             # vitest を直接実行
+pnpm dev              # 全アプリを一斉起動
+
+# turbo を試したいときだけ（Windows では落ちます）
+pnpm dev:turbo / pnpm build:turbo / pnpm test:turbo
 ```
 
 1 つだけ起動したいときは `--filter` を使う。**画面を見るだけならこちらが軽い。**

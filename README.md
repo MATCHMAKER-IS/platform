@@ -1,6 +1,9 @@
 # 社内基盤プラットフォーム (monorepo)
 
-> **はじめての方へ**: 何も入っていない PC からのセットアップ〜開発〜公開までは
+> **はじめての方へ**: まず **[docs/ops/FIRST_HOUR.md](docs/ops/FIRST_HOUR.md)**(1 枚・1 時間)。
+> 動くところまで行けます。**規約は初日に読まなくて大丈夫です。**
+>
+> 何も入っていない PC からのセットアップ〜開発〜公開までは
 > **[docs/ops/GETTING_STARTED.md](docs/ops/GETTING_STARTED.md)** に全部書いてあります（Windows/Mac 対応）。
 > Git/GitHub が初めてなら **[docs/ops/GIT_GUIDE.md](docs/ops/GIT_GUIDE.md)**、
 > Cursor で開発するなら **[docs/ops/CURSOR_GUIDE.md](docs/ops/CURSOR_GUIDE.md)** も。
@@ -11,7 +14,7 @@
 Node.js + Next.js + PostgreSQL による社内アプリ基盤(内製プラットフォーム)。
 
 社内で作る業務アプリが共通して必要とする機能——DB アクセス、認証、外部 SaaS 連携、
-帳票、通知、耐障害性など——を **113 の再利用可能なパッケージ**として提供します。
+帳票、通知、耐障害性など——を **114 の再利用可能なパッケージ**として提供します。
 アプリ開発者は業務ロジックの実装に集中でき、共通処理の再発明・属人化・ブラックボックス化を防ぎます。
 
 **設計の背骨は「基盤(`packages/`)とアプリ(`apps/`)の分離」**です。
@@ -21,9 +24,20 @@ Node.js + Next.js + PostgreSQL による社内アプリ基盤(内製プラット
 ## クイックスタート
 
 ```bash
-bash scripts/setup.sh    # Windows: .\scripts\setup.ps1
-pnpm dev                 # 全アプリ起動(3000〜3005)
+bash scripts/setup.sh          # Windows: .\scripts\setup.ps1
+
+# まずは「動く実例集」を見るのがおすすめ（DB もログインも要りません）
+pnpm dev:demos                 # → http://localhost:3001
 ```
+
+**次に何を見るか**は目的で選べます。
+
+| やりたいこと | コマンド | URL |
+|---|---|---|
+| 基盤に何があるか知る | `pnpm dev:demos` | http://localhost:3001 |
+| 社内アプリを触る（DB が要ります）| `pnpm dev:internal` | http://localhost:3000 |
+| 新しいアプリの雛形を見る | `pnpm dev:crud` | http://localhost:3002 |
+| 全部まとめて起動する | `pnpm dev` | 3000〜3006 |
 
 前提: Node.js 22+ / Docker Desktop(pnpm は corepack が自動)。VS Code / Codespaces なら **「Reopen in Container」** でも開始できます(`.devcontainer` 同梱)。
 
@@ -45,7 +59,7 @@ pnpm dev                 # 全アプリ起動(3000〜3005)
 ```
 apps/internal-app     # 社内アプリ本体（業務ロジックはここ）
 demos/showcase        # 基盤の使い方を示すデモ
-packages/             # 基盤 113 パッケージ（下記）
+packages/             # 基盤 114 パッケージ（下記）
 
 # 基礎・共通規約
   core          エラー規約・Result 型（土台）
@@ -178,7 +192,7 @@ docs/apps             # アプリドキュメント（読者: アプリ開発者
 corepack enable
 pnpm install
 cp .env.example .env
-docker compose up -d          # PostgreSQL + Mailpit を起動
+pnpm db:up                    # PostgreSQL + Mailpit を起動（検索・キャッシュは含まない）
 pnpm --filter @platform/db db:migrate
 pnpm dev                      # アプリを起動（http://localhost:3000）
 ```

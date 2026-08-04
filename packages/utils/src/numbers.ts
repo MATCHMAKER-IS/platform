@@ -670,7 +670,7 @@ export interface HistogramOptions { bins?: number; min?: number; max?: number }
  * 度数分布(ヒストグラム)を作る。
  *
  * @param values 対象の値
- * @param binCount 区間の数(既定は `ceil(√n)`。データ数に応じた無難な値)
+ * @param options 区間の数(既定は `ceil(√n)`。データ数に応じた無難な値)
  * @returns 各区間の範囲と件数。**区間は `[start, end)`**(最終区間だけ end を含む。
  *   そうしないと最大値がどこにも入らない)
  */
@@ -718,8 +718,8 @@ export interface FormatRangeOptions { separator?: string; decimals?: number; pre
 /**
  * 範囲を整形する。
  *
- * @param min 下限
- * @param max 上限
+ * @param a 下限
+ * @param b 上限
  * @param options {@link formatNumber} のオプション
  * @returns `"1,000〜2,000"` 形式
  */
@@ -811,7 +811,7 @@ export function linearRegressionXY(xs: readonly number[], ys: readonly number[])
  *
  * 時系列(日次の売上など)の傾向を見るのに使う。
  *
- * @param values 対象の値(**時系列の順に並んでいること**)
+ * @param ys 対象の値(**時系列の順に並んでいること**)
  * @returns 傾き・切片・R²
  */
 export function linearRegression(ys: readonly number[]): LinearFit {
@@ -823,7 +823,7 @@ export function linearRegression(ys: readonly number[]): LinearFit {
  *
  * **外挿は慎重に**(データの範囲外を予測すると外れやすい)。
  *
- * @param model {@link linearRegression} の結果
+ * @param fit {@link linearRegression} の結果
  * @param x 予測したい位置
  * @returns 予測値
  */
@@ -837,7 +837,7 @@ export type TrendDirection = "up" | "down" | "flat";
 /**
  * 傾きからトレンド(上昇/横ばい/下降)を判定する。
  *
- * @param model {@link linearRegression} の結果
+ * @param values {@link linearRegression} の結果
  * @param threshold 「横ばい」とみなす傾きの幅(既定 0)。**データの単位に合わせて決める**
  *   (売上なら 1000 円、率なら 0.01 など。0 のままだと僅かな傾きでも上昇/下降になる)
  * @returns `"up"` / `"flat"` / `"down"`
@@ -925,7 +925,7 @@ export interface RegressionBandOptions { level?: number; kind?: "confidence" | "
  * @param xs x の値
  * @param ys y の値
  * @param x0 予測したい位置
- * @param confidence 信頼水準(既定 0.95)
+ * @param options 信頼水準(既定 0.95)
  * @returns 予測値と下限・上限。**データが 3 点未満なら点推定のみ**(区間を出せない)
  */
 export function regressionInterval(xs: readonly number[], ys: readonly number[], x0: number, options: RegressionBandOptions = {}): RegressionInterval {

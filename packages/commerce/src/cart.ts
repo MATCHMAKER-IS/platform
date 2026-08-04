@@ -47,7 +47,7 @@ export function emptyCart(): Cart {
  * カート内の明細を探す。
  *
  * @param cart カート
- * @param variantId 商品バリアント
+ * @param productId 商品バリアント
  * @returns 明細。**無ければ undefined**
  */
 export function findCartItem(cart: Cart, productId: string): CartItem | undefined {
@@ -78,7 +78,7 @@ export function addToCart(cart: Cart, item: AddToCartInput): Cart {
  * **0 以下なら明細ごと削除**(「0 個」の明細を残さない)。
  *
  * @param cart カート
- * @param variantId 商品バリアント
+ * @param productId 商品バリアント
  * @param quantity 数量
  * @returns 更新した**新しいカート**(元は変更しない)
  */
@@ -91,8 +91,8 @@ export function setQuantity(cart: Cart, productId: string, quantity: number): Ca
  * 数量を増やす。
  *
  * @param cart カート
- * @param variantId 商品バリアント
- * @param delta 増やす数(既定 1)
+ * @param productId 商品バリアント
+ * @param by 増やす数(既定 1)
  * @returns 更新した新しいカート
  */
 export function incrementQuantity(cart: Cart, productId: string, by = 1): Cart {
@@ -106,8 +106,8 @@ export function incrementQuantity(cart: Cart, productId: string, by = 1): Cart {
  * **0 以下になれば削除**。
  *
  * @param cart カート
- * @param variantId 商品バリアント
- * @param delta 減らす数(既定 1)
+ * @param productId 商品バリアント
+ * @param by 減らす数(既定 1)
  * @returns 更新した新しいカート
  */
 export function decrementQuantity(cart: Cart, productId: string, by = 1): Cart {
@@ -119,7 +119,7 @@ export function decrementQuantity(cart: Cart, productId: string, by = 1): Cart {
  * 明細を削除する。
  *
  * @param cart カート
- * @param variantId 商品バリアント
+ * @param productId 商品バリアント
  * @returns 更新した新しいカート
  */
 export function removeFromCart(cart: Cart, productId: string): Cart {
@@ -129,7 +129,6 @@ export function removeFromCart(cart: Cart, productId: string): Cart {
 /**
  * カートを空にする。
  *
- * @param cart カート
  * @returns 空のカート
  */
 export function clearCart(): Cart {
@@ -195,8 +194,8 @@ export function isCartEmpty(cart: Cart): boolean {
  * 2 つのカートを統合する(ゲストカート + ログイン後のカートなど)。
  * 同一商品は数量を加算する。base の並び順を保ち、base に無い商品を追加。
  *
- * @param guest 未ログイン時のカート
- * @param user ログイン後のカート
+ * @param base 未ログイン時のカート
+ * @param incoming ログイン後のカート
  * @returns 統合したカート(**ログイン時に使う**。同じ商品は数量を合算)
  */
 export function mergeCarts(base: Cart, incoming: Cart): Cart {

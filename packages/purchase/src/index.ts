@@ -4,3 +4,4 @@
  */
 export * from "./purchase-order";
 export * from "./receiving";
+export * from "./three-way-match";

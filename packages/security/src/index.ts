@@ -4,6 +4,6 @@
  * @packageDocumentation
  */
 export { securityHeaders, type SecurityHeadersOptions } from "./headers";
-export { sanitize, stripHtml } from "./sanitize";
+export { sanitize, sanitizeEmbed, stripHtml } from "./sanitize";
 export { createCsrf, assertCsrf, CSRF_COOKIE, CSRF_HEADER, type Csrf } from "./csrf";
 export { createReplayGuard, createMemoryReplayStore, type ReplayGuard, type ReplayStore, type ReplayGuardOptions, type MemoryReplayStoreOptions } from "./replay";

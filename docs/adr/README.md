@@ -23,3 +23,4 @@
 | [0017](0017-access-review.md) | 権限は付けたら終わりにしない(棚卸し・退職時の停止) | 採用 |
 | [0018](0018-data-retention.md) | 保存義務と削除要求が衝突したら保存義務を優先し本人に説明 | 採用 |
 | [0019](0019-jst-calendar-day.md) | 暦日の比較は JST 基準で行う(UTC だと深夜〜朝 9 時が前日になる) | 採用 |
+| [0020](0020-web-storage-package.md) | ブラウザの保存(localStorage)は @platform/web-storage に集約する | 採用 |

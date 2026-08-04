@@ -24,9 +24,9 @@ export interface RankedCast extends Cast {
  * 「評価が高いのか、たまたま 1 件が良かっただけか」を区別する。
  *
  * @param rating そのキャストの平均評価(R)
- * @param count そのキャストの評価件数(v)
- * @param globalAverage 全体の平均評価(C)
- * @param minCount 信頼できるとみなす件数(m)。**これを下回るほど全体平均に寄る**
+ * @param reviewCount そのキャストの評価件数(v)
+ * @param minCount 全体の平均評価(C)
+ * @param globalMean 信頼できるとみなす件数(m)。**これを下回るほど全体平均に寄る**
  * @returns 重み付きスコア
  */
 export function weightedRating(rating: number, reviewCount: number, minCount: number, globalMean: number): number {

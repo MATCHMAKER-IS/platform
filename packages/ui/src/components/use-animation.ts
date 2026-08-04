@@ -45,7 +45,6 @@ export function useTween(from: number, to: number, options: UseTweenOptions = {}
     };
     rafRef.current = raf(tick);
     return () => { if (rafRef.current !== null && caf) caf(rafRef.current); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [from, to, duration, easing]);
 
   return value;

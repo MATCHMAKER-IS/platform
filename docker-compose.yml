@@ -1,5 +1,21 @@
 # ローカル開発用の共通インフラ。
-# `docker compose up -d` で PostgreSQL と MailHog(メール確認用)を起動する。
+#
+#   pnpm db:up      … 開発に必須の db + mailpit だけを起動(既定)
+#   pnpm db:down    … 停止
+#
+# **`docker compose up -d` を引数なしで打たないこと。**
+# 検索(meilisearch)とキャッシュ(redis)まで起動・取得され、
+# **初回に 100MB 以上を余計にダウンロードする**。この 2 つは
+# `profiles` に入れてあるので、既定では起動も取得もされない。
+# 必要になったら次で起動する:
+#
+#   docker compose --profile optional up -d meilisearch
+#   docker compose --profile optional up -d redis
+#
+# 【版を固定している理由】
+# `latest` は日によって中身が変わり、**同じ手順を踏んだ人の環境が揃わない**。
+# 「昨日は動いた」の原因を潰せなくなるので、上げるときは明示的に上げる。
+#
 # 本番(AWS / ConoHa)では同じ Dockerfile でアプリを動かし、DB/メールは
 # マネージド or 別コンテナに差し替える(構成を共通化して選び直せる状態を保つ)。
 services:
@@ -17,14 +33,27 @@ services:
       timeout: 5s
       retries: 5
 
-  mailhog:
-    image: axllent/mailpit:latest
+  # 開発中のメールはここに届く(http://localhost:8025)。実際には送信されない。
+  # サービス名は **image と揃えて mailpit**。以前は mailhog という名前のまま
+  # 中身だけ mailpit に差し替わっており、探すときに混乱した。
+  mailpit:
+    image: axllent/mailpit:v1.30
     ports:
       - "1025:1025"   # SMTP
       - "8025:8025"   # Web UI (http://localhost:8025)
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─────────── ここから下は既定で起動しない(profiles: optional)───────────
+  # 使うのは `@platform/search` / `@platform/cache` を実際に試すときだけ。
+  # 常時起動にすると、全員が初回に 100MB 以上を余計に取得することになる。
 
   meilisearch:
-    image: getmeili/meilisearch:latest
+    image: getmeili/meilisearch:v1.40
+    profiles: ["optional"]
     environment:
       MEILI_MASTER_KEY: masterKey
     ports:
@@ -32,6 +61,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    profiles: ["optional"]
     ports:
       - "6379:6379"
 

@@ -42,7 +42,6 @@ export type CreateMessageResult = { ok: true; message: ChatMessage } | { ok: fal
  * メッセージを作成する。
  *
  * @param input 送信者・ルーム・本文など
- * @param now 現在時刻(テスト注入用)
  * @returns 作成したメッセージ
  * @throws {@link @platform/core#AppError} コード `VALIDATION` — 本文が空・空白のみ・長すぎる場合
  */
@@ -64,8 +63,8 @@ export function createMessage(input: NewMessage): CreateMessageResult {
  * 編集履歴を隠すと、後から内容を書き換えられて揉める。
  *
  * @param message 対象のメッセージ
- * @param body 新しい本文
- * @param now 現在時刻(テスト注入用)
+ * @param newText 新しい本文
+ * @param at 現在時刻(テスト注入用)
  * @returns 編集した**新しい**メッセージ(元は変更しない)
  * @throws {@link @platform/core#AppError} コード `VALIDATION` — 本文が不正な場合
  */
@@ -107,7 +106,7 @@ export function groupByDate(messages: ChatMessage[]): { date: string; messages: 
 /**
  * 本文からメンション(@handle)を抽出する。
  *
- * @param body 本文
+ * @param text 本文
  * @returns ハンドルの配列(**重複は除く**。同じ人を 2 回書いても通知は 1 回)
  */
 export function extractMentions(text: string): string[] {
@@ -130,7 +129,7 @@ export function mentionsOf(messages: ChatMessage[], handle: string): ChatMessage
  * あるメッセージへの返信一覧(スレッド)を返す。
  *
  * @param messages メッセージの配列
- * @param parentId 親メッセージの ID
+ * @param messageId 親メッセージの ID
  * @returns 返信(古い順)
  */
 export function repliesTo(messages: ChatMessage[], messageId: string): ChatMessage[] {

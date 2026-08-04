@@ -8,6 +8,7 @@ import {
   startOfMonth, endOfMonth, dayOfWeek, dayNumber, isHoliday, holidayName, isSameDay, addMonths,
 } from "@platform/datetime";
 import { cn } from "../lib/cn";
+import { weekdayColorClass } from "../lib/schedule";
 
 /** {@link MiniCalendar} の props。 */
 export interface MiniCalendarProps {
@@ -45,14 +46,15 @@ export function MiniCalendar({ month, selected, onSelect, navigable = false, cla
       </div>
       <div className="grid grid-cols-7 gap-0.5 text-center">
         {WEEK_HEAD.map((w, i) => (
-          <div key={w} className={cn("py-1 text-xs font-medium", i === 0 && "text-red-500", i === 6 && "text-blue-500", i > 0 && i < 6 && "text-[var(--color-muted)]")}>{w}</div>
+          <div key={w} className={cn("py-1 text-xs font-medium", i > 0 && i < 6 ? "text-[var(--color-muted)]" : weekdayColorClass(i))}>{w}</div>
         ))}
         {cells.map((d, i) => {
           if (!d) return <div key={i} />;
           const dow = dayOfWeek(d);
           const holiday = isHoliday(d);
           const isSel = selected && isSameDay(d, selected);
-          const color = holiday || dow === 0 ? "text-red-500" : dow === 6 ? "text-blue-500" : "text-[var(--color-fg)]";
+          // 日曜・祝日は赤、土曜は青(基盤の共通判定。直書きしない)
+          const color = weekdayColorClass(dow, Boolean(holiday));
           return (
             <button
               key={i}
@@ -63,7 +65,7 @@ export function MiniCalendar({ month, selected, onSelect, navigable = false, cla
                 "aspect-square rounded tabular-nums hover:bg-[var(--color-muted)]/15",
                 color,
                 isSel && "bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary)]",
-                holiday && !isSel && "bg-red-50",
+                holiday && !isSel && "bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)]",
               )}
             >
               {d.getUTCDate()}

@@ -71,7 +71,7 @@ export function maskPartial(value: string, visibleHead = 1): string {
  * 完全一致検索(例: メールでユーザ検索)ができる。HMAC 鍵は暗号鍵とは別管理を推奨。
  *
  * @param value 索引を作る値
- * @param secret pepper(**環境変数から**)
+ * @param hmacKey pepper(**環境変数から**)
  * @returns 決定的なハッシュ。**暗号化した項目を検索可能にする**(完全一致のみ。部分一致はできない)
  */
 export function blindIndex(value: string, hmacKey: string): string {
@@ -102,7 +102,7 @@ export interface FieldCipher {
  * ただし**暗号化した項目では検索できない**(部分一致も範囲検索も不可)。
  * 検索が要るなら、ハッシュの列を別に持つなどの設計が要る。
  *
- * @param key 暗号鍵(**環境変数から。コードに直書きしない**)
+ * @param deps 暗号鍵(**環境変数から。コードに直書きしない**)
  * @returns 暗号ヘルパー(`encrypt` / `decrypt`)
  */
 export function createFieldCipher(deps: FieldCipherDeps): FieldCipher {

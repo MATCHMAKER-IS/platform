@@ -23,3 +23,25 @@ await streamCsvLines(fileLineIterator, { chunkSize: 500 }, async (rows) => {
   await store.bulkInsert(rows);   // チャンクごとに保存
 });
 ```
+
+## 取り込みの支援(`@platform/csv/import`)
+
+`parseCsv` はテキストを行と列に分けるところまでです。実際の取り込みでは、
+その**手前と後ろ**で問題が起きます。
+
+- **手前**: 相手がくれるファイルが Shift_JIS。UTF-8 として読むと文字化けする
+- **後ろ**: 「1,000」「1000円」「２０２６/８/３」を数値や日付に直す必要がある
+
+```ts
+import { detectEncoding, importRows, errorRowsToCsv } from "@platform/csv/import";
+
+const enc = detectEncoding(bytes);                       // "shift_jis" 等
+const result = importRows(rows, { code: "string", amount: "number", date: "date" });
+// result.valid → 取り込む / result.errors → 利用者に返す
+```
+
+**1 行の誤りで全部止めません。** 1,000 行のうち 3 行が不正なとき、例外で止めると
+997 行の正しいデータも取り込めません。かといって黙って飛ばすと「取り込んだつもりが
+入っていない」ことになります。成功した行と失敗した行を**両方返す**ので、
+「997 行を取り込み、3 行は要確認」と示せます(`errorRowsToCsv` で差し戻し用の
+CSV を作れます)。

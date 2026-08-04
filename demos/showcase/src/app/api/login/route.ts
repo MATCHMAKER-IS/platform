@@ -3,7 +3,7 @@
 import { handleRoute } from "@platform/http";
 import { AppError, ErrorCode } from "@platform/core";
 import { enforceRateLimit } from "@platform/guard";
-import { createRateLimiter, createMemoryStore } from "@platform/ratelimit";
+import { createRateLimiter, createMemoryStore } from "@platform/ratelimit/browser";
 import { session } from "../../../server/session";
 
 // 本番は Redis ストア(createRedisStore)を使う。デモはメモリ。

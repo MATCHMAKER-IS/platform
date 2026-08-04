@@ -29,7 +29,7 @@ export interface AuthorizationUrlInput {
  * @param config.clientId クライアント ID
  * @param config.redirectUri 戻り先の URL(**Zoho 側の設定と完全一致**であること)
  * @param config.scope 要求する権限
- * @param config.dc データセンター
+ * @param config.dataCenter データセンター
  * @param config.state CSRF 対策のトークン
  * @returns 認可 URL
  */
@@ -55,9 +55,7 @@ export interface CodeExchangeResult { accessToken: string; refreshToken?: string
  * **リフレッシュトークンは初回しか返らない**(Zoho の仕様)。
  * 取りこぼすと、利用者にもう一度認可させることになる。**必ず保存すること**。
  *
- * @param code 認可コード
  * @param config クライアント ID・シークレット・redirect_uri・DC
- * @param fetchImpl fetch の実装(テスト注入用)
  * @returns アクセストークン・リフレッシュトークン・api_domain
  */
 export async function exchangeCodeForToken(config: {
@@ -101,9 +99,9 @@ export interface ZohoUserInfo { zuid?: string; email: string; displayName?: stri
 /**
  * アクセストークンでユーザー情報を取得する(ログイン後の本人特定)。
  *
- * @param accessToken アクセストークン
- * @param dc データセンター
- * @param fetchImpl fetch の実装(テスト注入用)
+ * @param config.accessToken アクセストークン
+ * @param config.dc データセンター
+ * @param config.fetchImpl fetch の実装(テスト注入用)
  * @returns メールアドレス・氏名など
  */
 export async function getUserInfo(config: { dataCenter: ZohoDataCenter; accessToken: string; fetchImpl?: typeof fetch }): Promise<{ ok: true; value: ZohoUserInfo } | { ok: false; error: string }> {

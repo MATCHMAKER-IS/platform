@@ -66,7 +66,7 @@ export function TagInput({ value, onChange, placeholder, allowDuplicates = false
           else if (e.key === "Backspace" && text === "" && value.length > 0) onChange(value.slice(0, -1));
         }}
         onBlur={() => add(text)}
-        className="min-w-[6rem] flex-1 bg-transparent px-1 text-sm outline-none"
+        className="min-w-[6rem] flex-1 rounded bg-transparent px-1 text-sm outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-primary)]"
       />
     </div>
   );

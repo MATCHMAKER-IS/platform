@@ -24,8 +24,8 @@ function sign(payload: string, secret: string): string {
  * カテゴリを分ければ「特定の配信種別だけ停止」も表現できる。
  *
  * @param email メールアドレス
- * @param category カテゴリ
- * @param secret 署名鍵
+ * @param secret カテゴリ
+ * @param options 署名鍵
  * @returns トークン(**署名付き**なので改ざんできない)
  */
 export function createUnsubscribeToken(email: string, secret: string, options?: { category?: string }): string {
@@ -74,8 +74,8 @@ export function verifyUnsubscribeToken(token: string, secret: string): Unsubscri
  *
  * @param baseUrl 配信停止ページの URL
  * @param email メールアドレス
- * @param category カテゴリ
- * @param secret 署名鍵
+ * @param secret カテゴリ
+ * @param options 署名鍵
  * @returns 配信停止 URL
  */
 export function unsubscribeUrl(baseUrl: string, email: string, secret: string, options?: { category?: string; param?: string }): string {
@@ -89,7 +89,7 @@ export function unsubscribeUrl(baseUrl: string, email: string, secret: string, o
  * List-Unsubscribe / List-Unsubscribe-Post ヘッダを組み立てる(RFC 2369 / 8058)。
  * mailto と URL を併記でき、oneClick=true でワンクリック配信停止(POST)に対応する。
  *
- * @param url 配信停止 URL
+ * @param options 配信停止 URL
  * @returns `List-Unsubscribe` ヘッダ(**メーラーが『配信停止』ボタンを出す**。本文のリンクより気づかれやすく、
  *   迷惑メール報告を減らせる)
  */

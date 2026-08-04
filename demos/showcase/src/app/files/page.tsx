@@ -5,10 +5,12 @@ import { UsesPackages } from "../../components/uses-packages";
 import { Button } from "@platform/ui";
 import { FilesDemo } from "./files-demo";
 import { ImageDemo } from "./image-demo";
+import { FileTypeDemo } from "./filetype-demo";
 
 const TABS = [
   { id: "files", label: "ファイル入出力", Comp: FilesDemo },
   { id: "image", label: "画像編集", Comp: ImageDemo },
+  { id: "filetype", label: "種別の判定", Comp: FileTypeDemo },
 ] as const;
 
 export default function Page() {

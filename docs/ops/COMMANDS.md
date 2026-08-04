@@ -8,6 +8,7 @@
 |---|---|
 | `pnpm setup` | 開発環境の初期構築（.env・DB・install・スキーマ適用まで） |
 | `pnpm doctor` | 環境診断。Node/pnpm/Docker/.env/生成物 drift を読み取りだけでチェック |
+| `pnpm drill` / `pnpm drill:dry` | **復元訓練**。ダンプ→新しい空 DB へ復元→件数照合まで自動。`:dry` は何をするか見るだけ(DB 不要) |
 | `pnpm fresh` | node_modules を消して再インストール（依存が壊れたとき） |
 | `pnpm clean` | dist / .next / .turbo / node_modules を全削除 |
 | `pnpm clean:build` | ビルド成果物（dist/.next/.turbo）のみ削除。node_modules は残す |
@@ -16,13 +17,14 @@
 
 | コマンド | 説明 | ポート |
 |---|---|---|
-| `pnpm dev` | **全アプリを一斉起動**（ポートは重複しないよう固定済み） | 3000〜3005 |
+| `pnpm dev` | **全アプリを一斉起動**（ポートは重複しないよう固定済み） | 3000〜3006 |
 | `pnpm dev:internal` | 社内アプリ | 3000 |
 | `pnpm dev:demos` | 基盤ショーケース（デモ） | 3001 |
 | `pnpm dev:crud` | CRUD テンプレート | 3002 |
 | `pnpm dev:equipment` | 備品管理 | 3003 |
 | `pnpm dev:site` | 公開サイト | 3004 |
 | `pnpm dev:portal` | 基盤ポータル | 3005 |
+| `pnpm dev:balance` | 残高照会 | 3006 |
 
 > ポートは各アプリの `package.json`（`next dev --port XXXX`）で固定しています。重複や記載漏れは `node tools/check-ports.mjs`（preflight に同梱）が検出します。
 

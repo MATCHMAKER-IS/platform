@@ -59,7 +59,7 @@ function sortByOrder(list: Category[]): Category[] {
 /**
  * カテゴリストアのメモリ実装(開発・テスト用)。
  *
- * @param seed 初期データ
+ * @param genId 初期データ
  * @returns カテゴリストア(再起動で消える)
  */
 export function createMemoryCategoryStore(genId: () => string = () => `cat_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`): CategoryStore {

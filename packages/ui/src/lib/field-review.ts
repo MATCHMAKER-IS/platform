@@ -32,7 +32,7 @@ export function splitByConfidence(fields: ReviewField[], threshold = 70): { revi
  * そのフィールドが要確認か。
  *
  *
- * @param fields 抽出フィールド
+ * @param confidence 抽出フィールド
  * @param threshold しきい値
  * @returns 人が確認すべき項目(**確信度が低いものだけ**。全部を確認させると意味がない)
  */

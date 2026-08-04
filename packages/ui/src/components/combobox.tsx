@@ -84,7 +84,7 @@ export function Combobox({
           <Command>
             <Command.Input
               placeholder={searchPlaceholder ?? t("select.searchPlaceholder")}
-              className="h-9 w-full border-0 border-b border-[var(--color-border)] bg-transparent px-2 text-sm outline-none placeholder:text-[var(--color-muted)]"
+              className="h-9 w-full border-0 border-b border-[var(--color-border)] bg-transparent px-2 text-sm outline-none placeholder:text-[var(--color-muted)] focus-visible:border-[var(--color-primary)]"
             />
             <Command.List className="max-h-60 overflow-auto py-1">
               <Command.Empty className="px-2 py-3 text-center text-sm text-[var(--color-muted)]">

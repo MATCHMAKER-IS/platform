@@ -43,7 +43,13 @@ const interval = Number(d.intervalDays ?? 180);
 const rto = Number(d.rtoMinutes ?? 0);
 
 if (!d.lastDrillAt) {
-  warns.push(`[D002] 復元訓練の記録がありません。バックアップから戻せるかは未検証です → docs/ops/BACKUP_RESTORE.md`);
+  // **何をすればいいかをここに書く。** 資料へ誘導するだけだと、
+  // 開いて 126 行を読む手間が挟まり、また後回しになる
+  warns.push(
+    `[D002] 復元訓練の記録がありません。バックアップから戻せるかは未検証です\n`
+    + `        まず \`pnpm drill:dry\`(何をするか見るだけ・DB 不要)→ \`pnpm drill\`(数分)\n`
+    + `        手順: docs/ops/BACKUP_RESTORE.md`,
+  );
 } else {
   const at = Date.parse(d.lastDrillAt);
   if (Number.isNaN(at)) {

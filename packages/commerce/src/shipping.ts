@@ -54,8 +54,8 @@ export interface WeightTier {
  * 重量から送料を求める(段階制。昇順の tier を上から探す)。
  * どの段階も超える場合は最後の段階の送料。
  *
- * @param weight 重量
- * @param table 重量別の送料表
+ * @param weightGrams 重量
+ * @param tiers 重量別の送料表
  * @returns 送料(**該当する段の料金**)
  */
 export function weightBasedFee(weightGrams: number, tiers: WeightTier[]): number {

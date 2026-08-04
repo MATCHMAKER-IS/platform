@@ -44,10 +44,10 @@ export function Rating({ value, max = 5, onChange, readOnly, size = 20, classNam
           onClick={() => onChange?.(n)}
           onMouseEnter={() => !readOnly && setHover(n)}
           onMouseLeave={() => !readOnly && setHover(null)}
-          className={cn("text-amber-400", !readOnly && "cursor-pointer", readOnly && "cursor-default")}
+          className={cn("text-[color-mix(in_srgb,var(--color-warning)_70%,transparent)]", !readOnly && "cursor-pointer", readOnly && "cursor-default")}
           aria-label={`${n} 点`}
         >
-          <Star width={size} height={size} className={n <= shown ? "fill-amber-400" : "fill-transparent text-[var(--color-muted)]"} />
+          <Star width={size} height={size} className={n <= shown ? "fill-[color-mix(in_srgb,var(--color-warning)_70%,transparent)]" : "fill-transparent text-[var(--color-muted)]"} />
         </button>
       ))}
     </div>

@@ -41,7 +41,7 @@ export interface E164Parts { e164: string; callingCode: string; country: string;
 /**
  * E.164 を解析する。
  *
- * @param e164 E.164 形式
+ * @param input E.164 形式
  * @returns 国番号・国コード・国内番号。**不正なら null**
  */
 export function parseE164(input: string): E164Parts | null {
@@ -62,7 +62,7 @@ export function parseE164(input: string): E164Parts | null {
  * **US と CA は同じ国番号(+1)**なので、区別できない(US を返す)。
  * 厳密に区別するには市外局番の表が要る。
  *
- * @param e164 E.164 形式
+ * @param input E.164 形式
  * @returns ISO の国コード。**不明なら null**
  */
 export function detectCountry(input: string): string | null {
@@ -75,7 +75,7 @@ export function detectCountry(input: string): string | null {
  * **先頭の 0 は自動で除去**する(日本の `090-...` は E.164 では `+8190-...`)。
  * ここを間違えると番号が届かない。
  *
- * @param countryCode 国番号(`81` など)
+ * @param callingCode 国番号(`81` など)
  * @param nationalNumber 国内番号
  * @returns E.164 形式
  */

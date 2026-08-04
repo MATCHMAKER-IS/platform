@@ -95,7 +95,7 @@ export interface FunnelStage {
  * 「どこで落ちているか」が分からない(訪問 1000 → 登録 100 → 購入 90 なら、
  * 問題は登録であって購入ではない)。
  *
- * @param stages 各段の名前と件数
+ * @param steps 各段の名前と件数
  * @returns 全体比・遷移率・離脱数
  */
 export function funnelStages(steps: { label: string; value: number }[]): FunnelStage[] {
@@ -117,8 +117,8 @@ export function funnelStages(steps: { label: string; value: number }[]): FunnelS
  *
  * **古くなったら日付に切り替える**(「300日前」より「2025-09-18」の方が分かる)。
  *
- * @param date 対象の日時
- * @param now 現在時刻(テスト注入用)
+ * @param fromMs 対象の日時
+ * @param nowMs 現在時刻(テスト注入用)
  * @returns `たった今` / `3分前` / `2時間前` / `5日前` / 日付
  */
 export function relativeTime(fromMs: number, nowMs: number = Date.now()): string {

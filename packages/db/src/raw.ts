@@ -178,7 +178,7 @@ export async function rawQuery<T = Record<string, unknown>>(
  * ```
  *
  * @param db Prisma クライアント
- * @param sql SQL(**値は必ずプレースホルダで渡す**。文字列連結は SQL インジェクションを許す)
+ * @param sqlText SQL(**値は必ずプレースホルダで渡す**。文字列連結は SQL インジェクションを許す)
  * @param params パラメータ
  * @returns 影響行数
  */

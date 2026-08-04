@@ -44,8 +44,11 @@ export interface OrderSummary {
  * 外税: 税 = 割引後小計 × 税率、合計 = 割引後小計 + 税 + 送料。
  * 内税: 税 = 割引後小計に含まれる税、合計 = 割引後小計 + 送料。
  *
- * @param cart カート
- * @param options 送料・クーポン・ポイント
+ * @param input.subtotal 小計
+ * @param input.discount 割引額(任意)
+ * @param input.shippingFee 送料(任意)
+ * @param input.taxRate 税率(既定 10)
+ * @param input.taxMode 内税・外税(既定 `exclusive`)
  * @returns 注文の要約(**小計 → 割引 → 送料 → 税 の順で計算**。順序を変えると金額が変わる)
  */
 export function buildOrderSummary(input: OrderSummaryInput): OrderSummary {

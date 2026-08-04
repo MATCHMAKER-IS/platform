@@ -30,7 +30,7 @@ export function trialBalanceSheet(balances: { account: string; debit: number; cr
  *
  * **回収が遅れている債権を見つける**ための表(30日以内・60日・90日超、など)。
  *
- * @param aging 年齢別の残高
+ * @param buckets 年齢別の残高
  * @returns シート(名前 + 行)
  */
 export function agingSheet(buckets: { current: number; d1_30: number; d31_60: number; d61_90: number; over90: number; total: number }): ReportSheet {
@@ -75,7 +75,7 @@ export function inventoryValuationSheet(items: { item: string; onHand: number; a
 /**
  * 複数のシートを 1 つのブックにまとめる。
  *
- * @param sheets シートの配列
+ * @param ...sheets シートの配列
  * @returns ブック。`@platform/xlsx` の `writeWorkbook` に渡せる
  */
 export function combineSheets(...sheets: ReportSheet[]): ReportSheet[] {

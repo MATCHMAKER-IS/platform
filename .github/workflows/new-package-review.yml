@@ -1,0 +1,122 @@
+name: 新しい部品のレビュー
+
+# 新しいパッケージが追加された PR で、**既に同じものが無いか**を確かめる。
+#
+# 【なぜ必要か】
+# この基盤の目的は「同じものを何度も作らない」こと。だが 113 個もあると、
+# **作る人が既存を知らない**まま似たものを足してしまう。レビューする側も
+# 全部は覚えていないので、指摘は運任せになる。
+#
+# `advisor.mjs` は既存パッケージの要約から候補を引ける。新しい部品の名前と
+# 説明でこれを回し、**PR のコメントに候補を出す**。人が判断する材料を、
+# 見落としようのない場所に置くのが狙い。
+#
+# 止めはしない（似ていても別物のことはある）。判断は人がする。
+
+on:
+  pull_request:
+    paths:
+      - "packages/*/package.json"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review-new-package:
+    name: 既存部品との重複を確認
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 差分を見るため履歴が要る
+
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+
+      - name: 追加されたパッケージを検出
+        id: detect
+        run: |
+          BASE="${{ github.event.pull_request.base.sha }}"
+          # **追加(A)のみ**を見る。既存の package.json の変更は対象外
+          ADDED=$(git diff --name-only --diff-filter=A "$BASE" HEAD -- 'packages/*/package.json' || true)
+          if [ -z "$ADDED" ]; then
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "新しいパッケージはありません"
+            exit 0
+          fi
+          echo "found=true" >> "$GITHUB_OUTPUT"
+          {
+            echo "names<<EOF"
+            for f in $ADDED; do basename "$(dirname "$f")"; done
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 既存部品から候補を引く
+        if: steps.detect.outputs.found == 'true'
+        run: |
+          {
+            echo "## 🧩 新しい部品が追加されています"
+            echo ""
+            echo "この基盤の目的は **「同じものを何度も作らない」** ことです。"
+            echo "既存に近いものが無いか、下の候補を確認してください。"
+            echo ""
+          } > review.md
+
+          while IFS= read -r pkg; do
+            [ -z "$pkg" ] && continue
+            DESC=$(node -e "
+              const fs = require('fs');
+              const p = 'packages/$pkg/package.json';
+              const d = JSON.parse(fs.readFileSync(p, 'utf8'));
+              process.stdout.write(d.description ?? '$pkg');
+            " 2>/dev/null || echo "$pkg")
+
+            {
+              echo "### \`@platform/$pkg\`"
+              echo ""
+              echo "> $DESC"
+              echo ""
+              echo '```'
+              # **名前と説明の両方で引く**（片方だけだと拾い漏れる）
+              node tools/advisor.mjs find "$pkg" 2>&1 | head -12
+              echo ""
+              node tools/advisor.mjs find "$DESC" 2>&1 | head -12
+              echo '```'
+              echo ""
+            } >> review.md
+          done <<< "${{ steps.detect.outputs.names }}"
+
+          {
+            echo "---"
+            echo ""
+            echo "**候補が挙がっていても、別物なら問題ありません。** 判断は人がしてください。"
+            echo "近いものがある場合は、次のどれかを選びます:"
+            echo ""
+            echo "- 既存を使う（新しい部品は作らない）"
+            echo "- 既存を拡張する（引数や設定を足す）"
+            echo "- 別物として作る → **なぜ別物か**を README の冒頭に書く"
+            echo ""
+            echo "> このコメントは \`packages/*/package.json\` が**追加された**ときだけ出ます。"
+          } >> review.md
+
+          cat review.md
+
+      - name: PR にコメントする
+        if: steps.detect.outputs.found == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const body = fs.readFileSync("review.md", "utf8");
+            const marker = "## 🧩 新しい部品が追加されています";
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            // 同じ PR で何度も push されたとき、コメントを増やさず更新する
+            const comments = await github.rest.issues.listComments({ owner, repo, issue_number });
+            const mine = comments.data.find((c) => c.body?.startsWith(marker));
+            if (mine) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: mine.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }

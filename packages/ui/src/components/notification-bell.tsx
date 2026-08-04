@@ -85,7 +85,7 @@ export function NotificationBell({ notifications, onNotificationClick, onMarkAll
                   <ul>
                     {groups[g.key].map((n) => {
                       const inner = (
-                        <div className={cn("flex gap-3 px-4 py-3 transition-colors hover:bg-[var(--color-subtle)]", !n.read && "bg-blue-50/50")}>
+                        <div className={cn("flex gap-3 px-4 py-3 transition-colors hover:bg-[var(--color-subtle)]", !n.read && "bg-[color-mix(in_srgb,var(--color-primary)_8%,transparent)]/50")}>
                           {!n.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[var(--color-primary)]" aria-hidden="true" />}
                           <div className={cn("min-w-0 flex-1", n.read && "pl-5")}>
                             <p className="truncate text-sm font-medium text-[var(--color-fg)]">{n.title}</p>

@@ -290,10 +290,7 @@ export { moveCard, countByColumn, type KanbanCardLike, type KanbanColumnLike } f
 
 // ── スケジュール/カレンダー(閲覧用・Google カレンダー風)──
 export { ScheduleCalendar, type ScheduleCalendarProps, type CalendarView } from "./components/schedule-calendar";
-export {
-  buildMonthGrid, eventsForDay, eventIntersectsDay, layoutDayEvents, groupEventsByDay, formatEventTime, formatHourLabel,
-  type CalendarEvent, type PositionedEvent, type MonthCell,
-} from "./lib/schedule";
+export { buildMonthGrid, eventsForDay, eventIntersectsDay, layoutDayEvents, groupEventsByDay, formatEventTime, formatHourLabel, type CalendarEvent, type PositionedEvent, type MonthCell, weekdayColorClass } from "./lib/schedule";
 export { CalendarLegend, type CalendarLegendProps, type CalendarCategory } from "./components/calendar-legend";
 export {
   mergeIntervals, computeBusyIntervals, computeFreeSlots, findAvailableSlots, totalBusyMinutes, nowOffset,
