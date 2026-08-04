@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@platform/core": "workspace:*",
-    "playwright": "^1.49.1"
+    "playwright": "^1.62.1"
   },
   "devDependencies": {
     "@platform/config": "workspace:*",
