@@ -30,7 +30,7 @@
     "@platform/theme": "workspace:*",
     "@platform/utils": "workspace:*",
     "@platform/web-storage": "workspace:*",
-    "@tiptap/core": "^2.11.0",
+    "@tiptap/core": "^3.29.2",
     "@tiptap/extension-color": "^2.11.0",
     "@tiptap/extension-text-style": "^2.11.0",
     "@tiptap/react": "^2.11.0",
