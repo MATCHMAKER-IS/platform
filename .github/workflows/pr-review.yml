@@ -14,7 +14,7 @@ jobs:
   auto-review:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # **履歴を全部取る。** 既定は浅いクローン(depth 1)なので、
           # `git diff origin/main...HEAD` が失敗し、影響範囲を出せない
