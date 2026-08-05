@@ -1,6 +1,6 @@
 # internal-app 画面・API 一覧(自動生成）
 
-> 再生成: `node tools/gen-app-map.mjs internal-app`。画面 80 / API 214。手で編集しない。
+> 再生成: `node tools/gen-app-map.mjs internal-app`。画面 80 / API 215。手で編集しない。
 
 ## 画面(80)
 
@@ -87,7 +87,7 @@
 | `/trend` | 年次推移 |
 | `/withholding` | 源泉徴収・支払調書 |
 
-## API(214)
+## API(215)
 
 | エンドポイント | メソッド |
 |---|---|
@@ -245,6 +245,7 @@
 | `/api/mailbox` | GET |
 | `/api/mailbox/read` | POST |
 | `/api/mailbox/send` | POST |
+| `/api/maintenance-state` | GET |
 | `/api/notifications` | GET |
 | `/api/notifications/digest` | GET, PUT |
 | `/api/notifications/digest-scan` | POST |

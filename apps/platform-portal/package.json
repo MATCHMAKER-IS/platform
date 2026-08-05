@@ -11,6 +11,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@platform/env": "workspace:*",
     "@platform/observability": "workspace:*",
     "@platform/security": "workspace:*",
     "@platform/seo": "workspace:*",

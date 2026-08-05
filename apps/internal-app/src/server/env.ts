@@ -110,6 +110,14 @@ export const featureEnv = {
   ALERT_SLACK_WEBHOOK: optionalEnv("ALERT_SLACK_WEBHOOK"),
   /** Platform Debugger を有効にするか("true" で有効)。**本番では必ず無効にすること**。 */
   DEBUG_TOOL: optionalEnv("DEBUG_TOOL") === "true" && optionalEnv("NODE_ENV") !== "production",
+  /**
+   * **開発専用ログイン**を有効にするか(`/api/auth/dev-login`)。
+   *
+   * このアプリのログインは Zoho SSO だけなので、鍵が無いとローカルで何も試せない。
+   * **明示的に "1" を設定したときだけ**有効(既定は無効)。
+   * 本番では `isProductionRuntime()` 側でも塞いでいる(二重の守り)。
+   */
+  DEV_LOGIN: optionalEnv("DEV_LOGIN") ?? "",
 };
 
 /** チャット等を Prisma で永続化するか。 */

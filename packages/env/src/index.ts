@@ -39,7 +39,13 @@ export function parseEnv<T extends z.ZodTypeAny>(
       path: i.path.join("."),
       message: i.message,
     }));
-    throw new AppError(ErrorCode.CONFIG, "環境変数の検証に失敗しました", {
+    // **どの変数がどう駄目かをメッセージ本体に書く。**
+    // `details` に入れるだけだと、Next の起動時エラーでは
+    // `details: { issues: [Object, Object] }` と潰れて表示され、
+    // **何を設定すればよいか分からない**(2026-08 に実際に詰まった)。
+    // 起動を止める種類のエラーは、その場で直せる情報を出す。
+    const summary = issues.map((i) => `${i.path}: ${i.message}`).join(" / ");
+    throw new AppError(ErrorCode.CONFIG, `環境変数の検証に失敗しました — ${summary}`, {
       details: { issues },
     });
   }

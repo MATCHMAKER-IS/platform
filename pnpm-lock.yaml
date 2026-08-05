@@ -504,6 +504,9 @@ importers:
 
   apps/platform-portal:
     dependencies:
+      '@platform/env':
+        specifier: workspace:*
+        version: link:../../packages/env
       '@platform/observability':
         specifier: workspace:*
         version: link:../../packages/observability

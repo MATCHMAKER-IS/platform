@@ -13011,7 +13011,7 @@ export const z = anyChain;
   // check-env-example: 新しい読み取り口を検出し、参照=記載 になっている
   const out = execFileSync("node", [fileURLToPath(new URL("./check-env-example.mjs", import.meta.url))], { encoding: "utf8" });
   ok("check-env-example: optionalEnv/requireEnv/featureEnv 等を検出・全アプリ✅・残骸警告なし",
-    !out.includes("❌") && !out.includes("⚠️") && out.includes("参照 38 変数") && (out.match(/✅/g) || []).length === 4);
+    !out.includes("❌") && !out.includes("⚠️") && out.includes("参照 39 変数") && (out.match(/✅/g) || []).length === 4);
 
   // 設定確認画面(マスク済み)
   const envRoute = await fsc.readFile(new URL("../apps/internal-app/src/app/api/admin/env/route.ts", import.meta.url), "utf8");
@@ -15007,8 +15007,22 @@ section("drill: 復元訓練の手順");
   ok("drill DROP DATABASE を実行手順に含まない(後片付けは案内だけ)",
     !/\$ .*DROP DATABASE/.test(out));
 
-  // 接続文字列をそのまま出さない(ログ・画面共有に残る)
-  ok("drill パスワードを伏せて表示する", out.includes(":***@") && !out.includes(":app@localhost:5432/app("));
+  // 接続文字列をそのまま出さない(ログ・画面共有に残る)。
+  // **モードによって出力の形が違う**ので「伏せ字があること」ではなく
+  // 「生のパスワードが出ていないこと」で見る
+  ok("drill 生のパスワードを表示しない", !/:app@/.test(out));
+
+  // **ホストに PostgreSQL クライアントが無くても実行できること。**
+  // 最初は `pg_dump` を直に呼ぶ形だけで作ったが、Windows には
+  // クライアントが入っておらず**実行できなかった**(2026-08)。
+  // DB は Docker で動かしているので、道具もコンテナの中にある
+  const drillSrc = await (await import("node:fs/promises"))
+    .readFile(new URL("../tools/drill.mjs", import.meta.url), "utf8");
+  ok("drill は docker compose exec 経由でも実行できる(ホストにクライアント不要)",
+    /docker[\s\S]{0,40}compose[\s\S]{0,40}exec/.test(drillSrc) && /--mode/.test(drillSrc));
+  // ダンプをホストへ取り出せること。**コンテナが消えたら失われる**ものは
+  // バックアップとして意味がない
+  ok("drill ダンプをホストへ取り出す手順がある", /compose", "cp"|compose cp/.test(drillSrc));
 
   // 鍵が無ければ言う。**DB だけ戻せても暗号化項目は読めない**
   ok("drill 秘密鍵が無ければ警告する", out.includes("秘密鍵が環境にありません"));
@@ -15038,6 +15052,52 @@ section("prisma: 廃止済みオプションを渡していないか");
   }
   ok(`prisma db push に --skip-generate を渡していない(Prisma 7 で廃止)${found.length > 0 ? ` → ${found.join(", ")}` : ""}`,
     found.length === 0);
+
+  // **`--schema` も渡せない。**
+  // Prisma 7 は設定ファイル(prisma.config.ts)があると
+  // 「Passing the --schema flag is not supported」で失敗する。
+  // 2026-08 に依存を入れ直したらこの制限が入った版になり、
+  // **generate も db push も一斉に落ちた**。どの schema を使うかは
+  // 環境変数 `PRISMA_SCHEMA` で渡す(config 側が読む)。
+  // **対象を決め打ちにしない。** 最初は 5 ファイルだけ見ており、
+  // devcontainer・アプリの README・SETUP.md に残ったものを見逃した。
+  // `prisma` を呼ぶ場所はリポジトリ全体に散る
+  const schemaTargets = [];
+  {
+    const walk = async (dir, depth = 0) => {
+      if (depth > 4) return;
+      let entries;
+      try { entries = await fsp.readdir(dir, { withFileTypes: true }); } catch { return; }
+      for (const e of entries) {
+        const full = `${dir}/${e.name}`;
+        if (e.isDirectory()) {
+          if (["node_modules", ".git", ".next", "dist", "generated"].includes(e.name)) continue;
+          await walk(full, depth + 1);
+        } else if (/\.(mjs|sh|ps1|yml|yaml|md|ts)$/.test(e.name) || e.name.startsWith("Dockerfile")) {
+          schemaTargets.push(full);
+        }
+      }
+    };
+    await walk(fileURLToPath(new URL("..", import.meta.url)));
+  }
+  const schemaFlag = [];
+  for (const rel of schemaTargets) {
+    // この検査自身(正規表現に --schema= を含む)は対象外
+    if (rel.endsWith("tools/smoke.mjs")) continue;
+    let body;
+    try {
+      body = stripComments((await fsp.readFile(rel, "utf8")).replace(/\r\n/g, "\n"));
+    } catch { continue; }
+    if (/prisma[^\n]*--schema=/.test(body)) {
+      schemaFlag.push(rel.split(/[\\/]/).slice(-2).join("/"));
+    }
+  }
+  ok(`prisma に --schema を渡していない(設定ファイルと併用できない)${schemaFlag.length > 0 ? ` → ${schemaFlag.join(", ")}` : ""}`,
+    schemaFlag.length === 0);
+  // 代わりに環境変数で渡せていること
+  const cfg = await fsp.readFile(new URL("../packages/db/prisma.config.ts", import.meta.url), "utf8");
+  ok("prisma.config.ts が PRISMA_SCHEMA を読む(アプリごとの schema を渡す口)",
+    /process\.env\.PRISMA_SCHEMA/.test(cfg));
 
   // generate は別コマンドとして残っていること(push から外した分の担保)
   const dbTool = (await fsp.readFile(new URL("../tools/db.mjs", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
@@ -15207,6 +15267,29 @@ section("package.json: Windows で動かないコマンドを使っていない�
   // **既定で node_modules を消さない。** 消すのは --all のときだけ
   ok("clean:build は node_modules を消さない(--all を付けない)",
     !(pkg.scripts["clean:build"] ?? "").includes("--all"));
+
+  // **Windows で `pnpm` は実行可能ファイルではない**(`pnpm.cmd` / `pnpm.ps1`)。
+  // `spawnSync("pnpm", …)` を shell なしで呼ぶと起動できず、
+  // **status が null**(= プロセスを作れていない)になる。
+  // 2026-08、`tools/db.mjs` がこの形で、Windows では一度も動いていなかった。
+  const SHELL_NEEDED = ["pnpm", "npx", "prisma", "tsc", "eslint", "vitest", "turbo"];
+  const noShell = [];
+  for (const rel of await fsp.readdir(fileURLToPath(new URL("../tools", import.meta.url)))) {
+    if (!rel.endsWith(".mjs")) continue;
+    // この検査自身(正規表現に `spawnSync("pnpm"` を含む)は対象外
+    if (rel === "smoke.mjs") continue;
+    const body = (await fsp.readFile(new URL(`../tools/${rel}`, import.meta.url), "utf8"))
+      .replace(/\r\n/g, "\n");
+    for (const bin of SHELL_NEEDED) {
+      // `spawnSync("pnpm", args, { … })` の options に shell が無いもの
+      const re = new RegExp(`spawn(?:Sync)?\\(\\s*"${bin}"[\\s\\S]{0,200}?\\}\\s*\\)`, "g");
+      for (const m of body.matchAll(re)) {
+        if (!/shell:\s*true/.test(m[0])) noShell.push(`${rel}: ${bin}`);
+      }
+    }
+  }
+  ok(`Windows で shell が要るコマンドは shell: true で起動している${noShell.length > 0 ? ` → ${noShell.join(", ")}` : ""}`,
+    noShell.length === 0);
 }
 
 // ---- 型宣言(.d.ts)が外から見えるか ----
@@ -15337,6 +15420,208 @@ section("eslint: TypeScript を対象にしているか");
 
   ok("eslint 設定が生成物と依存を ignores に入れている",
     /ignores:/.test(cfg) && cfg.includes("**/generated/**") && cfg.includes("**/node_modules/**"));
+}
+
+// ---- 環境変数エラーは「何を設定すればよいか」を出す ----
+// `details` に入れるだけだと、Next の起動時エラーで
+// `details: { issues: [Object, Object] }` と潰れて表示され、
+// **足りない変数名が分からない**(2026-08 に実際に詰まった)。
+// 起動を止める種類のエラーは、その場で直せる情報を本文に出す。
+section("env: 検証エラーが項目名を出すか");
+{
+  const fsp = await import("node:fs/promises");
+  const src = (await fsp.readFile(new URL("../packages/env/src/index.ts", import.meta.url), "utf8"))
+    .replace(/\r\n/g, "\n");
+  ok("env の検証エラーは項目名と理由をメッセージ本文に含む",
+    /環境変数の検証に失敗しました — \$\{summary\}/.test(src)
+    && /issues\.map\(\(i\) => `\$\{i\.path\}: \$\{i\.message\}`\)/.test(src));
+}
+
+// ---- proxy(旧 middleware)に Route segment config を書いていないか ----
+// **Next 16 の proxy は常に Node.js ランタイムで動く。**
+// `export const runtime = "nodejs"` と書くと
+// 「Route segment config is not allowed in Proxy file」で**起動しない**。
+// Next 15 までの middleware は Edge 既定だったため混同しやすく、
+// 2026-08 に実際に書いて落とした(このコメントはその記録)。
+section("proxy: Route segment config を書いていないか");
+{
+  const fsp = await import("node:fs/promises");
+  const offenders = [];
+  for (const group of ["apps", "demos"]) {
+    let dirs;
+    try {
+      dirs = await fsp.readdir(fileURLToPath(new URL(`../${group}`, import.meta.url)), { withFileTypes: true });
+    } catch { continue; }
+    for (const d of dirs) {
+      if (!d.isDirectory()) continue;
+      const rel = `${group}/${d.name}/src/proxy.ts`;
+      let body;
+      try { body = await fsp.readFile(new URL(`../${rel}`, import.meta.url), "utf8"); } catch { continue; }
+      const code = body.replace(/\r\n/g, "\n").split("\n")
+        .filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join("\n");
+      if (/export\s+const\s+(runtime|dynamic|revalidate|fetchCache|preferredRegion)\s*=/.test(code)) {
+        offenders.push(rel);
+      }
+    }
+  }
+  ok(`proxy に Route segment config を書いていない(Next 16 では起動しない)${offenders.length > 0 ? ` → ${offenders.join(", ")}` : ""}`,
+    offenders.length === 0);
+
+  // **proxy から DB を引かない。**
+  // Prisma のクライアントは proxy のバンドルに載らず、
+  // 「Cannot read properties of undefined (reading 'call')」で落ちる。
+  // proxy は**全リクエストの前に走る**ので、そこで DB を叩くこと自体も避けたい。
+  // 状態が要るなら API 経由で取り、TTL キャッシュ越しに読む。
+  const dbTouchers = [];
+  for (const group of ["apps", "demos"]) {
+    let dirs;
+    try {
+      dirs = await fsp.readdir(fileURLToPath(new URL(`../${group}`, import.meta.url)), { withFileTypes: true });
+    } catch { continue; }
+    for (const d of dirs) {
+      if (!d.isDirectory()) continue;
+      const rel = `${group}/${d.name}/src/proxy.ts`;
+      let body;
+      try { body = await fsp.readFile(new URL(`../${rel}`, import.meta.url), "utf8"); } catch { continue; }
+      const code = body.replace(/\r\n/g, "\n").split("\n")
+        .filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join("\n");
+      // **`./server/env`(環境変数)は問題ない。** バンドルできるのは
+      // node の API にも Prisma にも触れないため。
+      // 弾きたいのは DB を持つモジュール(store / repo / services)
+      const serverImports = [...code.matchAll(/from\s+"\.\/server\/([\w-]+)"/g)].map((m) => m[1]);
+      const dbLike = serverImports.filter((n) => !["env", "log-context"].includes(n));
+      if (dbLike.length > 0 || /@platform\/db/.test(code)) dbTouchers.push(`${rel}(${dbLike.join(", ") || "@platform/db"})`);
+    }
+  }
+  ok(`proxy が DB を引いていない(バンドルできず、全リクエストで走るため)${dbTouchers.length > 0 ? ` → ${dbTouchers.join(", ")}` : ""}`,
+    dbTouchers.length === 0);
+}
+
+// ---- Prisma クライアントの実体とモデルが一致するか ----
+// **Prisma のクライアントは生成時にモデルが焼き込まれる。**
+// 型だけ付け替えても、実体は元のモデルしか持たない。
+// 2026-08 まで `createDb` は `@prisma/client`(= packages/db 自身の schema。
+// モデルは AuditLog だけ)を new し、`as unknown as TClient` で型を
+// アプリのものへ差し替えていた。結果 `db.systemSetting` が **undefined** になり、
+// **typecheck も build も smoke も preflight も通るのに画面を開くと落ちた**。
+section("db: Prisma クライアントの実体がアプリのものか");
+{
+  const fsp = await import("node:fs/promises");
+  const client = (await fsp.readFile(new URL("../packages/db/src/client.ts", import.meta.url), "utf8"))
+    .replace(/\r\n/g, "\n");
+  const index = (await fsp.readFile(new URL("../packages/db/src/index.ts", import.meta.url), "utf8"))
+    .replace(/\r\n/g, "\n");
+  const code = (t) => t.split("\n").filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join("\n");
+
+  // 基盤は `@prisma/client` を new しない(アプリのクラスを受け取る)
+  ok("createDb は @prisma/client を import しない(アプリの生成物を受け取る)",
+    !/from\s+"@prisma\/client"/.test(code(client)));
+  ok("createDb はクライアントのクラスを引数で受け取る",
+    /createDb<TClient>\(\s*\n?\s*Client:/.test(client));
+  // **再 export しない。** アプリが誤って使うと同じ罠を踏む
+  ok("@platform/db は PrismaClient を再 export しない",
+    !/export\s*\{[^}]*PrismaClient[^}]*\}\s*from\s*"@prisma\/client"/.test(code(index)));
+
+  // アプリ側は自分の生成物を**型ではなく実体で** import している
+  const apps = ["internal-app", "balance-app", "equipment-app", "crud-template"];
+  const bad = [];
+  for (const app of apps) {
+    let body;
+    try {
+      body = await fsp.readFile(new URL(`../apps/${app}/src/server/services.ts`, import.meta.url), "utf8");
+    } catch { continue; }
+    body = code(body.replace(/\r\n/g, "\n"));
+    if (!/createDb\(/.test(body)) continue;
+    // `import type { PrismaClient }` だと実体が渡せない
+    const valueImport = /import\s+\{[^}]*PrismaClient[^}]*\}\s*from\s*"\.\.\/generated\/prisma"/.test(body);
+    const passesClass = /createDb\(\s*\n?\s*PrismaClient\s*,/.test(body);
+    if (!valueImport || !passesClass) bad.push(app);
+  }
+  ok(`createDb を使うアプリは自分の生成物を実体で渡している${bad.length > 0 ? ` → ${bad.join(", ")}` : ""}`,
+    bad.length === 0);
+}
+
+// ---- schema.prisma を持つアプリが、生成・DB 作成の対象に載っているか ----
+// **`balance-app` が漏れていた。** `pnpm db generate all` でも setup でも
+// 生成されず、起動時に「Can't resolve '../generated/prisma'」で落ちる。
+// 対象の一覧が **tools/db.mjs・setup.sh・setup.ps1 の 3 か所**にあり、
+// 1 つ足しても他が残る形だったのが原因。
+section("prisma: 対象アプリの一覧が 3 か所で揃っているか");
+{
+  const fsp = await import("node:fs/promises");
+  const appsDir = fileURLToPath(new URL("../apps", import.meta.url));
+  const entries = await fsp.readdir(appsDir, { withFileTypes: true });
+  const withSchema = [];
+  for (const e of entries) {
+    if (!e.isDirectory()) continue;
+    try {
+      await fsp.access(`${appsDir}/${e.name}/prisma/schema.prisma`);
+      withSchema.push(e.name);
+    } catch { /* schema を持たないアプリ */ }
+  }
+
+  const dbTool = await fsp.readFile(new URL("../tools/db.mjs", import.meta.url), "utf8");
+  const sh = await fsp.readFile(new URL("../scripts/setup.sh", import.meta.url), "utf8");
+  const ps1 = await fsp.readFile(new URL("../scripts/setup.ps1", import.meta.url), "utf8");
+  const code = (t) => t.split("\n").filter((l) => !/^\s*(#|\/\/|REM\b|\*)/.test(l)).join("\n");
+
+  const missing = [];
+  for (const app of withSchema) {
+    if (!code(dbTool).includes(`"${app}"`)) missing.push(`tools/db.mjs: ${app}`);
+    if (!code(sh).includes(app)) missing.push(`setup.sh: ${app}`);
+    if (!code(ps1).includes(`"${app}"`)) missing.push(`setup.ps1: ${app}`);
+  }
+  ok(`schema.prisma を持つ ${withSchema.length} アプリが 3 か所すべてに載っている${missing.length > 0 ? ` → ${missing.join(", ")}` : ""}`,
+    missing.length === 0);
+}
+
+// ---- CSP が Next.js のインライン script を通すか ----
+// **Next.js はページの起動に必ずインライン script を使う。**
+// `script-src 'self'` だけだとそれが全部ブロックされ、
+// **画面は出るがボタンが何も反応しない**(ハイドレーションが動かない)。
+// エラーはブラウザのコンソールにしか出ないので、
+// **サーバ側のログを見ていても気づけない**。2026-08 に実際に踏んだ。
+section("CSP: Next のインライン script を通す nonce があるか");
+{
+  const fsp = await import("node:fs/promises");
+  const sec = (await fsp.readFile(new URL("../packages/security/src/headers.ts", import.meta.url), "utf8"))
+    .replace(/\r\n/g, "\n");
+
+  ok("securityHeaders が nonce を受け取れる", /nonce\?:\s*string/.test(sec));
+  // nonce を付けた script が読み込む別の script も通す必要がある
+  ok("nonce 指定時は strict-dynamic を付ける(Next はチャンクを動的に読む)",
+    /'strict-dynamic'/.test(sec));
+  // **`'unsafe-inline'` で通さない。** それでは XSS への防御が無くなる
+  // **script だけの話。** `style-src` の 'unsafe-inline' は別問題
+  // (CSS の inline は Tailwind 等で不可避で、危険度も桁違いに低い)。
+  // 最初にまとめて見ようとして style 側を拾い、誤検知した
+  const scriptSrcLines = sec.split("\n").filter((l) => /scriptSrc\.push|"script-src/.test(l)).join("\n");
+  ok("script-src に 'unsafe-inline' を入れていない(それでは XSS を防げない)",
+    !/'unsafe-inline'/.test(scriptSrcLines));
+
+  // 各アプリの proxy が nonce を要求側にも載せているか。
+  // Next は**リクエストの** CSP ヘッダから nonce を読む
+  const missing = [];
+  for (const group of ["apps", "demos"]) {
+    let dirs;
+    try {
+      dirs = await fsp.readdir(fileURLToPath(new URL(`../${group}`, import.meta.url)), { withFileTypes: true });
+    } catch { continue; }
+    for (const d of dirs) {
+      if (!d.isDirectory()) continue;
+      const rel = `${group}/${d.name}/src/proxy.ts`;
+      let body;
+      try { body = await fsp.readFile(new URL(`../${rel}`, import.meta.url), "utf8"); } catch { continue; }
+      body = body.replace(/\r\n/g, "\n");
+      const hasNonce = /createCspNonce\(\)/.test(body);
+      // 応答だけでなく**要求**にも載せる(Next が読むのはこちら)
+      const onRequest = /requestHeaders\.set\("Content-Security-Policy"/.test(body)
+        && /NextResponse\.next\(\{\s*request:/.test(body);
+      if (!hasNonce || !onRequest) missing.push(rel);
+    }
+  }
+  ok(`すべての proxy が nonce を要求ヘッダにも載せている${missing.length > 0 ? ` → ${missing.join(", ")}` : ""}`,
+    missing.length === 0);
 }
 
 console.log(`\n─────────────\n結果: ${pass} passed, ${fail} failed`);

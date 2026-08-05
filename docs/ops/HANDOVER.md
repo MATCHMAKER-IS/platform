@@ -26,7 +26,7 @@
 | 作法の強制 | **47 種類の検査**が `preflight` で自動確認（実行 61 項目・約 30 秒） |
 | テスト | smoke **1,400 件超**（依存なしで動く。正確な数は `pnpm smoke` の最終行）・単体テスト **112/114 パッケージ**（config はランタイムコード無し）・E2E **14 本** |
 | 資料 | 83 件。すべて索引から辿れる |
-| 認可 | API **252 本すべて**が認可を通すか、通さない理由を宣言済み |
+| 認可 | API **254 本すべて**が認可を通すか、通さない理由を宣言済み |
 
 **触る前に `node tools/preflight.mjs` を流してください。** これが緑なら、
 作法・依存・資料の整合は取れています。
@@ -106,6 +106,7 @@
 | lint が「緑」ではなく「走っていない」ことがある | **ESLint 9 は既定で `.js` 系しか見ない。** `eslint.config.mjs` に `files` と TypeScript のパーサが無く、**TS が 1 ファイルも lint されていなかった**(`eslint src` は「all of the files … are ignored」で異常終了)。検査があるつもりで無い、という最も質の悪い形。**typescript-eslint の推奨ルール一式は入れていない** — 守りたいのは境界と危険なパターンで、書き方は tsconfig の strict と 47 種の検査が見ているため |
 | `.d.ts` は置くだけでは外から見えない | 型定義を持たない外部ライブラリ用の `.d.ts` は、**同じフォルダに置くだけでは自分の tsconfig の include に入るだけ**。`demos/showcase` のように外から `index.ts` を辿ってきた場合はプログラムに含まれず TS7016(暗黙の any)になる。**`/// <reference path="./xxx.d.ts" />` を index.ts の先頭に書く**(`barcode` は書いてあり `media` は漏れていた)。また `.d.ts` にトップレベルの import/export を書くと「モジュール」になり、`declare module` が宣言でなく**既存モジュールの拡張**になる |
 | 移行の取り残しは typecheck でしか出ない | 自作 SVG グラフ → `ComboChart` への移行で、**未使用の定数が残り import が漏れていた**(`cashflow-client.tsx`)。smoke も `check-handmade-chart` も通る。この層は **`pnpm typecheck` が唯一の網**。JSX タグの import 漏れを正規表現で検出しようとしたが、ジェネリクス(`useState<RunResult>`)や TSDoc 内の記述と区別できず**誤検出だらけ**になったので入れていない |
+| **「終了コード null」はプロセスを起動できていない印** | Windows の `pnpm` は `pnpm.cmd` / `pnpm.ps1` であって実行可能ファイルではない。`spawnSync("pnpm", …)` を `shell: true` なしで呼ぶと起動できず、`status` が **null** になる(エラーは `r.error` に入る)。`tools/db.mjs` がこの形で、**Windows では一度も動いていなかった**(setup は pnpm を直接呼んでいたため気づかれなかった)。`pnpm` / `npx` / `prisma` / `tsc` などは `shell: true` で起動する |
 | package.json に shell のコマンドを直に書かない | `rm -rf` などは **cmd.exe に無い**ので Windows で止まる(`pnpm clean` と `pnpm fresh` が動かなかった)。掃除は `tools/clean.mjs`(Node の `fs.rm`)に寄せてある。同種のコマンドが混入していないか smoke が見張る |
 | JSX コメントは要素の中にしか置けない | `{/* … */}` を `return (` や `map((x) => (` の**直後**に書くと構文エラー。`command-palette.tsx` / `log-viewer.tsx` がこの形で、typecheck が 22 件のエラーを出した。`check-syntax` なら捕まえられるが**あれは TypeScript の導入が要る**ので、依存なしの smoke でも弾くようにした。説明は要素の外に **`//` で書く** |
 | 実装を厳しくしたらテストも見直す | `createSession` が**負の `maxAgeSec` を起動時に落とす**ようになったが、単体テストは `maxAgeSec: -1` で「即座に期限切れ」を作る古い形のまま残り、`pnpm test` で 1 件だけ落ちた。smoke には「負の秒数は落とす」検査があったので、**smoke は緑・test は赤**という食い違いになった。期限切れは `vi.useFakeTimers()` で時間を進めて再現する |
@@ -113,6 +114,18 @@
 | 検査が「生成物」を見てしまう | `apps/*/src/generated/`(Prisma クライアント)には `process.env.DATABASE_URL` や色の直書きが含まれる。除外しないと **`prisma generate` を実行した環境だけが落ちる** = setup を完走した人が全員落ちる。共有の `tools/lib/collect-files.mjs` は除外済みだが、**smoke 内で自前に walk を書くと漏れる**(2026-08 に実際に踏んだ)。ディレクトリを自前で辿るときは `generated` / `node_modules` を必ず飛ばす |
 | 改行コードで Windows だけ落ちる | `.gitattributes` が無いと Windows の Git が **checkout 時に CRLF へ変換**し、行単位で解析する道具が軒並み壊れる(advisor / リファレンスサイト / カタログ MCP / 資料の節分割)。**Linux の CI では再現しない**ので「自分の環境だけおかしい」に見える。`* text=auto eol=lf` で固定し、読む側でも `.replace()` で正規化して二重に守る(ZIP 展開や手コピーには .gitattributes が効かないため) |
 | compose は「引数なし」で全部起動する | `docker compose up -d` を引数なしで打つと、開発に不要な検索・キャッシュまで起動・取得され、**初回に 100MB 以上を余計にダウンロードする**。`meilisearch` / `redis` は `profiles: ["optional"]` に入れてあるので既定では動かない。起動は `pnpm db:up`(db + mailpit を名指し)。image の `latest` も禁止(日によって中身が変わり環境が揃わない) |
+| Prisma の生成物は git 管理外 = 毎回作り直す | `apps/*/src/generated/prisma` は `.gitignore` 対象。**`import type` で書いていると実行時に消えるため、無くても型検査は通る**。実体で import した途端「Can't resolve '../generated/prisma'」で落ちた。`pnpm doctor` が未生成を検出する |
+| 対象アプリの一覧が 3 か所にある | `tools/db.mjs` / `setup.sh` / `setup.ps1`。**`balance-app` が 3 つとも漏れていた**ため、schema があるのに生成も DB 作成もされていなかった。1 か所足しても他が残るので、smoke が食い違いを見張る |
+| **型キャストは実体の不一致を隠す** | `createDb` が `@prisma/client`(モデルは AuditLog だけ)を new し、`as unknown as TClient` でアプリの型に差し替えていた。**`db.systemSetting` が undefined** になるのに、キャストが型検査を黙らせるため **typecheck / build / smoke / preflight を全部通過**し、画面を開いて初めて落ちた。`as unknown as` を書くときは「実体も本当にそうか」を疑うこと。4 アプリすべてが同じ状態だった |
+| **proxy から DB を引かない** | Next 16 の proxy は Node.js ランタイムで動くが、**Prisma のクライアントは proxy のバンドルに載らない**(「Cannot read properties of undefined (reading 'call')」で落ちる)。そもそも proxy は全リクエストの前に走るので、DB を叩くこと自体が避けたい形。状態が要るなら **API 経由で取り、TTL キャッシュ越しに読む**(`/api/maintenance-state`)。取れないときは**解除扱い(fail-open)**にする — 503 にすると状態を戻す管理画面にも入れなくなる。matcher からその API を除外すること(呼び合う) |
+| proxy(旧 middleware)は **Next 16 では常に Node.js** | Edge には Prisma のクライアントが載らないため、`db.systemSetting` が **undefined** になり「Cannot read properties of undefined」で落ちる。**typecheck も build も smoke も preflight も通り、画面を開いて初めて出る**。**`export const runtime = "nodejs"` は書けない**(「Route segment config is not allowed in Proxy file」で落ちる)。Next 15 までの middleware は Edge 既定だったため混同しやすい |
+| ログイン手段が SSO だけだとローカルで何も試せない | internal-app のログインは **Zoho SSO のみ**で、鍵が無いと**全 API が 401**。画面は開くが何も動かず、ONBOARDING_TASK も実施できなかった。`/api/auth/dev-login` を追加(**`isProductionRuntime()` と `DEV_LOGIN=1` の二重ガード**、本番では 404)。**片方だけでは足りない** — 環境変数の設定ミスも NODE_ENV の取り違えも起きる |
+| 効かないポーリングを止める | `DebugBar` は `/api/debug` が 404(= DEBUG_TOOL 未設定)でも **3 秒ごとに叩き続け**、コンソールが 404 で埋まって**本当のエラーが見えなくなっていた**。無効と分かったらタイマーを止める |
+| **CSP が Next のインライン script を止める** | `script-src 'self'` だけだと、Next がページ起動に使うインライン script が全部ブロックされ、**画面は出るがボタンが何も反応しない**(ハイドレーションが動かない)。エラーは**ブラウザのコンソールにしか出ない**ので、サーバ側のログを見ていても気づけない。リクエストごとに nonce を作り、**応答だけでなく要求の CSP ヘッダにも載せる**(Next が読むのは要求側)。dev は `eval` も要る。**`'unsafe-inline'` で通さないこと**(XSS への防御が無くなる) |
+| 「画面を開く」層はどの検査も見ていない | 上の件は静的検査すべてを通過した。**実際に起動して画面を開く**まで分からない層が残っている。E2E(`pnpm e2e`)がその役目だが、まだ 14 本しかない |
+| 起動を止めるエラーは「何を直せばよいか」を本文に出す | `parseEnv` は不足項目を `details` にだけ入れていたため、Next の起動時エラーで **`details: { issues: [Object, Object] }`** と潰れ、**どの変数が足りないか分からなかった**。`details` は機械向け、**メッセージ本文は人向け**。止まる種類のエラーは本文に項目名と理由を書く |
+| 運用ツールは「ホストに何が入っているか」を前提にしない | 復元訓練ツールを `pg_dump` 直呼びで作ったが、**Windows には PostgreSQL クライアントが入っておらず実行できなかった**。DB を Docker で動かしているので、道具もコンテナの中にある。`docker compose exec db` 経由を既定にし、ダンプは `docker compose cp` でホストへ取り出す(**取り出せないバックアップは意味がない**) |
+| Prisma 7 は設定ファイルと `--schema` を併用できない | 「Passing the --schema flag is not supported when a Prisma config file is present」。**依存を入れ直した(`pnpm fresh`)ら制限が入った版になり、generate も db push も一斉に落ちた**。どの schema を使うかは環境変数 `PRISMA_SCHEMA` で渡す(`prisma.config.ts` が読む)。使う場所は tools/db.mjs・setup(sh/ps1)・CI・Dockerfile ×2・資料と広いので、smoke が全部を見張る |
 | Prisma のオプションは版で消える | Prisma 7 で `db push --skip-generate` が廃止された。使う場所が **setup(sh/ps1)・tools/db.mjs・CI・Dockerfile の 5 か所に散っていた**ため、1 か所直しても他が残る。smoke が全箇所を見張る。同種の廃止に気づいたら、まず `grep -rn` で散らばりを確認すること |
 | Windows 向けスクリプトは文字コードで動かなくなる | **`setup.ps1` は BOM 付き UTF-8 必須**(Windows PowerShell 5.1 は BOM 無しを CP932 として読み、日本語の引用符が壊れて**構文エラーで起動しない**)。逆に **`.bat` は BOM 禁止**(cmd.exe が先頭行を `∩╗┐@echo` と読む)ので `chcp 65001` を使う。2026-08 に実際に踏み、原因が「スクリプトのバグ」に見えて特定に時間がかかった。smoke が両方を見張る |
 | 数値の一括置換 | `108` を一括で置換して**給与計算の期待値を壊した**ことがある。文脈を限定すること |

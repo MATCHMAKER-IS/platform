@@ -4,12 +4,13 @@
  * @packageDocumentation
  */
 import { createDb } from "@platform/db";
+import { PrismaClient } from "../generated/prisma";
 import { env, usePrisma } from "./env";
 import { createMemoryItemStore, createPrismaItemStore, type ItemStore, type ItemStoreDb } from "./item-repo";
 
 function prismaDb(): ItemStoreDb {
   if (!env.DATABASE_URL) throw new Error("PERSISTENCE=prisma には DATABASE_URL が必要です");
-  return createDb(env.DATABASE_URL) as unknown as ItemStoreDb;
+  return createDb(PrismaClient, env.DATABASE_URL) as unknown as ItemStoreDb;
 }
 
 /** 品目ストア(PERSISTENCE=prisma で PostgreSQL、既定はインメモリ)。 */

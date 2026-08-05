@@ -25,9 +25,9 @@ jobs:
         run: pnpm install  # TODO: pnpm-lock.yaml をコミットしたら --frozen-lockfile に戻す
       - name: Prisma generate (internal-app schema)
         run: |
-          pnpm --filter @platform/db exec prisma generate --schema=../../apps/internal-app/prisma/schema.prisma
-          pnpm --filter @platform/db exec prisma generate --schema=../../apps/crud-template/prisma/schema.prisma
-          pnpm --filter @platform/db exec prisma generate --schema=../../apps/equipment-app/prisma/schema.prisma
+          PRISMA_SCHEMA=../../apps/internal-app/prisma/schema.prisma pnpm --filter @platform/db exec prisma generate
+          PRISMA_SCHEMA=../../apps/crud-template/prisma/schema.prisma pnpm --filter @platform/db exec prisma generate
+          PRISMA_SCHEMA=../../apps/equipment-app/prisma/schema.prisma pnpm --filter @platform/db exec prisma generate
       - name: Typecheck
         run: pnpm -r typecheck
       - name: Lint
@@ -37,7 +37,7 @@ jobs:
       - name: Prisma schema check (offline lint)
         run: node tools/check-schema.mjs
       - name: Prisma validate
-        run: pnpm --filter @platform/db exec prisma validate --schema=../../apps/internal-app/prisma/schema.prisma
+        run: PRISMA_SCHEMA=../../apps/internal-app/prisma/schema.prisma pnpm --filter @platform/db exec prisma validate
       - name: Smoke (dependency-free logic checks)
         run: pnpm smoke
       - name: Unit tests

@@ -82,12 +82,13 @@ function Invoke-Native([scriptblock]$Command, [string]$What) {
 }
 
 # アプリ別 DB（docker-compose.yml の資格情報 app/app に合わせる）
-$Apps = @("internal-app", "crud-template", "equipment-app")
+$Apps = @("internal-app", "crud-template", "equipment-app", "balance-app")
 function DbName($app) {
   switch ($app) {
     "internal-app"  { "app" }
     "crud-template" { "app_crud" }
     "equipment-app" { "app_equipment" }
+    "balance-app"   { "app_balance" }
   }
 }
 
@@ -185,7 +186,10 @@ Invoke-Native { pnpm install } "pnpm install"
 # ─────────────────────────── 5. Prisma generate ───────────────────────────
 Step "Prisma クライアント生成（3 アプリ分。初回はエンジンを DL）"
 foreach ($app in $Apps) {
-  Invoke-Native { pnpm --filter @platform/db exec prisma generate --schema="../../apps/$app/prisma/schema.prisma" | Out-Null } "$app の prisma generate"
+  # **`--schema` は渡せない**(Prisma 7 は設定ファイルがあると拒否する)。環境変数で渡す
+  $env:PRISMA_SCHEMA = "../../apps/$app/prisma/schema.prisma"
+  Invoke-Native { pnpm --filter @platform/db exec prisma generate | Out-Null } "$app の prisma generate"
+  Remove-Item Env:\PRISMA_SCHEMA
   OK "$app"
 }
 
@@ -201,7 +205,9 @@ if (-not $SkipDb) {
     }
     if (-not $url) { $url = "postgresql://app:app@localhost:5432/$(DbName $app)" }
     $env:DATABASE_URL = $url
-    Invoke-Native { pnpm --filter @platform/db exec prisma db push --schema="../../apps/$app/prisma/schema.prisma" | Out-Null } "$app の db push"
+    $env:PRISMA_SCHEMA = "../../apps/$app/prisma/schema.prisma"
+    Invoke-Native { pnpm --filter @platform/db exec prisma db push | Out-Null } "$app の db push"
+    Remove-Item Env:\PRISMA_SCHEMA
     OK "$app → $(DbName $app)"
   }
   Remove-Item Env:\DATABASE_URL -ErrorAction SilentlyContinue

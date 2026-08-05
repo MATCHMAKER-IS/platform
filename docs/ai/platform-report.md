@@ -1,6 +1,6 @@
 # 基盤ヘルスレポート(自動生成)
 
-> 再生成: `node tools/platform-report.mjs`(手で編集しない)。生成日: 2026-08-04
+> 再生成: `node tools/platform-report.mjs`(手で編集しない)。生成日: 2026-08-05
 
 ## サマリー
 
@@ -9,16 +9,16 @@
 | パッケージ数 | 114 |
 | README 整備率 | 114/114(100%) |
 | ユニットテスト保有パッケージ | 113/114(99%)・テストファイル 319 |
-| 実装行数(packages/src, テスト除く) | 76,687 行 |
-| 公開 API(export) | 3725(api-surface 追跡) |
-| スモーク検証 | 1655 チェック / 397 セクション(実測は `pnpm verify:offline`) |
+| 実装行数(packages/src, テスト除く) | 76,770 行 |
+| 公開 API(export) | 3724(api-surface 追跡) |
+| スモーク検証 | 1672 チェック / 402 セクション(実測は `pnpm verify:offline`) |
 | ADR | 20 件 / デモ | 1 本 |
 
 ## アプリ
 
 | アプリ | API route | client コンポーネント | Prisma モデル |
 |---|---|---|---|
-| internal-app | 215 | 102 | 65 |
+| internal-app | 217 | 102 | 65 |
 | public-site | 6 | 6 | 0 |
 | crud-template | 4 | 2 | 1 |
 | equipment-app | 9 | 2 | 2 |

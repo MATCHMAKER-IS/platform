@@ -22,7 +22,8 @@ FROM base AS build
 COPY --from=fetch /pnpm /pnpm
 COPY . .
 RUN pnpm install --frozen-lockfile --offline
-RUN pnpm --filter @platform/db exec prisma generate --schema=../../apps/internal-app/prisma/schema.prisma
+# `--schema` は Prisma 7 の設定ファイルと併用できない(拒否される)。環境変数で渡す
+RUN PRISMA_SCHEMA=../../apps/internal-app/prisma/schema.prisma pnpm --filter @platform/db exec prisma generate
 ENV NEXT_TELEMETRY_DISABLED=1
 # env.ts の fail-fast(zod 必須値)対策: ビルド時のみのダミー値(実行時は env_file で上書き)
 RUN DATABASE_URL=postgresql://build:build@localhost:5432/build \

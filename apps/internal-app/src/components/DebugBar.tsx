@@ -35,22 +35,30 @@ export function DebugBar({ fetchImpl }: { fetchImpl?: typeof fetch }) {
 
   React.useEffect(() => {
     let alive = true;
+    let timer: ReturnType<typeof setInterval> | undefined;
+    /** **無効と分かったら二度と問い合わせない。** */
+    const stop = () => { if (timer !== undefined) clearInterval(timer); timer = undefined; };
     const load = async () => {
       try {
         const r = await doFetch("/api/debug");
         if (!alive) return;
-        if (r.status === 404) { setEnabled(false); return; }
+        // DEBUG_TOOL が未設定なら 404。**そこで打ち切る。**
+        // 以前は setEnabled(false) するだけでタイマーを止めておらず、
+        // **3 秒ごとに 404 を出し続けて**開発者ツールのコンソールが埋まり、
+        // 本当のエラーが見えなくなっていた(2026-08)
+        if (r.status === 404) { setEnabled(false); stop(); return; }
         const d = (await r.json()) as { requests: Latest[] };
         setEnabled(true);
         // 直近のリクエスト(自分自身の /api/debug は除く)
         setLatest(d.requests.find((x) => !x.path.startsWith("/api/debug")) ?? null);
       } catch {
-        if (alive) setEnabled(false);
+        // 通信エラーも同様。**繰り返しても直らない**
+        if (alive) { setEnabled(false); stop(); }
       }
     };
     void load();
-    const t = setInterval(() => void load(), 3000);
-    return () => { alive = false; clearInterval(t); };
+    timer = setInterval(() => void load(), 3000);
+    return () => { alive = false; stop(); };
   }, [doFetch]);
 
   // 無効(本番)なら何も描画しない

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { securityHeaders } from "@platform/security";
+import { securityHeaders, createCspNonce } from "@platform/security";
+import { isProductionRuntime } from "@platform/env";
 import { xRobotsTag } from "@platform/seo";
 
 /**
@@ -16,9 +17,35 @@ import { xRobotsTag } from "@platform/seo";
  * 内容は `@platform/security` の `securityHeaders()` が持つ。
  * **アプリごとに書かない**（1 か所直せば全アプリに効く）。
  */
+/**
+ * リクエストごとに nonce を作り、CSP とリクエストヘッダの両方に載せる。
+ *
+ * **Next.js はページの起動に必ずインライン script を使う。**
+ * `script-src 'self'` だけだとそれが全部ブロックされ、
+ * **画面は出るがボタンが何も反応しない**(ハイドレーションが動かない)。
+ * 2026-08 に実際にこの状態で、原因が分かるまで時間がかかった。
+ *
+ * Next は**リクエストの** `Content-Security-Policy` ヘッダから nonce を読み取り、
+ * 自分が出すインライン script に付ける。だから応答だけでなく
+ * 要求側にも同じ値を載せる必要がある。
+ */
+function withNonce(req: NextRequest): { res: NextResponse; headers: Record<string, string> } {
+  const nonce = createCspNonce();
+  const headers = securityHeaders({
+    nonce,
+    // **dev サーバは差分更新に eval を使う。** 本番では許可しない。
+    // `process.env` を直読みせず @platform/env の口を通す(検査もそう求めている)
+    allowEval: !isProductionRuntime(),
+  });
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", headers["Content-Security-Policy"] ?? "");
+  return { res: NextResponse.next({ request: { headers: requestHeaders } }), headers };
+}
+
 export function proxy(_req: NextRequest): NextResponse {
-  const res = NextResponse.next();
-  for (const [k, v] of Object.entries(securityHeaders())) res.headers.set(k, v);
+  const { res, headers } = withNonce(_req);
+  for (const [k, v] of Object.entries(headers)) res.headers.set(k, v);
   // 社内向けなので検索避け（HTML 以外も含む全レスポンス）
   res.headers.set("X-Robots-Tag", xRobotsTag("internal"));
   return res;

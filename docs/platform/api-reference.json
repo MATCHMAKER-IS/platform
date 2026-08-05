@@ -10687,8 +10687,12 @@
       "name": "createDb",
       "kind": "function",
       "summary": "SQL が実行されるたびに呼ばれる。**開発時のデバッグ用**。 渡すと Prisma のクエリログが有効になる(わずかにオーバーヘッドがあるため本番では渡さない)。",
-      "signature": "createDb(databaseUrl: string, options: CreateDbOptions = {}): TClient",
+      "signature": "createDb(Client: PrismaClientCtor<TClient>, databaseUrl: string, options: CreateDbOptions = {},): TClient",
       "params": [
+        {
+          "name": "Client",
+          "description": "アプリが生成した `PrismaClient` クラス(`../generated/prisma` から)"
+        },
         {
           "name": "databaseUrl",
           "description": "接続文字列(通常は `@platform/env` 由来の検証済み値)"
@@ -10699,7 +10703,7 @@
         }
       ],
       "returns": "共有クライアント",
-      "example": "const db = createDb(url, {\n  onQuery: (q) => debugCollector.record(getRequestId(), {\n    kind: \"sql\", label: summarizeSql(q.query), durationMs: q.durationMs, ok: true,\n  }),\n});\n```\n/\n  onQuery?: (info: QueryInfo) => void;\n}\n\n/**\nPrismaClient のシングルトンを生成する。\n\n**アプリが自分で生成したクライアントを使える。** このリポジトリは\nアプリごとに `schema.prisma` を分けており(ADR-0006)、`generator` の `output` で\n生成先も分けている。型引数にアプリの `PrismaClient` を渡すと、\n**そのアプリのモデルが型として見える**ようになる。\n\n省略すると `@prisma/client` の型になる(= 最後に generate した schema のもの)。\nアプリからは必ず型引数を渡すこと。\n\n```ts\n// アプリ側(apps/internal-app/src/server/services.ts)\nimport { PrismaClient } from \"../generated/prisma\";\n\nexport const db = createDb<PrismaClient>(env.DATABASE_URL);\nconst rows = await db.expense.findMany();  // アプリのモデルが見える"
+      "example": "const db = createDb(PrismaClient, url, {\n  onQuery: (q) => debugCollector.record(getRequestId(), {\n    kind: \"sql\", label: summarizeSql(q.query), durationMs: q.durationMs, ok: true,\n  }),\n});\n```\n/\n  onQuery?: (info: QueryInfo) => void;\n}\n\n/**\nPrismaClient のシングルトンを生成する。\n\n**アプリが生成したクライアントのクラスを渡す。**\n型引数だけでは足りない。Prisma のクライアントは**生成時にモデルが焼き込まれる**ため、\n別の生成物を型だけ付け替えても、実体は元のモデルしか持たない。\n\n2026-08 まではここで `@prisma/client` を new しており、型だけをアプリのものへ\nキャストしていた。その結果 **`db.systemSetting` が undefined** になり、\n型検査もビルドも smoke も通るのに**画面を開くと落ちる**状態だった。\n`as unknown as TClient` が型検査を黙らせていたのが原因。\n\nここが引き受けるのは**接続の作法**だけ:\nドライバアダプタ(Prisma 7 方式)・開発時のホットリロードでの接続増殖防止・\nクエリログの配線。**どのモデルを持つかはアプリの領分**。\n\n```ts\n// アプリ側(apps/internal-app/src/server/services.ts)\nimport { PrismaClient } from \"../generated/prisma\";\n\nexport const db = createDb(PrismaClient, env.DATABASE_URL);\nconst rows = await db.expense.findMany();  // アプリのモデルが実体としてある"
     },
     {
       "name": "createQueryCache",
@@ -23488,6 +23492,14 @@
       ]
     },
     {
+      "name": "createCspNonce",
+      "kind": "function",
+      "summary": "Content-Security-Policy の値。省略時は自己ホスト中心の安全既定。 */ contentSecurityPolicy?: string; /** HSTS を有効にするか(HTTPS 運用時に true。既定 true)。 */ hsts?: boolean; /** フレーム埋め込みポリシー(既定 \"DENY\")。 */ frameOptions?: \"DENY\" | \"SAMEORIGIN\"; /** インライン script を許可する使い捨ての値(nonce)。 **Next.js はページの起動に必ずインライン script を使う。** `script-src 'self'` だけだとそれが全部ブロックされ、 **画面は出るがボタンが何も反応しない**(ハイドレーションが動かない)。 コンソールには「Executing inline script violates ... 'script-src 'self''」が並ぶ。 `'unsafe-inline'` で通すこともできるが、それでは XSS への防御が無くなる。 **リクエストごとに使い捨ての値を作り、それだけを許可する**のが正しい形。 値は {@link createCspNonce} で作る。 / nonce?: string; /** `eval` を許可するか(**開発時のみ**)。 Next.js の dev サーバは差分更新に `eval` を使うため、 無いと開発中だけ画面が動かない。**本番では必ず false**(既定)。 / allowEval?: boolean; } /** 既定の CSP を組み立てる。 `script-src` だけは nonce と eval の指定で変わるので、ここで作る。 `'strict-dynamic'` を付けるのは、**nonce を付けた script が読み込む 別の script も通す**ため(Next.js はチャンクを動的に読む)。 / function buildCsp(nonce?: string, allowEval = false): string { const scriptSrc = [\"script-src 'self'\"]; if (nonce !== undefined) scriptSrc.push(`'nonce-${nonce}'`, \"'strict-dynamic'\"); if (allowEval) scriptSrc.push(\"'unsafe-eval'\"); return [ \"default-src 'self'\", \"img-src 'self' data:\", \"style-src 'self' 'unsafe-inline'\", scriptSrc.join(\" \"), \"object-src 'none'\", \"base-uri 'self'\", \"frame-ancestors 'none'\", ].join(\"; \"); } /** インライン script を許可する使い捨ての値(nonce)を作る。 **リクエストごとに新しく作ること。** 使い回すと、値を知った攻撃者が 任意の script を通せるようになり、CSP の意味が無くなる。",
+      "signature": "createCspNonce(): string",
+      "returns": "base64 の乱数(16 バイト)",
+      "example": "const nonce = createCspNonce();\nconst headers = securityHeaders({ nonce, allowEval: process.env.NODE_ENV !== \"production\" });"
+    },
+    {
       "name": "createCsrf",
       "kind": "function",
       "summary": "新しい CSRF トークンを発行する(cookie とフォームの両方に載せる)。 */ issue(): string; /** 送信トークンと cookie トークンを検証する。 */ verify(submitted: string | null | undefined, cookie: string | null | undefined): boolean; } function safeEqual(a: string, b: string): boolean { const ab = Buffer.from(a); const bb = Buffer.from(b); return ab.length === bb.length && timingSafeEqual(ab, bb); } /** CSRF ユーティリティを作る。",
@@ -23602,7 +23614,7 @@
     {
       "name": "securityHeaders",
       "kind": "function",
-      "summary": "Content-Security-Policy の値。省略時は自己ホスト中心の安全既定。 */ contentSecurityPolicy?: string; /** HSTS を有効にするか(HTTPS 運用時に true。既定 true)。 */ hsts?: boolean; /** フレーム埋め込みポリシー(既定 \"DENY\")。 */ frameOptions?: \"DENY\" | \"SAMEORIGIN\"; } const DEFAULT_CSP = [ \"default-src 'self'\", \"img-src 'self' data:\", \"style-src 'self' 'unsafe-inline'\", \"script-src 'self'\", \"object-src 'none'\", \"base-uri 'self'\", \"frame-ancestors 'none'\", ].join(\"; \"); /** セキュリティヘッダのマップを返す。Next の middleware やレスポンスに適用する。",
+      "summary": "セキュリティヘッダのマップを返す。Next の middleware やレスポンスに適用する。",
       "signature": "securityHeaders(options: SecurityHeadersOptions = {}): Record<string, string>",
       "params": [
         {

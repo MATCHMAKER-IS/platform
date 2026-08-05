@@ -31,8 +31,8 @@ warn() { printf '  \033[33m!\033[0m %s\n' "$1"; }
 fail() { printf '  \033[31m✗\033[0m %s\n' "$1"; }
 
 # アプリ別 DB(名前は docker-compose.yml の資格情報 app/app に合わせる)
-APPS=(internal-app crud-template equipment-app)
-db_name() { case "$1" in internal-app) echo app ;; crud-template) echo app_crud ;; equipment-app) echo app_equipment ;; esac; }
+APPS=(internal-app crud-template equipment-app balance-app)
+db_name() { case "$1" in internal-app) echo app ;; crud-template) echo app_crud ;; equipment-app) echo app_equipment ;; balance-app) echo app_balance ;; esac; }
 
 # ─────────────────────────────── 1. 前提確認 ───────────────────────────────
 step "前提条件の確認"
@@ -120,7 +120,7 @@ pnpm install
 # ─────────────────────────── 5. Prisma generate ───────────────────────────
 step "Prisma クライアント生成(3 アプリ分。初回はエンジンを DL)"
 for app in "${APPS[@]}"; do
-  pnpm --filter @platform/db exec prisma generate --schema="../../apps/$app/prisma/schema.prisma" >/dev/null
+  PRISMA_SCHEMA="../../apps/$app/prisma/schema.prisma" pnpm --filter @platform/db exec prisma generate >/dev/null
   ok "$app"
 done
 
@@ -130,7 +130,7 @@ if [ "$SKIP_DB" -eq 0 ]; then
   for app in "${APPS[@]}"; do
     url=$(grep -E '^DATABASE_URL=' "apps/$app/.env" 2>/dev/null | tail -1 | cut -d= -f2- || true)
     [ -z "$url" ] && url="postgresql://app:app@localhost:5432/$(db_name "$app")"
-    DATABASE_URL="$url" pnpm --filter @platform/db exec prisma db push --schema="../../apps/$app/prisma/schema.prisma" >/dev/null
+    PRISMA_SCHEMA="../../apps/$app/prisma/schema.prisma" DATABASE_URL="$url" pnpm --filter @platform/db exec prisma db push >/dev/null
     ok "$app → $(db_name "$app")"
   done
 else

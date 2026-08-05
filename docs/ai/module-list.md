@@ -43,7 +43,7 @@
 - **@platform/crypto** — 機密データの暗号化(AES-256-GCM)とパスワードハッシュ(scrypt)。`node:crypto` ベース。
   - 主なexport: PasswordGenerateOptions, PasswordStrength, decrypt, deriveKey, encrypt, generatePassword, …(全10)
 - **@platform/security** — Web セキュリティの共通部品。
-  - 主なexport: CSRF_COOKIE, CSRF_HEADER, Csrf, MemoryReplayStoreOptions, ReplayGuard, ReplayGuardOptions, …(全16)
+  - 主なexport: CSRF_COOKIE, CSRF_HEADER, Csrf, MemoryReplayStoreOptions, ReplayGuard, ReplayGuardOptions, …(全17)
 - **@platform/guard** **⚠ デモのみ** — ルート/ページ保護のガード。セッション・RBAC・レート制限を Route の入口で強制します。
   - 主なexport: enforceRateLimit, requirePermission, requireRole, requireSession
 - **@platform/secrets** — シークレット取得の抽象。環境変数の平文直読みを避け、取得元(env / AWS Secrets Manager / Vault)を
@@ -69,7 +69,7 @@
 ## データ
 
 - **@platform/db** — Prisma をラップした DB アクセス部品。**通常の CRUD は Prisma Client**、
-  - 主なexport: AuditCapableClient, AuditChangeEntry, AuditEntry, BulkInsertOptions, CursorPage, CursorPaginateOptions, …(全75)
+  - 主なexport: AuditCapableClient, AuditChangeEntry, AuditEntry, BulkInsertOptions, CursorPage, CursorPaginateOptions, …(全73)
   - サブパス: `@platform/db/tunnel`
 - **@platform/cache** **⚠ 未実戦** — キャッシュの共通部品(Adapter パターン)。
   - 主なexport: Cache, CacheAdapter, RedisCacheClient, RedisCacheConfig, TaggedCache, createCache, …(全10)

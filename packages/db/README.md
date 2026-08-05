@@ -5,7 +5,9 @@ Prisma をラップした DB アクセス部品。**通常の CRUD は Prisma Cl
 
 ```ts
 import { createDb, sql, queryRaw } from "@platform/db";
-const db = createDb(env.DATABASE_URL);
+// **自分のアプリの生成物を実体で渡す**(型だけでは足りない。下記「なぜクラスを渡すか」)
+import { PrismaClient } from "../generated/prisma";
+const db = createDb(PrismaClient, env.DATABASE_URL);
 
 // 生SQL(値は自動でプレースホルダ化 → SQLインジェクション対策)
 const res = await queryRaw<{ id: number; total: bigint }>(
@@ -29,7 +31,7 @@ import { withTunnel } from "@platform/db/tunnel";
 const count = await withTunnel(
   { bastionHost: "bastion.example.com", bastionUser: "ec2-user", dbHost: "db.xxx.rds.amazonaws.com" },
   async (url) => {
-    const db = createDb(url);
+    const db = createDb(PrismaClient, url);
     return await queryRaw(db, sql`SELECT COUNT(*) FROM invoices`);
   },
 );
@@ -45,3 +47,24 @@ const count = await withTunnel(
 - バレル(`@platform/db`)からは出していません。`node:child_process` を
   引き込ませないためです。
 - 手順とつながらないときの切り分けは [docs/ops/DEPLOY_AWS.md](../../docs/ops/DEPLOY_AWS.md)。
+
+## なぜクライアントの**クラス**を渡すか
+
+**Prisma のクライアントは生成時にモデルが焼き込まれます。** 型だけを付け替えても、
+実体は元のモデルしか持ちません。
+
+このリポジトリはアプリごとに `schema.prisma` を分けており(ADR-0006)、生成先も
+`apps/<app>/src/generated/prisma` に分けています。基盤が `@prisma/client` を new すると、
+**そこにあるのは `packages/db` 自身の schema から生成されたもの**(モデルは `AuditLog` だけ)で、
+アプリのモデルは入っていません。
+
+2026-08 まで `createDb` は `as unknown as TClient` で型だけを差し替えていました。その結果:
+
+- `db.systemSetting` が **`undefined`**
+- 型キャストが型検査を黙らせるので **typecheck も build も smoke も preflight も通る**
+- **画面を開いて初めて落ちる**
+
+基盤が引き受けるのは**接続の作法**だけです(ドライバアダプタ・ホットリロードでの接続増殖防止・
+クエリログの配線)。**どのモデルを持つかはアプリの領分**なので、アプリがクラスを渡します。
+
+なお `@platform/db` は `PrismaClient` を**再 export しません**。そこから取ると同じ罠を踏みます。

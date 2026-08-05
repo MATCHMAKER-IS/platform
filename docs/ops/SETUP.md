@@ -81,14 +81,14 @@ Windows は **WSL2 または PowerShell/バッチ**で実行できます(下記�
 
 ```bash
 # クライアント生成(install 後・schema 変更後)
-pnpm --filter @platform/db exec prisma generate --schema=../../apps/internal-app/prisma/schema.prisma
+PRISMA_SCHEMA=../../apps/internal-app/prisma/schema.prisma pnpm --filter @platform/db exec prisma generate
 
 # 開発中の即時反映(履歴なし)— setup.sh はこちら
 DATABASE_URL=postgresql://app:app@localhost:5432/app \
-  pnpm --filter @platform/db exec prisma db push --schema=../../apps/internal-app/prisma/schema.prisma
+  PRISMA_SCHEMA=../../apps/internal-app/prisma/schema.prisma pnpm --filter @platform/db exec prisma db push
 
 # 本番稼働を始める前にマイグレーションへ移行する(理由と手順: docs/adr/0013)
-DATABASE_URL=... pnpm --filter @platform/db exec prisma migrate dev --name init --schema=../../apps/internal-app/prisma/schema.prisma
+PRISMA_SCHEMA=../../apps/internal-app/prisma/schema.prisma DATABASE_URL=... pnpm --filter @platform/db exec prisma migrate dev --name init
 ```
 
 prisma CLI は `@platform/db`(^7.2.0)に集約しています。初回 generate はエンジンのダウンロードが走るためネットワークが必要です。

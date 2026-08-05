@@ -69,6 +69,29 @@ for (const app of readdirSync(appsDir).filter((d) => existsSync(path.join(appsDi
   else warnLine(`${app}/.env なし（cp apps/${app}/.env.example apps/${app}/.env）`);
 }
 
+// Prisma クライアント（アプリごとに生成先を分けている）
+// **`import type` だと実行時に消えるため、無くても型検査は通る。**
+// 2026-08、`createDb` が実体を受け取る形に変えた途端に
+// 「Can't resolve '../generated/prisma'」で起動しなくなった。
+// 生成物は git 管理外なので、**環境を作り直すたびに必要**。
+console.log("\n[Prisma クライアント]");
+{
+  const appsDir = path.join(ROOT, "apps");
+  let apps = [];
+  try { apps = readdirSync(appsDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name); }
+  catch { apps = []; }
+  let checked = 0;
+  for (const app of apps) {
+    // schema.prisma を持つアプリだけが対象
+    if (!existsSync(path.join(appsDir, app, "prisma", "schema.prisma"))) continue;
+    checked += 1;
+    const generated = path.join(appsDir, app, "src", "generated", "prisma");
+    if (existsSync(generated)) okLine(`${app}: 生成済み`);
+    else ngLine(`${app}: 未生成 — \`pnpm db generate all\` を実行してください（src/generated/prisma が無いと起動しません）`);
+  }
+  if (checked === 0) warnLine("schema.prisma を持つアプリが見つかりません");
+}
+
 // 生成物 drift（速い・依存不要）
 console.log("\n[生成物]");
 const cg = spawnSync("node", [path.join(ROOT, "tools", "check-generated.mjs")], { encoding: "utf8" });

@@ -32,7 +32,7 @@ pnpm --filter my-app dev
 
 - 既定: **インメモリ**(DB不要・再起動で消える。開発用)
 - PostgreSQL: `PERSISTENCE=prisma DATABASE_URL=postgresql://...` を設定し、
-  `pnpm --filter @platform/db exec prisma generate --schema=../../apps/my-app/prisma/schema.prisma`(migrate も同様に `--schema` 指定)
+  `PRISMA_SCHEMA=../../apps/my-app/prisma/schema.prisma pnpm --filter @platform/db exec prisma generate`(migrate も同様に `--schema` 指定)
 
 ## 認可の足し方
 

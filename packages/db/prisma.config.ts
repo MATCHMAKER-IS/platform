@@ -24,6 +24,8 @@ import { defineConfig } from "prisma/config";
  * `prisma generate`(URL 不要)まで落ちる。
  */
 export default defineConfig({
+  // 未設定なら既定(packages/db 自身の schema)に任せるため、キーごと省く
+  ...(process.env.PRISMA_SCHEMA ? { schema: process.env.PRISMA_SCHEMA } : {}),
   datasource: {
     // env() ではなく process.env を直接読む(理由は上のコメント)
     url: process.env.DATABASE_URL ?? "",

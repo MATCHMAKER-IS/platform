@@ -3,6 +3,7 @@
  * @packageDocumentation
  */
 import { createDb } from "@platform/db";
+import { PrismaClient } from "../generated/prisma";
 import { env } from "./env";
 import {
   createMemorySnapshotStore, createPrismaSnapshotStore,
@@ -14,7 +15,7 @@ export const usePrisma = Boolean(env.DATABASE_URL);
 
 function prismaDb(): SnapshotDb {
   if (!env.DATABASE_URL) throw new Error("DATABASE_URL が必要です");
-  return createDb(env.DATABASE_URL) as unknown as SnapshotDb;
+  return createDb(PrismaClient, env.DATABASE_URL) as unknown as SnapshotDb;
 }
 
 /**

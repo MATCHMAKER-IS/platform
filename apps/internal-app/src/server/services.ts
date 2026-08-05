@@ -4,8 +4,10 @@
  * @packageDocumentation
  */
 import { createLogger } from "@platform/logger";
-// このアプリ専用の生成物(prisma/schema.prisma の output で生成される)
-import type { PrismaClient } from "../generated/prisma";
+// このアプリ専用の生成物(prisma/schema.prisma の output で生成される)。
+// **型ではなく実体を import する。** 型だけ渡しても、基盤が new するのは
+// 別の生成物になり、このアプリのモデルを持たない(2026-08 に実際に起きた)
+import { PrismaClient } from "../generated/prisma";
 import { logContext } from "./log-context";
 import { createDb } from "@platform/db";
 import { summarizeSql } from "@platform/debug";
@@ -26,7 +28,8 @@ export const log = createLogger({ level: env.LOG_LEVEL, base: { service: "intern
  * 渡さないと `@prisma/client`(= 最後に generate した schema)の型になり、
  * `db.expense` などが「存在しない」と言われる。
  */
-export const db = createDb<PrismaClient>(
+export const db = createDb(
+  PrismaClient,
   env.DATABASE_URL,
   featureEnv.DEBUG_TOOL
     ? {

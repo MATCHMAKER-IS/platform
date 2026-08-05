@@ -16,7 +16,7 @@ done
 pnpm install
 
 for app in internal-app crud-template equipment-app; do
-  pnpm --filter @platform/db exec prisma generate --schema="../../apps/$app/prisma/schema.prisma" >/dev/null
+  PRISMA_SCHEMA="../../apps/$app/prisma/schema.prisma" pnpm --filter @platform/db exec prisma generate >/dev/null
   echo "  ✓ prisma generate: $app"
 done
 

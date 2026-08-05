@@ -16,7 +16,7 @@ CI が緑(docs/ops/CI_FIRST_RUN.md 完了)。移行はブランチ+PR 単位、1
 `tools/pkg-path.mjs` を新設: `resolvePackageDir(name)` が `packages/**/package.json` を走査して name→実パスを返す(起動時1回キャッシュ)。
 - `smoke.mjs`: `rdc("../packages/<p>/src/…")` の `<p>` 部分を `resolvePackageDir` 経由に一括置換(`sed -E 's#\.\./packages/([a-z-]+)/src#…#'` 相当。~40箇所/カテゴリ)。
 - `check-deps.mjs` / `api-surface.mjs` / `gen-module-list.mjs` / `gen-readmes` 系: ディレクトリ走査を `packages/*` → `packages/{*,*/*}` 対応に。
-- CI の `--schema=../../apps/...`(packages/db 起点)は移動後 `../../../apps/...` になるため、**リポジトリルート起点の絶対指定**へ変更(`--schema=$GITHUB_WORKSPACE/apps/internal-app/prisma/schema.prisma`)。
+- CI の `PRISMA_SCHEMA=../../apps/...`(packages/db 起点)は移動後 `../../../apps/...` になるため、**リポジトリルート起点の絶対指定**へ変更(`PRISMA_SCHEMA=$GITHUB_WORKSPACE/apps/internal-app/prisma/schema.prisma`)。
 - 完了条件: この時点で(まだ何も移動せず)smoke/check-deps/api-surface が緑。
 
 ### Phase 2: パイロット移行(外部SaaS連携・7個)
