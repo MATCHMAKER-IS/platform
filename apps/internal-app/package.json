@@ -81,19 +81,19 @@
     "@platform/workflow": "workspace:*",
     "@platform/xlsx": "workspace:*",
     "@platform/zoho": "workspace:*",
-    "@prisma/client": "^7.2.0",
-    "next": "^16.2.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "@prisma/client": "^7.9.1",
+    "next": "^16.2.12",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@platform/config": "workspace:*",
-    "@playwright/test": "^1.48.0",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^22.10.0",
-    "@types/react": "^19.0.0",
+    "@types/react": "^19.2.18",
     "dotenv": "^16.4.5",
-    "prisma": "^7.2.0",
-    "tsx": "^4.19.2",
+    "prisma": "^7.9.1",
+    "tsx": "^4.23.4",
     "typescript": "^5.7.3",
     "vitest": "^3.0.4"
   }
