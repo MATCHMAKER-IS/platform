@@ -116,7 +116,11 @@ export function byCategory(items: FaqItem[]): { category: string; items: FaqItem
   }
   return [...map.entries()]
     .map(([category, list]) => ({ category, items: sortByHelpfulness(list) }))
-    .sort((a, b) => b.items.length - a.items.length || a.category.localeCompare(b.category));
+    // **`localeCompare` には必ずロケールを渡す。** カテゴリは「経費」「勤怠」など
+    // 日本語なので、省くと環境既定の照合順になり**並びが変わる**
+    // (Node の既定では 給与 → 勤怠 → 経費 の順が 勤怠 → 経費 → 給与 になった)。
+    // 同じ画面を別の環境で開くと順序が違う、という再現しにくい形になる。
+    .sort((a, b) => b.items.length - a.items.length || a.category.localeCompare(b.category, "ja"));
 }
 
 /**

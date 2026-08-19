@@ -19,7 +19,7 @@ export interface SeenStore {
  * **複数プロセスでは効かない**(プロセスごとに別のメモリを持つため、
  * サーバの数だけ通知が飛ぶ)。**本番では Redis 実装に差し替えること**。
  *
- * @param options.ttlMs 記録の保持期間
+ * @param now 現在時刻(**テスト注入用**。渡さなければ `new Date()`)
  * @returns ストア
  */
 export function createMemorySeenStore(now: () => number = () => Date.now()): SeenStore {
@@ -59,8 +59,8 @@ export interface DedupOptions {
  * 利用者に同じ通知が 5 回届くと信頼を失う)。
  *
  * @param channel 元のチャネル
- * @param store 重複抑制ストア
- * @param keyOf 通知から一意キーを作る関数
+ * @param options `store`(既送信の記録先)と `ttlMs`(抑制する時間窓)は必須。
+ *   `keyOf`(既定は level+text)と `onSkip`(抑制時の通知)は任意
  * @returns ラップしたチャネル
  */
 export function withDedup(channel: NotifyChannel, options: DedupOptions): NotifyChannel {

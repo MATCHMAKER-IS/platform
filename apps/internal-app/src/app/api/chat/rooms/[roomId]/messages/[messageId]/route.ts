@@ -4,8 +4,12 @@
  * - DELETE: メッセージを削除（本人/管理者のみ）。削除を全接続へ同報。
  */
 import { withApiObservability } from "../../../../../../../server/instrument";
+import { validate, z } from "@platform/validation";
+
+/** 編集の入力。**本文は利用者に届く文字列**なので、型が崩れると表示が壊れる。 */
+const EditInput = z.object({ text: z.string().default("") });
 import { currentUser, requirePermission } from "../../../../../../../server/authorize";
-import { serverEnv } from "../../../../../../../server/env";
+import "../../../../../../../server/env";
 import { chatGateway } from "../../../../../../../server/chat";
 import { auditActions } from "../../../../../../../server/platform-services";
 
@@ -15,11 +19,15 @@ function isAdmin(roles: string[]): boolean {
 
 async function handlePATCH(req: Request, ctx: { params: Promise<{ roomId: string; messageId: string }> }): Promise<Response> {
   const { roomId, messageId } = await ctx.params;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "chat:post");
 
-  const body = (await req.json()) as { text?: string };
-  const res = await chatGateway.edit({ roomId, messageId, editorId: user!.email, text: body.text ?? "", isAdmin: isAdmin(user!.roles) });
+  const parsed = validate(EditInput, await req.json().catch(() => ({})));
+  if (!parsed.ok) {
+    return Response.json({ error: parsed.error.message, details: parsed.error.details }, { status: 400 });
+  }
+  const body = parsed.value;
+  const res = await chatGateway.edit({ roomId, messageId, editorId: user!.email, text: body.text, isAdmin: isAdmin(user!.roles) });
   if (!res.ok) return Response.json({ error: res.error }, { status: res.error.includes("権限") ? 403 : 400 });
   await auditActions.chatEdit(user!.email, roomId, messageId, "", res.message.text);
   return Response.json(res.message);
@@ -27,7 +35,7 @@ async function handlePATCH(req: Request, ctx: { params: Promise<{ roomId: string
 
 async function handleDELETE(req: Request, ctx: { params: Promise<{ roomId: string; messageId: string }> }): Promise<Response> {
   const { roomId, messageId } = await ctx.params;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "chat:post");
 
   const res = await chatGateway.remove({ roomId, messageId, editorId: user!.email, isAdmin: isAdmin(user!.roles) });

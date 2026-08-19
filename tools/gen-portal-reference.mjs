@@ -3,7 +3,7 @@
  *   node tools/gen-portal-reference.mjs
  *
  * 入力: docs/platform/api-reference.json(gen-reference.mjs が作る)
- * 出力: demos/showcase/src/lib/portal-reference.generated.ts
+ * 出力: apps/showcase/src/lib/portal-reference.generated.ts
  *
  * **実行時にファイルを読まない**ためにビルド時へ固める。
  * `process.cwd()` は Amplify の SSR で想定と違う場所を指すので、ファイル I/O に頼ると画面が壊れる
@@ -18,7 +18,7 @@ import { CATEGORIES } from "./package-categories.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const SRC = path.join(ROOT, "docs/platform/api-reference.json");
-const OUT = path.join(ROOT, "demos/showcase/src/lib/portal-reference.generated.ts");
+const OUT = path.join(ROOT, "apps/showcase/src/lib/portal-reference.generated.ts");
 
 /** パッケージ名 → カテゴリ(package-categories.mjs の逆引き)。 */
 function categoryOf(name) {

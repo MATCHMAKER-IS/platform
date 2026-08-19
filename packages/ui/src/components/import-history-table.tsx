@@ -4,6 +4,8 @@
  * @packageDocumentation
  */
 import { cn } from "../lib/cn";
+import * as React from "react";
+import { ConfirmDialog } from "./confirm-dialog";
 import { canRollbackWith, type ImportHistoryRow } from "../lib/import-validate";
 import { DataTable, type DataTableColumn } from "./data-table";
 import { Button } from "./button";
@@ -31,6 +33,11 @@ const STATUS_LABEL: Record<ImportHistoryRow["status"], { text: string; variant: 
 
 /** 取り込み履歴テーブル(検索/ソート/CSV + ロールバック)。 */
 export function ImportHistoryTable({ rows, onRollback, actorRoles = [], allowedRoles, className }: ImportHistoryTableProps) {
+  // **取り消しの前に確認を挟む。**
+  // 取り込みの取り消しは**その回で入れた経費が全部消えます**——
+  // **1 件ずつではありません**。**押した瞬間に、数十件が消える**ことがあります。
+  const [rollbackId, setRollbackId] = React.useState<string | null>(null);
+
   const t = useT();
   const columns: DataTableColumn<ImportHistoryRow & Record<string, unknown>>[] = [
     { key: "importedAt", header: t("history.col.datetime"), sortable: true, render: (r) => new Date(r.importedAt).toLocaleString("ja-JP") },
@@ -42,13 +49,29 @@ export function ImportHistoryTable({ rows, onRollback, actorRoles = [], allowedR
     {
       key: "_action", header: "", align: "center",
       render: (r) => (onRollback && canRollbackWith(r.status, actorRoles, allowedRoles)
-        ? <Button variant="ghost" size="sm" onClick={() => onRollback(r.importId)}>{t("history.rollback")}</Button>
+        ? <Button variant="ghost" size="sm" onClick={() => setRollbackId(r.importId)}>{t("history.rollback")}</Button>
         : <span className="text-[var(--color-muted)]" title={onRollback && !canRollbackWith(r.status, actorRoles, allowedRoles) ? t("history.noPermission") : undefined}>—</span>),
     },
   ];
   return (
     <div className={cn(className)}>
       <DataTable rows={rows as (ImportHistoryRow & Record<string, unknown>)[]} columns={columns} searchKeys={["source", "status"]} pageSize={10} csvFilename="import-history.csv" />
+
+      {/* **取り消しの前に確認。** その回で入れた経費が**全部消えます**——
+          **1 件ずつではありません**。 */}
+      <ConfirmDialog
+        open={rollbackId !== null}
+        onOpenChange={(o) => { if (!o) setRollbackId(null); }}
+        title="この取り込みを取り消します"
+        description="この回で取り込んだ経費が、まとめて取り消されます。元に戻せません。"
+        confirmText="取り消す"
+        destructive
+        onConfirm={() => {
+          const id = rollbackId;
+          setRollbackId(null);
+          if (id !== null) onRollback?.(id);
+        }}
+      />
     </div>
   );
 }

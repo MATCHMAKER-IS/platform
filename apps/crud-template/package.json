@@ -8,6 +8,8 @@
     "db:generate": "prisma generate --schema=prisma/schema.prisma",
     "dev": "next dev --port 3002",
     "lint": "eslint src",
+    "predev": "node ../../tools/predev.mjs",
+    "seed": "tsx prisma/seed.ts",
     "start": "next start --port 3002",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
@@ -16,24 +18,35 @@
     "@platform/auth": "workspace:*",
     "@platform/context": "workspace:*",
     "@platform/core": "workspace:*",
+    "@platform/csv": "workspace:*",
+    "@platform/datetime": "workspace:*",
     "@platform/db": "workspace:*",
     "@platform/env": "workspace:*",
+    "@platform/faker": "workspace:*",
+    "@platform/guard": "workspace:*",
     "@platform/logger": "workspace:*",
     "@platform/observability": "workspace:*",
+    "@platform/openapi": "workspace:*",
+    "@platform/ratelimit": "workspace:*",
     "@platform/security": "workspace:*",
     "@platform/seo": "workspace:*",
     "@platform/theme": "workspace:*",
     "@platform/ui": "workspace:*",
     "@prisma/client": "^7.2.0",
-    "next": "16.2.0",
-    "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "next": "^15.5.21",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@platform/config": "workspace:*",
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "dotenv": "^16.4.5",
     "prisma": "^7.2.0",
+    "tailwindcss": "^4.0.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.3"
   }
 }

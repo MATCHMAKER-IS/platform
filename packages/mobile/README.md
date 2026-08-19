@@ -1,11 +1,28 @@
 # @platform/mobile
 
-タブレット・スマホなどモバイル端末向けの処理。レスポンシブ判定・ネットワーク状態・画面向きの
-純ロジックと、それを購読する React フック、共有・触覚・クリップボード等のブラウザ操作ラッパー
-(feature detection つき・非対応環境でも安全)。
+スマホ向けの機能（カメラ・録音・バーコード・画面の向き・オフライン）。
 
-## レスポンシブ / 画面
-```tsx
+## これは何のためか
+
+**現場の人は PC を持っていません。**
+
+領収書を撮る、在庫のバーコードを読む、口頭のメモを残す——
+**スマホでできれば、事務所に戻ってから入力する手間が消えます**。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **録音は必ず止める** | 止めないと**マイクが開いたまま**になり、**タブに録音中の印が出続けて「盗聴されている」と感じさせます** |
+| **iOS Safari は非対応の機能があります** | バーコード検出など——**代替を用意する**か、**使えないことを伝えて**ください |
+| **利用者がキャンセルしても `false`** | 「失敗」と「やめた」を区別できない API があります——**エラーとして扱わないで**ください |
+| **写真はそのままだと数 MB** | `@platform/image` で縮めてから送ってください |
+| **形式はブラウザごとに違う** | 録音は `webm` / `mp4` / `ogg`——**決め打ちにせず、返ってきた `type` を見て**ください |
+
+## よく使うもの
+
+```ts
+import { createAudioRecorder, captureFrame, isCameraSupported } from "@platform/mobile";
 import { useBreakpoint, useDeviceSize, useIsMobile, useOrientation, useViewportSize } from "@platform/mobile";
 const size = useDeviceSize();   // "mobile" | "tablet" | "desktop"
 const bp = useBreakpoint();     // "xs" | "sm" | "md" | ...

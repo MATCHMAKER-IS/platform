@@ -18,7 +18,6 @@ export interface PageHeaderProps extends Omit<React.HTMLAttributes<HTMLDivElemen
   actions?: React.ReactNode;
 }
 
-/** ページ上部の見出しブロック。 */
 /**
  * 画面の見出し(題名・説明・操作)。
  *

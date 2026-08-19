@@ -5,7 +5,7 @@ import { createMemoryExportScheduleStore, createPrismaExportScheduleStore, creat
 import { createMemoryTemplateStore, createPrismaTemplateStore, type TemplateStore, type TemplateStoreDb } from "./notification-templates";
 import { createMemorySearchIndexStore, createPrismaSearchIndexStore, type SearchIndexStore, type SearchIndexStoreDb } from "./search-index";
 import { createMemoryDigestSettingStore, createPrismaDigestSettingStore, type DigestSettingStore, type DigestSettingStoreDb } from "./digest";
-import { serverEnv, useChatPrisma } from "./env";
+import { serverEnv, usePrisma } from "./env";
 import { createMemoryFlagStore, createPrismaFlagStore, type FlagStore, type FlagStoreDb } from "./feature-flags";
 import { createMemorySecretRecordStore, createPrismaSecretRecordStore, createAppSecretStore, type SecretRecordStore, type SecretRecordStoreDb } from "./secret-store";
 import { createMemoryServiceAccountStore, createPrismaServiceAccountStore, type ServiceAccountStore, type ServiceAccountStoreDb } from "./service-account-repo";
@@ -31,7 +31,23 @@ import { createMemoryAssetStore, createPrismaAssetStore, type AssetStore, type A
 import { createMemoryFeePaymentStore, createPrismaFeePaymentStore, type FeePaymentStore, type FeePaymentStoreDb } from "./withholding-repo";
 import { createMemoryPurchasePaymentStore, createPrismaPurchasePaymentStore, type PurchasePaymentStore, type PurchasePaymentStoreDb } from "./payables-repo";
 import { createMemoryAttendanceApprovalStore, createPrismaAttendanceApprovalStore, type AttendanceApprovalStore, type AttendanceApprovalStoreDb } from "./attendance-approval-repo";
-import { createMemoryWageStore, createPrismaWageStore, type WageStore, type WageStoreDb } from "./payroll-repo";
+import {
+  createMemoryWageStore, createPrismaWageStore, type WageStore, type WageStoreDb,
+  createMemoryPayrollProfileStore, createPrismaPayrollProfileStore, type PayrollProfileStore, type PayrollProfileStoreDb,
+} from "./payroll-repo";
+import {
+  createMemoryMailSuppressionStore, createPrismaMailSuppressionStore, type MailSuppressionStore, type MailSuppressionStoreDb,
+} from "./mail-suppression-repo";
+import {
+  createMemoryPushSubscriptionStore, createPrismaPushSubscriptionStore, type PushSubscriptionStore, type PushSubscriptionStoreDb,
+} from "./push-repo";
+import {
+  createMemoryUserPhoneStore, createPrismaUserPhoneStore, type UserPhoneStore, type UserPhoneStoreDb,
+  createMemoryOtpChallengeStore, createPrismaOtpChallengeStore, type OtpChallengeStore, type OtpChallengeStoreDb,
+} from "./otp-repo";
+import {
+  createMemoryBookingStore, createPrismaBookingStore, type BookingStore, type BookingStoreDb,
+} from "./booking-service";
 import { createMemoryAttendanceStore, createPrismaAttendanceStore, type AttendanceStore, type AttendanceStoreDb } from "./attendance-repo";
 import { createMemoryRecurringStore, createPrismaRecurringStore, type RecurringStore, type RecurringStoreDb } from "./recurring-repo";
 import { createMemoryPurchaseStore, createPrismaPurchaseStore, type PurchaseStore, type PurchaseStoreDb } from "./purchase-repo";
@@ -69,7 +85,7 @@ import { createMemoryCmsStore, createPrismaCmsStore, type CmsStore, type CmsStor
 import { createMemoryPageStore, createPrismaPageStore, createMemoryAnnouncementStore, createPrismaAnnouncementStore, createMemoryCategoryStore, createPrismaCategoryStore, createMemoryRevisionStore, createPrismaRevisionStore, createMemoryPublishRequestStore, createPrismaPublishRequestStore, type PageStore, type PageStoreDb, type AnnouncementStore, type AnnouncementStoreDb, type CategoryStore, type CategoryStoreDb, type RevisionStore, type RevisionStoreDb, type PublishRequestStore, type PublishRequestStoreDb } from "@platform/cms";
 import { db } from "./services";
 
-const usePrisma = useChatPrisma;
+// 永続化は env の `usePrisma`(既定 true)に一本化した
 let idSeq = 0;
 const newId = (p: string) => () => `${p}_${Date.now()}_${++idSeq}`;
 
@@ -179,6 +195,52 @@ export const attendanceStore: AttendanceStore = usePrisma
 export const wageStore: WageStore = usePrisma
   ? createPrismaWageStore(db as unknown as WageStoreDb)
   : createMemoryWageStore();
+
+/**
+ * 社会保険料の算出に要る個人情報(生年月日・扶養人数)。
+ *
+ * **`UserRow` とは別テーブル。** 参照は給与計算の場面に限る
+ * (`docs/ops/CHECKS.md` の「機微情報は専用テーブルに分ける」方針)。
+ */
+export const payrollProfileStore: PayrollProfileStore = usePrisma
+  ? createPrismaPayrollProfileStore(db as unknown as PayrollProfileStoreDb)
+  : createMemoryPayrollProfileStore();
+
+/**
+ * メールの配信停止リスト(取引先・顧客向けの案内メールのみが対象)。
+ * `external-mail-service.ts` の `createExternalMailer` が送信直前に参照する。
+ */
+export const mailSuppressionStore: MailSuppressionStore = usePrisma
+  ? createPrismaMailSuppressionStore(db as unknown as MailSuppressionStoreDb)
+  : createMemoryMailSuppressionStore();
+
+/** Web Push の購読(端末ごと)。 */
+export const pushSubscriptionStore: PushSubscriptionStore = usePrisma
+  ? createPrismaPushSubscriptionStore(db as unknown as PushSubscriptionStoreDb)
+  : createMemoryPushSubscriptionStore();
+
+/**
+ * SMS-OTP に要る電話番号(TOTP を設定していない人向けの代替 2FA)。
+ * `UserRow` とは別テーブル(給与プロファイルと同じ方針)。
+ */
+export const userPhoneStore: UserPhoneStore = usePrisma
+  ? createPrismaUserPhoneStore(db as unknown as UserPhoneStoreDb)
+  : createMemoryUserPhoneStore();
+
+/** SMS-OTP のチャレンジ(発行してから検証するまでの短命な記録)。 */
+export const otpChallengeStore: OtpChallengeStore = usePrisma
+  ? createPrismaOtpChallengeStore(db as unknown as OtpChallengeStoreDb)
+  : createMemoryOtpChallengeStore();
+
+/**
+ * 会議室・設備・イベントの予約。
+ *
+ * **`createBooking` は同時実行に対する安全性をストア実装側で持つ**
+ * (Prisma 実装は advisory lock で直列化する。詳細は booking-service.ts)。
+ */
+export const bookingStore: BookingStore = usePrisma
+  ? createPrismaBookingStore(db as unknown as BookingStoreDb)
+  : createMemoryBookingStore();
 
 /** 勤怠承認ストア。 */
 export const attendanceApprovalStore: AttendanceApprovalStore = usePrisma

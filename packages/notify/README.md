@@ -1,12 +1,28 @@
 # @platform/notify
 
-チャット通知の共通部品(Adapter パターン)。業務イベントの通知に使います。
+通知（メール・Slack・LINE・アプリ内）。
 
-- `createSlackChannel(webhookUrl)`
-- `createTeamsChannel(webhookUrl)`
-- `createLineChannel(channelAccessToken)`
+## これは何のためか
+
+**「送ったつもり」が一番困ります。**
+直接送ると、失敗したときに**送ったかどうか分かりません**。
+
+このパッケージは **Outbox 経由**で送ります——
+**失敗しても再試行され、諦めたときも記録が残ります**。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **何でも通知しない** | **鳴りすぎると見なくなります**。「これが 1 件出たら誰かが動くか」で決めてください |
+| **宛先は都度 DB から引く** | 起動時に読み込む形だと、**入社・退職が反映されません** |
+| **メモリ実装は 1 台まで** | 2 台構成だと**同じ通知が 2 回届きます**——ロックを Redis 実装へ |
+| **本文に個人情報を入れない** | Slack や LINE は**社外の仕組み**です。**「経費が承認されました」で十分**で、金額や氏名は要りません |
+
+## よく使うもの
 
 ```ts
+import { createSlackChannel, createWebhookChannel } from "@platform/notify";
 import { createNotifier, createSlackChannel } from "@platform/notify";
 const notifier = createNotifier([createSlackChannel(env.SLACK_WEBHOOK_URL)]);
 await notifier.notify({ text: "夜間バッチが失敗しました", level: "error" });

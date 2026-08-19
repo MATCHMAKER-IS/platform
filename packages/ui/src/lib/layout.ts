@@ -17,7 +17,8 @@ export type DashboardLayout = LayoutItem[];
  * span を範囲に丸める。
  *
  * @param span 列数
- * @param min / max 範囲
+ * @param min 下限（既定 1）
+ * @param max 上限（既定 12）
  * @returns 丸めた値
  */
 export function clampSpan(span: number, min = 1, max = 12): number {
@@ -47,8 +48,9 @@ export function reorder(list: DashboardLayout, fromId: string, toId: string): Da
  *
  * **画面幅で段数を変える**(スマホは 1 列、デスクトップは 4 列など)。
  *
- * @param width ピクセル幅
- * @param breakpoints ブレークポイント
+ * @param widthPx ウィジェットの幅（px）
+ * @param containerPx 全体の幅（px）
+ * @param columns 全体の列数
  * @returns カラム数
  */
 export function pxToColSpan(widthPx: number, containerPx: number, columns: number): number {
@@ -59,9 +61,10 @@ export function pxToColSpan(widthPx: number, containerPx: number, columns: numbe
 /**
  * ウィジェットの幅を変更する。
  *
- * @param items 現在の配置
+ * @param list 現在の配置
  * @param id 対象のウィジェット
  * @param colSpan 新しい列数
+ * @param columns 全体の列数（既定 12。**これを超える指定は丸めます**）
  * @returns 更新した新しい配列
  */
 export function setColSpan(list: DashboardLayout, id: string, colSpan: number, columns = 12): DashboardLayout {

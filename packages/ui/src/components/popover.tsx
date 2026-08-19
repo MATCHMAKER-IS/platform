@@ -6,7 +6,6 @@ import * as React from "react";
 import { Popover as Primitive } from "radix-ui";
 import { cn } from "../lib/cn";
 
-/** ポップオーバーのルート。 */
 /**
  * 押すと開く小さな箱。
  *

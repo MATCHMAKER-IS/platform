@@ -39,7 +39,9 @@ const surface = JSON.parse(read(path.join(root, "docs/platform/api-surface.json"
 const exportsTotal = Object.values(surface).reduce((a, v) => a + v.length, 0);
 
 // apps 集計
-const apps = ["internal-app", "public-site", "crud-template", "equipment-app"];
+// **アプリ名を手で並べない。** apps/ の実体から集める
+const apps = fs.readdirSync(path.join(root, "apps"), { withFileTypes: true })
+  .filter((d) => d.isDirectory()).map((d) => d.name).sort();
 const appRows = apps.map((a) => {
   const base = path.join(root, "apps", a);
   let routes = 0, clients = 0;
@@ -57,7 +59,6 @@ const smoke = read(path.join(root, "tools/smoke.mjs"));
 const smokeChecks = (smoke.match(/^\s*ok\(/gm) ?? []).length;
 const smokeSections = (smoke.match(/section\(/g) ?? []).length - 1; // 定義分を除く
 const adrs = fs.readdirSync(path.join(root, "docs/adr")).filter((f) => /^\d{4}-/.test(f)).length;
-const demos = fs.readdirSync(path.join(root, "demos")).filter((d) => fs.statSync(path.join(root, "demos", d)).isDirectory()).length;
 
 const catRows = Object.entries(CATEGORIES).map(([c, list]) => `| ${c} | ${list.filter((p) => pkgs.includes(p)).length} |`).join("\n");
 const pct = (n, d) => `${Math.round((n / d) * 100)}%`;
@@ -76,7 +77,7 @@ const md = `# 基盤ヘルスレポート(自動生成)
 | 実装行数(packages/src, テスト除く) | ${srcLines.toLocaleString()} 行 |
 | 公開 API(export) | ${exportsTotal}(api-surface 追跡) |
 | スモーク検証 | ${smokeChecks} チェック / ${smokeSections} セクション(実測は \`pnpm verify:offline\`) |
-| ADR | ${adrs} 件 / デモ | ${demos} 本 |
+| ADR | ${adrs} 件 |
 
 ## アプリ
 

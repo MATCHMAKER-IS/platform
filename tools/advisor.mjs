@@ -11,6 +11,8 @@
  */
 import { readFileSync, existsSync, writeFileSync, readdirSync } from "node:fs";
 import path from "node:path";
+import { docBefore, summaryOf, stripComments } from "./lib/source-text.mjs";
+import { collectFiles } from "./lib/collect-files.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 // **改行コードを LF に揃えてから使う。**
@@ -42,6 +44,33 @@ function loadPackages() {
 }
 
 // ── find ──
+/**
+ * 関数・型を名前と説明から探す。
+ *
+ * **パッケージ単位では粗すぎる。** 「二重送信」のような**やりたいこと**で
+ * 探したいのに、パッケージの説明文には出てこない
+ * ——2026-08 に、既に `useSubmitFlow` があるのに `useSubmit` を作った。
+ *
+ * @param {string[]} keywords 探す語(**日本語でもよい**)
+ * @returns {{pkg: string, name: string, summary: string}[]} 見つかったもの
+ */
+function findExports(keywords) {
+  const qs = keywords.map((k) => k.toLowerCase());
+  const out = [];
+  for (const rel of collectFiles(["packages"], ROOT, { extensions: [".ts", ".tsx"] })) {
+    if (/\.test\.tsx?$/.test(rel)) continue;
+    const src = readFileSync(path.join(ROOT, rel), "utf8");
+    const pkg = rel.replace(/\\/g, "/").split("/")[1] ?? "";
+    for (const m of stripComments(src).matchAll(/^export (?:async )?(?:function|const|interface|type|class) (\w+)/gm)) {
+      const name = m[1] ?? "";
+      const summary = summaryOf(docBefore(src, m.index ?? 0));
+      const hay = `${name} ${summary}`.toLowerCase();
+      if (qs.some((q) => hay.includes(q))) out.push({ pkg, name, summary });
+    }
+  }
+  return out;
+}
+
 function find(keywords) {
   const pkgs = loadPackages();
   const terms = keywords.map((k) => k.toLowerCase());
@@ -91,7 +120,16 @@ function duplicates() {
     .filter((g) => !sameName.some((s) => conceptOf(s.export) === g.concept)); // 同名は別掲
 
   // 3) 孤立(export 0 または README 要約なし)
-  const isolated = pkgs.filter((p) => p.exports.length === 0 || p.summary === "").map((p) => ({ name: p.name, reason: p.exports.length === 0 ? "public export なし" : "README 要約なし" }));
+  //
+  // **設定を配るだけのパッケージは対象外。** `@platform/config` は
+  // `tsconfig.base.json` と vitest のプリセットを配るのが仕事で、
+  // **TypeScript の export が無いのが正常**——毎回「孤立」と出ると、
+  // **本当の孤立に気づけなくなる**(2026-08)。
+  const CONFIG_ONLY = new Set(["config"]);
+  const isolated = pkgs
+    .filter((p) => !CONFIG_ONLY.has(p.name))
+    .filter((p) => p.exports.length === 0 || p.summary === "")
+    .map((p) => ({ name: p.name, reason: p.exports.length === 0 ? "public export なし" : "README 要約なし" }));
 
   return { sameName, similar, isolated };
 }
@@ -119,8 +157,24 @@ const [cmd, ...rest] = process.argv.slice(2);
 if (cmd === "find") {
   if (rest.length === 0) { console.error("キーワードを指定してください: node tools/advisor.mjs find mail 送信"); process.exit(1); }
   const hits = find(rest);
-  if (hits.length === 0) { console.log(`「${rest.join(" ")}」に一致するパッケージは見つかりませんでした(新規作成の候補)。`); }
+  // **関数の説明まで探す。** パッケージ単位だけだと粒度が粗く、
+  // 「二重送信」のような**やりたいこと**では当たらない
+  // ——2026-08 に、既に `useSubmitFlow` があるのに `useSubmit` を作った(2026-08 に追加)
+  const fnHits = findExports(rest);
+  if (hits.length === 0 && fnHits.length === 0) { console.log(`「${rest.join(" ")}」に一致するものは見つかりませんでした(新規作成の候補)。`); }
+  else if (hits.length === 0) { console.log(`「${rest.join(" ")}」に一致するパッケージはありませんが、関数が見つかりました:\n`); }
   else { console.log(`「${rest.join(" ")}」の候補(再利用できるかもしれません):\n`); for (const h of hits.slice(0, 10)) console.log(`  @platform/${h.name}(${h.category})  score=${h.score}\n    ${h.summary}${h.matchedExports.length ? `\n    export: ${h.matchedExports.slice(0, 6).join(", ")}` : ""}`); }
+  // **関数単位の結果も出す。** パッケージが当たらなくても、
+  // 目的の関数だけ既にあることがある
+  if (fnHits.length > 0) {
+    console.log(`\n  ── 関数・型(${fnHits.length} 件)`);
+    for (const f of fnHits.slice(0, 12)) {
+      console.log(`  @platform/${f.pkg}  ${f.name}`);
+      if (f.summary !== "") console.log(`    ${f.summary.slice(0, 70)}`);
+    }
+    if (fnHits.length > 12) console.log(`  …他 ${fnHits.length - 12} 件`);
+    console.log("\n  **同じものが既にあるなら、作らずにそれを使ってください。**");
+  }
 } else if (cmd === "dup") {
   const d = duplicates();
   console.log(`同名 export: ${d.sameName.length} 組 / 似た概念: ${d.similar.length} 組 / 孤立: ${d.isolated.length}`);

@@ -5,11 +5,11 @@
 import { withApiObservability } from "../../../../server/instrument";
 import { formatDateJst } from "@platform/datetime";
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { auditLog } from "../../../../server/platform-services";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "audit:read");
   const url = new URL(req.url);
   const q: { actor?: string; action?: string; target?: string; from?: string; to?: string; limit?: number } = {};

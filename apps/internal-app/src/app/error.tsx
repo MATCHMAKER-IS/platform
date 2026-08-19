@@ -15,15 +15,15 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
   return (
     <div style={{ padding: "3rem", maxWidth: 560, margin: "0 auto", textAlign: "center" }}>
       <h2 style={{ fontSize: "1.25rem", marginBottom: "0.5rem" }}>問題が発生しました</h2>
-      <p style={{ color: "#666", marginBottom: "1.5rem" }}>
+      <p style={{ color: "var(--color-muted)", marginBottom: "1.5rem" }}>
         一時的なエラーの可能性があります。時間をおいて再度お試しください。
       </p>
       {error.digest && (
-        <p style={{ color: "#999", fontSize: "0.8rem", marginBottom: "1.5rem" }}>
+        <p style={{ color: "var(--color-muted)", fontSize: "0.8rem", marginBottom: "1.5rem" }}>
           お問い合わせの際はこの ID をお伝えください: <code>{error.digest}</code>
         </p>
       )}
-      <Button onClick={reset} style={{ padding: "0.5rem 1.5rem", borderRadius: 6, border: "1px solid #ccc", cursor: "pointer" }}>
+      <Button onClick={reset} style={{ padding: "0.5rem 1.5rem", borderRadius: 6, border: "1px solid var(--color-border)", cursor: "pointer" }}>
         再試行
       </Button>
     </div>

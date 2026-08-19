@@ -1,7 +1,7 @@
 "use client";
 /** CSVインポート。商品マスタ・勘定科目などをCSVで一括登録。まずプレビューで検証エラーを確認できる。 */
 import * as React from "react";
-import { Button, Textarea } from "@platform/ui";
+import { Button, Textarea, PageShell } from "@platform/ui";
 
 interface ImportError { line: number; message: string; }
 interface Target { key: string; label: string; endpoint: string; columns: string; sample: string; }
@@ -30,17 +30,16 @@ export function ImportClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   };
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
-      <h1 className="mb-4 text-2xl font-bold">CSVインポート</h1>
+        <PageShell title="CSVインポート" width="narrow">
       <div className="mb-3 flex gap-2">
-        {TARGETS.map((t) => <Button key={t.key} onClick={() => { setTarget(t); setCsv(""); setErrors(null); setResult(""); }} className={`rounded px-3 py-1.5 text-sm ${target.key === t.key ? "bg-[var(--color-fg)] text-white" : "bg-[var(--color-subtle)] text-[var(--color-muted)]"}`}>{t.label}</Button>)}
+        {TARGETS.map((t) => <Button key={t.key} onClick={() => { setTarget(t); setCsv(""); setErrors(null); setResult(""); }} variant="tab" data-state={target.key === t.key ? "active" : undefined}>{t.label}</Button>)}
       </div>
       <p className="mb-1 text-xs text-[var(--color-muted)]">列: {target.columns}</p>
       <Textarea value={csv} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCsv(e.target.value)} rows={8} placeholder={target.sample} className="block w-full rounded border border-[var(--color-border)] px-2 py-1 font-mono text-xs" />
       <div className="mt-2 flex gap-2">
-        <Button onClick={() => void send(true)} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">プレビュー（検証）</Button>
-        <Button onClick={() => void send(false)} className="rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white">インポート実行</Button>
-        <Button onClick={() => setCsv(target.sample)} className="rounded px-3 py-2 text-xs text-[var(--color-primary)]">サンプルを入力</Button>
+        <Button onClick={() => void send(true)} variant="secondary" className="rounded px-4 py-2 text-sm">プレビュー（検証）</Button>
+    <Button onClick={() => void send(false)} className="rounded px-4 py-2 text-sm text-white">インポート実行</Button>
+    <Button onClick={() => setCsv(target.sample)} variant="secondary" className="rounded px-3 py-2 text-xs">サンプルを入力</Button>
       </div>
       {result && <p className="mt-3 rounded bg-[var(--color-subtle)] px-3 py-2 text-sm text-[var(--color-fg)]">{result}</p>}
       {errors && errors.length > 0 && (
@@ -50,6 +49,6 @@ export function ImportClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         </div>
       )}
       {validCount !== null && errors && errors.length === 0 && <p className="mt-2 text-sm text-[var(--color-success)]">エラーはありません。インポートを実行できます。</p>}
-    </div>
+    </PageShell>
   );
 }

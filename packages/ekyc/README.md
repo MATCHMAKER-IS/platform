@@ -1,18 +1,27 @@
 # @platform/ekyc
 
-eKYC(オンライン本人確認)ベンダー連携コネクタ。TRUSTDOCK 等の API を型付きで扱い、
-判定結果の Webhook 署名検証・パース・ステータス正規化を提供します。
-他の SaaS コネクタと同じく `@platform/integrations` の上に薄く乗せ、`fetchImpl` 注入でテスト可能です。
+本人確認（eKYC）。**外部サービスを差し替えられる**形にしてあります。
 
-## 役割分担
-- **基盤(このパッケージ)**: 申込の作成・状態取得・画像URL取得を型付きで呼ぶ / Webみ署名検証・結果の正規化。
-- **アプリ**: OAuth・APIキーの保管(`@platform/secrets`)、Webhook 受信の配線、
-  **画像の実ダウンロード**(TRUSTDOCK は mTLS クライアント証明書が必要・取得期限あり)、判定後の業務処理。
+## これは何のためか
 
-一般的な流れ: 申込作成 → 利用者が書類/顔画像を提出 → ベンダーが審査 → **判定を Webhook で通知** → 画像URLを取得して保存。
+**「本当にその人か」を確かめる**ためのものです。
 
-## クライアント
+口座の開設や、高額の取引で求められます。
+**自前で作るものではありません**——外部のサービスを使います。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **サービスごとに状態名が違います** | `approved` / `verified` / `completed`——**共通の形に直して**扱います |
+| **確定していないものは待つ** | 「審査中」を**成功として扱わないで**ください——後で否認されます |
+| **本人確認書類は個人情報の塊です** | 免許証の画像には**住所・生年月日・顔写真**が入ります。**保存期間を必ず決めて**ください |
+| **結果だけ持ち、書類は持たない** | 可能なら、**画像は外部サービスに置いたまま**にしてください——**漏れたときの被害が違います** |
+
+## よく使うもの
+
 ```ts
+import { createEkycClient, createTrustdockClient, normalizeEkycStatus } from "@platform/ekyc";
 import { createTrustdockClient } from "@platform/ekyc";
 
 const kyc = createTrustdockClient({ apiKey: secrets.TRUSTDOCK_API_KEY, environment: "production" });

@@ -42,10 +42,47 @@ export function mapPrismaError(e: unknown): AppError {
       case "P2034":
         return new AppError(ErrorCode.CONFLICT, "書き込みが競合しました。再試行してください。", { cause: e });
       default:
+        // **`statement_timeout` による打ち切りを DATABASE に丸めない。**
+        // `createDb` は既定 30 秒で打ち切る(遅いクエリが接続を占有しないため)。
+        // 丸めると `isRetryable` が true になり(DATABASE は retryable)、
+        // **30 秒かかるクエリを何度も投げ直す**——DB をさらに苦しめる。
+        // 打ち切りは「そのクエリが重すぎる」ことの表れで、再試行しても同じ。
+        if (isStatementTimeout(e)) {
+          return new AppError(
+            ErrorCode.VALIDATION,
+            "処理に時間がかかりすぎたため中止しました。絞り込み条件を狭めてください。",
+            { cause: e, details: { code: "57014" } },
+          );
+        }
         return new AppError(ErrorCode.DATABASE, "データベース操作に失敗しました", { cause: e, details: { code: e.code } });
     }
   }
+  if (isStatementTimeout(e)) {
+    return new AppError(
+      ErrorCode.VALIDATION,
+      "処理に時間がかかりすぎたため中止しました。絞り込み条件を狭めてください。",
+      { cause: e, details: { code: "57014" } },
+    );
+  }
   return AppError.from(e, ErrorCode.DATABASE);
+}
+
+/**
+ * `statement_timeout` で打ち切られたか(PostgreSQL の SQLSTATE `57014`)。
+ *
+ * **再試行してはいけない失敗**である。時間切れは「そのクエリが重い」ことの表れで、
+ * 投げ直しても同じだけ待たされる。`ErrorCode.DATABASE` に丸めると
+ * `isRetryable` が true になり、**30 秒 × リトライ回数**を DB に押し付ける。
+ *
+ * @param e エラー
+ * @returns 時間切れなら true
+ */
+export function isStatementTimeout(e: unknown): boolean {
+  if (isPrismaKnownError(e) && e.code === "P2024") return true; // プール取得の時間切れ
+  const code = (e as { code?: unknown })?.code;
+  if (code === "57014") return true;
+  const msg = (e as { message?: string })?.message ?? "";
+  return /57014|canceling statement due to statement timeout|query_canceled/i.test(msg);
 }
 
 /**
@@ -57,6 +94,8 @@ export function mapPrismaError(e: unknown): AppError {
  *   一意制約違反などは再試行しても無駄
  */
 export function isRetryablePrismaError(e: unknown): boolean {
+  // **時間切れは再試行しない。** 同じクエリは同じだけ時間がかかる。
+  if (isStatementTimeout(e)) return false;
   if (isPrismaKnownError(e)) return e.code === "P2034";
   // 生 SQL の場合のシリアライズ/デッドロック(SQLSTATE 40001/40P01)
   const msg = (e as { message?: string })?.message ?? "";

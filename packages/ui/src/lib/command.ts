@@ -45,6 +45,7 @@ export function scoreCommand(command: Command, query: string): number | null {
  *
  * @param commands コマンドの配列
  * @param query 検索語
+ * @param limit 返す上限（**省略すると全部返る**ので、一覧に出すなら指定してください）
  * @returns スコア順のコマンド(**空クエリなら全件**)
  */
 export function filterCommands(commands: Command[], query: string, limit?: number): Command[] {
@@ -63,6 +64,7 @@ export function filterCommands(commands: Command[], query: string, limit?: numbe
  * よく使うものが埋もれる。
  *
  * @param commands コマンドの配列
+ * @param fallbackGroup 分類が無いコマンドをまとめる名前（既定「その他」）
  * @returns グループごとのコマンド(**グループ未指定は「その他」**)
  */
 export function groupCommands(commands: Command[], fallbackGroup = "その他"): { group: string; commands: Command[] }[] {

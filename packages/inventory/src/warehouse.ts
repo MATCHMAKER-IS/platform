@@ -57,14 +57,18 @@ export function warehouseOnHand(movements: WarehouseMovement[], warehouse: strin
 
 /**
  * 倉庫間移動を 2 件の入出庫（出庫元 outbound + 入庫先 inbound）に変換する。
- * 在庫不足なら null。
+ * 在庫不足なら null。**移動元と移動先が同じ場合も null**
+ * (在庫は変わらないのに履歴が 2 件増え、棚卸の突合で調べる手間になる)。
  *
  * **2 件セットで記録する**ことで、移動中に消えた在庫が無いことを保証できる
  * (出庫だけ記録して入庫を忘れる、という事故を防ぐ)。
  *
  * @param movements 既存の履歴
- * @param input 移動元・移動先・数量・日時
- * @returns 出庫と入庫の 2 件。**移動元の在庫が足りなければ null**
+ * @param from 移動元の倉庫
+ * @param to 移動先の倉庫(**`from` と同じなら null**)
+ * @param quantity 数量(**0 以下なら null**)
+ * @param at 移動日時
+ * @returns 出庫と入庫の 2 件。**在庫が足りない・移動元と移動先が同じ・数量が 0 以下なら null**
  */
 export function transfer(
   movements: WarehouseMovement[],
@@ -73,6 +77,11 @@ export function transfer(
   quantity: number,
   at: string,
 ): [WarehouseMovement, WarehouseMovement] | null {
+  // **同じ倉庫への移動を通さない。** 在庫数は変わらないのに
+  // 出庫と入庫が 2 件記録され、**移動履歴が汚れる**——棚卸の突合で
+  // 「なぜこの移動が?」と調べる手間になる。
+  // 画面で from と to に同じ倉庫を選ぶのは普通に起きる(2026-08 に対処)。
+  if (from === to) return null;
   if (quantity <= 0 || warehouseOnHand(movements, from) < quantity) return null;
   return [
     { warehouse: from, type: "outbound", quantity, at, ref: `transfer:${to}` },

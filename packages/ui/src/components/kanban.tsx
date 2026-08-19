@@ -38,7 +38,6 @@ export interface KanbanProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 
   readOnly?: boolean;
 }
 
-/** カンバンボード。列ごとにカードを表示し、ドラッグで移動可能。 */
 /**
  * かんばん(列で状態を表す板)。
  *

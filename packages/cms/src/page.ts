@@ -174,6 +174,7 @@ function pageToRowData(page: ManagedPage): CmsPageRowData {
  *
  * @param db Prisma クライアント
  * @returns ページストア
+  * @param now 現在時刻(**テスト注入用**。渡さなければ `new Date()`)
  */
 export function createPrismaPageStore(db: PageStoreDb, now: () => string = () => new Date().toISOString()): PageStore {
   return {

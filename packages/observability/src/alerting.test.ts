@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createAlertManager, errorRateAbove, gaugeAtLeast } from "./alerting";
+import { createAlertManager, errorRateAbove, gaugeAtLeast, counterBelow } from "./alerting";
 const view = (o: Partial<{ counters: Record<string, number>; gauges: Record<string, number> }> = {}) => ({ counters: o.counters ?? {}, gauges: o.gauges ?? {}, histograms: {} });
 describe("alerting", () => {
   it("fires, stays firing, recovers", () => {
@@ -13,5 +13,29 @@ describe("alerting", () => {
     const mgr = createAlertManager([{ name: "f", severity: "warning", condition: gaugeAtLeast("g", 1), describe: () => "x", forEvaluations: 2 }]);
     expect(mgr.evaluate(view({ gauges: { g: 1 } }))).toHaveLength(0);
     expect(mgr.evaluate(view({ gauges: { g: 1 } }))).toHaveLength(1);
+  });
+});
+
+describe("トラフィック断を検知する", () => {
+  const view = (n: number) => ({ counters: { "http.requests": n }, gauges: {}, histograms: {} }) as never;
+
+  // **エラー率のアラートだけでは「動いていない」を検知できない。**
+  // `errorRateAbove` は 0 除算を避けるため**リクエストが 0 なら false**——
+  // ロードバランサが全台を切り離しても鳴らない(2026-08 に `counterBelow` を追加)
+  it("エラー率はリクエスト 0 で鳴らない", () => {
+    const er = errorRateAbove("http.requests", "http.errors", 0.1);
+    expect(er({ counters: { "http.requests": 0, "http.errors": 0 }, gauges: {}, histograms: {} } as never)).toBe(false);
+  });
+  it("counterBelow なら 0 で発報する", () => {
+    expect(counterBelow("http.requests", 10)(view(0))).toBe(true);
+  });
+  // **計測自体が壊れた場合も拾う**(キーが無い)
+  it("キーが無ければ発報する", () => {
+    expect(counterBelow("http.requests", 10)({ counters: {}, gauges: {}, histograms: {} } as never)).toBe(true);
+  });
+  // **平常時は鳴らない**(境界)
+  it("閾値以上なら鳴らない", () => {
+    expect(counterBelow("http.requests", 10)(view(10))).toBe(false);
+    expect(counterBelow("http.requests", 10)(view(9))).toBe(true);
   });
 });

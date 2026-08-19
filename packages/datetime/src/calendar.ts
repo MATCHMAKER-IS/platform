@@ -99,6 +99,48 @@ export function formatDateJst(date: Date = new Date()): string {
 }
 
 /**
+ * **JST の年月**を `YYYY-MM` で返す。
+ *
+ * `new Date().toISOString().slice(0, 7)` は UTC なので、
+ * **月初の 00:00〜08:59 に実行すると前月**になる。
+ * 月次の締め・集計・給与でそのままずれるため、その置き換え先。
+ *
+ * @param date 日時(既定は現在時刻)
+ * @returns `YYYY-MM`(JST)
+ *
+ * @example
+ * ```ts
+ * // 2026-08-01 の JST 早朝(UTC ではまだ 7 月)
+ * formatMonthJst(new Date("2026-07-31T22:00:00Z")); // "2026-08"
+ * ```
+ */
+
+export function formatMonthJst(date: Date = new Date()): string {
+  return formatDateJst(date).slice(0, 7);
+}
+
+/**
+ * JST の年を返す。
+ *
+ * **`new Date().getFullYear()` を使わない。** それは**プロセスのタイムゾーン**で
+ * 解釈するので、UTC で動くサーバ(クラウドの既定)では
+ * **1 月 1 日の深夜に前年が返る**。決算・年末調整・固定資産の既定年がずれ、
+ * 「元日の朝だけ去年の帳票が出る」という気づきにくい形になる。
+ *
+ * @param date 基準の日時(既定は現在)
+ * @returns JST の西暦年
+ *
+ * @example
+ * ```ts
+ * // JST 2026-01-01 00:10(UTC ではまだ 2025-12-31)
+ * yearJst(new Date("2025-12-31T15:10:00Z")); // 2026
+ * ```
+ */
+export function yearJst(date: Date = new Date()): number {
+  return Number(formatDateJst(date).slice(0, 4));
+}
+
+/**
  * UTC の年月日から Date を作る(時刻は 00:00:00 UTC)。
  *
  * `new Date(2026, 6, 15)` は**ローカルタイムゾーン**で解釈され、環境によって日付がずれる。
@@ -253,14 +295,28 @@ export function isAfterDay(a: Date, b: Date): boolean { return dayNumberJst(a) >
 /**
  * 生年月日から満年齢を求める。
  *
+ * **JST の日付で数える。** `getUTCFullYear()` などで直接数えると、
+ * 既定の `new Date()` は UTC 解釈になり、**JST の誕生日当日 00:00〜08:59 に
+ * 1 歳少なく出る**(2026-08 に修正)。年齢は扶養控除・健康診断の対象判定・
+ * 定年の計算に使うので、1 歳のずれがそのまま業務の誤りになる。
+ *
  * @param birth 生年月日
  * @param at 基準日(テスト注入用。既定は今日)
  * @returns 満年齢(誕生日前なら 1 歳少ない)
+ *
+ * @example
+ * ```ts
+ * // JST 8/10 00:30(UTC ではまだ 8/9)。2000-08-10 生まれ
+ * age(new Date("2000-08-10T00:00:00Z"), new Date("2026-08-09T15:30:00Z")); // 26
+ * ```
  */
 export function age(birth: Date, at: Date = new Date()): number {
-  let a = at.getUTCFullYear() - birth.getUTCFullYear();
-  const m = at.getUTCMonth() - birth.getUTCMonth();
-  if (m < 0 || (m === 0 && at.getUTCDate() < birth.getUTCDate())) a--;
+  // JST の年月日で比べる(`formatDateJst` は 9 時間ずらして UTC として読む)
+  const [by, bm, bd] = formatDateJst(birth).split("-").map(Number);
+  const [ay, am, ad] = formatDateJst(at).split("-").map(Number);
+  let a = (ay ?? 0) - (by ?? 0);
+  const m = (am ?? 0) - (bm ?? 0);
+  if (m < 0 || (m === 0 && (ad ?? 0) < (bd ?? 0))) a--;
   return a;
 }
 
@@ -361,8 +417,9 @@ export function formatDate(date: Date): string {
  * YYYY-MM-DD を UTC の Date にパース。不正は null。
  *
  * @param text YYYY-MM-DD 形式の文字列
- * @returns UTC 00:00:00 の Date
- * @throws {@link @platform/core#AppError} コード `VALIDATION` — 形式が不正、または実在しない日付の場合
+ * @returns UTC 00:00:00 の Date。**形式が不正・実在しない日付なら `null`**——
+ *   2026-08 まで「例外を投げる」と書いてあったが、実装は `null` を返す。
+ *   `try/catch` で待ち構えても捕まらない
  */
 export function parseDate(text: string): Date | null {
   const m = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
@@ -492,13 +549,74 @@ export function holidayName(date: Date): string | null {
 // ───────────────────────── 営業日 ─────────────────────────
 
 /**
+ * 年末年始の休みを `"YYYY-MM-DD"` の集合で返す。
+ *
+ * **既定は 12/29〜1/3**(`行政機関の休日に関する法律` の閉庁日と同じ範囲。
+ * 日本の会社で最も多い)。**銀行は 12/31〜1/3** なので、
+ * 振込の期日を計算するときは `bankOnly` を使うこと——
+ * **12/29・12/30 は銀行が動く**ので、この 2 日を休みにすると期日が後ろへずれる。
+ *
+ * **祝日ではないので `isBusinessDay` は営業日と判定する。**
+ * これを渡さないと、12/30 の「翌営業日」が 12/31 になり、
+ * **会社も銀行も休みなのに支払期日や納期が設定される**(2026-08 に追加)。
+ *
+ * 会社ごとに違う場合(夏季休暇・創立記念日)は、
+ * この結果に足して使うこと。
+ *
+ * @param year 対象の年(**その年の年末と、翌年の年始**を返す)
+ * @param options.bankOnly 銀行の休業日(12/31〜1/3)にする
+ * @returns `"YYYY-MM-DD"` の集合
+ *
+ * @example
+ * ```ts
+ * const holidays = yearEndHolidays(2026);
+ * // 2026-12-29, 12-30, 12-31, 2027-01-01, 01-02, 01-03
+ * isBusinessDay(new Date("2026-12-30T03:00:00Z"), holidays); // => false
+ * ```
+ */
+export function yearEndHolidays(year: number, options: { bankOnly?: boolean } = {}): Set<string> {
+  const out = new Set<string>();
+  // **年末は 12/29 から**(銀行は 12/31 から)
+  const startDay = options.bankOnly === true ? 31 : 29;
+  for (let d = startDay; d <= 31; d += 1) {
+    out.add(`${year}-12-${String(d).padStart(2, "0")}`);
+  }
+  // **年始は翌年の 1/1〜1/3**(元日は祝日だが、集合に入れても害は無い)
+  for (let d = 1; d <= 3; d += 1) {
+    out.add(`${year + 1}-01-0${d}`);
+  }
+  return out;
+}
+
+/**
+ * JST の `YYYY-MM-DD` にする(会社休日の照合用)。
+ *
+ * **UTC で切らない。** UTC の日付で見ると、JST の 0:00〜8:59 が前日になり、
+ * **年末年始の初日と最終日を取り違える**。
+ */
+function toJstDateString(date: Date): string {
+  const jst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+  return jst.toISOString().slice(0, 10);
+}
+
+/**
  * 営業日(土日・祝日を除く)か。
  *
  * @param date 対象の日付
+ * @param extraHolidays 会社独自の休日(`"YYYY-MM-DD"` の集合。年末年始・夏季休暇など)
  * @returns 平日かつ祝日でなければ true
  */
-export function isBusinessDay(date: Date): boolean {
-  return !isWeekend(date) && !isHoliday(date);
+export function isBusinessDay(date: Date, extraHolidays?: ReadonlySet<string>): boolean {
+  if (isWeekend(date) || isHoliday(date)) return false;
+  // **会社独自の休日を渡せる。** 年末年始(12/29〜1/3)や夏季休暇は
+  // **祝日ではない**ので、これが無いと営業日と判定される
+  // ——12/30 の「翌営業日」が 12/31 になり、**銀行も会社も休みなのに
+  // 支払期日や納期が設定される**(2026-08 に追加)。
+  //
+  // 渡す形式は `"YYYY-MM-DD"`(JST)。
+  // 就業規則の休日カレンダーをそのまま集合にして渡せばよい。
+  if (extraHolidays !== undefined && extraHolidays.has(toJstDateString(date))) return false;
+  return true;
 }
 
 /**
@@ -506,15 +624,17 @@ export function isBusinessDay(date: Date): boolean {
  *
  * @param date 基準日
  * @param n 営業日数(**負なら過去**)
+ * @param extraHolidays 会社独自の休日(`"YYYY-MM-DD"` の集合)
  * @returns n 営業日後の日付。土日祝を飛ばす
  */
-export function addBusinessDays(date: Date, n: number): Date {
+export function addBusinessDays(date: Date, n: number, extraHolidays?: ReadonlySet<string>): Date {
   let d = utcDate(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate());
   const step = n >= 0 ? 1 : -1;
   let remaining = Math.abs(n);
   while (remaining > 0) {
     d = addDays(d, step);
-    if (isBusinessDay(d)) remaining--;
+    // **会社休日も飛ばす。** 渡さなければ従来どおり土日祝だけ
+    if (isBusinessDay(d, extraHolidays)) remaining--;
   }
   return d;
 }
@@ -524,13 +644,14 @@ export function addBusinessDays(date: Date, n: number): Date {
  *
  * @param a 始点
  * @param b 終点
+ * @param extraHolidays 会社独自の休日(`"YYYY-MM-DD"` の集合)
  * @returns 営業日数(**始点を含み終点を含まない**。b が過去なら負)
  */
-export function businessDaysBetween(a: Date, b: Date): number {
+export function businessDaysBetween(a: Date, b: Date, extraHolidays?: ReadonlySet<string>): number {
   const from = Math.min(dayNumber(a), dayNumber(b));
   const to = Math.max(dayNumber(a), dayNumber(b));
   let count = 0;
-  for (let dn = from + 1; dn <= to; dn++) if (isBusinessDay(new Date(dn * MS_PER_DAY))) count++;
+  for (let dn = from + 1; dn <= to; dn++) if (isBusinessDay(new Date(dn * MS_PER_DAY), extraHolidays)) count++;
   return dayNumber(b) >= dayNumber(a) ? count : -count;
 }
 
@@ -567,7 +688,8 @@ export function rangesOverlap(a: DateRange, b: DateRange): boolean {
  *
  * @param a 期間
  * @param b 期間
- * @returns 重なっている期間。**重ならなければ undefined**
+ * @returns 重なっている期間。**重ならなければ `null`**(**`undefined` ではない**——
+ *   `=== undefined` で判定すると通り抜ける)
  */
 export function rangeIntersection(a: DateRange, b: DateRange): DateRange | null {
   if (!rangesOverlap(a, b)) return null;
@@ -648,7 +770,8 @@ export interface Wareki { era: string; short: string; year: number }
  * 和暦に変換する(明治より前は null)。
  *
  * @param date 対象の日付
- * @returns 元号・年・月・日。明治より前は undefined
+ * @returns 元号・年・月・日。**明治より前は `null`**(`undefined` ではない——
+ *   `=== undefined` で判定すると通り抜けて `null.era` で落ちる)
  */
 export function toWareki(date: Date): Wareki | null {
   const dn = dayNumber(date);
@@ -661,16 +784,63 @@ export function toWareki(date: Date): Wareki | null {
 }
 
 /**
- * 和暦文字列(例: "令和6年")。元年表記は useGannen で。
+ * 和暦の**年だけ**を返す(例: 「令和8年」)。
+ *
+ * **月日は付かない。** 以前この説明は「令和8年7月15日」形式と書いていたが、
+ * 実装は年で終わっていた(2026-08 に修正)。日付まで要るなら
+ * {@link formatWarekiDate} を使うこと。
+ *
+ * 元年は「令和元年」と書く。**「令和1年」とは書かない**——
+ * 公文書・帳票の慣行で、1 年目だけ表記が変わる。
  *
  * @param date 対象の日付
- * @returns 「令和8年7月15日」形式。明治より前は西暦にフォールバック
+ * @param options.useGannen 元年を「元」と書くか(既定 true)。
+ *   システム間の受け渡しで数字が要るときだけ false にする
+ * @returns 「令和8年」。明治より前は西暦にフォールバック(「1850年」)
+ *
+ * @example
+ * ```ts
+ * formatWareki(new Date("2026-07-15"));                    // "令和8年"
+ * formatWareki(new Date("2019-05-01"));                    // "令和元年"
+ * formatWareki(new Date("2019-05-01"), { useGannen: false }); // "令和1年"
+ * ```
  */
 export function formatWareki(date: Date, options: { useGannen?: boolean } = {}): string {
   const w = toWareki(date);
   if (!w) return `${date.getUTCFullYear()}年`;
   const y = options.useGannen !== false && w.year === 1 ? "元" : String(w.year);
   return `${w.era}${y}年`;
+}
+
+/**
+ * 和暦の**年月日**を返す(例: 「令和8年7月15日」)。
+ *
+ * 契約書・請求書・申請書など、**紙に出す帳票の日付**はこの形が慣行。
+ * 官公庁提出物では西暦だけの表記を受け付けないものがある。
+ *
+ * **月日は JST で解釈する。** `getUTCMonth()` を使うと、UTC で動くサーバでは
+ * JST の 8/1 早朝が 7/31 として出る(日付が 1 日ずれた帳票が出る)。
+ *
+ * @param date 対象の日付
+ * @param options.useGannen 元年を「元」と書くか(既定 true)
+ * @returns 「令和8年7月15日」。明治より前は西暦にフォールバック
+ *
+ * @example
+ * ```ts
+ * formatWarekiDate(new Date("2026-07-15")); // "令和8年7月15日"
+ * // JST 8/1 の早朝(UTC ではまだ 7/31)
+ * formatWarekiDate(new Date("2026-07-31T15:30:00Z")); // "令和8年8月1日"
+ * ```
+ */
+export function formatWarekiDate(date: Date, options: { useGannen?: boolean } = {}): string {
+  const w = toWareki(date);
+  // JST の月日を取る(UTC で解釈すると早朝に 1 日ずれる)
+  const jst = formatDateJst(date);
+  const month = Number(jst.slice(5, 7));
+  const day = Number(jst.slice(8, 10));
+  if (!w) return `${jst.slice(0, 4)}年${month}月${day}日`;
+  const y = options.useGannen !== false && w.year === 1 ? "元" : String(w.year);
+  return `${w.era}${y}年${month}月${day}日`;
 }
 
 // ───────────────────────── 相対表記 ─────────────────────────
@@ -773,7 +943,8 @@ export interface FormatDurationOptions { maxUnits?: number; short?: boolean }
 /**
  * 秒数を「2時間30分」のように整形する。
  *
- * @param ms ミリ秒
+ * @param seconds **秒数**（ミリ秒ではありません。2026-08 まで「ミリ秒」と書かれており、**1000 倍ずれていました**）
+ * @param options 出す単位の数・短い表記にするか
  * @returns 「1時間30分」形式。0 なら「0分」
  */
 export function formatDuration(seconds: number, options: FormatDurationOptions = {}): string {

@@ -24,9 +24,11 @@ export interface Announcement {
 /**
  * お知らせが今このパスで表示されるかを判定する。
  *
- * @param announcement お知らせ
- * @param context.path 現在のパス
- * @param context.now 判定する時点(テスト注入用)
+ * @param a お知らせ
+ * @param currentPath 現在のパス(**オブジェクトではなく文字列**——
+ *   2026-08 まで `context.path` と説明しており、`{ path }` を渡すと
+ *   **対象ページの判定が常に外れる**)
+ * @param now 判定する時点(テスト注入用)
  * @returns 表示するなら true
  */
 export function isAnnouncementActive(a: Announcement, currentPath: string, now: Date = new Date()): boolean {
@@ -46,7 +48,10 @@ export function isAnnouncementActive(a: Announcement, currentPath: string, now: 
 
 /**
  * 表示すべきお知らせを返す(期間・パス・閉じた状態で絞り込み)。
- * @param dismissedIds ユーザーが閉じたお知らせの ID
+ * @param announcements お知らせの配列
+ * @param currentPath 現在のパス
+ * @param options.now 判定する時点(テスト注入用)
+ * @param options.dismissedIds ユーザーが閉じたお知らせの ID
  * @returns 表示するお知らせ(**閉じたものは除く**。一度閉じたものを再表示すると鬱陶しい)
  */
 export function activeAnnouncements(
@@ -65,7 +70,9 @@ export function activeAnnouncements(
  * 優先度は sale > warning > info、同じなら先頭。
  *
  * @param announcements お知らせの配列
- * @param context パス・時点
+ * @param currentPath 現在のパス
+ * @param options.now 判定する時点
+ * @param options.dismissedIds ユーザーが閉じたお知らせの ID
  * @returns 表示するお知らせ。**対象が無ければ null**
  */
 export function topAnnouncement(announcements: Announcement[], currentPath: string, options?: { now?: Date; dismissedIds?: Iterable<string> }): Announcement | null {

@@ -1,8 +1,25 @@
 # @platform/cron
 
-定期実行(スケジューラ)の共通部品。内部は croner。既定タイムゾーンは Asia/Tokyo。
+定期実行（スケジュール・排他・ずらし）。
+
+## これは何のためか
+
+**夜間バッチ・日次集計・定期通知**のためのものです。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **月末処理に `31` を使わない** | **2 / 4 / 6 / 9 / 11 月に実行されません**——「月末の集計が偶数月だけ来ない」という形で表に出ます。**`L`（月末）**を使ってください |
+| **排他ロックを必ず使う** | 2 台構成だと、**両方が同じジョブを走らせます**（通知が 2 回届きます） |
+| **発火をずらす** | 全部が 0 時ちょうどに走ると、**その瞬間だけ負荷が跳ねます**。`jitterMs` を入れてください |
+| **時刻は JST で考える** | コンテナに `TZ=Asia/Tokyo` が入っていないと、**9 時間ずれて走ります** |
+| **止まっても誰も気づきません** | **成功も記録**してください——「動いていない」と「0 件だった」は別です |
+
+## よく使うもの
 
 ```ts
+import { createScheduler, tryAcquireFileLock, releaseFileLock } from "@platform/cron";
 import { createScheduler } from "@platform/cron";
 const scheduler = createScheduler(
   [{ name: "daily-report", schedule: "0 9 * * *", handler: async () => { await buildReport(); } }],

@@ -43,7 +43,7 @@ try {
 }
 
 /** 検査対象のディレクトリ。生成物・依存は含めない。 */
-const DIRS = ["packages", "apps", "demos", "tools", "e2e", "tests"];
+const DIRS = ["packages", "apps", "tools", "e2e", "tests"];
 
 // `find` は Windows で別コマンドになるため使わない(tools/lib/collect-files.mjs 参照)。
 // **この検査こそ Windows で動く必要がある**(構文エラーはどの OS でも起きる)。

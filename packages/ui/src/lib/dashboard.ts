@@ -47,6 +47,7 @@ export interface DonutSegment {
  * 各セグメントを circle として重ね、dasharray=[dash, C-dash]、dashoffset で開始位置をずらす。
  *
  * @param values 数値の配列
+ * @param radius 半径（px）
  * @returns 各セグメントの角度(**0° は真上・時計回り**)
  */
 export function donutSegments(values: number[], radius: number): DonutSegment[] {

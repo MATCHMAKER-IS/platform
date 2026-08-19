@@ -33,11 +33,11 @@ function toRows(values: Record<string, unknown>, group: EnvRow["group"]): EnvRow
 }
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   try {
-    requirePermission(user, "admin");
+    requirePermission(user, "system:manage");
   } catch {
-    return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
+    return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
   }
 
   const rows: EnvRow[] = [
@@ -50,7 +50,7 @@ async function handleGET(req: Request): Promise<Response> {
   const unique = rows.filter((r) => (seen.has(r.name) ? false : (seen.add(r.name), true)));
 
   return Response.json({
-    env: unique.sort((a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name)),
+    env: unique.sort((a, b) => a.group.localeCompare(b.group, "ja") || a.name.localeCompare(b.name)),
     runtime: { nodeEnv: (env as { NODE_ENV?: string }).NODE_ENV ?? "unknown", nodeVersion: process.version },
   });
 }

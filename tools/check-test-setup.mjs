@@ -71,6 +71,8 @@ if (existsSync(configPkgPath)) {
   for (const [name, target] of Object.entries(pkg.exports ?? {})) {
     if (typeof target !== "string") continue;
     if (target.endsWith(".json")) continue;
+    // ここは **`@platform/config` の exports が指す先**の拡張子。
+    // 設定ファイルなので `.tsx` はありえない(`.tsx` 漏れではない)
     if (target.endsWith(".ts")) {
       problems.push(
         `@platform/config の exports "${name}" が ${target} を指しています。` +
@@ -84,7 +86,7 @@ if (existsSync(configPkgPath)) {
 // 設定が無い / test スクリプトが echo などで**素通り**していると、
 // テストが書かれていても一度も動かない。実際に @platform/ui(83 件)と
 // internal-app(16 件)がこの状態で放置されていた。
-for (const group of ["packages", "apps", "demos"]) {
+for (const group of ["packages", "apps"]) {
   const groupDir = path.join(ROOT, group);
   if (!existsSync(groupDir)) continue;
   for (const name of readdirSync(groupDir)) {
@@ -241,5 +243,5 @@ if (problems.length > 0) {
   for (const p of problems) console.error(`   - ${p}`);
   process.exitCode = 1;
 } else {
-  console.log("✅ テストを実行できる設定です(ワークスペースのグロブ・共通プリセット・各パッケージの設定)");
+  console.log(`✅ テストを実行できる設定です(${problems.length === 0 ? "すべて" : ""}ワークスペース・共通プリセット・各パッケージの設定 3 種を確認)`);
 }

@@ -37,9 +37,13 @@ export interface ZohoTokenManager {
  * これが無いと、10 並列のリクエストが 10 回更新を投げ、レート制限に当たる
  * (さらに、古いトークンで上書きし合って壊れることもある)。
  *
- * @param options.refreshToken リフレッシュトークン
- * @param options.config クライアント ID・シークレット・DC
- * @param options.onRefresh 更新時の通知(保存に使う)
+ * @param config.dataCenter データセンター（**DC を間違えると認証そのものが通りません**）
+ * @param config.clientId クライアント ID
+ * @param config.clientSecret クライアントシークレット
+ * @param config.refreshToken リフレッシュトークン
+ * @param config.initialAccessToken 既知のアクセストークン（あれば初回更新を省ける）
+ * @param config.initialExpiresAt 既知トークンの有効期限（epoch ms）
+ * @param config.expiryBufferMs 期限バッファ（この時間前に更新。既定 5 分）
  * @returns マネージャ。`getAccessToken` で有効なトークンを得る
  * @throws {@link @platform/core#AppError} コード `EXTERNAL` — トークンの更新に失敗した場合(`getAccessToken` 実行時)
  */

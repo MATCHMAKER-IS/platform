@@ -9,7 +9,7 @@ test("トップページが表示され、主要デモへ遷移できる", async
 
 test("グラフページが描画される", async ({ page }) => {
   await page.goto("/charts");
-  await expect(page.getByRole("heading", { name: /グラフ/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /グラフ/ }).first()).toBeVisible();
   // recharts は SVG を描画する
   await expect(page.locator("svg").first()).toBeVisible();
 });

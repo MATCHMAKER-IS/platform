@@ -1,27 +1,28 @@
 # 基盤ヘルスレポート(自動生成)
 
-> 再生成: `node tools/platform-report.mjs`(手で編集しない)。生成日: 2026-08-05
+> 再生成: `node tools/platform-report.mjs`(手で編集しない)。生成日: 2026-08-19
 
 ## サマリー
 
 | 指標 | 値 |
 |---|---|
-| パッケージ数 | 114 |
-| README 整備率 | 114/114(100%) |
-| ユニットテスト保有パッケージ | 113/114(99%)・テストファイル 319 |
-| 実装行数(packages/src, テスト除く) | 76,770 行 |
-| 公開 API(export) | 3724(api-surface 追跡) |
-| スモーク検証 | 1672 チェック / 402 セクション(実測は `pnpm verify:offline`) |
-| ADR | 20 件 / デモ | 1 本 |
+| パッケージ数 | 120 |
+| README 整備率 | 120/120(100%) |
+| ユニットテスト保有パッケージ | 119/120(99%)・テストファイル 331 |
+| 実装行数(packages/src, テスト除く) | 91,685 行 |
+| 公開 API(export) | 4004(api-surface 追跡) |
+| スモーク検証 | 2748 チェック / 534 セクション(実測は `pnpm verify:offline`) |
+| ADR | 26 件 |
 
 ## アプリ
 
 | アプリ | API route | client コンポーネント | Prisma モデル |
 |---|---|---|---|
-| internal-app | 217 | 102 | 65 |
-| public-site | 6 | 6 | 0 |
-| crud-template | 4 | 2 | 1 |
-| equipment-app | 9 | 2 | 2 |
+| crud-template | 5 | 3 | 1 |
+| internal-app | 252 | 118 | 76 |
+| line-console | 10 | 3 | 3 |
+| public-site | 6 | 7 | 0 |
+| showcase | 23 | 168 | 0 |
 
 ## カテゴリ分布(packages)
 

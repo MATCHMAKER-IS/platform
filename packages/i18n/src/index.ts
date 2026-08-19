@@ -58,7 +58,7 @@ export interface I18nOptions {
  *
  * **キーが無ければキーをそのまま返す**(空文字にすると、画面が壊れて原因も分からない)。
  *
- * @param options.catalog 辞書
+ * @param options.catalogs ロケールごとの辞書(**単数の `catalog` ではない**)
  * @param options.locale ロケール
  * @param options.fallbackLocale 見つからないときのロケール
  * @returns 翻訳器(`t` で引く)

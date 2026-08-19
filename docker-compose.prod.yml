@@ -1,7 +1,21 @@
 # 本番(ConoHa VPS)用。CI が push した GHCR イメージを pull して起動する。
 services:
   app:
-    image: ghcr.io/OWNER/REPO/internal-app:main    # OWNER/REPO を自リポジトリに置換
+    # **タグを固定しない。** `:main` に固定すると、壊れた版を出した直後に
+    # **`pull` で取れるのが壊れた最新**になり、**戻す手段が無くなる**
+    # (「前回の成功したデプロイを Re-run」しても同じものを取ってくる)。
+    # `IMAGE_TAG` に `sha-abc1234` を入れれば、その版へ即座に戻せる。
+    # 使えるタグは GHCR の一覧で確認: `docker image ls` ではなくレジストリ側
+    image: ghcr.io/OWNER/REPO/internal-app:${IMAGE_TAG:-main}    # OWNER/REPO を自リポジトリに置換
+    # **ログを溜め続けない。** Docker の既定(json-file)は**上限なし**で、
+    # 1 台の VPS では**ディスクを食い潰してすべて止まります**——
+    # DB が書けなくなり、アプリも落ち、**ログが原因だと気づくまでに時間がかかる**。
+    # 100MB × 3 世代 = 最大 300MB に抑える(それ以上は送り先へ出す前提)
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
     restart: always
     env_file: .env
     ports:
@@ -9,10 +23,32 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # **アプリ自身の healthcheck。** 無いと `restart: always` が
+    # 「プロセスが落ちたか」しか見ない——**応答しないまま生きている**状態
+    # (DB 接続が切れた・イベントループが詰まった)を検知できない。
+    # `/api/health` は既にあるので、それを叩く。
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      # **起動に時間がかかる。** start_period 中の失敗は retries に数えない
+      start_period: 40s
 
   # デプロイ時に一度だけ実行するマイグレーション(run --rm で使う)
   migrate:
-    image: ghcr.io/OWNER/REPO/internal-app-migrate:main
+    # **アプリと同じタグを使う。** ここだけ最新のままだと、
+    # **前の版へ戻したのにスキーマは新しい**という食い違いが起きる
+    image: ghcr.io/OWNER/REPO/internal-app-migrate:${IMAGE_TAG:-main}
+    # **ログを溜め続けない。** Docker の既定(json-file)は**上限なし**で、
+    # 1 台の VPS では**ディスクを食い潰してすべて止まります**——
+    # DB が書けなくなり、アプリも落ち、**ログが原因だと気づくまでに時間がかかる**。
+    # 100MB × 3 世代 = 最大 300MB に抑える(それ以上は送り先へ出す前提)
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
     env_file: .env
     depends_on:
       db:
@@ -21,6 +57,15 @@ services:
 
   db:
     image: postgres:17-alpine
+    # **ログを溜め続けない。** Docker の既定(json-file)は**上限なし**で、
+    # 1 台の VPS では**ディスクを食い潰してすべて止まります**——
+    # DB が書けなくなり、アプリも落ち、**ログが原因だと気づくまでに時間がかかる**。
+    # 100MB × 3 世代 = 最大 300MB に抑える(それ以上は送り先へ出す前提)
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}

@@ -2,19 +2,19 @@
 import { validateCategoryInput, type CategoryInput } from "@platform/cms";
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { categoryStore, auditActions } from "../../../../server/platform-services";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:read");
   return Response.json({ categories: await categoryStore.list() });
 }
 
 async function handlePOST(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:edit");
-  const body = (await req.json()) as CategoryInput;
+  const body = (await req.json().catch(() => ({}))) as CategoryInput;
   const valid = validateCategoryInput(body);
   if (!valid.ok) return Response.json({ error: valid.error }, { status: 400 });
   const c = await categoryStore.create(valid.value);
@@ -23,9 +23,9 @@ async function handlePOST(req: Request): Promise<Response> {
 }
 
 async function handlePATCH(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:edit");
-  const body = (await req.json()) as { orderedIds: string[] };
+  const body = (await req.json().catch(() => ({}))) as { orderedIds: string[] };
   if (!Array.isArray(body.orderedIds)) return Response.json({ error: "orderedIds が必要です" }, { status: 400 });
   const categories = await categoryStore.reorder(body.orderedIds);
   await auditActions.record(user!.email, "cms.category.reorder", "category:*");

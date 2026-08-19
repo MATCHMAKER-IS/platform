@@ -10,8 +10,67 @@
      色を直書きすると、テーマを切り替えても変わらない。 */
   --color-subtle: color-mix(in srgb, currentColor 6%, transparent);
   --color-subtle-strong: color-mix(in srgb, currentColor 12%, transparent);
+
+  /* 面(サイドナビ・カード・パネル)の背景。
+     **本文の背景より一段沈ませる**と、どこまでが操作の場所かが分かる。
+     `--color-bg` と同じにすると境界が線だけになり、
+     画面が広いときに左右のつながりが読み取れない。
+     暗いテーマでは逆に少し明るくなる(currentColor を薄く敷くため)。
+
+     **注意: 部品の実装がこの説明に従っていない(2026-08 発見・未決)。**
+
+     実測(2026-08):
+       - 基盤の部品(packages/ui): --color-bg 45 ファイル / --color-surface 8 ファイル
+       - アプリの画面(apps):      --color-surface 126 ファイル
+         (うち 83 ファイルが**完全に同一の** `const box` を自作している)
+     → **同じ画面に、沈んだ面(box)と沈まない面(Card 等)が混在**している。
+
+     色の差は明暗とも **約 4%**(明: #ffffff → #f5f6f6 / 暗: rgb(15,23,42) → rgb(24,32,50))。
+     **どちらに寄せても見た目は大きく変わらない**——目視確認の負担は小さい。
+
+     選択肢:
+       A. 部品を --color-surface に寄せる … 45 ファイル。説明どおりになる
+       B. box を --color-bg に寄せる      … 87 ファイル。境界が線だけになる
+       C. 説明を実態に合わせる            … 変更 0。設計意図を捨てる
+     **2026-08 に A を実施**(`Card` を --color-surface に変更)。
+     混在は解消した。ただし**入力欄・ボタン・浮くもの(ドロップダウン等)は
+     --color-bg のまま**にすること——入力欄が沈むと面と同化して境界が消え、
+     浮くものは影で表現する必要がある。詳細は components/card.tsx。 */
+  --color-surface: color-mix(in srgb, currentColor 4%, var(--color-bg));
+  /* 控えめな塗り(コードブロック・選択中の行・引用など)。
+     `--color-subtle` と違い**透過ではなく不透明**なので、重ねても濃くならない。
+
+     2026-08 まで未定義のまま 13 ファイルから参照されていた。
+     **うち 3 か所はフォールバック無し**で背景が効いておらず、
+     残りは `#f1f1f1` と `#f5f5f5` の 2 通りの既定値が混在していた
+     (どちらが正なのか誰にも分からない状態)。 */
+  --color-muted-bg: color-mix(in srgb, currentColor 5%, var(--color-bg));
+
+  /* 面の上でさらに沈ませたいとき(入力欄の中など)。 */
+  --color-surface-strong: color-mix(in srgb, currentColor 8%, var(--color-bg));
+  /* 等幅フォント。ID・ログ・コード・金額の桁合わせに使う。
+
+     **素の `monospace` を書かない。** 多くの環境で Courier に落ち、
+     細く小さく描画されて読みにくい(等幅にした目的が果たせない)。
+     `ui-monospace` を先頭に置くと、各 OS が用意した読みやすい等幅が使われる。
+
+     2026-08 まで、この変数は**定義されていないのに 4 か所から参照**されていた
+     (フォールバック付きだったので誰も気づかなかった)。
+     残り 110 か所は素の `monospace` を直書きしていた。 */
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
   --color-primary: #0f766e;
   --color-primary-fg: #ffffff;
+  /* 状態色の「塗り」と「文字」。**線の色(--color-danger 等)とは別に要る。**
+     警告の帯を塗るとき、線と同じ濃さで塗ると文字が読めない。
+     2026-08 まで未定義のまま 3〜1 ファイルから参照されており、
+     フォールバックの色(#991b1b と #dc2626)が食い違っていた。 */
+  --color-danger-bg: color-mix(in srgb, var(--color-danger) 12%, var(--color-bg));
+  --color-danger-fg: color-mix(in srgb, var(--color-danger) 85%, black);
+  --color-success-bg: color-mix(in srgb, var(--color-success) 12%, var(--color-bg));
+  --color-success-fg: color-mix(in srgb, var(--color-success) 85%, black);
+  --color-warning-bg: color-mix(in srgb, var(--color-warning) 14%, var(--color-bg));
+
   --color-danger: #b91c1c;
   /* 状態色。**AppSkin(@platform/theme)がテーマごとに上書きする**が、
      素の HTML やテーマ未適用の画面でも壊れないよう既定値を置く。

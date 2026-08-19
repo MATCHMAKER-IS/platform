@@ -1,7 +1,7 @@
 "use client";
 /** アンケート一覧・作成。設問(単一/複数/評価/自由記述)を組み立てて公開する。 */
 import * as React from "react";
-import { Button, Checkbox, Input, Select } from "@platform/ui";
+import { Button, Checkbox, Input, Select, PageShell } from "@platform/ui";
 
 interface Survey { id: string; title: string; description: string; questions: unknown[]; status: string; createdAt: string; }
 type QType = "single" | "multi" | "text" | "rating";
@@ -48,11 +48,8 @@ export function SurveysClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   };
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">アンケート</h1>
-        <Button onClick={() => setCreating((v) => !v)} className="rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white">{creating ? "閉じる" : "新規作成"}</Button>
-      </div>
+    <PageShell title="アンケート">
+    <Button onClick={() => setCreating((v) => !v)} className="rounded px-4 py-2 text-sm text-white">{creating ? "閉じる" : "新規作成"}</Button>
       {msg && <p className="mb-3 rounded bg-[var(--color-subtle)] px-3 py-2 text-sm text-[var(--color-fg)]">{msg}</p>}
 
       {creating && (
@@ -76,13 +73,13 @@ export function SurveysClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
                     className="rounded border border-[var(--color-border)] px-2 py-1 text-sm"
                     options={(Object.keys(TYPE_LABEL) as QType[]).map((t) => ({ label: TYPE_LABEL[t], value: t }))}
                   />
-                  {questions.length > 1 && <Button onClick={() => removeQ(i)} className="text-xs text-[var(--color-muted)] hover:underline">削除</Button>}
+                  {questions.length > 1 && <Button onClick={() => removeQ(i)} variant="ghost" className="text-xs hover:underline">削除</Button>}
                 </div>
                 {(q.type === "single" || q.type === "multi") && <Input value={q.options} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQ(i, { options: e.target.value })} placeholder="選択肢（カンマ区切り）" className="mt-1 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-xs" />}
               </div>
             ))}
           </div>
-          <div className="mt-2 flex gap-2"><Button onClick={addQ} className="rounded border border-[var(--color-border)] px-3 py-1 text-xs">設問を追加</Button><Button onClick={create} className="rounded bg-[var(--color-fg)] px-4 py-1 text-sm text-white">作成</Button></div>
+     <div className="mt-2 flex gap-2"><Button onClick={addQ} className="rounded border border-[var(--color-border)] px-3 py-1 text-xs">設問を追加</Button><Button variant="ghost" onClick={create} className="rounded bg-[var(--color-fg)] px-4 py-1 text-sm text-white">作成</Button></div>
         </div>
       )}
 
@@ -96,14 +93,14 @@ export function SurveysClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
             <div className="flex gap-2 text-xs">
               <a href={`/surveys/${s.id}`} className="text-[var(--color-primary)] hover:underline">回答</a>
               <a href={`/surveys/${s.id}/results`} className="text-[var(--color-primary)] hover:underline">集計</a>
-              {s.status === "draft" && <Button onClick={() => setStatus(s.id, "open")} className="text-[var(--color-success)] hover:underline">公開</Button>}
-              {s.status === "open" && <Button onClick={() => remind(s.id)} className="text-[var(--color-warning)] hover:underline">リマインド</Button>}
-              {s.status === "open" && <Button onClick={() => setStatus(s.id, "closed")} className="text-[var(--color-muted)] hover:underline">終了</Button>}
+       {s.status === "draft" && <Button onClick={() => setStatus(s.id, "open")} variant="secondary" className="hover:underline">公開</Button>}
+       {s.status === "open" && <Button onClick={() => remind(s.id)} variant="secondary" className="hover:underline">リマインド</Button>}
+              {s.status === "open" && <Button onClick={() => setStatus(s.id, "closed")} variant="ghost" className="hover:underline">終了</Button>}
             </div>
           </div>
         ))}
         {surveys.length === 0 && <p className="px-3 py-6 text-center text-sm text-[var(--color-muted)]">アンケートはありません。</p>}
       </div>
-    </div>
+    </PageShell>
   );
 }

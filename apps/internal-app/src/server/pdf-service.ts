@@ -36,7 +36,9 @@ export function wrapForPrint(innerHtml: string, title: string): string {
 <style>
 ${printPageCss({ format: "A4", margin: "15mm" })}
   @media print { .no-print { display: none !important; } }
-  body { font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; color: #111; }
+  /* **サーバで PDF 化するので "Noto Sans CJK JP" を入れる**(Linux の実名)。
+     "Noto Sans JP" は Google Fonts の Web 版で、コンテナには入らない */
+  body { font-family: -apple-system, "Hiragino Sans", "Noto Sans CJK JP", "Noto Sans JP", sans-serif; color: #111; }
 </style></head><body>
 <div class="no-print" style="text-align:right;padding:8px"><button onclick="window.print()">印刷 / PDF 保存</button></div>
 ${innerHtml}

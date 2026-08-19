@@ -7,6 +7,54 @@
 ---
 
 
+> **【範囲】ここには「試験の書き方」を書きます。**
+>
+> **どのアプリで何をカバーしているか**は、
+> **各アプリの `README.md`（このアプリの運用）**にあります——
+> **アプリが増えるたびにここが伸びると、書き方が埋もれます**。
+
+## 【最初に読む】どの検査が、何を見ているか
+
+**種類が多いので、まずここで役割を掴んでください。**
+
+| コマンド | 何を見るか | かかる時間 | いつ回すか |
+|---|---|---|---|
+| **`pnpm smoke`** | **基盤 120 パッケージの動き**（2,468 件）。実装を直接呼んで、**関数が期待どおり動くか**を確かめます | **1〜2 分** | **書き換えたら毎回** |
+| **`pnpm test`** | **単体テスト**（vitest / 342 ファイル）。パッケージごとの細かい振る舞い | 数分 | 書き換えたら毎回 |
+| **`node tools/preflight.mjs`** | **75 本の検査**をまとめて実行（うち 69 本）。**書き方の約束**が守られているか——並び順・上限・伏せ字・権限の印など | **数分**（`check-scan-reporting` が遅い） | **出す前** |
+| **`pnpm check`** | **型 → lint → smoke** の順。**型の不一致**はここでしか見つかりません | 数分 | 書き換えたら毎回 |
+| **`pnpm verify`** | 依存・API の差分・型・テスト。**通しの確認** | 数分〜 | 出す前 |
+| **`pnpm e2e`** | **ブラウザで画面を操作**（10 ファイル）。**押して動くか** | 数分 | 画面を直したら |
+| **`pnpm loadtest`** | **応答時間と同時実行**。100 人規模で耐えるか | 数分 | 人が増えたとき |
+| **`pnpm drill`** | **バックアップから戻せるか**（復元訓練） | 十数分 | **半年に 1 回** |
+| **`pnpm advisor`** | 基盤の使われ方を分析し、**再実装や重複**を報告 | 1 分 | ときどき |
+| **`pnpm suggest <言葉>`** | **基盤に既にあるもの**を探す | 数秒 | **作る前** |
+
+### 使い分けの目安
+
+| したいこと | 回すもの |
+|---|---|
+| **書き換えた直後** | `pnpm check`（型 + lint + smoke） |
+| **出す前** | `node tools/preflight.mjs` |
+| **画面を直した** | `pnpm e2e` |
+| **遅いと言われた** | `pnpm loadtest` → `docs/ops/SLOW_TRIAGE.md` |
+| **何か作る前** | `pnpm suggest <やりたいこと>` |
+
+### smoke と test（vitest）の違い
+
+**どちらも「動くか」を見ますが、目的が違います。**
+
+| | smoke | test（vitest） |
+|---|---|---|
+| **狙い** | **全体が壊れていないか**を素早く | **1 つの関数を細かく** |
+| **件数** | 2,468 件を**1 ファイル**に集約 | 342 ファイルに分散 |
+| **書く場所** | `tools/smoke.mjs` | 各パッケージの `*.test.ts` |
+| **いつ足すか** | **基盤の約束**を守らせたいとき | **関数の振る舞い**を固定したいとき |
+
+**smoke には「検査が効いているか」の検査も入っています**——
+**書き方の約束**（並び順・上限・資料の記述）は smoke で見張っています。
+
+
 ## 実行のしかた
 
 ```bash
@@ -40,12 +88,12 @@ pnpm dev:turbo / pnpm build:turbo / pnpm test:turbo
 1 つだけ起動したいときは `--filter` を使う。**画面を見るだけならこちらが軽い。**
 
 ```bash
-pnpm --filter showcase-demo dev      # http://localhost:3001（統合デモ）
+pnpm --filter showcase dev      # http://localhost:3001（統合デモ）
 pnpm --filter internal-app dev       # http://localhost:3000
-pnpm --filter platform-portal dev    # http://localhost:3005
+pnpm --filter platform-portal dev    # http://localhost :3001
 ```
 
-デプロイ(Amplify)は `demos/showcase` だけをビルドするので、この問題の影響を受けない。
+デプロイ(Amplify)は `apps/showcase` だけをビルドするので、この問題の影響を受けない。
 
 `*.integration.test.ts` は **Docker(testcontainers)が要る**ため通常実行から外してある。
 実行するときは明示的に呼ぶ。
@@ -198,6 +246,29 @@ pnpm --filter @platform/tax test -- --coverage
 
 ## 5. E2E（`pnpm e2e`）— ブラウザで実操作
 
+### いま覆っている範囲（2026-08 実測）
+
+**10 ファイル・35 テスト**あります。
+
+| 覆っているもの | ファイル |
+|---|---|
+| 主要な業務の流れ | `business-flow`（8）/ `expense-flow`（5） |
+| 認証・登録 | `internal-auth`（6）/ `register`（4） |
+| キーボード操作 | `keyboard`（4） |
+| 画面が開くか | `home` / `dashboard` / `smoke` / `crud-template` / `internal-equipment` |
+
+### 覆っていないもの（**足すならここから**）
+
+| 業務 | なぜ必要か |
+|---|---|
+| **請求書の発行** | **金額が動く**のに E2E が無い。見積 → 請求 → 入金の流れ |
+| **契約の更新** | **解約通知の期限を過ぎると自動更新**される。期限の表示が正しいか |
+
+**書くときは実際に赤くしてから緑にしてください。**
+書いただけで動かさないと、**通っているつもりのテスト**が増えます
+——`pnpm e2e` は**ブラウザが要る**ので、CI か手元の実機で確かめてください。
+
+
 Playwright が実際のブラウザを動かします。**DB とアプリの起動が必要**です。
 
 ### 準備
@@ -232,7 +303,12 @@ E2E のデバッグはこれが圧倒的に速いです。
 |---|---|
 | `e2e/home.spec.ts` | showcase のトップ |
 | `e2e/crud-template.spec.ts` | CRUD テンプレートの一覧・登録 |
-| `e2e/equipment-app.spec.ts` | 備品の貸出・返却 |
+| `e2e/internal-equipment.spec.ts` | 備品の貸出・返却 |
+| `e2e/internal-auth.spec.ts` | ログイン・2 要素認証 |
+| `e2e/business-flow.spec.ts` | 見積 → 受注 → 請求 |
+| `e2e/dashboard.spec.ts` | ダッシュボードの表示 |
+| `e2e/keyboard.spec.ts` | キーボード操作(アクセシビリティ) |
+| `e2e/register.spec.ts` | 問い合わせの登録 |
 | `apps/internal-app/e2e/expense-flow.spec.ts` | 経費 CSV 取込 → 承認 |
 | `apps/internal-app/e2e/smoke.spec.ts` | 主要画面が開くか |
 
@@ -399,7 +475,7 @@ http://localhost:3000/debug を開くと:
 | **DB の中身** | http://localhost:3000/admin/db-viewer |
 | **送信されたメール** | http://localhost:8025 （Mailpit） |
 | **監査ログ**（誰が何をしたか） | http://localhost:3000/admin/audit |
-| **基盤の部品を探す** | http://localhost:3005 （platform-portal） |
+| **基盤の部品を探す** | http://localhost :3001 （platform-portal） |
 
 ### DB を直接触る
 
@@ -478,7 +554,7 @@ SELECT * FROM "Expense" LIMIT 10;
 
 ---
 
-**関連**: [コマンド早見表](COMMANDS.md) / [困ったときは](GETTING_STARTED_2.md#困ったときは) / [Cursor での開発](CURSOR_GUIDE.md)
+**関連**: [コマンド早見表](COMMANDS.md) / [困ったときは](../onboarding/03-development.md#困ったときは) / [Cursor での開発](CURSOR_GUIDE.md)
 
 ## いま手薄なところ（実測）
 
@@ -525,3 +601,151 @@ ls packages/ui/src/lib/table.test.ts    # 単体テストがあるか
 **実装を読んでから書く。** 推測で期待値を書くと、実装が正しいのにテストが落ちます。
 実際 `cellErrorLookup` は `undefined` ではなく `null` を返しており、
 推測で書いたテストが落ちました（テスト側を実装に合わせて修正）。
+
+---
+
+# 基盤のテスト方針
+
+**`docs/ops/TESTING_GUIDE.md` を統合したものです（2026-08）。**
+
+このモノレポは、実行環境の制約下でも品質を担保できるよう、テストを層で重ねている。
+
+## 1. 型チェック（第一の門番）
+- `tsc --noEmit` を全パッケージ・アプリで実行。`strict` + `noUncheckedIndexedAccess` で境界の抜けを検出。
+- 基盤(packages/)は純ロジック中心のため、型が仕様の大部分を保証する。
+- 実行コマンド: 各パッケージ `pnpm typecheck`、ルート `pnpm -r typecheck`。
+
+## 2. 単体テスト（vitest）
+- 純ロジックは `*.test.ts` で網羅。境界値・端数処理・状態遷移を重点的に。
+- 例: `@platform/invoice` の税率区分ごとの端数処理、`@platform/booking` の空き枠、`@platform/auth` の RBAC。
+- 実行: `pnpm -r test`。
+
+## 3. スモークハーネス（tools/smoke.mjs）
+- ネットワーク/フルビルド不可の環境向けに、主要パッケージの純ロジックを 1 プロセスで通し検証する。
+- 相互依存は実ソースを一時展開して結線し、**実際のパッケージ間連携**（例: invoice × tax）も検証する。
+- 実行: `pnpm smoke`（`node --experimental-strip-types tools/smoke.mjs`）。期待値は onboarding/05-verify.md に記録。
+- 依存関係の健全性は `node tools/check-deps.mjs`（循環依存・層破りの検出）。
+
+## 4. 結合テスト（アプリ層・Playwright E2E）
+- `apps/internal-app/e2e/*.spec.ts` に主要業務フローの E2E を置く（例: 経費申請フロー、ログイン→ダッシュボード）。
+- `playwright.config.ts` で起動。CI では `next build` 後に `playwright test`。
+- 対象: 認証（ソーシャルログイン）、権限による画面出し分け、フォーム送信→トースト、一覧の検索/ページャ。
+
+## 5. 契約・可観測性
+- API サーフェスは `tools/api-surface.mjs --update` で追跡し、破壊的変更を差分で検知。
+- 実行時は `@platform/observability` / instrumentation でメトリクス・トレースを収集（OBSERVABILITY.md 参照）。
+
+## 層の対応表
+| 変更対象 | 主に効く層 |
+| --- | --- |
+| 基盤の純ロジック | 型 + 単体 + スモーク |
+| パッケージ間連携 | スモーク（実ソース結線）+ 型 |
+| 画面・配線 | 型 + Playwright E2E |
+| 破壊的変更の検知 | api-surface 差分 + check-deps |
+
+原則: **速い層で多くを捕まえ、E2E は代表フローに絞る**。純ロジックを基盤へ寄せることで、
+アプリ側の E2E を薄く保てる（属人化・ブラックボックス化の抑止にも寄与）。
+
+---
+
+# 契約テスト（外部 SaaS の応答の形）
+
+**`docs/ops/TESTING_GUIDE.md` を統合したものです（2026-08）。**
+
+## なぜ必要か
+
+外部 API（freee / Google / PayPal など）は、こちらの都合と関係なく変わります。
+自前のテストは**モックを相手にしているので通り続け**、壊れたことに気づくのは
+利用者からの連絡になりがちです。
+
+そこで「**うちのコードが相手の応答のどのフィールドに依存しているか**」を
+契約として明文化し、実際に記録した応答と突き合わせます。
+
+## 仕組み
+
+| 場所 | 役割 |
+|---|---|
+| `tests/contracts/*.contract.json` | 契約（依存フィールド・実装ファイル・記録した応答） |
+| `tools/check-contract.mjs` | 突き合わせ。preflight と CI から実行 |
+| `.github/workflows/contract.yml` | 週次で**本物の API** に問い合わせて記録を更新し、厳格モードで検査 |
+
+検査内容:
+
+- **C001** 契約ファイルの形式
+- **C002** 契約が指す実装ファイルの存在
+- **C003** 契約の必須フィールドを**実装が本当に参照しているか**（契約と実装のズレ）
+- **C004** 記録した応答に必須フィールドが**揃っているか**（相手の API 変更）
+- **C005** 記録が古すぎないか（既定 90 日）
+- **C006** その契約に**記録手段があるか**（`tools/record-contract.mjs` の `RECORDERS`）
+
+> C006 は 2026-08 に追加しました。契約が 5 件あるのに記録手段は 3 件しかなく、
+> **zoho / line は鍵を用意しても永久に記録されない**状態だったためです。
+> C004 の「未記録」だけでは、それが *鍵待ち* なのか *記録できない* のか区別できません。
+
+## 実行
+
+```bash
+node tools/check-contract.mjs                 # 通常（未記録は警告どまり。preflight はこちら）
+CONTRACT_STRICT=1 node tools/check-contract.mjs   # 本番前・定期CI（未記録/期限切れも失敗）
+```
+
+## 契約を追加する
+
+1. `tests/contracts/<name>.contract.json` を作る
+
+```json
+{
+  "connector": "freee",
+  "title": "freee OAuth トークン更新",
+  "endpoint": "POST https://accounts.secure.freee.co.jp/public_api/token",
+  "sourceFile": "packages/freee/src/token.ts",
+  "requiredFields": ["access_token", "refresh_token", "expires_in"],
+  "note": "欠けるとトークン更新ができず連携が全面停止する",
+  "capturedAt": null,
+  "fixture": null
+}
+```
+
+2. `requiredFields` には、**実装が実際に読んでいるフィールドだけ**を書く
+   （書いたのに実装が読んでいなければ C003 で落ちます）
+3. 任意項目（あってもなくても動くもの）は含めない
+4. `tools/record-contract.mjs` の `RECORDERS` に**同じ名前**で記録手段を足す
+   （ファイル名から `.contract.json` を除いたもの）
+5. `.github/workflows/contract.yml` の `env:` に必要な Secrets を足す
+
+## 必要な Secrets
+
+| コネクタ | 環境変数 |
+|---|---|
+| freee | `FREEE_CLIENT_ID` / `FREEE_CLIENT_SECRET` / `FREEE_REFRESH_TOKEN` |
+| google | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REFRESH_TOKEN` |
+| paypal | `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` |
+| zoho | `ZOHO_CLIENT_ID` / `ZOHO_CLIENT_SECRET` / `ZOHO_REFRESH_TOKEN` / **`ZOHO_DATA_CENTER`**（`jp` or `com`。既定は持たない — 取り違えると「認証情報が誤っている」ようにしか見えない応答が返る） |
+| line | `LINE_CHANNEL_ACCESS_TOKEN` / **`LINE_TEST_USER_ID`**（Bot と友だちになっている人の userId。プロフィール取得には実在の ID が要る。値は記録に残らない） |
+
+**1 件でも揃えば、そのコネクタだけ記録が始まります**（残りは黙ってスキップ）。
+5 件すべてを待つ必要はありません。
+
+## 実応答を記録する
+
+`fixture` に**本物の応答**を入れ、`capturedAt` に記録日を入れます。
+
+- **秘密情報は必ず伏せる**（`access_token` の値は `"<redacted>"` などで可。
+  検査しているのは**フィールドの有無**であって値ではありません）
+- 手で貼っても構いませんし、CI（`contract.yml`）に任せても構いません
+
+## 落ちたときの読み方
+
+| 表示 | 意味 | 対応 |
+|---|---|---|
+| C003 | 契約に書いたフィールドを実装が読んでいない | 契約を実装に合わせて直す |
+| C004 | 記録した応答に必須フィールドが無い | **相手の API が変わった**。実装の追随が必要 |
+| C005 | 記録が古い | 取り直す（週次 CI が動いていれば自動） |
+| C006 | その契約を記録する手段が無い | `tools/record-contract.mjs` の `RECORDERS` に足す |
+
+## 限界
+
+- 記録した瞬間の応答しか見ていません。**週次で取り直すこと**が前提です
+- フィールドの**有無**だけを見ます。型や意味の変更（例: 単位が円→銭）は検知できません
+- 相手のサンドボックス環境と本番で応答が違う場合があります
+

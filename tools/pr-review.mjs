@@ -49,7 +49,7 @@ if (dup.ok) {
 }
 
 // **変更した基盤がどこに影響するか。**
-// `@platform/core` は 59 パッケージから直接使われているが、
+// `@platform/core` は**半数以上のパッケージ**から直接使われているが、
 // PR の画面には「変更したファイル」しか出ないため、影響範囲が見えないまま通ってしまう。
 try {
   const base = process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : "origin/main";

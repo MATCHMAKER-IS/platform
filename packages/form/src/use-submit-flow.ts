@@ -33,6 +33,11 @@ export interface UseSubmitFlow<T> {
 /**
  * 入力 → 確認 → 完了フローを管理するフック。
  *
+ * **確認画面を挟まないなら `@platform/ui` の `useSubmit`** を使うこと——
+ * こちらは 3 段のフローを持つので、単純な送信(問い合わせ・保存)には重い。
+ * **金額の大きい発注や、取り消せない操作**でこちらを使う。
+ *
+ *
  * **二重送信は自動で防ぐ**(送信中は `submitting` になり、`submit` を呼んでも無視される)。
  *
  * @returns 現在の段階と操作(`toConfirm` / `back` / `submit` / `reset`)

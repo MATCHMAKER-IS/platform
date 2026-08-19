@@ -65,7 +65,12 @@ export function deriveTheme(seed: ThemeSeed): Theme {
         bg: bg.light,
         fg: "#1a1a2e",
         muted: "#6b7280",
-        surface: "#ffffff",
+        // **本文の背景より一段沈ませる。**
+        // 以前は `#ffffff` で `bg` と同じだったため、
+        // サイドナビやカードの境界が線だけになり、
+        // 画面が広いときにどこまでが操作の場所か読み取れなかった(2026-08)。
+        // 暗いテーマ側は既に `lighten` で差を付けている
+        surface: mix(bg.light, "#000000", 0.03),
         border: mix(bg.light, "#000000", 0.1),
         primary: seed.primary,
         primaryFg: readableTextColor(seed.primary),

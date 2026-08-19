@@ -4,6 +4,7 @@
  * @packageDocumentation
  */
 import { ratingSummary, type RatingSummary } from "@platform/commerce";
+import { DEFAULT_LIST_LIMIT } from "./list-limit";
 
 /** レビュー。 */
 export interface Review {
@@ -91,29 +92,31 @@ export interface ReviewRow {
   title: string;
   comment: string;
   hidden: boolean;
-  createdAt: string;
+  /** DB では `Date`。`Review` の公開契約(`createdAt: string`)は変えない
+   *  ——`rowToReview` の境界で変換する(2026-08)。 */
+  createdAt: Date;
 }
 
 /** 使用する Prisma デリゲートの最小ポート。 */
 export interface ReviewStoreDb {
   reviewRow: {
-    findMany(args: { where: { subjectType: string; subjectId: string; hidden?: boolean }; orderBy: { createdAt: "desc" } }): Promise<ReviewRow[]>;
-    create(args: { data: { subjectType: string; subjectId: string; author: string; rating: number; title: string; comment: string; hidden: boolean; createdAt: string } }): Promise<ReviewRow>;
+    findMany(args: { where: { subjectType: string; subjectId: string; hidden?: boolean }; orderBy: { createdAt: "desc" }; take?: number }): Promise<ReviewRow[]>;
+    create(args: { data: { subjectType: string; subjectId: string; author: string; rating: number; title: string; comment: string; hidden: boolean; createdAt: Date } }): Promise<ReviewRow>;
     update(args: { where: { id: string }; data: { hidden: boolean } }): Promise<ReviewRow>;
   };
 }
 
-const rowToReview = (row: ReviewRow): Review => ({ id: row.id, subjectType: row.subjectType, subjectId: row.subjectId, author: row.author, rating: row.rating, title: row.title, comment: row.comment, hidden: row.hidden, createdAt: row.createdAt });
+const rowToReview = (row: ReviewRow): Review => ({ id: row.id, subjectType: row.subjectType, subjectId: row.subjectId, author: row.author, rating: row.rating, title: row.title, comment: row.comment, hidden: row.hidden, createdAt: row.createdAt.toISOString() });
 
 /** Prisma 実装。 */
 export function createPrismaReviewStore(db: ReviewStoreDb): ReviewStore {
   return {
     async list(subjectType, subjectId, includeHidden = false) {
       const where = includeHidden ? { subjectType, subjectId } : { subjectType, subjectId, hidden: false };
-      return (await db.reviewRow.findMany({ where, orderBy: { createdAt: "desc" } })).map(rowToReview);
+      return (await db.reviewRow.findMany({ where, orderBy: { createdAt: "desc" }, take: DEFAULT_LIST_LIMIT })).map(rowToReview);
     },
     async add(input) {
-      const row = await db.reviewRow.create({ data: { subjectType: input.subjectType, subjectId: input.subjectId, author: input.author, rating: clampRating(input.rating), title: input.title ?? "", comment: input.comment ?? "", hidden: false, createdAt: new Date().toISOString() } });
+      const row = await db.reviewRow.create({ data: { subjectType: input.subjectType, subjectId: input.subjectId, author: input.author, rating: clampRating(input.rating), title: input.title ?? "", comment: input.comment ?? "", hidden: false, createdAt: new Date() } });
       return rowToReview(row);
     },
     async setHidden(id, hidden) {

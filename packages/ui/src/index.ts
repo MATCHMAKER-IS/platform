@@ -71,6 +71,8 @@ export { Toaster, toast } from "./components/toast";
 
 // ダイアログ
 export { Modal, type ModalProps } from "./components/modal";
+export { Overlay, type OverlayProps, BusyOverlay, type BusyOverlayProps } from "./components/overlay";
+export { EnvBanner, type EnvBannerProps } from "./components/env-banner";
 export {
   ModalHost, openModal, closeModal, closeAllModals, defineModal,
   type ModalSpec, type ModalContext, type ModalSize,
@@ -79,6 +81,9 @@ export {
   ConfirmDialog, ErrorDialog,
   type ConfirmDialogProps, type ErrorDialogProps,
 } from "./components/confirm-dialog";
+// **消す前に一度だけ確かめる。** 個別に `ConfirmDialog` を書くと
+// **書き忘れる**ので、1 行で使える形にした(2026-08)
+export { useConfirm, type ConfirmRequest } from "./components/use-confirm";
 
 // データ表示
 
@@ -185,6 +190,10 @@ export { splitByConfidence, needsReview, type ReviewField } from "./lib/field-re
 // Column は DataTableColumn の別名(既存コードが Column を使っているため残す)。
 export { DataTable, type DataTableProps, type DataTableColumn, type DataTableColumn as Column } from "./components/data-table";
 export { queryRows, type TableQuery, type TableResult } from "./lib/table";
+export {
+  runBulk, createUndoStack, bulkConfirmMessage,
+  type BulkResult, type BulkItemResult,
+} from "./lib/bulk";
 export { SheetGrid, type SheetGridProps, type SheetColumn } from "./components/sheet-grid";
 export { normalizeCellRange, inRange, rangeToTsv, stickyLeftOffsets, applyColumnResize, computeVisibleRange, computeVisibleColumns, parseTsv, tsvToRows, type CellPos, type CellRange } from "./lib/grid";
 export { validateImportRows, cellErrorLookup, errorRowIndices, filterErrorRows, summarizeImport, buildImportHistory, canRollback, canRollbackWith, validRows, partitionRows, type ImportField, type ImportValidation, type CellError, type FieldType, type ImportSummary, type ImportHistoryRow } from "./lib/import-validate";
@@ -230,10 +239,22 @@ export { regressionLine, fitStrength, type RegressionLine, type RegressionInput 
 export { inputAttrs, INPUT_KIND_LABELS, type InputKind, type InputKindAttrs } from "./lib/input-kind";
 // IME 変換中を追う。**確定前に検証すると「やまだ」で弾く**、変換確定の Enter で送信される。
 export { useComposition, type CompositionState } from "./components/use-composition";
+export { useFurigana, type FuriganaState, type KanaKind } from "./components/use-furigana";
+export { useSubmit, type SubmitState, type SubmitStatus } from "./components/use-submit";
+export { usePageview, type PageviewOptions } from "./components/use-pageview";
+export { ContactForm, type ContactFormProps, type ContactFormValues } from "./components/contact-form";
 // 画像ズーム。純ロジック(lib/zoom)と描画(components/image-zoom)を分けてある。
 export { ImageZoom, type ImageZoomProps } from "./components/image-zoom";
 // ファイル選択。生の <input type="file"> は見た目が揃わないので部品にする。
 export { FileInput, type FileInputProps } from "./components/file-input";
+/** Markdown の描画。**HTML を作らず React 要素に組み立てる**(script が動く経路を作らない)。 */
+export { Markdown, type MarkdownProps } from "./components/markdown";
+/** 画面の枠。**幅・見出し・余白を揃える**(画面ごとにバラバラだったのをここへ寄せた)。 */
+export { PageShell, type PageShellProps, type PageWidth } from "./components/page-shell";
+/** 読み込み・失敗・空をまとめて扱う。**エラーの分岐を書き忘れない**ための部品。 */
+export { AsyncBoundary, type AsyncBoundaryProps } from "./components/async-boundary";
+/** 値をひとつ尋ねる。**`window.prompt` の置き換え先**(検証も入力の種類も指定できる)。 */
+export { PromptDialog, type PromptDialogProps } from "./components/prompt-dialog";
 export { clampScale, clampPan, zoomAt, fitScale, formatScale, ZOOM_RESET, type ZoomState, type ZoomLimits } from "./lib/zoom";
 export { computeShares, donutSegments, achievementRate, funnelStages, relativeTime, type Share, type DonutSegment, type FunnelStage } from "./lib/dashboard";
 export { MiniCalendar, type MiniCalendarProps } from "./components/mini-calendar";
@@ -273,7 +294,7 @@ export { copyToClipboard, readClipboard } from "./lib/clipboard";
 export { useNotifications, type UseNotificationsOptions, type UseNotificationsResult } from "./components/use-notifications";
 export { filterCommands, groupCommands, scoreCommand, nextIndex, type Command } from "./lib/command";
 export { notificationReducer, type NotificationAction, type NotificationReducerOptions } from "./lib/notification-store";
-export { unreadCount, markRead, markAllRead, sortNotifications, groupByDate, type AppNotification, type NotificationKind } from "./lib/notifications";
+export { unreadCount, markRead, markAllRead, sortNotifications, groupByDate, type AppNotification, type NotificationKind, type NotificationGroups } from "./lib/notifications";
 export { PageHeader, type PageHeaderProps } from "./components/page-header";
 export { ThemeToggle, type ThemeToggleProps } from "./components/theme-toggle";
 export { ThemeProvider, useTheme, type ThemeProviderProps, type ThemeContextValue } from "./components/theme-provider";

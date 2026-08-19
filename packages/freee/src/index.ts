@@ -7,9 +7,8 @@
  * @packageDocumentation
  */
 import { createApiClient } from "@platform/integrations";
-import type { Result } from "@platform/core";
+import { AppError, ErrorCode, err, type Result } from "@platform/core";
 
-/** 一覧のページング(freee は limit/offset、上限は概ね100)。 */
 /**
  * 口座（freee でいう walletable）。
  *
@@ -254,12 +253,25 @@ export async function fetchAllPages<T>(
   maxPages = 50,
 ): Promise<Result<T[]>> {
   const all: T[] = [];
+  let reachedLimit = false;
   for (let page = 0; page < maxPages; page++) {
     const res = await fetchPage({ limit: pageSize, offset: page * pageSize });
     if (!res.ok) return res;
     const items = extract(res.value);
     all.push(...items);
     if (items.length < pageSize) break; // 最終ページ
+    // **上限に達したことを知らせる。** 2026-08 まで黙って打ち切っており、
+    // **5,001 件目から静かに落ちて**いた——受け取った側は「これで全部」と思う。
+    // 月次の仕訳や取引先の同期で、**一部だけ取り込まれた状態**になる
+    if (page === maxPages - 1) reachedLimit = true;
+  }
+  if (reachedLimit) {
+    return err(new AppError(
+      ErrorCode.EXTERNAL,
+      `取得の上限(${maxPages} ページ・約 ${maxPages * pageSize} 件)に達しました。` +
+      `**一部しか取れていません**——期間や条件で絞るか、maxPages を上げてください`,
+      { details: { fetched: all.length, maxPages, pageSize } },
+    ));
   }
   return { ok: true, value: all };
 }

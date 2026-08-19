@@ -1,4 +1,5 @@
 // public-api: 初期設定が済んでいるかの確認。設定前は認証が存在しない
+// no-rate-limit: 死活監視と同じ。状態表示は常に返せる必要がある
 /** 初期セットアップ状態(GET)。管理者が居るか等を返す。認証不要（初回導入時に使う）。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { userStore, settingsStore } from "../../../../server/platform-services";

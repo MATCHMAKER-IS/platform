@@ -1,10 +1,10 @@
 # Advisor レポート(自動生成)
 
-> 再生成: `node tools/advisor.mjs report`。生成日: 2026-08-05
+> 再生成: `node tools/advisor.mjs report`。生成日: 2026-08-19
 
 重複や似た API は「わざと(層が違う)」の場合もあります。這は**再利用の当たりを付ける入口**であり、機械的な指摘です。
 
-## 同名 export(93 組)
+## 同名 export(106 組)
 
 | export | 提供パッケージ |
 |---|---|
@@ -21,8 +21,9 @@
 | `FeedItem` | @platform/blog, @platform/seo |
 | `PostStatus` | @platform/blog, @platform/cms |
 | `adjacentPosts` | @platform/blog, @platform/board |
-| `buildRssFeed` | @platform/blog, @platform/seo |
-| `buildSitemap` | @platform/blog, @platform/seo |
+| `buildRssFeed` | @platform/blog, @platform/feed, @platform/seo |
+| `buildSitemap` | @platform/blog, @platform/feed, @platform/seo |
+| `escapeXml` | @platform/blog, @platform/feed, @platform/seo, @platform/xml |
 | `joinUrl` | @platform/blog, @platform/url |
 | `postsByTag` | @platform/blog, @platform/board |
 | `relatedPosts` | @platform/blog, @platform/board |
@@ -56,20 +57,30 @@
 | `ImportResult` | @platform/csv, @platform/importer |
 | `CursorPage` | @platform/db, @platform/http |
 | `RetryOptions` | @platform/db, @platform/net, @platform/notify, @platform/utils |
+| `canonicalJson` | @platform/dencho, @platform/json |
 | `Progress` | @platform/elearning, @platform/ui |
 | `z` | @platform/env, @platform/validation |
 | `email` | @platform/faker, @platform/validation |
 | `needsReview` | @platform/faq, @platform/ui |
+| `FeedChannel` | @platform/feed, @platform/seo |
+| `FeedEntry` | @platform/feed, @platform/seo |
+| `SitemapEntry` | @platform/feed, @platform/seo |
+| `buildAtomFeed` | @platform/feed, @platform/seo |
+| `buildSitemapIndex` | @platform/feed, @platform/seo |
 | `FieldType` | @platform/form, @platform/ui |
 | `InvoiceLine` | @platform/freee, @platform/invoice, @platform/report |
 | `buildInvoice` | @platform/freee, @platform/invoice |
 | `copyFile` | @platform/fs, @platform/storage |
 | `transition` | @platform/fsm, @platform/task |
+| `POST` | @platform/guard, @platform/mcp, @platform/upload |
 | `escapeHtml` | @platform/html, @platform/mail, @platform/utils |
 | `normalizeNewlines` | @platform/html, @platform/utils |
 | `normalizeSpace` | @platform/html, @platform/utils, @platform/validation |
 | `truncate` | @platform/html, @platform/utils |
 | `unescapeHtml` | @platform/html, @platform/utils |
+| `IdempotencyStore` | @platform/http, @platform/observability |
+| `createMemoryIdempotencyStore` | @platform/http, @platform/observability |
+| `withIdempotency` | @platform/http, @platform/observability |
 | `NormalizeOptions` | @platform/image, @platform/url |
 | `movingAverage` | @platform/inventory, @platform/utils |
 | `Rounding` | @platform/invoice, @platform/tax |
@@ -79,12 +90,13 @@
 | `isValidInvoiceNumber` | @platform/invoice, @platform/tax |
 | `normalizeInvoiceNumber` | @platform/invoice, @platform/tax |
 | `renderInvoiceHtml` | @platform/invoice, @platform/report |
+| `deepMerge` | @platform/json, @platform/utils |
 | `percentile` | @platform/loadtest, @platform/utils |
 | `LogLevel` | @platform/logger, @platform/ui |
 | `createMemoryTransport` | @platform/mail, @platform/sms |
 | `isSameDomain` | @platform/mail, @platform/url |
 | `isValidEmail` | @platform/mail, @platform/ui |
-| `POST` | @platform/mcp, @platform/upload |
+| `AudioRecorder` | @platform/mobile, @platform/ui |
 | `copyToClipboard` | @platform/mobile, @platform/ui |
 | `backoffDelay` | @platform/net, @platform/realtime |
 | `retry` | @platform/net, @platform/utils |
@@ -92,6 +104,7 @@
 | `maskPhone` | @platform/phone, @platform/pii |
 | `maskEmail` | @platform/pii, @platform/utils |
 | `PrintOptions` | @platform/print, @platform/report |
+| `isExpired` | @platform/push, @platform/quote |
 | `stripHtml` | @platform/security, @platform/utils |
 | `isValidCorporateNumber` | @platform/tax, @platform/validation |
 | `HighlightSegment` | @platform/ui, @platform/utils |
@@ -102,33 +115,31 @@
 | `round` | @platform/units, @platform/utils |
 | `toHalfWidth` | @platform/utils, @platform/validation |
 
-## 似た概念の export(28 組・上位20)
+## 似た概念の export(35 組・上位20)
 
 | 概念 | 該当 |
 |---|---|
 | address | @platform/address:AddressAdapter / @platform/address:AddressResult / @platform/faker:address / @platform/mail:formatAddress / @platform/mail:parseAddress |
+| auth | @platform/apikey:AuthResult / @platform/session:AuthProvider |
 | statemachine | @platform/blueprint:toStateMachine / @platform/fsm:StateMachine / @platform/fsm:createStateMachine |
 | text | @platform/bluetooth:parseText / @platform/mcp:textResult |
 | category | @platform/board:Category / @platform/cms:CategoryInput / @platform/cms:CategoryStore |
 | timetominutes | @platform/booking:timeToMinutes / @platform/payroll:parseTimeToMinutes |
 | announcement | @platform/cms:AnnouncementInput / @platform/cms:AnnouncementStore / @platform/site:Announcement |
 | page | @platform/cms:PageInput / @platform/cms:PageStore / @platform/print:PageOptions / @platform/site:Page |
+| pageview | @platform/cms:toPageView / @platform/ui:PageviewOptions / @platform/ui:usePageview |
 | context | @platform/context:getContext / @platform/logger:ContextStore / @platform/logger:createContextStore / @platform/rag:buildContext |
 | daterange | @platform/datetime:DateRange / @platform/validation:dateRange |
+| query | @platform/db:QueryInfo / @platform/url:parseQuery |
 | json | @platform/db:toJson / @platform/mcp:jsonResult |
 | client | @platform/device:ClientInfo / @platform/device:getClientInfo / @platform/ui:useClientInfo |
+| submit | @platform/form:SubmitOptions / @platform/form:SubmitResult / @platform/ui:useSubmit |
 | i18n | @platform/i18n:I18nOptions / @platform/i18n:createI18n / @platform/ui:useI18n |
 | locale | @platform/i18n:Locale / @platform/ui:LocaleProvider / @platform/ui:LocaleStore / @platform/ui:isLocale |
 | share | @platform/mobile:share / @platform/ui:Share |
+| safeurl | @platform/net:SafeUrlOptions / @platform/url:isSafeUrl |
 | receipt | @platform/print:createReceipt / @platform/purchase:Receipt |
-| chunk | @platform/rag:ChunkOptions / @platform/utils:chunk |
-| search | @platform/search:Search / @platform/search:SearchAdapter / @platform/search:createSearch / @platform/ui:SearchInput |
-| sequence | @platform/sequence:SequenceOptions / @platform/sequence:SequenceStore / @platform/ui:isSequence / @platform/ui:parseSequence / @platform/utils:sequence |
-| throttle | @platform/session:ThrottleStore / @platform/utils:throttle |
-| kanban | @platform/task:toKanban / @platform/ui:Kanban |
 
-## 孤立パッケージ(1)
+## 孤立パッケージ(0)
 
-| パッケージ | 指摘 |
-|---|---|
-| @platform/config | public export なし |
+なし。

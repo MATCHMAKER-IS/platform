@@ -6,7 +6,7 @@
 PostgreSQL への型安全なアクセスと、必要時の生 SQL の両立が要る。ORM 候補は Prisma / Drizzle。
 
 ## 決定
-Prisma 7 を driver adapter(`@prisma/adapter-pg`)で採用し、接続生成は `@platform/db` の `createDb(url)` に一元化。schema はアプリ毎(`apps/<app>/prisma/schema.prisma`)。
+Prisma 7 を driver adapter(`@prisma/adapter-pg`)で採用し、接続生成は `@platform/db` の `createDb()` に一元化。schema はアプリ毎(`apps/<app>/prisma/schema.prisma`)。
 
 ## 検討した代替案と見送り理由
 - Drizzle: 軽量だが、migrate/Studio/エコシステムと社内の既存知見で Prisma が優位。将来の再評価は妨げない。
@@ -26,7 +26,7 @@ Prisma 7 では **`schema.prisma` に `datasource.url` を書けない**(`P1012`
 
 **片方だけ直すと「generate は通るのに動かない」**、あるいはその逆になる。
 `prisma.config.ts` は **`packages/db` に 1 つだけ**置く。アプリの schema を使うときは
-`--schema` で指す(`docs/ops/SETUP.md`)。アプリごとに config を置くと `--schema` と
+`--schema` で指す(`docs/onboarding/01-setup.md`)。アプリごとに config を置くと `--schema` と
 競合して分かりにくいので置かない。config 側でも `schema` は固定しない。
 
 `prisma/config` の `env()` ヘルパーは使わない。**変数が無いと例外を投げる**ため、
@@ -75,3 +75,24 @@ export const db = createDb<PrismaClient>(env.DATABASE_URL);
 
 生成物は `.gitignore` に入れ、各アプリの `build` が `prisma generate` を先に走らせる。
 `node tools/check-test-setup.mjs` が `output` の書き忘れと `prisma.config.ts` の欠落を検出する。
+
+## 追記(2026-08): `createDb` はクライアントの**クラスを受け取る**
+
+当初は `createDb(url)` で、型だけを差し替える形にしていた。
+
+```ts
+createDb<AppPrismaClient>(url)   // 型は合うが…
+```
+
+**これは動かなかった。** Prisma のクライアントは生成時にモデルが焼き込まれるので、
+型だけ付け替えても**基盤が `new` するのは基盤側の生成物**になる。
+アプリのモデル(`db.systemSetting` など)が `undefined` になり、
+「型は通るのに実行時に落ちる」状態だった。
+
+```ts
+createDb(PrismaClient, url)      // 実体を渡す
+```
+
+**クラスを引数で渡す**形に変えた。あわせて `@platform/db` からの
+`@prisma/client` 再 export をやめた(再 export があると、
+アプリが誤って基盤側の生成物を掴める)。

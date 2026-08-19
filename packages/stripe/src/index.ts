@@ -42,8 +42,37 @@ export interface StripeClient {
  * const res = await stripe.createPaymentIntent({ amount: 1000, currency: "jpy" });
  * ```
  */
-export function createStripeClient(config: { secretKey: string }): StripeClient {
-  const stripe = new Stripe(config.secretKey);
+/**
+ * 固定する Stripe API バージョン。
+ *
+ * **ここを書き換えるのは、変更履歴を読んでテストを通してから。**
+ * 未指定だとアカウントの既定が使われ、管理画面の操作で挙動が変わる。
+ */
+export const STRIPE_API_VERSION = "2024-06-20";
+
+/**
+ * Stripe を扱う器を作る（**公式 SDK の薄い包み**）。
+ *
+ * **`fetch` を差し替えられません**——SDK が内部で通信するためです。
+ * そのため**契約テストが効かず**、確認は**sandbox キーでの実接続**に頼ります
+ * （基盤の `UNUSED_REASONS` に理由を書いてあります）。
+ *
+ * **秘密鍵はサーバ側だけで使ってください。** 画面に渡すのは公開鍵です
+ * ——秘密鍵が漏れると、**誰でも返金や請求ができます**。
+ *
+ * @param config `secretKey`（**サーバ側のみ**）と `apiVersion`
+ * @returns Stripe を呼ぶ器
+ */
+export function createStripeClient(config: { secretKey: string; apiVersion?: string }): StripeClient {
+  // **API バージョンを固定する。** 指定しないと**アカウントの既定**が使われ、
+  // Stripe は日付でバージョンを切り、**ダッシュボードから変更できる**。
+  // 誰かが管理画面で上げると、こちらがデプロイしていないのに応答の形が変わり、
+  // **決済が突然失敗するのに原因が分からない**(コードは何も変えていない)。
+  //
+  // 上げるときは変更履歴を読み、テストを通してからこの値を書き換えること。
+  const stripe = new Stripe(config.secretKey, {
+    apiVersion: (config.apiVersion ?? STRIPE_API_VERSION) as Stripe.LatestApiVersion,
+  });
   return {
     raw: stripe,
     createPaymentIntent: (params) => tryCatch(() => stripe.paymentIntents.create(params)),

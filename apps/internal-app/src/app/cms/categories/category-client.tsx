@@ -1,7 +1,7 @@
 "use client";
 /** カテゴリ・タグ管理。カテゴリは CRUD + 並べ替え、タグはリネーム/削除。 */
 import * as React from "react";
-import { Button, Input, Select, SortableList } from "@platform/ui";
+import { Button, Input, Select, SortableList, ConfirmDialog } from "@platform/ui";
 
 interface Category { id: string; name: string; slug: string; parentId?: string; order?: number; }
 interface TagCount { tag: string; count: number; }
@@ -40,6 +40,9 @@ export function CategoryClient({ fetchImpl }: CategoryClientProps) {
     await reload();
   };
 
+  // **消す前に確かめる。** 分類を消すと、**その分類の記事が宙に浮きます**
+  const [removing, setRemoving] = React.useState<string | null>(null);
+
   const remove = async (id: string) => {
     const res = await doFetch(`/api/cms/categories/${id}`, { method: "DELETE" });
     if (res.ok) await reload();
@@ -71,7 +74,7 @@ export function CategoryClient({ fetchImpl }: CategoryClientProps) {
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h1 className="text-xl font-bold">カテゴリ</h1>
-          <Button onClick={() => { setEditing({ ...EMPTY }); setEditId(null); setError(""); }} className="rounded bg-[var(--color-fg)] px-3 py-1 text-sm text-white">追加</Button>
+     <Button onClick={() => { setEditing({ ...EMPTY }); setEditId(null); setError(""); }} className="rounded px-3 py-1 text-sm text-white">追加</Button>
         </div>
         {editing && (
           <div className="mb-4 flex flex-col gap-2 rounded border border-[var(--color-border)] p-3">
@@ -86,8 +89,8 @@ export function CategoryClient({ fetchImpl }: CategoryClientProps) {
               ]}
             />
             <div className="flex gap-2">
-              <Button onClick={save} className="rounded bg-[var(--color-fg)] px-3 py-1 text-sm text-white">保存</Button>
-              <Button onClick={() => { setEditing(null); setEditId(null); }} className="rounded border border-[var(--color-border)] px-3 py-1 text-sm">キャンセル</Button>
+       <Button onClick={save} className="rounded px-3 py-1 text-sm text-white">保存</Button>
+              <Button onClick={() => { setEditing(null); setEditId(null); }} variant="secondary" className="rounded px-3 py-1 text-sm">キャンセル</Button>
             </div>
           </div>
         )}
@@ -102,8 +105,8 @@ export function CategoryClient({ fetchImpl }: CategoryClientProps) {
                 {c.parentId && <span className="ml-1 text-xs text-[var(--color-muted)]">← {nameOf(c.parentId)}</span>}
               </span>
               <span className="flex gap-2">
-                <Button onClick={() => { setEditing({ name: c.name, slug: c.slug, parentId: c.parentId ?? "" }); setEditId(c.id); setError(""); }} className="text-[var(--color-primary)]">編集</Button>
-                <Button onClick={() => remove(c.id)} className="text-[var(--color-danger)]">削除</Button>
+        <Button onClick={() => { setEditing({ name: c.name, slug: c.slug, parentId: c.parentId ?? "" }); setEditId(c.id); setError(""); }} variant="secondary" >編集</Button>
+                <Button onClick={() => setRemoving(c.id)} variant="danger">削除</Button>
               </span>
             </div>
           )}
@@ -118,14 +121,24 @@ export function CategoryClient({ fetchImpl }: CategoryClientProps) {
             <li key={t.tag} className="flex items-center justify-between rounded border border-[var(--color-border)] px-3 py-2 text-sm">
               <span>#{t.tag} <span className="text-xs text-[var(--color-muted)]">({t.count})</span></span>
               <span className="flex gap-2">
-                <Button onClick={() => renameTag(t.tag)} className="text-[var(--color-primary)]">リネーム</Button>
-                <Button onClick={() => removeTag(t.tag)} className="text-[var(--color-danger)]">削除</Button>
+        <Button onClick={() => renameTag(t.tag)} variant="secondary" >リネーム</Button>
+                <Button onClick={() => removeTag(t.tag)} variant="danger">削除</Button>
               </span>
             </li>
           ))}
           {tags.length === 0 && <li className="text-sm text-[var(--color-muted)]">タグはまだありません。</li>}
         </ul>
       </section>
+
+      <ConfirmDialog
+        open={removing !== null}
+        onOpenChange={(open) => { if (!open) setRemoving(null); }}
+        title="この分類を削除しますか"
+        description="元に戻せません。この分類に属する記事は、分類なしになります。"
+        confirmText="削除する"
+        destructive
+        onConfirm={() => { const id = removing; setRemoving(null); if (id !== null) void remove(id); }}
+      />
     </div>
   );
 }

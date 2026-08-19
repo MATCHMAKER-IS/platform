@@ -1,12 +1,12 @@
 /** 口コミ: 一覧+集計(GET ?subjectType=&subjectId=)・投稿(POST)。認証ユーザー。 */
 import { withApiObservability } from "../../../server/instrument";
 import { currentUser } from "../../../server/authorize";
-import { serverEnv } from "../../../server/env";
+import "../../../server/env";
 import { reviewStore, auditActions } from "../../../server/platform-services";
 import { summarizeReviews } from "../../../server/review-repo";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   if (!user) return Response.json({ error: "認証が必要です" }, { status: 401 });
   const q = new URL(req.url).searchParams;
   const subjectType = q.get("subjectType") ?? "";
@@ -17,9 +17,9 @@ async function handleGET(req: Request): Promise<Response> {
 }
 
 async function handlePOST(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   if (!user) return Response.json({ error: "認証が必要です" }, { status: 401 });
-  const body = (await req.json()) as { subjectType?: string; subjectId?: string; rating?: number; title?: string; comment?: string };
+  const body = (await req.json().catch(() => ({}))) as { subjectType?: string; subjectId?: string; rating?: number; title?: string; comment?: string };
   if (!body.subjectType || !body.subjectId || typeof body.rating !== "number") return Response.json({ error: "対象と評価が必要です" }, { status: 400 });
   const review = await reviewStore.add({ subjectType: body.subjectType, subjectId: body.subjectId, author: user.email, rating: body.rating, title: body.title, comment: body.comment });
   await auditActions.record(user.email, "review.add", `${body.subjectType}:${body.subjectId}`, { after: { rating: review.rating } });

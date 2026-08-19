@@ -22,7 +22,17 @@ export interface EyecatchProps {
 export function Eyecatch({ image, alt = "", title, subtitle, heightClassName = "h-64", overlayOpacity = 40, className }: EyecatchProps) {
   return (
     <div className={cn("relative w-full overflow-hidden rounded-[var(--radius)]", heightClassName, className)}>
-      <img src={image} alt={alt} className="absolute inset-0 h-full w-full object-cover" />
+      {/* **画面に入るまで読み込まない。** 2026-08 まで無く、
+          **一覧に 50 件並べば 50 枚を一度に取りに行って**いた
+          ——回線が細い場所では、下までスクロールしない画像まで待たされる。
+          `decoding="async"` は**描画を止めずに復号する**(大きな画像で効く) */}
+      <img
+        src={image}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        className="absolute inset-0 h-full w-full object-cover"
+      />
       {(title || subtitle) && (
         <>
           <div className="absolute inset-0 bg-black" style={{ opacity: overlayOpacity / 100 }} />

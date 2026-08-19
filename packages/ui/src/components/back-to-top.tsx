@@ -19,7 +19,6 @@ export interface BackToTopProps {
   label?: string;
 }
 
-/** ページトップへ戻るフローティングボタン。 */
 /**
  * 先頭へ戻るボタン。
  *

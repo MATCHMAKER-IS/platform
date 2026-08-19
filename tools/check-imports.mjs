@@ -21,6 +21,8 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { collectPackageSurface } from "./lib/package-surface.mjs";
+import { livePackageHas } from "./lib/live-surface.mjs";
+import { ALWAYS_SKIP } from "./lib/collect-files.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SURFACE = path.join(ROOT, "docs/platform/api-surface.json");
@@ -31,6 +33,8 @@ if (!existsSync(SURFACE)) {
 }
 
 const surface = JSON.parse(readFileSync(SURFACE, "utf8"));
+
+
 
 /**
  * **名前を数え切れないパッケージ**。検査から外す。
@@ -83,7 +87,7 @@ function packageOf(specifier) {
 function collect(dir, out = []) {
   if (!existsSync(dir)) return out;
   for (const e of readdirSync(dir, { withFileTypes: true })) {
-    if (["node_modules", ".next", "dist"].includes(e.name)) continue;
+    if (ALWAYS_SKIP.has(e.name)) continue;
     const fp = path.join(dir, e.name);
     if (e.isDirectory()) collect(fp, out);
     else if (/\.tsx?$/.test(e.name) && !e.name.includes(".test.")) out.push(fp);
@@ -93,7 +97,6 @@ function collect(dir, out = []) {
 
 const files = [
   ...collect(path.join(ROOT, "apps")),
-  ...collect(path.join(ROOT, "demos")),
   ...collect(path.join(ROOT, "packages")),
   ...collect(path.join(ROOT, "tools")),
 ];
@@ -124,6 +127,13 @@ for (const f of files) {
     for (const n of names) {
       checked += 1;
       if (!exported.includes(n)) {
+        // **記録が古いだけかもしれない。** その場でソースを見る。
+        //
+        // `api-surface.json` は生成物なので、export を足した直後は
+        // まだ載っていない。**「実装したのに無いと言われる」**が起きて、
+        // `--update` を思い出すまで時間を取られる(2026-08 に踏んだ)。
+        if (livePackageHas(pkg, n)) continue;
+
         // どのパッケージにあるかを示す(直す手間を減らす)
         const found = Object.entries(surface).filter(([, v]) => v.includes(n)).map(([k]) => k);
         const hint = found.length > 0 ? ` → ${found.join(" か ")} にあります` : "";

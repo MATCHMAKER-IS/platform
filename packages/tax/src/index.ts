@@ -21,9 +21,18 @@ export type Rounding = "floor" | "round" | "ceil";
  * @returns 整数に丸めた値
  */
 export function applyRounding(value: number, rounding: Rounding): number {
-  if (rounding === "floor") return Math.floor(value);
-  if (rounding === "ceil") return Math.ceil(value);
-  return Math.round(value);
+  // **負の金額でも対称に丸める。**
+  // 返品・値引き・赤伝で金額は負になる。
+  // `Math.floor(-2.5)` は -3、`Math.ceil(-2.5)` は -2 で、
+  // 「切り捨て」「切り上げ」の意味が符号で入れ替わってしまう。
+  // 0 に近づける / 0 から遠ざける、として揃える。
+  const sign = value < 0 ? -1 : 1;
+  const abs = Math.abs(value);
+  if (rounding === "floor") return sign * Math.floor(abs);
+  if (rounding === "ceil") return sign * Math.ceil(abs);
+  // **`Math.round(-2.5)` は -2**(0 から遠ざからない)。
+  // 会計では 2.5 → 3 なら -2.5 → -3 が期待される
+  return sign * Math.round(abs);
 }
 
 /**
@@ -197,3 +206,8 @@ export function normalizeInvoiceNumber(input: string): string {
   return input.replace(/[Ｔ]/g, "T").replace(/[０-９]/g, (c) => String(c.charCodeAt(0) - 0xff10)).replace(/\s/g, "").toUpperCase();
 }
 export * from "./withholding";
+// **印紙税。** `stamp-tax.ts` は 2026-08 まで index から出しておらず、
+// **ファイルはあるのにアプリから import できない**状態だった。
+// 「部品はあるのに繋がっていない」の中でも、公開すらしていない形は
+// `pnpm advisor find` でも見つからないので、いちばん気づきにくい。
+export * from "./stamp-tax";

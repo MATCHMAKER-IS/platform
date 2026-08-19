@@ -380,4 +380,4 @@ AI に聞くときも、人に聞くときも、**エラー全文**（スタッ�
 
 ---
 
-**関連**: [テストとデバッグ](TESTING_GUIDE.md) / [困ったときは](GETTING_STARTED_2.md#困ったときは)
+**関連**: [テストとデバッグ](TESTING_GUIDE.md) / [困ったときは](../onboarding/03-development.md#困ったときは)

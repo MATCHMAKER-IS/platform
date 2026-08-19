@@ -23,7 +23,9 @@ export interface MailRetryOptions {
  * かえって送信者の評判が落ちる)。
  *
  * @param transport 元の送信
- * @param options.attempts 最大試行回数
+ * @param options.retries **リトライ回数**(既定 3)。最初の 1 回は含まないので、
+ *   3 なら最大 4 回実行される。以前この説明は `attempts 最大試行回数` と
+ *   書いており、**1 回少なく見積もる**うえ名前も存在しなかった
  * @param options.shouldRetry 再試行するか判定する関数
  * @returns ラップした送信
  */
@@ -54,6 +56,7 @@ export interface MailFallbackOptions { onFallback?: (failedIndex: number, error:
  * **全部失敗したときだけ例外**を投げる。
  *
  * @param transports 送信の配列(**優先順**)
+ * @param options 何回試すか・次に移る条件
  * @returns ラップした送信
  * @throws 全部失敗した場合
  */

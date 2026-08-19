@@ -1,0 +1,9 @@
+{
+  "_comment": "schema の型の落とし穴の上限。増やさないための歯止め。直したら --set-limit で下げる。金額は Int か Decimal、日時は DateTime にする。",
+  "updatedAt": "2026-08-17",
+  "limits": {
+    "money-float": 2,
+    "date-string": 1,
+    "loose-money-input": 0
+  }
+}

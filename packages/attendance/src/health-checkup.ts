@@ -22,6 +22,17 @@
  * @packageDocumentation
  */
 
+/**
+ * 「今日」を **JST の日付**(`YYYY-MM-DD`)で返す。
+ *
+ * **`toISOString()` は UTC。** そのまま使うと、UTC で動くサーバ(クラウドの既定)では
+ * **JST の 00:00〜08:59 が前日として扱われ、判定が 1 日ずれる**
+ * ——期限切れのはずのものが「まだ間に合う」と出る(2026-08 に修正)。
+ */
+function jstDate(d: Date): string {
+  return new Date(d.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
 /** 健康診断の種類。 */
 export type CheckupKind =
   /** 雇入時健診（規則第43条）。 */
@@ -170,7 +181,7 @@ export function checkCheckupStatus(
   today: Date = new Date(),
 ): CheckupIssue[] {
   const out: CheckupIssue[] = [];
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = jstDate(today);
 
   for (const t of targets) {
     // 退職者は対象外
@@ -281,7 +292,7 @@ export function summarizeCheckups(
   employeeCount: number,
   today: Date = new Date(),
 ): CheckupSummary {
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = jstDate(today);
   const active = targets.filter((t) => t.leftOn === undefined || t.leftOn > todayStr);
 
   let upToDate = 0;

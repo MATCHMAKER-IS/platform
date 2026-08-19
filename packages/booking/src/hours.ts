@@ -24,12 +24,26 @@ export type WeeklyHours = Partial<Record<Weekday, TimeRange[]>>;
  *
  * **深夜営業は 24 時を超える**(`26:00` = 翌 2:00)ので、Date ではなく分で扱う。
  *
- * @param time `HH:MM` 形式
+ * **形式が違えば例外を投げる。** 2026-08 まで `NaN` や `0` を返しており、
+ * **二重予約が通る**状態だった——`intervalsOverlap` は `NaN` との比較が
+ * すべて `false` になるので、「重なっていない」と判定される。
+ * 空文字は `0`(= 00:00)扱いになり、**深夜の予約が取れて**しまう。
+ *
+ * 渡すのは**設定値**(就業時間・営業時間)なので、
+ * **不正なら早く気づく方がよい**。
+ *
+ * @param time `HH:MM` 形式(`26:00` のような 24 時超えも可)
  * @returns 0 時からの分
+ * @throws `Error` — `HH:MM` の形式でない場合
  */
 export function timeToMinutes(time: string): number {
-  const [h, m] = time.split(":").map(Number);
-  return (h ?? 0) * 60 + (m ?? 0);
+  // **分は 0〜59 に限る。** `09:70` を 610(= 10:10)として通すと、
+  // 設定の打ち間違いが**別の時刻として動いてしまう**
+  const m = /^(\d{1,2}):([0-5]\d)$/.exec(time);
+  if (m === null) {
+    throw new Error(`時刻の形式が不正です: ${JSON.stringify(time)}(HH:MM で指定してください)`);
+  }
+  return Number(m[1]) * 60 + Number(m[2]);
 }
 
 /**
@@ -51,8 +65,12 @@ export function minutesToTime(minutes: number): string {
  * @returns 0(日)〜6(土)
  */
 export function weekdayOf(date: string | Date): Weekday {
+  // **JST の曜日で見る。** `getDay()` はサーバのローカル時刻で動くので、
+  // UTC のサーバでは **JST の 00:00〜08:59 が前日の曜日**になる
+  // ——JST 月曜 8:00 が日曜と判定され、**日曜定休の店で月曜朝の予約が取れない**
+  // (2026-08 に修正)。
   const d = typeof date === "string" ? new Date(date) : date;
-  return d.getDay() as Weekday;
+  return new Date(d.getTime() + 9 * 60 * 60 * 1000).getUTCDay() as Weekday;
 }
 
 /** 特別営業時間・臨時休業の設定。 */
@@ -65,8 +83,10 @@ export interface HoursOverrides {
 
 /** ISO 日時から "YYYY-MM-DD" を取り出す。 */
 function dateKey(date: string | Date): string {
+  // **JST の日付で切る**(`weekdayOf` と同じ理由)。
+  // UTC で切ると、JST 早朝の予約が**前日の臨時休業設定**に当たる
   const d = typeof date === "string" ? new Date(date) : date;
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return new Date(d.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
 /**
@@ -76,7 +96,8 @@ function dateKey(date: string | Date): string {
  * 「祝日だが特別に営業する」を表現できるようにするため、この順序にしてある。
  *
  * @param date 対象の日
- * @param hours 営業時間の設定
+ * @param weekly 曜日ごとの営業時間
+ * @param overrides 特別営業時間・臨時休業（**日付単位で上書きする**。祝日や年末年始）
  * @returns その日の営業時間帯。**休業日なら空配列**
  */
 export function resolveDayHours(date: string | Date, weekly: WeeklyHours, overrides: HoursOverrides = {}): TimeRange[] {
@@ -90,7 +111,8 @@ export function resolveDayHours(date: string | Date, weekly: WeeklyHours, overri
  * その日が営業日かを判定する。
  *
  * @param date 対象の日
- * @param hours 営業時間の設定
+ * @param weekly 曜日ごとの営業時間
+ * @param overrides 特別営業時間・臨時休業（**日付単位で上書きする**。祝日や年末年始）
  * @returns 営業日なら true
  */
 export function isBusinessDay(date: string | Date, weekly: WeeklyHours, overrides?: HoursOverrides): boolean {
@@ -100,8 +122,10 @@ export function isBusinessDay(date: string | Date, weekly: WeeklyHours, override
 /**
  * 指定日時が営業時間内かを判定する。
  *
- * @param date 対象の日時
- * @param hours 営業時間の設定
+ * @param date 対象の日
+ * @param time 判定する時刻（"HH:mm"）
+ * @param weekly 曜日ごとの営業時間
+ * @param overrides 特別営業時間・臨時休業
  * @returns 営業時間内なら true
  */
 export function isOpenAt(date: string | Date, time: string, weekly: WeeklyHours, overrides?: HoursOverrides): boolean {

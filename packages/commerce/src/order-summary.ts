@@ -81,8 +81,8 @@ export function qualifiesForFreeShipping(subtotal: number, threshold: number): b
  * 送料を決める。
  *
  * @param subtotal 小計
- * @param options.threshold 無料になる金額
- * @param options.fee 通常の送料
+ * @param threshold 無料になる金額（**この額以上で送料 0**）
+ * @param normalFee 通常の送料
  * @returns 送料(**条件を満たせば 0**)
  */
 export function resolveShippingFee(subtotal: number, threshold: number, normalFee: number): number {

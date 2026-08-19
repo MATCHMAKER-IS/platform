@@ -31,7 +31,8 @@ export interface PublishRequestStore {
 /**
  * 公開申請ストアのメモリ実装(開発・テスト用)。
  *
- * @param seed 初期データ
+ * @param genId ID を作る関数（**試験では固定値を返す**ようにできます）
+ * @param now 現在時刻(**テスト注入用**。渡さなければ `new Date()`)
  * @returns 公開申請ストア(再起動で消える)
  */
 export function createMemoryPublishRequestStore(genId: () => string = () => `pr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, now: () => string = () => new Date().toISOString()): PublishRequestStore {

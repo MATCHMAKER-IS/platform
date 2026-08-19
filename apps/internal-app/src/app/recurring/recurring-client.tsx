@@ -1,13 +1,26 @@
 "use client";
 /** 繰り返し請求（サブスク）。プラン一覧（次回請求日・課金要否）、作成、有効/停止、一括請求。 */
 import * as React from "react";
-import { Button, Input, Select } from "@platform/ui";
+import { parseNumberOr } from "@platform/utils";
+import { formatYen } from "@platform/report";
+import { Button, Input, Select, PageShell } from "@platform/ui";
 
 interface Line { description: string; quantity: number; unitPrice: number; taxRate?: 10 | 8 | 0; }
-interface PlanView { number: string; billTo: string; interval: string; startDate: string; endDate?: string; lines: Line[]; lastBilled?: string; active: boolean; nextDate: string | null; due: boolean; }
+interface PlanView {
+  number: string;
+  billTo: string;
+  interval: string;
+  startDate: string;
+  endDate?: string;
+  lines: Line[];
+  lastBilled?: string;
+  active: boolean;
+  nextDate: string | null;
+  due: boolean;
+}
 
 const INTERVAL: Record<string, string> = { monthly: "毎月", quarterly: "四半期", yearly: "毎年" };
-const yen = (n: number) => `¥${n.toLocaleString()}`;
+const yen = (n: number) => formatYen(n);
 const lineTotal = (ls: Line[]) => ls.reduce((s, l) => s + l.quantity * l.unitPrice, 0);
 
 export interface RecurringClientProps { fetchImpl?: typeof fetch; canWrite?: boolean; }
@@ -53,14 +66,11 @@ export function RecurringClient({ fetchImpl, canWrite = true }: RecurringClientP
   const dueCount = plans.filter((p) => p.due).length;
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">繰り返し請求</h1>
+    <PageShell title="繰り返し請求" width="wide">
         <div className="flex gap-2">
-          {canWrite && dueCount > 0 && <Button onClick={runBilling} className="rounded bg-[var(--color-warning)] px-4 py-2 text-sm text-white">課金対象を請求書化（{dueCount}）</Button>}
-          {canWrite && <Button onClick={() => setCreating((v) => !v)} className="rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white">{creating ? "閉じる" : "新規作成"}</Button>}
+     {canWrite && dueCount > 0 && <Button onClick={runBilling} variant="secondary" className="rounded px-4 py-2 text-sm text-white">課金対象を請求書化（{dueCount}）</Button>}
+     {canWrite && <Button onClick={() => setCreating((v) => !v)} className="rounded px-4 py-2 text-sm text-white">{creating ? "閉じる" : "新規作成"}</Button>}
         </div>
-      </div>
       {error && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-danger)]">{error}</p>}
       {message && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-success)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-success)]">{message}</p>}
 
@@ -87,19 +97,19 @@ export function RecurringClient({ fetchImpl, canWrite = true }: RecurringClientP
               {lines.map((l, i) => (
                 <tr key={i}>
                   <td className="px-1 py-1"><Input value={l.description} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { description: e.target.value })} className="w-full rounded border border-[var(--color-border)] px-2 py-1" /></td>
-                  <td className="px-1 py-1"><Input value={String(l.quantity)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { quantity: Number(e.target.value) || 0 })} inputMode="numeric" className="w-full rounded border border-[var(--color-border)] px-2 py-1" /></td>
-                  <td className="px-1 py-1"><Input value={String(l.unitPrice)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { unitPrice: Number(e.target.value) || 0 })} inputMode="numeric" className="w-full rounded border border-[var(--color-border)] px-2 py-1" /></td>
-                  <td className="px-1 py-1"><Select value={String(l.taxRate ?? 10)} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setLine(i, { taxRate: Number(e.target.value) as 10 | 8 | 0 })} className="w-full rounded border border-[var(--color-border)] px-1 py-1" options={[{ label: "10%", value: "10" }, { label: "8%", value: "8" }, { label: "0%", value: "0" }]} /></td>
-                  <td className="px-1 py-1">{lines.length > 1 && <Button aria-label="この明細行を削除" title="この明細行を削除" onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))} className="text-[var(--color-muted)]">×</Button>}</td>
+                  <td className="px-1 py-1"><Input value={String(l.quantity)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { quantity: parseNumberOr(e.target.value, 0) || 0 })} inputMode="numeric" className="w-full rounded border border-[var(--color-border)] px-2 py-1" /></td>
+                  <td className="px-1 py-1"><Input value={String(l.unitPrice)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { unitPrice: parseNumberOr(e.target.value, 0) || 0 })} inputMode="numeric" className="w-full rounded border border-[var(--color-border)] px-2 py-1" /></td>
+                  <td className="px-1 py-1"><Select value={String(l.taxRate ?? 10)} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setLine(i, { taxRate: parseNumberOr(e.target.value, 0) as 10 | 8 | 0 })} className="w-full rounded border border-[var(--color-border)] px-1 py-1" options={[{ label: "10%", value: "10" }, { label: "8%", value: "8" }, { label: "0%", value: "0" }]} /></td>
+         <td className="px-1 py-1">{lines.length > 1 && <Button variant="ghost" aria-label="この明細行を削除" title="この明細行を削除" onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))} className="text-[var(--color-muted)]">×</Button>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           <div className="flex items-center justify-between">
-            <Button onClick={() => setLines((ls) => [...ls, { description: "", quantity: 1, unitPrice: 0, taxRate: 10 }])} className="text-sm text-[var(--color-primary)]">＋ 明細を追加</Button>
+      <Button onClick={() => setLines((ls) => [...ls, { description: "", quantity: 1, unitPrice: 0, taxRate: 10 }])} variant="secondary" className="text-sm">＋ 明細を追加</Button>
             <span className="text-sm text-[var(--color-muted)]">税抜計 {yen(lineTotal(lines))}</span>
           </div>
-          <Button onClick={submit} className="mt-3 rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white">プランを作成</Button>
+     <Button onClick={submit} className="mt-3 rounded px-4 py-2 text-sm text-white">プランを作成</Button>
         </div>
       )}
 
@@ -119,12 +129,12 @@ export function RecurringClient({ fetchImpl, canWrite = true }: RecurringClientP
               <td className="px-2 py-2 text-right">{yen(lineTotal(p.lines))}</td>
               <td className="px-2 py-2 text-xs">{p.nextDate ?? "—"}{p.due && <span className="ml-1 rounded bg-[color-mix(in_srgb,var(--color-warning)_15%,transparent)] px-1.5 py-0.5 text-[var(--color-warning)]">要請求</span>}</td>
               <td className="px-2 py-2">{p.active ? <span className="rounded bg-[color-mix(in_srgb,var(--color-success)_15%,transparent)] px-2 py-0.5 text-xs text-[var(--color-success)]">有効</span> : <span className="rounded bg-[var(--color-subtle-strong)] px-2 py-0.5 text-xs text-[var(--color-muted)]">停止</span>}</td>
-              <td className="px-2 py-2">{canWrite && <Button onClick={() => toggle(p.number, !p.active)} className="text-xs text-[var(--color-primary)] hover:underline">{p.active ? "停止" : "再開"}</Button>}</td>
+       <td className="px-2 py-2">{canWrite && <Button variant="ghost" onClick={() => toggle(p.number, !p.active)} className="text-xs text-[var(--color-primary)] hover:underline">{p.active ? "停止" : "再開"}</Button>}</td>
             </tr>
           ))}
           {plans.length === 0 && <tr><td colSpan={7} className="px-2 py-4 text-center text-sm text-[var(--color-muted)]">プランがありません。</td></tr>}
         </tbody>
       </table>
-    </div>
+    </PageShell>
   );
 }

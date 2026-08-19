@@ -2,11 +2,11 @@
 import { validatePageInput, type PageInput, type PageStatus } from "@platform/cms";
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { pageStore, auditActions } from "../../../../server/platform-services";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:read");
   const status = new URL(req.url).searchParams.get("status");
   const pages = await pageStore.list(status === "draft" || status === "published" ? { status: status as PageStatus } : {});
@@ -14,9 +14,9 @@ async function handleGET(req: Request): Promise<Response> {
 }
 
 async function handlePOST(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:edit");
-  const body = (await req.json()) as PageInput;
+  const body = (await req.json().catch(() => ({}))) as PageInput;
   const valid = validatePageInput(body);
   if (!valid.ok) return Response.json({ error: valid.error }, { status: 400 });
   if (await pageStore.get(body.slug)) return Response.json({ error: "同じ slug のページが既にあります" }, { status: 409 });

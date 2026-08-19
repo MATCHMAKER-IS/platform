@@ -43,7 +43,7 @@ function TopItem({ item }: { item: NavItem }) {
             <a
               key={child.label}
               href={child.href ?? "#"}
-              className="block px-3 py-2 text-sm hover:bg-[var(--color-muted-bg,#f5f5f5)]"
+              className="block px-3 py-2 text-sm hover:bg-[var(--color-muted-bg)]"
               {...(child.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
             >
               {child.label}

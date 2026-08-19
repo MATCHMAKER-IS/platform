@@ -4,11 +4,11 @@
  */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { mentionInbox } from "../../../../server/chat";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "chat:read");
   const handle = new URL(req.url).searchParams.get("handle") ?? user!.email.split("@")[0]!;
   const [count, items] = await Promise.all([mentionInbox.unreadCount(user!.email, handle), mentionInbox.unread(user!.email, handle)]);

@@ -27,8 +27,10 @@ export interface RoomMember {
  * ルームを作成する。
  *
  * @param input 名前・メンバーなど
- * @returns 作成したルーム
- * @throws {@link @platform/core#AppError} コード `VALIDATION` — 名前が空の場合
+ * @returns 作成したルーム。**`{ ok: false, error }` を返す**(Result 形式)。
+ *   **例外は投げない**——2026-08 まで「AppError を投げる」と
+ *   書いてあったが、実装は `{ ok: false, error }` を返す。
+ *   `try/catch` で待ち構えても捕まらず、**失敗を見落とす**
  */
 export function createRoom(input: { id: string; name: string; kind: RoomKind; memberIds: string[]; createdAt?: string }): ChatRoom {
   return { id: input.id, name: input.name, kind: input.kind, memberIds: [...new Set(input.memberIds)], createdAt: input.createdAt ?? new Date().toISOString() };

@@ -1,14 +1,14 @@
 /** 商品マスタ: CSV取り込み(POST)。SKU・名称・単位を一括登録。dryRun でプレビュー。inventory:write。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { inventoryStore, auditActions } from "../../../../server/platform-services";
 import { parseProductCsv } from "../../../../server/csv-import";
 
 async function handlePOST(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "inventory:write");
-  const body = (await req.json()) as { csv?: string; dryRun?: boolean };
+  const body = (await req.json().catch(() => ({}))) as { csv?: string; dryRun?: boolean };
   if (!body.csv || body.csv.trim().length === 0) return Response.json({ error: "CSV 本文が空です" }, { status: 400 });
   const { rows, errors } = parseProductCsv(body.csv);
   if (body.dryRun) return Response.json({ preview: true, valid: rows.length, errors });

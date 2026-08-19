@@ -22,7 +22,6 @@ export interface DescriptionListProps extends React.HTMLAttributes<HTMLDListElem
   divided?: boolean;
 }
 
-/** 項目名:値 の詳細リスト。columns=2 で 2 カラム、divided で行区切り。 */
 /**
  * 項目と値の一覧(定義リスト)。
  *

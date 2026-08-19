@@ -6,6 +6,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
+import { createWebStorage } from "@platform/web-storage";
 import {
   type ThemePreference, type ResolvedTheme,
   resolveTheme, applyTheme, toggleTheme, THEME_STORAGE_KEY,
@@ -43,16 +44,22 @@ export function ThemeProvider({ children, defaultTheme = "system", storageKey = 
   const [theme, setThemeState] = React.useState<ThemePreference>(defaultTheme);
   const [systemDark, setSystemDark] = React.useState(false);
 
-  // 初期化: localStorage から選好を読む
+  // **`localStorage` を直接触らない**(ADR-0020)。
+  // SSR の分岐もプライベートモードの例外も、基盤側が引き受ける
+  const store = React.useMemo(
+    () => createWebStorage<ThemePreference>({
+      key: storageKey,
+      fallback: "system",
+      validate: (v): v is ThemePreference => v === "light" || v === "dark" || v === "system",
+    }),
+    [storageKey],
+  );
+
+  // 初期化: 保存された選好を読む
   React.useEffect(() => {
-    try {
-      const stored = localStorage.getItem(storageKey) as ThemePreference | null;
-      if (stored === "light" || stored === "dark" || stored === "system") setThemeState(stored);
-    } catch {
-      /* ignore */
-    }
+    setThemeState(store.get());
     setSystemDark(systemPrefersDark());
-  }, [storageKey]);
+  }, [store]);
 
   // OS 設定の変更を監視
   React.useEffect(() => {
@@ -72,11 +79,8 @@ export function ThemeProvider({ children, defaultTheme = "system", storageKey = 
 
   const setTheme = React.useCallback((next: ThemePreference) => {
     setThemeState(next);
-    try {
-      localStorage.setItem(storageKey, next);
-    } catch {
-      /* ignore */
-    }
+    // **保存に失敗しても切り替えは効く。** 次回に戻るだけ
+    store.set(next);
   }, [storageKey]);
 
   const toggle = React.useCallback(() => {

@@ -25,6 +25,26 @@ export interface SagaResult {
   error?: unknown;
   /** 打ち消し中に発生したエラー（ステップ名→原因）。手動対応が必要。 */
   compensationErrors?: { step: string; error: unknown }[];
+  /**
+   * **打ち消しの手段が無かったステップ名**(`compensate` を書いていないもの)。
+   *
+   * 省略できる設計なので、**書き忘れても黙って飛ばされる**。
+   * `compensated: []` だけを見ると「補償が全部成功した」のか
+   * 「そもそも補償が無かった」のか区別が付かない(2026-08 に追加)。
+   */
+  uncompensated?: string[];
+  /**
+   * **人が手で戻す必要があるか。**
+   *
+   * 打ち消しが失敗した、または打ち消しの手段が無かった場合に `true`。
+   * `ok: false` だけでは「きれいに巻き戻った」失敗と
+   * **「中途半端に進んだまま止まった」失敗**を区別できない
+   * ——在庫を引いて決済に失敗し、在庫を戻せなかったなら、
+   * **売れていないのに在庫が減ったまま**になる。
+   *
+   * この値が `true` のときは、**運用の通知を出すこと**(ログだけでは気づけない)。
+   */
+  needsManualRecovery?: boolean;
 }
 
 /**
@@ -37,6 +57,7 @@ export interface SagaResult {
  */
 export async function runSaga<C>(steps: SagaStep<C>[], ctx: C): Promise<SagaResult> {
   const done: SagaStep<C>[] = [];
+  const uncompensated: string[] = [];
   for (const step of steps) {
     try {
       await step.run(ctx);
@@ -47,7 +68,12 @@ export async function runSaga<C>(steps: SagaStep<C>[], ctx: C): Promise<SagaResu
       // 逆順で打ち消し
       for (let i = done.length - 1; i >= 0; i--) {
         const s = done[i]!;
-        if (!s.compensate) continue;
+        if (!s.compensate) {
+          // **打ち消せないステップを記録する。** 黙って飛ばすと、
+          // 呼び出し側は「補償が全部成功した」と区別が付かない
+          uncompensated.push(s.name);
+          continue;
+        }
         try {
           await s.compensate(ctx);
           compensated.push(s.name);
@@ -55,7 +81,19 @@ export async function runSaga<C>(steps: SagaStep<C>[], ctx: C): Promise<SagaResu
           compensationErrors.push({ step: s.name, error: ce });
         }
       }
-      return { ok: false, completed: [], compensated, failedStep: step.name, error, ...(compensationErrors.length > 0 ? { compensationErrors } : {}) };
+      // **中途半端に進んだまま止まったかを返す。** 呼び出し側が
+      // `ok: false` しか見ないと、手で戻す必要がある状態を見逃す
+      const needsManualRecovery = compensationErrors.length > 0 || uncompensated.length > 0;
+      return {
+        ok: false,
+        completed: [],
+        compensated,
+        failedStep: step.name,
+        error,
+        ...(compensationErrors.length > 0 ? { compensationErrors } : {}),
+        ...(uncompensated.length > 0 ? { uncompensated } : {}),
+        ...(needsManualRecovery ? { needsManualRecovery } : {}),
+      };
     }
   }
   return { ok: true, completed: done.map((s) => s.name), compensated: [] };

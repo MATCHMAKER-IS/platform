@@ -49,8 +49,9 @@ function readHolder(lockFile: string): Holder | null {
  * 1 度だけロック取得を試みる(待機しない)。取得できたら true。
  * 既に有効な保持者がいれば false。死んだ/古いロックは回収して再取得する。
  *
- * @param path ロックファイルのパス
- * @param options.ttlMs 有効期間
+ * @param lockFile ロックファイルのパス
+ * @param label 誰が取ったかの印（**落ちたとき、どの処理が握っていたか**が分かる）
+ * @param options.staleMs 有効期間
  * @returns 取得できたか(**取れなければ即座に false**。待たない)
  */
 export function tryAcquireFileLock(lockFile: string, label: string, options: FileLockOptions = {}): boolean {
@@ -91,7 +92,8 @@ export function tryAcquireFileLock(lockFile: string, label: string, options: Fil
 /**
  * 自分が保持しているロックだけを解放する(奪取された場合は触らない)。
  *
- * @param path ロックファイルのパス
+ * @param lockFile ロックファイルのパス
+ * @param options.pid 解放する処理の PID（**既定は自分**。他人のロックは外しません）
  */
 export function releaseFileLock(lockFile: string, options: { pid?: number } = {}): void {
   const pid = options.pid ?? process.pid;
@@ -126,8 +128,9 @@ const defaultSleep = (ms: number): Promise<void> => new Promise((r) => setTimeou
  * try { await runRpa(); } finally { release(); }
  * ```
  *
- * @param path ロックファイルのパス
- * @param options.timeoutMs 待つ時間
+ * @param lockFile ロックファイルのパス
+ * @param label 誰が取ったかの印
+ * @param options.waitTimeoutMs 待つ時間
  * @returns ロック
  * @throws タイムアウトした場合
  */
@@ -157,7 +160,9 @@ export async function acquireFileLock(lockFile: string, label: string, options: 
  * ファイルロックを {@link LockStore} として使う(単一ホストで cron の分散ロックを差し替える用途)。
  * key ごとにロックファイルを分ける(`<dir>/<key>.lock`)。ttlMs は stale 判定に使う。
  *
- * @param options.dir ロックファイルの置き場
+ * @param dir ロックファイルを置く場所
+ * @param options.staleMs この時間を過ぎたロックは死んだものとみなす(**処理より長く**)。
+ *   `isAlive` でプロセスの生存確認を差し替えられる。**置き場は options では渡さない**
  * @returns ロックストア(**単一サーバ向け**。複数サーバでは Redis 実装を使う)
  */
 export function createFileLockStore(dir: string, options: FileLockOptions = {}): LockStore {

@@ -42,8 +42,10 @@ export type CreateMessageResult = { ok: true; message: ChatMessage } | { ok: fal
  * メッセージを作成する。
  *
  * @param input 送信者・ルーム・本文など
- * @returns 作成したメッセージ
- * @throws {@link @platform/core#AppError} コード `VALIDATION` — 本文が空・空白のみ・長すぎる場合
+ * @returns 作成したメッセージ。**`{ ok: false, error }` を返す**(Result 形式)。
+ *   **例外は投げない**——2026-08 まで「AppError を投げる」と
+ *   書いてあったが、実装は `{ ok: false, error }` を返す。
+ *   `try/catch` で待ち構えても捕まらず、**失敗を見落とす**
  */
 export function createMessage(input: NewMessage): CreateMessageResult {
   const text = input.text.trim();
@@ -65,8 +67,10 @@ export function createMessage(input: NewMessage): CreateMessageResult {
  * @param message 対象のメッセージ
  * @param newText 新しい本文
  * @param at 現在時刻(テスト注入用)
- * @returns 編集した**新しい**メッセージ(元は変更しない)
- * @throws {@link @platform/core#AppError} コード `VALIDATION` — 本文が不正な場合
+ * @returns 編集した**新しい**メッセージ(元は変更しない)。**`{ ok: false, error }` を返す**(Result 形式)。
+ *   **例外は投げない**——2026-08 まで「AppError を投げる」と
+ *   書いてあったが、実装は `{ ok: false, error }` を返す。
+ *   `try/catch` で待ち構えても捕まらず、**失敗を見落とす**
  */
 export function editMessage(message: ChatMessage, newText: string, at?: string): CreateMessageResult {
   const text = newText.trim();

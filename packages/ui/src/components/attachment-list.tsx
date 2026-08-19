@@ -31,7 +31,6 @@ function humanSize(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-/** 添付一覧(画像サムネ + ファイルチップ)。 */
 /**
  * 添付ファイルの表示。
  *
@@ -54,7 +53,7 @@ export function AttachmentList({ attachments, onOpen, className }: AttachmentLis
         return (
           <button
             key={a.key}
-            className="flex items-center gap-2 rounded-[var(--radius)] border border-[var(--color-border)] px-3 py-2 text-left text-sm hover:bg-[var(--color-muted-bg,#f5f5f5)]"
+            className="flex items-center gap-2 rounded-[var(--radius)] border border-[var(--color-border)] px-3 py-2 text-left text-sm hover:bg-[var(--color-muted-bg)]"
             onClick={() => onOpen?.(a)}
           >
             <span aria-hidden className="text-[var(--color-muted)]">{isImage ? "🖼️" : "📎"}</span>

@@ -6,7 +6,7 @@
  * ワークスペース構成、生成物の drift をチェックする。
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -99,6 +99,72 @@ if (cg.status === 0) okLine("生成物は最新（drift なし）");
 else warnLine("生成物に drift の可能性（pnpm gen:all で再生成）");
 
 // まとめ
+// ---- ビルドの古さ ----
+// **Next は基盤パッケージを取り込んでビルドする。**
+// その結果は `.next` に残り、パッケージ側を直しても作り直されないことがある
+// (2026-08、`packages/ui` の古い AppSkin が出続けた)。
+// 症状は「直したのに反映されない」「Hydration failed」で、原因が読み取れない
+console.log("\n[ビルドの新しさ]");
+{
+  /** ディレクトリ内で最も新しい更新時刻。 */
+  const newest = (dir, depth = 0) => {
+    if (depth > 4) return 0;
+    let max = 0;
+    let entries;
+    try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return 0; }
+    for (const e of entries) {
+      if (["node_modules", ".next", "dist", "generated"].includes(e.name)) continue;
+      const p2 = path.join(dir, e.name);
+      if (e.isDirectory()) max = Math.max(max, newest(p2, depth + 1));
+      else if (/\.(ts|tsx|css)$/.test(e.name)) {
+        try { max = Math.max(max, statSync(p2).mtimeMs); } catch { /* noop */ }
+      }
+    }
+    return max;
+  };
+
+  const pkgTime = newest(path.join(ROOT, "packages"));
+  let stale = [];
+  for (const group of ["apps"]) {
+    const base = path.join(ROOT, group);
+    if (!existsSync(base)) continue;
+    for (const name of readdirSync(base)) {
+      const nextDir = path.join(base, name, ".next");
+      if (!existsSync(nextDir)) continue;
+      let built = 0;
+      try { built = statSync(nextDir).mtimeMs; } catch { continue; }
+      if (built < pkgTime) stale.push(`${group}/${name}`);
+    }
+  }
+  if (stale.length === 0) {
+    console.log("✅ ビルドは基盤パッケージより新しい(または未ビルド)");
+  } else {
+    warn += 1;
+    console.log(`⚠ 基盤を直した後のビルドが残っています: ${stale.join(", ")}`);
+    console.log("   直したのに反映されないときは: pnpm dev:clean <app>");
+  }
+}
+
+// **引き継ぎ時に書き換えるものを知らせる。**
+// `onboarding/README.md` にも書いてあるが、**忘れる**——
+// `doctor` は環境が動かないときに必ず叩くので、**ここに出しておけば目に入る**。
+//
+// **落としません。** サンプル値は開発中なら正しく、
+// **CI で止めると引き継ぎ前の作業が進まない**。
+console.log("\n[引き継ぎ時に書き換えるもの]");
+try {
+  const { execSync } = await import("node:child_process");
+  const out = execSync("node tools/check-placeholders.mjs", {
+    cwd: ROOT,
+    encoding: "utf8",
+  });
+  const lines2 = out.trim().split("\n").filter((l) => l.trim() !== "");
+  // **1 行目(件数)と、ファイル名の行だけ**出す。説明は長いので省く
+  for (const l of lines2.slice(0, 8)) console.log(l);
+} catch {
+  console.log("⚠️  確認できませんでした（node tools/check-placeholders.mjs を直接実行してください）");
+}
+
 console.log("\n─────────────");
 if (ng > 0) {
   console.log(`❌ 要対応 ${ng} 件、警告 ${warn} 件。上の ❌ を解消してください。`);

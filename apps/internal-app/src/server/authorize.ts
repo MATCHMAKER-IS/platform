@@ -3,12 +3,42 @@
  * @packageDocumentation
  */
 import { can, canScoped, featureFlags, type Policy } from "@platform/auth";
+import { getCookie } from "@platform/session";
 import { verifySession, type SessionPayload } from "./zoho-session";
+import { serverEnv } from "./env";
 import { APP_POLICY, APP_FEATURES } from "./policy";
 
-/** クッキーから現在のユーザーを取り出す。未ログインは null。 */
-export function currentUser(cookieValue: string | undefined, secret: string): SessionPayload | null {
-  return cookieValue ? verifySession(cookieValue, secret) : null;
+/**
+ * リクエストから現在のユーザーを取り出す。未ログインは null。
+ *
+ * **クッキーの解析は基盤(`@platform/session` の `getCookie`)に任せる。**
+ * 2026-08 まで、呼び出し側 249 か所が
+ * `req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1]` と自作していた。
+ * この正規表現は**部分一致**なので、`zoho_session=...` のように
+ * 名前が `session` で終わる別のクッキーがあると**そちらの値を返す**
+ * (このアプリは Zoho 連携なので現実的な危険だった)。
+ * URL エンコードも解けない。`getCookie` は名前で正しく分割し、デコードもする。
+ *
+ * 秘密鍵は既定で `serverEnv.SESSION_SECRET`。**テストでは第 2 引数で差し替える。**
+ */
+export function currentUser(
+  request: Request,
+  secret: string = serverEnv.SESSION_SECRET,
+): SessionPayload | null {
+  const value = getCookie(request.headers.get("cookie"), "session");
+  // **入れ替え中は旧鍵でも通す**(未設定なら何も変わらない)。
+  // 手順は docs/ops/SECRET_ROTATION.md
+  return value ? verifySession(value, secret, serverEnv.SESSION_SECRET_PREVIOUS) : null;
+}
+
+/**
+ * すでに取り出したクッキーの値から利用者を取り出す。
+ *
+ * **Request を持てない場所のためだけにある**(Next.js の `cookies()` ストアなど)。
+ * リクエストがあるなら {@link currentUser} を使うこと。
+ */
+export function currentUserFromValue(cookieValue: string | undefined | null, secret: string): SessionPayload | null {
+  return cookieValue ? verifySession(cookieValue, secret, serverEnv.SESSION_SECRET_PREVIOUS) : null;
 }
 
 /** 権限を持つか(ポリシーは既定でアプリポリシー)。 */

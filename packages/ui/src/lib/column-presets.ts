@@ -85,7 +85,7 @@ export interface ColumnPresetStoreOptions {
  * **端末をまたいで設定を持ち回れる**(localStorage だと別の PC では使えない)。
  *
  * @param options.endpoint API の URL
- * @param options.fetchImpl fetch の実装(テスト注入用)
+ * @param options.fetch fetch の実装(テスト注入用)
  * @returns ストア(個人 + 共有のプリセットを返す)
  */
 export function createColumnPresetStore(options: ColumnPresetStoreOptions): ColumnPresetStore {
@@ -116,8 +116,7 @@ export function createColumnPresetStore(options: ColumnPresetStoreOptions): Colu
  *
  * **初回表示で使う**(何も選ばれていないときの列構成)。
  *
- * @param list.presets プリセットの配列
- * @param list.tableId テーブル
+ * @param list プリセットの配列(**それ自体が配列**。`presets` という項目を持つ器ではない)
  * @returns 既定のプリセット。**無ければ undefined**
  */
 export function defaultPreset(list: ColumnPreset[]): ColumnPreset | undefined {

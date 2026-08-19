@@ -83,7 +83,7 @@ export function AuditClient({ fetchImpl }: AuditClientProps) {
         <div className="rounded-[var(--radius)] border border-[var(--color-border)] p-4">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-sm font-medium">エントリ詳細</h2>
-            <Button className="text-xs text-[var(--color-muted)]" onClick={() => setDetail(null)}>閉じる</Button>
+            <Button variant="ghost" className="text-xs" onClick={() => setDetail(null)}>閉じる</Button>
           </div>
           <AuditEntryDetail entry={detail} onJump={loadDetail} />
         </div>

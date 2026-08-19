@@ -45,7 +45,7 @@ const PATTERNS = [
 ];
 
 const problems = [];
-const files = collectFiles(["packages", "apps", "demos"], ROOT, { extensions: [".ts", ".tsx"] });
+const files = collectFiles(["packages", "apps"], ROOT, { extensions: [".ts", ".tsx"] });
 
 for (const rel of files) {
   const lines = readFileSync(path.join(ROOT, rel), "utf8").split("\n");
@@ -79,5 +79,5 @@ if (problems.length > 0) {
   );
   process.exitCode = 1;
 } else {
-  console.log("✅ Result の絞り込みは正しく書かれています");
+  console.log(`✅ Result の絞り込みは正しく書かれています(${files.length} ファイルを検査)`);
 }

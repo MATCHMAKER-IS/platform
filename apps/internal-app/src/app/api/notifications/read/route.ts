@@ -1,13 +1,13 @@
 /** 通知を既読にする API（POST）。ボディ `{ id }`。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { notificationStore } from "../../../../server/platform-services";
 
 async function handlePOST(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "chat:read");
-  const body = (await req.json()) as { id?: string };
+  const body = (await req.json().catch(() => ({}))) as { id?: string };
   if (!body.id) return Response.json({ error: "id が必要です" }, { status: 400 });
   await notificationStore.markRead(user!.email, body.id);
   return new Response(null, { status: 204 });

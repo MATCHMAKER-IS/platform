@@ -12,7 +12,7 @@ import { defineConfig } from "prisma/config";
  * 「generate は通るのに動かない」状態になる。
  *
  * `schema` はここでは指定しない。アプリの schema を使うときは
- * `--schema` で上書きするのがこのリポジトリの作法(docs/ops/SETUP.md)。
+ * `--schema` で上書きするのがこのリポジトリの作法(docs/onboarding/01-setup.md)。
  *
  *     pnpm --filter @platform/db exec prisma generate \
  *       --schema=../../apps/internal-app/prisma/schema.prisma

@@ -1,7 +1,12 @@
 /** 請求書: 一覧(GET)・作成(POST)。閲覧は invoice:read、作成は invoice:write。 */
+
 import { withApiObservability } from "../../../server/instrument";
+// **二重送信を防ぐ。** 請求書の発行は連打・再送で二重に走ると、
+// **同じ請求書が 2 通、取引先へ届く**。
+import { withIdempotency } from "@platform/http";
+import { idempotencyStore } from "../../../server/idempotency";
 import { currentUser, requirePermission } from "../../../server/authorize";
-import { serverEnv } from "../../../server/env";
+import "../../../server/env";
 import { invoiceStore, partnerStore, periodLockStore, auditActions, settingsStore } from "../../../server/platform-services";
 import { applyDefaultTaxRate } from "../../../server/tax-default";
 import { emitEvent } from "../../../server/webhook-emit";
@@ -10,15 +15,21 @@ import { invoiceToDoc } from "../../../server/entity-search";
 import { type InvoiceHeader, type InvoiceLine } from "@platform/invoice";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "invoice:read");
   return Response.json({ invoices: await invoiceStore.list() });
 }
 
 async function handlePOST(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "invoice:write");
-  const body = (await req.json()) as InvoiceHeader & { lines: InvoiceLine[]; partnerCode?: string };
+  // **キーが無ければ素通し。** 付けるのは呼び出し側の責任。
+  return withIdempotency(req, { store: idempotencyStore, scope: user!.email }, () => run(req, user!.email));
+}
+
+/** 本体(冪等キーの内側で 1 回だけ動く)。 */
+async function run(req: Request, actor: string): Promise<Response> {
+  const body = (await req.json().catch(() => ({}))) as InvoiceHeader & { lines: InvoiceLine[]; partnerCode?: string };
   // 取引先コードが指定されていればマスタから宛先名を解決（名称の二重入力を解消）
   let billTo = body.billTo;
   if (body.partnerCode) {
@@ -38,7 +49,7 @@ async function handlePOST(req: Request): Promise<Response> {
   const rec = await invoiceStore.create({ ...header, billTo }, ratedLines);
   await emitEvent("invoice.created", { number: rec.number, billTo });
   await searchIndexStore.upsert([invoiceToDoc({ number: rec.number, billTo, total: rec.totals?.total })]);
-  await auditActions.record(user!.email, "invoice.create", `invoice:${rec.number}`, { after: { total: rec.totals.total } });
+  await auditActions.record(actor, "invoice.create", `invoice:${rec.number}`, { after: { total: rec.totals.total } });
   return Response.json(rec, { status: 201 });
 }
 

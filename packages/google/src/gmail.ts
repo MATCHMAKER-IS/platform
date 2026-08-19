@@ -3,6 +3,7 @@
  * OAuth アクセストークン(scope: gmail.send / gmail.readonly 等)で認証する。
  * @packageDocumentation
  */
+import { encodeBase64, encodeBase64Url } from "@platform/bytes";
 import { createApiClient } from "@platform/integrations";
 import type { Result } from "@platform/core";
 
@@ -21,17 +22,17 @@ export interface GmailMessageInput {
 
 /** base64url エンコード(パディング除去)。 */
 function toBase64Url(input: string): string {
-  const b64 = typeof Buffer !== "undefined"
-    ? Buffer.from(input, "utf-8").toString("base64")
-    : btoa(unescape(encodeURIComponent(input)));
-  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  // **`@platform/bytes` に寄せた**(2026-08)。
+  // 以前は `Buffer`(Node 専用)と `btoa(unescape(encodeURIComponent(...)))`
+  // (**`unescape` は非推奨**)を自前で切り替えていた
+  return encodeBase64Url(input);
 }
 
 /** 件名を MIME エンコード(日本語対応・RFC2047 の base64)。 */
 function encodeHeader(value: string): string {
   // ASCII のみならそのまま
   if (/^[\x20-\x7E]*$/.test(value)) return value;
-  const b64 = typeof Buffer !== "undefined" ? Buffer.from(value, "utf-8").toString("base64") : btoa(unescape(encodeURIComponent(value)));
+  const b64 = encodeBase64(value);
   return `=?UTF-8?B?${b64}?=`;
 }
 
@@ -56,7 +57,7 @@ export function buildRawEmail(msg: GmailMessageInput): string {
   headers.push(`Content-Type: ${isHtml ? "text/html" : "text/plain"}; charset=UTF-8`);
   headers.push("Content-Transfer-Encoding: base64");
   const body = isHtml ? msg.html! : (msg.text ?? "");
-  const encodedBody = typeof Buffer !== "undefined" ? Buffer.from(body, "utf-8").toString("base64") : btoa(unescape(encodeURIComponent(body)));
+  const encodedBody = encodeBase64(body);
   return headers.join("\r\n") + "\r\n\r\n" + encodedBody;
 }
 

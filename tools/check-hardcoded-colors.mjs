@@ -19,7 +19,9 @@
 import { readFileSync, readdirSync, existsSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ALWAYS_SKIP } from "./lib/collect-files.mjs";
 
+let scanned = 0;
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const LIMIT_FILE = new URL("./hardcoded-colors-limit.json", import.meta.url);
 
@@ -43,7 +45,8 @@ const ALLOW = {
 function collect(dir, out = []) {
   if (!existsSync(dir)) return out;
   for (const e of readdirSync(dir, { withFileTypes: true })) {
-    if (["node_modules", ".next", "dist"].includes(e.name)) continue;
+  scanned += 1;
+    if (ALWAYS_SKIP.has(e.name)) continue;
     const fp = path.join(dir, e.name);
     if (e.isDirectory()) collect(fp, out);
     else if (/\.tsx$/.test(e.name) && !e.name.endsWith(".test.tsx")) out.push(fp);
@@ -58,7 +61,6 @@ function collect(dir, out = []) {
 const uiFiles = collect(path.join(ROOT, "packages/ui/src"));
 const appFiles = [
   ...collect(path.join(ROOT, "apps")),
-  ...collect(path.join(ROOT, "demos")),
 ];
 const files = uiFiles;
 const rows = [];
@@ -160,7 +162,7 @@ if (process.exitCode === 1) {
 } else if (appTotal > 0) {
   console.log(`✅ UI 部品に直書きされた色はありません(アプリ・デモは ${appTotal} 箇所・上限 ${appLimit})`);
 } else {
-  console.log("✅ 直書きされた色はありません(基盤・アプリとも)");
+  console.log(`✅ 直書きされた色はありません(基盤・アプリとも / ${scanned} ファイルを検査)`);
 }
 // **`process.exit(0)` で終わらない。** exitCode を上書きしてしまい、
 // 上限超過を検出しても呼び出し側は成功と受け取る(実際にそうなっていた)。

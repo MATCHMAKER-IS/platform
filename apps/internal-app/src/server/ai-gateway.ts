@@ -5,6 +5,11 @@
  * @packageDocumentation
  */
 import { createAiGateway, createAnthropicProvider, createMemoryAiLogStore, createAiImageGateway, createOpenAiImageProvider, type AiProvider, type AiImageProvider, type AiGateway, type AiImageGateway } from "@platform/ai";
+import {
+  createSpendingLimiter, createConcurrencyLimiter,
+  detectPromptInjection, detectSensitiveOutput, wrapAsData,
+  createDecisionLog, createToolCallLog,
+} from "@platform/ai";
 import { featureEnv } from "./env";
 
 const apiKey = featureEnv.ANTHROPIC_API_KEY || undefined;
@@ -44,6 +49,79 @@ export const aiGateway: AiGateway = createAiGateway({
 
 /** モック稼働か(UI 表示用)。 */
 export const aiIsMock = !apiKey;
+
+// ─────────────────────── 守り(基盤にあったが繋いでいなかった) ───────────────────────
+
+/**
+ * 人・部署ごとの費用上限（月・円）。
+ *
+ * **全体の上限だけだと、1 人の暴走で全員が止まる。**
+ * 誤って繰り返し処理を仕掛けた人がいたとき、**その人だけ**止める必要がある。
+ *
+ * **`usageRatio` が 0.8 を超えたら知らせること。** 上限に当たってから
+ * 「今月はもう使えません」と言われても、業務の予定は変えられない。
+ */
+export const aiSpending = createSpendingLimiter({}, { defaultLimitJpy: 3_000 });
+
+/**
+ * 同時実行の制限。
+ *
+ * **100 人が同時に使うと提供者のレート制限に当たる。**
+ * 当たると全員がエラーになり「AI が壊れた」と見える。
+ * 順番に流せば待たされはするが**全員通る**——待つ方がましである。
+ */
+export const aiConcurrency = createConcurrencyLimiter(5);
+
+/**
+ * AI の判断の記録（後から説明するため）。
+ *
+ * 「なぜこの経費が却下されたか」を説明できないと、**労務・会計では使えない**。
+ * 「AI が判断しました」は説明にならない。
+ *
+ * **メモリ実装なので再起動で消える。** 説明を求められるのは数か月後なので、
+ * **本番では DB に入れること**。
+ */
+export const aiDecisions = createDecisionLog();
+
+/** AI が呼んだ道具の記録（`@platform/audit` は人の操作、こちらは AI の実行）。 */
+export const aiToolCalls = createToolCallLog();
+
+/**
+ * 送る前の点検。
+ *
+ * **指示の乗っ取り（プロンプトインジェクション）は完全には防げない。**
+ * 言い回しは無限にあり、日本語・英語・記号の混在でいくらでも書ける。
+ * ここでできるのは「よくある形」を見つけることだけで、
+ * **本当の守りは「AI に権限を渡さない」**である。
+ *
+ * @param text 利用者の入力、または取り込んだ文書
+ * @returns 疑わしい理由（空なら「見つからなかった」だけ。安全の保証ではない）
+ */
+export function inspectAiInput(text: string): string[] {
+  return detectPromptInjection(text);
+}
+
+/**
+ * 返す前の点検。
+ *
+ * **入力を伏せても、AI は文脈から推測して書く。**
+ * RAG で取り込んだ文書から漏れる方が現実的で、
+ * 就業規則を引いたつもりが**同じ索引の給与表を引用**することがある。
+ *
+ * @param text AI の出力
+ * @returns 見つかった機微情報の種類（空なら「見つからなかった」だけ）
+ */
+export function inspectAiOutput(text: string): string[] {
+  return detectSensitiveOutput(text);
+}
+
+/**
+ * 取り込んだ文書を「データ」として囲む。
+ *
+ * 文書をそのまま貼ると **AI は指示と区別できない**——
+ * 文書中の「〜せよ」を命令として読む。囲めば完全ではないがかなり効く。
+ */
+export { wrapAsData };
 
 // ─────────────────────── 画像ゲートウェイ ───────────────────────
 

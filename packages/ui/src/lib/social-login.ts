@@ -22,6 +22,7 @@ export const PROVIDER_LABELS: Record<SocialProvider, string> = {
  *
  *
  * @param provider プロバイダ
+ * @param action 文言の後半（既定「ログイン」。連携なら「連携」など）
  * @returns 表示名(**各社のブランド表記に合わせる**。『Googleでログイン』は規約で表記が決まっている)
  */
 export function socialLoginLabel(provider: SocialProvider, action = "ログイン"): string {

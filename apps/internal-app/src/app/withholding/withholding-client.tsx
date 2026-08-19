@@ -1,13 +1,14 @@
 "use client";
 /** 報酬の源泉徴収・支払調書。支払先ごとの年間集計と、報酬支払の記録（源泉税の自動計算）。 */
 import * as React from "react";
-import { Button, Input } from "@platform/ui";
+import { formatYen } from "@platform/report";
+import { Button, Input, PageShell } from "@platform/ui";
 
 interface Report { payee: string; category: string; count: number; totalPayment: number; totalWithholding: number; }
 interface PaymentView { payee: string; category: string; base: number; paidAt: string; withholding: number; net: number; }
 interface Data { year: string; report: Report[]; payments: PaymentView[]; }
 
-const yen = (n: number) => `¥${n.toLocaleString()}`;
+const yen = (n: number) => formatYen(n);
 const thisYear = () => String(new Date().getFullYear());
 // 源泉税の概算（税抜100万以下 10.21%、超過分 20.42%）
 function estWithholding(base: number): number {
@@ -43,11 +44,8 @@ export function WithholdingClient({ fetchImpl, canWrite = true }: WithholdingCli
   const totalWh = (data?.report ?? []).reduce((s, r) => s + r.totalWithholding, 0);
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">源泉徴収・支払調書</h1>
+    <PageShell title="源泉徴収・支払調書" width="wide">
         <Input value={year} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setYear(e.target.value)} inputMode="numeric" className="w-24 rounded border border-[var(--color-border)] px-2 py-1 text-sm" />
-      </div>
       <p className="mb-4 text-xs text-[var(--color-muted)]">個人（士業・デザイナー等）への報酬に源泉徴収税を適用します。年間の支払調書を作成できます。</p>
       {error && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-danger)]">{error}</p>}
 
@@ -59,7 +57,7 @@ export function WithholdingClient({ fetchImpl, canWrite = true }: WithholdingCli
             <label className="text-xs text-[var(--color-muted)]">区分<Input value={form.category} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, category: e.target.value })} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
             <label className="text-xs text-[var(--color-muted)]">報酬(税抜)<Input value={form.base} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, base: e.target.value })} inputMode="numeric" className="mt-0.5 block w-28 rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
             <label className="text-xs text-[var(--color-muted)]">支払日<Input type="date" value={form.paidAt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, paidAt: e.target.value })} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
-            <Button onClick={submit} className="rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">記録</Button>
+      <Button onClick={submit} className="rounded px-4 py-1.5 text-sm text-white">記録</Button>
           </div>
           {Number(form.base) > 0 && <p className="mt-2 text-xs text-[var(--color-muted)]">源泉税（概算）{yen(estWithholding(Number(form.base)))} → 差引支払 {yen(Number(form.base) - estWithholding(Number(form.base)))}</p>}
         </div>
@@ -88,6 +86,6 @@ export function WithholdingClient({ fetchImpl, canWrite = true }: WithholdingCli
           {(data?.report.length ?? 0) === 0 && <tr><td colSpan={5} className="px-2 py-4 text-center text-sm text-[var(--color-muted)]">この年の報酬支払はありません。</td></tr>}
         </tbody>
       </table>
-    </div>
+    </PageShell>
   );
 }

@@ -69,7 +69,9 @@ export async function bulkInsert(
 /**
  * 一括挿入して生成レコード(ID 含む)を返す。トランザクション内で 1 件ずつ作成するため
  * ID が必要な場合に使う(その分 createMany より遅い)。全件成功か全件失敗。
+ * @param db Prisma クライアント(`createDb` で作ったもの)
  * @param pick tx から対象デリゲートを取り出す関数(例: `(tx) => tx.user`)
+ * @param rows 挿入する行
  * @example
  * ```ts
  * const res = await bulkInsertReturning(db, (tx) => tx.user, rows);
@@ -92,7 +94,9 @@ export async function bulkInsertReturning<TClient extends RawCapableClient, T>(
 
 /**
  * 冪等な一括アップサート(再実行しても重複しない)。トランザクション内で実行。
+ * @param db Prisma クライアント(`createDb` で作ったもの)
  * @param pick tx から対象デリゲートを取り出す関数
+ * @param rows 取り込む行
  * @param build 各行から `{ where, create, update }` を組み立てる関数
  * @example
  * ```ts

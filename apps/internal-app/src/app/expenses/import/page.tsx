@@ -2,6 +2,7 @@
 /** 経費 CSV 取込フロー: 貼り付け/アップロード → ImportReview で確認・修正 → 確定。 */
 import { useState, type ChangeEvent } from "react";
 import { Button, ImportReview, StatCard, Textarea } from "@platform/ui";
+import { submitJson } from "@platform/form";
 import { parseExpenseCsv, toExpenses, EXPENSE_IMPORT_FIELDS } from "../../../lib/expense-import";
 import { summarize, type Expense } from "../../../lib/expense";
 
@@ -23,17 +24,13 @@ export default function ImportPage() {
     const expenses = toExpenses(finalRows);
     setConfirmed(expenses);
     setSaving(true);
-    try {
-      await fetch("/api/expenses/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows: finalRows }),
-      });
-    } catch {
-      // デモではネットワーク不通でもサマリ表示は継続
-    } finally {
-      setSaving(false);
-    }
+    // **`submitJson` を通す。** 取り込みは件数が多いと時間がかかるので、
+    // タイムアウトが無いと「押しても終わらない」状態が続き、
+    // 利用者がもう一度押して**二重に取り込まれる**。
+    // **失敗しても画面は進める。** 取り込み結果は画面側で組み立て済みで、
+    // ここで止めるとサマリすら見られなくなる。
+    await submitJson("/api/expenses/import", { rows: finalRows }, { timeoutMs: 60_000 });
+    setSaving(false);
   };
 
   const summary = confirmed ? summarize(confirmed) : null;
@@ -46,7 +43,7 @@ export default function ImportPage() {
         <section>
           <p style={{ color: "var(--color-muted)", marginBottom: ".5rem" }}>CSV を貼り付けてください(ヘッダ: 日付/カテゴリ/金額/備考)。</p>
           <Textarea value={text} onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setText(e.target.value)} rows={8}
-            style={{ width: "100%", fontFamily: "monospace", fontSize: ".85rem", padding: ".5rem", border: "1px solid var(--color-border)", borderRadius: 8 }} />
+            style={{ width: "100%", fontFamily: "var(--font-mono)", fontSize: ".85rem", padding: ".5rem", border: "1px solid var(--color-border)", borderRadius: 8 }} />
           <div style={{ marginTop: ".75rem" }}><Button onClick={parse}>解析してレビュー</Button></div>
         </section>
       )}

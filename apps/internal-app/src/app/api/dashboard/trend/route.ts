@@ -1,13 +1,13 @@
 /** ダッシュボード: 売上/売掛の月次トレンド(GET ?months=6)。認証ユーザー。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { invoiceStore, purchaseStore } from "../../../../server/platform-services";
 import { listExpenses } from "../../../../server/expense-repo";
 import { recentMonths, salesTrend, spendTrend, summarizeSalesTrend } from "../../../../server/dashboard-trend";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "chat:read");
   const now = new Date();
   const n = Math.min(Math.max(Number(new URL(req.url).searchParams.get("months") ?? "6"), 3), 12);

@@ -54,6 +54,54 @@ export function sanitize(dirty: string): string {
  * <div dangerouslySetInnerHTML={{ __html: sanitizeEmbed(block.html) }} />
  * ```
  */
+/**
+ * 埋め込みを許すドメイン。
+ *
+ * **任意のサイトを埋め込ませない。**
+ * `<iframe>` の中は別のサイトで、こちらからは中身を見られない。
+ * 偽のログイン画面を出す・広告を出す・利用者を追跡する、
+ * いずれもこちらの責任として見える。
+ *
+ * 追加するときは、**なぜ必要か**を添えること。
+ */
+export const ALLOWED_EMBED_HOSTS = [
+  "www.youtube.com", "youtube.com", "www.youtube-nocookie.com",  // 動画
+  "player.vimeo.com",                                            // 動画
+  "www.google.com", "maps.google.com",                           // 地図
+  "docs.google.com",                                             // 資料・フォーム
+  "www.slideshare.net",                                          // 資料
+];
+
+/**
+ * ホスト名が許した先かを見る。
+ *
+ * **前方一致では判定しない。**
+ * `youtube.com.evil.example` のような名前で抜けられる。
+ *
+ * @param src URL 文字列
+ * @returns 許してよければ true
+ */
+function isAllowedEmbed(src: string): boolean {
+  try {
+    const u = new URL(src);
+    // **http は許さない。** 埋め込み先が盗聴・改ざんされる
+    if (u.protocol !== "https:") return false;
+    return ALLOWED_EMBED_HOSTS.includes(u.hostname);
+  } catch {
+    // 相対パスや壊れた URL は埋め込みに使わない
+    return false;
+  }
+}
+
+/**
+ * 埋め込み用に HTML を無害化する。
+ *
+ * **`sanitizeHtml` より許可を絞る。** 外部から来た HTML を
+ * そのまま画面に出す用途なので、`iframe` や `script` は残さない。
+ *
+ * @param dirty 無害化する HTML
+ * @returns 許可したタグ・属性だけが残った HTML
+ */
 export function sanitizeEmbed(dirty: string): string {
   return sanitizeHtmlLib(dirty, {
     allowedTags: [
@@ -73,6 +121,36 @@ export function sanitizeEmbed(dirty: string): string {
     allowedSchemes: ["http", "https", "mailto"],
     allowedSchemesAppliedToAttributes: ["href", "src"],
     allowedStyles: { "*": { "text-align": [/^left$|^right$|^center$/], color: [/^#[0-9a-fA-F]{3,6}$/] } },
+    transformTags: {
+      /**
+       * iframe を安全な形に整える。
+       *
+       * - **許した先でなければ落とす**(任意のサイトを埋め込ませない)
+       * - **`sandbox` を必ず付ける**。中のスクリプトは動かすが、
+       *   こちらのページを操作させない・勝手に画面遷移させない
+       * - **`referrerpolicy`** で、どのページから来たかを渡さない
+       */
+      iframe: (_tagName, attribs) => {
+        const src = attribs["src"] ?? "";
+        if (!isAllowedEmbed(src)) {
+          // **消さずに空の div にする。** 消すと本文の流れが崩れる
+          return { tagName: "div", attribs: {}, text: "" };
+        }
+        return {
+          tagName: "iframe",
+          attribs: {
+            ...attribs,
+            // **`allow-same-origin` は付けない。**
+            // 付けると埋め込み先がこちらの Cookie を読める
+            sandbox: "allow-scripts allow-presentation",
+            referrerpolicy: "no-referrer",
+            // **読み込みを遅らせる。** 本文を開いた時点で
+            // 埋め込み先に「読まれた」と伝わるのを避ける
+            loading: "lazy",
+          },
+        };
+      },
+    },
   });
 }
 

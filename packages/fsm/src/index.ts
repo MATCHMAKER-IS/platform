@@ -27,6 +27,115 @@ export interface StateMachineDefinition<S extends string, E extends string> {
  * @param event イベント
  * @returns 遷移できれば true
  */
+/** {@link validateMachine} が見つけた問題。 */
+export interface MachineProblem {
+  /** `unreachable`(到達できない) / `dead-end`(出られない) / `unknown-target`(遷移先が無い) */
+  kind: "unreachable" | "dead-end" | "unknown-target";
+  /** 対象の状態。 */
+  state: string;
+  /** 人が読む説明。 */
+  message: string;
+}
+
+/**
+ * 遷移表そのものの誤りを探す。
+ *
+ * **型では防げない。** 遷移表は文字列のマップなので、書き間違えても
+ * TypeScript は通る。実際に業務が止まってから気づくことになる。
+ *
+ * 探すのは 3 つ:
+ *
+ * - **到達できない状態**(`unreachable`) … 定義したのにどこからも来ない。
+ *   「キャンセル済み」を作ったのに、キャンセルできる画面が無い状態。
+ * - **出られない状態**(`dead-end`) … 入れるが出る道が無く、`final` でもない。
+ *   「承認待ち」で止まり、**業務が進まなくなる**。最も見つけにくい。
+ * - **遷移先が定義に無い**(`unknown-target`) … 実行時に未定義の状態になる。
+ *
+ * **アプリの起動時か、テストで一度呼ぶこと。** 遷移表は書いた直後は正しくても、
+ * 状態を足すときに崩れる(新しい状態への道を作り忘れる)。
+ *
+ * @param def 遷移の定義
+ * @returns 見つかった問題(空なら妥当)
+ *
+ * @example
+ * ```ts
+ * const problems = validateMachine(def);
+ * if (problems.length > 0) throw new Error(problems.map((p) => p.message).join(" / "));
+ * ```
+ */
+export function validateMachine<S extends string, E extends string>(
+  def: StateMachineDefinition<S, E>,
+): MachineProblem[] {
+  const problems: MachineProblem[] = [];
+  const states = Object.keys(def.transitions) as S[];
+  const finals = new Set<string>(def.final ?? []);
+
+  // 遷移先が定義に無い
+  const known = new Set<string>(states);
+  const reachable = new Set<string>([def.initial]);
+  for (const from of states) {
+    for (const [event, to] of Object.entries(def.transitions[from] ?? {})) {
+      if (typeof to !== "string") continue;
+      if (!known.has(to)) {
+        problems.push({
+          kind: "unknown-target",
+          state: to,
+          message: `${from} の ${event} が、定義に無い状態 ${to} へ遷移します`,
+        });
+      }
+    }
+  }
+
+  // **初期状態から辿れるか**(幅優先で追う)
+  const queue = [def.initial as string];
+  while (queue.length > 0) {
+    const cur = queue.shift();
+    if (cur === undefined) break;
+    for (const to of Object.values(def.transitions[cur as S] ?? {})) {
+      if (typeof to !== "string" || reachable.has(to)) continue;
+      reachable.add(to);
+      queue.push(to);
+    }
+  }
+  for (const st of states) {
+    if (!reachable.has(st)) {
+      problems.push({
+        kind: "unreachable",
+        state: st,
+        message: `${st} へ来る道がありません(初期状態 ${def.initial} から辿れない)`,
+      });
+    }
+  }
+
+  // **出られない状態**(final でないのに遷移先が無い)
+  for (const st of states) {
+    if (finals.has(st)) continue;
+    const outs = Object.keys(def.transitions[st] ?? {});
+    if (outs.length === 0) {
+      problems.push({
+        kind: "dead-end",
+        state: st,
+        message: `${st} から出る道がありません(final にも入っていないので、業務が止まります)`,
+      });
+    }
+  }
+  return problems;
+}
+
+/**
+ * その出来事を**その状態から起こせるか**を確かめる。
+ *
+ * **ボタンの出し分けに使ってください**——押しても何も起きないボタンは、
+ * **利用者を迷わせます**（「なぜ押せないのか」が分かりません）。
+ *
+ * **これだけで守らないこと。** 画面で隠しても、**API を直接叩かれれば通ります**
+ * ——{@link run} は定義に無い遷移を無視するので、**そちらが本当の守り**です。
+ *
+ * @param def 状態と遷移の定義
+ * @param state 今の状態
+ * @param event 起こしたい出来事
+ * @returns 起こせるなら true
+ */
 export function can<S extends string, E extends string>(def: StateMachineDefinition<S, E>, state: S, event: E): boolean {
   return def.transitions[state]?.[event] !== undefined;
 }
@@ -77,6 +186,21 @@ export interface RunResult<S extends string, E extends string> {
   applied: E[];
   rejected: E | null;
 }
+/**
+ * 出来事を**順に適用**して、行き着く状態を求める。
+ *
+ * **許した遷移しか起きません。** 定義に無い出来事は**無視**され、
+ * 適用できたものだけが `applied` に入ります
+ * ——「**差し戻し済みなのに承認された**」といった状態を防ぎます。
+ *
+ * **途中で止まっても、そこまでの状態が返ります。** 何件目で止まったかは
+ * `applied` の長さで分かるので、**どの出来事が弾かれたか**を追えます。
+ *
+ * @param def 状態と遷移の定義
+ * @param events 適用する出来事の並び（**順序に意味があります**）
+ * @param from 開始する状態（省略時は定義の `initial`）
+ * @returns 行き着いた状態と、実際に適用できた出来事の並び
+ */
 export function run<S extends string, E extends string>(def: StateMachineDefinition<S, E>, events: readonly E[], from?: S): RunResult<S, E> {
   let state = from ?? def.initial;
   const applied: E[] = [];
@@ -92,6 +216,15 @@ export function run<S extends string, E extends string>(def: StateMachineDefinit
 /** 可変インスタンス(現在状態を保持し send で遷移)。 */
 export interface StateMachine<S extends string, E extends string> {
   readonly state: S;
+  /**
+   * その出来事を**今の状態から起こせるか**。
+   *
+   * **ボタンの出し分けに使ってください**——押しても何も起きないボタンは、
+   * **利用者を迷わせます**（「なぜ押せないのか」が分かりません）。
+   *
+   * @param event 起こしたい出来事
+   * @returns 起こせるなら true
+   */
   can(event: E): boolean;
   send(event: E): boolean;
   availableEvents(): E[];

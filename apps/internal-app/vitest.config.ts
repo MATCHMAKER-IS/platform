@@ -27,6 +27,9 @@ export default {
       DATABASE_URL: "postgresql://test:test@localhost:5432/test",
       MAIL_FROM: "test@example.com",
       SESSION_SECRET: "test-session-secret-for-unit-tests-only-32",
+      // **本番では必須**（環境ごとに別の塩。検証環境のクッキーが本番で通らないように）。
+      // ここはテスト用のダミー——**本番の値は書かない**
+      SESSION_SALT: "test-session-salt-for-unit-tests-only",
     },
   },
 };

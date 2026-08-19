@@ -19,7 +19,6 @@ export interface BannerAdProps {
   className?: string;
 }
 
-/** バナー広告。 */
 /**
  * 帯状の告知。
  *

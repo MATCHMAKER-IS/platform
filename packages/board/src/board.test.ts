@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { createThread, createPost, canReply, rootPosts, repliesOf, extractMentions } from "./post";
 import { toggleReaction, countReactions, userReactions } from "./reaction";
 import { summarize, sortThreads, filterByTag, searchThreads } from "./thread-list";
+import { validateAttachments } from "./attachment";
 
 describe("post", () => {
   it("スレッド/投稿の検証と trim", () => {
@@ -42,5 +43,23 @@ describe("thread-list", () => {
     expect(sortThreads([sum, pinned])[0]?.thread.id).toBe("t2");
     expect(filterByTag([sum], "総務").length).toBe(1);
     expect(searchThreads([sum], { t1: posts }, "返信").length).toBe(1);
+  });
+});
+
+describe("添付の既定の上限", () => {
+  // **`key` は必須**(保存先を指す識別子)。`url` は `Attachment` に無い
+  const file = (size: number) => ({ key: "k1", name: "a.png", type: "image/png", size });
+  // **渡し忘れが無制限にならない。** 以前は既定が無く、
+  // 呼び出し側が指定しなければ件数もサイズも無制限だった(2026-08)
+  it("上限を渡さなくても件数で弾く", () => {
+    const many = Array.from({ length: 11 }, () => file(1000));
+    expect(validateAttachments(many).ok).toBe(false);
+  });
+  it("上限を渡さなくてもサイズで弾く", () => {
+    expect(validateAttachments([file(20 * 1024 * 1024)]).ok).toBe(false);
+  });
+  // **既定の範囲内なら通る**(境界)
+  it("既定の範囲内は通る", () => {
+    expect(validateAttachments([file(1024)]).ok).toBe(true);
   });
 });

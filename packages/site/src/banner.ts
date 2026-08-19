@@ -20,13 +20,22 @@ export interface Banner {
   startAt?: string;
   /** 表示終了（ISO）。 */
   endAt?: string;
-  /** 対象パス（前方一致・未指定は全ページ）。 */
+  /**
+   * 対象パス(前方一致)。
+   *
+   * **未指定も空配列も「全ページ」**。`paths: []` は
+   * 「どこにも出さない」と読めるが、**逆に全ページに出る**——
+   * 絞り込むつもりで空にすると、**意図しないページにバナーが出る**。
+   * 出さないなら `endAt` を過去にするか、そもそも配列から外すこと(2026-08 に明記)。
+   */
   paths?: string[];
   /** スポンサー表記など。 */
   sponsored?: boolean;
 }
 
 function pathMatches(paths: string[] | undefined, currentPath: string): boolean {
+  // **空配列も「全ページ」**(未指定と同じ)。「絞り込みを空にした」と
+  // 読めるが逆に全ページへ出るので、型の説明にも書いてある
   if (!paths || paths.length === 0) return true;
   return paths.some((p) => currentPath === p || currentPath.startsWith(p));
 }
@@ -35,9 +44,9 @@ function pathMatches(paths: string[] | undefined, currentPath: string): boolean 
  * バナーが今表示されるかを判定する(期間 + パス + 枠)。
  *
  * @param banner バナー
- * @param context.path 現在のパス
- * @param context.slot 表示枠
- * @param context.now 判定する時点(テスト注入用)
+ * @param currentPath 現在のパス
+ * @param options.slot 表示枠
+ * @param options.now 判定する時点(テスト注入用)
  * @returns 表示するなら true
  */
 export function isBannerActive(banner: Banner, currentPath: string, options: { now?: Date; slot?: string } = {}): boolean {
@@ -52,7 +61,9 @@ export function isBannerActive(banner: Banner, currentPath: string, options: { n
  * 表示対象のバナーを絞り込む。
  *
  * @param banners バナーの配列
- * @param context パス・枠・時点
+ * @param currentPath 現在のパス
+ * @param options.slot 表示枠
+ * @param options.now 判定する時点
  * @returns 表示対象のバナー
  */
 export function activeBanners(banners: Banner[], currentPath: string, options: { now?: Date; slot?: string } = {}): Banner[] {
@@ -86,8 +97,10 @@ export function pickBanner(banners: Banner[], r: number): Banner | null {
  * 表示対象を絞ってから重み付きで 1 つ選ぶ(実際に使うのはこちら)。
  *
  * @param banners バナーの配列
- * @param currentPath パス・枠・時点
- * @param options 0〜1 の乱数
+ * @param currentPath 現在のパス
+ * @param options.slot 表示枠
+ * @param options.now 判定する時点
+ * @param options.random 0〜1 の乱数を返す関数（**試験で固定する**ため）
  * @returns 選ばれたバナー。対象が無ければ null
  */
 export function rotateBanner(banners: Banner[], currentPath: string, options: { now?: Date; slot?: string; random?: () => number } = {}): Banner | null {

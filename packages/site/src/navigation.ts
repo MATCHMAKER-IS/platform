@@ -22,6 +22,7 @@ export interface MenuItem {
  *
  * @param item メニュー項目
  * @param currentPath 現在のパス
+ * @param options.exact 完全一致で判定するか（**既定は前方一致**。`/orders` は `/orders/1` でも点灯します）
  * @returns 一致すれば true
  */
 export function isActive(item: MenuItem, currentPath: string, options: { exact?: boolean } = {}): boolean {
@@ -108,8 +109,8 @@ function humanizeSegment(segment: string): string {
  * URL パスからパンくずを自動生成する(メニューが無い場合の簡易生成)。
  * 各セグメントを累積パスのリンクにし、ラベルは labels 優先、無ければ見出し化する。
  * 例: "/products/a" → [ホーム, 製品, 製品A]
- * @param path メニュー(入れ子)
- * @param options 現在のパス
+ * @param path パス（**`?` 以降は捨てます**）
+ * @param options ラベルの付け方・先頭に足す項目
  */
 export function breadcrumbFromPath(path: string, options: BreadcrumbFromPathOptions = {}): { label: string; href: string }[] {
   const segments = (path.split("?")[0] ?? "").split("/").filter(Boolean);

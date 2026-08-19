@@ -1,4 +1,7 @@
 // public-api: デモ用の疑似データ。本番では公開しない
+// no-rate-limit: `featureEnv.DEBUG_TOOL` が真のときだけ応答し、**本番では 404**。
+// 開発端末でしか到達しないため、回数で守る意味がない
+// (制限を入れると、開発中に自分で詰まる)
 /**
  * Platform Debugger の API。開発時のみ有効。
  *
@@ -8,10 +11,11 @@
 import { featureEnv } from "../../../server/env";
 import { debugCollector } from "../../../server/debug-collector";
 import { findIssues } from "@platform/debug";
+import { withApiObservability } from "../../../server/instrument";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request): Promise<Response> {
+async function handleGET(req: Request): Promise<Response> {
   // 無効時は存在しないことにする(本番で情報を漏らさない)
   if (!featureEnv.DEBUG_TOOL) return new Response("Not Found", { status: 404 });
 
@@ -39,8 +43,14 @@ export async function GET(req: Request): Promise<Response> {
   return Response.json({ enabled: true, requests: list });
 }
 
-export async function DELETE(): Promise<Response> {
+// no-audit: 開発専用ツールが集めた一時データの消去(本番では 404 を返す)。
+// **業務データではない**ので、消えても失われるものが無い。
+// ここを記録すると、本当に見たい削除が埋もれる。
+async function handleDELETE(): Promise<Response> {
   if (!featureEnv.DEBUG_TOOL) return new Response("Not Found", { status: 404 });
   debugCollector.clear();
   return Response.json({ ok: true });
 }
+
+export const GET = withApiObservability("/api/debug", handleGET);
+export const DELETE = withApiObservability("/api/debug", handleDELETE);

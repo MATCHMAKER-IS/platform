@@ -20,7 +20,7 @@ export interface Report {
   totals?: Record<string, string | number>;
 }
 
-const yen = (n: number) => `¥${Math.round(n).toLocaleString()}`;
+const yen = (n: number) => `¥${Math.round(n).toLocaleString("ja-JP")}`;
 
 /** 売上レポート（請求ベース・取引先別の売上と残高）。 */
 export function salesReport(invoices: { number: string; billTo?: string; total: number; balance: number }[], now: Date): Report {

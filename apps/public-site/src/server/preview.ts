@@ -3,6 +3,7 @@
  * 公開中フィルタを通さず、全ステータスの記事を slug で引ける。
  * @packageDocumentation
  */
+import { safeEqual } from "@platform/crypto";
 import { cmsPostToBlog, effectiveStatus, type CmsPost, type BlogView, type EffectiveStatus } from "@platform/cms";
 import { siteEnv } from "./env";
 
@@ -16,7 +17,10 @@ export interface PreviewResult {
 export function isValidPreviewToken(token: string | undefined | null): boolean {
   const expected = siteEnv.PREVIEW_TOKEN;
   if (!expected) return false;
-  return typeof token === "string" && token.length > 0 && token === expected;
+  if (typeof token !== "string" || token.length === 0) return false;
+  // **`===` は使わない。** 一致した文字数だけ時間が変わるため、
+  // 差を測れば 1 文字ずつ正解を絞り込める
+  return safeEqual(token, expected);
 }
 
 /** 全ステータスの記事から slug で 1 件引き、ブログビュー＋実効ステータスを返す。 */

@@ -13,6 +13,9 @@
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+// **ブラウザからも使う部分は別ファイル。** 画面からは `/strength` `/blocks` を直接取ること
+export { buildApprovalBlocks, parseInteraction } from "./blocks";
+
 const API = "https://slack.com/api";
 
 /** 投稿するメッセージ。 */
@@ -51,6 +54,51 @@ export interface SlackClient {
   updateMessage(params: { channel: string; ts: string; text: string; blocks?: unknown[] }): Promise<void>;
   deleteMessage(params: { channel: string; ts: string }): Promise<void>;
   /** メールアドレスから利用者を引く(社内の名寄せに使う)。 */
+  /**
+   * ファイルを送る（**帳票・請求書の共有**に）。
+   *
+   * **3 段階で送ります**——途中で止まると
+   * **送ったつもりなのに誰にも見えない**状態になるので、
+   * 例外を握りつぶさないでください。
+   *
+   * **スレッドに付けるなら `threadTs`** を渡してください。
+   * 付けないと**関係ない場所に単独で出て、何の資料か分からなくなります**。
+   */
+  uploadFile(input: {
+    channel: string;
+    filename: string;
+    content: Uint8Array;
+    title?: string;
+    comment?: string;
+    threadTs?: string;
+  }): Promise<{ fileId: string }>;
+
+  /**
+   * リアクションを付ける（**「見ました」の静かな合図**）。
+   *
+   * 返信すると通知が飛びますが、リアクションなら**静かに伝わります**。
+   *
+   * @param input `emoji` は `:` を付けずに（`white_check_mark` など）
+   */
+  addReaction(input: { channel: string; ts: string; emoji: string }): Promise<void>;
+
+  /**
+   * **その人にだけ見える投稿**（他の人には残りません）。
+   *
+   * 「あなたの経費 3 件が差し戻されています」のような
+   * **個人あての知らせ**に使ってください。
+   *
+   * **記録には残りません**（あとから遡れない）ので、
+   * **監査が要るものには使わないでください**。
+   */
+  postEphemeral(message: {
+    channel: string;
+    user: string;
+    text: string;
+    blocks?: unknown[];
+    threadTs?: string;
+  }): Promise<{ ts: string }>;
+
   lookupUserByEmail(email: string): Promise<SlackUser | null>;
 }
 
@@ -80,6 +128,45 @@ interface SlackApiResponse {
  * await slack.postMessage({ channel: posted.channel, threadTs: posted.ts, text: "完了しました" });
  * ```
  */
+/**
+ * Slack の投稿本文の上限(文字)。
+ *
+ * **超えると投稿されない**(エラーが返る)。スタックトレースや SQL、
+ * JSON の全文を貼ると簡単に超える——**通知が届かないまま気づかない**のが最も困る。
+ */
+export const SLACK_TEXT_LIMIT = 40000;
+
+/**
+ * Slack の上限に収める。
+ *
+ * **切り詰めたことが分かるようにする。** 黙って切ると、読む人は
+ * 「これで全部」と思ってしまう——障害通知では**肝心な部分が落ちているのに
+ * 気づけない**。末尾に省略の印を付ける(2026-08 に追加)。
+ *
+ * @param text 投稿する本文
+ * @returns 上限に収めた本文
+ */
+export function truncateSlackText(text: string): string {
+  if (text.length <= SLACK_TEXT_LIMIT) return text;
+  const mark = `\n…(以下 ${text.length - SLACK_TEXT_LIMIT + 40} 文字を省略)`;
+  return text.slice(0, SLACK_TEXT_LIMIT - mark.length) + mark;
+}
+
+/**
+ * Slack へ通知を送る器を作る。
+ *
+ * **Incoming Webhook の URL は秘密です。** 漏れると**誰でもその部屋に投稿できます**
+ * ——`.env` に置き、**コードに直接書かないでください**。
+ *
+ * **何でも通知すると、通知を見なくなります。**
+ * 「**これが 1 件出たら誰かが動くか**」で送るかを決めてください
+ * ——動かないなら**メトリクスに留める**方が有効です。
+ *
+ * @param token Bot トークン（**`webhookUrl` ではありません**。2026-08 まで別物の説明が付いていました）
+ * @param fetchImpl 差し替え用（試験で作り物を渡す）
+ * @returns 送信する器
+ * @throws `webhookUrl` が空の場合
+ */
 export function createSlackClient(token: string, fetchImpl?: typeof fetch): SlackClient {
   const doFetch = fetchImpl ?? fetch;
 
@@ -101,7 +188,7 @@ export function createSlackClient(token: string, fetchImpl?: typeof fetch): Slac
     async postMessage(message) {
       const r = await call<SlackApiResponse>("chat.postMessage", {
         channel: message.channel,
-        text: message.text,
+        text: truncateSlackText(message.text),
         thread_ts: message.threadTs,
         blocks: message.blocks,
         reply_broadcast: message.replyBroadcast,
@@ -110,11 +197,78 @@ export function createSlackClient(token: string, fetchImpl?: typeof fetch): Slac
     },
 
     async updateMessage({ channel, ts, text, blocks }) {
+      text = truncateSlackText(text);
       await call("chat.update", { channel, ts, text, blocks });
     },
 
     async deleteMessage({ channel, ts }) {
       await call("chat.delete", { channel, ts });
+    },
+
+    async uploadFile(input) {
+      // **Slack のファイル送信は 3 段階**です（2024 年に方式が変わりました）:
+      //   ① 送り先の URL をもらう ② そこへ実体を送る ③ 完了を伝える
+      //
+      // **1 回で送れないのは、Slack 側が大きいファイルを直接受けないため**です。
+      // **③まで通って初めて成功**——途中で止まると、
+      // **送ったつもりなのに誰にも見えない**状態になります。
+      const bytes = input.content;
+      const upload = await call<{ upload_url?: string; file_id?: string }>(
+        "files.getUploadURLExternal",
+        { filename: input.filename, length: String(bytes.byteLength) },
+      );
+      if (upload.upload_url === undefined || upload.file_id === undefined) {
+        throw new Error("Slack: アップロード先の URL を取得できませんでした");
+      }
+
+      // ②実体を送る。**ここは Slack の API ではない**ので `call` は使いません
+      // **`as BodyInit`。** TypeScript が `Uint8Array` をジェネリック化して
+      // 以降、`BodyInit` との構造的な適合が崩れることがある——
+      // `packages/microsoft/src/graph.ts`・`packages/line/src/index.ts` と
+      // 同じ対処(2026-08、ユーザー環境での `pnpm -r typecheck` の
+      // 延長で同種箇所を予防的に点検して発見)。
+      const put = await doFetch(upload.upload_url, { method: "POST", body: bytes as BodyInit });
+      if (!put.ok) throw new Error(`Slack: ファイルの送信に失敗しました（${put.status}）`);
+
+      // ③完了を伝える。**これを忘れると、送ったのに誰にも見えません**
+      const done = await call<{ files?: { id?: string }[] }>("files.completeUploadExternal", {
+        files: [{ id: upload.file_id, title: input.title ?? input.filename }],
+        channel_id: input.channel,
+        // **スレッドに付ける**なら親の ts を渡す。付けないと
+        // **関係ない場所に単独で出て、何の資料か分からなくなります**
+        thread_ts: input.threadTs,
+        initial_comment: input.comment,
+      });
+      return { fileId: done.files?.[0]?.id ?? upload.file_id };
+    },
+
+    async addReaction(input) {
+      // **「見ました」の合図。** 返信すると通知が飛びますが、
+      // リアクションなら**静かに伝わります**——
+      // 承認待ちの一覧で「誰が確認済みか」を示すのに向きます。
+      await call<SlackApiResponse>("reactions.add", {
+        channel: input.channel,
+        timestamp: input.ts,
+        name: input.emoji,
+      });
+    },
+
+    async postEphemeral(message) {
+      // **その人にだけ見える投稿。** 他の人には残りません。
+      //
+      // **承認の確認や個人の数字**に使ってください——
+      // 「あなたの経費 3 件が差し戻されています」を全員に見せる必要はありません。
+      //
+      // **記録には残りません**（あとから遡れない）ので、
+      // **監査が要るものには使わないでください**。
+      const r = await call<SlackApiResponse>("chat.postEphemeral", {
+        channel: message.channel,
+        user: message.user,
+        text: truncateSlackText(message.text),
+        blocks: message.blocks,
+        thread_ts: message.threadTs,
+      });
+      return { ts: r.ts ?? "" };
     },
 
     async lookupUserByEmail(email) {
@@ -231,64 +385,6 @@ export interface ApprovalRequest {
   rejectLabel?: string;
 }
 
-/**
- * 承認・却下ボタン付きのメッセージ(Block Kit)を組み立てる。
- *
- * 承認をチャットで回すと速いが、**押した人が誰かを必ず確かめる**こと。
- * 押下時に届く payload の `userId` を、社内の利用者と突き合わせてから処理する。
- *
- * @param req 見出し・本文・ボタンに埋める値
- * @returns `postMessage` の `blocks` に渡す配列
- *
- * @example
- * ```ts
- * await slack.postMessage({
- *   channel: "#承認",
- *   text: "経費申請の承認",   // 通知欄に出る代替テキスト
- *   blocks: buildApprovalBlocks({ title: "経費申請の承認", summary: "山田太郎 / 12,000円", actionValue: "expense:123" }),
- * });
- * ```
- */
-export function buildApprovalBlocks(req: ApprovalRequest): unknown[] {
-  const blocks: unknown[] = [
-    { type: "header", text: { type: "plain_text", text: req.title, emoji: true } },
-    { type: "section", text: { type: "mrkdwn", text: req.summary } },
-  ];
-  if (req.fields && req.fields.length > 0) {
-    blocks.push({
-      type: "section",
-      fields: req.fields.map((f) => ({ type: "mrkdwn", text: `*${f.label}*\n${f.value}` })),
-    });
-  }
-  blocks.push({
-    type: "actions",
-    elements: [
-      {
-        type: "button",
-        style: "primary",
-        text: { type: "plain_text", text: req.approveLabel ?? "承認する" },
-        action_id: "approve",
-        value: req.actionValue,
-      },
-      {
-        type: "button",
-        style: "danger",
-        text: { type: "plain_text", text: req.rejectLabel ?? "却下する" },
-        action_id: "reject",
-        value: req.actionValue,
-        // 誤操作を防ぐため、却下は確認を挟む
-        confirm: {
-          title: { type: "plain_text", text: "却下しますか" },
-          text: { type: "mrkdwn", text: "この操作は申請者に通知されます。" },
-          confirm: { type: "plain_text", text: "却下する" },
-          deny: { type: "plain_text", text: "やめる" },
-        },
-      },
-    ],
-  });
-  return blocks;
-}
-
 /** ボタンが押されたときに届く内容。 */
 export interface SlackInteraction {
   /** 押されたボタンの action_id(例: "approve")。 */
@@ -305,38 +401,3 @@ export interface SlackInteraction {
   responseUrl: string;
 }
 
-/**
- * ボタン押下の payload を解く。
- *
- * Slack は `application/x-www-form-urlencoded` の `payload=` に JSON を入れて送ってくる。
- * **署名の検証は別途必ず行うこと**(`verifySlackSignature`)。ここは形を整えるだけ。
- *
- * @param body 生ボディ
- * @returns 押されたボタンの情報。想定外の形なら null
- */
-export function parseInteraction(body: string): SlackInteraction | null {
-  const raw = new URLSearchParams(body).get("payload");
-  if (!raw) return null;
-  try {
-    const p = JSON.parse(raw) as {
-      actions?: { action_id?: string; value?: string }[];
-      user?: { id?: string; username?: string; name?: string };
-      channel?: { id?: string };
-      message?: { ts?: string };
-      response_url?: string;
-    };
-    const action = p.actions?.[0];
-    if (!action?.action_id) return null;
-    return {
-      actionId: action.action_id,
-      value: action.value ?? "",
-      userId: p.user?.id ?? "",
-      userName: p.user?.username ?? p.user?.name ?? "",
-      channelId: p.channel?.id ?? "",
-      messageTs: p.message?.ts ?? "",
-      responseUrl: p.response_url ?? "",
-    };
-  } catch {
-    return null;
-  }
-}

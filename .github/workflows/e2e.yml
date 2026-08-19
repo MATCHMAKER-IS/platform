@@ -14,7 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16
+        # **開発・本番と同じ 17 に揃える。** 2026-08 まで 16 だった
+        # ——**本番と違う DB で通っても意味が薄い**(17 で動かない SQL が 16 で通る)
+        image: postgres:17
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: app_test
@@ -32,7 +34,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install  # TODO: pnpm-lock.yaml をコミットしたら --frozen-lockfile に戻す
-      # マイグレーション履歴は持たない方針(ADR 0013)。E2E は毎回まっさらな DB なので db push で足りる
-      - run: pnpm --filter internal-app exec prisma db push
+      # **方式は tools/apply-schema.mjs が選ぶ**(migrations/ の有無を見る)。
+      # E2E は毎回まっさらな DB なので、履歴が無い間は db push で足りる(ADR 0013)
+      - run: node tools/apply-schema.mjs internal-app
       - run: pnpm --filter internal-app exec playwright install --with-deps chromium
       - run: pnpm --filter internal-app e2e

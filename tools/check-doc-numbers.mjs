@@ -37,7 +37,10 @@ export function measure() {
       if (e.name === "node_modules") continue;
       const fp = path.join(dir, e.name);
       if (e.isDirectory()) walkPkg(fp);
-      else if (fp.endsWith(".ts") && !fp.endsWith(".test.ts")) {
+      // **`.tsx` も数える。**
+      // `packages/ui` は大半が `.tsx` で、除くと 301 件が漏れていた
+      // (2026-08 に気づいた)。拡張子を 1 つに絞らない
+      else if (/\.tsx?$/.test(fp) && !/\.test\.tsx?$/.test(fp)) {
         exportsCount += (readFileSync(fp, "utf8").match(/^export (function|const|class) /gm) ?? []).length;
       }
     }
@@ -50,18 +53,57 @@ export function measure() {
     readmes: readmes.length,
     apps: apps.length,
     demos: demoDirs.length,
+    // **showcase の画面数。** 「88 デモ」のような記述が資料にあるが、
+    // `demos/` は統合済みで 0 なので、**別に数える**必要がある
+    // ——2026-08 に HANDOVER の「88 デモ」が実際は 91 だったのを見つけた
+    showcasePages: (() => {
+      const dir = path.join(ROOT, "apps", "showcase", "src", "app");
+      if (!existsSync(dir)) return 0;
+      let n = 0;
+      const walk = (d) => {
+        for (const e of readdirSync(d, { withFileTypes: true })) {
+          if (e.isDirectory()) walk(path.join(d, e.name));
+          else if (e.name === "page.tsx") n += 1;
+        }
+      };
+      walk(dir);
+      return n;
+    })(),
     runnableDemos,
     componentDemos: demoDirs.length - runnableDemos,
     // 検査ツールの数。**資料に「N 種類の検査」と書くとすぐ古くなる**
     // (実際に 44 のまま残っていた)。実測から見張る
     // E2E の本数は `test(` の数(ファイル数ではない)。
     // 資料には「E2E 14 本」と書いてあり、ファイル数(7)と混同しやすい
+    // 契約テストの件数。**HANDOVER に「5 件(freee / google / paypal / zoho / line)」と
+    // 書かれたまま、実際は 8 件(microsoft / notion / slack が増えていた)**。
+    // 「鍵を用意する」作業の対象数なので、古いと準備が足りなくなる
+    contracts: (() => {
+      const dir = path.join(ROOT, "tests/contracts");
+      if (!existsSync(dir)) return 0;
+      return readdirSync(dir).filter((f) => f.endsWith(".contract.json")).length;
+    })(),
     e2eTests: (() => {
+      // **`apps/*/e2e/` も数える。** 2026-08 まで `e2e/` だけを見ており、
+      // `apps/internal-app/e2e/` の 2 ファイルが**資料に載らなかった**
+      // ——**あるのに無いことになる**ので、次の人が同じものを作りかける
+      let extra = 0;
+      const appsDir = path.join(ROOT, "apps");
+      if (existsSync(appsDir)) {
+        for (const app of readdirSync(appsDir)) {
+          const d = path.join(appsDir, app, "e2e");
+          if (!existsSync(d)) continue;
+          for (const f of readdirSync(d)) {
+            if (!f.endsWith(".spec.ts")) continue;
+            extra += readFileSync(path.join(d, f), "utf8").match(/^test\(/gm)?.length ?? 0;
+          }
+        }
+      }
       const dir = path.join(ROOT, "e2e");
       if (!existsSync(dir)) return 0;
       return readdirSync(dir)
         .filter((f) => f.endsWith(".spec.ts"))
-        .reduce((n, f) => n + (readFileSync(path.join(dir, f), "utf8").match(/^test\(/gm)?.length ?? 0), 0);
+        .reduce((n, f) => n + (readFileSync(path.join(dir, f), "utf8").match(/^test\(/gm)?.length ?? 0), 0) + extra;
     })(),
     // API ルートの本数(app/api/**/route.ts)。資料に「API 252 本」と書いてあり、
     // 増減が分かりにくいので機械的に数える
@@ -77,7 +119,6 @@ export function measure() {
         }
       };
       walk(path.join(ROOT, "apps"));
-      walk(path.join(ROOT, "demos"));
       return n;
     })(),
     // ラチェットの記録ファイルから上限を読む
@@ -91,6 +132,32 @@ export function measure() {
     })(),
     checks: readdirSync(path.join(ROOT, "tools"))
       .filter((f) => f.startsWith("check-") && f.endsWith(".mjs")).length,
+    // **CHECKS.md の一覧に載っている検査の数。**
+    // 「67 種類ある」という**数値だけ**を見張っていたので、
+    // **一覧が 20 件古いまま**でも通っていた(2026-08)。
+    // 数と中身の両方が合っていないと、**「載っていない検査」を知る手段が無い**
+    // **資料の総数。** README の「資料の地図」が古くなると、
+    // **どこを見ればよいか分からなくなる**——2026-08 に
+    // 「4 箇所・42 件」と書いたが実際は **8 箇所・83 件**だった
+    // (`docs/adr` 22 件と `docs/platform` 11 件を数え落としていた)
+    docsTotal: (() => {
+      const roots = [ROOT, path.join(ROOT, "docs")];
+      const dirs = ["adr", "ai", "apps", "onboarding", "ops", "platform", "site"].map((d) => path.join(ROOT, "docs", d));
+      let n = 0;
+      for (const d of [...roots, ...dirs]) {
+        if (!existsSync(d)) continue;
+        n += readdirSync(d).filter((f) => f.endsWith(".md")).length;
+      }
+      return n;
+    })(),
+    checksListed: (() => {
+      const md = path.join(ROOT, "docs/ops/CHECKS.md");
+      if (!existsSync(md)) return 0;
+      // **一覧の表に載っている検査名**(`check-` 以外も数える。
+      // `smoke` / `advisor` / `api-surface` なども検査)
+      const rows = readFileSync(md, "utf8").match(/^\| `([a-z0-9-]+)`/gm) ?? [];
+      return new Set(rows.map((r) => r.replace(/^\| `|`$/g, ""))).size;
+    })(),
     // GitHub Actions の数。資料の一覧と食い違うと、
     // 「動いているはずのものが無い / 無いはずのものが動く」に気づけない
     workflows: existsSync(path.join(ROOT, ".github/workflows"))
@@ -103,12 +170,26 @@ export function measure() {
  * 検査ルール。file の中の pattern が実測値と一致するかを見る。
  * pattern は「数値部分を (\d+) で captureする正規表現」。
  */
+/** `--fix` が指定されたか。**数値は機械的に決まるので、直させない。** */
+const FIX = process.argv.includes("--fix");
+
 const RULES = [
   { file: "docs/ops/CHECKS.md", pattern: /\*\*依存をインストールせずに (\d+) 種類の検査\*\*/, expect: (m) => m.checks, label: "CHECKS.md の検査の種類数" },
+  // **一覧に何件載っているか**も見張る。数値だけだと、
+  // **「67 種類ある」と書きながら一覧は 48 件**という状態が通る(2026-08)。
+  // 表の行数そのものを数えるので、行を消すと落ちる
+  { file: "docs/ops/CHECKS.md", pattern: /下の表には \*\*(\d+) 種類\*\*を載せています/, expect: (m) => m.checksListed, label: "CHECKS.md の一覧に載っている検査の数" },
+  // **資料の総数**(README の「資料の地図」)。古いと**どこを見ればよいか分からない**
+  { file: "README.md", pattern: /\*\*全部で (\d+) 件\*\*あります/, expect: (m) => m.docsTotal, label: "README の資料の総数" },
+  // **showcase の画面数**(「88 デモ」のような記述)。引き継いだ人が
+  // 「一通り眺める」ときの目安になるので、ずれていると当てが外れる
+  { file: "docs/ops/HANDOVER.md", pattern: /（(\d+) デモ）/, expect: (m) => m.showcasePages, label: "HANDOVER の showcase 画面数" },
+
   // HANDOVER にも同じ数字が 2 か所ある。**片方だけ直すとズレる**ので両方見る
   { file: "docs/ops/HANDOVER.md", pattern: /\*\*(\d+) 種類の検査\*\*が `preflight`/, expect: (m) => m.checks, label: "HANDOVER の検査の種類数" },
   { file: "docs/ops/HANDOVER.md", pattern: /\*\*検査 (\d+) 件すべてを分類済み\*\*/, expect: (m) => m.checks, label: "HANDOVER の verify-checks 分類数" },
   { file: "docs/ops/HANDOVER.md", pattern: /E2E \*\*(\d+) 本\*\*/, expect: (m) => m.e2eTests, label: "HANDOVER の E2E 本数" },
+  { file: "docs/ops/HANDOVER.md", pattern: /契約は \*\*(\d+) 件\*\*/, expect: (m) => m.contracts, label: "HANDOVER の契約件数" },
   { file: "docs/ops/HANDOVER.md", pattern: /API \*\*(\d+) 本すべて\*\*/, expect: (m) => m.apiRoutes, label: "HANDOVER の API 本数" },
   // ラチェット(上限)の値。**手で書いた数値は必ず古くなる**ので、記録ファイルと照合する。
   // 実際に「生タグ 33 / 色 67 / 未実戦 11」と書かれたまま、すべて 0 になっていた
@@ -125,7 +206,7 @@ const RULES = [
   // 数値が古いと基盤の規模を誤解させる（実際に 99 と 90 のまま残っていた）。
   { file: "README.md", pattern: /\*\*(\d+) の再利用可能なパッケージ\*\*/, expect: (m) => m.packages, label: "README のパッケージ数" },
   { file: "README.md", pattern: /基盤 (\d+) パッケージ/, expect: (m) => m.packages, label: "README のディレクトリ説明" },
-{ file: "demos/README.md", pattern: /\*\*統合デモサイト\*\*\s*\|\s*\*\*(\d+)\*\*/, expect: (m) => m.demos, label: "demos/README.md の統合デモサイト数" },
+
   { file: "CLAUDE.md", pattern: /個別パッケージの用途・使い方\((\d+)\/(\d+) 整備済み\)/, expect: (m) => m.readmes, label: "CLAUDE.md の README 整備数", second: (m) => m.packages },
   { file: "docs/ai/architecture.md", pattern: /基盤\((\d+)\s*個/, expect: (m) => m.packages, label: "architecture.md のパッケージ数" },
 ];
@@ -149,7 +230,7 @@ const RULES = [
  * デモの追加・統合は頻繁に起きるため、手書きの本数はすぐ古くなる。
  */
 function checkDemoCounts(issues) {
-  const nav = path.join(ROOT, "demos/showcase/src/lib/nav.ts");
+  const nav = path.join(ROOT, "apps/showcase/src/lib/nav.ts");
   const doc = path.join(ROOT, "docs/APPS_AND_DEMOS.md");
   if (!existsSync(nav) || !existsSync(doc)) return;
   const src = readFileSync(nav, "utf8");
@@ -285,10 +366,31 @@ function checkExportCountEverywhere(actual, issues) {
 }
 
 /** 自動生成されるフォルダ。中身は生成側が正しさを保つ。 */
-const GENERATED_DIRS = ["platform", "erd", "appmap"];
+/**
+ * **自動生成かどうかは、ファイル自身の宣言で判定する(一覧を手書きしない)。**
+ *
+ * 2026-08 まで「`docs/platform/` 配下すべて」と「`docs/ai/mcp-catalog.md`」を
+ * 手で除外していたが、**どちらも実態と食い違っていた**:
+ *
+ *  - `docs/ai/mcp-catalog.md` は生成物として除外されていたが**手書き**。
+ *    「113 パッケージ」という古い値が 2 か所、素通りしていた
+ *  - `docs/platform/` を丸ごと外していたため、その中の手書き `CATALOG.md` も対象外。
+ *    ここにも「全 113 パッケージ」が残っていた
+ *
+ * 一覧を手で持つと、資料が生成物になったり手書きに戻ったりするたびにズレる。
+ * この基盤では「対象一覧の手書き」で何度も穴を開けている。
+ * 生成物は冒頭で必ずそう名乗る(`> 自動生成: …(手で編集しない)`)ので、それを読む。
+ */
+const GENERATED_MARK = /自動生成|手で編集しない|自動更新/;
 
-/** 自動生成されるファイル。 */
-const GENERATED_FILES = ["docs/ai/module-list.md", "docs/ai/mcp-catalog.md"];
+/** 冒頭の数行に生成物の宣言があるか。 */
+function isGenerated(file) {
+  try {
+    return GENERATED_MARK.test(readFileSync(file, "utf8").split("\n").slice(0, 8).join("\n"));
+  } catch {
+    return false;
+  }
+}
 
 function checkPackageCountEverywhere(actual, issues) {
   const targets = [];
@@ -297,11 +399,10 @@ function checkPackageCountEverywhere(actual, issues) {
       if (e.name === "node_modules") continue;
       const fp = path.join(dir, e.name);
       if (e.isDirectory()) {
+        walk(fp);
+      } else if (e.name.endsWith(".md") && !isGenerated(fp)) {
         // 自動生成物は check-generated が守る。ここで見ると、
         // 生成側が正しくても「古い」と誤って指摘してしまう
-        if (GENERATED_DIRS.includes(e.name)) continue;
-        walk(fp);
-      } else if (e.name.endsWith(".md") && !GENERATED_FILES.includes(path.relative(ROOT, fp).replace(/\\/g, "/"))) {
         targets.push(fp);
       }
     }
@@ -313,16 +414,27 @@ function checkPackageCountEverywhere(actual, issues) {
     if (!existsSync(f)) continue;
     const rel = path.relative(ROOT, f);
     const lines = readFileSync(f, "utf8").split("\n");
+    let changed = false;
     lines.forEach((line, i) => {
       if (line.includes("doc-numbers:ignore")) return;
       for (const mm of line.matchAll(/(\d{2,4})\s*パッケージ/g)) {
         const n = Number(mm[1]);
         // 桁が近い数値だけを対象にする(「3 パッケージ」等の説明文を巻き込まない)
-        if (n >= 50 && n <= 500 && n !== actual) {
-          issues.push({ label: `${rel}:${i + 1}`, message: `「${n} パッケージ」は古い値です(実際は ${actual})` });
+        if (n < 50 || n > 500 || n === actual) continue;
+        // **ここも `--fix` で直す。** 2026-08 まで検出だけして直さなかったため、
+        // 隠れていた 3 件を見つけても手で書き換えるしかなかった。
+        // 「機械で分かる数値を人に直させない」という方針は、
+        // **見つける側と直す側の両方に適用しないと意味がない**。
+        if (FIX) {
+          lines[i] = lines[i].replace(mm[0], mm[0].replace(String(n), String(actual)));
+          changed = true;
+          console.log(`✏ ${rel}:${i + 1}: 「${n} パッケージ」→「${actual} パッケージ」`);
+          continue;
         }
+        issues.push({ label: `${rel}:${i + 1}`, message: `「${n} パッケージ」は古い値です(実際は ${actual})` });
       }
     });
+    if (changed) writeFileSync(f, lines.join("\n"));
   }
 }
 
@@ -350,6 +462,21 @@ export function check() {
     const actual = Number(String(found[1]).replace(/,/g, ""));
     const expected = rule.expect(m);
     if (actual !== expected) {
+      // **`--fix` で直す。**
+      // 数値は機械的に決まるので、手で直させると
+      // 「直す作業」だけが残って中身の検査が形骸化する(2026-08、
+      // このセッションだけで API 本数・検査数・上限を 8 回手で直した)。
+      //
+      // **カンマ区切りは保つ。** `1,377` を `1377` に書き換えると
+      // 資料の見た目が揃わなくなる
+      if (FIX) {
+        const grouped = String(found[1]).includes(",");
+        const next = grouped ? expected.toLocaleString("en-US") : String(expected);
+        const fixed = body.replace(found[0], found[0].replace(String(found[1]), next));
+        writeFileSync(p, fixed);
+        console.log(`✏ ${rule.file}: ${rule.label} を ${actual} → ${expected} に更新`);
+        continue;
+      }
       issues.push({ label: rule.label, message: `${rule.file}: ${actual} と書かれていますが実際は ${expected} です` });
     }
     if (rule.second) {
@@ -367,7 +494,58 @@ function main() {
   const { measured, issues } = check();
   console.log(`実測: パッケージ ${measured.packages} / README ${measured.readmes} / アプリ ${measured.apps} / デモ ${measured.demos}(起動可 ${measured.runnableDemos} / 部品 ${measured.componentDemos})`);
   if (issues.length === 0) {
-    console.log("✅ 手書きドキュメントの数値は実態と一致しています");
+    // **存在しないアプリ名が資料に残っていないか。**
+// 2026-08 に `equipment-app`(統合されて無くなった)が **5 ファイル**に
+// 「現在あるもの」として残っていた——**AI や新しい人が読むと、
+// 無いものを前提に設計する**。統廃合の記録(ADR / ONBOARDING の日付付きの行)は
+// 正しいので、**「現在形で書かれているか」**で見分ける。
+{
+  const apps = new Set(readdirSync(path.join(ROOT, "apps")));
+  /**
+   * **手順書の例として出てくる名前。** 実在しなくてよい。
+   *
+   * `my-app` は `pnpm new-app` の説明、`demos` は smoke のセクション名。
+   */
+  const EXAMPLE_APPS = new Set(["my-app", "demos"]);
+  const docs = [];
+  const walkDocs = (d) => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      const p2 = path.join(d, e.name);
+      if (e.isDirectory()) walkDocs(p2);
+      else if (e.name.endsWith(".md")) docs.push(p2);
+    }
+  };
+  walkDocs(path.join(ROOT, "docs"));
+  const ghosts = [];
+  for (const f of docs) {
+    const rel = path.relative(ROOT, f).replace(/\\/g, "/");
+    // **記録は対象外**(統廃合の経緯・引き継ぎの履歴)
+    // **記録は対象外**(統廃合の経緯・引き継ぎの履歴・開発の経過)。
+    // `HISTORY.md` は**2026-07 までの作業記録**で、冒頭に
+    // 「**`equipment-app` は存在しません**」と明記してある
+    if (/HANDOVER\.md|onboarding\/04-task\.md|docs\/HISTORY\.md|docs\/adr\//.test(rel)) continue;
+    const body = readFileSync(f, "utf8");
+    // **単語の終わりまで見る。** `apps/internal-app/src/...` の途中で切ると
+    // `apps/internal` という存在しない名前になる
+    // **URL のパスは対象外**(`/apps/cart` は画面の URL であってアプリ名ではない)。
+    // 直前が `/` や `` ` `` で始まるものは URL とみなす
+    for (const m of body.matchAll(/(?<![/`])\bapps\/([a-z][a-z0-9-]*)(?![a-z0-9-])/g)) {
+      const name = m[1];
+      if (apps.has(name) || EXAMPLE_APPS.has(name)) continue;
+      ghosts.push(`${rel}: apps/${name}`);
+    }
+  }
+  if (ghosts.length > 0) {
+    console.error(`❌ 資料に存在しないアプリが ${ghosts.length} 件あります:`);
+    for (const g of ghosts.slice(0, 8)) console.error(`   ${g}`);
+    console.error("");
+    console.error("**無いものを前提に設計されます。** 実在するアプリに直すか、");
+    console.error("統廃合の記録なら日付を添えて「かつてあった」と分かるように書いてください。");
+    process.exit(1);
+  }
+}
+
+console.log(`✅ 手書きドキュメントの数値は実態と一致しています(パッケージ ${measured.packages} / アプリ ${measured.apps})`);
     return;
   }
   for (const i of issues) console.error(`❌ ${i.label}: ${i.message}`);

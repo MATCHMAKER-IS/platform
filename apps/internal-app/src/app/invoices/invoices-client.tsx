@@ -1,11 +1,27 @@
 "use client";
 /** 請求書管理。一覧（入金状況つき）、作成（明細入力）、入金記録。 */
 import * as React from "react";
-import { Button, Input, Select } from "@platform/ui";
+import { parseNumberOr } from "@platform/utils";
+import { formatYen } from "@platform/report";
+import { useUnsavedChangesWarning } from "@platform/form";
+import { PromptDialog, Button, Input, Select, PageShell } from "@platform/ui";
 
 interface Line { description: string; quantity: number; unitPrice: number; taxRate?: 10 | 8 | 0; }
 interface Totals { subtotal: number; tax: number; total: number; }
-interface InvoiceView { number: string; issueDate: string; dueDate: string; billTo: string; registrationNumber?: string; lines: Line[]; totals: Totals; issued: boolean; paidAmount: number; cancelled: boolean; status: string; balance: number; }
+interface InvoiceView {
+  number: string;
+  issueDate: string;
+  dueDate: string;
+  billTo: string;
+  registrationNumber?: string;
+  lines: Line[];
+  totals: Totals;
+  issued: boolean;
+  paidAmount: number;
+  cancelled: boolean;
+  status: string;
+  balance: number;
+}
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   issued: { label: "発行済", cls: "bg-[color-mix(in_srgb,var(--color-primary)_15%,transparent)] text-[var(--color-primary)]" },
@@ -15,7 +31,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   cancelled: { label: "取消", cls: "bg-[var(--color-subtle-strong)] text-[var(--color-muted)]" },
 };
 
-const yen = (n: number) => `¥${n.toLocaleString()}`;
+const yen = (n: number) => formatYen(n);
 
 interface Aging { current: number; d1_30: number; d31_60: number; d61_90: number; over90: number; total: number; }
 interface DunningItem { number: string; billTo: string; dueDate: string; amountDue: number; overdueDays: number; level: string; message: string; }
@@ -32,6 +48,21 @@ export function InvoicesClient({ fetchImpl, canWrite = true }: InvoicesClientPro
   const [approvals, setApprovals] = React.useState<Record<string, { status: string; currentStep: number; totalSteps: number }>>({});
   const [lines, setLines] = React.useState<Line[]>([{ description: "", quantity: 1, unitPrice: 0, taxRate: 10 }]);
   const [error, setError] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+
+  // **書きかけを失わせない。**
+  // 明細を何行も組んだ後に誤って閉じると、全部やり直しになる。
+  // 「入力があるのに未送信」のときだけ警告する(空なら邪魔しない)
+  useUnsavedChangesWarning(
+    creating && (header.number !== "" || header.billTo !== ""
+      || lines.some((l) => l.description !== "")),
+  );
+  // 入金を記録しようとしている請求書(null なら尋ねない)
+  const [paying, setPaying] = React.useState<string | null>(null);
+  // **メール送付は別のダイアログにする。** 入金記録と操作の重みが違う
+  // (外部へ情報が出ていく)ので、同じダイアログで兼用しない。
+  const [sending, setSending] = React.useState<string | null>(null);
+  const [sendMsg, setSendMsg] = React.useState("");
   const [rcv, setRcv] = React.useState<Receivables | null>(null);
   const [dunningOpen, setDunningOpen] = React.useState<DunningItem | null>(null);
   const [approvalMsg, setApprovalMsg] = React.useState("");
@@ -58,17 +89,36 @@ export function InvoicesClient({ fetchImpl, canWrite = true }: InvoicesClientPro
     if (!header.number || !header.billTo || !header.issueDate || !header.dueDate) { setError("番号・宛先・発行日・支払期限を入力してください"); return; }
     const clean = lines.filter((l) => l.description && l.quantity > 0);
     if (clean.length === 0) { setError("明細を 1 行以上入力してください"); return; }
-    const res = await doFetch("/api/invoices", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...header, registrationNumber: header.registrationNumber || undefined, lines: clean }) });
-    if (res.ok) { setCreating(false); setHeader({ number: "", billTo: "", issueDate: "", dueDate: "", registrationNumber: "" }); setLines([{ description: "", quantity: 1, unitPrice: 0, taxRate: 10 }]); await reload(); }
-    else setError(((await res.json()) as { error?: string }).error ?? "作成に失敗しました");
+    // **押した後に反応を見せる。**
+    // 見えないと二重に押され、同じ請求書が 2 件できる
+    setBusy(true);
+    try {
+      const res = await doFetch("/api/invoices", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...header, registrationNumber: header.registrationNumber || undefined, lines: clean }) });
+      if (res.ok) { setCreating(false); setHeader({ number: "", billTo: "", issueDate: "", dueDate: "", registrationNumber: "" }); setLines([{ description: "", quantity: 1, unitPrice: 0, taxRate: 10 }]); await reload(); }
+      else setError(((await res.json()) as { error?: string }).error ?? "作成に失敗しました");
+    } catch {
+      setError("通信に失敗しました。ネットワークを確認してください");
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const pay = async (number: string) => {
-    const input = (globalThis as unknown as { prompt: (m: string) => string | null }).prompt("入金額を入力してください");
-    const amount = Number(input);
-    if (!input || Number.isNaN(amount) || amount <= 0) return;
+  /**
+   * 入金を記録する。
+   *
+   * **金額は画面で受ける。** `window.prompt` は入力の種類を指定できず、
+   * 数字以外を入れられても閉じるまで気づけない。
+   */
+  const pay = async (number: string, amount: number) => {
     const res = await doFetch(`/api/invoices/${number}/receipt`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ amount }) });
     if (res.ok) await reload();
+    else setError("入金を記録できませんでした");
+  };
+
+  const send = async (number: string, to: string) => {
+    const res = await doFetch(`/api/invoices/${number}/send`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ to }) });
+    if (res.ok) { setSendMsg(`${number} を ${to} へ送付しました`); setTimeout(() => setSendMsg(""), 4000); }
+    else setError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "送付できませんでした");
   };
 
   const submitApproval = async (number: string, amount: number) => {
@@ -79,11 +129,8 @@ export function InvoicesClient({ fetchImpl, canWrite = true }: InvoicesClientPro
   };
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">請求書</h1>
-        {canWrite && <Button onClick={() => setCreating((v) => !v)} className="rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white">{creating ? "閉じる" : "新規作成"}</Button>}
-      </div>
+    <PageShell title="請求書" width="wide">
+    {canWrite && <Button onClick={() => setCreating((v) => !v)} className="rounded px-4 py-2 text-sm text-white">{creating ? "閉じる" : "新規作成"}</Button>}
       {error && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-danger)]">{error}</p>}
       {approvalMsg !== "" && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-primary)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-primary)]">{approvalMsg}</p>}
 
@@ -104,7 +151,7 @@ export function InvoicesClient({ fetchImpl, canWrite = true }: InvoicesClientPro
                 {rcv.dunning.map((d) => (
                   <li key={d.number} className="flex items-center justify-between">
                     <span><span className="rounded bg-[color-mix(in_srgb,var(--color-danger)_15%,transparent)] px-1.5 py-0.5 text-[var(--color-danger)]">{DUNNING_LABEL[d.level] ?? d.level}</span> {d.number}・{d.billTo}（{d.overdueDays}日超過・{yen(d.amountDue)}）</span>
-                    <Button onClick={() => setDunningOpen(d)} className="text-[var(--color-primary)] hover:underline">文面</Button>
+          <Button onClick={() => setDunningOpen(d)} variant="secondary" className="hover:underline">文面</Button>
                   </li>
                 ))}
               </ul>
@@ -117,7 +164,7 @@ export function InvoicesClient({ fetchImpl, canWrite = true }: InvoicesClientPro
         <div className="mb-6 rounded border border-[var(--color-border)] p-4">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-sm font-medium">督促文面（{dunningOpen.number}）</span>
-            <Button onClick={() => setDunningOpen(null)} className="text-xs text-[var(--color-muted)]">閉じる</Button>
+            <Button onClick={() => setDunningOpen(null)} variant="ghost" className="text-xs">閉じる</Button>
           </div>
           <pre className="whitespace-pre-wrap rounded bg-[var(--color-subtle)] p-3 text-xs leading-relaxed">{dunningOpen.message}</pre>
         </div>
@@ -145,12 +192,12 @@ export function InvoicesClient({ fetchImpl, canWrite = true }: InvoicesClientPro
             <tbody>
               {lines.map((l, i) => (
                 <tr key={i}>
-                  <td className="px-1 py-1"><Input value={l.description} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { description: e.target.value })} className="w-full rounded border border-[var(--color-border)] px-2 py-1" /></td>
-                  <td className="px-1 py-1"><Input value={String(l.quantity)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { quantity: Number(e.target.value) || 0 })} inputMode="numeric" className="w-full rounded border border-[var(--color-border)] px-2 py-1" /></td>
-                  <td className="px-1 py-1"><Input value={String(l.unitPrice)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { unitPrice: Number(e.target.value) || 0 })} inputMode="numeric" className="w-full rounded border border-[var(--color-border)] px-2 py-1" /></td>
+                  <td className="px-1 py-1"><Input aria-label="品目" value={l.description} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { description: e.target.value })} className="w-full rounded border border-[var(--color-border)] px-2 py-1" /></td>
+                  <td className="px-1 py-1"><Input aria-label="数量" value={String(l.quantity)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { quantity: parseNumberOr(e.target.value, 0) || 0 })} inputMode="numeric" className="w-full rounded border border-[var(--color-border)] px-2 py-1" /></td>
+                  <td className="px-1 py-1"><Input aria-label="単価" value={String(l.unitPrice)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { unitPrice: parseNumberOr(e.target.value, 0) || 0 })} inputMode="numeric" className="w-full rounded border border-[var(--color-border)] px-2 py-1" /></td>
                   <td className="px-1 py-1">
                     <Select
-                      value={String(l.taxRate ?? 10)} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setLine(i, { taxRate: Number(e.target.value) as 10 | 8 | 0 })} className="w-full rounded border border-[var(--color-border)] px-1 py-1"
+                      value={String(l.taxRate ?? 10)} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setLine(i, { taxRate: parseNumberOr(e.target.value, 0) as 10 | 8 | 0 })} className="w-full rounded border border-[var(--color-border)] px-1 py-1"
                       options={[
                         { label: "10%", value: "10"},
                         {label: "8%", value: "8"},
@@ -158,16 +205,16 @@ export function InvoicesClient({ fetchImpl, canWrite = true }: InvoicesClientPro
                       ]}
                     />
                   </td>
-                  <td className="px-1 py-1">{lines.length > 1 && <Button aria-label="この明細行を削除" title="この明細行を削除" onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))} className="text-[var(--color-muted)]">×</Button>}</td>
+         <td className="px-1 py-1">{lines.length > 1 && <Button variant="ghost" aria-label="この明細行を削除" title="この明細行を削除" onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))} className="text-[var(--color-muted)]">×</Button>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           <div className="flex items-center justify-between">
-            <Button onClick={() => setLines((ls) => [...ls, { description: "", quantity: 1, unitPrice: 0, taxRate: 10 }])} className="text-sm text-[var(--color-primary)]">＋ 明細を追加</Button>
+      <Button onClick={() => setLines((ls) => [...ls, { description: "", quantity: 1, unitPrice: 0, taxRate: 10 }])} variant="secondary" className="text-sm">＋ 明細を追加</Button>
             <span className="text-sm text-[var(--color-muted)]">税抜計 {yen(preview)}</span>
           </div>
-          <Button onClick={submit} className="mt-3 rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white">請求書を作成</Button>
+     <Button onClick={submit} loading={busy} loadingLabel="作成中…" className="mt-3 rounded px-4 py-2 text-sm text-white">請求書を作成</Button>
         </div>
       )}
 
@@ -182,7 +229,7 @@ export function InvoicesClient({ fetchImpl, canWrite = true }: InvoicesClientPro
           {invoices.map((inv) => (
             <tr key={inv.number} className="border-b border-[var(--color-border)]">
               <td className="px-2 py-2 font-mono text-xs">{inv.number}</td>
-              <td className="px-2 py-2">{inv.billTo}{(() => { const a = approvals[inv.number]; if (!a) return canWrite ? <Button onClick={() => submitApproval(inv.number, inv.totals.total)} className="ml-2 text-xs text-[var(--color-primary)] hover:underline">承認申請</Button> : null; const label = a.status === "approved" ? "承認済" : a.status === "rejected" ? "却下" : `承認待ち ${a.currentStep}/${a.totalSteps}`; const cls = a.status === "approved" ? "bg-[color-mix(in_srgb,var(--color-success)_15%,transparent)] text-[var(--color-success)]" : a.status === "rejected" ? "bg-[color-mix(in_srgb,var(--color-danger)_15%,transparent)] text-[var(--color-danger)]" : "bg-[color-mix(in_srgb,var(--color-warning)_15%,transparent)] text-[var(--color-warning)]"; return <span className={`ml-2 rounded px-1.5 py-0.5 text-xs ${cls}`}>{label}</span>; })()}</td>
+       <td className="px-2 py-2">{inv.billTo}{(() => { const a = approvals[inv.number]; if (!a) return canWrite ? <Button variant="ghost" onClick={() => submitApproval(inv.number, inv.totals.total)} className="ml-2 text-xs text-[var(--color-primary)] hover:underline">承認申請</Button> : null; const label = a.status === "approved" ? "承認済" : a.status === "rejected" ? "却下" : `承認待ち ${a.currentStep}/${a.totalSteps}`; const cls = a.status === "approved" ? "bg-[color-mix(in_srgb,var(--color-success)_15%,transparent)] text-[var(--color-success)]" : a.status === "rejected" ? "bg-[color-mix(in_srgb,var(--color-danger)_15%,transparent)] text-[var(--color-danger)]" : "bg-[color-mix(in_srgb,var(--color-warning)_15%,transparent)] text-[var(--color-warning)]"; return <span className={`ml-2 rounded px-1.5 py-0.5 text-xs ${cls}`}>{label}</span>; })()}</td>
               <td className="px-2 py-2 text-xs text-[var(--color-muted)]">{inv.dueDate}</td>
               <td className="px-2 py-2 text-right font-medium">{yen(inv.totals.total)}</td>
               <td className="px-2 py-2 text-right">{yen(inv.balance)}</td>
@@ -191,8 +238,9 @@ export function InvoicesClient({ fetchImpl, canWrite = true }: InvoicesClientPro
                 <span className="flex gap-3">
                   <a href={`/api/invoices/${inv.number}/html`} target="_blank" rel="noreferrer" className="text-[var(--color-primary)] hover:underline">HTML</a>
                   <a href={`/api/invoices/${inv.number}/pdf`} target="_blank" rel="noreferrer" className="text-[var(--color-primary)] hover:underline">PDF</a>
-                  {canWrite && <Button onClick={() => submitApproval(inv.number, inv.totals.total)} className="text-[var(--color-primary)] hover:underline">承認申請</Button>}
-                  {canWrite && !inv.cancelled && inv.balance > 0 && <Button onClick={() => pay(inv.number)} className="text-[var(--color-primary)] hover:underline">入金記録</Button>}
+                  {canWrite && !inv.cancelled && <Button onClick={() => setSending(inv.number)} variant="secondary" className="hover:underline">メール送付</Button>}
+         {canWrite && <Button onClick={() => submitApproval(inv.number, inv.totals.total)} variant="secondary" className="hover:underline">承認申請</Button>}
+         {canWrite && !inv.cancelled && inv.balance > 0 && <Button onClick={() => setPaying(inv.number)} variant="secondary" className="hover:underline">入金記録</Button>}
                 </span>
               </td>
             </tr>
@@ -200,6 +248,27 @@ export function InvoicesClient({ fetchImpl, canWrite = true }: InvoicesClientPro
           {invoices.length === 0 && <tr><td colSpan={7} className="px-2 py-4 text-center text-sm text-[var(--color-muted)]">請求書がありません。</td></tr>}
         </tbody>
       </table>
-    </div>
+      <PromptDialog
+        open={paying !== null}
+        onClose={() => setPaying(null)}
+        onSubmit={(v) => { if (paying !== null) void pay(paying, Number(v)); }}
+        title={`請求書 ${paying ?? ""} の入金を記録`}
+        label="入金額(円)"
+        type="number"
+        submitLabel="記録する"
+        validate={(v) => (Number(v) > 0 ? undefined : "1 円以上を入力してください")}
+      />
+      <PromptDialog
+        open={sending !== null}
+        onClose={() => setSending(null)}
+        onSubmit={(v) => { if (sending !== null) { void send(sending, v); setSending(null); } }}
+        title={`請求書 ${sending ?? ""} をメールで送付`}
+        label="送付先メールアドレス"
+        type="email"
+        submitLabel="送付する"
+        validate={(v) => (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? undefined : "メールアドレスの形式で入力してください")}
+      />
+      {sendMsg && <p className="mt-3 text-sm text-[var(--color-success)]">{sendMsg}</p>}
+    </PageShell>
   );
 }

@@ -3,13 +3,13 @@
  */
 import { withApiObservability } from "../../../server/instrument";
 import { currentUser } from "../../../server/authorize";
-import { serverEnv } from "../../../server/env";
+import "../../../server/env";
 import { faqStore } from "../../../server/faq-repo";
 import { searchFaq, byCategory, publishedOnly, sortByHelpfulness, summarizeFaq, needsReview, vote, helpfulRate } from "@platform/faq";
 import { AppError } from "@platform/core";
 
 function user(req: Request) {
-  return currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  return currentUser(req);
 }
 
 async function handleGET(req: Request): Promise<Response> {
@@ -48,10 +48,15 @@ async function handleGET(req: Request): Promise<Response> {
 async function handlePOST(req: Request): Promise<Response> {
   const u = user(req);
   if (!u) return Response.json({ error: "ログインが必要です" }, { status: 401 });
-  const body = (await req.json()) as { id?: string; helpful?: boolean };
+  const body = (await req.json().catch(() => ({}))) as { id?: string; helpful?: boolean };
   if (!body.id || typeof body.helpful !== "boolean") {
     return Response.json({ error: "id と helpful が必要です" }, { status: 400 });
   }
+  // **同時投票では票が消えうる**(読んで足して書く形)。
+  // `recordPayment` は `increment` に直したが、ここは**そのままにしてある**——
+  // 票が 1 つ消えても業務は止まらず、**「役に立った率」は概算で足りる**
+  // (見直し対象を選ぶのに使うだけで、5 票の最低ラインも設けている)。
+  // **同時投票が現実的に起きる規模になったら `increment` にすること**(2026-08)。
   const item = await faqStore.get(body.id);
   if (!item) return Response.json({ error: "FAQ が見つかりません" }, { status: 404 });
 

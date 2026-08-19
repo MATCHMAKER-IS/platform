@@ -19,7 +19,6 @@ export interface NumericKeypadProps {
   className?: string;
 }
 
-/** オンスクリーン数値キーパッド。 */
 /**
  * 数字キーパッド(画面上のテンキー)。
  *

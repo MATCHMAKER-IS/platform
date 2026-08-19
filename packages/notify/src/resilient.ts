@@ -23,7 +23,9 @@ export interface RetryOptions {
  * **恒久エラーは再試行しない**(存在しない宛先に何度送っても届かない)。
  *
  * @param channel 元のチャネル
- * @param options.attempts 最大試行回数
+ * @param options.retries **リトライ回数**(既定 3)。最初の 1 回は含まないので、
+ *   3 なら最大 4 回実行される。以前この説明は `attempts 最大試行回数` と
+ *   書いており、**1 回少なく見積もる**うえ名前も存在しなかった
  * @param options.shouldRetry 再試行するか判定する関数
  * @returns ラップしたチャネル
  */
@@ -66,6 +68,7 @@ export interface FallbackOptions {
  * ```
  *
  * @param channels チャネルの配列(優先順)
+ * @param options 次に移る条件・試す回数
  * @returns ラップしたチャネル
  * @throws 全部失敗した場合
  */

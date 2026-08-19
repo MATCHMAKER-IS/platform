@@ -1,0 +1,13 @@
+{
+  "connector": "notion",
+  "title": "Notion API のページ取得",
+  "endpoint": "GET https://api.notion.com/v1/pages/{id}",
+  "sourceFile": "packages/notion/src/index.ts",
+  "requiredFields": [
+    "object",
+    "id"
+  ],
+  "note": "object と id で応答の種類を判別する。Notion は API バージョンを日付で切るため、古いバージョンを指定したままだと形が変わる。",
+  "capturedAt": null,
+  "fixture": null
+}

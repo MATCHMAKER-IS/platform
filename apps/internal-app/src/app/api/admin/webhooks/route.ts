@@ -1,24 +1,24 @@
 /** 管理: 送信Webhook購読の一覧(GET)・追加/有効切替/削除(POST)。管理者のみ。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { webhookSubscriptionStore, auditActions } from "../../../../server/platform-services";
 
 function admin(req: Request) {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   return user && user.roles.includes("admin") ? user : null;
 }
 
 async function handleGET(req: Request): Promise<Response> {
-  if (!admin(req)) return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
+  if (!admin(req)) return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
   const subs = await webhookSubscriptionStore.list();
   return Response.json({ subscriptions: subs.map((s) => ({ id: s.id, url: s.url, events: s.events, active: s.active, createdAt: s.createdAt })) });
 }
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = admin(req);
-  if (!user) return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
-  const body = (await req.json()) as { op?: string; url?: string; events?: string[]; secret?: string; id?: string; active?: boolean };
+  if (!user) return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
+  const body = (await req.json().catch(() => ({}))) as { op?: string; url?: string; events?: string[]; secret?: string; id?: string; active?: boolean };
   if (body.op === "add") {
     if (!body.url || !Array.isArray(body.events) || body.events.length === 0 || !body.secret) return Response.json({ error: "url・events・secret が必要です" }, { status: 400 });
     const sub = await webhookSubscriptionStore.add({ url: body.url, events: body.events, secret: body.secret });

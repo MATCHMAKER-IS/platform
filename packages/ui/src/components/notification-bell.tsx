@@ -27,7 +27,6 @@ const GROUP_LABELS: { key: "today" | "yesterday" | "earlier"; label: string }[] 
   { key: "earlier", label: "それ以前" },
 ];
 
-/** ヘッダー用の通知ベル。 */
 /**
  * 通知のベル(未読の数つき)。
  *

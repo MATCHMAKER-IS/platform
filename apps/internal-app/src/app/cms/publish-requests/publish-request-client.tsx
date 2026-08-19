@@ -1,7 +1,7 @@
 "use client";
 /** 公開申請の承認画面。承認者(cms:publish)が申請を承認/却下する。 */
 import * as React from "react";
-import { Button } from "@platform/ui";
+import { Button, PageShell } from "@platform/ui";
 
 interface PublishRequest {
   id: string;
@@ -37,11 +37,10 @@ export function PublishRequestClient({ fetchImpl }: PublishRequestClientProps) {
   };
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <h1 className="mb-4 text-2xl font-bold">公開申請の承認</h1>
+        <PageShell title="公開申請の承認" width="wide">
       <div className="mb-3 flex gap-1">
-        <Button onClick={() => setTab("pending")} className={tab === "pending" ? "rounded bg-[var(--color-fg)] px-3 py-1 text-sm text-white" : "rounded border border-[var(--color-border)] px-3 py-1 text-sm"}>承認待ち</Button>
-        <Button onClick={() => setTab("all")} className={tab === "all" ? "rounded bg-[var(--color-fg)] px-3 py-1 text-sm text-white" : "rounded border border-[var(--color-border)] px-3 py-1 text-sm"}>すべて</Button>
+        <Button onClick={() => setTab("pending")} variant="tab" data-state={tab === "pending" ? "active" : undefined}>承認待ち</Button>
+        <Button onClick={() => setTab("all")} variant="tab" data-state={tab === "all" ? "active" : undefined}>すべて</Button>
       </div>
       {requests.length === 0 ? (
         <p className="text-sm text-[var(--color-muted)]">{tab === "pending" ? "承認待ちの申請はありません。" : "申請はありません。"}</p>
@@ -60,14 +59,14 @@ export function PublishRequestClient({ fetchImpl }: PublishRequestClientProps) {
               </div>
               {r.status === "pending" && (
                 <div className="flex gap-2 text-sm">
-                  <Button onClick={() => decide(r.id, "approved")} className="rounded bg-[var(--color-success)] px-3 py-1 text-white">承認して公開</Button>
-                  <Button onClick={() => decide(r.id, "rejected")} className="rounded border border-[var(--color-border)] px-3 py-1">却下</Button>
+         <Button onClick={() => decide(r.id, "approved")} variant="secondary" className="rounded px-3 py-1 text-white">承認して公開</Button>
+                  <Button onClick={() => decide(r.id, "rejected")} variant="secondary" className="rounded px-3 py-1">却下</Button>
                 </div>
               )}
             </li>
           ))}
         </ul>
       )}
-    </div>
+    </PageShell>
   );
 }

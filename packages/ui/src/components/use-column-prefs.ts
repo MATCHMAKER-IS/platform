@@ -9,8 +9,9 @@ import { emptyColumnPrefs, type ColumnPrefs, type ColumnPrefsStore } from "../li
 /**
  * 列設定をロード/保存するフック。
  *
- * @param tableId テーブルの識別子(**テーブルごとに設定を分ける**)
- * @param options.store 保存先(省略時は localStorage)
+ * @param store 保存先（**Claude 上の成果物では localStorage が使えない**ので、渡す形にしてあります）
+ * @param table テーブルの識別子(**テーブルごとに設定を分ける**)
+ * @param initial 保存が無いときの初期設定
  */
 export function useColumnPrefs(store: ColumnPrefsStore, table: string, initial: ColumnPrefs = emptyColumnPrefs) {
   const [prefs, setPrefs] = React.useState<ColumnPrefs>(initial);

@@ -97,6 +97,7 @@ export function descendantIds(categories: Category[], categoryId: string): strin
  * @param items 絞り込む対象(categoryId を持つもの)
  * @param categories カテゴリの配列
  * @param categoryId 選んだカテゴリ
+ * @param options.includeDescendants 子カテゴリも含めるか（**既定は含めない**）
  * @returns そのカテゴリと子孫に属する項目
  */
 export function filterByCategory<T extends Categorized>(items: T[], categories: Category[], categoryId: string, options: { includeDescendants?: boolean } = {}): T[] {

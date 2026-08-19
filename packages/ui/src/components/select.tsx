@@ -14,7 +14,13 @@ export interface SelectOption {
 
 /** {@link Select} の props。 */
 export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
-  options: SelectOption[];
+  /**
+   * 選択肢。**通常はこちらを使う**(`<option>` を手で書かなくてよい)。
+   *
+   * **`SelectOption.value` は string。** 数値を扱う場合は文字列にしてから渡し、
+   * `onChange` で戻すこと。
+   */
+  options?: SelectOption[];
   /** 先頭に出す未選択プレースホルダ。 */
   placeholder?: string;
 }
@@ -31,7 +37,7 @@ export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElemen
  * ```
  */
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, options, placeholder, ...props }, ref) => (
+  ({ className, options, placeholder, children, ...props }, ref) => (
     <select
       ref={ref}
       className={cn(
@@ -45,11 +51,12 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           {placeholder}
         </option>
       ) : null}
-      {options.map((o) => (
+      {options?.map((o) => (
         <option key={o.value} value={o.value}>
           {o.label}
         </option>
       ))}
+      {children}
     </select>
   ),
 );

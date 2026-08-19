@@ -1,24 +1,24 @@
 /** 管理: エクスポートスケジュールの一覧(GET)・追加/有効切替/削除(POST)と実行履歴。管理者のみ。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { exportScheduleStore, exportRunStore } from "../../../../server/platform-services";
 import { type ExportType, type ExportFrequency } from "../../../../server/export-schedule";
 
 function admin(req: Request) {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   return user && user.roles.includes("admin") ? user : null;
 }
 
 async function handleGET(req: Request): Promise<Response> {
-  if (!admin(req)) return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
+  if (!admin(req)) return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
   const [schedules, history] = await Promise.all([exportScheduleStore.list(), exportRunStore.list(20)]);
   return Response.json({ schedules, history });
 }
 
 async function handlePOST(req: Request): Promise<Response> {
-  if (!admin(req)) return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
-  const body = (await req.json()) as { op?: string; type?: ExportType; frequency?: ExportFrequency; id?: string; enabled?: boolean };
+  if (!admin(req)) return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
+  const body = (await req.json().catch(() => ({}))) as { op?: string; type?: ExportType; frequency?: ExportFrequency; id?: string; enabled?: boolean };
   if (body.op === "add" && body.type && body.frequency) {
     const s = await exportScheduleStore.add(body.type, body.frequency);
     return Response.json({ id: s.id }, { status: 201 });

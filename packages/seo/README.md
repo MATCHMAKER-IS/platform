@@ -1,11 +1,27 @@
 # @platform/seo
 
-SEO のための機能。メタタグ・Open Graph / Twitter Card・JSON-LD 構造化データ・robots.txt の生成。
-サイトマップ・RSS は `@platform/blog`、スラッグは `@platform/blog` を利用します。すべて純ロジックで、
-Next.js の Metadata API にも HTML head にもそのまま渡せます。
+検索エンジン向けの設定（メタ情報・サイトマップ・robots）。
 
-## メタタグ(title / description / canonical / robots)
+## これは何のためか
+
+**社内アプリは「載せない」ことが目的**です。
+
+公開サイト（`public-site`）は載せたい、社内アプリは載せたくない——
+**同じ仕組みで、逆のことをします**。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **社内アプリは `internalRobotsTxt`** | **すべて拒否**します。付け忘れると、**社内の画面が検索に出ます** |
+| **`robots.txt` は「お願い」です** | 守らない巡回もあります——**本当に隠すなら認証**を付けてください |
+| **`noindex` と `robots.txt` は別** | `robots.txt` で拒否すると、**`noindex` を読みに来ません**——**すでに載ったものは消えません** |
+| **サイトマップは公開サイトだけ** | 社内アプリに置くと、**画面の一覧を教えることになります** |
+
+## よく使うもの
+
 ```ts
+import { faviconLinks, faviconMetadata, robotsForVisibility } from "@platform/seo";
 import { buildMeta, renderMeta } from "@platform/seo";
 const meta = buildMeta({
   title: "記事タイトル",

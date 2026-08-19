@@ -79,6 +79,21 @@ gunzip -c backup-YYYYMMDD.dump.gz | pg_restore -d "$NEW_DATABASE_URL" --clean --
 - **四半期ごと**にリストア訓練(バックアップからの復旧を実施)。
 - **半期ごと**に DR 訓練(リージョン切替のドライラン)。
 
+### 手順は `pnpm drill`
+
+```bash
+pnpm drill:dry     # 何をするか見るだけ(DB も要らない)
+pnpm drill         # 実際に取って戻す(docker 経由なので psql 不要)
+```
+
+取ったら **`node tools/record-drill.mjs` で記録する**。
+記録が無いと `check-drill` が警告を出し続ける。
+
+> **「取れている」ことより「戻せる」ことが大事。**
+> 全テーブル 0 件での訓練は「手順が動く」ことしか示さない。
+> **データを入れた状態で件数が一致するか**まで確かめる。
+> 詳しくは [ops/BACKUP_RESTORE.md](ops/BACKUP_RESTORE.md)。
+
 ## 稼働確認の口（全アプリ共通）
 
 | URL | 目的 | 落ちているとき |

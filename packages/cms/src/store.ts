@@ -106,6 +106,7 @@ function toRowData(post: CmsPost): CmsPostRowData {
  *
  * @param db Prisma クライアント
  * @returns 記事ストア
+  * @param now 現在時刻(**テスト注入用**。渡さなければ `new Date()`)
  */
 export function createPrismaCmsStore(db: CmsStoreDb, now: () => string = () => new Date().toISOString()): CmsStore {
   return {

@@ -37,6 +37,13 @@ export interface WorkflowEvent {
 
 /** ワークフローの現在状態(アプリはこれを保存する)。 */
 export interface WorkflowState {
+  /**
+   * 申請者の ID(**自己承認を防ぐために持つ**)。
+   *
+   * 省略できるのは既存データとの互換のためだが、**省くと自己承認が通る**。
+   * 新しく作るワークフローでは必ず渡すこと。
+   */
+  requesterId?: string;
   status: WorkflowStatus;
   /** 現在待ちのステップ index(pending のときのみ有効)。 */
   currentStep: number;
@@ -52,14 +59,33 @@ export interface Actor {
 /**
  * ワークフローを開始し、初期状態を返す。
  * @param def ワークフロー定義
+ * @param requesterId 申請した人（**省略すると誰の申請か分からなくなります**）
  * @returns 先頭ステップ待ちの pending 状態
  * @throws {@link @platform/core#AppError} `VALIDATION` — ステップが空の場合
  */
-export function startWorkflow(def: WorkflowDefinition): WorkflowState {
+export function startWorkflow(def: WorkflowDefinition, requesterId?: string): WorkflowState {
   if (def.steps.length === 0) {
     throw new AppError(ErrorCode.VALIDATION, "ワークフローには最低1ステップが必要です");
   }
-  return { status: "pending", currentStep: 0, history: [] };
+  // **申請者を記録する。** 承認時に「自分の申請ではないか」を見るため
+  return { status: "pending", currentStep: 0, history: [], ...(requesterId !== undefined && { requesterId }) };
+}
+
+/**
+ * 承認者が申請者本人でないことを確かめる。
+ *
+ * **職務分掌(内部統制)の要。** 承認者ロールを持つ人は多くの場合管理職で、
+ * **自分の経費を自分で承認**できてしまうと統制が成立しない。監査で必ず指摘される。
+ *
+ * `requesterId` が無い状態(既存データ)では**判定できないので通す**——
+ * ここで落とすと過去の申請が承認不能になる。新しいものは必ず持たせること。
+ */
+function requireNotSelf(state: WorkflowState, actor: Actor): void {
+  if (state.requesterId !== undefined && state.requesterId === actor.id) {
+    throw new AppError(ErrorCode.FORBIDDEN, "自分が出した申請は承認・却下できません", {
+      details: { requesterId: state.requesterId, actorId: actor.id },
+    });
+  }
 }
 
 function requireActorRole(step: WorkflowStep, actor: Actor): void {
@@ -97,6 +123,7 @@ export function approve(
 
   try {
     requireActorRole(step, actor);
+    requireNotSelf(state, actor);
   } catch (e) {
     return err(AppError.from(e));
   }
@@ -138,6 +165,7 @@ export function reject(
 
   try {
     requireActorRole(step, actor);
+    requireNotSelf(state, actor);
   } catch (e) {
     return err(AppError.from(e));
   }
@@ -153,13 +181,22 @@ export function reject(
 }
 
 /**
- * 差戻し。現在ステップの承認者が、前のステップ(既定は申請=step 0)へ戻す。
+ * 差戻し。現在ステップの承認者が、**申請者または前のステップ**へ戻す。
  * 却下と違い status は pending のまま、履歴に sendback を記録する。
+ *
+ * **自己承認の禁止は効かせない。** 「自分の申請を自分で取り下げる」のは正当で、
+ * 止めると**間違えて出した申請を取り消せなくなる**(承認・却下は従来どおり禁止)。
+ *
+ * **最初のステップからでも差し戻せる。** `toStep` が現在と同じなら
+ * 「申請者に戻して出し直してもらう」意味になる——1 段階しかないワークフロー
+ * (勤怠の月次承認など)では、これができないと**差し戻す手段が無くなる**
+ * (2026-08、`toStep >= currentStep` を弾いていて `decide(…, "sendback")` が
+ * 常に失敗していた)。**前に進める指定だけを拒む。**
  *
  * @param def    ワークフロー定義
  * @param state  現在状態
  * @param actor  差戻す承認者(現在ステップのロールが必要)
- * @param options `toStep`(戻す先・既定 0)、`reason`(差戻し理由)
+ * @param options `toStep`(戻す先・既定 0。**現在より後ろは指定できない**)、`reason`(差戻し理由)
  * @returns 指定ステップ待ちの pending 状態の `ok`、または不整合・権限不足の `err`
  */
 export function sendBack(
@@ -175,14 +212,15 @@ export function sendBack(
   if (!step) return err(new AppError(ErrorCode.INTERNAL, "ステップが不正です"));
 
   try {
+    // **`requireNotSelf` は呼ばない**(上の説明のとおり、取り下げは正当)
     requireActorRole(step, actor);
   } catch (e) {
     return err(AppError.from(e));
   }
 
   const toStep = options.toStep ?? 0;
-  if (toStep < 0 || toStep >= state.currentStep) {
-    return err(new AppError(ErrorCode.VALIDATION, "差戻し先は現在より前のステップである必要があります"));
+  if (toStep < 0 || toStep > state.currentStep) {
+    return err(new AppError(ErrorCode.VALIDATION, "差戻し先を現在より後ろのステップにはできません"));
   }
 
   return ok({
@@ -199,7 +237,8 @@ export function sendBack(
  * 現在待ちのステップを返す(pending 以外は null)。UI 表示に使う。
  * @param def   定義
  * @param state 状態
- * @returns 現在のステップ。**完了済みなら undefined**
+ * @returns 現在のステップ。**完了済みなら `null`**(**`undefined` ではない**——
+ *   `=== undefined` で判定すると通り抜ける)
  */
 export function currentStep(def: WorkflowDefinition, state: WorkflowState): WorkflowStep | null {
   if (state.status !== "pending") return null;

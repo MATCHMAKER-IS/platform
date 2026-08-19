@@ -88,6 +88,8 @@ export function tagCounts(posts: BlogPost[]): { tag: string; count: number }[] {
 
 /**
  * 関連記事を抽出する(共有タグ数の多い順)。自身は除外。
+ * @param target 基準にする記事
+ * @param posts 候補の記事
  * @param limit 返す最大件数
  * @returns 関連記事(**タグの一致数が多い順**。自分自身は含まない)
  */

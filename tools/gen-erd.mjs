@@ -1,6 +1,6 @@
 /**
  * Prisma スキーマから Mermaid ER 図を生成する(人向けドキュメント)。
- *   node tools/gen-erd.mjs                 # 全アプリの schema を docs/platform/erd/<app>.md に出力
+ *   node tools/gen-erd.mjs                 # 全アプリの schema を apps/<name>/docs/erd/<app>.md に出力
  *   node tools/gen-erd.mjs internal-app    # 指定アプリのみ
  * model / フィールド / @relation を抽出し、Mermaid erDiagram に変換する。
  * リレーションは外部キー(fields/references)から推定し、? 有無で任意/必須を表す。
@@ -86,9 +86,11 @@ function generate(app) {
 ${mermaid}
 \`\`\`
 `;
-  const outDir = path.join(ROOT, "docs/platform/erd");
+  // **アプリの資料はアプリの中に置く**(2026-08)。
+  // schema はアプリのものなので、図もアプリと一緒に動く方がよい。
+  const outDir = path.join(ROOT, "apps", app, "docs");
   mkdirSync(outDir, { recursive: true });
-  writeFileSync(path.join(outDir, `${app}.md`), md);
+  writeFileSync(path.join(outDir, "erd.md"), md);
   return { app, models: models.length, relations: relCount };
 }
 
@@ -101,7 +103,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const results = [];
   for (const app of apps) {
     const r = generate(app);
-    if (r) { results.push(r); console.log(`✅ docs/platform/erd/${r.app}.md 生成(model ${r.models} / リレーション ${r.relations})`); }
+    if (r) { results.push(r); console.log(`✅ apps/<name>/docs/erd.md${r.app}.md 生成(model ${r.models} / リレーション ${r.relations})`); }
   }
   if (results.length === 0) console.log("ER 図の対象(prisma schema)が見つかりませんでした");
 }

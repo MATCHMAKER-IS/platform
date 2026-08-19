@@ -19,7 +19,6 @@ export interface CalendarHeatmapProps {
 
 const MS_PER_DAY = 86_400_000;
 
-/** カレンダーヒートマップ。 */
 /**
  * カレンダー型の濃淡(日ごとの多さ)。
  *

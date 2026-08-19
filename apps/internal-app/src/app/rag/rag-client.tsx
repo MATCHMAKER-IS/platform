@@ -36,7 +36,7 @@ export function RagClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
     else setIngestMsg((d as { error?: string }).error ?? "登録に失敗しました");
   };
 
-  const card: React.CSSProperties = { background: "var(--color-surface, #fff)", border: "1px solid #e8e8e8", borderRadius: 10, padding: 16 };
+  const card: React.CSSProperties = { background: "var(--color-surface, #fff)", border: "1px solid var(--color-border)", borderRadius: 10, padding: 16 };
 
   return (
     <div style={{ maxWidth: 820, margin: "0 auto", padding: 24, fontFamily: "system-ui, sans-serif" }}>
@@ -45,12 +45,12 @@ export function RagClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
 
       <div style={{ ...card, marginTop: 12 }}>
         <div style={{ display: "flex", gap: 8 }}>
-          <Input value={query} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)} placeholder="例: 賞与の計算方法 / 休業 / 経営計画" style={{ flex: 1, padding: "8px 12px", border: "1px solid #ddd", borderRadius: 8 }} />
-          <Button onClick={search} disabled={busy || query.trim().length === 0} style={{ padding: "8px 20px", background: busy ? "#ccc" : "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>{busy ? "検索中…" : "検索"}</Button>
+          <Input value={query} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)} placeholder="例: 賞与の計算方法 / 休業 / 経営計画" style={{ flex: 1, padding: "8px 12px", border: "1px solid var(--color-border)", borderRadius: 8 }} />
+          <Button onClick={search} disabled={query.trim().length === 0} style={{ padding: "8px 20px", background: busy ? "var(--color-border)" : "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>{busy ? "検索中…" : "検索"}</Button>
         </div>
         {error && <p style={{ color: "var(--color-danger, #c00)", fontSize: 13, marginTop: 8 }}>{error}</p>}
         {normalization && normalization.changed && (
-          <p style={{ fontSize: 12, marginTop: 8, padding: "6px 10px", background: "#fef9c3", border: "1px solid #fde047", borderRadius: 6, color: "#854d0e" }}>
+          <p style={{ fontSize: 12, marginTop: 8, padding: "6px 10px", background: "color-mix(in srgb, var(--color-warning) 15%, transparent)", border: "1px solid #fde047", borderRadius: 6, color: "var(--color-warning)" }}>
             辞書補正: 「{normalization.raw}」を「{normalization.corrected}」として検索しました（用語辞書で表記を統一）。
           </p>
         )}
@@ -66,7 +66,7 @@ export function RagClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
                 <strong style={{ fontSize: 14 }}>【{i + 1}】{h.title}</strong>
                 <span style={{ fontSize: 11, color: "var(--color-muted, #999)" }}>{h.source} · score {h.score}</span>
               </div>
-              <p style={{ fontSize: 13, color: "#555", margin: "6px 0 0", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{h.text}</p>
+              <p style={{ fontSize: 13, color: "var(--color-fg)", margin: "6px 0 0", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{h.text}</p>
             </div>
           ))}
         </div>
@@ -75,8 +75,8 @@ export function RagClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
       <details style={{ marginTop: 20 }}>
         <summary style={{ cursor: "pointer", fontSize: 13, color: "var(--color-muted, #666)" }}>文書を登録（管理者のみ）</summary>
         <div style={{ ...card, marginTop: 8 }}>
-          <Input value={title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)} placeholder="タイトル" style={{ width: "100%", boxSizing: "border-box", padding: 8, border: "1px solid #ddd", borderRadius: 6, marginBottom: 8 }} />
-          <Textarea value={body} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBody(e.target.value)} placeholder="本文" rows={4} style={{ width: "100%", boxSizing: "border-box", padding: 8, border: "1px solid #ddd", borderRadius: 6, fontFamily: "inherit" }} />
+          <Input value={title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)} placeholder="タイトル" style={{ width: "100%", boxSizing: "border-box", padding: 8, border: "1px solid var(--color-border)", borderRadius: 6, marginBottom: 8 }} />
+          <Textarea value={body} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBody(e.target.value)} placeholder="本文" rows={4} style={{ width: "100%", boxSizing: "border-box", padding: 8, border: "1px solid var(--color-border)", borderRadius: 6, fontFamily: "inherit" }} />
           <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 8 }}>
             <label style={{ fontSize: 13 }}>公開範囲:
               <Select

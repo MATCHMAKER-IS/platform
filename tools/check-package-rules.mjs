@@ -17,6 +17,8 @@
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ALWAYS_SKIP } from "./lib/collect-files.mjs";
+import { stripComments } from "./lib/source-text.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -34,13 +36,6 @@ const ALLOW = {
   mcp: "標準入出力でやり取りする規約のため",
 };
 
-/** コメントと文字列を落とす（説明の中の記述を違反にしない）。 */
-function stripComments(src) {
-  return src
-    .replace(/\/\*\*[\s\S]*?\*\//g, "")   // JSDoc
-    .replace(/\/\*[\s\S]*?\*\//g, "")     // ブロックコメント
-    .replace(/\/\/[^\n]*/g, "");          // 行コメント
-}
 
 const RULES = [
   {
@@ -60,7 +55,7 @@ const RULES = [
 function collect(dir, out = []) {
   if (!existsSync(dir)) return out;
   for (const e of readdirSync(dir, { withFileTypes: true })) {
-    if (["node_modules", "dist"].includes(e.name)) continue;
+    if (ALWAYS_SKIP.has(e.name)) continue;
     const fp = path.join(dir, e.name);
     if (e.isDirectory()) collect(fp, out);
     else if (/\.tsx?$/.test(e.name) && !e.name.includes(".test.")) out.push(fp);

@@ -1,7 +1,8 @@
 "use client";
 /** 会計。請求・入金・仕入から自動生成した仕訳と試算表を表示。貸借一致を確認できる。 */
 import * as React from "react";
-import { Button, Input, Select, Textarea, FileInput } from "@platform/ui";
+import { formatYen } from "@platform/report";
+import { AsyncBoundary, Button, Input, Select, Textarea, FileInput, PageShell } from "@platform/ui";
 
 interface Row { date: string; description: string; account: string; debit: number; credit: number; }
 interface Balance { account: string; debit: number; credit: number; balance: number; }
@@ -12,12 +13,17 @@ interface ManualRow { date: string; description: string; account: string; debit:
 interface AccountDef { account: string; type: string; }
 interface FreeeBatch { summary: { total: number; ready: number; errors: number }; errors: { key: string; unknownAccounts: string[] }[]; }
 
-const yen = (n: number) => (n === 0 ? "—" : `¥${n.toLocaleString()}`);
+// **0 は「—」にする**(仕訳の表で 0 が並ぶと、どこに数字があるか分からない)。
+// **0 以外は基盤の `formatYen`** に任せる——2026-08 まで自前で組み立てており、
+// **マイナスが `¥-500` になっていた**(帳簿の慣行は `-¥500`)。
+// 小数も `¥1,234.5` と出ていたが、円に小数は無い
+const yen = (n: number) => (n === 0 ? "—" : formatYen(n));
 
 export interface AccountingClientProps { fetchImpl?: typeof fetch; }
 
 export function AccountingClient({ fetchImpl }: AccountingClientProps) {
   const [ledger, setLedger] = React.useState<Ledger | null>(null);
+  const [error, setError] = React.useState("");
   const [freee, setFreee] = React.useState<FreeeBatch | null>(null);
   const doFetch = fetchImpl ?? (globalThis as unknown as { fetch: typeof fetch }).fetch;
   const [detail, setDetail] = React.useState<AccountLedger | null>(null);
@@ -77,29 +83,40 @@ export function AccountingClient({ fetchImpl }: AccountingClientProps) {
   };
 
 
-  React.useEffect(() => {
-    void (async () => {
+  // **名前を付けて取り出す。** 無名の即時関数のままだと、
+  // `AsyncBoundary` の `onRetry` から呼べない(`load` が存在せず型検査で落ちていた)。
+  const load = React.useCallback(async () => {
+    setError("");
+    try {
       const res = await doFetch("/api/accounting");
-      if (res.ok) setLedger((await res.json()) as Ledger);
-    })();
+      // **失敗を握らない。** 握ると「読み込み中…」のまま止まる
+      if (!res.ok) { setError("データを取得できませんでした"); return; }
+      setLedger((await res.json()) as Ledger);
+    } catch {
+      setError("通信に失敗しました。ネットワークを確認してください");
+    }
   }, [doFetch]);
+  React.useEffect(() => { void load(); }, [load]);
 
   const exportFreee = async () => {
     const res = await doFetch("/api/accounting/freee");
     if (res.ok) setFreee((await res.json()) as FreeeBatch);
   };
 
-  if (!ledger) return <div className="mx-auto max-w-5xl p-6"><div className="flex items-center gap-2"><h1 className="text-2xl font-bold">会計</h1></div><p className="mt-4 text-sm text-[var(--color-muted)]">読み込み中…</p></div>;
+  // **`AsyncBoundary` に渡す前に返す。** children は JSX なので
+  // **この部品が判断するより先に評価される**——`ledger` が null のままだと
+  // `ledger.…` で画面ごと落ちる(2026-08 の型検査で 7 画面が同じ形だった)。
+  if (ledger === null) {
+    return <AsyncBoundary loading={error === ""} error={error} onRetry={() => void load()} />;
+  }
 
   const totalDebit = ledger.trialBalance.reduce((s, b) => s + b.debit, 0);
   const totalCredit = ledger.trialBalance.reduce((s, b) => s + b.credit, 0);
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
-      <div className="mb-1 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">会計</h1>
+    <AsyncBoundary loading={false} error={error} onRetry={() => void load()}>
+    <PageShell title="会計" width="wide">
         <span className="flex gap-2"><a href="/api/accounting/export" className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">仕訳帳CSV</a><Button onClick={exportFreee} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">freee 形式で書き出し</Button></span>
-      </div>
       <p className="mb-4 text-xs text-[var(--color-muted)]">請求（売上）・入金・仕入から仕訳を自動生成しています。会計ソフト取込用の元データです。</p>
       {freee && (
         <div className="mb-6 rounded border border-[var(--color-border)] bg-[var(--color-subtle)] p-4 text-sm">
@@ -119,13 +136,13 @@ export function AccountingClient({ fetchImpl }: AccountingClientProps) {
           <tbody>
             {ledger.trialBalance.map((b) => (
               <tr key={b.account} className="border-b border-[var(--color-border)]">
-                <td className="px-2 py-1.5"><Button onClick={() => showLedger(b.account)} className="text-[var(--color-primary)] hover:underline">{b.account}</Button></td>
+        <td className="px-2 py-1.5"><Button variant="ghost" onClick={() => showLedger(b.account)} className="text-[var(--color-primary)] hover:underline">{b.account}</Button></td>
                 <td className="px-2 py-1.5 text-right">{yen(b.debit)}</td>
                 <td className="px-2 py-1.5 text-right">{yen(b.credit)}</td>
                 <td className="px-2 py-1.5 text-right font-medium">{yen(b.balance)}</td>
               </tr>
             ))}
-            <tr className="border-t-2 border-[var(--color-border)] font-medium"><td className="px-2 py-1.5">合計</td><td className="px-2 py-1.5 text-right">¥{totalDebit.toLocaleString()}</td><td className="px-2 py-1.5 text-right">¥{totalCredit.toLocaleString()}</td><td></td></tr>
+            <tr className="border-t-2 border-[var(--color-border)] font-medium"><td className="px-2 py-1.5">合計</td><td className="px-2 py-1.5 text-right">{formatYen(totalDebit)}</td><td className="px-2 py-1.5 text-right">{formatYen(totalCredit)}</td><td></td></tr>
           </tbody>
         </table>
       </div>
@@ -151,16 +168,16 @@ export function AccountingClient({ fetchImpl }: AccountingClientProps) {
         <div className="mt-6 rounded border border-[var(--color-border)] p-4">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-sm font-medium">勘定元帳：{detail.account}</h2>
-            <Button onClick={() => setDetail(null)} className="text-xs text-[var(--color-muted)] hover:underline">閉じる</Button>
+            <Button onClick={() => setDetail(null)} variant="ghost" className="text-xs hover:underline">閉じる</Button>
           </div>
           <table className="w-full text-sm">
             <thead><tr className="border-b border-[var(--color-border)] text-left text-xs text-[var(--color-muted)]"><th className="px-2 py-1">日付</th><th className="px-2 py-1">摘要</th><th className="px-2 py-1 text-right">借方</th><th className="px-2 py-1 text-right">貸方</th><th className="px-2 py-1 text-right">残高</th></tr></thead>
             <tbody>
               {detail.lines.map((l, i) => (
-                <tr key={i} className="border-b border-[var(--color-border)]"><td className="px-2 py-1.5 text-xs">{l.date}</td><td className="px-2 py-1.5">{l.description}</td><td className="px-2 py-1.5 text-right">{l.debit ? `¥${l.debit.toLocaleString()}` : ""}</td><td className="px-2 py-1.5 text-right">{l.credit ? `¥${l.credit.toLocaleString()}` : ""}</td><td className="px-2 py-1.5 text-right font-medium">¥{l.balance.toLocaleString()}</td></tr>
+                <tr key={i} className="border-b border-[var(--color-border)]"><td className="px-2 py-1.5 text-xs">{l.date}</td><td className="px-2 py-1.5">{l.description}</td><td className="px-2 py-1.5 text-right">{l.debit ? formatYen(l.debit) : ""}</td><td className="px-2 py-1.5 text-right">{l.credit ? formatYen(l.credit) : ""}</td><td className="px-2 py-1.5 text-right font-medium">{formatYen(l.balance)}</td></tr>
               ))}
               {detail.lines.length === 0 && <tr><td colSpan={5} className="px-2 py-3 text-center text-[var(--color-muted)]">この勘定の仕訳はありません。</td></tr>}
-              <tr className="border-t-2 border-[var(--color-border)] font-medium"><td className="px-2 py-1.5" colSpan={2}>合計 / 期末残高</td><td className="px-2 py-1.5 text-right">¥{detail.debitTotal.toLocaleString()}</td><td className="px-2 py-1.5 text-right">¥{detail.creditTotal.toLocaleString()}</td><td className="px-2 py-1.5 text-right">¥{detail.closingBalance.toLocaleString()}</td></tr>
+              <tr className="border-t-2 border-[var(--color-border)] font-medium"><td className="px-2 py-1.5" colSpan={2}>合計 / 期末残高</td><td className="px-2 py-1.5 text-right">{formatYen(detail.debitTotal)}</td><td className="px-2 py-1.5 text-right">{formatYen(detail.creditTotal)}</td><td className="px-2 py-1.5 text-right">{formatYen(detail.closingBalance)}</td></tr>
             </tbody>
           </table>
         </div>
@@ -169,20 +186,20 @@ export function AccountingClient({ fetchImpl }: AccountingClientProps) {
       <div className="mt-6 rounded border border-[var(--color-border)] p-4">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-medium">手動仕訳（決算整理）の CSV 取込</h2>
-          <Button onClick={() => setImporting((v) => !v)} className="text-xs text-[var(--color-primary)] hover:underline">{importing ? "閉じる" : "取込を開く"}</Button>
+     <Button onClick={() => setImporting((v) => !v)} variant="secondary" className="text-xs hover:underline">{importing ? "閉じる" : "取込を開く"}</Button>
         </div>
         {importing && (
           <div className="mb-3">
             <p className="mb-2 text-xs text-[var(--color-muted)]">見出し「日付,摘要,勘定科目,借方,貸方,備考」。同じ日付＋摘要の行が 1 仕訳に束ねられ、貸借一致した仕訳のみ登録されます。取り込んだ仕訳は決算・元帳・仕訳帳に反映されます。</p>
-            <FileInput accept=".csv,text/csv" onSelect={(files) => { const f = files[0]; if (f) onJournalFile(f); }} className="mb-2 block text-sm" />
+            <FileInput disabled={importing} accept=".csv,text/csv" onSelect={(files) => { const f = files[0]; if (f) onJournalFile(f); }} className="mb-2 block text-sm" />
             <Textarea value={jcsv} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setJcsv(e.target.value)} rows={4} placeholder="日付,摘要,勘定科目,借方,貸方,備考&#10;2025-12-31,前払家賃,前払費用,50000,0,&#10;2025-12-31,前払家賃,支払家賃,0,50000," className="block w-full rounded border border-[var(--color-border)] px-2 py-1 font-mono text-xs" />
-            <div className="mt-2 flex items-center gap-3"><Button onClick={runJournalImport} className="rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">取り込む</Button>{importMsg && <span className="text-xs text-[var(--color-muted)]">{importMsg}</span>}</div>
+      <div className="mt-2 flex items-center gap-3"><Button variant="ghost" onClick={runJournalImport} className="rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">取り込む</Button>{importMsg && <span className="text-xs text-[var(--color-muted)]">{importMsg}</span>}</div>
           </div>
         )}
         {manual && manual.length > 0 && (
           <table className="w-full text-sm">
             <thead><tr className="border-b border-[var(--color-border)] text-left text-xs text-[var(--color-muted)]"><th className="px-2 py-1">日付</th><th className="px-2 py-1">摘要</th><th className="px-2 py-1">勘定科目</th><th className="px-2 py-1 text-right">借方</th><th className="px-2 py-1 text-right">貸方</th></tr></thead>
-            <tbody>{manual.map((r, i) => <tr key={i} className="border-b border-[var(--color-border)]"><td className="px-2 py-1.5 text-xs">{r.date}</td><td className="px-2 py-1.5">{r.description}</td><td className="px-2 py-1.5">{r.account}</td><td className="px-2 py-1.5 text-right">{r.debit ? `¥${r.debit.toLocaleString()}` : ""}</td><td className="px-2 py-1.5 text-right">{r.credit ? `¥${r.credit.toLocaleString()}` : ""}</td></tr>)}</tbody>
+            <tbody>{manual.map((r, i) => <tr key={i} className="border-b border-[var(--color-border)]"><td className="px-2 py-1.5 text-xs">{r.date}</td><td className="px-2 py-1.5">{r.description}</td><td className="px-2 py-1.5">{r.account}</td><td className="px-2 py-1.5 text-right">{r.debit ? formatYen(r.debit) : ""}</td><td className="px-2 py-1.5 text-right">{r.credit ? formatYen(r.credit) : ""}</td></tr>)}</tbody>
           </table>
         )}
         {manual && manual.length === 0 && !importing && <p className="text-xs text-[var(--color-muted)]">登録された手動仕訳はありません。</p>}
@@ -191,7 +208,7 @@ export function AccountingClient({ fetchImpl }: AccountingClientProps) {
       <div className="mt-6 rounded border border-[var(--color-border)] p-4">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-medium">勘定科目マスタ（科目 → 区分）</h2>
-          <Button onClick={() => setShowAccounts((v) => !v)} className="text-xs text-[var(--color-primary)] hover:underline">{showAccounts ? "閉じる" : "開く"}</Button>
+     <Button onClick={() => setShowAccounts((v) => !v)} variant="secondary" className="text-xs hover:underline">{showAccounts ? "閉じる" : "開く"}</Button>
         </div>
         {showAccounts && (
           <>
@@ -199,17 +216,18 @@ export function AccountingClient({ fetchImpl }: AccountingClientProps) {
             <div className="mb-3 flex flex-wrap items-end gap-2">
               <label className="text-xs text-[var(--color-muted)]">科目名<Input value={acctForm.account} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAcctForm({ ...acctForm, account: e.target.value })} placeholder="例: 支払保険料" className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
               <label className="text-xs text-[var(--color-muted)]">区分<Select value={acctForm.type} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setAcctForm({ ...acctForm, type: e.target.value })} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" options={[{ label: "資産", value: "asset" }, { label: "負債", value: "liability" }, { label: "純資産", value: "equity" }, { label: "収益", value: "revenue" }, { label: "費用", value: "expense" }]} /></label>
-              <Button onClick={saveAccount} className="rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">登録</Button>
+       <Button onClick={saveAccount} className="rounded px-4 py-1.5 text-sm text-white">登録</Button>
             </div>
             {accounts && (
               <table className="w-full text-sm">
                 <thead><tr className="border-b border-[var(--color-border)] text-left text-xs text-[var(--color-muted)]"><th className="px-2 py-1">科目</th><th className="px-2 py-1">区分</th><th className="px-2 py-1"></th></tr></thead>
-                <tbody>{accounts.map((a) => <tr key={a.account} className="border-b border-[var(--color-border)]"><td className="px-2 py-1.5">{a.account}</td><td className="px-2 py-1.5">{TYPE_LABEL[a.type] ?? a.type}</td><td className="px-2 py-1.5 text-right"><Button onClick={() => removeAccount(a.account)} className="text-xs text-[var(--color-danger)] hover:underline">削除</Button></td></tr>)}</tbody>
+                <tbody>{accounts.map((a) => <tr key={a.account} className="border-b"><td className="px-2 py-1.5">{a.account}</td><td className="px-2 py-1.5">{TYPE_LABEL[a.type] ?? a.type}</td><td className="px-2 py-1.5 text-right"><Button variant="ghost" onClick={() => removeAccount(a.account)} className="text-xs text-[var(--color-danger)] hover:underline">削除</Button></td></tr>)}</tbody>
               </table>
             )}
           </>
         )}
       </div>
-    </div>
+    </PageShell>
+    </AsyncBoundary>
   );
 }

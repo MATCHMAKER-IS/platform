@@ -22,14 +22,46 @@ export function roundAmount(value: number, mode: RoundingMode = "round"): number
   return Math.round(value);
 }
 
+/** 負の金額の書き方。 */
+export type NegativeStyle =
+  /** `-¥5,000`。記号の前に符号を置く(既定)。 */
+  | "sign"
+  /** `△5,000`。**日本の会計帳票の慣行**。決算書・試算表はこちら。 */
+  | "triangle"
+  /** `(¥5,000)`。英文会計。海外向けの資料で使う。 */
+  | "paren";
+
 /**
  * 円表記にする。
  *
+ * **負の金額に `¥-5,000` と書かない。** 2026-08 まで単純に記号を前置しており、
+ * 還付・返金・差額をそのまま出すと `¥-5,000` になっていた。
+ * 日本の会計帳票では `△5,000`、一般的な画面では `-¥5,000` と書く。
+ * `packages/accounting` は消費税の還付(マイナス)を扱うので、実際に出る値。
+ *
+ * **端数は切り捨てる**(`Math.trunc`)。四捨五入したいなら先に
+ * {@link roundAmount} を通すこと——ここで丸めると、
+ * 明細ごとに丸めた合計が総額と合わなくなる。
+ *
  * @param value 金額
- * @returns `¥1,234` 形式(**桁区切りつき**。帳票では必須)
+ * @param negative 負の値の書き方(既定 `sign` = `-¥5,000`)
+ * @returns 桁区切り付きの円表記
+ *
+ * @example
+ * ```ts
+ * formatYen(1234567);              // "¥1,234,567"
+ * formatYen(-5000);                // "-¥5,000"
+ * formatYen(-5000, "triangle");    // "△5,000"  (決算書・試算表)
+ * formatYen(-5000, "paren");       // "(¥5,000)" (英文会計)
+ * ```
  */
-export function formatYen(value: number): string {
-  return `¥${Math.trunc(value).toLocaleString("ja-JP")}`;
+export function formatYen(value: number, negative: NegativeStyle = "sign"): string {
+  const n = Math.trunc(value);
+  const body = Math.abs(n).toLocaleString("ja-JP");
+  if (n >= 0) return `¥${body}`;
+  if (negative === "triangle") return `△${body}`;
+  if (negative === "paren") return `(¥${body})`;
+  return `-¥${body}`;
 }
 
 /**

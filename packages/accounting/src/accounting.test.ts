@@ -103,3 +103,63 @@ describe("accounting sync", () => {
     expect(summarizeSync(r3.results).failed).toBe(2);
   });
 });
+
+describe("送ったか分からない状態を failed と混ぜない", () => {
+  const entry = (id: string) => ({
+    id, date: "2026-08-10",
+    lines: [{ account: "現金", debit: 1000, credit: 0 }, { account: "売上", debit: 0, credit: 1000 }],
+  }) as never;
+  const ids = { 現金: 1, 売上: 2 };
+
+  // **通信が切れた場合は「送ったか分からない」。** `failed` にすると再送されて
+  // **二重計上**になる——会計で最も重い誤り(2026-08 に `unknown` を追加)
+  it("送信で例外が出たら unknown", async () => {
+    let n = 0;
+    const r = await syncJournals([entry("a"), entry("b"), entry("c")], {
+      send: async () => { n += 1; if (n === 2) throw new Error("タイムアウト"); return { ok: true }; },
+      accountItemIds: ids,
+      alreadySent: new Set(),
+    });
+    expect(summarizeSync(r.results)).toMatchObject({ sent: 2, unknown: 1, failed: 0 });
+  });
+  // **例外で処理全体を止めない。** 止めると `results` ごと失われ、
+  // **そこまでに送った分の記録が残らない**——再実行で二重計上になる
+  it("例外が出ても残りを処理する", async () => {
+    const r = await syncJournals([entry("a"), entry("b"), entry("c")], {
+      send: async () => { throw new Error("切断"); },
+      accountItemIds: ids,
+      alreadySent: new Set(),
+    });
+    expect(r.results).toHaveLength(3);
+    expect(summarizeSync(r.results).unknown).toBe(3);
+  });
+  // **相手が拒否した場合は failed**(届いていないので再送してよい)
+  it("拒否されたら failed", async () => {
+    const r = await syncJournals([entry("a")], {
+      send: async () => ({ ok: false, error: "科目が不正" }),
+      accountItemIds: ids,
+      alreadySent: new Set(),
+    });
+    expect(summarizeSync(r.results)).toMatchObject({ failed: 1, unknown: 0 });
+  });
+});
+
+describe("送ったか分からないものを冪等キーに入れない", () => {
+  const entry = (id: string) => ({
+    id, date: "2026-08-10",
+    lines: [{ account: "現金", debit: 1000, credit: 0 }, { account: "売上", debit: 0, credit: 1000 }],
+  }) as never;
+
+  // **`sent` にだけ入れる。** `unknown` を入れると、届いていなかった場合に
+  // **二度と送られず欠落**する。入れなければ再送で二重計上——
+  // どちらも危険なので、**人が確認するまで保留**する(2026-08)
+  it("unknown は sent に含めない", async () => {
+    const r = await syncJournals([entry("a"), entry("b")], {
+      send: async () => { throw new Error("切断"); },
+      accountItemIds: { 現金: 1, 売上: 2 },
+      alreadySent: new Set(),
+    });
+    expect(r.sent).toEqual([]);
+    expect(summarizeSync(r.results).unknown).toBe(2);
+  });
+});

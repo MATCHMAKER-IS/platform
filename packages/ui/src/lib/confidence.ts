@@ -70,6 +70,7 @@ export function bucketWords<T extends { confidence?: number }>(words: T[], thres
  * 階層ごとの件数を数える。
  *
  * @param words 階層を付けた単語
+ * @param thresholds 高・中・低の境目（**省略すると既定値**）
  * @returns 階層 → 件数(**low が多ければ、再スキャンを促す**)
  */
 export function countByTier<T extends { confidence?: number }>(words: T[], thresholds?: ConfidenceThresholds): Record<ConfidenceTier, number> {

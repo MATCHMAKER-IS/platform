@@ -68,9 +68,12 @@ async function refreshFreeeToken(config: FreeeTokenConfig): Promise<FreeeTokenRe
  * (使うたびに新しいものが返る)。取りこぼすと再認可が必要になるので、
  * **必ず `onRefresh` で保存すること**。
  *
- * @param options.refreshToken リフレッシュトークン
- * @param options.clientId / clientSecret アプリの認証情報
- * @param options.onRefresh 更新時の通知(**保存に使う。必須**)
+ * @param config.clientId アプリのクライアント ID
+ * @param config.clientSecret アプリのシークレット
+ * @param config.refreshToken リフレッシュトークン
+ * @param config.initialAccessToken 初期アクセストークン（無ければ初回に更新）
+ * @param config.initialExpiresAt 初期の有効期限（epoch ms）
+ * @param config.onRefresh 更新時の通知(**保存に使う。必須**)
  * @returns トークンマネージャ
  */
 export function createFreeeTokenManager(config: FreeeTokenConfig): FreeeTokenManager {

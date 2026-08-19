@@ -33,7 +33,6 @@ export interface UseNotificationsResult {
   setAll: (notifications: AppNotification[]) => void;
 }
 
-/** 通知状態 + リアルタイム購読を管理するフック。 */
 /**
  * 通知の購読と表示。
  *

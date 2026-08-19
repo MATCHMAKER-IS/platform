@@ -46,7 +46,6 @@ const MODES: { key: PrefMode; label: string }[] = [
   { key: "off", label: "オフ" },
 ];
 
-/** 通知設定フォーム。 */
 /**
  * 通知の設定(何を受け取るか)。
  *

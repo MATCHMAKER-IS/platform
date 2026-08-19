@@ -1,7 +1,7 @@
 "use client";
 /** APIキー（サービスアカウント）管理。外部システム連携用の鍵を発行・失効する。平文キーは発行直後のみ表示。 */
 import * as React from "react";
-import { Button, Checkbox, Input } from "@platform/ui";
+import { Button, Checkbox, Input, PageShell } from "@platform/ui";
 
 interface Account { id: string; name: string; displayPrefix: string; scopes: string[]; active: boolean; createdAt: string; }
 const SCOPE_OPTIONS = ["invoice:read", "invoice:write", "partner:read", "accounting:read", "inventory:read"];
@@ -31,10 +31,7 @@ export function ServiceAccountsClient({ fetchImpl }: { fetchImpl?: typeof fetch 
   };
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <h1 className="mb-1 text-2xl font-bold">APIキー（サービスアカウント）</h1>
-      <p className="mb-4 text-xs text-[var(--color-muted)]">外部システムやスクリプトが Bearer トークンで社内APIを呼ぶための鍵です。平文キーは発行直後の一度だけ表示されます。</p>
-
+        <PageShell title="APIキー（サービスアカウント）" description="外部システムやスクリプトが Bearer トークンで社内APIを呼ぶための鍵です。平文キーは発行直後の一度だけ表示されます。">
       {issued && (
         <div className="mb-4 rounded border border-[color-mix(in_srgb,var(--color-warning)_40%,transparent)] bg-[color-mix(in_srgb,var(--color-warning)_8%,transparent)] p-3">
           <p className="text-sm font-medium text-[var(--color-warning)]">キーを発行しました（この画面を離れると再表示できません）:</p>
@@ -49,7 +46,7 @@ export function ServiceAccountsClient({ fetchImpl }: { fetchImpl?: typeof fetch 
         <div className="mb-3 flex flex-wrap gap-2">
           {SCOPE_OPTIONS.map((s) => <label key={s} className="flex items-center gap-1 rounded border border-[var(--color-border)] px-2 py-1 text-xs"><Checkbox  checked={scopes.includes(s)} onCheckedChange={() => toggleScope(s)} />{s}</label>)}
         </div>
-        <Button onClick={create} className="rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white">キーを発行</Button>
+    <Button onClick={create} className="rounded px-4 py-2 text-sm text-white">キーを発行</Button>
       </div>
 
       <div className="divide-y divide-neutral-100 rounded border border-[var(--color-border)]">
@@ -59,11 +56,11 @@ export function ServiceAccountsClient({ fetchImpl }: { fetchImpl?: typeof fetch 
               <p className="text-sm font-medium">{a.name} <span className={`ml-1 rounded px-1.5 py-0.5 text-xs ${a.active ? "bg-[color-mix(in_srgb,var(--color-success)_15%,transparent)] text-[var(--color-success)]" : "bg-[var(--color-subtle-strong)] text-[var(--color-muted)]"}`}>{a.active ? "有効" : "失効"}</span></p>
               <p className="text-xs text-[var(--color-muted)]"><code>{a.displayPrefix}…</code> [{a.scopes.join(", ")}]</p>
             </div>
-            <Button onClick={() => setActive(a.id, !a.active)} className="text-xs text-[var(--color-primary)] hover:underline">{a.active ? "失効させる" : "再有効化"}</Button>
+      <Button onClick={() => setActive(a.id, !a.active)} variant="secondary" className="text-xs hover:underline">{a.active ? "失効させる" : "再有効化"}</Button>
           </div>
         ))}
         {accounts.length === 0 && <p className="px-3 py-6 text-center text-sm text-[var(--color-muted)]">APIキーはありません。</p>}
       </div>
-    </div>
+    </PageShell>
   );
 }

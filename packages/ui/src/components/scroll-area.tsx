@@ -17,7 +17,6 @@ export interface ScrollAreaProps extends React.HTMLAttributes<HTMLDivElement> {
   threshold?: number;
 }
 
-/** 枠内スクロール表示のコンテナ。 */
 /**
  * 独自の枠内スクロール。
  *

@@ -20,7 +20,6 @@ export interface ChatWindowProps {
   className?: string;
 }
 
-/** チャットウィンドウ(ヘッダ+一覧+入力)。 */
 /**
  * 会話の画面(履歴 + 入力)。
  *

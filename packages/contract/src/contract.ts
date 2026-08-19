@@ -12,6 +12,19 @@
 import { AppError, ErrorCode } from "@platform/core";
 
 /** 契約の状態。 */
+/**
+ * 「今」を **JST の日付**として UTC 0 時に正規化する。
+ *
+ * **`new Date()` をそのまま使わない。** UTC で動くサーバ(クラウドの既定)では
+ * JST の 00:00〜08:59 が前日として扱われ、**判定が 1 日ずれる**。
+ * `@platform/datetime` に依存を増やさないための最小実装
+ * (9 時間ずらして UTC として読むだけ。`formatDateJst` と同じ計算)。
+ */
+function todayUtcFromJst(now: Date = new Date()): Date {
+  const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return new Date(`${jst}T00:00:00.000Z`);
+}
+
 export type ContractStatus =
   /** 作成中(まだ効力なし)。 */
   | "draft"
@@ -82,7 +95,7 @@ function ymd(d: Date): string {
  * @param today    基準日(テスト注入用。既定は今日)
  * @returns 開始日 <= today <= 終了日 なら true
  */
-export function isInEffect(contract: Contract, today = new Date()): boolean {
+export function isInEffect(contract: Contract, today = todayUtcFromJst()): boolean {
   const t = ymd(today);
   return contract.startDate <= t && t <= contract.endDate;
 }
@@ -94,7 +107,7 @@ export function isInEffect(contract: Contract, today = new Date()): boolean {
  * @param today    基準日(テスト注入用)
  * @returns 残り日数(**過ぎていれば負**)
  */
-export function daysUntilEnd(contract: Contract, today = new Date()): number {
+export function daysUntilEnd(contract: Contract, today = todayUtcFromJst()): number {
   const end = toDate(contract.endDate).getTime();
   const base = toDate(ymd(today)).getTime();
   return Math.round((end - base) / 86_400_000);
@@ -128,7 +141,7 @@ export function noticeDeadline(contract: Contract): string | undefined {
  * @param today    基準日(テスト注入用)
  * @returns 期限内なら true。**予告期間が無い契約は常に true**(いつでも申し出られる)
  */
-export function canGiveNotice(contract: Contract, today = new Date()): boolean {
+export function canGiveNotice(contract: Contract, today = todayUtcFromJst()): boolean {
   const deadline = noticeDeadline(contract);
   if (deadline === undefined) return true;
   return ymd(today) <= deadline;
@@ -159,7 +172,7 @@ export interface ContractAlert {
  * @param soonDays  「近い」とみなす日数(既定 30)
  * @returns 深刻な順(danger → warning → info)。期限の近い順
  */
-export function contractAlerts(contracts: Contract[], today = new Date(), soonDays = 30): ContractAlert[] {
+export function contractAlerts(contracts: Contract[], today = todayUtcFromJst(), soonDays = 30): ContractAlert[] {
   const alerts: ContractAlert[] = [];
 
   for (const c of contracts) {
@@ -226,7 +239,7 @@ export function contractAlerts(contracts: Contract[], today = new Date(), soonDa
  * renew(contract);
  * ```
  */
-export function renew(contract: Contract, now = new Date()): Contract {
+export function renew(contract: Contract, now = todayUtcFromJst()): Contract {
   if (contract.renewalType === "none") {
     throw new AppError(ErrorCode.VALIDATION, "この契約は更新できません(renewalType: none)");
   }
@@ -272,7 +285,7 @@ export interface ContractSummary {
  * @param today     基準日(テスト注入用)
  * @returns 件数・緊急対応数・金額・取引先別
  */
-export function summarizeContracts(contracts: Contract[], today = new Date()): ContractSummary {
+export function summarizeContracts(contracts: Contract[], today = todayUtcFromJst()): ContractSummary {
   const active = contracts.filter((c) => c.status === "active");
   const alerts = contractAlerts(contracts, today);
   const map = new Map<string, { count: number; amount: number }>();

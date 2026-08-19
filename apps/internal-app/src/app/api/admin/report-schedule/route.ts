@@ -1,23 +1,23 @@
 /** 管理: レポート配信スケジュールの一覧(GET)・追加/有効切替/削除(POST)。管理者のみ。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { reportScheduleStore } from "../../../../server/platform-services";
 import { type ReportType, type ReportFrequency } from "../../../../server/report-schedule";
 
 function admin(req: Request) {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   return user && user.roles.includes("admin") ? user : null;
 }
 
 async function handleGET(req: Request): Promise<Response> {
-  if (!admin(req)) return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
+  if (!admin(req)) return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
   return Response.json({ schedules: await reportScheduleStore.list() });
 }
 
 async function handlePOST(req: Request): Promise<Response> {
-  if (!admin(req)) return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
-  const body = (await req.json()) as { op?: string; reportType?: ReportType; frequency?: ReportFrequency; recipient?: string; id?: string; enabled?: boolean };
+  if (!admin(req)) return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
+  const body = (await req.json().catch(() => ({}))) as { op?: string; reportType?: ReportType; frequency?: ReportFrequency; recipient?: string; id?: string; enabled?: boolean };
   if (body.op === "add" && body.reportType && body.frequency && body.recipient) {
     const s = await reportScheduleStore.add(body.reportType, body.frequency, body.recipient);
     return Response.json({ id: s.id }, { status: 201 });

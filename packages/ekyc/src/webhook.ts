@@ -4,7 +4,9 @@
  * @packageDocumentation
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { normalizeEkycStatus, type EkycStatus } from "./status";
+// **解析は `./webhook-parse` に分けてある。** 画面から使うときは
+// `@platform/ekyc/webhook-parse` を直接取ること（ここは node:crypto を巻き込む）
+export { parseEkycWebhook, type EkycWebhookEvent } from "./webhook-parse";
 
 /**
  * Webhook 署名を検証する。
@@ -22,65 +24,4 @@ export function verifyEkycSignature(body: string, signature: string, secret: str
   } catch {
     return false;
   }
-}
-
-/** 正規化された eKYC Webhook イベント。 */
-export interface EkycWebhookEvent {
-  /** ベンダー発行の申込 ID。 */
-  applicationId?: string;
-  /** 正規化ステータス。 */
-  status: EkycStatus;
-  /** 生のステータス文字列。 */
-  rawStatus?: string;
-  /** 却下理由等。 */
-  reason?: string;
-  /** イベント全体(ベンダー固有フィールドを参照する用)。 */
-  raw: Record<string, unknown>;
-}
-
-/**
- * Webhook ボディをパースして正規化イベントにする。
- * フィールド名はベンダーで異なるため、抽出関数で調整できる(既定は一般的な名前を探す)。
- *
- * @param body リクエストボディ
- * @returns イベント。**解析できなくても例外を投げない**(status は `unknown` になる)。
- *
- * @remarks
- * webhook の入口で throw すると 500 が返り、**ベンダーがリトライを繰り返す**
- * (壊れたボディは何度送っても壊れている)。200 で受けてログに残すのが正しい。
- */
-export function parseEkycWebhook(
-  body: string,
-  options?: {
-    idField?: string;
-    statusField?: string;
-    reasonField?: string;
-    statusMapping?: Record<string, EkycStatus>;
-  },
-): EkycWebhookEvent {
-  // **例外を投げない。** webhook の入口で throw すると 500 が返り、
-  // ベンダーがリトライを繰り返す(壊れたボディは何度送っても壊れている)。
-  let raw: Record<string, unknown>;
-  try {
-    const parsed: unknown = JSON.parse(body);
-    raw = parsed !== null && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {};
-  } catch {
-    raw = {};
-  }
-  const pick = (obj: Record<string, unknown>, names: string[]): unknown => {
-    for (const n of names) if (obj[n] !== undefined) return obj[n];
-    return undefined;
-  };
-  const idField = options?.idField;
-  const statusField = options?.statusField;
-  const applicationId = (idField ? raw[idField] : pick(raw, ["application_id", "applicationId", "id", "verification_id"])) as string | undefined;
-  const rawStatus = (statusField ? raw[statusField] : pick(raw, ["status", "result", "state"])) as string | undefined;
-  const reason = (options?.reasonField ? raw[options.reasonField] : pick(raw, ["reason", "message", "detail"])) as string | undefined;
-  return {
-    ...(applicationId ? { applicationId } : {}),
-    status: normalizeEkycStatus(rawStatus, options?.statusMapping),
-    ...(rawStatus ? { rawStatus } : {}),
-    ...(reason ? { reason } : {}),
-    raw,
-  };
 }

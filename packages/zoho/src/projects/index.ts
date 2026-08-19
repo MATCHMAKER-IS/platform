@@ -1,6 +1,16 @@
 /**
  * `@platform/zoho/projects` — Zoho Projects API クライアント。
  * ベースは `projectsapi.zoho.{dc}/restapi`。ポータル(portalId)配下のプロジェクト/タスク。
+ *
+ * 【ページングの注意】
+ *
+ * **オフセット方式なので、取得中にレコードが増減すると重複・欠落が起きる。**
+ * 1 ページ目を取った後に 1 件追加されると全体が 1 つずれ、**同じレコードを再取得**する。
+ * 削除された場合は逆に **1 件飛ばす**——件数だけ合っていても中身が違いうる。
+ *
+ * CRM は `page_token`(カーソル方式)なので起きないが、こちらは避けられない。
+ * **一括同期は業務時間外に回すこと**。日中に回すなら、
+ * **取得後に ID の重複を除く**(件数ではなく ID で突き合わせる)。
  * @packageDocumentation
  */
 import type { Result } from "@platform/core";
@@ -35,8 +45,9 @@ export interface ZohoProjectsClient {
 /**
  * Zoho Projects(プロジェクト管理)のクライアントを作る。
  *
- * @param config.tokenManager トークンマネージャ(**自動更新される**)
- * @param config.dc データセンター(**契約時の DC を指定**。間違えると 404 になる)
+ * @param config.dataCenter データセンター(**契約時の DC を指定**。間違えると 404 になる)
+ * @param config.accessToken アクセストークン(有効期限切れは呼び出し側で更新する)
+ * @param config.portalId ポータル ID
  * @param config.fetchImpl fetch の実装(テスト注入用)
  * @returns Projects のクライアント。**すべてのメソッドは Result 型を返す**(例外を投げない)
  */

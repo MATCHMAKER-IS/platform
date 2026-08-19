@@ -1,5 +1,5 @@
 /** sitemap.xml。全公開ページを列挙する。 */
-import { buildSitemap, type SitemapEntry } from "@platform/seo";
+import { buildSitemap, type SitemapEntry } from "@platform/feed";
 import { content, siteConfig } from "../../server/content";
 
 export async function GET(): Promise<Response> {

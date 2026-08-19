@@ -6,7 +6,6 @@ import * as React from "react";
 import { RadioGroup as Primitive } from "radix-ui";
 import { cn } from "../lib/cn";
 
-/** ラジオグループのルート。 */
 /**
  * 排他的な選択(いくつかから 1 つ選ぶ)。
  *

@@ -20,7 +20,12 @@ export const APP_POLICY: Policy = resolveHierarchy({
   // 登録・更新もできる
   editor: { inherits: ["viewer"], permissions: ["item:write"] },
   // 何でもできる
-  admin: { inherits: ["editor"], permissions: ["*"] },
+  //
+  // **`system:manage` を明示する。** `"*"` があっても、
+  // `check-permissions` は**ポリシーに書かれた名前だけ**を見ます——
+  // 名前を書いておかないと「定義されていない権限」として弾かれ、
+  // **打ち間違い（`system:mange`）に気づけません**
+  admin: { inherits: ["editor"], permissions: ["*", "system:manage"] },
 });
 
 /** ログイン中の利用者。実際にはセッションから取り出す。 */
@@ -42,7 +47,7 @@ const STUB_USER: CurrentUser = { id: "demo-user", roles: ["editor"] };
  *
  * **雛形では固定値を返す**(認証の作り込みはアプリごとに違うため)。
  * 実装するときは @platform/session の `verifySession` でセッション Cookie を検証し、
- * 中身の userId / roles を返す。実際に動く例は `apps/equipment-app/src/server/guard.ts`、
+ * 中身の userId / roles を返す。実際に動く例は `apps/internal-app/src/server/authorize.ts`、
  * 画面込みの流れは `/login` デモにある。
  *
  * **本番では必ず例外を投げる。** 固定値を返したまま公開すると、`requirePermission` は
@@ -61,7 +66,7 @@ export function currentUser(_req: Request): CurrentUser | null {
     throw new AppError(
       ErrorCode.INTERNAL,
       "認証が実装されていません。apps/crud-template/src/server/authorize.ts の currentUser を "
-      + "実際のセッション検証に差し替えてください(実例: apps/equipment-app/src/server/guard.ts)",
+      + "実際のセッション検証に差し替えてください(実例: apps/internal-app/src/server/authorize.ts)",
     );
   }
   const user: CurrentUser | null = STUB_USER;

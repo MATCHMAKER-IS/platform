@@ -18,8 +18,14 @@ export interface MentionContext {
 
 /** メンション通知の構成。 */
 export interface MentionNotifyOptions {
-  /** handle(メンション名)からその人の通知口を解決する。無ければ通知しない。 */
-  notifierFor: (handle: string) => Notifier | undefined;
+  /**
+   * handle(メンション名)からその人の通知口を解決する。無ければ通知しない。
+   *
+   * **非同期でよい。** 宛先は利用者台帳(DB)から引くので、
+   * 同期に縛ると「起動時に全部読んでおく」しかなくなり、
+   * 入社・退職が反映されない。
+   */
+  notifierFor: (handle: string) => Notifier | undefined | Promise<Notifier | undefined>;
   /** 本文テンプレート。{{sender}} {{context}} {{text}} を使える。 */
   template?: string;
   /** 送信者自身へのメンションを除外(既定 true)。 */
@@ -50,7 +56,7 @@ export function buildMentionNotifier(opts: MentionNotifyOptions): (ctx: MentionC
         skipped.push(handle);
         continue;
       }
-      const notifier = opts.notifierFor(handle);
+      const notifier = await opts.notifierFor(handle);
       if (!notifier) {
         skipped.push(handle);
         continue;

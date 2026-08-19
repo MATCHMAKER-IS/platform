@@ -1,12 +1,12 @@
 /** 買掛金: エイジングと支払予定(GET)。発注と支払記録から算出。purchase:read。 */
 import { withApiObservability } from "../../../server/instrument";
 import { currentUser, requirePermission } from "../../../server/authorize";
-import { serverEnv } from "../../../server/env";
+import "../../../server/env";
 import { purchaseStore, purchasePaymentStore } from "../../../server/platform-services";
 import { payablesSummary, type PayableOrder } from "../../../server/payables-repo";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "purchase:read");
   const orders = await purchaseStore.list();
   const paid = await purchasePaymentStore.paidByOrder();

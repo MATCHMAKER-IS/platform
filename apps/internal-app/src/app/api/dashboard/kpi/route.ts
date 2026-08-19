@@ -1,14 +1,14 @@
 /** ダッシュボード: 経営 KPI(GET)。売掛・買掛・在庫・勤怠承認・請求を集約。dashboard:read。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { invoiceStore, purchaseStore, purchasePaymentStore, inventoryStore, attendanceApprovalStore } from "../../../../server/platform-services";
 import { receivablesSummary, type ReceivableInvoice } from "../../../../server/receivables";
 import { payablesSummary, type PayableOrder } from "../../../../server/payables-repo";
 import { buildKpi, overdueFromAging } from "../../../../server/dashboard-kpi";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "dashboard:read");
   const now = new Date();
 

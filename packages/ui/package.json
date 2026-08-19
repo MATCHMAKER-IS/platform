@@ -17,10 +17,12 @@
     "test": "vitest run src/lib"
   },
   "dependencies": {
+    "@platform/analytics": "workspace:*",
     "@platform/bluetooth": "workspace:*",
     "@platform/csv": "workspace:*",
     "@platform/datetime": "workspace:*",
     "@platform/device": "workspace:*",
+    "@platform/env": "workspace:*",
     "@platform/hid": "workspace:*",
     "@platform/html": "workspace:*",
     "@platform/i18n": "workspace:*",
@@ -56,8 +58,12 @@
   },
   "devDependencies": {
     "@platform/config": "workspace:*",
+    "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "typescript": "^5.7.3",
     "vitest": "^3.0.4"
+  },
+  "platform": {
+    "tier": "stable"
   }
 }

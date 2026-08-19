@@ -18,7 +18,6 @@ export interface PrintButtonProps extends Omit<ButtonProps, "onClick"> {
   printOptions?: PrintOptions;
 }
 
-/** 印刷ボタン。html / targetRef のいずれも無ければページ全体を印刷。 */
 /**
  * 印刷ボタン。
  *

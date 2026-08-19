@@ -1,13 +1,13 @@
 /** 管理: ログイン監視(GET)。監査ログの認証イベント(target=auth)を集計・一覧。管理者のみ。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { auditLog } from "../../../../server/platform-services";
 import { summarizeLogins } from "../../../../server/audit-summary";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
-  if (!user || !user.roles.includes("admin")) return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
+  const user = currentUser(req);
+  if (!user || !user.roles.includes("admin")) return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
   const rows = await auditLog.query({ target: "auth", limit: 200 });
   return Response.json({ summary: summarizeLogins(rows), recent: rows.slice(0, 50) });
 }

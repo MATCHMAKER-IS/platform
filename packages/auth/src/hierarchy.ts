@@ -31,7 +31,13 @@ export type RoleHierarchy = Record<Role, RoleDefinition>;
  *
  * @param hierarchy ロールごとの「自分の権限」と「継承元のロール」
  * @returns 継承を解決済みの {@link Policy}(`can` にそのまま渡せる)
- * @throws {@link @platform/core#AppError} コード `VALIDATION` — 継承が循環している場合
+ *
+ * **循環しても例外は投げない**(`return []` で無視する)。
+ * 2026-08 まで「循環している場合は例外」と書いてあり、**同じ説明の中で
+ * 「循環は安全に無視」と矛盾**していた。`try/catch` で待ち構えると、
+ * **循環したまま権限が空になった状態で動き続ける**——
+ * 「なぜか権限が無い」という形で現れ、原因の特定が難しい。
+ * **循環を検出したいなら、呼び出し側で定義そのものを検査すること**。
  */
 export function resolveHierarchy(hierarchy: RoleHierarchy): Policy {
   const cache: Record<Role, Permission[]> = {};

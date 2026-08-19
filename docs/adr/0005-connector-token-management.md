@@ -2,7 +2,7 @@
 
 - ステータス: 承認
 - 日付: 2026-07
-- 関連: ADR 0002(基盤とアプリの分離)、`docs/platform/INTEGRATIONS.md`
+- 関連: ADR 0002(基盤とアプリの分離)、`docs/platform/CATALOG.md`
 
 ## 背景
 

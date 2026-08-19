@@ -74,3 +74,102 @@ export function createMemoryRoomRepo(options: { newId?: () => string } = {}): Ro
     },
   };
 }
+
+/** Prisma のうち、この層が使う部分だけ。 */
+export interface RoomRepoDb {
+  chatRoomRow: {
+    create(args: unknown): Promise<{ id: string; name: string; kind: string; createdAt: Date }>;
+    findUnique(args: unknown): Promise<{ id: string; name: string; kind: string; createdAt: Date } | null>;
+    findMany(args: unknown): Promise<{ id: string; name: string; kind: string; createdAt: Date }[]>;
+  };
+  roomMemberRow: {
+    createMany(args: unknown): Promise<unknown>;
+    findMany(args: unknown): Promise<{ roomId: string; userId: string }[]>;
+    deleteMany(args: unknown): Promise<unknown>;
+    findFirst(args: unknown): Promise<{ roomId: string } | null>;
+  };
+}
+
+/**
+ * Prisma 実装(本番用)。
+ *
+ * **メモリ実装のままだと再起動でルームが消える。**
+ * 作った翌日に「昨日のルームが無い」となるので、
+ * 業務で使うなら保存が要る(2026-08 に気づいた)。
+ *
+ * @param db Prisma クライアント
+ * @returns リポジトリ
+ */
+export function createPrismaRoomRepo(db: RoomRepoDb): RoomRepository {
+  /** 行と参加者から ChatRoom を組み立てる。 */
+  const toRoom = (
+    r: { id: string; name: string; kind: string; createdAt: Date },
+    memberIds: string[],
+  ): ChatRoom => ({
+    id: r.id, name: r.name, kind: r.kind as RoomKind,
+    memberIds, createdAt: r.createdAt.toISOString(),
+  });
+
+  return {
+    async create(input) {
+      // **作成者は必ず参加者に入れる。** 自分が入れないルームを作れてしまう
+      const members = [...new Set([input.ownerId, ...(input.memberIds ?? [])])];
+      // **ルームと参加者を 1 回で作る。**
+      // 2 回に分けると、参加者の登録で失敗したとき
+      // **誰も入っていないルームが残る**(作った本人すら入れない)。
+      // 入れ子で書けば Prisma が 1 つのトランザクションにまとめる
+      const row = await db.chatRoomRow.create({
+        data: {
+          ...(input.id !== undefined ? { id: input.id } : {}),
+          name: input.name,
+          kind: input.kind,
+          members: {
+            create: members.map((userId) => ({
+              userId,
+              role: userId === input.ownerId ? "owner" : "member",
+            })),
+          },
+        },
+      });
+      return toRoom(row, members);
+    },
+
+    async addMember(roomId, userId) {
+      // **既に居れば何もしない。** 二重に押しても増えない
+      const found = await db.roomMemberRow.findFirst({ where: { roomId, userId } });
+      if (found !== null) return;
+      await db.roomMemberRow.createMany({ data: [{ roomId, userId, role: "member" }] });
+    },
+
+    async removeMember(roomId, userId) {
+      await db.roomMemberRow.deleteMany({ where: { roomId, userId } });
+    },
+
+    async roomIdsForUser(userId) {
+      const rows = await db.roomMemberRow.findMany({ where: { userId } });
+      return rows.map((r) => r.roomId);
+    },
+
+    async roomsForUser(userId) {
+      const ids = await this.roomIdsForUser(userId);
+      if (ids.length === 0) return [];
+      const rows = await db.chatRoomRow.findMany({
+        where: { id: { in: ids } },
+        orderBy: { createdAt: "desc" },
+      });
+      const members = await db.roomMemberRow.findMany({ where: { roomId: { in: ids } } });
+      return rows.map((r) => toRoom(r, members.filter((m) => m.roomId === r.id).map((m) => m.userId)));
+    },
+
+    async get(roomId) {
+      const row = await db.chatRoomRow.findUnique({ where: { id: roomId } });
+      if (row === null) return undefined;
+      const members = await db.roomMemberRow.findMany({ where: { roomId } });
+      return toRoom(row, members.map((m) => m.userId));
+    },
+
+    async isMember(roomId, userId) {
+      return (await db.roomMemberRow.findFirst({ where: { roomId, userId } })) !== null;
+    },
+  };
+}

@@ -28,6 +28,7 @@ export interface PurchaseOrder {
  * **税計算は `@platform/invoice` に委譲**(端数処理の方針を一元管理するため)。
  *
  * @param lines 明細
+ * @param rounding 端数処理（既定 floor）
  * @returns 小計・税額・合計
  */
 export function purchaseTotals(lines: PurchaseLine[], rounding: Rounding = "floor"): InvoiceTotals {
@@ -39,6 +40,7 @@ export function purchaseTotals(lines: PurchaseLine[], rounding: Rounding = "floo
  *
  * @param header 発注先・日付など
  * @param lines 明細
+ * @param rounding 端数処理（既定 floor）
  * @returns 発注書(金額は自動計算)
  */
 export function buildPurchaseOrder(

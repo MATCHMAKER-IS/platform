@@ -5,6 +5,7 @@
  *   node tools/check-win-setup.mjs
  */
 import { readFileSync } from "node:fs";
+import { readdirSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -28,9 +29,19 @@ check("ps1: 丸括弧 ( ) 均衡", balanced(ps1, "(", ")"));
 check("ps1: param ブロック(Check/SkipDocker/SkipDb)", /param\(/.test(ps1) && ["Check", "SkipDocker", "SkipDb"].every((x) => new RegExp(`\\[switch\\]\\$${x}`).test(ps1)));
 check("ps1: ヘルパ関数 Step/OK/Warn/Fail 定義", ["Step", "OK", "Warn", "Fail"].every((n) => ps1.includes(`function ${n}(`)));
 check("ps1: 全7ステップ(Step 呼び出し>=7)", (ps1.match(/^\s*Step\s+"/gm) ?? []).length >= 7);
-check("ps1: 3アプリ(internal-app/crud-template/equipment-app)", ["internal-app", "crud-template", "equipment-app"].every((a) => ps1.includes(a)));
-check("ps1: DB名マッピング(app/app_crud/app_equipment)", ["app_crud", "app_equipment"].every((d) => ps1.includes(d)));
-check("ps1: prisma generate + db push", ps1.includes("prisma generate") && ps1.includes("prisma db push"));
+// **アプリ名を手で並べない。** 増減のたびに追随が漏れる(実際に 3 か所で壊れた)。
+// schema.prisma を持つアプリ = setup が DB を用意する対象
+const dbApps = readdirSync(new URL("../apps", import.meta.url), { withFileTypes: true })
+  .filter((d) => d.isDirectory() && existsSync(new URL(`../apps/${d.name}/prisma/schema.prisma`, import.meta.url)))
+  .map((d) => d.name);
+check(`ps1: DB を使う ${dbApps.length} アプリ(${dbApps.join("/")})`, dbApps.every((a) => ps1.includes(a)));
+// **DB 名も手で並べない。** アプリの増減に追随しない
+check(`ps1: DB名マッピング(${dbApps.length} アプリ分)`,
+  dbApps.every((a) => new RegExp(`"${a}"\\s*\\{`).test(ps1)));
+// **スキーマ適用は方式を書き固定しない**(2026-08)。
+// `db push` と直接書くと、baseline した日に **Windows のセットアップだけ
+// 古い方式のまま**残る。共通の入口を通っているかを見る
+check("ps1: prisma generate + スキーマ適用", ps1.includes("prisma generate") && ps1.includes("apply-schema.mjs"));
 check("ps1: スモーク検証(pnpm smoke)", ps1.includes("pnpm smoke"));
 check("ps1: Docker 起動待ちループ", /-le 30/.test(ps1) && ps1.includes("pg_isready"));
 check("ps1: .env は既存を上書きしない", ps1.includes("Test-Path $dst") && ps1.includes("既存を維持"));

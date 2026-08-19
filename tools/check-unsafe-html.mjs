@@ -26,10 +26,12 @@
  */
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import path from "node:path";
+import { argsAt } from "./lib/source-text.mjs";
 import { fileURLToPath } from "node:url";
+import { ALWAYS_SKIP } from "./lib/collect-files.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
-const TARGET_DIRS = ["apps", "demos", "packages"];
+const TARGET_DIRS = ["apps", "packages"];
 
 /**
  * 通していれば安全とみなす関数。
@@ -57,7 +59,7 @@ const DECLARED = /unsafe-html:/;
 function collect(dir, out = []) {
   if (!existsSync(dir)) return out;
   for (const e of readdirSync(dir, { withFileTypes: true })) {
-    if (["node_modules", ".next", "dist", "generated"].includes(e.name)) continue;
+    if (ALWAYS_SKIP.has(e.name)) continue;
     const fp = path.join(dir, e.name);
     if (e.isDirectory()) collect(fp, out);
     else if (e.name.endsWith(".tsx") && !e.name.includes(".test.")) out.push(fp);
@@ -66,9 +68,11 @@ function collect(dir, out = []) {
 }
 
 const problems = [];
+let scanned = 0;
 
 for (const base of TARGET_DIRS) {
   for (const file of collect(path.join(ROOT, base))) {
+    scanned += 1;
     const src = readFileSync(file, "utf8");
     if (!src.includes("dangerouslySetInnerHTML")) continue;
     const rel = path.relative(ROOT, file).replace(/\\/g, "/");
@@ -76,6 +80,13 @@ for (const base of TARGET_DIRS) {
 
     for (let i = 0; i < lines.length; i += 1) {
       if (!lines[i].includes("dangerouslySetInnerHTML")) continue;
+      // **コメント内の言及は対象外。**
+      // 「以前は dangerouslySetInnerHTML で流していた」という
+      // 説明文まで拾うと、直した箇所が指摘され続ける(2026-08)
+      const t = lines[i].trim();
+      if (/^(\/\/|\*|\{?\/\*)/.test(t)) continue;
+      // 実際に渡している行だけ(`dangerouslySetInnerHTML={` や `: {`)
+      if (!/dangerouslySetInnerHTML\s*[:=]/.test(lines[i])) continue;
 
       // 前後 3 行を見る。`__html:` が次の行にあることが多い
       const around = lines.slice(Math.max(0, i - 3), i + 4).join("\n");
@@ -105,7 +116,12 @@ for (const base of TARGET_DIRS) {
         // useState の初期値が空文字なら、setter に入る値を見る
         const setter = `set${name.charAt(0).toUpperCase()}${name.slice(1)}`;
         if (src.includes(setter)) {
-          const calls = [...src.matchAll(new RegExp(`${setter}\\(([^)]*)\\)`, "g"))];
+          // **`[^)]*` で引数を取らない。** `setX(sanitize(escape(v)))` のように
+          // 入れ子があると `escape(v` で切れ、SAFE_FUNCTIONS の判定を誤る。
+          // ここは切れても「安全と認めない」側に倒れるので実害は無かったが、
+          // **同じ書き方を他所へ写されると誤検出の側に倒れる**ので正しくする。
+          const calls = [...src.matchAll(new RegExp(`${setter}\\(`, "g"))]
+            .map((m) => [m[0], argsAt(src, m.index + m[0].length - 1)]);
           if (calls.length > 0 && calls.every((c) => /^\s*("".*|''.*|r\.value|[a-z]+\.value)\s*$/.test(c[1]) || SAFE_FUNCTIONS.test(c[1]))) continue;
         }
       }
@@ -120,7 +136,7 @@ if (process.argv.includes("--list")) {
 }
 
 if (problems.length === 0) {
-  console.log("✅ サニタイズしていない HTML の描画はありません");
+  console.log(`✅ サニタイズしていない HTML の描画はありません(${scanned} ファイルを検査)`);
   process.exit(0);
 }
 

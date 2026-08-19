@@ -1,6 +1,6 @@
 # 統合デモサイトを AWS Amplify にデプロイする
 
-`demos/showcase`(45 画面)を Amplify に載せます。**DB を持たない**ので、RDS などのバックエンドは不要です。
+`apps/showcase`(45 画面)を Amplify に載せます。**DB を持たない**ので、RDS などのバックエンドは不要です。
 
 ---
 
@@ -33,7 +33,7 @@ git push
 
 | 項目 | 値 |
 |---|---|
-| **モノレポのルートディレクトリ** | `demos/showcase` |
+| **モノレポのルートディレクトリ** | `apps/showcase` |
 
 **これを設定しないと失敗します**。Amplify がリポジトリ直下を Next.js アプリだと思い込み、
 `package.json` に `build` が無い(ルートはワークスペースの親)ためです。
@@ -76,16 +76,16 @@ git push
 **build をモノレポのルートで実行している**のが原因です。`amplify.yml` の build が
 
 ```yaml
-- cd ../.. && pnpm --filter showcase-demo build   # ❌ これはダメ
+- cd ../.. && pnpm --filter showcase build   # ❌ これはダメ
 ```
 
 になっていると、Next.js がルートで動き、**相対 import も `node_modules` も解決できません**
-(Turbopack が `./demos/showcase/...` を基準にしてしまう)。
+(Turbopack が `./apps/showcase/...` を基準にしてしまう)。
 
 正しくは、**appRoot のまま実行**します:
 
 ```yaml
-- pnpm build   # ✅ demos/showcase で実行される
+- pnpm build   # ✅ apps/showcase で実行される
 ```
 
 `install` はルートで行う必要があります(workspace 全体の解決のため)が、
@@ -102,7 +102,7 @@ git push
 ### `Module not found` が全画面で出る
 
 **Turbopack のせいではありません。** 基盤パッケージの `main` が、存在しない `dist` を
-指しているのが原因です(詳細は PLATFORM_SERVICES.md の「【真因】」)。
+指しているのが原因です(詳細は docs/HISTORY.md の「【真因】」)。
 
 `packages/*` は **ソースを直接公開**します(`main: "./src/index.ts"`)。
 `dist` を指すとビルドしていない限り解決できません。dev では `transpilePackages` が
@@ -178,7 +178,7 @@ Next.js の SSR が動いていません。アプリの設定 → **プラット
 
 ```bash
 pnpm gen:all       # example-sources.generated.ts を作り直す
-git add demos/showcase/src/lib/example-sources.generated.ts
+git add apps/showcase/src/lib/example-sources.generated.ts
 git commit && git push
 ```
 

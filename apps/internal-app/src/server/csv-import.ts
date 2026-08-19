@@ -15,9 +15,16 @@ export interface ImportResult<T> {
   errors: { line: number; message: string }[];
 }
 
-/** CSV を見出し付きのレコード配列にパースする。 */
+/**
+ * CSV を見出し付きのレコード配列にパースする。
+ *
+ * **`strict: true` で読む。** 引用符が閉じていないと残り全部が 1 つの
+ * フィールドになり、**行数が減って列がずれる**——取り込みは成功するのに
+ * データが黙って欠ける。業務データなので、壊れているなら**止めて知らせる**。
+ * 利用者が Excel で編集して壊すことが実際にある。
+ */
 export function parseCsvRecords(text: string): Record<string, string>[] {
-  return parseCsv(text, { header: true }) as Record<string, string>[];
+  return parseCsv(text, { header: true, strict: true }) as Record<string, string>[];
 }
 
 const pick = (row: Record<string, string>, keys: string[]): string => {

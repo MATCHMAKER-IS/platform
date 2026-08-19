@@ -35,7 +35,7 @@ body:
       options:
         - 社内アプリ (internal-app)
         - 公開サイト (public-site)
-        - 備品管理 (equipment-app)
+        - LINE 応対コンソール (line-console)
         - 基盤 (packages/)
         - 開発環境・ドキュメント
         - 分からない

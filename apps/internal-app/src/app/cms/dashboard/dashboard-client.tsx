@@ -1,4 +1,6 @@
 "use client";
+import { formatDateJst } from "@platform/datetime";
+import { AsyncBoundary, PageShell } from "@platform/ui";
 /** CMS ダッシュボード。記事の状態別件数・各コンテンツ数・最近の更新を表示。 */
 import * as React from "react";
 
@@ -31,20 +33,35 @@ export interface DashboardClientProps { fetchImpl?: typeof fetch; }
 
 export function DashboardClient({ fetchImpl }: DashboardClientProps) {
   const [data, setData] = React.useState<Dashboard | null>(null);
+  const [error, setError] = React.useState("");
   const doFetch = fetchImpl ?? (globalThis as unknown as { fetch: typeof fetch }).fetch;
 
-  React.useEffect(() => {
-    void (async () => {
-      const res = await doFetch("/api/cms/dashboard");
-      if (res.ok) setData((await res.json()) as Dashboard);
-    })();
+  // **再試行できるように名前を付ける。**
+  // 即時関数のままだと、失敗しても呼び直す手段が無い
+  const load = React.useCallback(async () => {
+    setError("");
+      try {
+        const res = await doFetch("/api/cms/dashboard");
+        // **失敗を握らない。** 握ると「読み込み中…」のまま止まる
+        if (!res.ok) { setError("データを取得できませんでした"); return; }
+        setData((await res.json()) as Dashboard);
+      } catch {
+        setError("通信に失敗しました。ネットワークを確認してください");
+      }
   }, [doFetch]);
 
-  if (!data) return <div className="mx-auto max-w-4xl p-6 text-sm text-[var(--color-muted)]">読み込み中…</div>;
+  React.useEffect(() => { void load(); }, [load]);
+
+  // **`AsyncBoundary` に渡す前に返す。** children は JSX なので
+  // **この部品が判断するより先に評価される**——`data` が null のままだと
+  // `data.…` で画面ごと落ちる(2026-08 の型検査で 7 画面が同じ形だった)。
+  if (data === null) {
+    return <AsyncBoundary loading={error === ""} error={error} onRetry={() => void load()} />;
+  }
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <h1 className="mb-4 text-2xl font-bold">ダッシュボード</h1>
+    <AsyncBoundary loading={false} error={error} onRetry={() => void load()}>
+        <PageShell title="ダッシュボード" width="wide">
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Stat label="記事（合計）" value={data.posts.total} />
         <Stat label="公開中" value={data.posts.published} accent="text-[var(--color-success)]" />
@@ -65,12 +82,13 @@ export function DashboardClient({ fetchImpl }: DashboardClientProps) {
               <span className="font-medium">{r.title}</span>
               <span className="flex items-center gap-2 text-xs text-[var(--color-muted)]">
                 <span className={`rounded px-1.5 py-0.5 ${STATUS_CLASS[r.status] ?? ""}`}>{STATUS_LABEL[r.status] ?? r.status}</span>
-                {r.updatedAt.slice(0, 10)}
+                {formatDateJst(new Date(r.updatedAt))}
               </span>
             </li>
           ))}
         </ul>
       )}
-    </div>
+    </PageShell>
+    </AsyncBoundary>
   );
 }

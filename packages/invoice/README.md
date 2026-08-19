@@ -1,16 +1,28 @@
-# @platform/invoice — 請求書(適格請求書対応)
+# @platform/invoice
 
-明細計算・税率別集計・番号採番・支払期限/入金状態。消費税計算は `@platform/tax` に委譲します。
+請求書と見積書。**インボイス制度**（登録番号・税率ごとの内訳）に対応しています。
 
-## 主な API
-- `lineNet(line)` / `lineTaxRate(line)` — 明細の税抜金額(数量×単価−割引)と税率。
-- `invoiceTotals(lines, rounding?)` — 小計・**税率区分ごとの消費税**(適格請求書要件)・合計。
-- `buildInvoice(header, lines)` — ヘッダ + 明細 → 合計を埋めた請求書。
-- `formatInvoiceNumber(seq, { prefix, date, padding })` / `parseInvoiceSequence` — 自社番号の採番/逆引き。
-- `dueDateFrom` / `endOfNextMonth` / `paymentStatus` / `balanceDue` / `daysUntilDue` — 支払期限・入金状態。
-- `isValidInvoiceNumber` / `normalizeInvoiceNumber` — 適格請求書発行事業者の登録番号(T+13桁)検証(`@platform/tax` 再エクスポート)。
+## これは何のためか
+
+**請求書は「出したら終わり」ではありません。**
+金額が違えば作り直し、日付が違えば税率が変わります。
+
+**インボイス制度で、登録番号と税率ごとの内訳が必須**になりました——
+書き漏らすと**相手が仕入税額控除を受けられません**。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **税率は型で縛られています** | `10 \| 8 \| 0` です——**`0.1` を渡すと型エラー**。**比率とパーセントの取り違えで 100 倍ずれます** |
+| **承認前の見積からは作れません** | 例外になります——**口約束で請求書を出さない**ためです |
+| **登録番号は必須** | インボイス制度の要件です。**空だと相手が控除を受けられません** |
+| **税率ごとに内訳を出す** | 8% と 10% が混ざる請求書では**必須**です |
+
+## よく使うもの
 
 ```ts
+import { dunningLevel, dunningMessage, shouldSendDunning } from "@platform/invoice";
 import { buildInvoice, paymentStatus } from "@platform/invoice";
 
 const invoice = buildInvoice(

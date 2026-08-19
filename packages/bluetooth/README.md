@@ -1,9 +1,27 @@
 # @platform/bluetooth
 
-Web Bluetooth(BLE 機器連携)の共通部品。ブラウザ専用(Chrome/Edge、HTTPS または localhost、
-ユーザー操作が必要)。Safari/Firefox は未対応なので `isBluetoothSupported()` で分岐します。
+Bluetooth 機器との接続（測定器・プリンタ）。
+
+## これは何のためか
+
+**現場の機器から、直接データを取る**ためのものです。
+
+体重計・血圧計・ラベルプリンタ——**手で入力しなくて済みます**。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **利用者が機器を選びます** | **こちらからは選べません**——ブラウザの画面が出ます |
+| **HTTPS が必要です** | `localhost` 以外では、**HTTP だと動きません** |
+| **iOS Safari は非対応** | **代替を用意する**か、**使えないことを伝えて**ください |
+| **切断されます** | 電池切れ、距離、干渉——**繋がり続ける前提で作らないで**ください |
+| **機器ごとに仕様が違います** | 同じ「体重計」でも、**メーカーで形式が違います** |
+
+## よく使うもの
 
 ```ts
+import { isBluetoothSupported, connectBluetooth, readBatteryLevel } from "@platform/bluetooth";
 import { connectBluetooth, readBatteryLevel, isBluetoothSupported } from "@platform/bluetooth";
 
 if (!isBluetoothSupported()) { /* 非対応の案内 */ }

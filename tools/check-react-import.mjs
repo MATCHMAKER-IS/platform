@@ -42,11 +42,13 @@ function jsxMode(pkgDir) {
 }
 
 const problems = [];
+let scanned = 0;
 
-for (const group of ["packages", "apps", "demos"]) {
+for (const group of ["packages", "apps"]) {
   const groupDir = path.join(ROOT, group);
   if (!existsSync(groupDir)) continue;
   for (const rel of collectFiles([group], ROOT, { extensions: [".tsx"] })) {
+    scanned += 1;
     const parts = rel.split("/");
     const pkgDir = path.join(ROOT, parts[0] ?? "", parts[1] ?? "");
     const mode = jsxMode(pkgDir);
@@ -78,5 +80,5 @@ if (problems.length > 0) {
   for (const p of problems) console.error(`   [${p.kind}] ${p.rel}\n     ${p.hint}`);
   process.exitCode = 1;
 } else {
-  console.log("✅ React の import は過不足ありません");
+  console.log(`✅ React の import は過不足ありません(${scanned} ファイルを検査)`);
 }

@@ -1,14 +1,14 @@
 /** 管理: 統合バックアップ(GET)。主要データを1つのJSONバンドルで返す。管理者のみ。PIIは表示制御に従いマスク。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { invoiceStore, partnerStore, userStore, settingsStore, auditLog, auditActions } from "../../../../server/platform-services";
 import { buildBackup, backupFilename, type Dataset } from "../../../../server/backup";
 import { maskUserRecord } from "../../../../server/pii-view";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
-  if (!user || !user.roles.includes("admin")) return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
+  const user = currentUser(req);
+  if (!user || !user.roles.includes("admin")) return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
 
   const [invoices, partners, users, settings, audit] = await Promise.all([invoiceStore.list(), partnerStore.list(), userStore.list(), settingsStore.get(), auditLog.query({ limit: 5000 })]);
   const datasets: Dataset[] = [

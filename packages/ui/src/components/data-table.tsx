@@ -79,7 +79,7 @@ export interface DataTableProps<T extends Record<string, unknown>> {
  *   columns={[
  *     { key: "code", header: "番号" },
  *     { key: "customer", header: "取引先" },
- *     { key: "amount", header: "金額", format: (v) => `${Number(v).toLocaleString()} 円` },
+ *     { key: "amount", header: "金額", format: (v) => `${Number(v).toLocaleString("ja-JP")} 円` },
  *     { key: "status", header: "状態", render: (r) => <Badge variant="success">{r.status}</Badge> },
  *   ]}
  *   searchKeys={["code", "customer"]}
@@ -183,7 +183,11 @@ export function DataTable<T extends Record<string, unknown>>({ rows, columns, se
       </div>
 
       {result.pageCount > 1 && (
-        <SimplePagination page={result.page} totalPages={result.pageCount} onPageChange={(p: number) => setQuery((q) => ({ ...q, page: p }))} />
+        <SimplePagination page={result.page} totalPages={result.pageCount}
+          /* **件数も渡す。** 「3 / 12 ページ」だけでは、
+             絞り込みで何件に減ったのかが分からない */
+          totalItems={result.total} pageSize={result.pageSize}
+          onPageChange={(p: number) => setQuery((q) => ({ ...q, page: p }))} />
       )}
     </div>
   );

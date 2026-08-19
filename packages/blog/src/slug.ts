@@ -21,7 +21,8 @@ export interface SlugifyOptions {
  * **日本語は残らない**(URL に使える文字だけになる)。日本語タイトルでは
  * 空文字になるので、{@link slugFrom} を使うこと。
  *
- * @param input タイトル
+ * @param text タイトル
+ * @param options 記号の扱い・最大長
  * @returns スラッグ。**日本語だけの入力では空文字になりうる**
  */
 export function slugify(text: string, options: SlugifyOptions = {}): string {
@@ -47,9 +48,9 @@ export function slugify(text: string, options: SlugifyOptions = {}): string {
  * スラッグを生成し、**空になる場合は fallback を使う**。
  *
  * 日本語タイトルでも URL を作れるようにするため(実務ではこちらを使う)。
- *
- * @param input タイトル
+ * @param text タイトル
  * @param fallback 空のときに使う値(記事 ID など)
+ * @param options 記号の扱い・最大長
  * @returns スラッグ
  */
 export function ensureSlug(text: string, fallback: string, options?: SlugifyOptions): string {
@@ -58,7 +59,9 @@ export function ensureSlug(text: string, fallback: string, options?: SlugifyOpti
 
 /**
  * 既存スラッグと衝突しないユニークなスラッグを返す(重複時は -2, -3... を付与)。
+ * @param base 元になるスラッグ
  * @param existing 既存のスラッグ集合
+ * @param separator 連番を付けるときの区切り（既定 `-`）
  * @returns 衝突しないスラッグ(`my-post` → `my-post-2`)
  */
 export function uniqueSlug(base: string, existing: Iterable<string>, separator = "-"): string {

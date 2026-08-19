@@ -1,15 +1,15 @@
 /** 繰り返し請求: 課金対象を一括で請求書化(POST)。invoice:write。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { recurringStore, invoiceStore, auditActions } from "../../../../server/platform-services";
 import { invoiceFromPlan } from "../../../../server/recurring-repo";
 
 async function handlePOST(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "invoice:write");
   const now = new Date();
-  const today = now.toISOString().slice(0, 10);
+  const today = new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const due = await recurringStore.due(now);
   const created: string[] = [];
   for (const plan of due) {

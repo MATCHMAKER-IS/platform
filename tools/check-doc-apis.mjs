@@ -65,7 +65,9 @@ function checkInlineMentions(file, rel, body, issues) {
       const mod = m[1];
       if (!surface.has(mod)) continue;
       checked += 1;
-      if (!surface.get(mod).has(m[2])) {
+      // **記録が古いだけかもしれない。** その場でソースを見る
+      // (`api-surface.json` は生成物なので、足した直後は載っていない)
+      if (!surface.get(mod).has(m[2]) && !livePackageHas(mod, m[2])) {
         issues.push({ rel, line: idx + 1, message: `${mod} に ${m[2]}() はありません(移動・改名された可能性)` });
       }
     }

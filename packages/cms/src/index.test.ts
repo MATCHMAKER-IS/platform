@@ -234,8 +234,10 @@ describe("差分", () => {
   });
 
   it("diffRevisions はタイトル・本文・タグの変化を示す", () => {
-    const before = { title: "旧", body: "本文", tags: ["a"] };
-    const after = { title: "新", body: "本文", tags: ["a", "b"] };
+    // **`status` は `RevisionLike` の必須項目**(`tags` は持たない)。
+    // 型検査が回っていなかったため、実型と食い違ったまま通っていた(2026-08)
+    const before = { title: "旧", body: "本文", status: "draft" };
+    const after = { title: "新", body: "本文", status: "draft" };
     const d = diffRevisions(before, after);
     expect(d.bodyChanged).toBe(false);
     expect(JSON.stringify(d)).toContain("新");
@@ -274,7 +276,9 @@ describe("リビジョン", () => {
 
   it("**復元は下書きとして戻す**(いきなり公開しない)", () => {
     const input = revisionToInput(
-      { id: "r1", postSlug: "hello", version: 1, title: "旧題", body: "旧本文", tags: [], savedBy: "u1", savedAt: "2026-07-01T00:00:00Z" },
+      // **`status` は `Revision` の必須項目**。型検査が回っていなかったため、
+      // 実型と食い違ったまま通っていた(2026-08)
+      { id: "r1", postSlug: "hello", version: 1, title: "旧題", body: "旧本文", tags: [], status: "published", savedBy: "u1", savedAt: "2026-07-01T00:00:00Z" },
       "hello",
     );
     expect(input.status).toBe("draft");

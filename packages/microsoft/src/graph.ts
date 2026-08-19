@@ -25,6 +25,63 @@ export interface MicrosoftGraphClient {
   /** 自分の情報を取る(疎通確認にも使う)。 */
   me(): Promise<GraphUser>;
   /**
+   * **Teams のチャネルに投稿する。**
+   *
+   * Slack を使わない会社では、**承認依頼や障害の知らせを流す先**になります。
+   *
+   * **`html` を使うと書式が付きます**（太字・リンク）が、
+   * **使える書式は限られます**——`<b>` `<a>` `<br>` 程度で、
+   * **凝った HTML は無視されるか、そのまま文字として出ます**。
+   *
+   * **チャネル ID は「一般」でも固定ではありません。**
+   * チームごとに違うので、**管理画面で確認して設定に入れて**ください。
+   *
+   * @param input `teamId` / `channelId` / `text`（素の文字）/ `html`（書式付き）
+   * @returns 投稿した結果
+   */
+  postTeamsChannelMessage(input: {
+    teamId: string;
+    channelId: string;
+    text: string;
+    html?: string;
+  }): Promise<unknown>;
+
+  /**
+   * **在籍している人の一覧**（Entra ID / 旧 Azure AD）。
+   *
+   * 【何に使うか】
+   * **退職者のアカウントが社内システムに残る**問題を機械で防げます。
+   * 定期的に引いて、**ここに居ない人はアプリ側でも止める**という使い方です。
+   *
+   * **無効にされた人は返りません**（`accountEnabled eq true` で絞っています）
+   * ——絞らないと**退職者も含めて返り**、そのまま同期すると
+   * **止めたはずのアカウントが復活します**。
+   *
+   * 【件数に注意】
+   * **既定は 100 件**です。**従業員が 100 人を超える会社では 1 回で取り切れません**
+   * ——返ってきた `@odata.nextLink` を必ずたどってください。
+   *
+   * @param options `top`（1 回に取る件数。最大 999）
+   * @returns 在籍者の一覧と、続きがあれば `@odata.nextLink`
+   */
+  listActiveUsers(options?: { top?: number }): Promise<unknown>;
+
+  /**
+   * メールアドレスから 1 人を引く。
+   *
+   * **`userPrincipalName` はメールと違うことがあります**——
+   * 改姓や転属で `mail` だけ変わり、`userPrincipalName` が古いままの
+   * 会社が実際にあります。**両方で探します**。
+   *
+   * **在籍していない人も返ります**（`accountEnabled` を見てください）
+   * ——「見つかった＝今も社員」ではありません。
+   *
+   * @param email 探すメールアドレス
+   * @returns 一致した人（**0 件のこともあります**）
+   */
+  getUserByEmail(email: string): Promise<unknown>;
+
+  /**
    * 複数人の予定の埋まり具合を調べる(会議の調整)。
    * 予定の中身は返らず、**空きか埋まりか**だけが分かる。
    */
@@ -64,6 +121,14 @@ export interface GraphMailInput {
   /** 既定は text。HTML で送るなら "html"。 */
   contentType?: "text" | "html";
   cc?: string[];
+  /**
+   * 表に出さない宛先(一斉配信用)。
+   *
+   * **`to` に全員を入れない。** 入れると**受信者全員に全員のアドレスが見える**
+   * ——社外へ送れば**そのまま個人情報の漏洩事故**になる。
+   * `@platform/mail` と同じ問題が Graph 経由でも起きるので揃えた(2026-08)。
+   */
+  bcc?: string[];
   /** 送信箱に残すか(既定 true)。 */
   saveToSentItems?: boolean;
   /** 差出人(共有メールボックスから送る場合。省略時はトークンの持ち主)。 */
@@ -171,6 +236,8 @@ export function createMicrosoftGraphClient(authedFetch: typeof fetch): Microsoft
             body: { contentType: input.contentType ?? "text", content: input.body },
             toRecipients: input.to.map((a) => ({ emailAddress: { address: a } })),
             ccRecipients: (input.cc ?? []).map((a) => ({ emailAddress: { address: a } })),
+            // **bcc を落とさない。** 型に足しても渡さなければ一斉配信が届かない
+            bccRecipients: (input.bcc ?? []).map((a) => ({ emailAddress: { address: a } })),
           },
           saveToSentItems: input.saveToSentItems ?? true,
         }),
@@ -205,6 +272,66 @@ export function createMicrosoftGraphClient(authedFetch: typeof fetch): Microsoft
 
     async me() {
       return request<GraphUser>("/me?$select=id,displayName,mail,userPrincipalName,jobTitle,department");
+    },
+
+    async postTeamsChannelMessage({ teamId, channelId, text, html }) {
+      // **Teams への投稿。** Slack を使わない会社では、
+      // **承認依頼や障害の知らせを流す先**になります。
+      //
+      // **`html` を使うと書式が付きます**（太字・リンク）が、
+      // **使える書式は限られます**——`<b>` `<a>` `<br>` 程度で、
+      // **凝った HTML は無視されるか、そのまま文字として出ます**。
+      //
+      // **チャネル ID は「一般」でも固定ではありません。**
+      // チームごとに違うので、**管理画面で確認して設定に入れて**ください。
+      return request(
+        `/teams/${encodeURIComponent(teamId)}/channels/${encodeURIComponent(channelId)}/messages`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            body: html === undefined
+              ? { contentType: "text", content: text }
+              : { contentType: "html", content: html },
+          }),
+        },
+      );
+    },
+
+    async listActiveUsers({ top } = {}) {
+      // **在籍している人の一覧。**
+      //
+      // 【何に使うか】
+      // **退職者のアカウントが社内システムに残る**問題を機械で防げます。
+      // Entra ID（旧 Azure AD）で無効にされた人を定期的に引き、
+      // **アプリ側の利用者も止める**という使い方です。
+      //
+      // **`accountEnabled eq true` で絞っています**——
+      // 絞らないと**退職者も含めて返り**、そのまま同期すると
+      // **止めたはずのアカウントが復活します**。
+      //
+      // 【件数に注意】
+      // **既定は 100 件**で、それ以上は `@odata.nextLink` をたどります。
+      // **従業員が 100 人を超える会社では 1 回で取り切れません**。
+      const params = new URLSearchParams({
+        $filter: "accountEnabled eq true",
+        $select: "id,displayName,mail,userPrincipalName,accountEnabled,department,jobTitle",
+        $top: String(Math.min(top ?? 100, 999)),
+      });
+      return request(`/users?${params.toString()}`, { method: "GET" });
+    },
+
+    async getUserByEmail(email) {
+      // **メールアドレスから 1 人を引く。**
+      //
+      // **`userPrincipalName` はメールと違うことがあります**——
+      // 改姓や転属で `mail` だけ変わり、`userPrincipalName` が古いままの
+      // 会社が実際にあります。**両方で探します**。
+      const esc = email.replace(/'/g, "''");
+      const params = new URLSearchParams({
+        $filter: `mail eq '${esc}' or userPrincipalName eq '${esc}'`,
+        $select: "id,displayName,mail,userPrincipalName,accountEnabled,department,jobTitle",
+      });
+      return request(`/users?${params.toString()}`, { method: "GET" });
     },
 
     async getSchedule({ emails, start, end, intervalMinutes }) {

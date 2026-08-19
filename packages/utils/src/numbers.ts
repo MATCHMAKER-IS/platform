@@ -86,6 +86,15 @@ export function mapRange(n: number, inMin: number, inMax: number, outMin: number
  * @param decimals 小数桁(既定 0 = 整数に)
  * @returns 四捨五入した値。**Infinity / NaN はそのまま返す**
  *
+ * @remarks
+ * **負の数は 0 に近づく**(`Math.round` の仕様)。`round(-1.005, 2)` は
+ * `-1.01` ではなく **`-1`** になる——`round(1.005, 2)` が `1.01` なのと**非対称**。
+ *
+ * 金額には使わないこと。返金・値引き・差額は負で入るので、
+ * **絶対値が小さくなる方向に丸められる**(返金額が減る)。
+ * 会計の丸めは `@platform/tax` の `applyRounding`(`floor` / `round` / `ceil` を明示)や
+ * `@platform/report` の `roundAmount` を使う(2026-08 に確認)。
+ *
  * @example
  * ```ts
  * round(1.005, 2);   // => 1.01(素朴な実装だと 1 になる)
@@ -226,7 +235,18 @@ export function formatNumber(n: number, options: FormatNumberOptions = {}): stri
 /**
  * パーセント文字列にする。
  *
- * @param value 値。**既定は比率**(0.25 → "25%")
+ * @param value 値。**既定は比率**(0.25 → "25%")。
+ *   **`ratio: false` を渡すとパーセントとして扱う**(25 → "25%")
+ *
+ * **取り違えると 100 倍ずれます。** この基盤には**両方の流儀**があります:
+ *
+ * | 流儀 | 例 | どこで使うか |
+ * |---|---|---|
+ * | **比率**(0〜1) | `formatPercent(0.1)` → `"10%"` | 計算の途中・割合を持つデータ |
+ * | **パーセント**(0〜100) | `taxAmount(x, 10)` → 10% の税 | **人が入力する値**(税率・段階公開の割合) |
+ *
+ * **人が「10%」と書く場所は 10、計算に使う場所は 0.1** と覚えるとずれません。
+ * `TaxRate` のように**型で縛れる場合は縛って**あります(`10 | 8 | 0`)。
  * @param decimals 小数桁(既定 0)
  * @param options.ratio 入力が比率か(既定 true)。**すでに % の値なら false**(25 → "25%")
  * @returns `"25%"` 形式の文字列
@@ -955,10 +975,13 @@ export function regressionInterval(xs: readonly number[], ys: readonly number[],
 /**
  * 複数の x について予測区間をまとめて求める(グラフの予測バンド用)。
  *
- * @param xs x の値
+ * **予測したい位置は指定しない。** `xs` のそれぞれについて返すので、
+ * 別の位置がほしい場合は {@link regressionInterval} を使うこと。
+ *
+ * @param xs x の値(**この位置それぞれについて区間を返す**)
  * @param ys y の値
- * @param targets 予測したい位置の配列
- * @param confidence 信頼水準(既定 0.95)
+ * @param options `level` は信頼水準(既定 0.95。以前この説明は `confidence` という
+ *   存在しない名前だった)、`kind` は信頼区間(`confidence`)か予測区間(`prediction`)か
  * @returns 各位置の予測値と区間
  */
 export function regressionBand(xs: readonly number[], ys: readonly number[], options: RegressionBandOptions = {}): Array<{ x: number; yhat: number; lower: number; upper: number }> {
@@ -1041,6 +1064,7 @@ export function decompose(values: readonly number[], period: number): Decomposit
  *
  * @param rows 行の配列
  * @param key 取り出すキー
+ * @param options.skipInvalid 数値でないものを飛ばすか（**既定は飛ばさず 0 扱い**）
  * @returns 数値の配列。**解釈できない値は除外**(NaN を混ぜない)
  */
 export function pluckNumbers(rows: ReadonlyArray<Record<string, unknown>>, key: string, options: { skipInvalid?: boolean } = {}): number[] {

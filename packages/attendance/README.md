@@ -1,10 +1,28 @@
 # @platform/attendance
 
-勤怠の記録・集計と、年次有給休暇の計算。
+勤怠の記録・集計と年次有給休暇。**深夜と日跨ぎの夜勤**に対応しています。
 
-`@platform/payroll`（給与計算）の**入力を作る**層です。打刻から労働時間・残業・深夜・休日を出し、月次で集計します。
+## これは何のためか
+
+**打刻の集計は「1 日」の切り方で結果が変わります。**
+
+UTC で切ると、**JST の 0 時〜9 時の打刻が前日**になります——
+**深夜勤務の人だけ、毎回ずれる**という形で表に出ます。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **日付は JST で切ります** | `formatDateJst` を使ってください——**UTC で切ると深夜の打刻が前日**になります |
+| **退勤が出勤より前なら翌日** | 夜勤の扱いです。**24 時間を超える勤務は表現できません**（労基法上あり得ないため） |
+| **休日勤務では遅刻・早退を判定しません** | **所定の始業が無い**ためです |
+| **保存は 5 年** | 労働者名簿・賃金台帳は労働基準法で**5 年**です |
+| **本番では DB 実装を** | メモリ実装は**再起動で消えます** |
+
+## よく使うもの
 
 ```ts
+import { toDay, summarize, createMemoryAttendanceStore } from "@platform/attendance";
 import { createMemoryAttendanceStore, summarize } from "@platform/attendance";
 
 const store = createMemoryAttendanceStore({ start: "09:00", end: "18:00", graceMinutes: 5 });

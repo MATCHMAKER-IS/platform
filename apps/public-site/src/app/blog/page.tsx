@@ -1,3 +1,4 @@
+import { formatDateJst } from "@platform/datetime";
 import * as React from "react";
 import type { Metadata } from "next";
 import { content } from "../../server/content";
@@ -23,7 +24,7 @@ export default async function BlogIndex() {
             <li key={p.slug} className="flex flex-col gap-2 border-b border-[var(--color-border)] pb-4">
               {p.eyecatch && <a href={`/blog/${p.slug}`}><img src={p.eyecatch} alt="" className="h-40 w-full rounded object-cover" loading="lazy" /></a>}
               <a href={`/blog/${p.slug}`} className="text-lg font-semibold hover:text-[var(--color-primary)]">{p.title}</a>
-              <p className="text-xs text-[var(--color-muted)]">{p.publishedAt.slice(0, 10)}</p>
+              <p className="text-xs text-[var(--color-muted)]">{formatDateJst(new Date(p.publishedAt))}</p>
               {p.excerpt && <p className="text-sm text-[var(--color-muted)]">{p.excerpt}</p>}
             </li>
           ))}

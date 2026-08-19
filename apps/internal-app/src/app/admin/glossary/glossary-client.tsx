@@ -1,7 +1,7 @@
 "use client";
 /** 補正辞書の管理。非エンジニアが表記ゆれ(from→to)と固有名詞を編集できる。 */
 import * as React from "react";
-import { Button, Input, FileInput } from "@platform/ui";
+import { Button, Input, FileInput, BusyOverlay } from "@platform/ui";
 
 interface Rule { from: string; to: string; }
 
@@ -50,24 +50,41 @@ export function GlossaryClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   const exportCsv = (kind: "replacements" | "terms") => {
     if (typeof window !== "undefined") window.open(`/api/rag/glossary/csv?kind=${kind}`, "_blank");
   };
+  // **取り込み中は選べなくする。** 2026-08 まで状態を持っておらず、
+  // **続けて選ぶと同じ CSV が二重に取り込まれた**——用語が重複登録される。
+  // 取り込み中だと見た目で分からないのも、押し直しを誘っていた
+  const [importing, setImporting] = React.useState(false);
+
   const importCsv = async (kind: "replacements" | "terms", file: File) => {
+    if (importing) return;
+    setImporting(true);
     setCsvMsg("");
-    const csv = await file.text();
-    const r = await doFetch("/api/rag/glossary/csv", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind, csv }) });
-    const d = await r.json();
-    if (r.ok) { setCsvMsg(`取り込み: ${d.added} 件追加 / ${d.skipped} 件スキップ`); await load(); }
-    else setCsvMsg((d as { error?: string }).error ?? "取り込みに失敗しました");
+    try {
+      const csv = await file.text();
+      const r = await doFetch("/api/rag/glossary/csv", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind, csv }) });
+      const d = await r.json();
+      if (r.ok) { setCsvMsg(`取り込み: ${d.added} 件追加 / ${d.skipped} 件スキップ`); await load(); }
+      else setCsvMsg((d as { error?: string }).error ?? "取り込みに失敗しました");
+    } finally {
+      // **必ず戻す。** 失敗したまま `true` だと、二度と取り込めなくなる
+      setImporting(false);
+    }
   };
 
-  const card: React.CSSProperties = { background: "var(--color-surface, #fff)", border: "1px solid #e8e8e8", borderRadius: 10, padding: 16 };
-  const input: React.CSSProperties = { padding: "6px 10px", border: "1px solid #ddd", borderRadius: 6 };
+  const card: React.CSSProperties = { background: "var(--color-surface, #fff)", border: "1px solid var(--color-border)", borderRadius: 10, padding: 16 };
+  const input: React.CSSProperties = { padding: "6px 10px", border: "1px solid var(--color-border)", borderRadius: 6 };
 
   return (
     <div style={{ maxWidth: 760, margin: "0 auto", padding: 24, fontFamily: "system-ui, sans-serif" }}>
+      {/* **取り込み中は画面全体を止める。**
+          ボタンを `disabled` にするだけでは、**他の操作は通ります**——
+          取り込みの途中で辞書を編集されると、**どちらが残るか分かりません**。
+          「押しても何も起きない」と思われて**二重に取り込まれる**のも防ぎます */}
+      <BusyOverlay busy={importing} label="取り込んでいます…" />
       <h1 style={{ fontSize: 22 }}>補正辞書の管理</h1>
       <p style={{ fontSize: 13, color: "var(--color-muted, #666)", lineHeight: 1.6 }}>音声認識の誤変換や表記ゆれを登録します。ここで登録した内容は、文字起こし取り込みと検索クエリの両方に適用されます。</p>
       {persistent !== null && (
-        <p style={{ fontSize: 12, marginTop: 4, display: "inline-block", padding: "3px 10px", borderRadius: 12, background: persistent ? "#dcfce7" : "#fef9c3", color: persistent ? "#166534" : "#854d0e" }}>
+        <p style={{ fontSize: 12, marginTop: 4, display: "inline-block", padding: "3px 10px", borderRadius: 12, background: persistent ? "color-mix(in srgb, var(--color-success) 15%, transparent)" : "color-mix(in srgb, var(--color-warning) 15%, transparent)", color: persistent ? "var(--color-success)" : "var(--color-warning)" }}>
           {persistent ? "永続化: 有効（DB に保存され、再起動後も残ります）" : "永続化: 無効（メモリのみ・再起動で初期値に戻ります）"}
         </p>
       )}
@@ -81,7 +98,7 @@ export function GlossaryClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
           <Button onClick={addRule} disabled={from.trim().length === 0} style={{ ...input, background: "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none" }}>追加</Button>
         </div>
         {rules.map((r) => (
-          <div key={r.from} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", borderBottom: "1px solid #f5f5f5", fontSize: 13 }}>
+          <div key={r.from} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", borderBottom: "1px solid var(--color-surface)", fontSize: 13 }}>
             <code>{r.from}</code><span style={{ color: "var(--color-muted, #999)" }}>→</span><code>{r.to}</code>
             <Button onClick={() => delRule(r.from)} style={{ marginLeft: "auto", fontSize: 11, color: "var(--color-danger, #c00)", background: "none", border: "none", cursor: "pointer" }}>削除</Button>
           </div>
@@ -96,9 +113,9 @@ export function GlossaryClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {terms.map((t) => (
-            <span key={t} style={{ fontSize: 12, background: "#eef2ff", color: "#4338ca", padding: "3px 6px 3px 10px", borderRadius: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span key={t} style={{ fontSize: 12, background: "color-mix(in srgb, var(--color-primary) 8%, transparent)", color: "var(--color-primary)", padding: "3px 6px 3px 10px", borderRadius: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
               {t}
-              <Button onClick={() => delTerm(t)} title="削除" style={{ fontSize: 11, color: "#6366f1", background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 1 }}>×</Button>
+              <Button onClick={() => delTerm(t)} title="削除" style={{ fontSize: 11, color: "var(--color-primary)", background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 1 }}>×</Button>
             </span>
           ))}
         </div>
@@ -113,13 +130,15 @@ export function GlossaryClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
           <FileInput
             accept=".csv"
             label="置換ルールを取込"
-            style={{ ...input, cursor: "pointer", background: "#f9fafb" }}
+            style={{ ...input, cursor: "pointer", background: "var(--color-surface)" }}
+            disabled={importing}
             onSelect={(files) => { const f = files[0]; if (f) void importCsv("replacements", f); }}
           />
           <FileInput
             accept=".csv"
             label="固有名詞を取込"
-            style={{ ...input, cursor: "pointer", background: "#f9fafb" }}
+            style={{ ...input, cursor: "pointer", background: "var(--color-surface)" }}
+            disabled={importing}
             onSelect={(files) => { const f = files[0]; if (f) void importCsv("terms", f); }}
           />
         </div>
@@ -136,9 +155,9 @@ export function GlossaryClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
           <div style={{ marginTop: 8 }}>
             {audit.length === 0 && <p style={{ fontSize: 12, color: "var(--color-muted, #999)" }}>まだ変更履歴がありません。</p>}
             {audit.map((e, i) => (
-              <div key={i} style={{ fontSize: 12, padding: "4px 0", borderBottom: "1px solid #f5f5f5", display: "flex", gap: 8 }}>
+              <div key={i} style={{ fontSize: 12, padding: "4px 0", borderBottom: "1px solid var(--color-surface)", display: "flex", gap: 8 }}>
                 <span style={{ color: "var(--color-muted, #999)", minWidth: 130 }}>{new Date(e.at).toLocaleString("ja-JP")}</span>
-                <span style={{ color: e.action === "remove" ? "var(--color-danger, #c00)" : "#4338ca", minWidth: 50 }}>{e.action === "add" ? "追加" : e.action === "update" ? "更新" : "削除"}</span>
+                <span style={{ color: e.action === "remove" ? "var(--color-danger, #c00)" : "var(--color-primary)", minWidth: 50 }}>{e.action === "add" ? "追加" : e.action === "update" ? "更新" : "削除"}</span>
                 <code>{e.kind === "term" ? "用語" : "置換"}: {e.key}{e.value ? ` → ${e.value}` : ""}</code>
                 <span style={{ marginLeft: "auto", color: "var(--color-muted, #999)" }}>{e.actor}</span>
               </div>

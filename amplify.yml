@@ -1,17 +1,17 @@
 # AWS Amplify Hosting のビルド定義。
 #
 # 【何をデプロイするか】
-# 統合デモサイト(demos/showcase)。DB を持たないので Amplify だけで完結する。
+# 基盤の使い方を示す画面(apps/showcase)。DB を持たないので Amplify だけで完結する。
 # RDS などのバックエンドは不要。
 #
 # 【Amplify コンソール側の設定】
 # 1. リポジトリを接続するとき「モノレポ」を選ぶ
-# 2. App root(モノレポのルートディレクトリ)に `demos/showcase` を指定
+# 2. App root(モノレポのルートディレクトリ)に `apps/showcase` を指定
 #
 # ────────────────────────────────────────────────
 # 【ここまでに踏んだ地雷(同じ失敗を繰り返さないために残す)】
 #
-# 1. `cd ../.. && pnpm --filter showcase-demo build`
+# 1. `cd ../.. && pnpm --filter showcase build`
 #    → Next.js がモノレポのルートで動き、相対 import も node_modules も解決できず
 #      Module not found が 103 件
 #
@@ -33,12 +33,12 @@
 # 【対策】
 # - install はルートで行う(workspace 全体の解決に必要)
 # - build は **リポジトリのルートからの相対パスで cd し直す**。
-#   preBuild の cd が残っている前提なので、これで確実に demos/showcase に居られる。
+#   preBuild の cd が残っている前提なので、これで確実に apps/showcase に居られる。
 # - `pwd` を出して、ログで実行場所を確認できるようにする
 # ────────────────────────────────────────────────
 version: 1
 applications:
-  - appRoot: demos/showcase
+  - appRoot: apps/showcase
     frontend:
       phases:
         preBuild:
@@ -60,7 +60,7 @@ applications:
             # preBuild の cd でモノレポのルートに居る。そこから appRoot へ入り直す。
             # 1 コマンドにまとめるので、cd と build が必ずセットで効く。
             # package.json の build スクリプト(= next build)を使う
-            - pwd && cd demos/showcase && pwd && pnpm run build
+            - pwd && cd apps/showcase && pwd && pnpm run build
       artifacts:
         # artifacts は appRoot からの相対(Amplify が解決する)
         baseDirectory: .next

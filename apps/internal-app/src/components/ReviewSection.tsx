@@ -38,10 +38,10 @@ export function ReviewSection({ subjectType, subjectId, canModerate = false, fet
         {summary && summary.count > 0 && <span className="text-sm text-[var(--color-warning)]">{stars(Math.round(summary.average))} {summary.average.toFixed(1)}（{summary.count}件）</span>}
       </div>
       <div className="mb-4 rounded bg-[var(--color-subtle)] p-3">
-        <div className="mb-2 flex gap-1">{[1, 2, 3, 4, 5].map((n) => <Button key={n} type="button" aria-label={`${n}つ星`} title={`${n}つ星`} onClick={() => setRating(n)} className={`text-lg ${n <= rating ? "text-[var(--color-warning)]" : "text-[color-mix(in_srgb,var(--color-primary-fg)_75%,transparent)]"}`}>★</Button>)}</div>
+        <div className="mb-2 flex gap-1">{[1, 2, 3, 4, 5].map((n) => <Button key={n} type="button" aria-label={`${n}つ星`} title={`${n}つ星`} onClick={() => setRating(n)} variant="star" data-state={n <= rating ? "on" : undefined}>★</Button>)}</div>
         <Input value={title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)} placeholder="タイトル" className="mb-2 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" />
         <Textarea value={comment} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setComment(e.target.value)} rows={2} placeholder="コメント" className="mb-2 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" />
-        <Button type="button" onClick={submit} className="rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">投稿する</Button>
+    <Button type="button" onClick={submit} className="rounded px-4 py-1.5 text-sm text-white">投稿する</Button>
       </div>
       <ul className="space-y-2">
         {reviews.map((r) => (
@@ -49,7 +49,7 @@ export function ReviewSection({ subjectType, subjectId, canModerate = false, fet
             <div className="flex items-center justify-between"><span className="text-sm text-[var(--color-warning)]">{stars(r.rating)}{r.hidden && <span className="ml-2 rounded bg-[var(--color-subtle-strong)] px-1 text-xs text-[var(--color-muted)]">非表示</span>}</span><span className="text-xs text-[var(--color-muted)]">{r.author}</span></div>
             {r.title && <p className="text-sm font-medium">{r.title}</p>}
             {r.comment && <p className="text-sm text-[var(--color-muted)]">{r.comment}</p>}
-            {canModerate && <Button type="button" onClick={() => setHidden(r.id, !r.hidden)} className="mt-1 text-xs text-[var(--color-primary)] hover:underline">{r.hidden ? "再表示" : "非表示にする"}</Button>}
+      {canModerate && <Button type="button" onClick={() => setHidden(r.id, !r.hidden)} variant="secondary" className="mt-1 text-xs hover:underline">{r.hidden ? "再表示" : "非表示にする"}</Button>}
           </li>
         ))}
         {reviews.length === 0 && <li className="text-sm text-[var(--color-muted)]">まだ口コミはありません。</li>}

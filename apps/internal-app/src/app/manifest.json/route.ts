@@ -1,4 +1,5 @@
 // public-api: PWA の manifest。ブラウザが認証なしで取得するため
+// no-rate-limit: PWA のマニフェスト。ブラウザが取りに来る静的配信
 /**
  * Web App Manifest。
  *

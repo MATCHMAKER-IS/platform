@@ -7,7 +7,7 @@
  * @packageDocumentation
  */
 
-import type { Result } from "@platform/core";
+import { AppError, ErrorCode, err, type Result } from "@platform/core";
 
 /** 逆引き結果の住所。 */
 export interface AddressResult {
@@ -43,11 +43,43 @@ export interface AddressLookup {
   lookup(zipcode: string): Promise<Result<AddressResult[]>>;
 }
 
-/** 郵便番号を半角数字 7 桁に正規化する(全角→半角、ハイフン・空白除去)。 */
+/**
+ * 郵便番号から数字だけを取り出す(全角→半角、ハイフン・空白除去)。
+ *
+ * **桁数は検証しない。** `"100-00011"` は `"10000011"`(8 桁)、
+ * `"東京都"` は `""` になる。判定が要るなら {@link isValidZipcode} を通すこと。
+ *
+ * @param input 入力された郵便番号
+ * @returns 数字だけの文字列(**7 桁とは限らない**)
+ */
 export function normalizeZipcode(input: string): string {
   return input
     .replace(/[\uFF10-\uFF19]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0))
     .replace(/[^0-9]/g, "");
+}
+
+/**
+ * 正規化した郵便番号が日本の 7 桁かを判定する。
+ *
+ * **`normalizeZipcode` は桁数を見ない。** 以前は「7 桁に正規化する」と
+ * 説明しておきながら検証が無く、誤入力(8 桁)や住所を貼り付けた文字列が
+ * **そのまま外部 API へ送られていた**(2026-08 に追加)。
+ * 外部を無駄に叩くうえ、返る「該当なし」が入力の誤りなのか
+ * 実在しない番号なのか区別できない。
+ *
+ * @param input 入力された郵便番号(正規化前でよい)
+ * @returns 数字 7 桁なら true
+ *
+ * @example
+ * ```ts
+ * isValidZipcode("100-0001");  // true
+ * isValidZipcode("１００−０００１"); // true(全角も可)
+ * isValidZipcode("100-00011"); // false(8 桁)
+ * isValidZipcode("東京都");     // false
+ * ```
+ */
+export function isValidZipcode(input: string): boolean {
+  return /^[0-9]{7}$/.test(normalizeZipcode(input));
 }
 
 /**
@@ -64,7 +96,15 @@ export function normalizeZipcode(input: string): string {
  */
 export function createAddressLookup(adapter: AddressAdapter): AddressLookup {
   return {
-    lookup: (zipcode) => adapter.lookup(normalizeZipcode(zipcode)),
+    lookup: async (zipcode) => {
+      // **桁が合わないものは外部へ送らない。**
+      // 無駄に叩くうえ、返る「該当なし」が入力の誤りなのか
+      // 実在しない番号なのか区別できず、利用者に説明できない
+      if (!isValidZipcode(zipcode)) {
+        return err(new AppError(ErrorCode.VALIDATION, "郵便番号は数字 7 桁で入力してください"));
+      }
+      return adapter.lookup(normalizeZipcode(zipcode));
+    },
   };
 }
 

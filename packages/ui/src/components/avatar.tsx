@@ -6,7 +6,6 @@ import * as React from "react";
 import { Avatar as Primitive } from "radix-ui";
 import { cn } from "../lib/cn";
 
-/** アバターのルート(円形)。 */
 /**
  * 利用者の顔写真(無ければ頭文字)。
  *

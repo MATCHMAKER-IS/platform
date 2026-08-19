@@ -19,7 +19,22 @@ export interface AuditEntry extends AuditEvent {
 /** ハッシュ関数の型。 */
 export type HashFn = (input: string) => string;
 
-/** 依存なしの既定ハッシュ(FNV-1a 32bit・16進)。運用では sha256 を注入推奨。 */
+/**
+ * 依存なしの既定ハッシュ(FNV-1a 32bit・16進)。
+ *
+ * **改ざん検知には使わない。** 出力が約 43 億通りしかなく、
+ * **誕生日攻撃なら約 6.5 万回**で衝突が見つかる——「金額 10000 を 100000 に
+ * 書き換えてハッシュを合わせる」が現実的な計算量になる。
+ *
+ * このパッケージは**依存ゼロ**を保つために既定を持っているだけで、
+ * **本番では必ず sha256 を注入すること**:
+ *
+ * ```ts
+ * const sha256Hex = (s: string) => createHash("sha256").update(s).digest("hex");
+ * appendEvent(log, event, sha256Hex);
+ * verifyChain(log, sha256Hex);  // **記録と同じ関数を使う**(違うと全件が改ざん扱い)
+ * ```
+ */
 export const fnv1a: HashFn = (input) => {
   let h = 0x811c9dc5;
   for (let i = 0; i < input.length; i++) {
@@ -41,6 +56,7 @@ function canonical(event: AuditEvent): string {
  *
  * @param log 既存のログ
  * @param event 追記するイベント
+ * @param hashFn ハッシュ関数(**本番では sha256 を渡すこと**。既定の FNV-1a は改ざん検知に弱い)
  * @returns 追記した**新しい配列**(元は変更しない)
  */
 export function appendEvent(log: AuditEntry[], event: AuditEvent, hashFn: HashFn = fnv1a): AuditEntry[] {
@@ -56,6 +72,8 @@ export function appendEvent(log: AuditEntry[], event: AuditEvent, hashFn: HashFn
  *
  * @param log 既存のログ
  * @param events 追記するイベント
+ * @param hashFn ハッシュ関数(**必ず sha256 を注入すること**。既定の FNV-1a 32bit は
+ *   誕生日攻撃で**約 6.5 万回で衝突**する)
  * @returns 追記した新しい配列
  */
 export function appendAll(log: AuditEntry[], events: AuditEvent[], hashFn: HashFn = fnv1a): AuditEntry[] {
@@ -78,6 +96,8 @@ export interface ChainVerification {
  * **定期的に実行すること**。改ざんは早く見つけるほど被害が小さい。
  *
  * @param log 監査ログ
+ * @param hashFn ハッシュ関数(**必ず sha256 を注入すること**。既定の FNV-1a 32bit は
+ *   誕生日攻撃で**約 6.5 万回で衝突**するため、改ざんを見逃す)
  * @returns 正しければ true と、**壊れている位置**
  */
 export function verifyChain(log: AuditEntry[], hashFn: HashFn = fnv1a): ChainVerification {

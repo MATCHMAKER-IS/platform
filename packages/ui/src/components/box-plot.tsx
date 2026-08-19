@@ -17,7 +17,6 @@ export interface BoxPlotProps {
   className?: string;
 }
 
-/** 箱ひげ図。 */
 /**
  * 箱ひげ図(中央値と外れ値)。
  *

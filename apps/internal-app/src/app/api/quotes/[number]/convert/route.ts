@@ -1,15 +1,15 @@
 /** 見積: 請求書へ変換(POST)。quote:write と invoice:write が必要。 */
 import { withApiObservability } from "../../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../../server/authorize";
-import { serverEnv } from "../../../../../server/env";
+import "../../../../../server/env";
 import { quoteStore, invoiceStore, auditActions } from "../../../../../server/platform-services";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ number: string }> }): Promise<Response> {
   const { number } = await ctx.params;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "quote:write");
   requirePermission(user, "invoice:write");
-  const body = (await req.json()) as { number: string; issueDate: string; dueDate: string; registrationNumber?: string };
+  const body = (await req.json().catch(() => ({}))) as { number: string; issueDate: string; dueDate: string; registrationNumber?: string };
   if (!body.number || !body.issueDate || !body.dueDate) return Response.json({ error: "請求書番号・発行日・支払期限は必須です" }, { status: 400 });
   if (await invoiceStore.get(body.number)) return Response.json({ error: "同じ番号の請求書が既にあります" }, { status: 409 });
   const invoice = await quoteStore.toInvoice(number, body);

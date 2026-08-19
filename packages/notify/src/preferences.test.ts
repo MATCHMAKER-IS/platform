@@ -1,14 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { isQuietHour, resolveDelivery, partitionDeliveries, summarizeDigest } from "./preferences";
+import { isQuietHour, resolveDelivery, partitionDeliveries, summarizeDigest, type NotificationPreference } from "./preferences";
 const at = (h: number) => { const d = new Date("2025-07-25T00:00:00"); d.setHours(h); return d; };
-const pref = {
+// **`as const` は `readonly` も付ける。**
+// リテラル型が欲しくて付けたが、`NotificationPreference` は可変配列を要求するので
+// 代入できない。型注釈を付ければ、リテラルは推論され `readonly` も付かない
+// (2026-08、型検査が回っていなかったため食い違ったまま通っていた)。
+const pref: NotificationPreference = {
   categories: {
-    approval: { channels: ["slack", "email"] as const, mode: "immediate" as const },
-    report: { channels: ["email"] as const, mode: "digest" as const },
-    marketing: { channels: ["email"] as const, mode: "off" as const },
+    approval: { channels: ["slack", "email"], mode: "immediate" as const },
+    report: { channels: ["email"], mode: "digest" as const },
+    marketing: { channels: ["email"], mode: "off" as const },
     mention: { channels: ["push"] as const },
   },
-  defaultChannels: ["inApp"] as const,
+  defaultChannels: ["inApp"],
   quietHours: { start: 22, end: 7 },
 };
 describe("notification preferences", () => {

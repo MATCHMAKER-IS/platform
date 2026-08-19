@@ -39,7 +39,62 @@ export const DEFAULT_REDACT_PATHS = [
   "*.email",
   "phone",
   "*.phone",
+  // **秘密は名前で拾えるものを増やす。**
+  // `secret` / `apiKey` / `refreshToken` は、そのまま出ると
+  // ログを見られた時点で外部サービスへ入られる(2026-08 に追加)。
+  // `passwordHash` は総当たりの材料になる。
+  "secret",
+  "*.secret",
+  "clientSecret",
+  "*.clientSecret",
+  "apiKey",
+  "*.apiKey",
+  "refreshToken",
+  "*.refreshToken",
+  "passwordHash",
+  "*.passwordHash",
+  "sessionSecret",
+  // **日本の業務で漏れると重いもの。** 2026-08 に追加。
+  // 認証情報は揃っていたが、**業務データそのもの**が抜けていた。
+  // `logger` の説明は「業務データの漏洩を防ぐ」なので、ここが本題。
+  //
+  // マイナンバーは法律で扱いが厳しく、**原則ログに残さない**
+  // (`@platform/pii` の `maskMyNumber` も下 4 桁しか残さない)。
+  "myNumber",
+  "*.myNumber",
+  "individualNumber",
+  "*.individualNumber",
+  // 口座情報。全銀ファイルの組み立てで実際に扱う
+  "accountNumber",
+  "*.accountNumber",
+  "cardNumber",
+  "*.cardNumber",
+  "creditCard",
+  "*.creditCard",
+  // 個人を特定できるもの。住所は 59 箇所、生年月日は 29 箇所で使われている
+  "address",
+  "*.address",
+  "birthDate",
+  "*.birthDate",
+  "*.sessionSecret",
 ];
+
+/**
+ * **2 段深いところも隠す。**
+ *
+ * `*.password` は 1 段だけで、`config.zoho.clientSecret` のような
+ * 入れ子は素通りする(2026-08 に確認)。
+ * 設定オブジェクトをそのままログに出すと漏れるため、深さを足す。
+ *
+ * **無制限にはしない。** pino の redact はパスを列挙する方式で、
+ * 深くするほど照合が増える。実際に使う深さ(3 段)までとする。
+ */
+const DEEP_REDACT_PATHS = DEFAULT_REDACT_PATHS
+  .filter((p) => p.startsWith("*."))
+  .flatMap((p) => {
+    const name = p.slice(2);
+    return [`*.*.${name}`, `*.*.*.${name}`];
+  });
 
 /** {@link createLogger} のオプション。 */
 export interface LoggerOptions {
@@ -54,6 +109,26 @@ export interface LoggerOptions {
   /**
    * 各ログ出力時に呼ばれ、返したフィールドを全ログにマージする。
    * 相関ID(traceId 等)の自動付与に使う({@link createContextStore} の `provider`)。
+   *
+   * **`@platform/context` を使っているなら、そこから取ること。**
+   * このパッケージは独自の `AsyncLocalStorage` を持っているが、
+   * **`runWithContext` で張った ID とは別物**——両方を張らないと
+   * **ログに追跡 ID が入らず、障害調査で「この要求のログ」を追えない**。
+   *
+   * ```ts
+   * import { getContext } from "@platform/context";
+   *
+   * const logger = createLogger({
+   *   // **リクエストの ID をそのままログへ**(2026-08 に明記)
+   *   contextProvider: () => {
+   *     const ctx = getContext();
+   *     return ctx === undefined ? {} : { requestId: ctx.requestId, route: ctx.route };
+   *   },
+   * });
+   * ```
+   *
+   * **依存は増やさない**(logger は pino だけに依存する)。
+   * 関数を渡す形にしてあるのは、**どちらの仕組みでも使える**ようにするため。
    */
   contextProvider?: () => Record<string, unknown>;
 }
@@ -97,7 +172,7 @@ export function createLogger(options: LoggerOptions = {}): Logger {
     pino({
       level,
       base: base ?? undefined,
-      redact: { paths: [...DEFAULT_REDACT_PATHS, ...redact], censor: "[Redacted]" },
+      redact: { paths: [...DEFAULT_REDACT_PATHS, ...DEEP_REDACT_PATHS, ...redact], censor: "[Redacted]" },
       ...(pretty ? { transport: { target: "pino-pretty" } } : {}),
     }),
     contextProvider,

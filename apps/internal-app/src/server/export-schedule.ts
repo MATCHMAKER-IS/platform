@@ -24,8 +24,19 @@ const DAY = 24 * 60 * 60 * 1000;
 export function isExportDue(schedule: ExportSchedule, now: Date): boolean {
   if (!schedule.enabled) return false;
   if (!schedule.lastRunAt) return true;
-  const elapsed = now.getTime() - new Date(schedule.lastRunAt).getTime();
-  const interval = schedule.frequency === "daily" ? DAY : schedule.frequency === "weekly" ? 7 * DAY : 30 * DAY;
+  const last = new Date(schedule.lastRunAt);
+  // **月次は「30 日」で数えない。** 1/31 に走ると次は 3/2 になって
+  // **2 月が飛び**、その後も実行日が毎月ずれる(`report-schedule` と同じ問題)。
+  // **月が変わったか**で判定する(JST 基準。UTC だと月初・月末の深夜にずれる)
+  if (schedule.frequency === "monthly") {
+    const ym = (d: Date): number => {
+      const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+      return jst.getUTCFullYear() * 12 + jst.getUTCMonth();
+    };
+    return ym(now) > ym(last);
+  }
+  const elapsed = now.getTime() - last.getTime();
+  const interval = schedule.frequency === "daily" ? DAY : 7 * DAY;
   return elapsed >= interval;
 }
 
@@ -111,7 +122,9 @@ export interface ExportScheduleRow {
   type: string;
   frequency: string;
   enabled: boolean;
-  lastRunAt: string | null;
+  /** DB では `Date | null`。`ExportSchedule` の公開契約(`lastRunAt?: string`)は
+   *  変えない——`sRow` の境界で変換する(2026-08)。 */
+  lastRunAt: Date | null;
 }
 
 /** ExportRunRow の必要部分。 */
@@ -128,8 +141,8 @@ export interface ExportRunRow {
 export interface ExportScheduleStoreDb {
   exportScheduleRow: {
     findMany(args: { orderBy: { type: "asc" } }): Promise<ExportScheduleRow[]>;
-    create(args: { data: { type: string; frequency: string; enabled: boolean; lastRunAt: string | null } }): Promise<ExportScheduleRow>;
-    update(args: { where: { id: string }; data: Partial<{ enabled: boolean; lastRunAt: string }> }): Promise<ExportScheduleRow>;
+    create(args: { data: { type: string; frequency: string; enabled: boolean; lastRunAt: Date | null } }): Promise<ExportScheduleRow>;
+    update(args: { where: { id: string }; data: Partial<{ enabled: boolean; lastRunAt: Date }> }): Promise<ExportScheduleRow>;
     delete(args: { where: { id: string } }): Promise<ExportScheduleRow>;
   };
 }
@@ -142,7 +155,7 @@ export interface ExportRunStoreDb {
   };
 }
 
-const sRow = (r: ExportScheduleRow): ExportSchedule => ({ id: r.id, type: r.type as ExportType, frequency: r.frequency as ExportFrequency, enabled: r.enabled, ...(r.lastRunAt ? { lastRunAt: r.lastRunAt } : {}) });
+const sRow = (r: ExportScheduleRow): ExportSchedule => ({ id: r.id, type: r.type as ExportType, frequency: r.frequency as ExportFrequency, enabled: r.enabled, ...(r.lastRunAt ? { lastRunAt: r.lastRunAt.toISOString() } : {}) });
 
 /** Prisma スケジュールストア。 */
 export function createPrismaExportScheduleStore(db: ExportScheduleStoreDb): ExportScheduleStore {
@@ -157,7 +170,10 @@ export function createPrismaExportScheduleStore(db: ExportScheduleStoreDb): Expo
       await db.exportScheduleRow.update({ where: { id }, data: { enabled } });
     },
     async markRun(id, at) {
-      await db.exportScheduleRow.update({ where: { id }, data: { lastRunAt: at } });
+      // **`at` は文字列(公開契約)のまま受け取る。** DB へ書く直前だけ
+      // Date に変換する(呼び出し側の export-scan/route.ts に影響を与えない。
+      // 2026-08、lastRunAt を DateTime に移行)。
+      await db.exportScheduleRow.update({ where: { id }, data: { lastRunAt: new Date(at) } });
     },
     async remove(id) {
       await db.exportScheduleRow.delete({ where: { id } });

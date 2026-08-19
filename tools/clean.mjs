@@ -30,7 +30,7 @@ const TARGETS = ALL ? [...BUILD_ARTIFACTS, "node_modules"] : BUILD_ARTIFACTS;
 /** ワークスペースのディレクトリ(packages/* と apps/* と demos/*)。 */
 async function workspaceDirs() {
   const dirs = [ROOT];
-  for (const group of ["packages", "apps", "demos", "tools"]) {
+  for (const group of ["packages", "apps", "tools"]) {
     let entries;
     try {
       entries = await readdir(path.join(ROOT, group), { withFileTypes: true });

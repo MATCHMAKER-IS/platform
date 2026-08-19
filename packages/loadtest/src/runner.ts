@@ -49,10 +49,10 @@ export interface LoadResult {
 /**
  * 負荷テストを実行する。並列ワーカーが、停止条件を満たすまでリクエスト関数を呼び続ける。
  *
- * @param options.url 対象の URL
- * @param options.concurrency 並列数
+ * @param request 1 回分の要求（**ここを差し替えて何を測るか決める**）
+ * @param options.concurrency 同時実行数。`durationMs` か `iterations` で終了条件を決める
  * @param options.iterations 実行回数
- * @param options.dry ネットワークを使わず擬似実行するか(**CI で疎通なしに試せる**)
+ * @param options.now 時刻の取得(テスト注入用)。**擬似実行(`dry`)の指定は無い**
  * @returns 実行結果(統計つき)
  */
 export async function runLoad(request: RequestFn, options: LoadOptions): Promise<LoadResult> {

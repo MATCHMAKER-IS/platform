@@ -82,6 +82,33 @@ export function gaugeAtLeast(gaugeKey: string, threshold: number): (m: MetricsVi
   return (m) => (m.gauges[gaugeKey] ?? 0) >= threshold;
 }
 
+/**
+ * カウンタが閾値を下回ったら発報する(**トラフィック断の検知**)。
+ *
+ * **エラー率のアラートだけでは「動いていない」を検知できない。**
+ * `errorRateAbove` は 0 除算を避けるため**リクエストが 0 なら false を返す**——
+ * ロードバランサが全台を切り離した・アプリが起動していない・計測が壊れた、
+ * のいずれでも**アラートは鳴らない**。「エラーが出ていない」と「動いていない」が
+ * 区別されないのは、監視の典型的な穴(2026-08 に追加)。
+ *
+ * **平常時の下限**を閾値にすること(例: 通常 1 分 100 件なら 10 など)。
+ * 夜間や休日に落ちる業務システムでは、**時間帯で閾値を変える**か、
+ * このルールを止める時間を決めておく必要がある。
+ *
+ * @param counterKey 監視するカウンタ名(例 `"http.requests"`)
+ * @param minimum この値を下回ったら発報する
+ * @returns アラートの判定関数
+ *
+ * @example
+ * ```ts
+ * // 平常時は 1 分あたり 100 件。10 件を切ったら異常とみなす
+ * const rule = { name: "traffic-down", check: counterBelow("http.requests", 10) };
+ * ```
+ */
+export function counterBelow(counterKey: string, minimum: number): (m: MetricsView) => boolean {
+  return (m) => (m.counters[counterKey] ?? 0) < minimum;
+}
+
 /** アラートマネージャ。ルールを保持し、評価ごとに発報/回復を判定する(状態つき)。 */
 export interface AlertManager {
   /** 現在のメトリクスで全ルールを評価し、状態が変化したアラート(発報 or 回復)を返す。 */

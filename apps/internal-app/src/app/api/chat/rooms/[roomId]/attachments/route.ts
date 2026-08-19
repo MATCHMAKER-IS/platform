@@ -4,14 +4,14 @@
  */
 import { withApiObservability } from "../../../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../../../server/authorize";
-import { serverEnv } from "../../../../../../server/env";
+import "../../../../../../server/env";
 import { chatStorage, thumbnailService } from "../../../../../../server/chat";
 import { fileManager } from "../../../../../../server/platform-services";
 import { handleUpload } from "@platform/upload";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ roomId: string }> }): Promise<Response> {
   const { roomId } = await ctx.params;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "chat:post");
 
   const res = await handleUpload(req, {

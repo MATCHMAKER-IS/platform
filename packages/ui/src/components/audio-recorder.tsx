@@ -18,7 +18,6 @@ export interface AudioRecorderProps {
   className?: string;
 }
 
-/** マイク録音コンポーネント。 */
 /**
  * 音声の録音。
  *

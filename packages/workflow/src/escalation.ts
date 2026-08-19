@@ -20,7 +20,8 @@ export interface SlaPolicy {
  * 現在の pending ステップが「いつから待ち状態か」を求める。
  * 直近の履歴イベントの時刻、履歴が無ければ startedAt(ワークフロー開始時刻)を使う。
  *
- * @param request 申請
+ * @param state 申請のいまの状態
+ * @param startedAt 申請が始まった時刻（**段階が進んでいなければこれが起点**）
  * @returns 現在のステップで滞留している時間(ミリ秒)
  */
 export function pendingSince(state: WorkflowState, startedAt: Date): Date {
@@ -41,8 +42,23 @@ export interface SlaEvaluation {
 
 /**
  * SLA を評価する。エスカレーション条件を満たせば "escalate"、催促条件のみなら "remind"。
- * @param remindersSent 既に送った催促回数(重複送信の抑止用)。
  * @returns SLA の状態(`ok` / `warning` / `breached`)。**期限前に警告を出す**(切れてからでは遅い)
+ *
+ * **暦日で数えます（営業日ではありません）。**
+ * **金曜の夕方に申請されると、月曜の朝には「3 日滞留」**になります
+ * ——実際に承認できたのは 1 営業日だけです。
+ *
+ * 上限を決めるときは、**土日を含む前提**で決めてください
+ * （例: 営業日 2 日のつもりなら 4 日に設定する）。
+ * 営業日で数えたいなら `@platform/datetime` の営業日計算を使って
+ * 呼び出し側で調整してください——**祝日は会社ごとに違う**ので、
+ * ここに持たせると設定が必要になります。
+ *
+ * @param pendingSinceDate 滞留の起点（`pendingSince()` の戻り値）
+ * @param now 判定する時刻
+ * @param policy 上限と催促の決まり
+ * @param options.remindersSent 既に送った催促回数（**重複送信の抑止用**）
+ * @returns 超過しているか・次に催促すべきか
  */
 export function evaluateSla(
   pendingSinceDate: Date,
@@ -78,8 +94,9 @@ export function evaluateSla(
  * 既定は「現在ステップの1つ上(次段)」。最終段なら null(それ以上の上位がない)。
  * chain を渡すと現在の approverRole からエスカレーション先ロールを引ける。
  *
- * @param request 申請
- * @param rules エスカレーションのルール
+ * @param def ワークフローの定義
+ * @param state 申請のいまの状態
+ * @param options.chain 役職の上位を引く表（`課長 → 部長` のような）
  * @returns エスカレーション先。**該当が無ければ null**
  */
 export function escalationTarget(

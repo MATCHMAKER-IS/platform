@@ -58,8 +58,14 @@ export interface ServerSession<T> {
  * ```
  *
  * @param config.store 保存先(Redis など)
- * @param config.secret セッション ID の署名鍵
- * @param config.maxAgeSec 有効期間(秒)
+ * @param config.ttlSec 有効期間(秒、既定 7 日)。以前この説明は `maxAgeSec` だった
+ * @param config.cookieName クッキー名(既定 `"sid"`)、`keyPrefix` はストアのキー接頭辞
+ * @param config.cookie クッキーの属性(SameSite・Secure など)
+ * **セッション ID に署名はしていない。** ID は `randomToken` の乱数で、
+ * 推測できないことに依存している。以前この説明には `config.secret`(署名鍵)と
+ * 書いてあったが**そのような設定は無く**、署名されていると誤認させる状態だった
+ * (2026-08 に修正)。署名を足すなら、まず ID の生成と検証の両方を変えること。
+ *
  * @returns サーバ側セッション。**Cookie には ID しか入らない**ので、中身が大きくても・秘密でも扱える
  */
 export function createServerSession<T>(config: ServerSessionConfig): ServerSession<T> {

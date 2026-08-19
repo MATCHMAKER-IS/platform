@@ -1,30 +1,42 @@
 "use client";
 /** 資金繰り（営業CF）。月次の現金収入・支出・収支・累計残を折れ線＋棒で表示。 */
 import * as React from "react";
-import { ComboChart } from "@platform/ui";
+import { formatYen } from "@platform/report";
+import { AsyncBoundary, ComboChart, PageShell } from "@platform/ui";
 
 interface Row { month: string; inflow: number; outflow: number; net: number; cumulative: number; }
 interface Summary { totalIn: number; totalOut: number; netCashFlow: number; ending: number; }
 interface Data { from: string; to: string; opening: number; rows: Row[]; summary: Summary; }
 
-const yen = (n: number) => `¥${n.toLocaleString()}`;
+const yen = (n: number) => formatYen(n);
 
 export interface CashflowClientProps { fetchImpl?: typeof fetch; }
 
 export function CashflowClient({ fetchImpl }: CashflowClientProps) {
   const [data, setData] = React.useState<Data | null>(null);
+  const [error, setError] = React.useState("");
   const doFetch = fetchImpl ?? (globalThis as unknown as { fetch: typeof fetch }).fetch;
 
-  React.useEffect(() => {
-    void (async () => {
+  // **失敗を握らない。**
+  // 以前は `res.ok` でないとき何も起きず、「読み込み中…」のまま止まっていた。
+  // 動いているのか壊れているのか分からない表示が、いちばん困る
+  const load = React.useCallback(async () => {
+    setError("");
+    try {
       const res = await doFetch("/api/cashflow");
-      if (res.ok) setData((await res.json()) as Data);
-    })();
+      if (!res.ok) { setError("資金繰りを取得できませんでした"); return; }
+      setData((await res.json()) as Data);
+    } catch {
+      setError("通信に失敗しました。ネットワークを確認してください");
+    }
   }, [doFetch]);
 
-  if (!data) return <div className="mx-auto max-w-4xl p-6"><h1 className="text-2xl font-bold">資金繰り</h1><p className="mt-4 text-sm text-[var(--color-muted)]">読み込み中…</p></div>;
+  React.useEffect(() => { void load(); }, [load]);
 
-  const rows = data.rows;
+  // **`AsyncBoundary` は描画を包むだけで、この行の評価は止められない。**
+  // 2026-08、早期 return を消して `AsyncBoundary` に置き換えた際、
+  // ここが `null.rows` になる状態のまま残っていた(構文エラーで気づけた)。
+  const rows = data?.rows ?? [];
   // **グラフは @platform/ui の ComboChart に任せる**(軸・凡例・整形・ツールチップ込み)。
   // 累計残は収支の積み上げなので、収入・支出と**同じ金額軸**で読める(第2軸は使わない)
   const chartData = rows.map((r) => ({
@@ -34,9 +46,16 @@ export function CashflowClient({ fetchImpl }: CashflowClientProps) {
     cumulative: r.cumulative,
   }));
 
+  // **`AsyncBoundary` に渡す前に返す。** children は JSX なので
+  // **この部品が判断するより先に評価される**——`data` が null のままだと
+  // `data.…` で画面ごと落ちる(2026-08 の型検査で 7 画面が同じ形だった)。
+  if (data === null) {
+    return <AsyncBoundary loading={error === ""} error={error} onRetry={() => void load()} />;
+  }
+
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <h1 className="mb-1 text-2xl font-bold">資金繰り（営業キャッシュフロー）</h1>
+    <AsyncBoundary loading={false} error={error} onRetry={() => void load()}>
+        <PageShell title="資金繰り（営業キャッシュフロー）" width="wide">
       <p className="mb-4 text-xs text-[var(--color-muted)]">{data.from} 〜 {data.to}。入金＝収入、仕入支払・経費・報酬＝支出。折れ線は累計残。</p>
 
       <div className="mb-4 grid grid-cols-4 gap-3 text-center text-sm">
@@ -74,6 +93,7 @@ export function CashflowClient({ fetchImpl }: CashflowClientProps) {
           ))}
         </tbody>
       </table>
-    </div>
+    </PageShell>
+    </AsyncBoundary>
   );
 }

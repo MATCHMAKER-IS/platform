@@ -1,13 +1,13 @@
 /** レポート生成(GET ?format=csv|html)。売上/売掛/在庫レポートをCSVまたは印刷用HTMLで出力。accounting:read または inventory:read。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, userCan } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { invoiceStore, inventoryStore } from "../../../../server/platform-services";
 import { salesReport, receivablesReport, inventoryReport, reportToCsv, reportToHtml, reportToSheet, filterInvoices, filterLabel, type Report, type ReportFilter } from "../../../../server/reports";
 import { writeWorkbook } from "@platform/xlsx";
 
 async function handleGET(req: Request, ctx: { params: Promise<{ type: string }> }): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   if (!user) return Response.json({ error: "認証が必要です" }, { status: 401 });
   const { type } = await ctx.params;
   const sp = new URL(req.url).searchParams;
@@ -35,10 +35,10 @@ async function handleGET(req: Request, ctx: { params: Promise<{ type: string }> 
   if (format === "xlsx") {
     const result = await writeWorkbook([reportToSheet(report)]);
     if (!result.ok) return Response.json({ error: "Excel の生成に失敗しました" }, { status: 500 });
-    return new Response(result.value as BodyInit, { status: 200, headers: { "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "content-disposition": `attachment; filename="report-${type}-${now.toISOString().slice(0, 10)}.xlsx"` } });
+    return new Response(result.value as BodyInit, { status: 200, headers: { "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "content-disposition": `attachment; filename="report-${type}-${new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)}.xlsx"` } });
   }
   if (format === "csv") {
-    return new Response(reportToCsv(report), { status: 200, headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="report-${type}-${now.toISOString().slice(0, 10)}.csv"` } });
+    return new Response(reportToCsv(report), { status: 200, headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="report-${type}-${new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)}.csv"` } });
   }
   return new Response(reportToHtml(report), { status: 200, headers: { "content-type": "text/html; charset=utf-8" } });
 }

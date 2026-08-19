@@ -37,7 +37,7 @@ export interface MemoryQueueOptions {
  * await q.drain();
  * ```
  *
- * @param options.now 時刻の取得(テスト注入用)
+ * @param options.attempts 失敗時に何回まで試すか
  * @returns キュー(**プロセスが落ちるとジョブが消える**。本番では Redis 実装を使う)
  */
 export function createMemoryQueue<T>(options: MemoryQueueOptions = {}): MemoryQueue<T> {

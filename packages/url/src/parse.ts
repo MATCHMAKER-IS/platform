@@ -87,6 +87,7 @@ export function getOrigin(url: string): string | null {
  * URL からパス部分だけを取り出す。
  *
  * @param url URL
+ * @param base 相対 URL のときの基準（**省略すると相対は解けません**）
  * @returns パス。**解釈できなければ空文字**
  */
 export function getPath(url: string, base?: string): string | null {

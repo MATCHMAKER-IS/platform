@@ -22,7 +22,6 @@ function isEditable(target: EventTarget | null): boolean {
   return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
 }
 
-/** ショートカットを登録する。isMac は省略時に自動判定。 */
 /**
  * キーボード操作の登録。
  *

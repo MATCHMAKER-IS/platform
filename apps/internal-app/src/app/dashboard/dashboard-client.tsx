@@ -7,7 +7,8 @@ import * as React from "react";
 // **SimpleStatCard を使う。** @platform/ui には StatCard が 2 つあり、
 // 主(dashboard.tsx)は delta / trend / format を持つが **hint / href は無い**。
 // ここは「値＋単位＋リンク」なので SimpleStatCard(stat-card.tsx)が合う。
-import { AuditLogView, Card, ComboChart, FileList, Input, List, SimpleStatCard, type AuditLogRow, type FileListItem } from "@platform/ui";
+import { formatYen } from "@platform/report";
+import { AsyncBoundary, AuditLogView, ErrorBoundary, Card, ComboChart, FileList, Input, List, SimpleStatCard, type AuditLogRow, type FileListItem } from "@platform/ui";
 
 interface DashboardData {
   unreadCount: number;
@@ -30,6 +31,7 @@ export interface DashboardClientProps {
 
 export function DashboardClient({ fetchImpl }: DashboardClientProps) {
   const [data, setData] = React.useState<DashboardData | null>(null);
+  const [error, setError] = React.useState("");
   const [auditRows, setAuditRows] = React.useState<AuditLogRow[]>([]);
   const [from, setFrom] = React.useState("");
   const [to, setTo] = React.useState("");
@@ -38,19 +40,23 @@ export function DashboardClient({ fetchImpl }: DashboardClientProps) {
   const doFetch = fetchImpl ?? (globalThis as unknown as { fetch: typeof fetch }).fetch;
   const show = (key: string) => widgetPref === null || widgetPref.includes(key);
 
-  React.useEffect(() => {
-    let alive = true;
-    (async () => {
+  // **再試行できるように名前を付ける。**
+  // 即時関数のままだと、失敗しても呼び直す手段が無い
+  const load = React.useCallback(async () => {
+    setError("");
+    try {
       const res = await doFetch("/api/dashboard");
-      if (!alive || !res.ok) return;
+      // **失敗を握らない。** 握ると「読み込み中…」のまま止まる
+      if (!res.ok) { setError("ダッシュボードを取得できませんでした"); return; }
       const d = (await res.json()) as DashboardData;
       setData(d);
       if (d.recentAudit) setAuditRows(d.recentAudit);
-    })();
-    return () => {
-      alive = false;
-    };
-  }, []);
+    } catch {
+      setError("通信に失敗しました。ネットワークを確認してください");
+    }
+  }, [doFetch]);
+
+  React.useEffect(() => { void load(); }, [load]);
 
   React.useEffect(() => {
     let alive = true;
@@ -59,7 +65,11 @@ export function DashboardClient({ fetchImpl }: DashboardClientProps) {
       if (!alive || !res.ok) return;
       const data = (await res.json()) as { preference: { widgets: string[] } };
       setWidgetPref(data.preference.widgets);
-      try { const tr = await fetch("/api/dashboard/trend?months=6"); if (tr.ok) setTrend(((await tr.json()) as { points: typeof trend }).points); } catch { /* noop */ }
+      try { const tr = await fetch("/api/dashboard/trend?months=6"); if (tr.ok) setTrend(((await tr.json()) as { points: typeof trend }).points); } catch {
+        // **推移が取れなくても他は出す。**
+        // ダッシュボードは複数の情報を並べる画面。1 つ欠けても
+        // 残りは役に立つので、全体を止めない(欠けた枠は空のまま)
+      }
     })();
     return () => {
       alive = false;
@@ -90,16 +100,22 @@ export function DashboardClient({ fetchImpl }: DashboardClientProps) {
     };
   }, [from, to, data]);
 
-  if (!data) return <div className="text-sm text-[var(--color-muted)]">読み込み中…</div>;
+  // **`AsyncBoundary` に渡す前に返す。** children は JSX なので
+  // **この部品が判断するより先に評価される**——`data` が null のままだと
+  // `data.…` で画面ごと落ちる(2026-08 の型検査で 7 画面が同じ形だった)。
+  if (data === null) {
+    return <AsyncBoundary loading={error === ""} error={error} onRetry={() => void load()} />;
+  }
 
   const fileItems: FileListItem[] = data.recentFiles.map((f) => ({ key: f.key, name: f.name, size: f.size, type: f.type, uploadedAt: f.uploadedAt, uploadedByName: f.uploadedBy }));
 
   return (
+    <AsyncBoundary loading={false} error={error} onRetry={() => void load()}>
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {show("unread") && <SimpleStatCard label="未読通知" value={data.unreadCount} icon="🔔" href="/notifications" />}
         {show("pendingApprovals") && <SimpleStatCard label="承認待ち" value={data.pendingApprovals} hint="全体" icon="📝" href="/expenses" />}
-        {show("receivables") && <SimpleStatCard label="売掛残高" value={`¥${(data.receivablesTotal ?? 0).toLocaleString()}`} hint="未回収" icon="💰" href="/receivables" />}
+        {show("receivables") && <SimpleStatCard label="売掛残高" value={formatYen((data.receivablesTotal ?? 0))} hint="未回収" icon="💰" href="/receivables" />}
         {show("inventoryAlerts") && <SimpleStatCard label="在庫アラート" value={data.inventoryAlerts ?? 0} hint="発注要" icon="📦" href="/inventory" />}
       </div>
       {trend.length > 0 && <div><TrendChart points={trend} /></div>}
@@ -148,6 +164,7 @@ export function DashboardClient({ fetchImpl }: DashboardClientProps) {
         </section>
       )}
     </div>
+    </AsyncBoundary>
   );
 }
 
@@ -165,6 +182,16 @@ function TrendChart({ points }: { points: { month: string; sales: number; outsta
   return (
     <div className="rounded border border-[var(--color-border)] p-4">
       <p className="mb-2 text-sm font-medium">売上・売掛の推移（直近6か月）</p>
+      {/* **グラフだけを囲む。**
+          データの形が想定と違うと描画で落ちるが、
+          ダッシュボードの他のタイルまで巻き込む理由は無い */}
+      <ErrorBoundary
+        fallback={
+          <p className="py-8 text-center text-sm text-[var(--color-muted)]">
+            グラフを表示できませんでした
+          </p>
+        }
+      >
       <ComboChart
         data={data}
         xKey="month"
@@ -177,6 +204,7 @@ function TrendChart({ points }: { points: { month: string; sales: number; outsta
           { key: "expenses", name: "経費", type: "line" },
         ]}
       />
+      </ErrorBoundary>
     </div>
   );
 }

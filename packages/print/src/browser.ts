@@ -20,13 +20,28 @@ export interface PageOptions {
  * **画面用の CSS のままでは紙に収まらない**(余白・改ページ・背景色の扱いが違う)。
  *
  * @param options.size 用紙(既定 A4)
- * @param options.orientation 向き
- * @param options.margin 余白
+ * @param options.margin 余白。**向きは `size` に含める**(`A4 landscape` のように書く)
  * @returns CSS 文字列
  */
 export function pageCss(options: PageOptions = {}): string {
   const { size = "A4", margin = "12mm" } = options;
-  return `@page { size: ${size}; margin: ${margin}; }`;
+  // **印刷でしか起きないことを既定で塞ぐ。** どちらも画面では分からず、
+  // **紙に出して初めて気づく**(2026-08 に追加)。
+  //
+  // ① `print-color-adjust: exact` … ブラウザは既定で**背景色を出さない**
+  //    (インクの節約)。表の見出し行が白くなり、**どこが見出しか分からない**
+  //    ——請求書や納品書では行の区切りが読めなくなる。
+  // ② `break-inside: avoid` … 表の行が**上下のページに分かれる**のを防ぐ。
+  // ③ `thead { display: table-header-group }` … **見出し行を各ページに繰り返す**。
+  //    2 ページ目以降で「この列は何か」が分からなくなるのを防ぐ。
+  return [
+    `@page { size: ${size}; margin: ${margin}; }`,
+    "@media print {",
+    "  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }",
+    "  tr, li { break-inside: avoid; }",
+    "  thead { display: table-header-group; }",
+    "}",
+  ].join("\n");
 }
 
 /** {@link printHtml} のオプション。 */

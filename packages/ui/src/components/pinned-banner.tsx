@@ -25,7 +25,6 @@ export interface PinnedBannerProps {
   className?: string;
 }
 
-/** ピン留めバナー。 */
 /**
  * 上部に固定する告知。
  *

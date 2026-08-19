@@ -47,8 +47,18 @@ export interface BroadcastHubOptions {
  * **Redis Pub/Sub を挟むので、複数サーバに分かれていても届く**
  * (単一プロセス内のイベントエミッタでは、別サーバの購読者に届かない)。
  *
+ * **このハブは認可を見ない。** `subscribe(channel, connectionId, send)` は
+ * 渡されたチャンネルにそのまま繋ぐので、**接続してきた人が誰でも、
+ * どのチャンネルでも購読できる**。
+ *
+ * チャンネル名に ID を含める設計(`room:123`・`user:alice`)では、
+ * **他人の ID を指定すれば他人宛の通知が読める**。
+ * 購読を受け付ける前に、**サーバ側でその人がそのチャンネルを見てよいか確かめること**
+ * (`@platform/guard` の `requirePermission` など)。2026-08 に明記。
+ *
  * @param pubsub Redis Pub/Sub クライアント
- * @param options.channelPrefix チャンネル名の接頭辞(**環境ごとに分ける**。開発の通知が本番に飛ばないように)
+ * @param options.keyPrefix チャンネル名の接頭辞(**環境ごとに分ける**。開発の通知が本番に飛ばないように)。
+ *   `onSendError` は送信に失敗したときの通知
  * @returns ハブ(`subscribe` で購読、`publish` で配信)
  */
 export function createBroadcastHub(pubsub: RedisPubSubClient, options: BroadcastHubOptions = {}): BroadcastHub {

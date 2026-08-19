@@ -127,7 +127,9 @@ export function createDictionaryStore(options: DictionaryStoreOptions = {}): Dic
       if (!db) return { loaded: false, replacements: replacements.length, terms: terms.length };
       if (loaded) return { loaded: true, replacements: replacements.length, terms: terms.length };
       try {
-        const [rows, termRows] = await Promise.all([db.glossaryReplacement.findMany(), db.glossaryTerm.findMany()]);
+        // **並び順を指定する。** 無指定だと DB が返す順は不定で、
+        // **用語の一覧が開くたびに変わる**——探している語を見つけられない
+        const [rows, termRows] = await Promise.all([db.glossaryReplacement.findMany({ orderBy: { from: "asc" } }), db.glossaryTerm.findMany({ orderBy: { term: "asc" } })]);
         // DB に1件でもあれば DB を正とする。空ならシードをそのまま DB へ書き込む(初回投入)。
         if (rows.length > 0) {
           replacements.splice(0, replacements.length, ...rows.map((r) => ({ from: r.from, to: r.to })));

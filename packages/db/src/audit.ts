@@ -85,8 +85,9 @@ export interface AuditChangeEntry extends DiffOptions {
  * });
  * ```
  *
- * @param params 操作者・対象・変更内容
- * @returns 監査レコード(**変更が無ければ null**。何も変わっていない操作を記録しない)
+ * @param db Prisma クライアント(`createDb` で作ったもの)
+ * @param entry 操作者・対象・変更内容
+ * @returns 記録できたか（**失敗しても業務は止めない**。監査の記録漏れは別途検知する）
  */
 export async function recordAuditChange(db: AuditCapableClient, entry: AuditChangeEntry): Promise<Result<void>> {
   const changes = diffChanges(entry.before, entry.after, { ignore: entry.ignore, redact: entry.redact });

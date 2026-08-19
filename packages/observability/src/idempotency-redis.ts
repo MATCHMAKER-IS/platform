@@ -37,7 +37,16 @@ export function createRedisIdempotencyStore(client: RedisIdempotencyClient, ttlM
       const res = await client.set(k(key), JSON.stringify(record), "PX", ttlMs, "NX");
       if (res === "OK") return null; // 予約成功(初回)
       const existing = await client.get(k(key)); // 既存レコードを返す(=予約失敗)
-      return existing ? (JSON.parse(existing) as IdempotencyRecord) : null;
+      // **壊れた値は「記録なし」として扱う。** Redis の値は手で書き換えられるし、
+      // 古い版が書いた形が残ることもある。ここで例外が出ると
+      // **冪等の判定ができず、処理そのものが止まる**——
+      // 二重実行を防ぐ仕組みが、実行を止める側に回ってしまう(2026-08)。
+      if (existing === null || existing === undefined) return null;
+      try {
+        return JSON.parse(existing) as IdempotencyRecord;
+      } catch {
+        return null;
+      }
     },
     async complete(key, record) {
       await client.setValue(k(key), JSON.stringify(record), ttlMs);

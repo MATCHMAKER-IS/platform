@@ -2,12 +2,12 @@
 import { validatePageInput, type PageInput } from "@platform/cms";
 import { withApiObservability } from "../../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../../server/authorize";
-import { serverEnv } from "../../../../../server/env";
+import "../../../../../server/env";
 import { pageStore, auditActions } from "../../../../../server/platform-services";
 
 async function handleGET(req: Request, ctx: { params: Promise<{ slug: string }> }): Promise<Response> {
   const { slug } = await ctx.params;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:read");
   const page = await pageStore.get(slug);
   if (!page) return Response.json({ error: "ページが見つかりません" }, { status: 404 });
@@ -16,9 +16,9 @@ async function handleGET(req: Request, ctx: { params: Promise<{ slug: string }> 
 
 async function handlePUT(req: Request, ctx: { params: Promise<{ slug: string }> }): Promise<Response> {
   const { slug } = await ctx.params;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:edit");
-  const body = (await req.json()) as PageInput;
+  const body = (await req.json().catch(() => ({}))) as PageInput;
   const valid = validatePageInput(body);
   if (!valid.ok) return Response.json({ error: valid.error }, { status: 400 });
   const page = await pageStore.update(slug, valid.value);
@@ -29,7 +29,7 @@ async function handlePUT(req: Request, ctx: { params: Promise<{ slug: string }> 
 
 async function handleDELETE(req: Request, ctx: { params: Promise<{ slug: string }> }): Promise<Response> {
   const { slug } = await ctx.params;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:edit");
   const removed = await pageStore.remove(slug);
   if (!removed) return Response.json({ error: "ページが見つかりません" }, { status: 404 });

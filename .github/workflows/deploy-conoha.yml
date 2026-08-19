@@ -1,14 +1,34 @@
 name: Deploy to ConoHa
 
 # リリースイメージ完成後に ConoHa VPS へデプロイする。
-# 手順: compose 転送 → イメージ pull → マイグレーション → アプリ再起動。
+# 手順: compose 転送 → イメージ pull → スキーマ適用 → アプリ再起動。
 # 必要な Secrets: CONOHA_HOST / CONOHA_USER / CONOHA_SSH_KEY
+#
+# 【環境について】
+# **自動で出るのは本番だけ**(main へのマージ)。基本は本番運用のため。
+# 検証(staging)は **手動で選んだときだけ**動く——
+# 「本番の前に一度試したい」変更のときに使う。
+#
+#   Actions → Deploy to ConoHa → Run workflow → environment: staging
+#
+# staging は**同じイメージ**を別ポート(3001)・別 DB で動かす。
+# 別ビルドにすると「検証では通ったのに本番で落ちた」の原因が追えなくなる。
 on:
   workflow_run:
     workflows: ["Release (build & push image)"]
     types: [completed]
     branches: [main]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "デプロイ先(既定は本番)"
+        type: choice
+        default: production
+        options: [production, staging]
+      image_tag:
+        description: "出すイメージのタグ(空なら main。**切り戻しはここに sha-xxxxxxx**)"
+        type: string
+        default: ""
 
 # **必要な権限だけを与える。** 既定の GITHUB_TOKEN は広い権限を持つため、
 # 明示して絞る（漏れたトークンでできることを減らす）
@@ -19,6 +39,15 @@ jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
+    # **GitHub の Environment に紐づける。** 本番だけ承認を必須にできる
+    # (Settings → Environments → production → Required reviewers)。
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    env:
+      # workflow_run(main への自動デプロイ)には inputs が無いので本番に倒す
+      COMPOSE_FILE: ${{ github.event.inputs.environment == 'staging' && 'docker-compose.staging.yml' || 'docker-compose.prod.yml' }}
+      # **切り戻しの入口。** 空なら main(＝いつもの最新)。
+      # 壊れた版を出したときは、ここに前の版の `sha-xxxxxxx` を入れて実行する
+      IMAGE_TAG: ${{ github.event.inputs.image_tag || 'main' }}
     steps:
       - uses: actions/checkout@v4
       - name: Copy compose file to server
@@ -27,7 +56,7 @@ jobs:
           host: ${{ secrets.CONOHA_HOST }}
           username: ${{ secrets.CONOHA_USER }}
           key: ${{ secrets.CONOHA_SSH_KEY }}
-          source: "docker-compose.prod.yml"
+          source: ${{ env.COMPOSE_FILE }}
           target: "~/app/"
       - name: Pull, migrate, restart
         uses: appleboy/ssh-action@v1.2.0
@@ -35,11 +64,38 @@ jobs:
           host: ${{ secrets.CONOHA_HOST }}
           username: ${{ secrets.CONOHA_USER }}
           key: ${{ secrets.CONOHA_SSH_KEY }}
+          envs: COMPOSE_FILE,IMAGE_TAG
+          script: |
+            set -e
+            cd ~/app
+            echo "出すイメージのタグ: $IMAGE_TAG"
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker compose -f "$COMPOSE_FILE" pull
+            # **スキーマ適用を先に一度だけ実行。** 失敗したらここで止める
+            # (`set -e` があるので、後続の up は動かない = 古いアプリのまま残る)。
+            # 方式は tools/apply-schema.mjs が選ぶ(migrations/ の有無)
+            docker compose -f "$COMPOSE_FILE" run --rm migrate
+            docker compose -f "$COMPOSE_FILE" up -d app db
+            docker image prune -f
+      - name: 起動を確認する
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.CONOHA_HOST }}
+          username: ${{ secrets.CONOHA_USER }}
+          key: ${{ secrets.CONOHA_SSH_KEY }}
+          envs: COMPOSE_FILE,IMAGE_TAG
+          # **up -d は「コンテナが起動した」までしか見ない。**
+          # 応答しないまま生きている状態(DB 接続失敗など)を素通しするので、
+          # healthcheck が healthy になるまで待って、ならなければ**失敗にする**。
+          # 気づかずに次の作業へ進むのが一番まずい。
           script: |
             cd ~/app
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker compose -f docker-compose.prod.yml pull
-            # マイグレーションを先に一度だけ実行(失敗したらデプロイ中止)
-            docker compose -f docker-compose.prod.yml run --rm migrate
-            docker compose -f docker-compose.prod.yml up -d app db
-            docker image prune -f
+            for i in $(seq 1 30); do
+              status=$(docker compose -f "$COMPOSE_FILE" ps --format json app | grep -o '"Health":"[a-z]*"' | head -1)
+              echo "[$i] $status"
+              case "$status" in *healthy*) echo "起動を確認しました"; exit 0;; esac
+              sleep 5
+            done
+            echo "::error::healthy になりませんでした。直前のログを出します"
+            docker compose -f "$COMPOSE_FILE" logs --tail 100 app
+            exit 1

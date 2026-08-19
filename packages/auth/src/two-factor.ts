@@ -62,7 +62,12 @@ export interface TwoFactorVerifyResult {
 /**
  * * 指定手段で 2FA コードを検証する。
  * backup は使用済みにして残数を返し、sms は smsChallenge に対して検証・試行加算する。
- * @param secret サーバー側の pepper(SMS OTP / バックアップコードのハッシュ用)。TOTP には不要。
+ * @param config 利用者ごとの二要素設定（TOTP の鍵・バックアップコードなど）
+ * @param method 検証する方式（`totp` / `sms` / `backup`）
+ * @param code 利用者が入力した値
+ * @param options.secret サーバー側の pepper(SMS OTP / バックアップコードのハッシュ用)。TOTP には不要。
+ * @param options.totpOptions TOTP の許容ずれ幅など
+ * @param options.now 現在時刻（**試験で固定する**ため。既定は実時刻）
  *
  * @returns 検証結果と、更新した状態(バックアップコードの使用済みなど)
  */
@@ -106,10 +111,11 @@ export function verifyTwoFactor(
  * * 手段を指定せず、複数手段を順に試して検証する(ユーザーがどの手段のコードを入れたか不明なとき)。
  * TOTP → バックアップの順で試す(SMS はチャレンジ前提のため明示指定を推奨)。
  *
- * @param state 利用者の設定
- * @param input 入力(方式と値)
- * @param secret pepper
- * @param now 現在時刻(テスト注入用)
+ * @param config 利用者の 2 要素設定(登録済みの手段と、バックアップコードのハッシュ)
+ * @param code 利用者が入力した値。**方式は指定しない**(順に試すのがこの関数の役割)
+ * @param options `secret` はサーバ側の pepper(バックアップコードの照合に必要。TOTP には不要)。
+ *   `methods` で試す順を上書きできる(既定は TOTP → バックアップ)。
+ *   `totpOptions` は桁数・許容ずれ、`now` はテスト注入用
  * @returns どの方式で成功したかと、更新した状態
  */
 export function verifyAnyTwoFactor(

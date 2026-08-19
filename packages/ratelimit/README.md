@@ -1,11 +1,25 @@
 # @platform/ratelimit
 
-レート制限(固定ウィンドウ)。ログイン試行や API 濫用の抑止に使います。
+回数の上限（ログイン試行・API 呼び出し）。**短時間の繰り返しを止めます**。
 
-- `createMemoryStore()` … 単一インスタンス・開発向け
-- `createRedisStore(url)` … 複数インスタンス・本番向け(原子的カウント)
+## これは何のためか
+
+**繰り返されると困るもの**を守ります——
+ログインの総当たり、重い集計の連打、外部 API の呼びすぎ。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **鍵の決め方が要です** | **IP だけで数えると、同じ会社の全員が 1 人分**になります（社内からは同じ IP に見えます）——**利用者 ID と組み合わせて**ください |
+| **メモリ実装は 1 プロセスまで** | 2 台構成だと**上限が実質 2 倍**になります。台数を増やすなら Redis 実装へ |
+| **Redis 実装は import に注意** | サーバ処理から直接読むと **`next build` が落ちます**——動的 import を使ってください |
+| **上限に当たった人に理由を伝える** | 「エラー」だけだと、**何度も試して余計に詰まります** |
+
+## よく使うもの
 
 ```ts
+import { createRateLimiter, createMemoryStore, createRedisStore } from "@platform/ratelimit";
 import { createRateLimiter, createRedisStore } from "@platform/ratelimit";
 const limiter = createRateLimiter({ store: createRedisStore(env.REDIS_URL), limit: 5, windowSeconds: 60 });
 const res = await limiter.check(`login:${email}`);

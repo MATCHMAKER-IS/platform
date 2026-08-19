@@ -1,15 +1,16 @@
 /** 会計: 月次決算(損益計算書・貸借対照表・消費税集計)(GET)。?month=YYYY-MM で対象月を絞る。accounting:read。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { invoiceStore, purchaseStore, assetStore, manualJournalStore, accountMasterStore } from "../../../../server/platform-services";
 import { buildLedger, type LedgerInvoice, type LedgerPurchase } from "../../../../server/ledger";
 import { financialStatements, aggregateRates, consumptionTax, type TaxByRate } from "../../../../server/financials";
 import { depreciationJournal, DEPRECIATION_ACCOUNT_TYPES } from "../../../../server/depreciation-journal";
 import { accountTypeMap } from "../../../../server/account-master-repo";
+import { yearJst } from "@platform/datetime";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "accounting:read");
   const month = new URL(req.url).searchParams.get("month");
 
@@ -18,7 +19,7 @@ async function handleGET(req: Request): Promise<Response> {
 
   const li: LedgerInvoice[] = invoices.map((i) => ({ number: i.number, issueDate: i.issueDate, subtotal: i.totals.subtotal, tax: i.totals.tax, paidAmount: i.paidAmount, cancelled: i.cancelled }));
   const lp: LedgerPurchase[] = orders.map((o) => ({ number: o.number, orderDate: o.order.orderDate, subtotal: o.order.totals.subtotal, tax: o.order.totals.tax, cancelled: o.status === "cancelled" }));
-  const year = month ? Number(month.slice(0, 4)) : new Date().getFullYear();
+  const year = month ? Number(month.slice(0, 4)) : yearJst();
   const depEntries = depreciationJournal(await assetStore.list(), year);
   const manualEntries = await manualJournalStore.entries(year);
   const ledger = buildLedger({ invoices: li, purchases: lp });

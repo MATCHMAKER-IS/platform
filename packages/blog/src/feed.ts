@@ -1,113 +1,100 @@
 /**
- * RSS フィード / サイトマップの生成(純ロジック)。
- * 公開記事から RSS 2.0 の XML とサイトマップ URL 一覧を作る。
+ * RSS フィードとサイトマップ(記事向け)。
+ *
+ * **実装は `@platform/feed` に移した**(2026-08)。
+ * `@platform/seo` にも同じものがあり、**エスケープの関数や `lastmod` の扱いが
+ * 微妙に違って**いた——同じサイトで両方使うと不揃いになる。
+ *
+ * ここは**記事向けの型に合わせた薄い変換**。項目名が違う
+ * (`publishedAt` / `guid` ↔ `published` / `id`)ので、そこだけ詰め替える。
+ * **新しく書くなら `@platform/feed` から直接**取ること。
+ *
  * @packageDocumentation
  */
+import {
+  buildRssFeed as buildRssFeedCore,
+  buildSitemap as buildSitemapCore,
+  escapeXml as escapeXmlCore,
+  type FeedChannel,
+} from "@platform/feed";
 
 /**
- * XML の特殊文字をエスケープする。
+ * XML の特殊文字を実体参照にする。
  *
- * **記事タイトルに `&` が入るだけで RSS が壊れる**(リーダーが読めなくなる)。
- * XML に埋め込む値は必ず通す。
- *
- * @param text 対象の文字列
- * @returns エスケープした文字列
+ * **実装は `@platform/feed`。** 忘れると、記事タイトルの `&` ひとつで
+ * **フィード全体が読めなくなる**。
  */
-export function escapeXml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
+export const escapeXml = escapeXmlCore;
 
-/** RSS の 1 記事。 */
+/** 記事 1 件(フィード用)。 */
 export interface FeedItem {
+  /** 表題。 */
   title: string;
-  /** 記事の絶対 URL。 */
+  /** 記事の URL(**絶対 URL**)。 */
   link: string;
-  /** 概要(抜粋)。 */
+  /** 要約。 */
   description?: string;
   /** 公開日時(ISO 8601)。 */
   publishedAt?: string;
-  /** 一意な識別子(既定は link)。 */
+  /**
+   * 一意な識別子(省略時は `link`)。
+   *
+   * **URL を変えるときはここを固定する。** これが変わると
+   * 読み手は**別の記事だと思って再通知**する。
+   */
   guid?: string;
+  /** 著者名。 */
+  author?: string;
 }
 
-/** フィードのメタ情報。 */
-export interface FeedMeta {
-  title: string;
-  /** サイト URL。 */
-  link: string;
-  description: string;
-  /** 言語(既定 "ja")。 */
-  language?: string;
-}
-
-/** ISO 日時を RFC 822(RSS 用)に変換する。 */
-function toRfc822(iso: string): string {
-  return new Date(iso).toUTCString();
-}
+/** フィード全体の情報。 */
+export type FeedMeta = FeedChannel;
 
 /**
- * RSS 2.0 のフィード XML を生成する。
+ * RSS 2.0 のフィードを作る。
  *
- * @param meta 記事の配列(**公開済みのものだけを渡すこと**)
- * @param options.title / description / baseUrl サイトの情報
- * @returns RSS の XML 文字列
+ * **日付は RFC 822 に変換される**(RSS の仕様)。
+ *
+ * @param meta サイトの情報
+ * @param items 記事(**新しい順に並べておくこと**)
+ * @returns RSS 2.0 の XML
  */
 export function buildRssFeed(meta: FeedMeta, items: FeedItem[]): string {
-  const entries = items
-    .map((item) => {
-      const parts = [
-        `      <title>${escapeXml(item.title)}</title>`,
-        `      <link>${escapeXml(item.link)}</link>`,
-        `      <guid isPermaLink="false">${escapeXml(item.guid ?? item.link)}</guid>`,
-      ];
-      if (item.description) parts.push(`      <description>${escapeXml(item.description)}</description>`);
-      if (item.publishedAt) parts.push(`      <pubDate>${toRfc822(item.publishedAt)}</pubDate>`);
-      return `    <item>\n${parts.join("\n")}\n    </item>`;
-    })
-    .join("\n");
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0">
-  <channel>
-    <title>${escapeXml(meta.title)}</title>
-    <link>${escapeXml(meta.link)}</link>
-    <description>${escapeXml(meta.description)}</description>
-    <language>${escapeXml(meta.language ?? "ja")}</language>
-${entries}
-  </channel>
-</rss>`;
+  // **項目名だけ詰め替える**(`publishedAt` → `published`、`guid` → `id`)
+  return buildRssFeedCore(
+    meta,
+    items.map((i) => ({
+      title: i.title,
+      link: i.link,
+      ...(i.description !== undefined ? { description: i.description } : {}),
+      ...(i.publishedAt !== undefined ? { published: i.publishedAt } : {}),
+      ...(i.guid !== undefined ? { id: i.guid } : {}),
+      ...(i.author !== undefined ? { author: i.author } : {}),
+    })),
+  );
 }
 
-/** サイトマップの 1 URL。 */
+/** サイトマップの 1 件。 */
 export interface SitemapUrl {
+  /** ページの URL(**絶対 URL**)。 */
   loc: string;
+  /** 最終更新(**日付だけに切られる**)。 */
   lastmod?: string;
+  /** 更新頻度の目安。 */
   changefreq?: "always" | "hourly" | "daily" | "weekly" | "monthly" | "yearly" | "never";
+  /** 優先度(0.0〜1.0。**範囲外は丸められる**)。 */
   priority?: number;
 }
 
 /**
  * サイトマップ XML を生成する(検索エンジン向け)。
  *
- * @param urls サイトマップに載せる URL(`loc` は絶対 URL にすること)
- * @returns サイトマップの XML 文字列
+ * **公開しているページだけ**を入れること——下書きや管理画面を載せると、
+ * **検索エンジン経由で存在が漏れる**。
+ *
+ * @param urls ページの一覧
+ * @returns sitemap.xml の XML
  */
 export function buildSitemap(urls: SitemapUrl[]): string {
-  const entries = urls
-    .map((u) => {
-      const parts = [`    <loc>${escapeXml(u.loc)}</loc>`];
-      if (u.lastmod) parts.push(`    <lastmod>${escapeXml(u.lastmod.slice(0, 10))}</lastmod>`);
-      if (u.changefreq) parts.push(`    <changefreq>${u.changefreq}</changefreq>`);
-      if (u.priority !== undefined) parts.push(`    <priority>${u.priority.toFixed(1)}</priority>`);
-      return `  <url>\n${parts.join("\n")}\n  </url>`;
-    })
-    .join("\n");
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${entries}
-</urlset>`;
+  return buildSitemapCore(urls);
 }

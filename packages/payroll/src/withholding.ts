@@ -26,6 +26,14 @@
  * よくある誤りで、毎月わずかに多く天引きし、年末調整で戻すことになる。
  *
  * @packageDocumentation
+ *
+ * 【対応しているのは甲欄だけです】
+ * **乙欄（他社が主たる給与の人）には対応していません。**
+ * 副業の人や、短期雇用で扶養控除等申告書を出していない人は、
+ * **税額が変わります**——該当者が出たら、税額表の乙欄を足してください。
+ *
+ * **甲欄で計算してしまうと、源泉徴収が不足**し、
+ * 年末調整や確定申告で追加の納付が必要になります。
  */
 
 /**
@@ -80,7 +88,7 @@ export function lookupWithholdingTax(
   const row = table.rows.find((r) => amount >= r.from && amount < r.to);
   if (row === undefined) {
     throw new Error(
-      `源泉徴収税額表(${table.year})に ${amount.toLocaleString()} 円の行がありません。表の範囲を確認してください`,
+      `源泉徴収税額表(${table.year})に ${amount.toLocaleString("ja-JP")} 円の行がありません。表の範囲を確認してください`,
     );
   }
   return row.tax[col] ?? row.tax[row.tax.length - 1] ?? 0;

@@ -1,13 +1,21 @@
 "use client";
 /** 取引先マスタ。得意先・仕入先・報酬支払先を一元管理（1社が複数区分可）。区分で絞込、登録・更新。 */
 import * as React from "react";
-import { Button, Checkbox, FileInput, Input, Textarea } from "@platform/ui";
+import { formatYen } from "@platform/report";
+import { Button, Checkbox, FileInput, Input, Textarea, PageShell } from "@platform/ui";
 
 type Kind = "customer" | "supplier" | "payee";
 interface Partner { code: string; name: string; kinds: Kind[]; contact?: string; note?: string; }
-interface Activity { invoices: { number: string; issueDate: string; total: number }[]; orders: { number: string; orderDate: string; total: number }[]; feePayments: { category: string; base: number; withholding: number; paidAt: string }[]; totalBilled: number; totalOrdered: number; totalPaid: number; }
+interface Activity {
+  invoices: { number: string; issueDate: string; total: number }[];
+  orders: { number: string; orderDate: string; total: number }[];
+  feePayments: { category: string; base: number; withholding: number; paidAt: string }[];
+  totalBilled: number;
+  totalOrdered: number;
+  totalPaid: number;
+}
 interface Balance { code: string; name: string; receivable: number; payable: number; net: number; }
-const yen = (n: number) => `¥${n.toLocaleString()}`;
+const yen = (n: number) => formatYen(n);
 
 const KIND_LABEL: Record<Kind, string> = { customer: "得意先", supplier: "仕入先", payee: "報酬支払先" };
 const ALL_KINDS: Kind[] = ["customer", "supplier", "payee"];
@@ -77,15 +85,12 @@ export function PartnersClient({ fetchImpl, canWrite = true }: PartnersClientPro
   };
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <div className="mb-1 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">取引先マスタ</h1>
+    <PageShell title="取引先マスタ">
         <span className="flex gap-2">
           <a href="/api/partners/export" className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">CSV書出</a>
-          {canWrite && <Button onClick={() => setImporting((v) => !v)} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">{importing ? "取込を閉じる" : "CSV取込"}</Button>}
-          <Button onClick={toggleBalances} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">{balances ? "残高を閉じる" : "残高一覧"}</Button>
+          {canWrite && <Button onClick={() => setImporting((v) => !v)} variant="secondary" className="rounded px-4 py-2 text-sm">{importing ? "取込を閉じる" : "CSV取込"}</Button>}
+          <Button onClick={toggleBalances} variant="secondary" className="rounded px-4 py-2 text-sm">{balances ? "残高を閉じる" : "残高一覧"}</Button>
         </span>
-      </div>
       <p className="mb-4 text-xs text-[var(--color-muted)]">得意先・仕入先・報酬支払先を一元管理します（1社が複数区分を持てます）。</p>
       {balances && (
         <div className="mb-6 rounded border border-[var(--color-border)] p-4">
@@ -107,18 +112,18 @@ export function PartnersClient({ fetchImpl, canWrite = true }: PartnersClientPro
         <div className="mb-6 rounded border border-[var(--color-border)] p-4">
           <h2 className="mb-2 text-sm font-medium">取引先を CSV で取り込み</h2>
           <p className="mb-2 text-xs text-[var(--color-muted)]">見出し「コード,名称,区分,連絡先」。区分は customer/supplier/payee をカンマ区切りで。既存コードは上書きされます。</p>
-          <FileInput accept=".csv,text/csv" onSelect={onFile} className="mb-2 block text-sm" />
+          <FileInput disabled={importing} accept=".csv,text/csv" onSelect={onFile} className="mb-2 block text-sm" />
           <Textarea value={csvText} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCsvText(e.target.value)} rows={5} placeholder="コード,名称,区分,連絡先&#10;P001,甲商事,&quot;customer,supplier&quot;,03-1234" className="block w-full rounded border border-[var(--color-border)] px-2 py-1 font-mono text-xs" />
           <div className="mt-2 flex items-center gap-3">
-            <Button onClick={runImport} className="rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">取り込む</Button>
+      <Button onClick={runImport} className="rounded px-4 py-1.5 text-sm text-white">取り込む</Button>
             {importMsg && <span className="text-xs text-[var(--color-muted)]">{importMsg}</span>}
           </div>
         </div>
       )}
 
       <div className="mb-4 flex gap-1 text-sm">
-        <Button onClick={() => setFilter("")} className={`rounded px-3 py-1 ${filter === "" ? "bg-[var(--color-fg)] text-white" : "border border-[var(--color-border)]"}`}>すべて</Button>
-        {ALL_KINDS.map((k) => <Button key={k} onClick={() => setFilter(k)} className={`rounded px-3 py-1 ${filter === k ? "bg-[var(--color-fg)] text-white" : "border border-[var(--color-border)]"}`}>{KIND_LABEL[k]}</Button>)}
+        <Button onClick={() => setFilter("")} variant="tab" data-state={filter === "" ? "active" : undefined}>すべて</Button>
+        {ALL_KINDS.map((k) => <Button key={k} onClick={() => setFilter(k)} variant="tab" data-state={filter === k ? "active" : undefined}>{KIND_LABEL[k]}</Button>)}
       </div>
 
       {canWrite && (
@@ -133,7 +138,7 @@ export function PartnersClient({ fetchImpl, canWrite = true }: PartnersClientPro
             {ALL_KINDS.map((k) => (
               <label key={k} className="flex items-center gap-1"><Checkbox  checked={form.kinds.includes(k)} onCheckedChange={() => toggleKind(k)} />{KIND_LABEL[k]}</label>
             ))}
-            <Button onClick={save} className="ml-auto rounded bg-[var(--color-fg)] px-4 py-1.5 text-white">保存</Button>
+      <Button onClick={save} className="ml-auto rounded px-4 py-1.5 text-white">保存</Button>
           </div>
         </div>
       )}
@@ -151,7 +156,7 @@ export function PartnersClient({ fetchImpl, canWrite = true }: PartnersClientPro
               <td className="px-2 py-2">{p.name}</td>
               <td className="px-2 py-2"><span className="flex flex-wrap gap-1">{p.kinds.map((k) => <span key={k} className="rounded bg-[var(--color-subtle)] px-1.5 py-0.5 text-xs">{KIND_LABEL[k]}</span>)}</span></td>
               <td className="px-2 py-2 text-xs text-[var(--color-muted)]">{p.contact ?? ""}</td>
-              <td className="px-2 py-2 text-right"><span className="flex justify-end gap-2"><Button onClick={() => showActivity(p)} className="text-[var(--color-primary)] hover:underline">取引</Button>{canWrite && <Button onClick={() => edit(p)} className="text-[var(--color-primary)] hover:underline">編集</Button>}</span></td>
+       <td className="px-2 py-2 text-right"><span className="flex justify-end gap-2"><Button variant="ghost" onClick={() => showActivity(p)} className="text-[var(--color-primary)] hover:underline">取引</Button>{canWrite && <Button variant="ghost" onClick={() => edit(p)} className="text-[var(--color-primary)] hover:underline">編集</Button>}</span></td>
             </tr>
           ))}
           {partners.length === 0 && <tr><td colSpan={5} className="px-2 py-4 text-center text-sm text-[var(--color-muted)]">取引先がありません。</td></tr>}
@@ -162,7 +167,7 @@ export function PartnersClient({ fetchImpl, canWrite = true }: PartnersClientPro
         <div className="mt-6 rounded border border-[var(--color-border)] p-4">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-medium">取引先カルテ：{activity.name}（{activity.code}）</h2>
-            <Button onClick={() => setActivity(null)} className="text-xs text-[var(--color-muted)] hover:underline">閉じる</Button>
+            <Button onClick={() => setActivity(null)} variant="ghost" className="text-xs hover:underline">閉じる</Button>
           </div>
           <div className="mb-3 grid grid-cols-3 gap-3 text-center text-sm">
             <div className="rounded bg-[var(--color-subtle)] p-2"><div className="text-xs text-[var(--color-muted)]">請求（売上）</div><div className="font-medium">{yen(activity.data.totalBilled)}</div><div className="text-xs text-[var(--color-muted)]">{activity.data.invoices.length}件</div></div>
@@ -175,6 +180,6 @@ export function PartnersClient({ fetchImpl, canWrite = true }: PartnersClientPro
           {activity.data.feePayments.map((f, i) => <div key={`f${i}`} className="flex justify-between border-b border-[var(--color-border)] py-1 text-sm"><span>報酬 {f.category}・{f.paidAt}</span><span>{yen(f.base)}（源泉{yen(f.withholding)}）</span></div>)}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

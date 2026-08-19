@@ -33,3 +33,29 @@ jobs:
       - run: pnpm install  # TODO: pnpm-lock.yaml をコミットしたら --frozen-lockfile に戻す
       - name: 依存の脆弱性監査(high 以上で失敗)
         run: pnpm audit --audit-level high
+
+      # **`pnpm audit` はライセンスを見ない。** 脆弱性が無くても、
+      # GPL / AGPL を含んだまま顧客へ納品すると**自社ソースの開示を求められうる**。
+      # 深く使ってから気づくと剥がせないので、**入った時点で止める**
+      - name: ライセンス検査(配布できないものが混ざっていないか)
+        run: node tools/check-licenses.mjs
+
+  # SBOM(部品表)。**要求されてから作ると数日止まる**ので、毎回作って残す。
+  # 脆弱性の一報が出たとき「うちは影響あるか」を即答するための土台でもある
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install  # TODO: pnpm-lock.yaml をコミットしたら --frozen-lockfile に戻す
+      - name: SBOM を生成(CycloneDX)
+        run: node tools/gen-sbom.mjs --out sbom.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
+          # **90 日では短い。** 「去年の版に何が入っていたか」を聞かれる
+          retention-days: 365

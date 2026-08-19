@@ -16,7 +16,7 @@ export const PUT = withApi("/api/items/[code]", async (req: Request, ctx?: unkno
   const cur = await itemStore.get(code);
   if (!cur) return Response.json({ error: "見つかりません" }, { status: 404 });
 
-  const body = (await req.json()) as Partial<{ name: string; note: string }>;
+  const body = (await req.json().catch(() => ({}))) as Partial<{ name: string; note: string }>;
   const v = validateItemInput({ code, name: body.name ?? cur.name, note: body.note ?? cur.note });
   if (!v.ok) return Response.json({ errors: v.errors }, { status: 400 });
 
@@ -36,7 +36,7 @@ export const PATCH = withApi("/api/items/[code]", async (req: Request, ctx?: unk
   const user = requirePermission(currentUser(req), "item:write");
   const { code } = await (ctx as { params: Promise<{ code: string }> }).params;
 
-  const body = (await req.json()) as { active?: boolean };
+  const body = (await req.json().catch(() => ({}))) as { active?: boolean };
   const active = body.active ?? true;
   const item = await itemStore.setActive(code, active);
   if (!item) return Response.json({ error: "見つかりません" }, { status: 404 });

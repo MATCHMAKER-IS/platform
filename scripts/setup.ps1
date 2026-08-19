@@ -6,11 +6,11 @@
    powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1              # フルセットアップ
    powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1 -Check       # 前提条件の確認のみ（何も変更しない）
    powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1 -SkipDocker  # Docker 起動を省略（DB を自前用意した場合）
-   powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1 -SkipDb      # スキーマ適用（prisma db push）を省略
+   powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1 -SkipDb      # スキーマ適用を省略
 
  やること: 前提確認 → .env 準備 → Docker（PostgreSQL+Mailpit）起動 → アプリ別DB作成
-           → pnpm install → prisma generate ×3 → prisma db push ×3 → スモーク検証
- 詳細: docs/ops/SETUP.md
+           → pnpm install → prisma generate ×3 → スキーマ適用 ×3 → スモーク検証
+ 詳細: docs/onboarding/01-setup.md
 
  Windows 前提: Node.js 22+（https://nodejs.org）、Docker Desktop、PowerShell 5.1+ か PowerShell 7+。
  Windows PowerShell 5.1 で実行不可の場合は「PowerShell を管理者で起動 →
@@ -82,13 +82,12 @@ function Invoke-Native([scriptblock]$Command, [string]$What) {
 }
 
 # アプリ別 DB（docker-compose.yml の資格情報 app/app に合わせる）
-$Apps = @("internal-app", "crud-template", "equipment-app", "balance-app")
+$Apps = @("internal-app", "crud-template", "line-console")
 function DbName($app) {
   switch ($app) {
     "internal-app"  { "app" }
     "crud-template" { "app_crud" }
-    "equipment-app" { "app_equipment" }
-    "balance-app"   { "app_balance" }
+    "line-console"  { "app_line" }
   }
 }
 
@@ -193,9 +192,12 @@ foreach ($app in $Apps) {
   OK "$app"
 }
 
-# ─────────────────────────── 6. スキーマ適用（db push） ───────────────────────────
+# ─────────────────────────── 6. スキーマ適用 ───────────────────────────
+# **方式は tools/apply-schema.mjs が選ぶ**（migrations/ の有無を見る）。
+# ここで db push と書き固定すると、マイグレーションへ切り替えたときに
+# **Windows のセットアップだけ古い方式のまま**になる
 if (-not $SkipDb) {
-  Step "スキーマ適用（prisma db push。履歴管理する場合は migrate を使用 → SETUP.md）"
+  Step "スキーマ適用（履歴が無ければ db push・あれば migrate deploy）"
   foreach ($app in $Apps) {
     $url = $null
     $envFile = "apps/$app/.env"
@@ -205,9 +207,7 @@ if (-not $SkipDb) {
     }
     if (-not $url) { $url = "postgresql://app:app@localhost:5432/$(DbName $app)" }
     $env:DATABASE_URL = $url
-    $env:PRISMA_SCHEMA = "../../apps/$app/prisma/schema.prisma"
-    Invoke-Native { pnpm --filter @platform/db exec prisma db push | Out-Null } "$app の db push"
-    Remove-Item Env:\PRISMA_SCHEMA
+    Invoke-Native { node tools/apply-schema.mjs $app | Out-Null } "$app のスキーマ適用"
     OK "$app → $(DbName $app)"
   }
   Remove-Item Env:\DATABASE_URL -ErrorAction SilentlyContinue

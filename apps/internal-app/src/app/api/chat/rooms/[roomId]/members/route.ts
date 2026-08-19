@@ -3,21 +3,27 @@
  * 追加できるのはそのルームのメンバーのみ（招待）。
  */
 import { withApiObservability } from "../../../../../../server/instrument";
+import { validate, z } from "@platform/validation";
+
+/** 入力の形。**文字列を強制する**(数値や配列を渡しても通っていた)。 */
+const AddMemberInput = z.object({ userId: z.string().trim().min(1, "userId が必要です") });
 import { currentUser, requirePermission } from "../../../../../../server/authorize";
-import { serverEnv } from "../../../../../../server/env";
+import "../../../../../../server/env";
 import { roomRepo } from "../../../../../../server/chat";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ roomId: string }> }): Promise<Response> {
   const { roomId } = await ctx.params;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "chat:post");
 
   if (!(await roomRepo.isMember(roomId, user!.email))) {
     return Response.json({ error: "このルームのメンバーではありません" }, { status: 403 });
   }
-  const body = (await req.json()) as { userId?: string };
-  const userId = (body.userId ?? "").trim();
-  if (userId.length === 0) return Response.json({ error: "userId が必要です" }, { status: 400 });
+  const parsed = validate(AddMemberInput, await req.json().catch(() => ({})));
+  if (!parsed.ok) {
+    return Response.json({ error: parsed.error.message, details: parsed.error.details }, { status: 400 });
+  }
+  const userId = parsed.value.userId;
 
   await roomRepo.addMember(roomId, userId);
   return Response.json({ roomId, userId }, { status: 201 });

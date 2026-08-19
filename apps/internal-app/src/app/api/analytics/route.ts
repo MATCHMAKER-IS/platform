@@ -5,7 +5,7 @@
  */
 import { withApiObservability } from "../../../server/instrument";
 import { currentUser, requirePermission } from "../../../server/authorize";
-import { serverEnv } from "../../../server/env";
+import "../../../server/env";
 import { analytics } from "../../../server/platform-services";
 
 interface TrackBody {
@@ -18,7 +18,7 @@ interface TrackBody {
 }
 
 async function handlePOST(req: Request): Promise<Response> {
-  const body = (await req.json()) as TrackBody;
+  const body = (await req.json().catch(() => ({}))) as TrackBody;
   if (!body.path || !body.sessionId) return Response.json({ error: "path と sessionId が必要です" }, { status: 400 });
   const input: { type: "pageview" | "click" | "custom"; path: string; sessionId: string; userId?: string; referrer?: string; name?: string } = {
     type: body.type ?? "pageview",
@@ -33,7 +33,7 @@ async function handlePOST(req: Request): Promise<Response> {
 }
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "audit:read");
   const url = new URL(req.url);
   const range: { from?: string; to?: string } = {};

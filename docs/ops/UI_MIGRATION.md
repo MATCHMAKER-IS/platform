@@ -1,6 +1,6 @@
 # UI 生タグ移行プレイブック
 
-`apps/**`・`demos/**` に残る生タグ(`<button>` / `<input>` / `<select>` / `<textarea>`)を
+`apps/**` に残る生タグ(`<button>` / `<input>` / `<select>` / `<textarea>`)を
 `@platform/ui` の共通部品へ置き換えるための手順書。**規約は CLAUDE.md「UI 部品は @platform/ui を使う」**。
 
 > なぜやるか(再掲): サイズが揃わない / スキン(11 種)が効かない / 1 箇所で直せない、の 3 点。
@@ -9,8 +9,8 @@
 ## 現状(このファイルの起点)
 
 - 検出: `node tools/check-app-rules.mjs`(件数) / `--ui`(ファイル別内訳)
-- **完了済み**: `apps/crud-template`(コピー元テンプレート) / `apps/equipment-app`
-- 残り: `node tools/check-app-rules.mjs` の出力を参照(internal-app と demos/showcase が中心)
+- **完了済み**: `apps/crud-template`(コピー元テンプレート)
+- 残り: `node tools/check-app-rules.mjs` の出力を参照(internal-app と apps/showcase が中心)
 
 ## 置き換え表(これだけ覚える)
 

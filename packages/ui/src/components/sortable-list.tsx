@@ -29,7 +29,6 @@ export function moveItem<T>(items: T[], from: number, to: number): T[] {
   return next;
 }
 
-/** D&D 並べ替えリスト。 */
 /**
  * 並べ替えできる一覧。
  *

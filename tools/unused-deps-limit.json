@@ -1,0 +1,5 @@
+{
+  "_comment": "依存に入れたまま使っていないものの上限。減らしたら必ず下げること（たるみは check-debt-slack が見張る）。",
+  "_note": "2026-08 に 6 件から 0 件へ。内訳: datetime は本当に必要だったので繋いだ（端末時計依存の不具合も 2 件直った）、audit/utils/validation は不要なので削除、loadtest は devDependencies へ、analytics は plannedDeps に理由を記載。",
+  "limit": 0
+}

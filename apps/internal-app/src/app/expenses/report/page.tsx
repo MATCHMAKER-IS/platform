@@ -57,7 +57,7 @@ export default function ReportPage() {
       </div>
 
       <h2 style={{ fontWeight: 700, margin: "1rem 0 .5rem" }}>プレビュー</h2>
-      <iframe title="report" srcDoc={report.html} style={{ width: "100%", height: 480, border: "1px solid var(--color-border)", borderRadius: 8, background: "#fff" }} />
+      <iframe title="report" srcDoc={report.html} style={{ width: "100%", height: 480, border: "1px solid var(--color-border)", borderRadius: 8, background: "var(--color-bg)" }} />
     </main>
   );
 }

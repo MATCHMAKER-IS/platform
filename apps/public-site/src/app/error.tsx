@@ -30,7 +30,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
       </div>
       {error.digest && (
         <p style={{ fontSize: 11.5, color: "var(--color-muted)" }}>
-          識別子: <code style={{ fontFamily: "monospace" }}>{error.digest}</code>
+          識別子: <code style={{ fontFamily: "var(--font-mono)" }}>{error.digest}</code>
         </p>
       )}
     </main>

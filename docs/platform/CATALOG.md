@@ -1,4 +1,17 @@
-# 基盤 機能カタログ
+# 基盤 機能カタログ（選び方の指針）
+
+> ## ⚠️ ここに全部は載っていません（2026-08 確認）
+>
+> **この資料は手書きで、118 パッケージのうち 90 件しか載っていません。**
+> 「無い」と思って自作しないよう、**まず全件の索引を見てください:**
+>
+> **→ `docs/ai/module-list.md`（自動生成・118 件すべて）**
+>
+> **この資料の役割は「選び方」です。** 似た機能が複数あるとき
+> （`csv` と `xlsx`、`search` と `rag` など）に、
+> **どちらを使うかの判断材料**を書いてあります。
+> 全件の一覧が欲しいときは上のリンクへ。
+
 
 > **アプリを作る前に、まずここを見る。** 欲しい処理が `@platform/*` にあれば使い、
 > 無ければアプリ側(`apps/`)に実装する — その判断のための索引です。
@@ -6,7 +19,7 @@
 > 各パッケージの詳しい使い方は各 `packages/<名前>/README.md`、
 > 公開 API の一覧は [`api-surface.json`](./api-surface.json)、機械可読の要約は [`capabilities.json`](./capabilities.json) を参照。
 
-**全 113 パッケージ**。すべて README・テスト・スモーク検証つき。基盤はロジックを持たず、機能単位の共通部品のみを提供します。
+**全 118 パッケージ**。すべて README・テスト・スモーク検証つき。基盤はロジックを持たず、機能単位の共通部品のみを提供します。
 
 ## 基礎・共通規約
 
@@ -24,6 +37,26 @@
 | `@platform/context` | リクエスト相関ID(AsyncLocalStorage) |
 | `@platform/testing` | テスト工具・契約テスト |
 | `@platform/faker` | 日本語ダミーデータ生成 |
+
+### データ形式で迷ったら
+
+| 扱うもの | 使うパッケージ |
+|---|---|
+| JSON（循環参照・BigInt・巨大な入力で落ちる） | `@platform/json` |
+| XML（電子申告・EDI。**日本語のタグ名**に対応） | `@platform/xml` |
+| CSV（**Excel で開くなら `bom: true`**。既定は `false`） | `@platform/csv` |
+| HTML の埋め込み（**`escapeHtml` と `escapeAttribute` は別物**） | `@platform/html` |
+| base64・hex・バイナリ | `@platform/bytes` |
+
+**base64 で迷ったら `@platform/bytes`。** `btoa` は**日本語で例外**を投げ、
+`Buffer` は**ブラウザで動きません**——どちらも意識せずに使えます。
+
+**URL や JWT に入れるなら `encodeBase64Url`。**
+標準の base64 は `+` `/` `=` を含み、**URL に入れると壊れます**。
+
+**署名の比較には `timingSafeEqualBytes`**（ブラウザ）か
+Node の `crypto.timingSafeEqual`（サーバ）。**`===` は使わない**——
+違いが見つかった時点で止まるので、応答時間から中身が漏れます。
 
 ## データ・永続化
 
@@ -173,4 +206,48 @@ HTTP・メール・SMS・チャット通知・リアルタイム・汎用 Webhoo
 基盤の使い方を示す実装例(経費精算 + 勤怠)。Zoho ログイン認証・RBAC・承認→通知の確実配信・
 全ルート計装・graceful shutdown まで、基盤を組み合わせた本番相当の構成です。
 業務ロジックはすべてアプリ側にあり、基盤(`packages/`)には一切含みません。
+
+---
+
+# 外部連携パッケージ
+
+**`docs/platform/CATALOG.md` を統合したものです（2026-08）。**
+
+外部連携パッケージ(`@platform/line` `@platform/google` `@platform/freee` `@platform/zoho` 等)は、
+すべて `@platform/integrations`(型付き HTTP クライアント)の上に薄く乗せています。
+
+## 責務の分担
+- **基盤(コネクタ)**: 主要 API を型付きで叩く。エラーは Result に統一。
+  加えて **OAuth トークンの自動更新**(リフレッシュ)を提供する
+  — `createZohoTokenManager` / `createGoogleTokenManager` / `createFreeeTokenManager`。
+  同時更新の1本化・401 での自動リトライ・リフレッシュトークンのローテーション対応を含む。
+- **アプリ**: OAuth の**初回認可フロー**(ログイン画面へ誘導→認可コード→初回トークン取得)、
+  トークンの**永続化**(`onRefresh` コールバックで受け取り `@platform/crypto` で暗号化保管)、
+  クライアント ID/シークレットの管理(`@platform/secrets`)、データセンター判定(Zoho)など。
+
+**当初(ADR 0002)は認可からリフレッシュまでをすべてアプリ責務としていましたが、
+リフレッシュは定型処理で各アプリが再実装するのは非効率なため、基盤に取り込みました(ADR 0005)。**
+アプリは「初回認可」と「秘密情報の保管」という、アプリ固有・秘匿性の高い部分だけを担います。
+`fetchImpl` 注入により、トークンマネージャ・耐障害ラッパー・実 fetch を自由に合成できます。
+
+## 新しいコネクタの追加
+1. `pnpm scaffold <service>` で雛形を作る。
+2. `createApiClient({ baseUrl, headers })` でベース URL と認証ヘッダを設定。
+3. 主要エンドポイントを型付きメソッドとして公開する(`fetchImpl` を注入可能にする)。
+4. トークンが失効する OAuth 連携なら、トークンマネージャ(自動更新)も提供する。
+5. Webhook を受ける連携なら、署名検証 + イベントパースを提供する
+   (署名方式に注意: LINE は base64、freee/汎用 `@platform/webhook` は hex)。
+6. `CATALOG.md` / `capabilities.json` / `typedoc.json` に追記する。
+
+## 認証ヘッダの注意
+- 多くは `Authorization: Bearer <token>`(LINE / Google / freee)。
+- **Zoho は `Authorization: Zoho-oauthtoken <token>`**(Bearer ではない)。
+
+## 決済(Stripe / PayPal)
+- **Stripe** は form エンコード・Webhook 署名検証など独自要件があるため、
+  唯一 `integrations` ではなく公式 `stripe` SDK をラップしています(`@platform/stripe`)。
+  Webhook は必ず `verifyWebhook` で署名検証してから処理すること。
+- **PayPal** は `integrations` の上に実装し、client_id/secret からアクセストークンを
+  自動取得・キャッシュします(`@platform/paypal`)。live / sandbox を切替可能。
+- キー・シークレットは `@platform/env` で検証し、`@platform/crypto` 等で安全に扱うこと。
 

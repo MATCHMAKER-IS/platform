@@ -69,9 +69,12 @@ export function createMemoryQuoteStore(): QuoteStore {
     async toInvoice(number, header) {
       const rec = byNumber.get(number);
       if (!rec) return undefined;
-      const invoice = convertToInvoice(rec, header);
+      // **先に承認する。** 2026-08 まで変換してから `accepted` にしており、
+      // **承認されていない見積のまま請求書を作って**いた——基盤側が
+      // 状態を確認するようになったので、順序を正した。
+      // 業務としても「受注が確定してから請求」が正しい。
       rec.state = "accepted";
-      return invoice;
+      return convertToInvoice(rec, header);
     },
   };
 }
@@ -135,7 +138,8 @@ export function createPrismaQuoteStore(db: QuoteStoreDb): QuoteStore {
     async toInvoice(number, header) {
       const row = await db.quoteRow.findUnique({ where: { number } });
       if (!row) return undefined;
-      const invoice = convertToInvoice(rowToRecord(row), header);
+      // **先に承認する**(上と同じ理由)
+      const invoice = convertToInvoice({ ...rowToRecord(row), state: "accepted" }, header);
       await db.quoteRow.update({ where: { number }, data: { state: "accepted" } });
       return invoice;
     },

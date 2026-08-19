@@ -30,15 +30,54 @@ export interface ToCsvOptions {
 }
 
 /**
+ * 数式として実行されうる先頭文字。
+ *
+ * Excel / Google スプレッドシートは、セルがこれで始まると**数式として解釈する**。
+ * `=` は当然として、`+` `-` `@` も対象(`+81…` の電話番号や `-` 始まりの
+ * 差額がそのまま式になる)。タブと復帰は、貼り付け時に先頭へ回り込むことがある。
+ */
+const FORMULA_PREFIX = /^[=+\-@\t\r]/;
+
+/**
+ * 数値として妥当な文字列。
+ *
+ * **負の金額を壊さないために要る。** `-500` は `-` で始まるが数値であって式ではない。
+ * 一律に無害化すると **Excel で合計が計算できなくなる**——
+ * 差額・値引き・返金は負の数で入るので、影響は広い。
+ * 一方 `-1+1` は数値ではないので無害化する。
+ */
+const PLAIN_NUMBER = /^-?\d+(?:\.\d+)?$/;
+
+/**
  * 1 値を CSV フィールドとしてエスケープする。
  *
+ * **数式として実行される値を無害化する(CSV インジェクション対策)。**
+ * `=` `+` `-` `@` で始まる値は、Excel で開くと**数式として実行される**。
+ * `=1+1` が `2` に化けるだけならまだしも、
+ * `=HYPERLINK("http://…","請求書")` のような値を仕込まれると、
+ * **受け取った人がクリックする**。業務データ(備考欄・氏名・取引先名)は
+ * 利用者が自由に入力できるので、そこに仕込まれうる。
+ *
+ * 対策として先頭に `'`(シングルクォート)を付ける。
+ * Excel はこれを「文字列として扱う指示」と読み、**セルには表示されない**。
+ * 見た目は変わらず、式にもならない。
  *
  * @param value 値
+ * @param delimiter 区切り文字(既定 `,`)
  * @returns エスケープした文字列(**カンマ・改行・引用符を含むなら引用符で囲む**)
+ *
+ * @example
+ * ```ts
+ * csvEscape("山田"); // "山田"
+ * csvEscape("=1+1"); // "'=1+1"(数式にならない)
+ * csvEscape(-500);   // "-500"(数値は壊さない。Excel で合計できる)
+ * ```
  */
 export function csvEscape(value: unknown, delimiter = ","): string {
   if (value == null) return "";
-  const s = value instanceof Date ? value.toISOString() : String(value);
+  const raw = value instanceof Date ? value.toISOString() : String(value);
+  // **数式の無害化は引用符の判定より先。** 付けた `\'` を含めて囲む必要がある
+  const s = FORMULA_PREFIX.test(raw) && !PLAIN_NUMBER.test(raw) ? `'${raw}` : raw;
   return /["\r\n]|<DELIM>/.test(s.replace(new RegExp(delimiter.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"), "<DELIM>"))
     ? `"${s.replace(/"/g, '""')}"`
     : s;
@@ -72,6 +111,18 @@ export interface ParseCsvOptions {
   delimiter?: string;
   /** 1 行目をヘッダとして扱い、オブジェクト配列で返す。 */
   header?: boolean;
+  /**
+   * 壊れた CSV で例外を投げる(既定 false)。
+   *
+   * **既定では黙って通す。** `a,"b,c` のように引用符が閉じないと、
+   * 残り全部が 1 つのフィールドになり**行数が減って列がずれる**。
+   * 利用者が Excel で編集して壊れたファイルを渡すと起きるが、
+   * 取り込みは成功するので**データが黙って欠ける**。
+   *
+   * 業務データの取り込みでは `true` にすること。
+   * 既定を `false` にしているのは、**既存の呼び出しを壊さない**ため。
+   */
+  strict?: boolean;
 }
 
 /**
@@ -79,6 +130,10 @@ export interface ParseCsvOptions {
  * @returns header:true ならオブジェクト配列、false なら string[][]。
  * @param text CSV 文字列
  * @param options.header ヘッダ行があるか
+ * @throws **`strict: true` のとき**、引用符が閉じていない場合。
+ *   **既定（`strict` 無し）では投げず、読めたところまで返します**
+ *   ——取り込みでは**止める方が安全**なので `strict: true` を渡してください
+ *   （欠けたまま取り込むと、**何が欠けたか分からなくなります**）
  */
 export function parseCsv(text: string, options: ParseCsvOptions = {}): string[][] | Record<string, string>[] {
   const delimiter = options.delimiter ?? ",";
@@ -100,6 +155,11 @@ export function parseCsv(text: string, options: ParseCsvOptions = {}): string[][
     else if (c === "\r") { /* skip, handled by \n */ }
     else field += c;
   }
+  // **閉じない引用符を検出する。** ここに来た時点で `inQuotes` が真なら、
+  // 開いた引用符が閉じていない = ファイルが壊れている
+  if (options.strict === true && inQuotes) {
+    throw new Error("CSV の引用符が閉じていません(行がつながり、データが欠けます)");
+  }
   if (field !== "" || row.length > 0) { row.push(field); rows.push(row); }
 
   if (!options.header) return rows;
@@ -112,6 +172,7 @@ export function parseCsv(text: string, options: ParseCsvOptions = {}): string[][
  * CSV をブラウザでダウンロードする(BOM 既定で付与=Excel 対策)。
  * @param filename 例 "export.csv"
  * @param rows 行データ
+ * @param options 列の順序・区切り文字・BOM を付けるか（**Excel で開くなら `bom: true`**）
  */
 export function downloadCsv(filename: string, rows: Record<string, unknown>[], options: ToCsvOptions = {}): void {
   if (typeof document === "undefined") return;
@@ -179,7 +240,9 @@ export type CsvLineSource = AsyncIterable<string> | Iterable<string>;
  * });
  * ```
  *
- * @param stream 読み込むストリーム
+ * @param source 読み込む元（ファイル・レスポンスの本文など）
+ * @param options 1 塊の行数・区切り文字
+ * @param onChunk 塊ごとに呼ばれる処理（**ここで DB に入れる**。全部を配列に溜めない）
  * @returns 行を 1 つずつ返す非同期イテレータ(**全部メモリに載せない**。大きなファイルでも扱える)
  */
 export async function streamCsvLines(source: CsvLineSource, options: CsvStreamOptions, onChunk: CsvChunkHandler): Promise<CsvStreamResult> {
@@ -225,8 +288,9 @@ export async function streamCsvLines(source: CsvLineSource, options: CsvStreamOp
  * テキストは一度パースするためメモリに載るが、下流処理(DB 書き込み等)をチャンク化して
  * 一括処理の負荷を平準化したいときに使う。行の生成は {@link parseCsv} に委譲。
  *
- * @param stream 読み込むストリーム
+ * @param text 解析する CSV 全体
  * @param options.chunkSize 1 塊の行数
+ * @param onChunk 塊ごとに呼ばれる処理
  * @returns 塊ごとに返す非同期イテレータ(**まとめて DB に入れる**のに使う)
  */
 export async function parseCsvChunks(text: string, options: CsvStreamOptions, onChunk: CsvChunkHandler): Promise<CsvStreamResult> {

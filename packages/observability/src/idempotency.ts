@@ -27,8 +27,8 @@ export interface IdempotencyStore {
  * **複数プロセスでは使えない**(プロセスごとに別のメモリを持つため、
  * 重複を検出できない)。本番では Redis 実装を使うこと。
  *
- * @param options.ttlMs 保持する時間(既定 24 時間)
- * @param options.now 時刻の取得(テスト注入用)
+ * @param ttlMs 保持する時間(既定 24 時間)
+ * @param now 現在時刻(**テスト注入用**。渡さなければ `new Date()`)
  * @returns 冪等ストア
  */
 export function createMemoryIdempotencyStore(ttlMs = 24 * 60 * 60 * 1000, now: () => number = () => Date.now()): IdempotencyStore {
@@ -63,7 +63,7 @@ export class IdempotencyConflictError extends Error {
  * @param store 冪等ストア
  * @param key 冪等キー(**同じ処理には同じキー**。リクエスト ID など)
  * @param fn 実行する処理
- * @param options.ttlMs 記録の保持期間
+ * @param now 現在時刻（**テスト注入用**。渡さなければ実時刻）
  * @returns 処理の結果と、**新規実行か再利用か**(`replayed`)
  * @throws {@link @platform/core#AppError} コード `CONFLICT` — 同じキーの処理が実行中の場合
  *   (二重実行を防ぐため、待たずに失敗させる)

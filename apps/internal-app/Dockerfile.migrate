@@ -2,20 +2,23 @@
 # スキーマ適用専用イメージ(docker-compose.prod.yml の migrate サービス)。
 # 実行: docker compose -f docker-compose.prod.yml run --rm migrate
 #
-# 本プロジェクトは **db push** を正式方式とし、マイグレーション履歴を持たない(ADR-0013)。
-# したがって `prisma migrate deploy` は使わない(migrations/ が無く、必ず失敗するため)。
-# db push は schema.prisma と DB を直接同期する。破壊的変更を検知した場合は
-# 非対話のため失敗し(exit≠0)、デプロイは停止する = 意図しないデータ消失を防ぐ安全側の挙動。
-# ⚠ 未検証(作成環境に docker なし)。prisma のバージョンは packages/db の ^7.2.0 に追随させること。
+# **方式は固定しない。** `tools/apply-schema.mjs` が
+# `prisma/migrations/` の有無を見て選ぶ:
+#   履歴なし → `prisma db push`   (開発中。ADR 0013)
+#   履歴あり → `prisma migrate deploy` (本番で安全な唯一の方法。ADR 0014)
 #
-# 【注意】本番でデータを預かるようになったら、db push ではなく本格マイグレーション
-#   (prisma migrate)への移行を ADR で再検討すること(履歴・レビュー・ロールバックのため)。
+# **ここを `db push` に固定してはいけない。** `pnpm db baseline` で
+# マイグレーションへ切り替えたときに**本番だけ古い方式のまま残り**、
+# ADR 0014 が禁じている「本番で db push」になる——列の削除が無警告で走る。
+# `check-migration-mode` がこの固定を見張っている。
+#
+# ⚠ prisma のバージョンは packages/db の指定に追随させること。
 
 FROM node:22-bookworm-slim
 WORKDIR /repo
-RUN npm install -g prisma@7.2.0
+RUN npm install -g pnpm@9 prisma@7.2.0
+COPY tools/apply-schema.mjs ./tools/apply-schema.mjs
 COPY apps/internal-app/prisma ./apps/internal-app/prisma
-# DATABASE_URL は env_file から供給
-# `--schema` は Prisma 7 の設定ファイルと併用できないため環境変数で渡す
-ENV PRISMA_SCHEMA=apps/internal-app/prisma/schema.prisma
-CMD ["prisma", "db", "push"]
+COPY apps/internal-app/prisma.config.ts ./apps/internal-app/prisma.config.ts
+# DATABASE_URL / APP_ENV は env_file から供給
+CMD ["node", "tools/apply-schema.mjs", "internal-app"]

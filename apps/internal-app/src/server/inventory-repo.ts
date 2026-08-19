@@ -162,12 +162,23 @@ interface StockMovementRowData {
 /** 使用する Prisma デリゲートの最小ポート。 */
 export interface InventoryStoreDb {
   productRow: {
-    findMany(args?: Record<string, never>): Promise<ProductRow[]>;
+    // **`orderBy` が型に無かった。** `listProducts` が SKU 順を指定して
+    // いるのに、型定義は空オブジェクトしか許していなかった(2026-08、
+    // 同種のパターンを全 route.ts の一括型検査で発見)。
+    findMany(args?: { orderBy?: { sku: "asc" } }): Promise<ProductRow[]>;
     findUnique(args: { where: { sku: string } }): Promise<ProductRow | null>;
     create(args: { data: ProductRow }): Promise<ProductRow>;
   };
   stockMovementRow: {
-    findMany(args: { where: { sku: string }; orderBy: { at: "desc" } }): Promise<StockMovementRow[]>;
+    findMany(args: {
+      // **1 件でも複数でも引ける。** N+1 を避けるため `in` を使う
+      where: { sku: string | { in: string[] } };
+      orderBy: { at: "desc" };
+      // **`take` が型に無かった。** 実装は 500 件の上限を渡しているのに
+      // 型定義には無かった(2026-08、同種のパターンを全 route.ts の
+      // 一括型検査で発見)。
+      take: number;
+    }): Promise<StockMovementRow[]>;
     create(args: { data: StockMovementRowData }): Promise<StockMovementRow>;
   };
 }
@@ -195,10 +206,13 @@ function rowToMovement(row: StockMovementRow): LedgerMovement {
 /** Prisma 実装。 */
 export function createPrismaInventoryStore(db: InventoryStoreDb): InventoryStore {
   const loadMovements = async (sku: string): Promise<LedgerMovement[]> =>
-    (await db.stockMovementRow.findMany({ where: { sku }, orderBy: { at: "desc" } })).map(rowToMovement);
+    (await db.stockMovementRow.findMany({ take: 500, where: { sku }, orderBy: { at: "desc" } })).map(rowToMovement);
   return {
     async listProducts() {
-      return (await db.productRow.findMany()).map(rowToProduct);
+      // **並び順を指定する。** 2026-08 まで無指定で、**DB が返す順は不定**だった
+      // ——更新のたびに順序が変わり、「さっき見た行が無い」ことになる。
+      // SKU 順が業務の慣れに合う(棚番や型番の並びと対応する)
+      return (await db.productRow.findMany({ orderBy: { sku: "asc" } })).map(rowToProduct);
     },
     async getProduct(sku) {
       const row = await db.productRow.findUnique({ where: { sku } });
@@ -215,10 +229,29 @@ export function createPrismaInventoryStore(db: InventoryStoreDb): InventoryStore
       await db.stockMovementRow.create({ data: { sku, type: movement.type, quantity: movement.quantity, at: new Date(movement.at), ref: movement.ref ?? null, unitCost: movement.unitCost ?? null, warehouse: movement.warehouse ?? null, lotId: movement.lotId ?? null, expiry: movement.expiry ?? null } });
     },
     async status() {
-      const products = (await db.productRow.findMany()).map(rowToProduct);
-      const out: StockStatus[] = [];
-      for (const p of products) out.push(toStatus(p, await loadMovements(p.sku)));
-      return out;
+      const products = (await db.productRow.findMany({ orderBy: { sku: "asc" } })).map(rowToProduct);
+      if (products.length === 0) return [];
+
+      // **商品ごとに引かない(N+1)。**
+      // 100 商品なら 101 回の問い合わせになり、
+      // 商品が増えたぶんだけ遅くなる。
+      // **1 回でまとめて取り、手元で分ける。**
+      const all = await db.stockMovementRow.findMany({
+      // **上限を付ける。** 入出庫は**増え続けます**——
+      // 1 商品でも、動きの多いものは年に数百件になります。
+      take: 500,
+        where: { sku: { in: products.map((p) => p.sku) } },
+        orderBy: { at: "desc" },
+      });
+      const bySku = new Map<string, LedgerMovement[]>();
+      for (const row of all) {
+        const m = rowToMovement(row);
+        const list = bySku.get(row.sku);
+        if (list === undefined) bySku.set(row.sku, [m]);
+        else list.push(m);
+      }
+
+      return products.map((p) => toStatus(p, bySku.get(p.sku) ?? []));
     },
     async detail(sku, asOf = new Date().toISOString(), expiryDays = 30) {
       const row = await db.productRow.findUnique({ where: { sku } });

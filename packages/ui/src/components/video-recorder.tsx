@@ -18,7 +18,6 @@ export interface VideoRecorderProps {
   className?: string;
 }
 
-/** カメラ録画コンポーネント。 */
 /**
  * 動画の撮影。
  *

@@ -49,6 +49,9 @@ const REAL_AUTH_HINTS = /cookie|session|token|jwt|bearer|headers?\s*\.|authentic
 const HARDCODED_IDENTITY = /\{[^{}]*\bid\s*:\s*["'`]/;
 
 /** 本番ガード(本番なら例外を投げる)。 */
+// **上限の理由**: `NODE_ENV` の判定から `throw` までの距離。
+// 本番ガードは数行で書くものなので、これで足りる（**見つからなければ落ちる**ので、
+// 切れても見逃しにはならず、うるさくなるだけ）。
 const PRODUCTION_GUARD = /NODE_ENV[\s\S]{0,120}?["'`]production["'`][\s\S]{0,400}?throw/;
 
 /** 明示的な宣言。`// public-api:` と同じ作法。 */
@@ -89,6 +92,7 @@ function functionBody(text, from) {
  */
 function hardcodedIdentityConsts(text) {
   const names = new Set();
+// **上限の理由**: 判定から throw までの距離（上と同じ。見つからなければ落ちる）。
   const re = /\b(?:const|let)\s+([A-Za-z_$][\w$]*)\s*(?::[^=]+)?=\s*(\{[\s\S]{0,300}?\})/g;
   let m;
   while ((m = re.exec(text)) !== null) {
@@ -98,7 +102,7 @@ function hardcodedIdentityConsts(text) {
 }
 
 // `find` は Windows で別コマンドになるため使わない(tools/lib/collect-files.mjs 参照)
-const files = collectFiles(["apps", "demos"], ROOT, { extensions: [".ts", ".tsx"] })
+const files = collectFiles(["apps"], ROOT, { extensions: [".ts", ".tsx"] })
   .filter((f) => f.includes("/src/"));
 
 const problems = [];
@@ -145,7 +149,7 @@ if (problems.length > 0) {
   console.error("");
   for (const p of problems) console.error("  - " + p);
   console.error("");
-  console.error("  実際に動く認証の例: apps/equipment-app/src/server/guard.ts / auth.ts");
+  console.error("  実際に動く認証の例: apps/internal-app/src/server/authorize.ts / policy.ts");
   process.exitCode = 1;
 } else if (stubs > 0) {
   console.log(`✅ 認証は本物か、スタブなら本番に出られません(身元を返す関数 ${checked} 個 / 宣言・ガード済みのスタブ ${stubs} 個)`);

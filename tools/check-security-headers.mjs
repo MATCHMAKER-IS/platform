@@ -16,8 +16,8 @@
  * 基盤に `securityHeaders()` があるのに、使われていなかった。
  *
  * 【検査するもの】
- *  SH001 `src/proxy.ts` が無い          … ヘッダを付ける場所そのものが無い
- *  SH002 `securityHeaders()` を通していない … proxy はあるが付けていない
+ *  SH001 `src/middleware.ts` が無い        … ヘッダを付ける場所そのものが無い
+ *  SH002 `securityHeaders()` を通していない … 入口はあるが付けていない
  *  SH003 ヘッダを手書きしている          … 基盤と食い違う（1 か所で直せなくなる）
  */
 import { readFileSync, readdirSync, existsSync } from "node:fs";
@@ -29,7 +29,7 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url));
 /** Next.js のアプリを集める（`next.config.*` があるもの）。 */
 function collectApps() {
   const out = [];
-  for (const base of ["apps", "demos"]) {
+  for (const base of ["apps"]) {
     const dir = path.join(ROOT, base);
     if (!existsSync(dir)) continue;
     for (const e of readdirSync(dir, { withFileTypes: true })) {
@@ -55,7 +55,7 @@ for (const app of apps) {
     .find((p) => existsSync(p));
 
   if (proxyPath === undefined) {
-    problems.push({ app: app.rel, code: "SH001", message: "`src/proxy.ts` がありません（セキュリティヘッダを付ける場所が無い）" });
+    problems.push({ app: app.rel, code: "SH001", message: "`src/middleware.ts` がありません（セキュリティヘッダを付ける場所が無い）" });
     continue;
   }
 
@@ -80,5 +80,5 @@ for (const p of problems) {
 }
 console.error("");
 console.error("   付け忘れても画面は動くため、動作確認では気づけません。");
-console.error("   `src/proxy.ts` で `securityHeaders()`(@platform/security)を全レスポンスに付けてください。");
+console.error("   `src/middleware.ts` で `securityHeaders()`(@platform/security)を全レスポンスに付けてください。");
 process.exitCode = 1;

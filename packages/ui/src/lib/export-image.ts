@@ -15,6 +15,7 @@ export interface ExportPngOptions {
  * 要素内の最初の SVG を PNG としてダウンロードする。
  * @param element グラフを含む DOM 要素
  * @param filename 例 "chart.png"
+ * @param options 倍率・背景色（**透過のままだと、白い資料に貼ると読めません**）
  */
 export async function elementToPng(element: HTMLElement, filename: string, options: ExportPngOptions = {}): Promise<void> {
   if (typeof document === "undefined") return;

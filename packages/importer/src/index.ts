@@ -13,7 +13,18 @@ export type RowResult<T> = { ok: true; value: T } | { ok: false; errors: string[
 /** 行バリデータ。生の行(オブジェクト)を受け、型 T へ変換 or エラーを返す。 */
 export type RowValidator<Raw, T> = (raw: Raw, rowIndex: number) => RowResult<T>;
 
-/** 検証済みの1行(行番号つき)。 */
+/**
+ * 検証済みの 1 行(行番号つき)。
+ *
+ * **`rowIndex` は「ヘッダを除いたデータの何行目か」(1 始まり)。**
+ * CSV ファイルの行番号とは**ヘッダの分だけずれる**——
+ * `rowIndex: 1` は Excel で開くと **2 行目**にあたる。
+ *
+ * 画面に出すときは**どちらの番号かを明記すること**
+ * (「データ 1 行目」か「ファイル 2 行目」か)。
+ * 利用者は Excel で開いて直すので、**ファイルの行番号の方が親切**
+ * (`rowIndex + 1`)。2026-08 に明記。
+ */
 export interface ValidRow<T> { rowIndex: number; value: T }
 
 /** エラー行(行番号・元データ・理由)。 */
@@ -65,6 +76,17 @@ export interface ImportOptions<T> {
    */
   partial?: boolean;
   /** 適用処理(通常は DB トランザクション内で一括 insert)。valid 行の value 配列を受ける。 */
+  /**
+   * 検証を通った値を保存する関数。
+   *
+   * **トランザクションで実装すること。** この関数が途中で例外を投げると、
+   * **例外はそのまま呼び出し側へ抜け**、`applied` も `committed` も返らない
+   * ——「何件入ったか分からない」状態になり、再実行すると**重複**する。
+   *
+   * 1 件ずつ INSERT する実装だと**途中まで入る**ので、
+   * `prisma.$transaction` などで囲むか、**冪等キーで二重登録を防ぐ**こと
+   * (2026-08 に明記)。
+   */
   apply: (values: T[]) => Promise<void>;
 }
 

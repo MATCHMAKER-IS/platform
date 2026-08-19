@@ -7,11 +7,16 @@
  *
  * @packageDocumentation
  */
+// **サーバからも使う判定。** クライアント専用の部品と同じ入口に置いてあるが、
+// **サーバから取るときは `@platform/form/honeypot`** を使うこと
+// （束ねた入口は react-hook-form を巻き込む）
+export { isHoneypotFilled } from "./honeypot";
 export { useZodForm } from "./use-zod-form";
 export { Form, FormField, type FormProps, type FormFieldProps, type FieldRenderProps } from "./form";
 export { readCsrfToken, useCsrfToken, csrfHeaders, CsrfField } from "./csrf";
+export { submitJson, type SubmitResult, type SubmitOptions } from "./submit";
 export {
-  HoneypotField, isHoneypotFilled, SubmitButton,
+  HoneypotField, SubmitButton,
   useUnsavedChangesWarning, applyServerErrors, useFormAutosave,
 } from "./form-helpers";
 export {

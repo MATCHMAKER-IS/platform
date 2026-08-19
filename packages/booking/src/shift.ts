@@ -70,6 +70,7 @@ export function shiftMinutes(shifts: Shift[]): number {
 
 /**
  * スロットごとに勤務中のスタッフ数を数える(動的キャパシティ)。
+ * @param slots スロットの配列
  * @param staffShifts スタッフ ID → シフト
  */
 export function slotStaffing(slots: Slot[], staffShifts: Record<string, Shift[]>): { slot: Slot; staffCount: number }[] {
@@ -83,10 +84,14 @@ export function slotStaffing(slots: Slot[], staffShifts: Record<string, Shift[]>
 /**
  * スタッフ配置を考慮した空き枠を返す(勤務中スタッフ数 > その枠に重なる予約数)。
  * 指名なし予約で、店全体のキャパシティが時間帯ごとに変わる場合に使う。
+ * **最低スタッフ数の指定は受け取らない。** 判定は「その枠で勤務中の人数 > 重なる予約数」
+ * のみで、下限を設けたい場合は呼び出し側で `remaining` を見て絞ること。
+ * 以前この説明には `options.minStaff` と書いてあったが、そのような引数は無い。
+ *
  * @param slots スロットの配列
- * @param shifts 全スタッフのシフト
- * @param bookings 既存の予約
- * @param options.minStaff 最低必要なスタッフ数
+ * @param staffShifts スタッフ ID ごとのシフト
+ * @param bookings 既存の予約(指名なし。枠に重なる件数だけを見る)
+ * @returns 各スロットと、あと何件受けられるか(`remaining`)
  */
 export function availableWithStaffing(
   slots: Slot[],

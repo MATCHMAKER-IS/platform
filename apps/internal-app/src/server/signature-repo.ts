@@ -69,7 +69,9 @@ export interface SignatureRow {
   subjectId: string;
   signer: string;
   image: string;
-  signedAt: string;
+  /** DB では `Date`。`Signature` の公開契約(`signedAt: string`)は変えない
+   *  ——`rowToSignature` の境界で変換する(2026-08)。 */
+  signedAt: Date;
 }
 
 /** 使用する Prisma デリゲートの最小ポート。 */
@@ -77,11 +79,11 @@ export interface SignatureStoreDb {
   signatureRow: {
     findMany(args: { where: { subjectType: string; subjectId: string }; orderBy: { signedAt: "desc" } }): Promise<SignatureRow[]>;
     findUnique(args: { where: { id: string } }): Promise<SignatureRow | null>;
-    create(args: { data: { subjectType: string; subjectId: string; signer: string; image: string; signedAt: string } }): Promise<SignatureRow>;
+    create(args: { data: { subjectType: string; subjectId: string; signer: string; image: string; signedAt: Date } }): Promise<SignatureRow>;
   };
 }
 
-const rowToSignature = (row: SignatureRow): Signature => ({ id: row.id, subjectType: row.subjectType, subjectId: row.subjectId, signer: row.signer, image: row.image, signedAt: row.signedAt });
+const rowToSignature = (row: SignatureRow): Signature => ({ id: row.id, subjectType: row.subjectType, subjectId: row.subjectId, signer: row.signer, image: row.image, signedAt: row.signedAt.toISOString() });
 
 /** Prisma 実装。 */
 export function createPrismaSignatureStore(db: SignatureStoreDb): SignatureStore {
@@ -94,7 +96,7 @@ export function createPrismaSignatureStore(db: SignatureStoreDb): SignatureStore
       return row ? rowToSignature(row) : undefined;
     },
     async save(input) {
-      const row = await db.signatureRow.create({ data: { subjectType: input.subjectType, subjectId: input.subjectId, signer: input.signer, image: input.image, signedAt: new Date().toISOString() } });
+      const row = await db.signatureRow.create({ data: { subjectType: input.subjectType, subjectId: input.subjectId, signer: input.signer, image: input.image, signedAt: new Date() } });
       return rowToSignature(row);
     },
   };

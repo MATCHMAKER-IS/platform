@@ -3,7 +3,11 @@
  * 割増・明細ロジックは @platform/payroll に委譲する。
  * @packageDocumentation
  */
-import { calcMonthlyPay, buildPayslip, OVER60_THRESHOLD_MINUTES, type Payslip, type PayBreakdown, type MonthlyAttendance, type PayslipItem } from "@platform/payroll";
+import {
+  calcMonthlyPay, buildPayslip, OVER60_THRESHOLD_MINUTES,
+  calcInsuranceDeduction, REFERENCE_RATES_2026_TOKYO,
+  type Payslip, type PayBreakdown, type MonthlyAttendance, type PayslipItem, type InsuranceDeduction,
+} from "@platform/payroll";
 
 /** 従業員ごとの給与設定。 */
 export interface WageConfig {
@@ -22,6 +26,22 @@ export interface AttendanceInput {
   workedDays: number;
 }
 
+/**
+ * 給与計算に要る個人情報(生年月日・扶養人数)。
+ *
+ * **未登録なら社会保険料は計算しない**(段階導入)。
+ * 「等級表を引けないから概算で埋める」より、**空欄のまま「未計算」と
+ * 分かる方が安全**——概算額を本物の控除額と取り違えられると、
+ * 実際の手取りと合わない給与明細が確定してしまう。
+ */
+export interface PayrollProfile {
+  userId: string;
+  /** 生年月日(YYYY-MM-DD)。 */
+  birthDate: string;
+  /** 扶養親族等の人数(0〜7)。 */
+  dependents: number;
+}
+
 /** 給与計算の結果。 */
 export interface PayrollResult {
   month: string;
@@ -30,6 +50,14 @@ export interface PayrollResult {
   attendance: MonthlyAttendance;
   breakdown: PayBreakdown;
   payslip: Payslip;
+  /**
+   * 社会保険料(本人負担分)。
+   *
+   * **`PayrollProfile` が無ければ `undefined`。** 画面側は「未計算」として
+   * 明示的に表示すること——0 円と区別できないと、控除が漏れていることに
+   * 誰も気づけない。
+   */
+  insurance?: InsuranceDeduction;
 }
 
 /** 勤怠集計を月次の割増計算入力へ変換する（月60時間超の時間外を算出）。 */
@@ -44,12 +72,38 @@ function toMonthly(input: AttendanceInput): MonthlyAttendance {
   };
 }
 
-/** 勤怠集計 + 給与設定から給与明細を組み立てる。 */
-export function computePayroll(month: string, wage: WageConfig, attendance: AttendanceInput): PayrollResult {
+/**
+ * 勤怠集計 + 給与設定から給与明細を組み立てる。
+ *
+ * @param profile 生年月日・扶養人数(社会保険料の計算に要る)。無ければ
+ *   `insurance` は `undefined` のまま返す(未計算であることを明示する)。
+ */
+export function computePayroll(month: string, wage: WageConfig, attendance: AttendanceInput, profile?: PayrollProfile): PayrollResult {
   const monthly = toMonthly(attendance);
   const breakdown = calcMonthlyPay(monthly, wage.hourlyWage);
-  const payslip = buildPayslip(breakdown, { allowances: wage.allowances, deductions: wage.deductions });
-  return { month, userId: wage.userId, hourlyWage: wage.hourlyWage, attendance: monthly, breakdown, payslip };
+
+  let insurance: InsuranceDeduction | undefined;
+  let deductions = wage.deductions;
+  if (profile) {
+    // **標準報酬月額は「総支給」で見る。** 手当を除いた基本給ではなく、
+    // 割増・手当込みの額面から等級を引く(等級表の定義どおり)。
+    insurance = calcInsuranceDeduction(
+      { monthlyPay: breakdown.total, birthDate: profile.birthDate, targetMonth: month },
+      REFERENCE_RATES_2026_TOKYO,
+    );
+    // **明細の「控除」欄に社会保険料を差し込む。** 手当・控除の手入力項目とは別に
+    // 自動計算した額を明示し、`(自動計算)` と分かる名前を付ける。
+    deductions = [
+      ...wage.deductions,
+      { name: "健康保険料(自動計算)", amount: insurance.health },
+      ...(insurance.longTermCare > 0 ? [{ name: "介護保険料(自動計算)", amount: insurance.longTermCare }] : []),
+      { name: "厚生年金保険料(自動計算)", amount: insurance.pension },
+      { name: "雇用保険料(自動計算)", amount: insurance.employmentInsurance },
+    ];
+  }
+
+  const payslip = buildPayslip(breakdown, { allowances: wage.allowances, deductions });
+  return { month, userId: wage.userId, hourlyWage: wage.hourlyWage, attendance: monthly, breakdown, payslip, ...(insurance ? { insurance } : {}) };
 }
 
 /** 既定の給与設定（未登録者向けのフォールバック）。 */
@@ -79,6 +133,56 @@ export function createMemoryWageStore(): WageStore {
     },
     async list() {
       return order.map((u) => byUser.get(u)!);
+    },
+  };
+}
+
+/** 給与プロファイル(生年月日・扶養人数)のストア。 */
+export interface PayrollProfileStore {
+  get(userId: string): Promise<PayrollProfile | undefined>;
+  set(profile: PayrollProfile): Promise<PayrollProfile>;
+}
+
+/** インメモリ実装。 */
+export function createMemoryPayrollProfileStore(): PayrollProfileStore {
+  const byUser = new Map<string, PayrollProfile>();
+  return {
+    async get(userId) {
+      return byUser.get(userId);
+    },
+    async set(profile) {
+      byUser.set(profile.userId, profile);
+      return profile;
+    },
+  };
+}
+
+/** 使用する Prisma デリゲートの最小ポート。 */
+export interface PayrollProfileStoreDb {
+  payrollProfileRow: {
+    findUnique(args: { where: { userId: string } }): Promise<{ userId: string; birthDate: string; dependents: number } | null>;
+    upsert(args: {
+      where: { userId: string };
+      create: { userId: string; birthDate: string; dependents: number };
+      update: { birthDate: string; dependents: number };
+    }): Promise<{ userId: string; birthDate: string; dependents: number }>;
+  };
+}
+
+/** Prisma 実装。 */
+export function createPrismaPayrollProfileStore(db: PayrollProfileStoreDb): PayrollProfileStore {
+  return {
+    async get(userId) {
+      const row = await db.payrollProfileRow.findUnique({ where: { userId } });
+      return row ? { userId: row.userId, birthDate: row.birthDate, dependents: row.dependents } : undefined;
+    },
+    async set(profile) {
+      await db.payrollProfileRow.upsert({
+        where: { userId: profile.userId },
+        create: { userId: profile.userId, birthDate: profile.birthDate, dependents: profile.dependents },
+        update: { birthDate: profile.birthDate, dependents: profile.dependents },
+      });
+      return profile;
     },
   };
 }

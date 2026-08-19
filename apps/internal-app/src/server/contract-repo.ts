@@ -7,10 +7,11 @@
  * ロジック(期限判定・アラート・更新)は `@platform/contract` の担当。
  * @packageDocumentation
  */
+import { addDays, formatDateJst, todayJst } from "@platform/datetime";
 import { randomUUID } from "node:crypto";
 import type { Contract, RenewalType, ContractStatus } from "@platform/contract";
 import { db } from "./services";
-import { featureEnv } from "./env";
+import { usePrisma } from "./env";
 
 /** 保存先。 */
 export interface ContractStore {
@@ -181,11 +182,10 @@ export function createPrismaContractStore(): ContractStore {
 /** 動かして確かめられるよう、アラートが出る状態を含めて入れておく。 */
 function seedContracts(): Contract[] {
   const now = new Date();
-  const day = (offset: number): string => {
-    const d = new Date(now);
-    d.setDate(d.getDate() + offset);
-    return d.toISOString().slice(0, 10);
-  };
+  // **JST で切る。** `toISOString()` は UTC なので、
+  // **JST の 0 時〜9 時は前日**になります——朝に開くと契約の開始日が 1 日ずれ、
+  // 「昨日から有効なはずが今日から」と見える。`@platform/datetime` に揃える
+  const day = (offset: number): string => formatDateJst(addDays(todayJst(now), offset));
   const base = { createdAt: now.toISOString(), updatedAt: now.toISOString() };
   const mk = (id: string, title: string, partner: string, o: Partial<Contract>): Contract =>
     ({ id, title, partner, status: "active", startDate: day(-365), endDate: day(365), renewalType: "manual", ...base, ...o });
@@ -222,6 +222,6 @@ function seedContracts(): Contract[] {
  * アプリで共有するストア。
  * `CONTRACT_PERSISTENCE=prisma` なら DB、それ以外はメモリ(seed 付き)。
  */
-export const contractStore: ContractStore = featureEnv.CONTRACT_PERSISTENCE === "prisma"
+export const contractStore: ContractStore = usePrisma
   ? createPrismaContractStore()
   : createMemoryContractStore(seedContracts());

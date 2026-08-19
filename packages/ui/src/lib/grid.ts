@@ -69,9 +69,9 @@ export function rangeToTsv<T extends Record<string, unknown>>(rows: T[], columnK
  *
  * **固定列は `position: sticky` で重ねる**ので、左からの累積幅が要る。
  *
- * @param columns 列定義
- * @param index 対象の列
- * @returns 左端からの px
+ * @param widths 各列の幅(px)
+ * @param stickyCount 固定する列の数(**左から数える**)
+ * @returns 固定する列それぞれの左端からの px(**配列**。1 つの値ではない)
  */
 export function stickyLeftOffsets(widths: number[], stickyCount: number): number[] {
   const offsets: number[] = [];
@@ -139,8 +139,9 @@ export function parseTsv(text: string): string[][] {
  * TSV を行オブジェクトに変換する(Excel からの貼り付け取り込み)。
  * header:true なら 1 行目を見出しキーに使う。それ以外は keys を位置で対応させる。
  *
- * @param tsv TSV 文字列
- * @param columns 列定義
+ * @param text TSV 文字列（**Excel からの貼り付けはこの形**）
+ * @param keys 列に対応する項目名
+ * @param options.header 1 行目を見出しとして飛ばすか
  * @returns 行のオブジェクト(**Excel からの貼り付けを取り込む**)
  */
 export function tsvToRows(text: string, keys: string[], options: { header?: boolean } = {}): Record<string, string>[] {
@@ -160,10 +161,11 @@ export function tsvToRows(text: string, keys: string[], options: { header?: bool
  *
  * **列が多い表(100 列以上)で効く**。固定列は常に描くので対象外。
  *
- * @param scrollLeft スクロール位置
+ * @param scrollLeft 横スクロールの位置
+ * @param widths 列ごとの幅
  * @param viewportWidth 表示領域の幅
- * @param columns 列定義
- * @param stickyCount 固定列の数
+ * @param freezeLeft 左に固定する列の数
+ * @param overscan 画面の外にも余分に描く列数（**スクロール時のちらつきを抑える**）
  * @returns 描画する範囲と左右のパディング
  */
 export function computeVisibleColumns(

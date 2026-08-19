@@ -69,7 +69,11 @@ export interface DeliveryDecision {
  */
 export function isQuietHour(quiet: QuietHours | undefined, now: Date): boolean {
   if (!quiet) return false;
-  const h = now.getHours();
+  // **JST の時刻で見る。** `getHours()` はサーバのローカル時刻なので、
+  // UTC のサーバでは**9 時間ずれる**——「22 時〜7 時は通知しない」設定が
+  // JST 13 時〜22 時に効いてしまい、**夜中に通知が鳴り、昼間は届かない**
+  // (2026-08 に修正)。
+  const h = new Date(now.getTime() + 9 * 60 * 60 * 1000).getUTCHours();
   if (quiet.start === quiet.end) return false;
   return quiet.start < quiet.end
     ? h >= quiet.start && h < quiet.end          // 例 1–5

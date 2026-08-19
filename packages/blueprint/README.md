@@ -1,17 +1,27 @@
-# @platform/blueprint — 業務プロセスのブループリント
+# @platform/blueprint
 
-Zoho CRM のブループリントに相当。業務プロセスを状態と遷移で宣言的に定義し、遷移ごとの
-**条件・必須項目・アクション・ロール**を強制して、正しい手順でしか進めないようにします。
-素の状態遷移は `@platform/fsm` に委譲し、その上にガードを重ねています。
+業務フローの設計図（状態と遷移の定義・検証）。
 
-## 主な API
-- `Blueprint`（states / transitions）、`BlueprintTransition`（from/to/name/requiredFields/condition/actions/allowedRoles）。
-- `availableTransitions(bp, state, record)` — 今実行できる遷移（条件を満たすもの）。
-- `evaluateTransition(bp, state, name, record, roles?)` — 状態・条件・必須項目・ロールを検証 → `{ ok, errors, nextState, actions }`。
-- `applyTransition(bp, record, name, { stateField, roles })` — 検証を通れば状態を更新して返す。
-- `missingRequiredFields` / `isFinalState` / `transitionNames`。
+## これは何のためか
+
+**業務の流れを、動かす前に確かめる**ためのものです。
+
+「却下されたら、どこへ戻るのか」——
+**書き出してみると、決まっていないことが分かります**。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **到達できない状態を探す** | どこからも行けない状態は、**設計の抜け**です |
+| **出られない状態を探す** | 行き止まりに入ると、**業務が進まなくなります**——「完了」以外は要注意です |
+| **状態を増やしすぎない** | 5 つを超えると、**誰も全体を把握できません** |
+| **設計図と実装は別物** | ここで確かめても、**実装が同じとは限りません**——`@platform/fsm` で**実際に縛って**ください |
+
+## よく使うもの
 
 ```ts
+import { validateBlueprint, toStateMachine, missingRequiredFields } from "@platform/blueprint";
 import { evaluateTransition, applyTransition, type Blueprint } from "@platform/blueprint";
 
 const expenseFlow: Blueprint<"draft" | "submitted" | "approved", Expense> = {

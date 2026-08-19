@@ -1,7 +1,7 @@
 "use client";
 /** CMS 操作履歴。監査ログの cms.* 操作を一覧表示する。 */
 import * as React from "react";
-import { Button } from "@platform/ui";
+import { Button, PageShell } from "@platform/ui";
 
 interface Row {
   seq: number;
@@ -38,12 +38,11 @@ export function HistoryClient({ fetchImpl }: HistoryClientProps) {
   const shown = filter ? rows.filter((r) => r.target.startsWith(`${filter}:`) || r.action.startsWith(`cms.${filter}.`)) : rows;
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <h1 className="mb-4 text-2xl font-bold">操作履歴</h1>
+        <PageShell title="操作履歴" width="wide">
       <div className="mb-3 flex gap-1">
-        <Button onClick={() => setFilter("")} className={filter === "" ? "rounded bg-[var(--color-fg)] px-3 py-1 text-sm text-white" : "rounded border border-[var(--color-border)] px-3 py-1 text-sm"}>すべて</Button>
+        <Button onClick={() => setFilter("")} variant="tab" data-state={filter === "" ? "active" : undefined}>すべて</Button>
         {kinds.map((k) => (
-          <Button key={k} onClick={() => setFilter(k)} className={filter === k ? "rounded bg-[var(--color-fg)] px-3 py-1 text-sm text-white" : "rounded border border-[var(--color-border)] px-3 py-1 text-sm"}>
+          <Button key={k} onClick={() => setFilter(k)} variant="tab" data-state={filter === k ? "active" : undefined}>
             {k === "post" ? "記事" : k === "page" ? "ページ" : k === "announcement" ? "お知らせ" : k === "category" ? "カテゴリ" : "タグ"}
           </Button>
         ))}
@@ -72,6 +71,6 @@ export function HistoryClient({ fetchImpl }: HistoryClientProps) {
           </tbody>
         </table>
       )}
-    </div>
+    </PageShell>
   );
 }

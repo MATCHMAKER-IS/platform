@@ -1,13 +1,13 @@
 /** 請求書: 適格請求書レイアウトの HTML(GET)。invoice:read が必要。 */
 import { withApiObservability } from "../../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../../server/authorize";
-import { serverEnv } from "../../../../../server/env";
+import "../../../../../server/env";
 import { invoiceStore, settingsStore } from "../../../../../server/platform-services";
 import { renderInvoiceHtml } from "@platform/invoice";
 
 async function handleGET(req: Request, ctx: { params: Promise<{ number: string }> }): Promise<Response> {
   const { number } = await ctx.params;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "invoice:read");
   const view = await invoiceStore.get(number);
   if (!view) return Response.json({ error: "請求書が見つかりません" }, { status: 404 });

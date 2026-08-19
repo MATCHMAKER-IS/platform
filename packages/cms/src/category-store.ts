@@ -167,6 +167,8 @@ export function createPrismaCategoryStore(db: CategoryStoreDb): CategoryStore {
     },
     async reorder(orderedIds) {
       for (let i = 0; i < orderedIds.length; i++) {
+        // query-in-loop: **行ごとに違う値(並び順)を入れる**のでまとめられない。
+        // 分類は数十件で、並び替えは管理画面から手で行うもの
         await db.categoryRow.update({ where: { id: orderedIds[i]! }, data: { order: i } });
       }
       return (await db.categoryRow.findMany({ orderBy: { order: "asc" } })).map(rowToCategory);

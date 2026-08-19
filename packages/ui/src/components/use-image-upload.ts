@@ -33,7 +33,8 @@ export interface UseImageUploadResult<T> {
  * 選択→自動縮小→アップロードを1つにまとめたフック。
  *
  *
- * @param options.maxSizeBytes / accept 受け入れる条件
+ * @param options.upload 実際に送る処理。`resize` は送る前の縮小指定。
+ *   **受け入れ条件(`maxSizeBytes` / `accept`)はここでは指定しない**
  * @returns 選択・プレビュー・アップロードの状態と操作(**アップロード前にブラウザ内でリサイズできる**ので、通信量を減らせる)
  */
 export function useImageUpload<T = unknown>(options: UseImageUploadOptions<T>): UseImageUploadResult<T> {

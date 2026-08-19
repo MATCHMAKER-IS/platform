@@ -29,6 +29,17 @@
  * @packageDocumentation
  */
 
+/**
+ * 「今日」を **JST の日付**(`YYYY-MM-DD`)で返す。
+ *
+ * **`toISOString()` は UTC。** そのまま使うと、UTC で動くサーバ(クラウドの既定)では
+ * **JST の 00:00〜08:59 が前日として扱われ、判定が 1 日ずれる**
+ * ——期限切れのはずのものが「まだ間に合う」と出る(2026-08 に修正)。
+ */
+function jstDate(d: Date): string {
+  return new Date(d.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
 /** 取引の種類。**基準となる資本金が変わる**。 */
 export type SubcontractType =
   /** 製造委託・修理委託。 */
@@ -179,7 +190,7 @@ export function checkSubcontractCompliance(
   today: Date = new Date(),
 ): SubcontractIssue[] {
   const out: SubcontractIssue[] = [];
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = jstDate(today);
 
   for (const o of orders) {
     // ── 3 条書面 ──

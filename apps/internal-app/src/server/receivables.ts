@@ -33,10 +33,12 @@ export interface ReceivableInvoice {
 }
 
 function overdueDaysOf(dueDate: string, now: Date): number {
-  const due = new Date(dueDate);
-  const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate()).getTime();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  return Math.floor((today - dueDay) / 86_400_000);
+  // **JST の日付で数える。** `getFullYear()` などはサーバのローカル時刻で動くので、
+  // UTC のサーバでは **JST の 00:00〜08:59 が前日**になり、**滞留日数が 1 日短く出る**
+  // ——督促の区分(30 日・60 日・90 日)の境目で判定が変わる(2026-08 に修正)。
+  const jstMidnight = (d: Date): number =>
+    Date.parse(`${new Date(d.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)}T00:00:00.000Z`);
+  return Math.floor((jstMidnight(now) - jstMidnight(new Date(dueDate))) / 86_400_000);
 }
 
 /** 未収の請求書からエイジングと督促文面を作る。取消・完済は除外。 */

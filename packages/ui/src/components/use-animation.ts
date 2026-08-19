@@ -18,10 +18,12 @@ export interface UseTweenOptions {
 
 /**
  * from → to へ duration(ms)かけて値を補間するフック。RAF で毎フレーム更新。
+ * @param from 開始値
+ * @param to 終了値
+ * @param options.duration 所要時間(ミリ秒)
+ * @param options.easing 変化の付け方
+ * @param options.autoStart 自動で始めるか
  * @returns 現在値
- * @param options.from / to 開始と終了の値
- * @param options.duration 時間
- * @param options.easing イージング
  */
 export function useTween(from: number, to: number, options: UseTweenOptions = {}): number {
   const { duration = 300, easing = "easeOutCubic" } = options;
@@ -53,7 +55,9 @@ export function useTween(from: number, to: number, options: UseTweenOptions = {}
 /**
  * バネ物理で target に追従する値を返すフック。ドラッグ追従・滑らかな数値変化に。
  * @returns 現在値
- * @param options.stiffness / damping バネの特性(**硬さと減衰**。tween と違い、**途中で目標が変わっても自然に繋がる**)
+ * @param target 目指す値（**途中で変えてよい**。tween と違い、自然に繋がります）
+ * @param config.stiffness バネの硬さ
+ * @param config.damping 減衰（**小さいと揺れ続けます**）
  */
 export function useSpring(target: number, config: SpringConfig = {}): number {
   const [value, setValue] = React.useState(target);

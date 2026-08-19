@@ -112,6 +112,7 @@ export interface Shortage {
 /**
  * カート/注文が在庫を満たすか判定する。
  * @param stockMap 商品 ID → 販売可能数
+ * @param lines 注文の明細（**足りない分をまとめて返します**）
  * @returns 満たすか、不足明細
  */
 export function canFulfill(stockMap: Record<string, number>, lines: OrderLine[]): { ok: boolean; shortages: Shortage[] } {

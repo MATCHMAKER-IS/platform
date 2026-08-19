@@ -78,6 +78,26 @@ export function AppSkin({ children, themes, defaultSkinId, defaultMode = "system
     setMode(m);
   }, []);
 
+  /**
+   * 保存済みのスキンと明暗を `html` 要素へ反映する。
+   *
+   * **以前はインラインスクリプトで React より先に適用していた**が、
+   * client component の `<script>` は実行されず、CSP でも弾かれる。
+   * effect で行うと**一瞬だけ既定のテーマが見える**が、
+   * 動かないものを置いておくよりは良い(ちらつきは
+   * サーバ側で `html` に属性を付ければ本質的に無くせる。ADR の課題として残す)。
+   */
+  React.useEffect(() => {
+    if (typeof document === "undefined") return;
+    const el = document.documentElement;
+    const saved = (() => {
+      try { return localStorage.getItem("skin"); } catch { return null; }
+    })();
+    const skin = saved ?? defaultSkinId ?? "";
+    if (skin !== "") el.setAttribute("data-skin", skin);
+    el.setAttribute("data-theme", mode);
+  }, [defaultSkinId, mode]);
+
   React.useEffect(() => {
     if (defaultMode !== "system" || typeof window === "undefined" || !window.matchMedia) return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -90,23 +110,11 @@ export function AppSkin({ children, themes, defaultSkinId, defaultMode = "system
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: css }} />
-      {/* SSR ちらつき防止: React マウント前に、保存済みスキン/明暗を html 要素へ適用する。
-          これがないとリロード時に一瞬デフォルトテーマが見える。localStorage と
-          prefers-color-scheme を読んで data-skin / data-theme を先に立てる。 */}
-      {/* unsafe-html: 画面のちらつきを防ぐインラインスクリプト。
-          埋め込む値は JSON.stringify でエスケープしており、外部由来の HTML は入らない */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `(function(){try{
-            var s=localStorage.getItem('skin')||${JSON.stringify(defaultSkinId ?? "")};
-            var m=${JSON.stringify(defaultMode)};
-            var theme=m==='system'?(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):(m==='dark'?'dark':'light');
-            var el=document.documentElement;
-            if(s)el.setAttribute('data-skin',s);
-            el.setAttribute('data-theme',theme);
-          }catch(e){}})();`,
-        }}
-      />
+      {/* **スクリプトを埋め込まない。**
+          以前はここに `<script dangerouslySetInnerHTML>` を置いてちらつきを防いでいたが、
+          `"use client"` の中の `<script>` は**クライアントでは実行されない**
+          (React が警告を出す)。加えて CSP に nonce を入れた環境では
+          そもそもブロックされる。同じことを下の effect で行う。 */}
       <SkinProvider registry={registry} mode={mode} setMode={handleSetMode} {...(defaultSkinId ? { defaultSkinId } : {})}>
         {children}
       </SkinProvider>

@@ -66,7 +66,13 @@ export function createMemorySettingsStore(): SettingsStore {
       return resolveSettings(overrides);
     },
     async update(patch) {
-      for (const [k, v] of Object.entries(patch)) overrides[k] = String(v);
+      // **知らないキーは受け取らない。**
+      // 任意のキーを保存できると、設定が際限なく増えて何が効いているか
+      // 分からなくなる。値の妥当性は `resolveSettings` が見る(2026-08)
+      for (const [k, v] of Object.entries(patch)) {
+        if (!(k in SETTINGS_DEFAULTS)) continue;
+        overrides[k] = String(v);
+      }
       return resolveSettings(overrides);
     },
   };
@@ -83,7 +89,10 @@ export interface SettingRow {
 /** 使用する Prisma デリゲートの最小ポート。 */
 export interface SettingsStoreDb {
   settingRow: {
-    findMany(args?: Record<string, never>): Promise<SettingRow[]>;
+    // **`orderBy` が型に無かった。** `overrides` がキー順を指定している
+    // のに型定義は空オブジェクトしか許していなかった(2026-08、同種の
+    // パターンを全 route.ts の一括型検査で発見)。
+    findMany(args?: { orderBy?: { key: "asc" } }): Promise<SettingRow[]>;
     upsert(args: { where: { key: string }; create: SettingRow; update: { value: string } }): Promise<SettingRow>;
   };
 }
@@ -91,7 +100,8 @@ export interface SettingsStoreDb {
 /** Prisma 実装。 */
 export function createPrismaSettingsStore(db: SettingsStoreDb): SettingsStore {
   async function overrides(): Promise<Record<string, string>> {
-    const rows = await db.settingRow.findMany();
+    // **キー順に並べる**(無指定だと DB の返す順は不定で、管理画面の一覧が毎回変わる)
+    const rows = await db.settingRow.findMany({ orderBy: { key: "asc" } });
     return Object.fromEntries(rows.map((r) => [r.key, r.value]));
   }
   return {
@@ -99,7 +109,15 @@ export function createPrismaSettingsStore(db: SettingsStoreDb): SettingsStore {
       return resolveSettings(await overrides());
     },
     async update(patch) {
-      for (const [k, v] of Object.entries(patch)) await db.settingRow.upsert({ where: { key: k }, create: { key: k, value: String(v) }, update: { value: String(v) } });
+      // **知らないキーは受け取らない**(メモリ実装と揃える)
+      for (const [k, v] of Object.entries(patch)) {
+        if (!(k in SETTINGS_DEFAULTS)) continue;
+        // query-in-loop: 設定は数個。まとめても往復が 1 回減るだけで、
+        // **どのキーで失敗したか**が分からなくなる方が損
+        await db.settingRow.upsert({
+          where: { key: k }, create: { key: k, value: String(v) }, update: { value: String(v) },
+        });
+      }
       return resolveSettings(await overrides());
     },
   };

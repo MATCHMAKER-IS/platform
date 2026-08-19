@@ -1,12 +1,14 @@
 /** CMS 記事: 一覧(GET)・作成(POST)。編集は cms:edit、公開は cms:publish。公開権限が無い場合は公開申請を作成し下書き保存。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, requirePermission, userCan } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
-import { cmsStore, auditActions, revisionStore, publishRequestStore, notificationCenter } from "../../../../server/platform-services";
+import "../../../../server/env";
+import { cmsStore, auditActions, revisionStore, publishRequestStore, notificationCenter, userStore } from "../../../../server/platform-services";
 import { validatePostInput, isPublishAction, effectiveStatus, type CmsPostInput, type PostStatus } from "../../../../server/cms-store";
+import { can } from "@platform/auth";
+import { APP_POLICY } from "../../../../server/policy";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:read");
   const url = new URL(req.url);
   const status = url.searchParams.get("status");
@@ -17,9 +19,9 @@ async function handleGET(req: Request): Promise<Response> {
 }
 
 async function handlePOST(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:edit");
-  const body = (await req.json()) as CmsPostInput;
+  const body = (await req.json().catch(() => ({}))) as CmsPostInput;
   const valid = validatePostInput(body);
   if (!valid.ok) return Response.json({ error: valid.error }, { status: 400 });
   if (await cmsStore.get(body.slug)) return Response.json({ error: "同じ slug の記事が既にあります" }, { status: 409 });
@@ -38,7 +40,15 @@ async function handlePOST(req: Request): Promise<Response> {
   if (pendingPublish) {
     const request = await publishRequestStore.request(post.slug, user!.email);
     await auditActions.record(user!.email, "cms.publish.request", `post:${post.slug}`);
-    await notificationCenter.notify("cms-approvers", { title: "公開申請があります", body: `${post.title}（${user!.email}）`, href: "/cms/publish-requests", kind: "info" });
+    // **`"cms-approvers"` という文字列は実在しないユーザー ID だった。**
+    // `notify(userId, ...)` は完全一致でしか通知を引けないため、
+    // この宛先の通知は誰の一覧にも表示されない「幽霊ユーザー」宛の
+    // まま溜まり続けていた——公開承認者に通知は一度も届いていなかった
+    // (2026-08、mailer.sendMail の全点検の延長で発見)。
+    const approvers = (await userStore.list()).filter((u) => u.active && can(APP_POLICY, u.roles, "cms:publish"));
+    for (const approver of approvers) {
+      await notificationCenter.notify(approver.email, { title: "公開申請があります", body: `${post.title}（${user!.email}）`, href: "/cms/publish-requests", kind: "info" });
+    }
     await notificationCenter.notify(user!.email, { title: "公開申請を送信しました", body: `${post.title}（承認待ち）`, href: "/cms", kind: "info" });
     return Response.json({ ...post, publishRequest: request }, { status: 201 });
   }

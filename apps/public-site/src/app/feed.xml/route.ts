@@ -1,5 +1,5 @@
 /** RSS 2.0 フィード。最新記事を配信する。 */
-import { buildRssFeed, type FeedItem } from "@platform/seo";
+import { buildRssFeed, type FeedEntry as FeedItem } from "@platform/feed";
 import { content, siteConfig } from "../../server/content";
 
 export async function GET(): Promise<Response> {

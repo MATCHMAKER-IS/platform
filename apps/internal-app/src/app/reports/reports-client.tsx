@@ -1,7 +1,7 @@
 "use client";
 /** レポート/帳票。期間・取引先で絞り込んで表示/印刷・CSV・Excel 出力。 */
 import * as React from "react";
-import { Button, Input } from "@platform/ui";
+import { Button, Input, PageShell } from "@platform/ui";
 
 const REPORTS = [
   { type: "sales", label: "売上レポート（取引先別）", desc: "取引先ごとの売上・残高", filterable: true },
@@ -42,15 +42,12 @@ export function ReportsClient() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
-      <h1 className="mb-1 text-2xl font-bold">レポート/帳票</h1>
-      <p className="mb-4 text-sm text-[var(--color-muted)]">定型レポートを表示（印刷でPDF化）またはCSV/Excelでダウンロードできます。売上・売掛は期間・取引先で絞り込めます。</p>
-
+        <PageShell title="レポート/帳票" width="narrow" description="定型レポートを表示（印刷でPDF化）またはCSV/Excelでダウンロードできます。売上・売掛は期間・取引先で絞り込めます。">
       <div className="mb-4 flex flex-wrap items-end gap-2 rounded border border-[var(--color-border)] p-3">
         <label className="text-xs text-[var(--color-muted)]">発行日 From<Input type="date" value={from} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFrom(e.target.value)} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
         <label className="text-xs text-[var(--color-muted)]">To<Input type="date" value={to} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTo(e.target.value)} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
         <label className="flex-1 text-xs text-[var(--color-muted)]">取引先（完全一致）<Input value={partner} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPartner(e.target.value)} placeholder="株式会社サンプル" className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
-        {(from || to || partner) && <Button onClick={() => { setFrom(""); setTo(""); setPartner(""); }} className="rounded px-2 py-1 text-xs text-[var(--color-primary)]">クリア</Button>}
+    {(from || to || partner) && <Button onClick={() => { setFrom(""); setTo(""); setPartner(""); }} variant="secondary" className="rounded px-2 py-1 text-xs">クリア</Button>}
       </div>
 
       {presets.length > 0 && (
@@ -59,8 +56,8 @@ export function ReportsClient() {
           <ul className="flex flex-wrap gap-2">
             {presets.map((pr) => (
               <li key={pr.id} className="flex items-center gap-1 rounded border border-[var(--color-border)] px-2 py-1 text-xs">
-                <Button onClick={() => applyPreset(pr)} className="text-[var(--color-primary)] hover:underline">{pr.name}</Button>
-                <Button onClick={() => removePreset(pr.id)} className="text-[var(--color-muted)] hover:text-[var(--color-danger)]" aria-label="削除">×</Button>
+        <Button onClick={() => applyPreset(pr)} variant="secondary" className="hover:underline">{pr.name}</Button>
+                <Button onClick={() => removePreset(pr.id)} variant="danger" className="hover:text-[var(--color-danger)]" aria-label="削除">×</Button>
               </li>
             ))}
           </ul>
@@ -70,8 +67,8 @@ export function ReportsClient() {
       <div className="mb-4 flex items-center gap-2 rounded border border-dashed border-[var(--color-border)] p-2">
         <Input value={presetName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPresetName(e.target.value)} placeholder="現在の条件をプリセット保存（名前）" className="flex-1 rounded border border-[var(--color-border)] px-2 py-1 text-sm" />
         <span className="text-xs text-[var(--color-muted)]">保存先レポート:</span>
-        <Button onClick={() => savePreset("sales")} disabled={!presetName} className="rounded bg-[var(--color-subtle)] px-2 py-1 text-xs disabled:opacity-50">売上</Button>
-        <Button onClick={() => savePreset("receivables")} disabled={!presetName} className="rounded bg-[var(--color-subtle)] px-2 py-1 text-xs disabled:opacity-50">売掛</Button>
+    <Button onClick={() => savePreset("sales")} disabled={!presetName} variant="secondary" className="rounded px-2 py-1 text-xs disabled:opacity-50">売上</Button>
+    <Button onClick={() => savePreset("receivables")} disabled={!presetName} variant="secondary" className="rounded px-2 py-1 text-xs disabled:opacity-50">売掛</Button>
       </div>
 
       <ul className="space-y-3">
@@ -86,6 +83,6 @@ export function ReportsClient() {
           </li>
         ))}
       </ul>
-    </div>
+    </PageShell>
   );
 }

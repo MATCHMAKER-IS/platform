@@ -1,4 +1,5 @@
 "use client";
+import { PageShell } from "@platform/ui";
 /** メディアライブラリ。アップロード済み画像を一覧表示し、URL をコピーできる。 */
 import * as React from "react";
 
@@ -18,8 +19,7 @@ export function MediaClient({ fetchImpl }: MediaClientProps) {
   }, [doFetch]);
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <h1 className="mb-4 text-2xl font-bold">メディアライブラリ</h1>
+        <PageShell title="メディアライブラリ" width="wide">
       {media.length === 0 ? (
         <p className="text-sm text-[var(--color-muted)]">アップロード済みの画像はまだありません。記事編集からアイキャッチ画像をアップロードすると、ここに一覧されます。</p>
       ) : (
@@ -32,6 +32,6 @@ export function MediaClient({ fetchImpl }: MediaClientProps) {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

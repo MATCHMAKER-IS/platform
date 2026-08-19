@@ -14,7 +14,6 @@ export interface StepsProps {
   className?: string;
 }
 
-/** 横型ステッパー。 */
 /**
  * 手順の表示(今どこにいるか)。
  *

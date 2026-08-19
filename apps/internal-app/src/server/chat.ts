@@ -14,19 +14,24 @@ import { createChatGateway, type ChatGateway } from "./chat-gateway";
 import { buildMentionNotifier } from "./chat-notify";
 import { createMemoryChatStore, type ChatStore } from "./chat-store";
 import { createPrismaChatStore, type ChatStoreDb } from "./chat-store-prisma";
-import { createMemoryRoomRepo, type RoomRepository } from "./chat-rooms";
+import { createMemoryRoomRepo, createPrismaRoomRepo, type RoomRepository, type RoomRepoDb } from "./chat-rooms";
 import { createPresenceTracker, type PresenceTracker } from "./chat-presence";
 import { createChatSearch, type ChatSearch } from "./chat-search";
 import { buildUnreadDigest } from "./chat-digest";
-import { notificationCenter, preferenceStore } from "./platform-services";
+import { notificationCenter, preferenceStore, userStore } from "./platform-services";
 import { decideDelivery, hasChannel } from "./notification-prefs";
+import { sendPushToUser } from "./push-service";
 import { createMemoryReactionStore, createPrismaReactionStore, type ReactionStore, type ReactionStoreDb } from "./chat-reactions";
 import { createMemoryPinStore, createPrismaPinStore, type PinStore, type PinStoreDb } from "./chat-pins";
 import { createMentionInbox, type MentionInbox } from "./chat-mentions";
 import { createThumbnailService, type ThumbnailService } from "./chat-thumbnails";
 import { createBoardService, type BoardService } from "./board";
+import {
+  createMemoryBoardPostStore, createPrismaBoardPostStore,
+  type BoardPostStore, type BoardPostStoreDb,
+} from "./board-post-repo";
 import { mailer, db } from "./services";
-import { useChatPrisma } from "./env";
+import { usePrisma } from "./env";
 
 /**
  * プロセス内 Pub/Sub。単一インスタンスならこれで動く。水平スケール時は
@@ -79,10 +84,31 @@ function memoryStorageAdapter(): StorageAdapter {
 export const chatStorage: Storage = createStorage(memoryStorageAdapter());
 
 /**
- * メンション名 → メールアドレスの対応表。実運用ではユーザーストアから解決する。
- * ここに登録された handle だけがメンション通知の対象になる（未登録は通知されない）。
+ * メンション名 → メールアドレスの対応表。
+ *
+ * **利用者台帳から作る。** 以前は空の Map で、
+ * `@誰か` と書いても**誰にも届かなかった**(2026-08 に気づいた)。
+ *
+ * 解決できる形は 2 つ:
+ * - メールのローカル部(`@suzuki` → `suzuki@example.co.jp`)
+ * - メールそのもの(`@suzuki@example.co.jp`)
+ *
+ * **氏名では引かない。** 同姓同名がいると別人へ通知が飛ぶ。
  */
-export const mentionDirectory = new Map<string, string>();
+export const mentionDirectory = {
+  /** handle からメールを引く。 */
+  async resolve(handle: string): Promise<string | undefined> {
+    const h = handle.trim().toLowerCase();
+    if (h === "") return undefined;
+    const users = await userStore.list();
+    const hit = users.find((u) => {
+      if (!u.active) return false;
+      const email = u.email.toLowerCase();
+      return email === h || email.split("@")[0] === h;
+    });
+    return hit?.email;
+  },
+};
 
 /** その人のメール宛に通知する Notifier を作る。 */
 function mailNotifier(email: string): Notifier {
@@ -96,9 +122,9 @@ function mailNotifier(email: string): Notifier {
 }
 
 export const mentionNotifier = buildMentionNotifier({
-  notifierFor: (handle) => {
-    const email = mentionDirectory.get(handle);
-    return email ? mailNotifier(email) : undefined;
+  notifierFor: async (handle) => {
+    const email = await mentionDirectory.resolve(handle);
+    return email !== undefined ? mailNotifier(email) : undefined;
   },
   senderName: (id) => id,
 });
@@ -111,7 +137,7 @@ async function notifyMentions(ctx: { senderId: string; text: string; contextId?:
   const notified: string[] = [];
   const skipped: string[] = [];
   for (const handle of handles) {
-    const email = mentionDirectory.get(handle);
+    const email = await mentionDirectory.resolve(handle);
     if (!email || email === ctx.senderId) {
       skipped.push(handle);
       continue;
@@ -130,11 +156,21 @@ async function notifyMentions(ctx: { senderId: string; text: string; contextId?:
       delivered = true;
     }
     if (hasChannel(decision, "email")) {
-      const notifier = mentionDirectory.has(handle) ? mailNotifier(email) : undefined;
+      const notifier = email !== undefined ? mailNotifier(email) : undefined;
       if (notifier) {
         await notifier.notify({ text: `${ctx.senderId} さんがあなたをメンションしました: ${ctx.text.slice(0, 80)}`, level: "info" });
         delivered = true;
       }
+    }
+    if (hasChannel(decision, "push") && email !== undefined) {
+      // **push が届かなくても他のチャネルは止めない。** 購読していない・
+      // 端末を失くした等で失敗しても、inApp/email 側は別に配信済み。
+      const result = await sendPushToUser(email, {
+        title: `${ctx.senderId} さんからメンション`,
+        body: ctx.text.slice(0, 80),
+        url: ctx.contextId ? `/chat/${ctx.contextId}` : "/chat",
+      });
+      if (result.sent > 0) delivered = true;
     }
     (delivered ? notified : skipped).push(handle);
   }
@@ -149,12 +185,19 @@ let seq = 0;
  * ChatMessageRow/MessageReadRow を生成済みなら、`createPrismaChatStore(db as ...)` に切り替える。
  */
 export const chatStore: ChatStore =
-  useChatPrisma
+  usePrisma
     ? createPrismaChatStore(db as unknown as ChatStoreDb, { keepPerRoom: 500 })
     : createMemoryChatStore({ keepPerRoom: 500 });
 
-/** ルーム・メンバーのリポジトリ(既定インメモリ・Prisma 差し替え可)。 */
-export const roomRepo: RoomRepository = createMemoryRoomRepo();
+/**
+ * ルーム・メンバーのリポジトリ。
+ *
+ * **既定は DB。** メモリのままだと再起動でルームが消え、
+ * 作った翌日に「昨日のルームが無い」となる(2026-08 に気づいた)。
+ */
+export const roomRepo: RoomRepository = usePrisma
+  ? createPrismaRoomRepo(db as unknown as RoomRepoDb)
+  : createMemoryRoomRepo();
 
 /** プレゼンス(オンライン/タイピング)トラッカー。 */
 export const presence: PresenceTracker = createPresenceTracker();
@@ -167,13 +210,13 @@ export const chatSearch: ChatSearch = createChatSearch({
 
 /** メッセージのリアクション保存(CHAT_PERSISTENCE=prisma で Prisma 実装)。 */
 export const reactionStore: ReactionStore =
-  useChatPrisma
+  usePrisma
     ? createPrismaReactionStore(db as unknown as ReactionStoreDb)
     : createMemoryReactionStore();
 
 /** ピン留め・ブックマークの保存(CHAT_PERSISTENCE=prisma で Prisma 実装)。 */
 export const pinStore: PinStore =
-  useChatPrisma
+  usePrisma
     ? createPrismaPinStore(db as unknown as PinStoreDb)
     : createMemoryPinStore();
 
@@ -214,25 +257,39 @@ export const chatGateway: ChatGateway = createChatGateway({
   onHookError: (e) => console.error("チャットのフック処理に失敗", e),
 });
 
+/**
+ * 掲示板の投稿の保存先。
+ *
+ * **編集・削除の所有者判定に使う。** 以前は保存を持たず、
+ * リクエストの `post` をそのまま信じていたため、
+ * `authorId` を書き換えれば他人の投稿を操作できた(2026-08 に発見)。
+ */
+export const boardPostStore: BoardPostStore = usePrisma
+  ? createPrismaBoardPostStore(db as unknown as BoardPostStoreDb)
+  : createMemoryBoardPostStore();
+
 /** 掲示板サービス(投稿検証 + メンション通知)。chat と同じ通知器を再利用。 */
 export const boardService: BoardService = createBoardService({
   newId: () => `post_${Date.now()}_${++seq}`,
   onMentions: notifyMentions,
   onPosted: async (post, threadId) => {
+    // **保存が先。** 索引だけ更新して本体が無い状態を作らない
+    if (threadId) await boardPostStore.save(threadId, post);
     if (threadId) await chatSearch.indexPost(post, threadId);
   },
   attachmentLimits: { maxCount: 5, maxSizeBytes: 10_000_000, allowedTypes: ["image/", "application/pdf"] },
   onHookError: (e) => console.error("掲示板のフック処理に失敗", e),
 });
 
-/** 未読ダイジェスト送信(cron から呼ぶ)。宛先メールは mentionDirectory を流用。 */
+/** 未読ダイジェスト送信(cron から呼ぶ)。 */
 export const sendUnreadDigest = buildUnreadDigest({
   store: chatStore,
   roomRepo,
-  notifierFor: (userId) => {
-    const email = mentionDirectory.get(userId) ?? userId;
-    return email.includes("@") ? mailNotifier(email) : undefined;
-  },
+  // **`userId` は既にメールアドレス(チャットのユーザー識別子)。**
+  // `mentionDirectory.resolve` はハンドル(@表記)→メールの変換で、
+  // ここでは要らない——以前は存在しない `.get` を呼んでおり、
+  // この経路は呼ばれると必ず落ちていた(2026-08、型検査で発見)。
+  notifierFor: (userId) => (userId.includes("@") ? mailNotifier(userId) : undefined),
 });
 
 /**

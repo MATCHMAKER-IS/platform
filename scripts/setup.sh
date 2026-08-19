@@ -5,11 +5,11 @@
 #   bash scripts/setup.sh              # フルセットアップ
 #   bash scripts/setup.sh --check      # 前提条件の確認のみ(何も変更しない)
 #   bash scripts/setup.sh --skip-docker  # Docker 起動を省略(DB を自前用意した場合)
-#   bash scripts/setup.sh --skip-db      # スキーマ適用(prisma db push)を省略
+#   bash scripts/setup.sh --skip-db      # スキーマ適用を省略
 #
 # やること: 前提確認 → .env 準備 → Docker(PostgreSQL+Mailpit)起動 → アプリ別DB作成
-#           → pnpm install → prisma generate ×3 → prisma db push ×3 → スモーク検証
-# 詳細: docs/ops/SETUP.md
+#           → pnpm install → prisma generate ×3 → スキーマ適用 ×3 → スモーク検証
+# 詳細: docs/onboarding/01-setup.md
 # ============================================================================
 set -euo pipefail
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -31,8 +31,8 @@ warn() { printf '  \033[33m!\033[0m %s\n' "$1"; }
 fail() { printf '  \033[31m✗\033[0m %s\n' "$1"; }
 
 # アプリ別 DB(名前は docker-compose.yml の資格情報 app/app に合わせる)
-APPS=(internal-app crud-template equipment-app balance-app)
-db_name() { case "$1" in internal-app) echo app ;; crud-template) echo app_crud ;; equipment-app) echo app_equipment ;; balance-app) echo app_balance ;; esac; }
+APPS=(internal-app crud-template line-console)
+db_name() { case "$1" in internal-app) echo app ;; crud-template) echo app_crud ;; line-console) echo app_line ;; esac; }
 
 # ─────────────────────────────── 1. 前提確認 ───────────────────────────────
 step "前提条件の確認"
@@ -124,13 +124,16 @@ for app in "${APPS[@]}"; do
   ok "$app"
 done
 
-# ─────────────────────────── 6. スキーマ適用(db push) ───────────────────────────
+# ─────────────────────────── 6. スキーマ適用 ───────────────────────────
+# **方式は tools/apply-schema.mjs が選ぶ**(migrations/ の有無を見る)。
+# ここで `db push` と書き固定すると、マイグレーションへ切り替えたときに
+# **開発環境だけ古い方式のまま**になり、本番と食い違う
 if [ "$SKIP_DB" -eq 0 ]; then
-  step "スキーマ適用(prisma db push。履歴管理する場合は migrate を使用 → SETUP.md)"
+  step "スキーマ適用(履歴が無ければ db push・あれば migrate deploy)"
   for app in "${APPS[@]}"; do
     url=$(grep -E '^DATABASE_URL=' "apps/$app/.env" 2>/dev/null | tail -1 | cut -d= -f2- || true)
     [ -z "$url" ] && url="postgresql://app:app@localhost:5432/$(db_name "$app")"
-    PRISMA_SCHEMA="../../apps/$app/prisma/schema.prisma" DATABASE_URL="$url" pnpm --filter @platform/db exec prisma db push >/dev/null
+    DATABASE_URL="$url" node tools/apply-schema.mjs "$app" >/dev/null
     ok "$app → $(db_name "$app")"
   done
 else
@@ -158,6 +161,6 @@ cat <<'DONE'
   メール確認(Mailpit UI):           http://localhost:8025
   検証:  pnpm smoke / node tools/check-deps.mjs
   新アプリの作り方: apps/crud-template/README.md(コピーして開始)
-  詳細:  docs/ops/SETUP.md
+  詳細:  docs/onboarding/01-setup.md
 ============================================================
 DONE

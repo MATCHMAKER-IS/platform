@@ -22,8 +22,9 @@ export interface OcrFeedback {
  *
  * **人が直したところが、AI の弱点**。これを集めることで改善点が分かる。
  *
- * @param extracted OCR / AI が抽出した値
- * @param confirmed 人が確定した値
+ * @param original OCR / AI が抽出した値
+ * @param corrected 人が確定した値
+ * @param confidences 項目ごとの確信度（**低いところが直っていれば、読み取りの弱点が分かる**）
  * @returns 変更された項目(**変わっていないものは含まない**)
  */
 export function collectCorrections(
@@ -45,7 +46,8 @@ export function collectCorrections(
  * フィードバック記録を組み立てる。
  *
  * @param meta 文書の情報
- * @param changes 変更された項目
+ * @param original 抽出した値
+ * @param corrected 人が確定した値
  * @param confidences 各項目の確信度
  * @returns フィードバック記録
  */
@@ -79,7 +81,7 @@ export interface OcrFeedbackStore {
  * 本来の処理より優先度が低い)。
  *
  * @param options.endpoint API の URL
- * @param options.fetchImpl fetch の実装(テスト注入用)
+ * @param options.fetch fetch の実装(テスト注入用)。**`fetchImpl` ではない**
  * @returns ストア
  */
 export function createOcrFeedbackStore(options: { endpoint: string; headers?: Record<string, string>; fetch?: typeof fetch }): OcrFeedbackStore {

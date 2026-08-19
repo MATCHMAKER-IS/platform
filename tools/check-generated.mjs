@@ -4,27 +4,54 @@
  *   node tools/check-generated.mjs
  */
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { readFileSync, writeFileSync, readdirSync, existsSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
+/**
+ * `apps/` のうち、指定したパスを持つものを返す。
+ *
+ * @param marker 存在を確かめる相対パス(例 `"prisma/schema.prisma"`)
+ * @returns アプリ名(昇順)
+ */
+function appsWith(marker) {
+  return readdirSync(path.join(ROOT, "apps"), { withFileTypes: true })
+    .filter((d) => d.isDirectory() && existsSync(path.join(ROOT, "apps", d.name, marker)))
+    .map((d) => d.name)
+    .sort();
+}
+
 const checks = [
   { gen: ["tools/gen-module-list.mjs"], file: "docs/ai/module-list.md" },
+  // **smoke の索引**(20,620 行から探すため。古いと別のセクションへ飛ぶ)
+  { gen: ["tools/gen-smoke-index.mjs"], file: "docs/ai/smoke-index.md" },
+  // **資料の参照関係**(2026-08 新設)。76 件がどう繋がっているかは
+  // **開いてリンクを辿らないと分からない**ので図にした
+  { gen: ["tools/gen-docs-graph.mjs"], file: "docs/DOCS_GRAPH.md" },
+  // **参照サイト**(基盤とアプリの HTML 一覧)。2026-08 まで `gen-all` に
+  // 入っているのに**ここで検査されておらず**、生成し忘れると古いまま公開された
+  { gen: ["tools/gen-ref-site.mjs"], file: "docs/site/index.html" },
   { gen: ["tools/advisor.mjs", "report"], file: "docs/ai/advisor-report.md" },
   { gen: ["tools/gen-reference.mjs"], file: "docs/platform/api-reference.json" },
-  { gen: ["tools/gen-erd.mjs", "internal-app"], file: "docs/platform/erd/internal-app.md" },
-  { gen: ["tools/gen-erd.mjs", "crud-template"], file: "docs/platform/erd/crud-template.md" },
-  { gen: ["tools/gen-erd.mjs", "equipment-app"], file: "docs/platform/erd/equipment-app.md" },
-  { gen: ["tools/gen-app-map.mjs", "internal-app"], file: "docs/platform/appmap/internal-app.md" },
-  { gen: ["tools/gen-app-map.mjs", "crud-template"], file: "docs/platform/appmap/crud-template.md" },
+  // **アプリ名を手で並べない。** 増減のたびに必ず追随が漏れる。
+  // equipment-app / balance-app を統合したとき、ここだけ古いまま残って
+  // 「存在しないアプリの生成物が無い」で gen:all が落ちた。
+  // ER 図は schema.prisma があるアプリ、画面・API 一覧は src/app があるアプリ。
+  ...appsWith("prisma/schema.prisma").map((a) => (
+    { gen: ["tools/gen-erd.mjs", a], file: `apps/${a}/docs/erd.md` })),
+  ...appsWith("src/app").map((a) => (
+    { gen: ["tools/gen-app-map.mjs", a], file: `apps/${a}/docs/appmap.md` })),
   { gen: ["tools/gen-depgraph.mjs"], file: "docs/platform/depgraph.md" },
   // 使用例のソース(実行時に読まないよう固めたもの。古いとデモサイトの表示が実態とずれる)
-  { gen: ["tools/gen-example-sources.mjs"], file: "demos/showcase/src/lib/example-sources.generated.ts" },
+  { gen: ["tools/gen-example-sources.mjs"], file: "apps/showcase/src/lib/example-sources.generated.ts" },
   // 基盤ポータルの API リファレンス。**TSDoc を直したのに再生成を忘れると、
   // ポータルが古い引数・戻り値を出し続ける**(誰も気づけない)。api-reference.json の後に走らせること。
-  { gen: ["tools/gen-portal-reference.mjs"], file: "demos/showcase/src/lib/portal-reference.generated.ts" },
-  { gen: ["tools/gen-docs-index.mts"], file: "demos/showcase/public/docs-index.json" },
+  { gen: ["tools/gen-portal-reference.mjs"], file: "apps/showcase/src/lib/portal-reference.generated.ts" },
+  // 基盤ポータルの付加情報(構成・ヘルス・ADR・Advisor・設計)。
+  // **apps/platform-portal から移設**。実行時にファイルを読まないよう固める
+  { gen: ["tools/gen-portal-extras.mjs"], file: "apps/showcase/src/lib/portal-extras.generated.ts" },
+  { gen: ["tools/gen-docs-index.mts"], file: "apps/showcase/public/docs-index.json" },
 ];
 
 let ng = 0;

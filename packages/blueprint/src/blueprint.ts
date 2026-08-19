@@ -38,6 +38,100 @@ export interface Blueprint<S extends string, Rec extends Record<string, unknown>
 }
 
 /** ブループリントから fsm の遷移表を導出する(遷移名をイベントとして扱う）。 */
+/** {@link validateBlueprint} が見つけた問題。 */
+export interface BlueprintProblem {
+  /** `unreachable`(到達できない) / `dead-end`(出られない) / `unknown-state`(states に無い) */
+  kind: "unreachable" | "dead-end" | "unknown-state";
+  /** 対象の状態。 */
+  state: string;
+  /** 人が読む説明。 */
+  message: string;
+}
+
+/**
+ * 業務フローの定義そのものが正しいかを見る。
+ *
+ * **`@platform/fsm` の `validateMachine` では足りない。**
+ * `toStateMachine` は `from` をキーにした表へ組み替えるので、
+ * **`from` に一度も現れない状態がキーから消える**——`states` に書いたのに
+ * どこからも遷移しない状態を見落とす。こちらは `states` を直接見る。
+ *
+ * 探すのは 3 つ:
+ *
+ * - **到達できない状態**(`unreachable`) … `states` にあるが `initial` から辿れない。
+ *   状態を足したのに、そこへ行く遷移を作り忘れた形。
+ * - **出られない状態**(`dead-end`) … 入れるが出る遷移が無く、`final` でもない。
+ *   「承認待ち」で止まり、**業務が進まなくなる**。
+ * - **`states` に無い状態**(`unknown-state`) … 遷移の `from` / `to` が定義外。
+ *
+ * **アプリの起動時かテストで一度呼ぶこと。** フローは書いた直後は正しくても、
+ * 状態を足すときに崩れる。
+ *
+ * @param blueprint 業務フローの定義
+ * @returns 見つかった問題(空なら妥当)
+ *
+ * @example
+ * ```ts
+ * const problems = validateBlueprint(EXPENSE_BLUEPRINT);
+ * if (problems.length > 0) throw new Error(problems.map((p) => p.message).join(" / "));
+ * ```
+ */
+export function validateBlueprint<S extends string, Rec extends Record<string, unknown>>(
+  blueprint: Blueprint<S, Rec>,
+): BlueprintProblem[] {
+  const problems: BlueprintProblem[] = [];
+  const known = new Set<string>(blueprint.states);
+  const finals = new Set<string>(blueprint.final ?? []);
+
+  // 遷移が定義外の状態を指していないか
+  for (const t of blueprint.transitions) {
+    for (const [role, st] of [["from", t.from], ["to", t.to]] as const) {
+      if (!known.has(st)) {
+        problems.push({
+          kind: "unknown-state",
+          state: st,
+          message: `遷移「${t.name}」の ${role} が、states に無い状態 ${st} です`,
+        });
+      }
+    }
+  }
+
+  // **初期状態から辿れるか**(幅優先で追う)
+  const reachable = new Set<string>([blueprint.initial]);
+  const queue: string[] = [blueprint.initial];
+  while (queue.length > 0) {
+    const cur = queue.shift();
+    if (cur === undefined) break;
+    for (const t of blueprint.transitions) {
+      if (t.from !== cur || reachable.has(t.to)) continue;
+      reachable.add(t.to);
+      queue.push(t.to);
+    }
+  }
+  for (const st of blueprint.states) {
+    if (!reachable.has(st)) {
+      problems.push({
+        kind: "unreachable",
+        state: st,
+        message: `${st} へ来る遷移がありません(初期状態 ${blueprint.initial} から辿れない)`,
+      });
+    }
+  }
+
+  // **出られない状態**(final でないのに出る遷移が無い)
+  for (const st of blueprint.states) {
+    if (finals.has(st)) continue;
+    if (!blueprint.transitions.some((t) => t.from === st)) {
+      problems.push({
+        kind: "dead-end",
+        state: st,
+        message: `${st} から出る遷移がありません(final にも入っていないので、業務が止まります)`,
+      });
+    }
+  }
+  return problems;
+}
+
 export function toStateMachine<S extends string, Rec extends Record<string, unknown>>(
   blueprint: Blueprint<S, Rec>,
 ): StateMachineDefinition<S, string> {

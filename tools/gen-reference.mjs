@@ -80,7 +80,12 @@ function parseDoc(doc) {
 /** 1 ファイルから export 宣言と TSDoc を抽出する。 */
 function extractFromFile(src) {
   const entries = [];
-  const re = /(\/\*\*[\s\S]*?\*\/\s*)?export\s+(?:async\s+)?(function|const|let|class|interface|type|enum)\s+([A-Za-z0-9_$]+)/g;
+  // **`[\s\S]*?` では前のブロックから掴む。** 非貪欲でも、間に別の TSDoc
+  // (`@typedef` や別の宣言の説明)があると**そちらを説明として出力する**。
+  // 2026-08 に測ったところ **1,208 件の説明が誤っていた**——
+  // API リファレンス・ポータルに載るので、読む人は全員それを信じる。
+  // `(?!\*\/)` で「閉じるまで」に限定する。
+  const re = /(\/\*\*(?:(?!\*\/)[\s\S])*?\*\/\s*)?export\s+(?:async\s+)?(function|const|let|class|interface|type|enum)\s+([A-Za-z0-9_$]+)/g;
   let m;
   while ((m = re.exec(src)) !== null) {
     const doc = m[1] ?? "";

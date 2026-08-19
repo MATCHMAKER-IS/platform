@@ -69,11 +69,11 @@ export function RespondClient({ surveyId, fetchImpl }: { surveyId: string; fetch
               </div>
             )}
             {q.type === "text" && <Textarea onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setText(q.id, e.target.value)} rows={3} className="block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" />}
-            {q.type === "rating" && <div className="flex gap-2">{[1, 2, 3, 4, 5].map((n) => <Button key={n} onClick={() => setRating(q.id, n)} className={`h-8 w-8 rounded-full border text-sm ${answers[q.id]?.rating === n ? "border-[var(--color-fg)] bg-[var(--color-fg)] text-white" : "border-[var(--color-border)]"}`}>{n}</Button>)}</div>}
+            {q.type === "rating" && <div className="flex gap-2">{[1, 2, 3, 4, 5].map((n) => <Button key={n} onClick={() => setRating(q.id, n)} variant="toggle" className="h-8 w-8 rounded-full p-0" data-state={answers[q.id]?.rating === n ? "on" : undefined}>{n}</Button>)}</div>}
           </div>
         ))}
       </div>
-      <Button onClick={submit} className="mt-4 rounded bg-[var(--color-fg)] px-6 py-2 text-sm text-white">送信</Button>
+   <Button onClick={submit} className="mt-4 rounded px-6 py-2 text-sm text-white">送信</Button>
     </div>
   );
 }

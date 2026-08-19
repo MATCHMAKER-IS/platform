@@ -5,11 +5,11 @@
  */
 import { withApiObservability } from "../../../server/instrument";
 import { currentUser, requirePermission } from "../../../server/authorize";
-import { serverEnv } from "../../../server/env";
+import "../../../server/env";
 import { fileManager, auditActions } from "../../../server/platform-services";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "chat:read");
   const url = new URL(req.url);
   const options: { prefix?: string; limit?: number } = {};
@@ -21,9 +21,9 @@ async function handleGET(req: Request): Promise<Response> {
 }
 
 async function handleDELETE(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "chat:post");
-  const body = (await req.json()) as { key?: string };
+  const body = (await req.json().catch(() => ({}))) as { key?: string };
   if (!body.key) return Response.json({ error: "key が必要です" }, { status: 400 });
   const res = await fileManager.remove(body.key);
   if (!res.ok) return Response.json({ error: res.error }, { status: 400 });

@@ -28,8 +28,29 @@ export const basePreset = defineConfig({
     ],
     coverage: {
       provider: "v8",
-      reporter: ["text", "html"],
-      thresholds: { lines: 80, functions: 80, branches: 70, statements: 80 },
+      // **`json-summary` を必ず出す。** `tools/check-coverage.mjs` が
+      // これを読んで「前より下がっていないか」を判定する。
+      // 人が読む text/html だけだと、CI は何も判定できない。
+      //
+      // **ここに書いても効かない。** ワークスペース実行
+      // (`vitest.workspace.ts`)では、カバレッジは**全体で 1 つ**なので
+      // 設定は**ルートの `vitest.config.ts` が使われる**。
+      // 対象の絞り込み(include / exclude)もあちらにある——**直すならあちら**。
+      // ここに残してあるのは、パッケージ単体で
+      // `pnpm --filter @platform/xxx test --coverage` と叩いたときのため。
+      reporter: ["text", "html", "json-summary"],
+      // **閾値はここに置かない。**
+      //
+      // 2026-08 まで `thresholds: { lines: 80, … }` と書いてあったが、
+      // `--coverage` を一度も付けていなかったため**一度も評価されたことがない
+      // 閾値**だった。実測は全体で約 11%(`ui` は 2%)なので、
+      // そのまま有効にすると**ほぼ全パッケージが赤**になり、
+      // 止まった CI は「とりあえず外す」で無効化される——結局何も守らなくなる。
+      //
+      // 判定は `tools/check-coverage.mjs` が持つ:
+      //   - **下がったら落ちる**(下限ラチェット。`--set-floor` で引き上げる)
+      //   - `core` / `crypto` / `guard` だけは**絶対値 80%**
+      // 80% に届いたパッケージから、その `STRICT` へ移していく。
     },
   },
 });

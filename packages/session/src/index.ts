@@ -11,6 +11,8 @@ export {
   parseCookies, getCookie, serializeCookie, clearCookie, type CookieOptions,
 } from "./cookie";
 export { createSession, MAX_COOKIE_AGE_SEC, type Session, type SessionConfig, type SessionInfo } from "./session";
+export { createOAuthChallenge, verifyOAuthState, type OAuthChallenge } from "./oauth-challenge";
+export { createAuthSession, isExternalLogin, type AuthProvider, type AuthSessionOptions, type AuthSessionPayload } from "./auth-session";
 export {
   createServerSession, type ServerSession, type ServerSessionConfig, type SessionStore,
 } from "./store-session";

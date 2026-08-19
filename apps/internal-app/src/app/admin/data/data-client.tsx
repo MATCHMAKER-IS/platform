@@ -2,7 +2,7 @@
 /** 管理: データ管理。バックアップ復元・監査アーカイブ・検索インデックス再構築を1画面に集約。 */
 import * as React from "react";
 import { formatDateJst } from "@platform/datetime";
-import { Button, Input, Textarea } from "@platform/ui";
+import { Button, Input, Textarea, PageShell } from "@platform/ui";
 
 interface PlanItem { name: string; count: number; restorable: boolean; }
 interface RestoreResult { dryRun: boolean; applied: { name: string; count: number }[]; skipped: { name: string; reason: string }[]; }
@@ -34,10 +34,9 @@ export function DataClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
 
   const TABS = [["restore", "復元/インポート"], ["archive", "監査アーカイブ"], ["reindex", "検索インデックス"]];
   return (
-    <div className="mx-auto max-w-2xl p-6">
-      <h1 className="mb-1 text-2xl font-bold">データ管理</h1>
+        <PageShell title="データ管理" width="narrow">
       <div className="mb-4 flex gap-1 border-b border-[var(--color-border)]">
-        {TABS.map(([k, l]) => <Button key={k} onClick={() => setTab(k!)} className={`px-3 py-2 text-sm ${tab === k ? "border-b-2 border-[var(--color-fg)] font-medium" : "text-[var(--color-muted)]"}`}>{l}</Button>)}
+        {TABS.map(([k, l]) => <Button key={k} onClick={() => setTab(k!)} variant="tab" data-state={tab === k ? "active" : undefined}>{l}</Button>)}
       </div>
       {msg && <p className="mb-3 text-sm text-[var(--color-danger)]">{msg}</p>}
 
@@ -46,8 +45,8 @@ export function DataClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
           <p className="mb-2 text-xs text-[var(--color-muted)]">バックアップ JSON を貼り付けます。安全なデータセット（設定・取引先）のみ適用され、それ以外はプレビュー扱いです。まず「プレビュー」で内容を確認してください。</p>
           <Textarea value={json} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setJson(e.target.value)} rows={8} placeholder='{"app":"internal-app","version":1,"datasets":[...]}' className="block w-full rounded border border-[var(--color-border)] px-2 py-1 font-mono text-xs" />
           <div className="mt-2 flex gap-2">
-            <Button onClick={() => void restore(true)} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">プレビュー</Button>
-            <Button onClick={() => void restore(false)} className="rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white">復元を実行</Button>
+            <Button onClick={() => void restore(true)} variant="secondary" className="rounded px-4 py-2 text-sm">プレビュー</Button>
+      <Button onClick={() => void restore(false)} className="rounded px-4 py-2 text-sm text-white">復元を実行</Button>
           </div>
           {plan && (
             <div className="mt-3 text-sm">
@@ -70,10 +69,10 @@ export function DataClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
       {tab === "reindex" && (
         <div className="rounded border border-[var(--color-border)] p-4">
           <p className="mb-2 text-xs text-[var(--color-muted)]">横断検索のインデックスを、現在の請求・取引先・監査ログから再構築します。データ移行後や不整合時に実行してください。</p>
-          <Button onClick={() => void reindex()} className="rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white">インデックスを再構築</Button>
+     <Button onClick={() => void reindex()} className="rounded px-4 py-2 text-sm text-white">インデックスを再構築</Button>
           {reindexMsg && <p className="mt-2 text-sm text-[var(--color-fg)]">{reindexMsg}</p>}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

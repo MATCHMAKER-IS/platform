@@ -1,18 +1,28 @@
 "use client";
 /** 給与。本人の月次給与明細（基本・割増・手当・控除・差引支給）を表示。管理者は時給・手当・控除を設定。 */
 import * as React from "react";
-import { Button, Input } from "@platform/ui";
+import { formatYen } from "@platform/report";
+import { formatMonthJst } from "@platform/datetime";
+import { Button, Input, PageShell } from "@platform/ui";
 
 interface Item { name: string; amount: number; }
 interface Breakdown { base: number; overtimePremium: number; over60Premium: number; nightPremium: number; holidayPay: number; total: number; }
 interface Payslip { base: number; premiums: number; allowances: Item[]; grossPay: number; deductions: Item[]; totalDeductions: number; netPay: number; }
 interface Attendance { totalMinutes: number; overtimeMinutes: number; nightMinutes: number; holidayMinutes: number; over60Minutes: number; workedDays: number; }
-interface PayrollResult { month: string; userId: string; hourlyWage: number; attendance: Attendance; breakdown: Breakdown; payslip: Payslip; }
+interface PayrollResult {
+  month: string;
+  userId: string;
+  hourlyWage: number;
+  attendance: Attendance;
+  breakdown: Breakdown;
+  payslip: Payslip;
+  insurance?: { health: number; longTermCare: number; pension: number; employmentInsurance: number; total: number };
+}
 interface WageConfig { userId: string; hourlyWage: number; allowances: Item[]; deductions: Item[]; }
 
-const yen = (n: number) => `¥${n.toLocaleString()}`;
+const yen = (n: number) => formatYen(n);
 const hm = (min: number) => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, "0")}`;
-const thisMonth = () => new Date().toISOString().slice(0, 7);
+const thisMonth = () => formatMonthJst();
 
 export interface PayrollClientProps { fetchImpl?: typeof fetch; canAdmin?: boolean; }
 
@@ -21,6 +31,14 @@ export function PayrollClient({ fetchImpl, canAdmin = false }: PayrollClientProp
   const [result, setResult] = React.useState<PayrollResult | null>(null);
   const [wages, setWages] = React.useState<WageConfig[]>([]);
   const [wageForm, setWageForm] = React.useState({ userId: "", hourlyWage: "2000" });
+  // **プロファイル(生年月日・扶養人数)は賃金と別フォームにする。**
+  // 個人情報を扱う入力なので、時給の設定とは操作を分けて誤入力を減らす。
+  const [profileForm, setProfileForm] = React.useState({ userId: "", birthDate: "", dependents: "0" });
+  // **一括PDF生成は非同期。** ジョブIDを受けたら、進捗をポーリングで見る
+  // (画面を待たせない設計——同期処理だと全社員分の生成中リクエストが固まる)。
+  interface BatchJob { id: string; status: "queued" | "running" | "done" | "failed"; total: number; completed: number; failed: number; failedUserIds: string[]; }
+  const [batchJob, setBatchJob] = React.useState<BatchJob | null>(null);
+  const [batchError, setBatchError] = React.useState("");
   const [error, setError] = React.useState("");
   const doFetch = fetchImpl ?? (globalThis as unknown as { fetch: typeof fetch }).fetch;
 
@@ -39,13 +57,51 @@ export function PayrollClient({ fetchImpl, canAdmin = false }: PayrollClientProp
     else setError(((await res.json()) as { error?: string }).error ?? "保存に失敗しました");
   };
 
+  const saveProfile = async () => {
+    setError("");
+    if (!profileForm.userId || !/^\d{4}-\d{2}-\d{2}$/.test(profileForm.birthDate)) {
+      setError("従業員IDと生年月日(YYYY-MM-DD)を入力してください"); return;
+    }
+    const res = await doFetch("/api/payroll/profile", {
+      method: "PUT", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ userId: profileForm.userId, birthDate: profileForm.birthDate, dependents: Number(profileForm.dependents) }),
+    });
+    if (res.ok) { setProfileForm({ userId: "", birthDate: "", dependents: "0" }); await reload(); }
+    else setError(((await res.json()) as { error?: string }).error ?? "保存に失敗しました");
+  };
+
+  const startBatch = async () => {
+    setBatchError(""); setBatchJob(null);
+    const res = await doFetch("/api/payroll/batch", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ month }),
+    });
+    const d = (await res.json().catch(() => ({}))) as { jobId?: string; total?: number; error?: string };
+    if (!res.ok || !d.jobId) { setBatchError(d.error ?? "開始に失敗しました"); return; }
+    setBatchJob({ id: d.jobId, status: "queued", total: d.total ?? 0, completed: 0, failed: 0, failedUserIds: [] });
+  };
+
+  // **ポーリングで進捗を追う。** 終了(done/failed)したら止める——
+  // 終わったジョブを叩き続けるのは無駄で、サーバへの負荷にもなる。
+  React.useEffect(() => {
+    if (!batchJob || batchJob.status === "done" || batchJob.status === "failed") return;
+    const timer = setInterval(async () => {
+      const res = await doFetch(`/api/payroll/batch/${batchJob.id}`);
+      if (res.ok) setBatchJob((await res.json()) as BatchJob);
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [batchJob, doFetch]);
+
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">給与</h1>
+    <PageShell title="給与">
         <Input type="month" value={month} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMonth(e.target.value)} className="rounded border border-[var(--color-border)] px-2 py-1 text-sm" />
-      </div>
       {error && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-danger)]">{error}</p>}
+
+      {result && !result.insurance && (
+        <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-warning)_10%,transparent)] px-3 py-2 text-sm text-[var(--color-warning)]">
+          社会保険料は<strong>未計算</strong>です。生年月日・扶養人数が未登録のため、
+          健康保険・厚生年金・雇用保険を控除に含めていません。管理者に登録を依頼してください。
+        </p>
+      )}
 
       {result && (
         <div className="mb-6 rounded border border-[var(--color-border)] p-4">
@@ -76,7 +132,7 @@ export function PayrollClient({ fetchImpl, canAdmin = false }: PayrollClientProp
           <div className="mb-3 flex flex-wrap items-end gap-2">
             <label className="text-xs text-[var(--color-muted)]">従業員ID（メール）<Input value={wageForm.userId} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWageForm({ ...wageForm, userId: e.target.value })} placeholder="taro@example.com" className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
             <label className="text-xs text-[var(--color-muted)]">時給<Input value={wageForm.hourlyWage} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWageForm({ ...wageForm, hourlyWage: e.target.value })} inputMode="numeric" className="mt-0.5 block w-24 rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
-            <Button onClick={saveWage} className="rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">保存</Button>
+      <Button onClick={saveWage} className="rounded px-4 py-1.5 text-sm text-white">保存</Button>
           </div>
           <table className="w-full text-sm">
             <thead><tr className="border-b border-[var(--color-border)] text-left text-xs text-[var(--color-muted)]"><th className="px-2 py-1">従業員</th><th className="px-2 py-1 text-right">時給</th></tr></thead>
@@ -85,8 +141,45 @@ export function PayrollClient({ fetchImpl, canAdmin = false }: PayrollClientProp
               {wages.length === 0 && <tr><td colSpan={2} className="px-2 py-3 text-center text-[var(--color-muted)]">設定がありません（未登録者は時給 ¥2,000 で計算）。</td></tr>}
             </tbody>
           </table>
+
+          <h2 className="mb-3 mt-6 text-sm font-medium">
+            社会保険料の算出用プロファイル
+            <span className="ml-2 text-xs font-normal text-[var(--color-muted)]">生年月日・扶養人数（未登録なら社会保険料は控除されません）</span>
+          </h2>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="text-xs text-[var(--color-muted)]">従業員ID（メール）<Input value={profileForm.userId} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProfileForm({ ...profileForm, userId: e.target.value })} placeholder="taro@example.com" className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-[var(--color-muted)]">生年月日<Input type="date" value={profileForm.birthDate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProfileForm({ ...profileForm, birthDate: e.target.value })} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-[var(--color-muted)]">扶養人数<Input value={profileForm.dependents} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProfileForm({ ...profileForm, dependents: e.target.value })} inputMode="numeric" className="mt-0.5 block w-16 rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+            <Button onClick={saveProfile} className="rounded px-4 py-1.5 text-sm text-white">保存</Button>
+          </div>
+          {/* **機微な個人情報なので一覧は出さない。** 時給と違い、誰がいくらの
+              生年月日・扶養人数かを一覧で見せる必要は無い(必要な人だけ都度確認する)。 */}
+
+          <h2 className="mb-3 mt-6 text-sm font-medium">給与明細の一括 PDF 出力</h2>
+          <p className="mb-3 text-xs text-[var(--color-muted)]">
+            全社員分の給与明細を PDF にまとめて生成します。人数が多いと数分かかるため、進捗をここで確認できます。
+          </p>
+          <Button onClick={() => void startBatch()} disabled={batchJob !== null && batchJob.status !== "done" && batchJob.status !== "failed"}>
+            {month} 分を一括出力する
+          </Button>
+          {batchError && <p className="mt-2 text-sm text-[var(--color-danger)]">{batchError}</p>}
+          {batchJob && (
+            <div className="mt-3 rounded border border-[var(--color-border)] p-3 text-sm">
+              <p>
+                状態: {batchJob.status === "queued" ? "待機中" : batchJob.status === "running" ? "生成中" : batchJob.status === "done" ? "完了" : "失敗"}
+                {" "}({batchJob.completed + batchJob.failed} / {batchJob.total})
+              </p>
+              {/* **失敗した従業員IDを表示する。** 誰の分が抜けたか分からないと、
+                  「明細が届いていない」という問い合わせに対応できない。 */}
+              {batchJob.failedUserIds.length > 0 && (
+                <p className="mt-1 text-[var(--color-danger)]">
+                  失敗: {batchJob.failedUserIds.join("、")}(給与データを確認してください)
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

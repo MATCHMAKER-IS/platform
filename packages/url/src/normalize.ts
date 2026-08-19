@@ -31,7 +31,8 @@ export const TRACKING_PARAMS = [
  * **同じページを指す URL を 1 つに揃える**ため(重複判定・キャッシュキー・SEO の正規化)。
  *
  * @param url URL
- * @param options.stripTracking トラッキングパラメータを除くか(既定 true)
+ * @param options.removeParams 除去するクエリパラメータ(既定はトラッキング系)。
+ *   **真偽値の `stripTracking` ではなく、名前の配列で指定する**
  * @param options.stripTrailingSlash 末尾スラッシュを除くか
  * @param options.sortQuery クエリをキー順に並べるか
  * @returns 正規化した URL。**不正ならそのまま返す**(例外にしない)

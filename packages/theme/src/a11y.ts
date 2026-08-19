@@ -31,7 +31,6 @@ export interface ThemeContrastReport {
   minRatio: number;
 }
 
-/** 検査する色ペア(テキスト系は最低 AA=4.5 が目安)。 */
 /**
  * 対比を見る組み合わせ。
  *

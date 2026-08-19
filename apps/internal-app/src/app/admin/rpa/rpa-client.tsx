@@ -28,8 +28,8 @@ export function RpaDemoClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
     } finally { setBusy(false); }
   };
 
-  const card: React.CSSProperties = { background: "var(--color-surface, #fff)", border: "1px solid #e8e8e8", borderRadius: 10, padding: 16 };
-  const btn: React.CSSProperties = { padding: "8px 16px", borderRadius: 8, border: "1px solid #ddd", background: "var(--color-surface, #fff)", cursor: "pointer" };
+  const card: React.CSSProperties = { background: "var(--color-surface, #fff)", border: "1px solid var(--color-border)", borderRadius: 10, padding: 16 };
+  const btn: React.CSSProperties = { padding: "8px 16px", borderRadius: 8, border: "1px solid var(--color-border)", background: "var(--color-surface, #fff)", cursor: "pointer" };
 
   return (
     <div style={{ maxWidth: 820, margin: "0 auto", padding: 24, fontFamily: "system-ui, sans-serif" }}>
@@ -45,8 +45,8 @@ export function RpaDemoClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>監査イベント（新しい順）</div>
         {events.length === 0 && <p style={{ fontSize: 13, color: "var(--color-muted, #999)" }}>まだイベントがありません。上のボタンで実行してください。</p>}
         {events.map((e, i) => (
-          <div key={i} style={{ fontSize: 12, padding: "4px 0", borderBottom: "1px solid #f5f5f5", display: "flex", gap: 8 }}>
-            <code style={{ color: e.action.startsWith("rpa.error") ? "var(--color-danger, #c00)" : e.action.startsWith("rpa.success") ? "var(--color-success, #16a34a)" : "#4338ca", minWidth: 120 }}>{e.action}</code>
+          <div key={i} style={{ fontSize: 12, padding: "4px 0", borderBottom: "1px solid var(--color-surface)", display: "flex", gap: 8 }}>
+            <code style={{ color: e.action.startsWith("rpa.error") ? "var(--color-danger, #c00)" : e.action.startsWith("rpa.success") ? "var(--color-success, #16a34a)" : "var(--color-primary)", minWidth: 120 }}>{e.action}</code>
             <span style={{ color: "var(--color-muted, #999)", fontSize: 11 }}>{e.metadata ? JSON.stringify(e.metadata) : ""}</span>
           </div>
         ))}

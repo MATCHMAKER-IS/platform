@@ -1,9 +1,29 @@
 # @platform/session
 
-セッション・クッキー処理の共通部品。
+ログインの状態（セッション・SSO・OAuth）。
 
-## クッキー
+## これは何のためか
+
+**「誰でログインしているか」**を保つためのものです。
+**「何をしてよいか」は `@platform/auth`** です——**別物です**。
+
+パスワードログインも SSO も**同じ形**で扱います。
+分けると、画面ごとに「どちらを見るか」の判断が要り、**必ずどこかで漏れます**。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **`SESSION_SECRET` は 32 文字以上** | 短いと**起動時に止まります**（わざとです） |
+| **クッキーは `httpOnly` + `sameSite: lax`** | JavaScript から読めず、他サイトからの遷移では送られません |
+| **SSO の `state` を必ず検証** | 飛ばすと、**攻撃者が用意した認可コードを踏まされます**（CSRF） |
+| **メモリ実装は再起動で消える** | **100 人が一斉にログアウト**します——デプロイのたびに起きます |
+| **失効の仕組みは繋いでいません** | 繋ぐと**全リクエストに 1 往復増えます**。退職者は**最終出社日の終業後に権限を外す**運用で代替しています |
+
+## よく使うもの
+
 ```ts
+import { createAuthSession, verifyOAuthState } from "@platform/session";
 import { parseCookies, serializeCookie, clearCookie } from "@platform/session";
 const cookies = parseCookies(req.headers.get("cookie"));
 const setCookie = serializeCookie("theme", "dark", { maxAge: 3600, sameSite: "Lax" });
@@ -178,3 +198,26 @@ const canLogin = await gate.checkLogin(userId);
 - 恒久的なアカウント停止は、利用者マスタ側(アプリ)の責務です。ここは
   「今すぐ止める」ための仕組みで、退職処理そのものではありません
   (`@platform/access-review` の停止手順と対で使ってください)。
+
+## 外部ログイン(OAuth)後のセッション
+
+Zoho・Google・Microsoft のどれでログインしても、**クッキーに載せる形は同じ**です。
+`createAuthSession` を使えば、暗号化・有効期限・クッキー属性が揃います。
+
+```ts
+const session = createAuthSession({ secret: env.SESSION_SECRET });
+
+const info = await getGoogleUserInfo(accessToken);
+if (info.hd !== "example.co.jp") throw new Error("社外のアカウントです");
+session.write({
+  provider: "google", subject: info.sub, email: info.email ?? "",
+  domain: info.hd, roles: rolesOf(info.email),
+});
+```
+
+**`subject`(恒久 ID)で紐づけてください。** メールは変わります(姓の変更・部署異動)し、
+**前の持ち主のアドレスが再利用される**ことがあります
+——退職者のアドレスを新入社員に割り当てると、**記録が繋がってしまいます**。
+
+Google は**どのアカウントでもログインできる**ので、社内限定にするなら
+`domain`(Google の `hd`)を必ず確かめてください。見ないと**個人の Gmail で入れます**。

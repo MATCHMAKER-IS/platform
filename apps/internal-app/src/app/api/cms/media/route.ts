@@ -1,11 +1,11 @@
 /** メディアライブラリ: アップロード済み画像の一覧(GET)。CMS の keyPrefix "cms" を対象。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv, featureEnv } from "../../../../server/env";
+import { featureEnv } from "../../../../server/env";
 import { fileManager } from "../../../../server/platform-services";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:read");
   const files = await fileManager.list({ prefix: "cms", limit: 100 });
   const base = featureEnv.PUBLIC_UPLOADS_URL;

@@ -1,0 +1,5 @@
+{
+  "_comment": "パッケージ別の行カバレッジ下限(%)。下がったら CI が落ちる。上がったら `node tools/check-coverage.mjs --set-floor` で引き上げる。初回は空で、`pnpm test:coverage` を 1 回回してから --set-floor で埋める。",
+  "updatedAt": "2026-08-14",
+  "packages": {}
+}

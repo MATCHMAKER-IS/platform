@@ -7,7 +7,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./idle-timer": "./src/idle-timer.ts"
+    "./idle-timer": "./src/idle-timer.ts",
+    "./browser": "./src/browser.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -24,5 +25,8 @@
     "@types/node": "^22.10.0",
     "typescript": "^5.7.3",
     "vitest": "^3.0.4"
+  },
+  "platform": {
+    "tier": "stable"
   }
 }

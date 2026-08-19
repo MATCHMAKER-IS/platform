@@ -1,0 +1,13 @@
+{
+  "connector": "microsoft",
+  "title": "Microsoft Entra ID トークン更新",
+  "endpoint": "POST https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token",
+  "sourceFile": "packages/microsoft/src/oauth.ts",
+  "requiredFields": [
+    "access_token",
+    "expires_in"
+  ],
+  "note": "この2つが欠けるとトークンを更新できず、Microsoft 連携(メール・カレンダー)が全面停止する。",
+  "capturedAt": null,
+  "fixture": null
+}

@@ -59,8 +59,9 @@ function dateParts(iso: string, offsetMinutes: number): { year: string; month: s
  * **URL の形をパターンで決められる**ので、後から `/2026/07/slug` 形式に変えても
  * コードを直さなくてよい(設定を変えるだけ)。
  *
- * @param post 記事
  * @param pattern パターン(`/:year/:month/:slug` など)
+ * @param post 記事
+ * @param options 日付の扱い（**JST で年月を切る**か）
  * @returns パス(**先頭 `/` 付き・末尾 `/` なし**)
  */
 export function buildPermalink(pattern: string, post: PermalinkPost, options: PermalinkOptions = {}): string {
@@ -93,8 +94,9 @@ export { joinUrl };
  * **絶対 URL が要る場面がある**(RSS・OGP・メール本文)。相対パスでは機能しない。
  *
  * @param post 記事
- * @param baseUrl サイトの URL
- * @param pattern パスのパターン(`/:year/:month/:slug` など)
+ * @param options `baseUrl`(サイトの URL)と `pattern`(`/:year/:month/:slug` など)は必須。
+ *   `utcOffsetMinutes` は日付トークンのタイムゾーン(**既定 0=UTC。日本は 540**——
+ *   指定しないと日付が 1 日ずれた URL になる)、`allowUnicode` はスラッグに日本語を残すか
  * @returns 絶対 URL
  */
 export function postUrl(post: PermalinkPost, options: PermalinkOptions & { pattern: string; baseUrl: string }): string {

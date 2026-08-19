@@ -8,10 +8,12 @@
  * 注意:   stdout は MCP プロトコル専用。ログは必ず stderr(console.error)へ。
  */
 import { serveStdio, type McpCallContext } from "@platform/mcp";
+import { mcpApprovals, notifyMcpApprovers } from "../src/server/mcp-approvals.js";
 import { createZohoCrmClient, refreshAccessToken } from "@platform/zoho";
 import { buildMcpTools, buildMcpResources, buildMcpPrompts, type McpToolDeps } from "../src/server/mcp-tools.js";
 import { invoiceStore, partnerStore, inventoryStore, auditLog, auditActions } from "../src/server/platform-services.js";
 import { zohoClientConfigFromEnv, createResilientZohoFetch } from "../src/server/zoho-client.js";
+import { aiToolCalls } from "../src/server/ai-gateway.js";
 
 async function buildZoho(): Promise<McpToolDeps["zoho"]> {
   if (!process.env.ZOHO_REFRESH_TOKEN) {
@@ -37,6 +39,10 @@ const zoho = await buildZoho();
 
 // 書き込みツールは MCP_ENABLE_WRITES=1 のときだけ有効化(既定は読み取り専用)
 const enableWrites = process.env.MCP_ENABLE_WRITES === "1";
+// **HTTP 版と同じインスタンスを使う。** 別々に作ると、片方で提案したものが
+// もう片方の承認画面に出てこない。
+const approvals = mcpApprovals;
+
 const writes: McpToolDeps["writes"] = enableWrites
   ? {
       recordPayment: async (number, amount) => {
@@ -51,11 +57,19 @@ const writes: McpToolDeps["writes"] = enableWrites
         await auditActions.record("mcp", action, target, { after: detail });
       },
       actor: "mcp",
+      approvals,
+      notifyApprovers: notifyMcpApprovers,
     }
   : undefined;
 if (enableWrites) console.error("[mcp] 書き込みツールを有効化(MCP_ENABLE_WRITES=1)");
 
-const deps: McpToolDeps = { invoiceStore, partnerStore, inventoryStore, auditLog, ...(zoho ? { zoho } : {}), ...(writes ? { writes } : {}) };
+// **すべての呼び出しを記録する。** 「誰の指示で AI が何を呼んだか」を
+// `@platform/audit`(人の操作)とは別に残す。
+const deps: McpToolDeps = {
+  invoiceStore, partnerStore, inventoryStore, auditLog,
+  ...(zoho ? { zoho } : {}), ...(writes ? { writes } : {}),
+  toolCallLog: aiToolCalls,
+};
 const tools = buildMcpTools(deps);
 const resources = buildMcpResources({ invoiceStore, inventoryStore });
 const prompts = buildMcpPrompts();

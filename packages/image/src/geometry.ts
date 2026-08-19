@@ -19,8 +19,9 @@ export interface FitOptions {
 /**
  * アスペクト比を保ったまま、最大幅/高さに収まる出力寸法を計算する。
  * 「写真をアップロード時に実用サイズへ縮小」する用途の中心。
- * @param source 元のサイズ
- * @param target 目標のサイズ
+ * @param srcW 元の幅
+ * @param srcH 元の高さ
+ * @param opts 目標のサイズと収め方（**拡大するかどうか**を含む）
  */
 export function fitDimensions(srcW: number, srcH: number, opts: FitOptions = {}): { width: number; height: number } {
   const { maxWidth = Infinity, maxHeight = Infinity, fit = "contain", withoutEnlargement = true } = opts;
@@ -48,7 +49,8 @@ export function fitDimensions(srcW: number, srcH: number, opts: FitOptions = {})
  * 端をはみ出すことがあるので、処理の前に通す。
  *
  * @param rect 切り抜き矩形
- * @param image 画像の幅・高さ
+ * @param imgW 画像の幅
+ * @param imgH 画像の高さ
  * @returns 範囲内に収めた矩形
  */
 export function clampRect(

@@ -4,12 +4,27 @@
  * - POST: ルームを作成し、作成者を owner として登録する。ボディ `{ name, kind?, memberIds? }`。
  */
 import { withApiObservability } from "../../../../server/instrument";
+import { validate, z } from "@platform/validation";
+
+/**
+ * ルーム作成の入力。
+ *
+ * **`memberIds` を配列で強制する。** これまでは `{ memberIds?: string[] }`
+ * と型注釈するだけで、実行時には何も確かめていなかった——文字列を渡すと
+ * `"abc".length` が 3 になり、件数チェックがあれば素通りする穴
+ * (掲示板の添付と同種。2026-08 に判明)。
+ */
+const CreateRoomInput = z.object({
+  name: z.string().trim().min(1, "ルーム名が空です").max(100),
+  kind: z.enum(["dm", "group"]).default("group"),
+  memberIds: z.array(z.string()).optional(),
+});
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { chatStore, roomRepo } from "../../../../server/chat";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "chat:read");
 
   const rooms = await roomRepo.roomsForUser(user!.email);
@@ -29,14 +44,16 @@ async function handleGET(req: Request): Promise<Response> {
 }
 
 async function handlePOST(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "chat:post");
 
-  const body = (await req.json()) as { name?: string; kind?: "dm" | "group"; memberIds?: string[] };
-  const name = (body.name ?? "").trim();
-  if (name.length === 0) return Response.json({ error: "ルーム名が空です" }, { status: 400 });
+  const parsed = validate(CreateRoomInput, await req.json().catch(() => ({})));
+  if (!parsed.ok) {
+    return Response.json({ error: parsed.error.message, details: parsed.error.details }, { status: 400 });
+  }
+  const body = parsed.value;
 
-  const room = await roomRepo.create({ name, kind: body.kind ?? "group", ownerId: user!.email, memberIds: body.memberIds });
+  const room = await roomRepo.create({ name: body.name, kind: body.kind, ownerId: user!.email, memberIds: body.memberIds });
   return Response.json(room, { status: 201 });
 }
 

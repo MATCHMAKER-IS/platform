@@ -89,6 +89,7 @@ export function favoriteIds(favorites: Favorites): string[] {
 /**
  * 最近見た商品リストに追加する(先頭に入れ、重複を除き、最大件数で切る)。
  * @param recent 現在のリスト(新しい順)
+ * @param productId 今見た商品
  * @param max 保持する最大件数(既定 20)
  * @returns 更新した履歴(**既にあれば先頭に移動**。重複させない)
  */

@@ -3,7 +3,20 @@ import { pageCss, createReceipt } from "./index";
 
 describe("pageCss", () => {
   it("size/margin を反映", () => {
-    expect(pageCss({ size: "A4", margin: "10mm" })).toBe("@page { size: A4; margin: 10mm; }");
+    // **完全一致では固定しない。** 2026-08 に印刷でしか起きない問題への
+    // 手当て(背景色・改ページ・見出しの繰り返し)を足したところ、
+    // **中身は正しいのにここだけ落ちた**。見たいのは「size/margin が反映されるか」
+    // なので、その行だけを確かめる。
+    expect(pageCss({ size: "A4", margin: "10mm" })).toContain("@page { size: A4; margin: 10mm; }");
+  });
+  it("印刷でしか起きない問題への手当てが入る", () => {
+    const css = pageCss();
+    // 背景色を出す(表の見出し行が白くならない)
+    expect(css).toContain("print-color-adjust: exact");
+    // 行が上下のページに割れない
+    expect(css).toContain("break-inside: avoid");
+    // 見出し行を各ページに繰り返す
+    expect(css).toContain("table-header-group");
   });
 });
 

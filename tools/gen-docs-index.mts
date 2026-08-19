@@ -1,7 +1,7 @@
 /**
  * 社内資料の検索用インデックスを生成する。
  *
- * 出力: demos/showcase/public/docs-index.json
+ * 出力: apps/showcase/public/docs-index.json
  *
  * なぜ静的ファイルにするか:
  *   - デモサイトは DB を持たず、単体で配信できることを前提にしている
@@ -12,7 +12,7 @@
  * 「読むためのもの」ではなく「探すためのもの」という目的に対して過剰になるため。
  * 全文は元ファイルを開けば読める(結果にパスを載せている)。
  *
- * 実行: node tools/gen-docs-index.mjs
+ * 実行: node --experimental-strip-types tools/gen-docs-index.mts
  */
 import { writeFileSync, mkdirSync } from "node:fs";
 import { formatDateJst } from "../packages/datetime/src/calendar.ts";
@@ -21,7 +21,7 @@ import { fileURLToPath } from "node:url";
 import { loadDocSections, isGenerated } from "./lib/doc-sections.mts";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const OUT = path.join(ROOT, "demos/showcase/public/docs-index.json");
+const OUT = path.join(ROOT, "apps/showcase/public/docs-index.json");
 
 /**
  * 1 節あたりの本文の上限(文字)。検索と抜粋表示に足りる長さ。
@@ -63,4 +63,4 @@ const json = JSON.stringify({
 writeFileSync(OUT, `${json}\n`);
 
 const kb = (json.length / 1024).toFixed(0);
-console.log(`✅ 資料インデックスを生成しました: ${entries.length} 節 / ${kb} KB → demos/showcase/public/docs-index.json`);
+console.log(`✅ 資料インデックスを生成しました: ${entries.length} 節 / ${kb} KB → apps/showcase/public/docs-index.json`);

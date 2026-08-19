@@ -1,5 +1,7 @@
 # アーキテクチャ(AI向け要約)
 
+> **この資料は手書きです。** `pnpm gen:all` では更新されません（同じ `docs/ai/` に生成物が混ざっています）。
+
 このリポジトリで実装・修正する際に**必ず守る構造ルール**をまとめる。詳細な機能一覧は `module-list.md`、コード様式は `patterns.md` を参照。
 
 ## 全体像
@@ -8,9 +10,9 @@
 apps/       … アプリ(業務ロジック・画面・API route・Prisma schema)
   internal-app/   社内業務アプリ(Next.js)
   public-site/    公開サイト(Next.js・Prisma無し)
-packages/   … 基盤(114 個・純ロジック/部品。業務判断を持たない)
+packages/   … 基盤(120 個・純ロジック/部品。業務判断を持たない)
 tools/      … 検査・生成スクリプト(smoke / check-deps / api-surface / check-schema / gen-module-list)
-docs/       … ドキュメント(機能カタログは リポジトリ直下の PLATFORM_SERVICES.md)
+docs/       … ドキュメント(機能カタログは リポジトリ直下の docs/HISTORY.md)
 ```
 
 ## 絶対ルール
@@ -34,5 +36,5 @@ docs/       … ドキュメント(機能カタログは リポジトリ直下�
 - [ ] 置き場は正しいか(業務=apps / 汎用=packages)
 - [ ] ストアを足したら memory+prisma 両実装+platform-services 配線+Prisma model 追加
 - [ ] route は認可・withApiObservability・監査(auditActions)を通したか
-- [ ] スモーク追加・`pnpm smoke` 全緑・PLATFORM_SERVICES.md(リポジトリ直下)追記
+- [ ] スモーク追加・`pnpm smoke` 全緑・docs/HISTORY.md(リポジトリ直下)追記
 - [ ] `check-deps` / `api-surface --update` / `check-schema` が緑

@@ -141,6 +141,13 @@ export function uniqueFilename(name: string, existing: Iterable<string>): string
  * @param parent 親ディレクトリ
  * @param child 判定するパス
  * @returns 配下なら true。**同じパスなら false**(自分自身は「配下」ではない)
+ *
+ * **保存先の外へ出るパスを弾くのに使う。** 利用者の入力から作ったパスを
+ * そのまま `join` すると、`"../../../etc/passwd"` で**root の外**を指す
+ * ——`.env` や秘密鍵を読まれ、既存ファイルを上書きされる。
+ *
+ * **文字列の前方一致では不十分**。`/var/data` と `/var/data-old` を
+ * 取り違えるので、この関数のように `relative` で判定すること。
  */
 export function isSubPath(parent: string, child: string): boolean {
   const rel = nodePath.relative(nodePath.resolve(parent), nodePath.resolve(child));

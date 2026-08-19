@@ -53,7 +53,7 @@ const all = new Set(fs.readdirSync(path.join(root, "packages")).filter((d) => fs
  * デモのみだった事実も、まとめていたせいで見えなかった。
  */
 const usedBy = { apps: new Set(), demos: new Set(), packages: new Set() };
-for (const group of ["apps", "demos", "packages"]) {
+for (const group of ["apps", "packages"]) {
   const groupDir = path.join(root, group);
   if (!fs.existsSync(groupDir)) continue;
   const walk = (dir) => {
@@ -89,6 +89,28 @@ const categorized = new Set(Object.values(CATEGORIES).flat());
  * 添えるのは理由だけ。
  */
 const UNUSED_REASONS = {
+  // **基盤の内部で使われている**もの。アプリから直接呼ばないのが正しい形
+  "web-storage": "`@platform/ui` の内部(テーマ・列設定・スキンの保存)で使っている。"
+    + "**アプリから直接呼ばない**——保存の失敗(プライベートモード・容量超過)を"
+    + "`ui` 側で引き受ける設計なので、アプリは意識しなくてよい。",
+  integrations: "各連携パッケージ(`freee` / `zoho` / `google` など 17 件)の内部で使う共通クライアント。"
+    + "**アプリは連携パッケージ経由で使う**ので、直接呼ぶ場面が無い。",
+  color: "`@platform/theme` の内部で使う色の計算(コントラスト比・明度)。"
+    + "**アプリはテーマ経由で使う**。",
+  hid: "バーコードリーダなどの HID 機器を読む部品。**対応する機器がまだ無い**"
+    + "——`@platform/barcode` のカメラ読み取りで足りている。",
+  cache: "**Redis を使う場面がまだ無い**。DB が十分速く、"
+    + "キャッシュを挟むと**古い値を見せる危険**の方が大きい。"
+    + "アクセスが増えて DB が苦しくなったら使う。",
+  push: "通知は現在メール中心。**ブラウザ通知は許可を求める体験が重い**ので、"
+    + "必要になってから入れる。",
+  json: "2026-08 に新設。**`JSON.parse` が落ちる場面**(循環参照・BigInt・巨大な入力)を"
+    + "まとめて引き受ける。既存コードの `JSON.parse` は個別に `try/catch` で直したため、"
+    + "**新しく書くところから使う**。",
+  xml: "2026-08 に新設。**電子申告・EDI・官公庁の様式**で XML が要るときのため。"
+    + "**日本語のタグ名に対応**している(`<請求書>` のような様式がある)。"
+    + "今は使う場面が来ていないだけで、来たときに自作しないよう置いてある。",
+
   stripe: "公式 SDK(`stripe`)のラッパーで、**fetch を差し替える口が無い**。"
     + "注入口を足すと SDK の使い方を歪めるため、デモ化は見送っている。"
     + "**契約テストも効かない**(ラッパーが応答のフィールドを直接参照せず SDK に委ねているため、"
@@ -148,3 +170,27 @@ console.log(`✅ docs/ai/module-list.md 生成: ${count} パッケージ / 未�
 console.log(`   アプリで使用 ${inApps.length} / デモのみ ${demoOnly.length} / 未実戦 ${unused.length}`);
 if (demoOnly.length > 0) console.log(`   デモのみ: ${demoOnly.join(", ")}`);
 if (unused.length > 0) console.log(`   未実戦: ${unused.join(", ")}`);
+// **理由の無い未実戦を知らせる。** 理由が無いと「作り忘れ」と誤解され、
+// **デモを作る無駄な労力**か**「消してよい」という誤判断**につながる
+// (2026-08 に 10 件中 8 件が無記入だった)
+{
+    // **存在しないパッケージ名が混ざっていないか。**
+  // 2026-08 に `web-push` と書き誤って(正しくは `push`)、
+  // **書いたのに効いていない**状態だった——キーで引く設定は、
+  // **綴りを間違えても何も起きない**ので気づけない
+  const allPkgs = new Set(fs.readdirSync(path.join(root, "packages")));
+  const ghostKeys = Object.keys(UNUSED_REASONS).filter((k) => !allPkgs.has(k));
+  if (ghostKeys.length > 0) {
+    console.log("");
+    console.log(`   ⚠ UNUSED_REASONS に存在しないパッケージ名があります: ${ghostKeys.join(", ")}`);
+    console.log("     **綴りを間違えても何も起きない**ので、書いたつもりで効いていません。");
+  }
+
+  const noReason = unused.filter((p) => UNUSED_REASONS[p] === undefined);
+  if (noReason.length > 0) {
+    console.log("");
+    console.log(`   ⚠ 未実戦の理由が書かれていません: ${noReason.join(", ")}`);
+    console.log("     `tools/gen-module-list.mjs` の `UNUSED_REASONS` に足してください。");
+    console.log("     **意図して使っていない**のか**作り忘れ**なのかが、これだけで分かります。");
+  }
+}

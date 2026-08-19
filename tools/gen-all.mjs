@@ -21,11 +21,19 @@ const STEPS = [
   ["gen-module-list.mjs"],
   ["advisor.mjs", "report"],
   ["gen-reference.mjs"],
+  // **smoke の索引**。2 万行超の 1 ファイルから目的の箇所を探すため
+  // (行数・セクション数は書かない——**説明文の数値は誰も直さない**。
+  //  実数は生成される `docs/ai/smoke-index.md` の冒頭にある)
+  ["gen-smoke-index.mjs"],
+  ["gen-docs-graph.mjs"],
   ["gen-depgraph.mjs"],
   ["gen-app-map.mjs"],
   ["gen-erd.mjs"],
   ["gen-example-sources.mjs"],  // 使用例のソースを固める(実行時に読まないため)
   ["gen-portal-reference.mjs"], // 基盤ポータルの API リファレンス(gen-reference.mjs の出力に依存)
+  // 基盤ポータルの付加情報(構成・ヘルス・ADR・Advisor・設計)。
+  // **apps/platform-portal から移設**。実行時にファイルを読まないよう固める
+  ["gen-portal-extras.mjs"],
   ["gen-docs-index.mts"],       // 社内資料の検索インデックス(/assistant と /chatbot が使う)
   ["platform-report.mjs"],
 ];

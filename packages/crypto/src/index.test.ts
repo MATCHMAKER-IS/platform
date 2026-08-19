@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { randomBytes, scryptSync } from "node:crypto";
 import { deriveKey, encrypt, decrypt, hashPassword, verifyPassword, randomToken } from "./index";
 
 describe("crypto", () => {
@@ -56,5 +57,31 @@ describe("password utilities", () => {
 
   it("強度: 改善ヒントを返す", () => {
     expect(passwordStrength("abc").suggestions.length).toBeGreaterThan(0);
+  });
+});
+
+describe("パスワードハッシュのコストと互換", () => {
+  // **コストを文字列に含める。** 含めないと、後で上げたときに
+  // 保存済みハッシュを検証できず**全員ログイン不能**になる
+  it("形式にコストが入る", () => {
+    expect(hashPassword("pw")).toMatch(/^scrypt\$\d+\$/);
+  });
+  it("新形式を検証できる", () => {
+    const h = hashPassword("pw123");
+    expect(verifyPassword("pw123", h)).toBe(true);
+    expect(verifyPassword("wrong", h)).toBe(false);
+  });
+  // **旧形式(`salt:hash`)も検証できる。** 利用者が次にパスワードを
+  // 変えるまで旧形式のまま残るので、この経路は消さない
+  it("旧形式も検証できる", () => {
+    const salt = randomBytes(16);
+    const old = `${salt.toString("base64")}:${scryptSync("pw123", salt, 64).toString("base64")}`;
+    expect(verifyPassword("pw123", old)).toBe(true);
+    expect(verifyPassword("wrong", old)).toBe(false);
+  });
+  // **壊れた入力で例外を投げない**(境界)
+  it("形式が違えば false", () => {
+    expect(verifyPassword("pw", "こわれた")).toBe(false);
+    expect(verifyPassword("pw", "scrypt$abc$x$y")).toBe(false);
   });
 });

@@ -7,7 +7,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { withApiObservability } from "../../../../server/instrument";
 import { errorResponse } from "../../../../server/api-error";
-import { currentUser, requirePermission } from "../../../../server/authorize";
+import { currentUserFromValue, requirePermission } from "../../../../server/authorize";
 import { createDbMaintenanceStore } from "../../../../server/maintenance-store";
 import { db } from "../../../../server/services";
 import type { MaintenanceState } from "@platform/status-page";
@@ -18,7 +18,7 @@ const sessionSecret = () => serverEnv.SESSION_SECRET;
 
 async function handleGET(req: NextRequest): Promise<Response> {
   try {
-    requirePermission(currentUser(req.cookies.get("session")?.value, sessionSecret()), "system:maintenance");
+    requirePermission(currentUserFromValue(req.cookies.get("session")?.value, sessionSecret()), "system:maintenance");
     return NextResponse.json(await store.get());
   } catch (e) {
     return errorResponse(e);
@@ -27,8 +27,8 @@ async function handleGET(req: NextRequest): Promise<Response> {
 
 async function handlePOST(req: NextRequest): Promise<Response> {
   try {
-    const user = requirePermission(currentUser(req.cookies.get("session")?.value, sessionSecret()), "system:maintenance");
-    const body = (await req.json()) as Partial<MaintenanceState>;
+    const user = requirePermission(currentUserFromValue(req.cookies.get("session")?.value, sessionSecret()), "system:maintenance");
+    const body = (await req.json().catch(() => ({}))) as Partial<MaintenanceState>;
     if (typeof body.enabled !== "boolean") {
       return NextResponse.json({ error: { code: "VALIDATION", message: "enabled は真偽値で指定してください" } }, { status: 400 });
     }

@@ -10,7 +10,7 @@
 import { randomUUID } from "node:crypto";
 import type { FaqItem, FaqStatus } from "@platform/faq";
 import { db } from "./services";
-import { featureEnv } from "./env";
+import { usePrisma } from "./env";
 
 /** 保存先。 */
 export interface FaqStore {
@@ -189,6 +189,6 @@ function seedFaq(): FaqItem[] {
  * アプリで共有するストア。
  * `FAQ_PERSISTENCE=prisma` なら DB、それ以外はメモリ(seed 付き)。
  */
-export const faqStore: FaqStore = featureEnv.FAQ_PERSISTENCE === "prisma"
+export const faqStore: FaqStore = usePrisma
   ? createPrismaFaqStore()
   : createMemoryFaqStore(seedFaq());

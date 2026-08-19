@@ -53,7 +53,9 @@ export const rpaRunner = createRpaRunner({
   lock,
   audit: (e) => { rpaAuditLog.push(e); },
   seenStore: { has: (k: string) => seen.has(k), add: (k: string) => { seen.add(k); } },
-  actor: "system",
+  // **これは仮実装ではない。** RPA は人が押すのではなく
+  // cron から無人で走るので、実行者は「system」が正しい
+  actor: "system",  // intentional-system-actor
 });
 
 /** デモ実行の結果(既存 API の期待形)。 */

@@ -20,7 +20,6 @@ export interface FreshnessIndicatorProps {
   className?: string;
 }
 
-/** 最終更新の相対時刻を表示する。古い場合は警告色。 */
 /**
  * 情報の新しさ。
  *

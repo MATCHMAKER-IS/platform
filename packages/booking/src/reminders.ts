@@ -58,8 +58,11 @@ export function reminderKey(bookingId: string, reminder: { channel: ReminderChan
 /**
  * 今送るべきリマインダーを返す(発火時刻を過ぎ、まだ送っていないもの)。
  * cron で定期的に呼び、返ったものを送信して sent に記録する運用を想定。
- * @param sentKeys 送信済みキー(reminderKey)
- * @param graceMinutes 発火から何分までを対象にするか(遅延実行の取りこぼし防止・既定 実質無制限)
+ * @param bookingId 予約
+ * @param scheduled 送信予定（何分前かの一覧）
+ * @param now 現在時刻(**テスト注入用**。渡さなければ `new Date()`)
+ * @param options.sentKeys 送信済みキー(reminderKey)
+ * @param options.graceMinutes 発火から何分までを対象にするか(遅延実行の取りこぼし防止・既定 実質無制限)
  * @returns 今送るべきリマインダー(**送信済みは除く**。二重送信を防ぐ)
  */
 export function dueReminders(
@@ -111,7 +114,11 @@ export function reminderMessage(input: {
   place?: string;
 }): string {
   const d = typeof input.bookingAt === "string" ? new Date(input.bookingAt) : input.bookingAt;
-  const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  // **JST の時刻を出す。** `getHours()` はサーバのローカル時刻なので、
+  // UTC のサーバでは**文面の時刻が 9 時間ずれる**——
+  // 「本日 14:00 のご予約」が「本日 05:00」と案内される(2026-08 に修正)。
+  const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+  const time = `${String(jst.getUTCHours()).padStart(2, "0")}:${String(jst.getUTCMinutes()).padStart(2, "0")}`;
   const timing = reminderTiming(input.beforeMinutes);
   const lead = timing === "day_before" ? "明日" : timing === "same_day" ? "本日" : "まもなく";
   const name = input.customerName ? `${input.customerName}様\n\n` : "";

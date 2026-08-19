@@ -63,7 +63,17 @@ export function prepareBatch(entries: JournalEntry[], accountItemIds: Record<str
 /** 1 件の送信結果。 */
 export interface SyncResult {
   key: string;
-  status: "sent" | "skipped" | "failed";
+  /**
+   * 結果。
+   *
+   * - `sent` … 送った(相手が受け付けた)
+   * - `skipped` … 既に送ってあるので飛ばした
+   * - `failed` … 相手が拒否した。**再送してよい**(届いていない)
+   * - `unknown` … **送ったか分からない**(通信が切れた・タイムアウト)。
+   *   **そのまま再送しない**——相手に届いている可能性があり、二重計上になる。
+   *   相手側で確認してから手で処理すること(2026-08 に追加)。
+   */
+  status: "sent" | "skipped" | "failed" | "unknown";
   error?: string;
 }
 
@@ -101,7 +111,21 @@ export async function syncJournals(
       results.push({ key: payload.key, status: "skipped" });
       continue;
     }
-    const res = await options.send(payload);
+    // **例外を外へ抜けさせない。** 抜けると `results` ごと失われ、
+    // **そこまでに送った分の記録が残らない**——再実行すると二重計上になる。
+    let res: Awaited<ReturnType<typeof options.send>>;
+    try {
+      res = await options.send(payload);
+    } catch (e) {
+      // **通信が切れた場合は「送ったか分からない」。**
+      // `failed` にすると再送されて二重計上になる可能性がある
+      results.push({
+        key: payload.key,
+        status: "unknown",
+        error: `送信の可否を確認できません: ${e instanceof Error ? e.message : String(e)}`,
+      });
+      continue;
+    }
     if (res.ok) {
       results.push({ key: payload.key, status: "sent" });
       sent.push(payload.key);
@@ -119,10 +143,15 @@ export async function syncJournals(
  * @param results 同期の結果
  * @returns 送信・スキップ・失敗の件数
  */
-export function summarizeSync(results: SyncResult[]): { sent: number; skipped: number; failed: number } {
+export function summarizeSync(results: SyncResult[]): { sent: number; skipped: number; failed: number; unknown: number } {
   return {
     sent: results.filter((r) => r.status === "sent").length,
     skipped: results.filter((r) => r.status === "skipped").length,
     failed: results.filter((r) => r.status === "failed").length,
+    /**
+     * **送ったか分からない件数。** 0 でなければ、そのまま再実行しないこと
+     * ——相手に届いている可能性があり、**二重計上**になる。
+     */
+    unknown: results.filter((r) => r.status === "unknown").length,
   };
 }

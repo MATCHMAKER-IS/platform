@@ -15,9 +15,8 @@ export interface MessageReaction {
  * リアクションを付ける/外す(同じものを再度押すと解除)。
  *
  * @param reactions 現在のリアクション
- * @param input メッセージ・ユーザー・種別
- * @param now 現在時刻(テスト注入用)
- * @returns 更新した**新しい**配列と、付けたか外したか
+ * @param reaction 付け外しするリアクション(同じ種別を再度押すと解除)
+ * @returns 更新した**新しい**配列(元の配列は変更しない)
  */
 export function toggleReaction(reactions: MessageReaction[], reaction: MessageReaction): MessageReaction[] {
   const exists = reactions.some((r) => r.messageId === reaction.messageId && r.userId === reaction.userId && r.kind === reaction.kind);

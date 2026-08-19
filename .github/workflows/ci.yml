@@ -22,36 +22,83 @@ jobs:
           node-version: 22
           cache: pnpm
       - name: Install
-        run: pnpm install  # TODO: pnpm-lock.yaml をコミットしたら --frozen-lockfile に戻す
-      - name: Prisma generate (internal-app schema)
-        run: |
-          PRISMA_SCHEMA=../../apps/internal-app/prisma/schema.prisma pnpm --filter @platform/db exec prisma generate
-          PRISMA_SCHEMA=../../apps/crud-template/prisma/schema.prisma pnpm --filter @platform/db exec prisma generate
-          PRISMA_SCHEMA=../../apps/equipment-app/prisma/schema.prisma pnpm --filter @platform/db exec prisma generate
+        # **`--frozen-lockfile` を必ず付ける。** これが無いと、pnpm は
+        # package.json とのズレを黙って埋めてしまい、**CI ごとに違う依存**で
+        # ビルドされる。2026-08 の型エラー見落とし(zoho の 4 サービスが
+        # 型検査を通らないまま放置)は、ここが緩かったことと同じ根にある。
+        # `tools/check-lockfile.mjs` は、この行が落ちる条件を手元で先取りする検査。
+        run: pnpm install --frozen-lockfile
+      # **アプリ名を並べない。** 増減のたびに追随が漏れる
+      # (2026-08 のアプリ統合で、ここを含む 7 か所が古いまま壊れた)。
+      # `pnpm db generate all` は tools/db.mjs が apps/ から対象を集める。
+      #
+      # postinstall でも生成しているので通常は重複するが、**保険として残す**。
+      # `SKIP_POSTINSTALL_GENERATE=1` や install の失敗で飛ばされたとき、
+      # ここが無いと typecheck が「generated が無い」で落ちて原因が分かりにくい。
+      - name: Prisma generate (全アプリ)
+        run: pnpm db generate all
       - name: Typecheck
         run: pnpm -r typecheck
       - name: Lint
         run: pnpm lint
       - name: i18n coverage check
-        run: node tools/i18n-check.mjs --catalog=demos/showcase/src/i18n/catalog.ts#catalogs
+        run: node tools/i18n-check.mjs --catalog=apps/showcase/src/i18n/catalog.ts#catalogs
       - name: Prisma schema check (offline lint)
         run: node tools/check-schema.mjs
       - name: Prisma validate
         run: PRISMA_SCHEMA=../../apps/internal-app/prisma/schema.prisma pnpm --filter @platform/db exec prisma validate
       - name: Smoke (dependency-free logic checks)
         run: pnpm smoke
-      - name: Unit tests
-        run: pnpm -r test --if-present
+      # **カバレッジを実際に測る。** `packages/config/vitest.preset.mjs` には
+      # 2026-08 まで `thresholds: { lines: 80 }` が書いてあったが、
+      # `--coverage` を一度も付けていなかったため**評価されたことが無かった**。
+      - name: Unit tests (カバレッジ計測つき)
+        run: pnpm test:coverage
+      # 下がっていたら落とす(下限は tools/coverage-floor.json)。
+      - name: カバレッジが下がっていないか
+        run: node tools/check-coverage.mjs
       - name: Build
         env:
           DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
           MAIL_FROM: "ci@example.com"
           SESSION_SECRET: "ci-session-secret-for-build-only"
+          # 本番では必須（環境ごとに別の塩）。CI はビルドが通ればよいのでダミー
+          SESSION_SALT: "ci-session-salt-for-build-only"
         run: pnpm -r build
+
+      # **JS は黙って増える。** ライブラリを 1 つ入れるたびに数十 KB 増え、
+      # どれが効いたか分からないまま重くなる。**増えた PR で気づく**ためにここで見る
+      # (上限は tools/bundle-size-limit.json。未設定なら skip)
+      - name: 初期 JS が増えていないか
+        run: node tools/check-bundle-size.mjs
 
   e2e:
     runs-on: ubuntu-latest
-    continue-on-error: true  # TODO: DB/起動手順の整備後にこの行を削除
+    # **DB を用意する。** crud-template は PostgreSQL 前提で、
+    # 無いと dev サーバが起動せず `webServer` が 120 秒でタイムアウトする
+    # （出るのは「Timed out waiting 120000ms」だけで原因が分からない）。
+    services:
+      postgres:
+        # **開発・本番と同じ 17 に揃える**(docker-compose も 17)。
+        # 本番と違う DB で通っても意味が薄い(17 で動かない SQL が 16 で通る)。
+        # smoke がワークフロー間のバージョン揃えを見張っている。
+        image: postgres:17
+        env:
+          # **CI 内で立てるコンテナの設定**(外に漏れない値)。
+          # `e2e.yml` と揃える——揃えないと `check-workflows` の W002 に当たる。
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    # **`continue-on-error` は置かない。** 落ちても緑になる検査は、
+    # 無いのと同じ(preflight が skip を ✅ で描いて事故った件と同じ構図)。
+    # E2E が不安定で止められないときは、**この行を戻すのではなく**
+    # 不安定なテストに `test.fixme` を付けて理由を残すこと。
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4  # バージョンは package.json の packageManager を使用
@@ -60,9 +107,50 @@ jobs:
           node-version: 22
           cache: pnpm
       - name: Install
-        run: pnpm install  # TODO: pnpm-lock.yaml をコミットしたら --frozen-lockfile に戻す
+        # **`--frozen-lockfile` を必ず付ける。** これが無いと、pnpm は
+        # package.json とのズレを黙って埋めてしまい、**CI ごとに違う依存**で
+        # ビルドされる。2026-08 の型エラー見落とし(zoho の 4 サービスが
+        # 型検査を通らないまま放置)は、ここが緩かったことと同じ根にある。
+        # `tools/check-lockfile.mjs` は、この行が落ちる条件を手元で先取りする検査。
+        run: pnpm install --frozen-lockfile
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
+
+      # **前提を揃える。** `tools/e2e.mjs` は DB・Prisma クライアント・`.env` を
+      # 先に確認して落とす。2026-08 まで CI はどれも用意しておらず、
+      # **E2E は 100% 失敗していた**(`continue-on-error: true` で緑に見えていた)。
+      #
+      # crud-template は `app_crud` を使う。DB 名はサービスの既定(`app`)と違うので、
+      # ここで作る。showcase は DB を使わない。
+      - name: DB を用意する（crud-template 用）
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d postgres -c 'CREATE DATABASE app_crud' || true
+
+      - name: .env を用意する（存在するアプリのぶんだけ）
+        run: |
+          for d in apps/*/; do
+            if [ -f "$d/.env.example" ] && [ ! -f "$d/.env" ]; then
+              cp "$d/.env.example" "$d/.env"
+              echo "作成: $d.env"
+            fi
+          done
+
+      - name: Prisma クライアントを生成
+        run: pnpm db generate all
+
+      # **方式は tools/apply-schema.mjs が選ぶ**(migrations/ の有無を見る)。
+      # 履歴が無い間は `db push`(ADR 0013)、baseline 後は `migrate deploy`(ADR 0014)。
+      # ここに `db push` と書き固定すると、切り替えた日に
+      # **CI だけ古い方式のまま**になり、本番との食い違いに気づけない。
+      # (かつて `migrate deploy` 固定で、履歴が無くテーブル不在のまま E2E が落ちた)
+      - name: スキーマを反映（crud-template）
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app_crud
+        run: node tools/apply-schema.mjs crud-template
+
+      # **存在しないアプリのテストは自動で skip される**(e2e/_apps.ts)。
+      # 基盤の CI に居るのは showcase と crud-template だけ(ADR 0021)。
       - name: E2E
         run: pnpm e2e
 

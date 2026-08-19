@@ -1,0 +1,15 @@
+{
+  "_comment": "安全に関わる部品の被覆の下限。下がったら CI が落ちる。上がったら --set-floor で引き上げる。critical の部品は下限とは別に 100% を要求する。",
+  "updatedAt": "2026-08-17",
+  "parts": {
+    "sanitizeHtml / escapeHtml": 100,
+    "detectFileType(マジックバイト判定)": 100,
+    "isPrivateIp / 送信先の検証": 1,
+    "timingSafeEqualBytes(定数時間比較)": 100,
+    "withIdempotency(二重送信の防御)": 100,
+    "レート制限（公開 API）": 71.4,
+    "監査ログ（削除操作）": 100,
+    "isSafeExternalUrl(送信先の検証)": 100,
+    "秘密を当てさせない口の fail-close": 100
+  }
+}

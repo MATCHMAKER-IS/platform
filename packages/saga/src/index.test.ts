@@ -154,3 +154,34 @@ describe("sagaStep", () => {
     expect(ctx.log).toEqual(["run:予約", "undo:予約"]);
   });
 });
+
+describe("手で戻す必要がある状態を区別する", () => {
+  // **`ok: false` だけでは足りない。** 「きれいに巻き戻った」失敗と
+  // 「中途半端に進んだまま止まった」失敗は**対応がまったく違う**
+  // ——在庫を引いて決済に失敗し戻せなければ、売れていないのに在庫が減ったまま
+  it("打ち消しの手段が無ければ needsManualRecovery", async () => {
+    const r = await runSaga([
+      sagaStep("在庫を引く", () => {}),                       // compensate 無し
+      sagaStep("決済", () => { throw new Error("失敗"); }),
+    ], {});
+    expect(r.uncompensated).toEqual(["在庫を引く"]);
+    expect(r.needsManualRecovery).toBe(true);
+  });
+  // **打ち消しが失敗した場合も同じ**
+  it("打ち消しが失敗すれば needsManualRecovery", async () => {
+    const r = await runSaga([
+      sagaStep("A", () => {}, () => { throw new Error("戻せない"); }),
+      sagaStep("B", () => { throw new Error("失敗"); }),
+    ], {});
+    expect(r.needsManualRecovery).toBe(true);
+  });
+  // **きれいに巻き戻ったときは付かない**(境界)
+  it("全部打ち消せたら needsManualRecovery は付かない", async () => {
+    const r = await runSaga([
+      sagaStep("A", () => {}, () => {}),
+      sagaStep("B", () => { throw new Error("失敗"); }),
+    ], {});
+    expect(r.compensated).toEqual(["A"]);
+    expect(r.needsManualRecovery).toBeUndefined();
+  });
+});

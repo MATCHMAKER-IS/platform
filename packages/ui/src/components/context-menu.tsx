@@ -25,7 +25,6 @@ export interface ContextMenuProps {
   className?: string;
 }
 
-/** 右クリックでメニューを出すラッパー。 */
 /**
  * 右クリックの menu。
  *

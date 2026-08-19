@@ -122,7 +122,7 @@ export function check() {
   const issues = [];
   let scanned = 0;
 
-  for (const area of ["apps", "demos"]) {
+  for (const area of ["apps"]) {
     const areaDir = path.join(ROOT, area);
     if (!existsSync(areaDir)) continue;
     for (const app of readdirSync(areaDir)) {
@@ -163,7 +163,12 @@ export function check() {
         // 4. 基盤の UI 部品を使わず生タグを書いていないか
         //    `<button>` を inline style で作ると、基盤の h-9 を変えても追従せず、
         //    スキンを切り替えても変わらない。**基盤を使う理由そのものが消える**。
-        if (/\.tsx$/.test(file)) {
+        // **`global-error.tsx` は除く。**
+        // レイアウトごと壊れたときの受け皿なので、
+        // **基盤の読み込みで失敗している可能性がある**。
+        // ここで `@platform/ui` を呼ぶと同じ理由で二重に落ちる。
+        // 素の HTML で組むのが正しい(Next.js の作法でもある)。
+        if (/\.tsx$/.test(file) && !file.endsWith("global-error.tsx")) {
           // **コメントを除いてから数える。** 「生の <input> と違い…」のような
           // 説明文まで数えると、直しようのない指摘が残り続ける(実際に誤検知した)。
           const code = body

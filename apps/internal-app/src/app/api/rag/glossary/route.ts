@@ -1,18 +1,33 @@
 /** 補正辞書の管理(GET一覧 / POST追加 / DELETE削除)。管理者のみ。非エンジニアが表記ゆれを登録できる。 */
 import { withApiObservability } from "../../../../server/instrument";
+import { auditActions } from "../../../../server/platform-services";
+import { validate, z } from "@platform/validation";
+
+/**
+ * 用語辞書の入力（`term` を足すか、`from`→`to` の置換を足すか）。
+ *
+ * **辞書は検索クエリの補正に使われる**ので、壊れた値が入ると
+ * **全社の検索結果が静かにずれる**。`addReplacement` は空文字を弾くが、
+ * **数値やオブジェクトが来た場合は素通り**していた。
+ */
+const GlossaryInput = z.object({
+  term: z.string().trim().min(1).max(100).optional(),
+  from: z.string().trim().min(1).max(100).optional(),
+  to: z.string().trim().max(100).optional(),
+});
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { getReplacements, addReplacement, removeReplacement, getGlossaryTerms, addGlossaryTerm, removeGlossaryTerm, ensureDictionaryLoaded, isDictionaryPersistent, getDictionaryAudit, setDictionaryActor } from "../../../../server/rag-service";
 
 /** 管理者なら実行者メールを返す。権限なしは null。 */
 function adminUser(req: Request): string | null {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
-  try { requirePermission(user, "admin"); return (user as { email?: string } | null)?.email ?? "admin"; } catch { return null; }
+  const user = currentUser(req);
+  try { requirePermission(user, "system:manage"); return (user as { email?: string } | null)?.email ?? "admin"; } catch { return null; }
 }
 
 async function handleGET(req: Request): Promise<Response> {
   const actor = adminUser(req);
-  if (!actor) return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
+  if (!actor) return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
   await ensureDictionaryLoaded();
   const url = new URL(req.url);
   if (url.searchParams.get("audit") === "1") {
@@ -23,9 +38,13 @@ async function handleGET(req: Request): Promise<Response> {
 
 async function handlePOST(req: Request): Promise<Response> {
   const actor = adminUser(req);
-  if (!actor) return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
+  if (!actor) return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
   setDictionaryActor(actor);
-  const body = (await req.json()) as { from?: string; to?: string; term?: string };
+  const parsed = validate(GlossaryInput, await req.json().catch(() => ({})));
+  if (!parsed.ok) {
+    return Response.json({ error: parsed.error.message, details: parsed.error.details }, { status: 400 });
+  }
+  const body = parsed.value;
   if (body.term !== undefined) {
     const okAdd = addGlossaryTerm(body.term);
     return Response.json({ ok: okAdd, terms: getGlossaryTerms() });
@@ -40,12 +59,15 @@ async function handlePOST(req: Request): Promise<Response> {
 
 async function handleDELETE(req: Request): Promise<Response> {
   const actor = adminUser(req);
-  if (!actor) return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
+  if (!actor) return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
   setDictionaryActor(actor);
   const params = new URL(req.url).searchParams;
   const term = params.get("term");
   if (term !== null) {
     const removed = removeGlossaryTerm(term);
+    // **消したことを残す。** 用語辞書は AI の回答に効くので、
+    // 「答えが急に変わった」の原因になる
+    if (removed) await auditActions.record(actor, "rag.glossary.delete", `term:${term}`);
     return Response.json({ ok: removed, terms: getGlossaryTerms() });
   }
   const from = params.get("from");

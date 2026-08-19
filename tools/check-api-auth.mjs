@@ -26,7 +26,7 @@ const LIMIT_FILE = new URL("./api-auth-limit.json", import.meta.url);
 
 /** 認可を通していると判断する呼び出し。 */
 const AUTH_MARKERS =
-  /requirePermission|requireRole|requireSession|currentUser|assertCan\b|requireUser|authenticateKey|requireApiKey|bearerToken/;
+  /requirePermission|requireRole|requireSession|currentUser|assertCan\b|requireUser|authenticateKey|requireApiKey|bearerToken|isCronAuthorized/;
 
 /** 「認可を通さないのが正しい」ことの宣言。理由まで書かせる。 */
 const PUBLIC_MARK = /\/\/\s*public-api:\s*\S+/;
@@ -44,7 +44,6 @@ function collectRoutes(dir, out = []) {
 
 const routes = [
   ...collectRoutes(path.join(ROOT, "apps")),
-  ...collectRoutes(path.join(ROOT, "demos")),
 ];
 
 const missing = [];

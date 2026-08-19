@@ -1,7 +1,8 @@
 "use client";
 /** お知らせ管理。メッセージ・表示期間・対象パス・CTA を編集する。 */
 import * as React from "react";
-import { Button, Input, Select } from "@platform/ui";
+import { formatDateJst } from "@platform/datetime";
+import { Button, Input, Select, PageShell, useConfirm } from "@platform/ui";
 
 interface Announcement {
   id: string;
@@ -69,6 +70,8 @@ export function AnnouncementClient({ fetchImpl }: AnnouncementClientProps) {
     await reload();
   };
 
+  const { confirm, dialog } = useConfirm();
+
   const remove = async (id: string) => {
     const res = await doFetch(`/api/cms/announcements/${id}`, { method: "DELETE" });
     if (res.ok) await reload();
@@ -77,11 +80,8 @@ export function AnnouncementClient({ fetchImpl }: AnnouncementClientProps) {
   const set = (patch: Partial<Draft>) => setEditing((d) => (d ? { ...d, ...patch } : d));
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">お知らせ管理</h1>
-        <Button onClick={() => { setEditing({ ...EMPTY }); setEditId(null); setError(""); }} className="rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white">新規お知らせ</Button>
-      </div>
+    <PageShell title="お知らせ管理" width="wide">
+    <Button onClick={() => { setEditing({ ...EMPTY }); setEditId(null); setError(""); }} className="rounded px-4 py-2 text-sm text-white">新規お知らせ</Button>
 
       {editing && (
         <div className="mb-6 flex flex-col gap-3 rounded border border-[var(--color-border)] p-4">
@@ -107,8 +107,8 @@ export function AnnouncementClient({ fetchImpl }: AnnouncementClientProps) {
             </label>
           </div>
           <div className="flex gap-2">
-            <Button onClick={save} className="rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white">保存</Button>
-            <Button onClick={() => { setEditing(null); setEditId(null); }} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">キャンセル</Button>
+      <Button onClick={save} className="rounded px-4 py-2 text-sm text-white">保存</Button>
+            <Button onClick={() => { setEditing(null); setEditId(null); }} variant="secondary" className="rounded px-4 py-2 text-sm">キャンセル</Button>
           </div>
         </div>
       )}
@@ -120,17 +120,29 @@ export function AnnouncementClient({ fetchImpl }: AnnouncementClientProps) {
               <p className="font-medium">{a.message}</p>
               <p className="text-xs text-[var(--color-muted)]">
                 {a.level && <span className="mr-2">[{a.level}]</span>}
-                {a.startAt ? a.startAt.slice(0, 10) : "—"} 〜 {a.endAt ? a.endAt.slice(0, 10) : "—"}
+                {a.startAt ? formatDateJst(new Date(a.startAt)) : "—"} 〜 {a.endAt ? formatDateJst(new Date(a.endAt)) : "—"}
                 {a.paths && a.paths.length > 0 && <span className="ml-2">対象: {a.paths.join(", ")}</span>}
               </p>
             </div>
             <div className="flex gap-2 text-sm">
-              <Button onClick={() => { setEditing(toDraft(a)); setEditId(a.id); setError(""); }} className="text-[var(--color-primary)] hover:underline">編集</Button>
-              <Button onClick={() => remove(a.id)} className="text-[var(--color-danger)] hover:underline">削除</Button>
+       <Button onClick={() => { setEditing(toDraft(a)); setEditId(a.id); setError(""); }} variant="secondary" className="hover:underline">編集</Button>
+              <Button
+                onClick={() => confirm({
+                  title: "このお知らせを削除しますか",
+                  // **何が起きるかを書く。** 「元に戻せません」だけでは、
+                  // 押した後の世界が想像できない
+                  description: "元に戻せません。公開中なら、すぐにサイトから消えます。",
+                  onConfirm: () => void remove(a.id),
+                })}
+                variant="danger"
+                className="hover:underline"
+              >削除</Button>
             </div>
           </li>
         ))}
       </ul>
-    </div>
+      {/* **確認ダイアログの置き場。** これを忘れると確認が出ないまま消える */}
+      {dialog}
+    </PageShell>
   );
 }

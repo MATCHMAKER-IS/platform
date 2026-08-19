@@ -1,11 +1,33 @@
 # @platform/commerce
 
-EC サイトの基盤処理。カート・お気に入り・クーポン割引・注文サマリ(消費税/送料)・在庫引当の
-純ロジック部品。保存や画面はアプリ側、決済は `@platform/stripe`/`@platform/paypal`、
-消費税は `@platform/tax`、注文番号は `@platform/sequence`、注文ステータスは `@platform/fsm` と組み合わせます。
+> **⚠️ incubating(2026-08 に降格)。** `internal-app` が使うのは
+> `review-repo.ts`（レビュー機能）のみで、カート・注文・在庫引当・割引など
+> EC 本体（全 40 関数の大半）は**実アプリでの使用実績が無い**
+> （showcase のカートはデモ）。社内業務システムに EC 機能は不要と判断した
+> ——将来の実装候補ではなく、**使う予定が無いことの記録**。
+> レビュー機能だけを切り出す整理は今後の検討課題。
+EC の計算（カート・割引・送料・在庫引当）。
 
-## カート
+## これは何のためか
+
+**金額の計算を 1 か所にまとめる**ためのものです。
+
+カートの合計、割引の適用順、送料の判定——
+**画面ごとに計算すると、確認画面と請求で額が違います**。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **割引の適用順で額が変わります** | 「10% 引き → 500 円引き」と「500 円引き → 10% 引き」は**別の額**です。**順序を決めて固定**してください |
+| **不正な値は 0 として扱います** | マイナスの数量や `NaN` は 0 です——**落とすより、おかしい額を出さない**方を選んでいます |
+| **在庫の引当は決済の直前に** | カートに入れた時点で引くと、**買わない人が在庫を占有**します |
+| **送料は最後に** | 割引で商品代が下がると、**送料無料の条件を割る**ことがあります |
+
+## よく使うもの
+
 ```ts
+import { normalizeQuantity, emptyCart, findCartItem } from "@platform/commerce";
 import { emptyCart, addToCart, setQuantity, cartSubtotal, cartItemCount, mergeCarts } from "@platform/commerce";
 
 let cart = addToCart(emptyCart(), { productId: "A", name: "商品A", unitPrice: 1000, sku: "SKU-A" });

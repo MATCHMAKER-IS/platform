@@ -23,7 +23,6 @@ export interface SidebarProps {
   className?: string;
 }
 
-/** サイドバー付きレイアウト。 */
 /**
  * 横の案内(画面の一覧)。
  *

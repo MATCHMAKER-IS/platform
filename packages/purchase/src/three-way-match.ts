@@ -185,7 +185,7 @@ export function threeWayMatch(
     if (o === undefined && i !== undefined) {
       mismatches.push({
         description: key, kind: "not-ordered", severity: "blocking",
-        message: `発注していない品目が請求されています（請求 ${i.quantity} 個・${amountOf(i).toLocaleString()} 円）`,
+        message: `発注していない品目が請求されています（請求 ${i.quantity} 個・${amountOf(i).toLocaleString("ja-JP")} 円）`,
         ...info,
       });
       continue;
@@ -247,7 +247,7 @@ export function threeWayMatch(
         description: key, kind: "price-changed",
         // 値上げは止める。値下げは確認だけ
         severity: i.unitPrice > o.unitPrice ? "blocking" : "warning",
-        message: `単価が発注と違います（発注 ${o.unitPrice.toLocaleString()} 円 → 請求 ${i.unitPrice.toLocaleString()} 円・差額 ${diff.toLocaleString()} 円）`,
+        message: `単価が発注と違います（発注 ${o.unitPrice.toLocaleString("ja-JP")} 円 → 請求 ${i.unitPrice.toLocaleString("ja-JP")} 円・差額 ${diff.toLocaleString("ja-JP")} 円）`,
         ...info,
       });
     }
@@ -292,6 +292,19 @@ export interface ProcessedInvoice {
   amount: number;
   /** 支払日（YYYY-MM-DD）。 */
   paidOn?: string;
+  /**
+   * このレコードの識別子(DB の主キーなど)。
+   *
+   * **履歴に「自分自身」が入っている場合を除くために使う。**
+   * 2026-08 まで**値の一致で除外**しており(番号・仕入先・金額・支払日が全部同じなら
+   * 自分とみなす)、**同じ請求書を 2 回入力した場合も除外**していた
+   * ——最も明白な二重払いが検出されない状態だった。
+   *
+   * **値が同じことと、同じレコードであることは別**。
+   * `id` を渡せば正しく区別できる。渡さない場合は**除外しない**
+   * (見逃すより、余分に指摘する方が安全)。
+   */
+  id?: string;
 }
 
 /** 二重払いの疑い 1 件。 */
@@ -337,9 +350,11 @@ export function findDuplicatePayments(
   const out: DuplicateSuspicion[] = [];
 
   for (const h of history) {
-    // 自分自身は除く
-    if (h.invoiceNumber === candidate.invoiceNumber && h.supplier === candidate.supplier && h.amount === candidate.amount && h.paidOn === candidate.paidOn) {
-      // 完全に同一のレコードなら、履歴に自分が入っているだけとみなす
+    // **自分自身は `id` で除く。** 値が同じでも別のレコードかもしれない
+    // ——同じ請求書を 2 回入力した場合がまさにそれで、
+    // 値の一致で除外すると**最も明白な二重払いを見逃す**(2026-08 に修正)。
+    // `id` が無い場合は除外しない(見逃すより余分に指摘する方が安全)。
+    if (h.id !== undefined && candidate.id !== undefined && h.id === candidate.id) {
       continue;
     }
 
@@ -348,7 +363,7 @@ export function findDuplicatePayments(
       out.push({
         invoiceNumber: candidate.invoiceNumber,
         matched: h,
-        reason: `同じ請求書番号が既に処理されています（${h.paidOn ?? "支払日不明"}・${h.amount.toLocaleString()} 円）`,
+        reason: `同じ請求書番号が既に処理されています（${h.paidOn ?? "支払日不明"}・${h.amount.toLocaleString("ja-JP")} 円）`,
         confidence: "certain",
       });
       continue;

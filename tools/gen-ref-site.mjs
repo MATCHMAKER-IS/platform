@@ -7,7 +7,7 @@
  * 目的: 基盤が大きくなっても「どんな部品があるか・各アプリに何の画面と API があるか」を
  *       非エンジニアも含めて把握できるようにする。
  */
-import { readFileSync, existsSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
+import { readFileSync, existsSync, writeFileSync, mkdirSync, readdirSync, unlinkSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -58,12 +58,20 @@ function loadDepGraphMermaid() {
 
 /** アプリの画面・API を appmap から集める。 */
 function collectApps() {
-  const dir = path.join(ROOT, "docs/platform/appmap");
-  if (!existsSync(dir)) return [];
+  // **アプリの資料はアプリの中にある**(2026-08 に移動)。
+  // 基盤は**アプリを保証できない**ので、資料もアプリと一緒に動く
+  const appsDir = path.join(ROOT, "apps");
+  if (!existsSync(appsDir)) return [];
   const apps = [];
-  for (const file of readdirSync(dir).filter((f) => f.endsWith(".md"))) {
-    const name = file.replace(/\.md$/, "");
-    const body = readFileSync(path.join(dir, file), "utf8");
+  // **`README.md` は索引**であってアプリ別の一覧ではない
+  // (2026-08 に各ディレクトリへ索引を置いた——**生成物には導線が要る**)
+  for (const appName of readdirSync(appsDir)) {
+    const file = path.join(appsDir, appName, "docs", "appmap.md");
+    if (!existsSync(file)) continue;
+    const name = appName;
+    // **CRLF を正規化する。** Windows で編集された資料は `\r\n` になり、
+    // 行で読む処理が末尾に `\r` を拾う
+    const body = readFileSync(file, "utf8").replace(/\r\n/g, "\n");
     const pages = [];
     const apis = [];
     // 表の行 | `path` | title | を拾う
@@ -82,12 +90,14 @@ function collectApps() {
 
 /** 各アプリの ER 図(Mermaid)を集める。 */
 function collectErds() {
-  const dir = path.join(ROOT, "docs/platform/erd");
-  if (!existsSync(dir)) return [];
+  // **ER 図もアプリの中**(2026-08 に移動)。schema はアプリのもの
+  const appsDir2 = path.join(ROOT, "apps");
+  if (!existsSync(appsDir2)) return [];
   const erds = [];
-  for (const file of readdirSync(dir).filter((f) => f.endsWith(".md"))) {
-    const name = file.replace(/\.md$/, "");
-    const body = readFileSync(path.join(dir, file), "utf8").replace(/\r\n/g, "\n");
+  for (const name of readdirSync(appsDir2)) {
+    const file = path.join(appsDir2, name, "docs", "erd.md");
+    if (!existsSync(file)) continue;
+    const body = readFileSync(file, "utf8").replace(/\r\n/g, "\n");
     const m = body.match(/```mermaid\n([\s\S]*?)```/);
     if (m) erds.push({ name, mermaid: m[1].trim() });
   }
@@ -346,9 +356,30 @@ function generate() {
   const outDir = path.join(ROOT, "docs/site");
   mkdirSync(outDir, { recursive: true });
   writeFileSync(path.join(outDir, "index.html"), renderPlatformSite(packages, depMermaid, apps, erds, adrs, themes));
+  const written = new Set();
   for (const app of apps) {
-    writeFileSync(path.join(outDir, `app-${app.name}.html`), renderAppSite(app));
+    const file = `app-${app.name}.html`;
+    writeFileSync(path.join(outDir, file), renderAppSite(app));
+    written.add(file);
   }
+
+  // **消えたアプリのページを片付ける。**
+  //
+  // 生成は「作る」だけで、**消すことはしません**でした——
+  // アプリを削除しても `app-<名前>.html` が残り、
+  // **リンクを辿ると存在しないアプリの資料が出ます**。
+  // 読む人には「まだある」と見えるので、たちが悪い(2026-08)。
+  //
+  // `smoke` が「消えたアプリの生成物が残っていない」で捕まえますが、
+  // **捕まえるより、そもそも残さない**方がよい。
+  let removed = 0;
+  for (const name of readdirSync(outDir)) {
+    if (!/^app-.+\.html$/.test(name) || written.has(name)) continue;
+    unlinkSync(path.join(outDir, name));
+    removed += 1;
+  }
+  if (removed > 0) console.log(`   (消えたアプリのページを ${removed} 件削除)`);
+
   return { packages: packages.length, apps: apps.length, erds: erds.length, adrs: adrs.length, themes: themes.length };
 }
 

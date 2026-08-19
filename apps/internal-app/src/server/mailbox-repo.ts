@@ -79,23 +79,26 @@ export interface MailboxRow {
   to: string;
   subject: string;
   body: string;
-  sentAt: string;
+  /** DB では `Date`。`MailboxMessage` の公開契約(`sentAt: string`)は
+   *  変えない——`rowToMessage` の境界で変換する(2026-08)。 */
+  sentAt: Date;
   read: boolean;
 }
 
 /** 使用する Prisma デリゲートの最小ポート。 */
 export interface MailboxStoreDb {
   mailboxRow: {
+    createMany(args: { data: unknown[] }): Promise<unknown>;
     findMany(args: { where: { owner: string; read?: boolean }; orderBy: { sentAt: "desc" } }): Promise<MailboxRow[]>;
     findUnique(args: { where: { id: string } }): Promise<MailboxRow | null>;
-    create(args: { data: { owner: string; from: string; to: string; subject: string; body: string; sentAt: string; read: boolean } }): Promise<MailboxRow>;
+    create(args: { data: { owner: string; from: string; to: string; subject: string; body: string; sentAt: Date; read: boolean } }): Promise<MailboxRow>;
     update(args: { where: { id: string }; data: { read: boolean } }): Promise<MailboxRow>;
     count(args: { where: { owner: string; read: boolean } }): Promise<number>;
   };
 }
 
 function rowToMessage(row: MailboxRow): MailboxMessage {
-  return { id: row.id, owner: row.owner, from: row.from, to: row.to, subject: row.subject, body: row.body, sentAt: row.sentAt, read: row.read };
+  return { id: row.id, owner: row.owner, from: row.from, to: row.to, subject: row.subject, body: row.body, sentAt: row.sentAt.toISOString(), read: row.read };
 }
 
 /** Prisma 実装。 */
@@ -109,11 +112,20 @@ export function createPrismaMailboxStore(db: MailboxStoreDb): MailboxStore {
       return row ? rowToMessage(row) : undefined;
     },
     async deliver(message) {
-      const sentAt = message.sentAt ?? new Date().toISOString();
+      // **`message.sentAt` は文字列(公開契約)のまま受け取る。**
+      // DB へ書く直前だけ Date に変換する——呼び出し側(mail-service.ts 等)
+      // に Date 型を要求しない(2026-08、sentAt を DateTime に移行)。
+      const sentAt = message.sentAt ? new Date(message.sentAt) : new Date();
       const to = toList(message.to).join(", ");
-      for (const owner of toList(message.to)) {
-        await db.mailboxRow.create({ data: { owner, from: message.from, to, subject: message.subject, body: message.body, sentAt, read: false } });
-      }
+      // **宛先ごとに 1 回ずつ作らない。**
+      // 全社宛(数百人)だとその数だけ問い合わせが飛ぶ。
+      // まとめて作れば 1 回で済む
+      await db.mailboxRow.createMany({
+        data: toList(message.to).map((owner) => ({
+          owner, from: message.from, to,
+          subject: message.subject, body: message.body, sentAt, read: false,
+        })),
+      });
     },
     async markRead(id) {
       await db.mailboxRow.update({ where: { id }, data: { read: true } });

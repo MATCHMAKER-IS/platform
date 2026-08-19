@@ -49,8 +49,9 @@ export function toggleColumnHidden(prefs: ColumnPrefs, key: string): ColumnPrefs
  *
  *
  * @param prefs 現在の設定
- * @param fromId 移動する列
- * @param toId 移動先
+ * @param key 移動する列
+ * @param dir 向き（`-1` = 左へ / `1` = 右へ）
+ * @param allKeys 全部の列（**順序の基準**。ここに無い列は動かせません）
  * @returns 更新した新しい設定
  */
 export function moveColumn(prefs: ColumnPrefs, key: string, dir: -1 | 1, allKeys: string[]): ColumnPrefs {
@@ -82,7 +83,7 @@ export interface ColumnPrefsStoreOptions {
  * サーバに列設定をユーザー別で保存する fetch ストアを作る。
  *
  *
- * @param options.storage 保存先(既定 localStorage)
+ * @param options.endpoint 保存先(既定 localStorage)
  * @returns ストア。**端末ごとの設定**(サーバに持つなら createFetchPresetStore)
  */
 export function createColumnPrefsStore(options: ColumnPrefsStoreOptions): ColumnPrefsStore {

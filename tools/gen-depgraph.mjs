@@ -2,7 +2,7 @@
  * パッケージ間の依存グラフを Mermaid で生成する(人向けドキュメント)。
  *   node tools/gen-depgraph.mjs   → docs/platform/depgraph.md
  * 各 @platform/* パッケージの dependencies(@platform/* のみ)を辺にする。
- * 100 パッケージの全体図は大きすぎるため、(1) カテゴリ間の依存集約グラフ と
+ * 全体図は大きすぎるため、(1) カテゴリ間の依存集約グラフ と
  * (2) 依存が多い/されるパッケージの上位表 を出す。
  */
 import { readFileSync, readdirSync, existsSync, writeFileSync } from "node:fs";

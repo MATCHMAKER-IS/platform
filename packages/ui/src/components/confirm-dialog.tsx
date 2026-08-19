@@ -27,7 +27,6 @@ export interface ConfirmDialogProps {
   onConfirm: () => void;
 }
 
-/** 確認ダイアログ。 */
 /**
  * 取り消せない操作の確認。
  *

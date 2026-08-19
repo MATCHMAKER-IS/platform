@@ -15,7 +15,6 @@ export interface WaveformProps {
   className?: string;
 }
 
-/** 波形表示付き音声プレイヤー。 */
 /**
  * 音声の波形。
  *

@@ -87,14 +87,27 @@ export function calcPay(input: PayInput, rates: PremiumRates = DEFAULT_PREMIUM_R
   const nightPremium = pay(wage, input.nightMinutes, rates.night);
   const holidayPay = pay(wage, input.holidayMinutes, 1 + rates.holiday);
 
-  const total = Math.round(base + overtimePremium + over60Premium + nightPremium + holidayPay);
+  // **内訳を先に丸め、その合計を total にする。**
+  // 2026-08 まで `total` を**丸める前の値から**計算しており、
+  // **内訳の合計と 1 円合わない**ことがあった(時給 990 円・残業 13 分で再現)。
+  // 給与明細は**内訳を足すと総支給になる**のが当然なので、
+  // 合わないと「計算が違う」と問い合わせが来る——説明もできない。
+  //
+  // **丸めてから足す**方を採るのは、明細に載るのが丸めた値だから。
+  // 逆(合計を正として内訳を調整)にすると、**どの項目に端数を寄せるか**という
+  // 別の判断が要る。
+  const roundedBase = Math.round(base);
+  const roundedOvertime = Math.round(overtimePremium);
+  const roundedOver60 = Math.round(over60Premium);
+  const roundedNight = Math.round(nightPremium);
+  const roundedHoliday = Math.round(holidayPay);
   return {
-    base: Math.round(base),
-    overtimePremium: Math.round(overtimePremium),
-    over60Premium: Math.round(over60Premium),
-    nightPremium: Math.round(nightPremium),
-    holidayPay: Math.round(holidayPay),
-    total,
+    base: roundedBase,
+    overtimePremium: roundedOvertime,
+    over60Premium: roundedOver60,
+    nightPremium: roundedNight,
+    holidayPay: roundedHoliday,
+    total: roundedBase + roundedOvertime + roundedOver60 + roundedNight + roundedHoliday,
   };
 }
 
@@ -139,8 +152,9 @@ export function aggregateMonthly(days: WorkSplit[]): MonthlyAttendance {
  * **重複する場合は加算**(深夜の時間外は 25% + 25% = 50%)。
  * 率を間違えると未払い賃金になり、遡って請求される。
  *
- * @param summary 月次の集計(時間外・深夜・休日の時間数)
- * @param hourlyRate 時間単価
+ * @param month 月次の集計(時間外・深夜・休日の時間数)
+ * @param hourlyWage 時給（**円・整数**。小数で持つと支給額が 1 円ずれます）
+ * @param rates 割増率（既定は法定どおり）
  * @returns 割増ごとの金額と合計
  */
 export function calcMonthlyPay(month: MonthlyAttendance, hourlyWage: number, rates: PremiumRates = DEFAULT_PREMIUM_RATES): PayBreakdown {

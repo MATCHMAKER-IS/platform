@@ -12,6 +12,21 @@ export interface Valuation {
   averageCost: number;
   /** 在庫金額(現在庫 × 平均単価）。 */
   value: number;
+  /**
+   * **在庫より多く出庫した時点があったか。**
+   *
+   * 計算は止めずに続けるが(途中で例外にすると帳簿全体が読めなくなる)、
+   * **記録に誤りがある**ことは伝える必要がある。
+   *
+   * 実務では普通に起きる——検品前に出荷を入力した、入庫の登録が漏れた、
+   * 二重に出庫した。放置すると**在庫金額が 0 になり**(平均単価が算出できないため)、
+   * 棚卸で差異が出たときに「出庫の記録ミス」だと分からない。
+   *
+   * `true` のときは**入出庫の記録を見直すこと**(2026-08 に追加)。
+   */
+  hadNegativeStock: boolean;
+  /** 在庫がマイナスになった時点の日付(`at`)。記録を追う手がかり。 */
+  negativeAt?: string;
 }
 
 /**
@@ -28,6 +43,7 @@ export interface Valuation {
 export function movingAverage(movements: StockMovement[]): Valuation {
   let qty = 0;
   let value = 0;
+  let negativeAt: string | undefined;
   for (const m of movements) {
     if (m.type === "inbound") {
       value += m.quantity * (m.unitCost ?? 0);
@@ -36,6 +52,9 @@ export function movingAverage(movements: StockMovement[]): Valuation {
       const avg = qty > 0 ? value / qty : 0;
       value -= m.quantity * avg;
       qty -= m.quantity;
+      // **在庫より多く出庫した時点を覚える。** 計算は止めない
+      // (途中で例外にすると帳簿全体が読めなくなる)が、事実は返す
+      if (qty < 0 && negativeAt === undefined) negativeAt = m.at;
     } else {
       // adjustment: 数量のみ増減（金額は現平均で調整）
       const avg = qty > 0 ? value / qty : 0;
@@ -44,5 +63,5 @@ export function movingAverage(movements: StockMovement[]): Valuation {
     }
   }
   const averageCost = qty > 0 ? value / qty : 0;
-  return { onHand: qty, averageCost: Math.round(averageCost * 100) / 100, value: Math.round(Math.max(0, value)) };
+  return { onHand: qty, averageCost: Math.round(averageCost * 100) / 100, value: Math.round(Math.max(0, value)) , hadNegativeStock: negativeAt !== undefined, ...(negativeAt !== undefined ? { negativeAt } : {}) };
 }

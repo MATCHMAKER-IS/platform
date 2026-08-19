@@ -83,7 +83,19 @@ export function ChatRoomClient({ roomId, roomName, meId, displayName }: ChatRoom
   };
 
   const loadPins = React.useCallback(async () => {
-    const res = await fetch(`/api/chat/rooms/${encodeURIComponent(roomId)}/pins`);
+    // **通信断も受け止める。** `if (!res.ok)` は HTTP のエラーしか見ておらず、
+    // **ネットワークが切れると `fetch` が例外を投げて未処理**になっていた（2026-08）。
+    //
+    // ピン留めは**画面の主役ではない**（メッセージ一覧は別に読む）ので、
+    // 失敗しても画面は壊しません。ただし**黙って消さず記録は残します**
+    // ——「ピンが出ない」と言われたときに追えるようにするためです。
+    let res: Response;
+    try {
+      res = await fetch(`/api/chat/rooms/${encodeURIComponent(roomId)}/pins`);
+    } catch (e) {
+      console.error("ピン留めの読み込みに失敗", e);
+      return;
+    }
     if (!res.ok) return;
     const data = (await res.json()) as { pins: { messageId: string; pinnedBy: string }[] };
     const byId = new Map(messages.map((m) => [m.id, m.text]));

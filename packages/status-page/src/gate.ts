@@ -79,6 +79,7 @@ export function isInMaintenanceWindow(config: MaintenanceConfig, now: Date): boo
  * 再起動するまで反映されない。
  *
  * @param getConfig 設定を返す関数(**呼ばれるたびに最新を取る**)
+ * @param now 判定する時点（試験で固定するため）
  * @returns ゲート。`check` でアクセスの可否を判定
  */
 export function createMaintenanceGate(getConfig: () => MaintenanceConfig, now: () => Date = () => new Date()) {
@@ -162,6 +163,7 @@ export function stateToConfig(state: MaintenanceState, policy?: Omit<Maintenance
  * middleware は毎リクエスト評価するため、実運用では {@link createCachedConfig} と併用して
  * ストアアクセスを間引くこと。
  * @param getConfig 設定を返す非同期関数(**DB から都度読む**場合に使う)
+ * @param now 判定する時点（試験で固定するため）
  */
 export function createAsyncMaintenanceGate(
   getConfig: () => MaintenanceConfig | Promise<MaintenanceConfig>,
@@ -181,6 +183,7 @@ export function createAsyncMaintenanceGate(
  * 非同期フェッチを TTL でキャッシュするラッパー(middleware がストアを叩きすぎないように)。
  * @param fetch 設定/状態を取得する関数
  * @param ttlMs キャッシュ有効期間(既定 5 秒)
+ * @param now 現在時刻（試験で固定するため）
  * @returns キャッシュ付きの設定取得関数。**DB を毎回叩かない**(全リクエストで読むと負荷になる)が、
  *   TTL のぶん反映が遅れる(緊急停止には向かない)
  */

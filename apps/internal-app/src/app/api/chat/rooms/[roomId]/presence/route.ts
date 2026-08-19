@@ -2,15 +2,18 @@
  * プレゼンス API（GET）。ルームのオンライン/入力中ユーザーを返す。
  */
 import { currentUser, requirePermission } from "../../../../../../server/authorize";
-import { serverEnv } from "../../../../../../server/env";
+import "../../../../../../server/env";
 import { presence } from "../../../../../../server/chat";
+import { withApiObservability } from "../../../../../../server/instrument";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request, ctx: { params: Promise<{ roomId: string }> }): Promise<Response> {
+async function handleGET(req: Request, ctx: { params: Promise<{ roomId: string }> }): Promise<Response> {
   const { roomId } = await ctx.params;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "chat:read");
 
   return Response.json(presence.snapshot(roomId, Date.now()));
 }
+
+export const GET = withApiObservability("/api/chat/rooms/[roomId]/presence", handleGET);

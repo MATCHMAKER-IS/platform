@@ -9,8 +9,10 @@ export interface Candle { open: number; high: number; low: number; close: number
 /**
  * ローソク足の描画座標を計算する。
  * @param c OHLC
- * @param x バーの左端 px、width バー幅
- * @param y 高値(high)の px、height 高値〜安値の px 高さ
+ * @param x バーの左端（px）
+ * @param width バーの幅（px）
+ * @param y 高値(high)の位置（px）
+ * @param height 高値〜安値の高さ（px）
  */
 export function candleGeometry(c: Candle, x: number, width: number, y: number, height: number) {
   const range = c.high - c.low;
@@ -119,8 +121,9 @@ export function toWaterfall(items: WaterfallItem[]): WaterfallRow[] {
  * **0° は真上・時計回り**(数学の慣習とは違う)。円グラフは 12 時から
  * 時計回りに描くのが一般的なので、それに合わせてある。
  *
- * @param cx / cy 中心
- * @param radius 半径
+ * @param cx 中心の x
+ * @param cy 中心の y
+ * @param r 半径
  * @param angleDeg 角度(**度**。0 = 真上)
  * @returns `{ x, y }`
  */
@@ -132,9 +135,11 @@ export function polarToCartesian(cx: number, cy: number, r: number, angleDeg: nu
 /**
  * 円弧の SVG パスを作る。
  *
- * @param cx / cy 中心
- * @param radius 半径
- * @param startAngle / endAngle 角度(度)
+ * @param cx 中心の x
+ * @param cy 中心の y
+ * @param r 半径
+ * @param startAngle 開始角度（度）
+ * @param endAngle 終了角度（度）
  * @returns SVG の `d` 属性の値
  */
 export function arcPath(cx: number, cy: number, r: number, startAngle: number, endAngle: number): string {

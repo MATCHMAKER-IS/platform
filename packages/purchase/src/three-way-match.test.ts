@@ -106,8 +106,12 @@ describe("findDuplicatePayments(二重払い)", () => {
     expect(findDuplicatePayments({ invoiceNumber: "INV-999", supplier: "C社", amount: 50_000, paidOn: "2026-06-05" }, history)).toHaveLength(0);
   });
 
-  it("同一のレコードは自分自身として除く", () => {
-    expect(findDuplicatePayments(history[0]!, history)).toHaveLength(0);
+  // **`id` が無ければ自分自身でも除かない。** 2026-08 に「値の一致で除く」のを
+  // やめた(同じ請求書を 2 回入力した場合が**まさに値の一致**で、
+  // **最も明白な二重払いを見逃していた**)。**見逃すより余分に指摘する**方が安全。
+  // `id` を渡したときの除外は下の「同一レコードの除外」で確かめている。
+  it("id が無ければ、同じ値でも自分自身として除かない", () => {
+    expect(findDuplicatePayments(history[0]!, history)).toHaveLength(1);
   });
 
   it("certain が先に並ぶ", () => {
@@ -117,5 +121,28 @@ describe("findDuplicatePayments(二重払い)", () => {
     ];
     const d = findDuplicatePayments({ invoiceNumber: "INV-100", supplier: "A社", amount: 50_000, paidOn: "2026-06-15" }, h);
     expect(d[0]?.confidence).toBe("certain");
+  });
+});
+
+describe("同じ請求を 2 回入力した場合を見逃さない", () => {
+  const P = (id: string, invoiceNumber: string, supplier: string, amount: number, paidOn: string) =>
+    ({ id, invoiceNumber, supplier, amount, paidOn });
+  const self = P("p1", "INV-1", "A社", 10000, "2026-08-01");
+
+  // **値の一致で「自分自身」を除外していた**ので、
+  // 同じ請求書を 2 回入力すると**最も明白な二重払いが検出されなかった**
+  // ——値が同じことと、同じレコードであることは別(2026-08 に修正)
+  it("id が違えば別レコードとして指摘する", () => {
+    const twice = P("p2", "INV-1", "A社", 10000, "2026-08-01");
+    expect(findDuplicatePayments(twice, [self]).length).toBeGreaterThan(0);
+  });
+  // **履歴に自分自身が入っている場合は除く**(id が同じ)
+  it("id が同じなら自分自身として除く", () => {
+    expect(findDuplicatePayments(self, [self])).toEqual([]);
+  });
+  // **id が無ければ除外しない**(見逃すより余分に指摘する方が安全)
+  it("id を渡さなければ除外しない", () => {
+    const a = { invoiceNumber: "INV-1", supplier: "A社", amount: 10000, paidOn: "2026-08-01" };
+    expect(findDuplicatePayments(a, [a]).length).toBeGreaterThan(0);
   });
 });

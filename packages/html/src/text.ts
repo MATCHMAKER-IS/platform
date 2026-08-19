@@ -10,6 +10,7 @@ import { nl2br } from "./whitespace";
  * ユーザー入力をそのまま表示したいときに使う（XSS 安全）。
  *
  * @param input プレーンテキスト
+ * @param options 改行の扱い・リンクの自動化
  * @returns 安全な HTML(**エスケープ → 改行変換の順**。逆にすると `<br>` までエスケープされる)
  */
 export function textToHtml(input: string, options: { xhtml?: boolean } = {}): string {

@@ -30,7 +30,6 @@ export interface DonutChartProps {
   className?: string;
 }
 
-/** ドーナツチャート。構成比を色分けした円で表示する。 */
 /**
  * ドーナツ図(内訳の割合)。
  *

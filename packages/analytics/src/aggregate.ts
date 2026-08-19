@@ -81,6 +81,7 @@ export interface ReferrerStat {
  * 参照元の内訳を返す。
  *
  * @param events イベントの配列
+ * @param limit 上位いくつまで返すか(**渡さないと全件**。参照元は種類が多く、画面が埋まる)
  * @returns 参照元と件数(多い順)。**referrer が無いものは `direct`**(直接アクセス)
  */
 export function referrerBreakdown(events: AnalyticsEvent[], limit = 10): ReferrerStat[] {
@@ -176,6 +177,7 @@ export interface AnalyticsSummary {
  * 概況をまとめて計算する。
  *
  * @param events イベントの配列
+ * @param options.topN 上位いくつを返すか
  * @returns PV・UU・ユーザー数・直帰率・人気ページ・参照元(ダッシュボード用)
  */
 export function summarize(events: AnalyticsEvent[], options: { topN?: number } = {}): AnalyticsSummary {

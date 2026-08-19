@@ -1,10 +1,14 @@
 /**
  * crud-template の最小 E2E(登録→編集→無効化→無効表示)。
- * 注意: このスペックはオフライン開発環境では未実走。CI 緑化後(docs/ops/CI_FIRST_RUN.md)に動作確認すること。
+ * 注意: このスペックはオフライン開発環境では未実走。CI 緑化後(docs/ops/GITHUB_ACTIONS.md)に動作確認すること。
  */
 import { test, expect } from "@playwright/test";
+import { hasApp, missingAppReason } from "./_apps";
 
 test.use({ baseURL: "http://localhost:3002" });
+
+// **このアプリが無い環境では飛ばす。** 基盤の CI には存在しない(ADR 0021)。
+test.skip(!hasApp("crud-template"), missingAppReason("crud-template"));
 
 test("品目の登録→編集→無効化→無効も表示 が一巡できる", async ({ page }) => {
   const code = `E2E-${Date.now() % 1000000}`;
@@ -18,7 +22,7 @@ test("品目の登録→編集→無効化→無効も表示 が一巡できる"
   const row = page.getByRole("row", { name: new RegExp(code) });
   await row.getByRole("textbox").first().fill("E2Eペン(赤)");
   await row.getByRole("button", { name: "保存" }).click();
-  await expect(page.getByText("E2Eペン(赤)")).toBeVisible();
+  await expect(page.getByText("E2Eペン(赤)").first()).toBeVisible();
 
   await page.getByRole("row", { name: new RegExp(code) }).getByRole("button", { name: "無効化" }).click();
   await expect(page.getByText(code)).toBeHidden();

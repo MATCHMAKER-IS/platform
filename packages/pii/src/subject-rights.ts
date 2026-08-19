@@ -50,8 +50,9 @@ export interface DisclosureReport {
  * 本人の保有個人データから開示レポートを組み立てる。
  * 各データにカテゴリ情報(利用目的・保持期間・第三者提供先)を付与して返す。
  *
- * @param input.subject 本人
- * @param input.sources データの所在(テーブルごと)
+ * @param input.subjectId 本人の識別子(**`subject` ではない**)。
+ *   `entries` は開示対象のデータ(**`sources` ではない**)
+ * @param input.entries 開示対象のデータ(**`sources` ではない**)
  * @returns 開示レポート(**本人に渡す形**)
  */
 export function buildDisclosureReport(input: {
@@ -125,9 +126,10 @@ export interface ErasureReceipt {
  * **「消しました」と言うだけでは足りない**。いつ・何を・どの範囲で消したかを
  * 記録しておかないと、後から問われたときに答えられない。
  *
- * @param request 削除依頼
- * @param result 削除の結果(対象と件数)
- * @param now 現在時刻(テスト注入用)
+ * @param subjectId 削除した本人の ID
+ * @param erasedFields 消した項目
+ * @param method 消し方（**上書きか削除か**。証跡として残す）
+ * @param erasedAt 削除した時刻（試験で固定するため）
  * @returns 証跡
  */
 export function buildErasureReceipt(subjectId: string, erasedFields: string[], method: ErasureMethod, erasedAt: Date = new Date()): ErasureReceipt {

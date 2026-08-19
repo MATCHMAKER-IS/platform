@@ -10,6 +10,7 @@
  * @packageDocumentation
  */
 
+import { encodeBase64 } from "@platform/bytes";
 import { createApiClient } from "@platform/integrations";
 import { AppError, ErrorCode, tryCatch, type Result } from "@platform/core";
 
@@ -18,6 +19,7 @@ export interface PayPalConfig {
   clientId: string;
   clientSecret: string;
   /** 実行環境(既定: "live")。 */
+  /** 接続先(既定 `sandbox`)。**本番は `live` を明示すること**。 */
   environment?: "live" | "sandbox";
   /**
    * fetch の実装(テスト・デモで差し替える)。
@@ -60,7 +62,11 @@ function baseUrl(env: "live" | "sandbox"): string {
  * @throws {@link @platform/core#AppError} コード `EXTERNAL` — API がエラーを返した場合
  */
 export function createPayPalClient(config: PayPalConfig): PayPalClient {
-  const env = config.environment ?? "live";
+  // **既定は sandbox。本番は明示的に指定させる。**
+  // 2026-08 まで既定が `live` で、開発中に渡し忘れると**本番の PayPal に繋がる**
+  // ——本番の鍵が環境変数にある構成では、**実際に決済が走る**。
+  // 「指定を忘れた」が本番事故になる既定にしない。
+  const env = config.environment ?? "sandbox";
   const base = baseUrl(env);
   const doFetch = config.fetchImpl ?? fetch;
   const api = createApiClient({ baseUrl: base, ...(config.fetchImpl ? { fetchImpl: config.fetchImpl } : {}) });
@@ -69,7 +75,10 @@ export function createPayPalClient(config: PayPalConfig): PayPalClient {
 
   async function getToken(): Promise<Result<string>> {
     if (token && token.expiresAt > Date.now() + 30_000) return { ok: true, value: token.value };
-    const basic = btoa(`${config.clientId}:${config.clientSecret}`);
+    // **`btoa` は非 ASCII で例外を投げる。** 認証情報は通常 ASCII だが、
+    // **設定を間違えて日本語が混ざると `Invalid character` で落ちる**
+    // ——原因が分かりにくいので `@platform/bytes` に寄せた(2026-08)
+    const basic = encodeBase64(`${config.clientId}:${config.clientSecret}`);
     const res = await tryCatch(async () => {
       const r = await doFetch(`${base}/v1/oauth2/token`, {
         method: "POST",

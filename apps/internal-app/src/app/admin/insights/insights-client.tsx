@@ -1,7 +1,7 @@
 "use client";
 /** 管理: 利用状況ダッシュボード・設定変更履歴・送信Webhook購読を1画面に集約。 */
 import * as React from "react";
-import { Button, Input } from "@platform/ui";
+import { Button, Input, PageShell } from "@platform/ui";
 
 interface Count { key: string; count: number; }
 interface Usage { totalEvents: number; activeUsers: number; byFeature: Count[]; byActor: Count[]; byAction: Count[]; }
@@ -47,10 +47,9 @@ export function InsightsClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   const TABS = [["usage", "利用状況"], ["changes", "設定変更履歴"], ["webhooks", "送信Webhook"]];
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <h1 className="mb-1 text-2xl font-bold">利用状況・設定履歴・Webhook</h1>
+        <PageShell title="利用状況・設定履歴・Webhook">
       <div className="mb-4 flex gap-1 border-b border-[var(--color-border)]">
-        {TABS.map(([k, l]) => <Button key={k} onClick={() => setTab(k!)} className={`px-3 py-2 text-sm ${tab === k ? "border-b-2 border-[var(--color-fg)] font-medium" : "text-[var(--color-muted)]"}`}>{l}</Button>)}
+        {TABS.map(([k, l]) => <Button key={k} onClick={() => setTab(k!)} variant="tab" data-state={tab === k ? "active" : undefined}>{l}</Button>)}
       </div>
 
       {tab === "usage" && usage && (
@@ -84,19 +83,19 @@ export function InsightsClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
           <div className="mb-3 grid grid-cols-3 gap-2">
             <Input value={form.url} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, url: e.target.value })} placeholder="https://example.com/hook" className="rounded border border-[var(--color-border)] px-2 py-1 text-sm" />
             <Input value={form.events} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, events: e.target.value })} placeholder="invoice.created,* " className="rounded border border-[var(--color-border)] px-2 py-1 text-sm" />
-            <div className="flex gap-1"><Input value={form.secret} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, secret: e.target.value })} placeholder="署名secret" className="flex-1 rounded border border-[var(--color-border)] px-2 py-1 text-sm" /><Button onClick={addSub} className="rounded bg-[var(--color-fg)] px-3 py-1 text-sm text-white">追加</Button></div>
+      <div className="flex gap-1"><Input value={form.secret} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, secret: e.target.value })} placeholder="署名secret" className="flex-1 rounded border border-[var(--color-border)] px-2 py-1 text-sm" /><Button variant="ghost" onClick={addSub} className="rounded bg-[var(--color-fg)] px-3 py-1 text-sm text-white">追加</Button></div>
           </div>
           <ul className="space-y-1">
             {subs.map((s) => (
               <li key={s.id} className="flex items-center justify-between border-b border-[var(--color-border)] py-1.5 text-sm">
                 <span><span className={`mr-2 rounded px-1.5 py-0.5 text-xs ${s.active ? "bg-[color-mix(in_srgb,var(--color-success)_15%,transparent)] text-[var(--color-success)]" : "bg-[var(--color-subtle-strong)] text-[var(--color-muted)]"}`}>{s.active ? "有効" : "停止"}</span>{s.url} <span className="text-xs text-[var(--color-muted)]">[{s.events.join(", ")}]</span></span>
-                <span className="flex gap-2 text-xs"><Button onClick={() => setActive(s.id, !s.active)} className="text-[var(--color-primary)] hover:underline">{s.active ? "停止" : "有効化"}</Button><Button onClick={() => remove(s.id)} className="text-[var(--color-danger)] hover:underline">削除</Button></span>
+        <span className="flex gap-2 text-xs"><Button variant="ghost" onClick={() => setActive(s.id, !s.active)} className="text-[var(--color-primary)] hover:underline">{s.active ? "停止" : "有効化"}</Button><Button variant="ghost" onClick={() => remove(s.id)} className="text-[var(--color-danger)] hover:underline">削除</Button></span>
               </li>
             ))}
             {subs.length === 0 && <li className="text-xs text-[var(--color-muted)]">購読はありません。</li>}
           </ul>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

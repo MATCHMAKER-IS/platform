@@ -162,10 +162,10 @@ export interface DemoEntry {
 
 /** demos/ の一覧を読む。「この機能の使用例はどこ?」に答えるため。 */
 export function loadDemos(deps: CatalogDeps): DemoEntry[] {
-  // 統合デモサイト(demos/showcase)の nav.ts が唯一の出典。
+  // 統合デモサイト(apps/showcase)の nav.ts が唯一の出典。
   // 以前は demos/* の各フォルダを走査していたが、1 サイトに集約したため
   // nav.ts の DemoEntry を読む(サイトの表示と検索結果が食い違わない)。
-  const navPath = path.join(deps.root, "demos/showcase/src/lib/nav.ts");
+  const navPath = path.join(deps.root, "apps/showcase/src/lib/nav.ts");
   if (!existsSync(navPath)) return [];
   const src = readFileSync(navPath, "utf8").replace(/\r\n/g, "\n");
 

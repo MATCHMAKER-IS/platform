@@ -21,8 +21,10 @@ export interface BookingInterval {
  * **半開区間 `[s, e)`** で扱う(10:00–11:00 と 11:00–12:00 は重ならない)。
  * これを閉区間にすると、連続した予約が「重なっている」ことになる。
  *
- * @param a 時間帯
- * @param b 時間帯
+ * @param aStart 時間帯 A の開始
+ * @param aEnd 時間帯 A の終了
+ * @param bStart 時間帯 B の開始
+ * @param bEnd 時間帯 B の終了
  * @returns 重なれば true
  */
 export function intervalsOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
@@ -44,6 +46,21 @@ export function countOverlapping(slot: Slot, bookings: BookingInterval[]): numbe
 
 /**
  * スロットが予約可能かを判定する。
+ *
+ * **この判定だけでは二重予約を防げない。** 純関数なので、
+ * 渡された配列を見た**その瞬間**の答えでしかない:
+ *
+ * 1. `isSlotAvailable(slot, bookings)` → `true`
+ * 2. **別の人が同じスロットを予約**
+ * 3. 自分が登録 → **二重予約**
+ *
+ * 会議室・面談・設備の予約で必ず起きる形で、
+ * **「たまに二重に取れる」**という再現しにくい症状になる。
+ *
+ * **登録時に DB 側で担保すること**——`(resourceId, start, end)` の一意制約か、
+ * 資源の行を `SELECT ... FOR UPDATE` でロックしてから確認・登録する。
+ * この関数は**画面に空きを出すため**のもので、登録の可否を決めるものではない
+ * (2026-08 に明記)。
  *
  * @param slot スロット
  * @param bookings 予約の配列

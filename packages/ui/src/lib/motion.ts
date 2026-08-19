@@ -28,8 +28,10 @@ export function clamp01(v: number): number {
  * パララックスのオフセット（px）を計算する。
  * speed > 0 で背景がゆっくり動く（要素が画面中央にあるとき 0）。
  *
- * @param progress スクロール進捗(0–1)
- * @param distance 移動量
+ * @param scrollY いまのスクロール位置
+ * @param elementTop 要素の上端（文書内の位置）
+ * @param viewportHeight 表示領域の高さ
+ * @param speed 動く速さ（**1 未満で背景がゆっくり動く**）
  * @returns オフセット(**背景をゆっくり動かす**と奥行きが出る)
  */
 export function parallaxOffset(scrollY: number, elementTop: number, viewportHeight: number, speed: number): number {
@@ -44,7 +46,9 @@ export function parallaxOffset(scrollY: number, elementTop: number, viewportHeig
  *
  * **視差効果やスクロール連動アニメーション**に使う。
  *
- * @param rect 要素の位置
+ * @param scrollY いまのスクロール位置
+ * @param elementTop 要素の上端
+ * @param elementHeight 要素の高さ
  * @param viewportHeight 表示領域の高さ
  * @returns 0–1 の進捗
  */
@@ -69,7 +73,9 @@ export const transitionPresets = {
  * **`IntersectionObserver` と併用**する(画面に入ったら最終スタイルに切り替える)。
  * **CSS の transition に任せる**ので、JS でフレームを回さない(軽い)。
  *
- * @param options.direction 方向
+ * @param visible 見えているか
+ * @param options.axis 動く向き(`"y"` / `"x"`・既定 y)
+ *   **`direction` という項目は無い**
  * @param options.distance 移動量
  * @returns 初期と最終のスタイル
  */

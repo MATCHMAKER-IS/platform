@@ -28,7 +28,7 @@ interface Detail {
 }
 
 const KIND_COLOR: Record<Kind, string> = {
-  sql: "#2563eb", api: "#7c3aed", ai: "#0891b2", event: "#16a34a", log: "#6b7280", job: "#d97706",
+  sql: "var(--color-primary)", api: "var(--color-primary)", ai: "var(--color-primary)", event: "var(--color-success)", log: "var(--color-muted)", job: "var(--color-warning)",
 };
 const KIND_LABEL: Record<Kind, string> = {
   sql: "SQL", api: "外部API", ai: "AI", event: "イベント", log: "ログ", job: "ジョブ",

@@ -19,7 +19,6 @@ export interface TagInputProps {
   className?: string;
 }
 
-/** タグ入力。 */
 /**
  * タグの入力(複数の短い語を足していく)。
  *
@@ -62,6 +61,9 @@ export function TagInput({ value, onChange, placeholder, allowDuplicates = false
         placeholder={value.length === 0 ? placeholder : ""}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
+          // **変換中の Enter は無視する。** 日本語入力では漢字を選ぶ操作が Enter で、
+          // 見ないと「変換を確定した瞬間に確定してしまう」(英語で試すと気づけない)
+          if (e.nativeEvent.isComposing) return;
           if (e.key === "Enter" || e.key === ",") { e.preventDefault(); add(text); }
           else if (e.key === "Backspace" && text === "" && value.length > 0) onChange(value.slice(0, -1));
         }}

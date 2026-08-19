@@ -1,12 +1,12 @@
 /** 自分に対するフィーチャーフラグの評価結果(GET)。UIの出し分けに使う。認証ユーザー。 */
 import { withApiObservability } from "../../../server/instrument";
 import { currentUser } from "../../../server/authorize";
-import { serverEnv } from "../../../server/env";
+import "../../../server/env";
 import { flagStore } from "../../../server/platform-services";
 import { createAppFlags, flagContext } from "../../../server/feature-flags";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   if (!user) return Response.json({ error: "認証が必要です" }, { status: 401 });
   const defs = await flagStore.get();
   const flags = createAppFlags(defs);

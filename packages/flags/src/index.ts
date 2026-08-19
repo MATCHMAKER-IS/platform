@@ -78,9 +78,27 @@ function matches(attributes: Record<string, unknown> | undefined, target: Record
  * **決定的**(同じ入力なら常に同じ結果)なので、テストしやすく、
  * 「なぜこの人には出ないのか」を再現できる。
  *
- * @param rule ルール
- * @param context 利用者の情報
+ * **`flagName` を必ず渡すこと。** 省略すると**すべてのフラグで同じ集団**が
+ * 選ばれる——「いつも同じ人が実験台」になり、その人たちだけが
+ * **未検証の機能を次々に踏む**。フラグ名を混ぜることで、
+ * フラグごとに別の人が選ばれる。
+ *
+ * @param rule ルール。**割合は `rolloutPercent`**(`rollout` ではない)。
+ *   `enabled: false` は緊急停止(割合を問わず全員 false)
+ * @param context 利用者の情報。**振り分けに使うのは `key`**(`userId` ではない)。
+ *   `attributes` は `allow` / `deny` の条件に使う
+ * @param flagName フラグ名。**省略しないこと**(上記の理由)
  * @returns 有効なら true
+ *
+ * @example
+ * ```ts
+ * // **10% の利用者にだけ新 UI を出す**
+ * evaluateFlag(
+ *   { enabled: true, rolloutPercent: 10 },
+ *   { key: user.id },        // ← `userId` ではなく `key`
+ *   "newUI",                 // ← 省略しない
+ * );
+ * ```
  */
 export function evaluateFlag(rule: FlagRule, context: FlagContext = {}, flagName = ""): boolean {
   if (typeof rule === "boolean") return rule;
@@ -98,11 +116,18 @@ export function evaluateFlag(rule: FlagRule, context: FlagContext = {}, flagName
 }
 
 /**
- * バリアントを決定的に選ぶ(重み付き)。
+ * バリアントを決定的に選ぶ(重み付き)。A/B テストの振り分けに使う。
  *
- * @param variants バリアント(重み付き)
- * @param key 利用者 ID など
- * @returns 選ばれたバリアント。**同じ人には常に同じもの**
+ * **`flagName` を必ず渡すこと。** `evaluateFlag` と同じ理由で、
+ * 省略すると**すべてのテストで同じ人が同じ側に入る**——
+ * A/B テストを複数走らせると、**同じ集団の結果ばかり見る**ことになり、
+ * 「どちらが良いか」の判断を誤る。
+ *
+ * @param rule ルール(`variants` に重み付きの選択肢を書く)
+ * @param context 利用者の情報。**振り分けに使うのは `key`**(`userId` ではない)
+ * @param flagName フラグ名。**省略しないこと**(上記の理由)
+ * @returns 選ばれたバリアント。**同じ人には常に同じもの**。
+ *   `variants` が無ければ `null`
  */
 export function selectVariant(rule: FlagRule, context: FlagContext = {}, flagName = ""): string | null {
   if (typeof rule === "boolean" || !rule.variants || rule.variants.length === 0) return null;
@@ -158,8 +183,7 @@ export function createStaticProvider(definitions: FlagDefinitions): FlagProvider
  * 非同期フェッチャから Provider を作る(リモート設定サービス向け)。
  *
  *
- * @param options.fetchDefinitions 定義を取得する関数
- * @param options.ttlMs キャッシュの有効期間
+ * @param fetcher 定義を取得する関数（**呼ばれるたびに最新を取る**。キャッシュしたいなら `@platform/cache` を挟んでください）
  * @returns Provider。**TTL のぶん反映が遅れる**(即時に切り替えたいなら短くするが、負荷とのトレードオフ)
  */
 export function createRemoteProvider(fetcher: () => Promise<FlagDefinitions>): FlagProvider {

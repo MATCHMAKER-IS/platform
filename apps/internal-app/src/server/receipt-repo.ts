@@ -34,31 +34,46 @@ export function createMemoryReceiptStore(): ReceiptStore {
 
 // ── Prisma 実装 ──
 
-/** InvoiceReceiptRow の必要部分。 */
+/**
+ * InvoiceReceiptRow の必要部分。
+ *
+ * **`receivedAt` は DB では `Date`。** `ReceiptStore` の公開契約
+ * (`InvoiceReceipt.receivedAt: string`)は変えない——この境界
+ * (`rowToReceipt`)で変換する(2026-08、DB 層のみ移行)。
+ */
 export interface InvoiceReceiptRow {
   id: string;
   invoiceNumber: string;
   amount: number;
-  receivedAt: string;
+  receivedAt: Date;
 }
 
 /** 使用する Prisma デリゲートの最小ポート。 */
 export interface ReceiptStoreDb {
   invoiceReceiptRow: {
-    findMany(args: { orderBy: { receivedAt: "asc" } }): Promise<InvoiceReceiptRow[]>;
-    create(args: { data: { invoiceNumber: string; amount: number; receivedAt: string } }): Promise<InvoiceReceiptRow>;
+    findMany(args: { take: number; orderBy: { receivedAt: "desc" } }): Promise<InvoiceReceiptRow[]>;
+    create(args: { data: { invoiceNumber: string; amount: number; receivedAt: Date } }): Promise<InvoiceReceiptRow>;
   };
+}
+
+function rowToReceipt(row: InvoiceReceiptRow): InvoiceReceipt {
+  return { invoiceNumber: row.invoiceNumber, amount: row.amount, receivedAt: row.receivedAt.toISOString() };
 }
 
 /** Prisma 実装。 */
 export function createPrismaReceiptStore(db: ReceiptStoreDb): ReceiptStore {
   return {
     async record(invoiceNumber, amount, receivedAt = new Date().toISOString()) {
-      const row = await db.invoiceReceiptRow.create({ data: { invoiceNumber, amount, receivedAt } });
-      return { invoiceNumber: row.invoiceNumber, amount: row.amount, receivedAt: row.receivedAt };
+      const row = await db.invoiceReceiptRow.create({ data: { invoiceNumber, amount, receivedAt: new Date(receivedAt) } });
+      return rowToReceipt(row);
     },
     async list() {
-      return (await db.invoiceReceiptRow.findMany({ orderBy: { receivedAt: "asc" } })).map((r) => ({ invoiceNumber: r.invoiceNumber, amount: r.amount, receivedAt: r.receivedAt }));
+      // **上限を付ける。** **絞りが無く全件を返して**いました——
+      // 入金は**年に数千件**になります。
+      //
+      // **並び順も `desc` に変えました**——上限で切るなら
+      // **新しい方から**取らないと、**最近の入金が見えません**。
+      return (await db.invoiceReceiptRow.findMany({ take: 500, orderBy: { receivedAt: "desc" } })).map(rowToReceipt);
     },
   };
 }

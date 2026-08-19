@@ -82,7 +82,7 @@ AI が「その部品、基盤にありますか？」を自分で調べられ�
 | ツール | 何ができる |
 |---|---|
 | `search_platform` | 「CSV 出力」で基盤を検索 |
-| `find_examples` | 「請求書」で使用例（demos/）を検索 |
+| `find_examples` | 「請求書」で使用例（apps/showcase）を検索 |
 | `explain_rules` | 設計ルールを確認 |
 | `describe_package` | 部品の README と API を読む |
 
@@ -353,4 +353,4 @@ Cursor は入力内容をクラウドに送ります（Privacy Mode を除く）
 
 ---
 
-**関連**: [基盤カタログ MCP](../ai/mcp-catalog.md) / [実装パターン集](../ai/patterns.md) / [開発の流れ](GETTING_STARTED_2.md)
+**関連**: [基盤カタログ MCP](../ai/mcp-catalog.md) / [実装パターン集](../ai/patterns.md) / [開発の流れ](../onboarding/03-development.md)

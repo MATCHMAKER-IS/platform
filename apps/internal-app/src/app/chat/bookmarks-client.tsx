@@ -37,7 +37,10 @@ export function BookmarksClient({ fetchImpl }: BookmarksClientProps) {
     };
   }, []);
 
-  if (!loading && bookmarks.length === 0) return <EmptyState title="ブックマークはまだありません" />;
+  if (!loading && bookmarks.length === 0) return <EmptyState
+      title="ブックマークはまだありません"
+      description="チャットの発言にしおりを付けると、ここに集まります。"
+    />;
 
   return (
     <Card>

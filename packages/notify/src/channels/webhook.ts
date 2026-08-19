@@ -2,6 +2,7 @@
  * 汎用 Webhook チャネル。任意の URL へ JSON を POST する。
  * @packageDocumentation
  */
+import { AppError, ErrorCode } from "@platform/core";
 import type { NotifyChannel, NotifyMessage } from "../index";
 
 /**
@@ -17,7 +18,13 @@ export function createWebhookChannel(url: string, format?: (m: NotifyMessage) =>
     async send(message) {
       const body = format ? format(message) : { text: message.text, level: message.level ?? "info" };
       const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-      if (!res.ok) throw new Error(`Webhook 送信失敗: ${res.status}`);
+      // **`AppError(EXTERNAL)` を投げる。** 2026-08 まで生の `Error` で、
+      // 説明の「AppError を投げる」と食い違っていた。動きは変わらない
+      // (どちらも再試行される)が、**コードと traceId が付かず、
+      // 障害調査でログと突き合わせられない**。
+      if (!res.ok) {
+        throw new AppError(ErrorCode.EXTERNAL, `Webhook 送信失敗: ${res.status}`);
+      }
     },
   };
 }

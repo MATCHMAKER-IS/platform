@@ -55,7 +55,7 @@ function collectRoutes(dir, out = []) {
 const problems = [];
 let publicCount = 0;
 
-for (const base of ["apps", "demos"]) {
+for (const base of ["apps"]) {
   for (const file of collectRoutes(path.join(ROOT, base))) {
     const src = readFileSync(file, "utf8");
     // 認証が要るものは対象外（叩けるのは正規の利用者だけ）

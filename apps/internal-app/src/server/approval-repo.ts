@@ -38,7 +38,9 @@ export function rowToState(row: Pick<ExpenseRequestRow, "status" | "currentStep"
 
 /** 申請を作成する。 */
 export async function createRequest(applicant: string, expenseId: string): Promise<ExpenseRequestRow> {
-  const initial = startWorkflow(EXPENSE_WORKFLOW);
+  // **申請者を渡す。** 渡さないと承認者ロールを持つ人が
+  // **自分の経費を自分で承認**できてしまう(2026-08)
+  const initial = startWorkflow(EXPENSE_WORKFLOW, applicant);
   return db.expenseRequest.create({
     // history は Json 列。名前付きの型は索引シグネチャを持たないので toJson で包む
     data: toJson({ applicant, expenseId, ...stateToRow(initial) }),
@@ -61,6 +63,22 @@ export async function applyAction(
     const placeholder: Expense = { id: row.expenseId, date: "", category: "", amount: 0 };
     const request: ExpenseRequest = { id: row.id, applicant: row.applicant, expense: placeholder, state: rowToState(row) };
     prevState = request.state;
+    // **自分の申請を自分で承認させない。**
+    //
+    // 【なぜ要るか】
+    // **兼務の人**（部長が自分の経費を出す）で起きます——
+    // **承認者の一覧に自分が入っている**ので、押せてしまいます。
+    // **不正のためでなく、うっかり**で起きるのが実際のところです。
+    //
+    // 【差し戻しは許します】
+    // **自分の申請を自分で取り下げる**のは正当です——
+    // 止めると、**間違えて出した申請を取り消せません**。
+    if (action !== "sendback" && actor.id === request.applicant) {
+      throw new Error(
+        "自分の申請は自分で承認・却下できません（取り下げる場合は差し戻してください）",
+      );
+    }
+
     const result = actOn(request, actor, action, reason);
     if (result.error) throw new Error(result.error);
 
@@ -69,9 +87,10 @@ export async function applyAction(
   });
 
   // コミット成功時に通知を Outbox へ積む(実送信は relay が担う=確実配信)。
-  // enqueue は同期・副作用小。実運用では上の withTransaction 内で積み、コミットと整合させる。
+  // **`await` する。** `decideDelivery` を統合したため非同期になった
+  // (2026-08)——実運用では上の withTransaction 内で積み、コミットと整合させる。
   if (committed.ok && prevState) {
-    enqueueExpenseTransition({ title: `経費申請 ${requestId}`, prev: prevState, next: committed.value });
+    await enqueueExpenseTransition({ title: `経費申請 ${requestId}`, prev: prevState, next: committed.value });
   }
   return committed;
 }

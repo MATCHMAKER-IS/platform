@@ -16,7 +16,6 @@ type Source = Blob | HTMLImageElement | HTMLCanvasElement | ImageBitmap;
  * @returns 読み込んだ画像
  * @throws 読み込みに失敗した場合(**壊れたファイル・CORS**)
  *
- * @param src 画像の URL または Blob
  * @returns 読み込んだ画像
  * @throws 読み込みに失敗した場合(**壊れたファイル・CORS**)
  */
@@ -63,12 +62,8 @@ function makeCanvas(w: number, h: number): { canvas: HTMLCanvasElement; ctx: Can
  *
  *
  * @param source 元の画像
- * @param options.width / height 目標のサイズ
- * @param options.fit 収め方(`cover` / `contain`)
- * @returns 変換後の Blob(**ブラウザ内で完結**。サーバに送らないので機密画像も扱える)
- *
- * @param image 元の画像
- * @param options 目標のサイズと収め方
+ * @param opts `width` / `height` が目標のサイズ、`fit` が収め方(`cover` / `contain`)。
+ *   `format` / `quality` で出力形式と品質も指定できる
  * @returns 変換後の Blob(**ブラウザ内で完結**。サーバに送らないので機密画像も扱える)
  */
 export async function resizeImage(source: Source, opts: FitOptions & { format?: ImageFormat; quality?: number }): Promise<Blob> {
@@ -83,12 +78,10 @@ export async function resizeImage(source: Source, opts: FitOptions & { format?: 
  * 矩形で切り抜く(トリミング)。
  *
  *
- * @param image 元の画像
+ * @param source 元の画像
  * @param rect 切り抜く矩形
- * @returns 変換後の Blob
- *
- * @param image 元の画像
- * @param rect 切り抜く矩形
+ * @param format 出力の形式（既定 `png`）
+ * @param quality 画質（`jpeg` / `webp` のとき。0〜1）
  * @returns 変換後の Blob
  */
 export async function cropImage(source: Source, rect: { left: number; top: number; width: number; height: number }, format: ImageFormat = "png", quality?: number): Promise<Blob> {
@@ -102,15 +95,11 @@ export async function cropImage(source: Source, rect: { left: number; top: numbe
  * モザイク(ピクセル化)。rect 未指定なら全体。
  *
  *
- * @param image 元の画像
- * @param rect モザイクをかける範囲
+ * @param source 元の画像
  * @param blockSize ブロックの大きさ(**大きいほど粗い**)
+ * @param rect モザイクをかける範囲（**省略すると全体**）
+ * @param format 出力の形式（既定 `png`）
  * @returns 変換後の Blob。**個人情報を隠す用途では、元画像を破棄すること**(モザイクは復元されないが、元が残っていれば意味がない)
- *
- * @param image 元の画像
- * @param rect モザイクをかける範囲
- * @param blockSize ブロックの大きさ(**大きいほど粗い**)
- * @returns 変換後の Blob。**個人情報を隠す用途では元画像を破棄すること**(モザイクは復元されないが、元が残っていれば意味がない)
  */
 export async function pixelate(source: Source, blockSize = 12, rect?: { left: number; top: number; width: number; height: number }, format: ImageFormat = "png"): Promise<Blob> {
   const { el, w, h } = await toDrawable(source);
@@ -143,12 +132,10 @@ export interface ImageFilters {
  * CSS フィルタを適用する。
  *
  *
- * @param image 元の画像
+ * @param source 元の画像
  * @param filters 明度・彩度・コントラストなど
- * @returns 変換後の Blob
- *
- * @param image 元の画像
- * @param filters 明度・彩度・コントラストなど
+ * @param format 出力の形式（既定 `png`）
+ * @param quality 画質（0〜1）
  * @returns 変換後の Blob
  */
 export async function applyFilters(source: Source, filters: ImageFilters, format: ImageFormat = "png", quality?: number): Promise<Blob> {
@@ -173,12 +160,10 @@ export async function applyFilters(source: Source, filters: ImageFilters, format
  * 反転(左右/上下ミラー)。
  *
  *
- * @param image 元の画像
- * @param axis 反転する軸(`horizontal` / `vertical`)
- * @returns 変換後の Blob
- *
- * @param image 元の画像
- * @param axis 反転する軸
+ * @param source 元の画像
+ * @param opts 反転する向き（`horizontal` / `vertical`。**両方 true で 180 度**）
+ * @param format 出力の形式（既定 `png`）
+ * @param quality 画質（0〜1）
  * @returns 変換後の Blob
  */
 export async function flipImage(source: Source, opts: { horizontal?: boolean; vertical?: boolean }, format: ImageFormat = "png", quality?: number): Promise<Blob> {
@@ -198,11 +183,6 @@ export async function flipImage(source: Source, opts: { horizontal?: boolean; ve
  * @param format 変換先(`webp` / `jpeg` / `png`)
  * @param quality 品質(0〜1)
  * @returns 変換後の Blob。**webp は容量が小さい**が、古いブラウザでは表示できない
- *
- * @param image 元の画像
- * @param format 変換先
- * @param quality 品質(0〜1)
- * @returns 変換後の Blob。**webp は容量が小さい**が、古いブラウザでは表示できない
  */
 export async function convertFormat(source: Source, format: ImageFormat, quality?: number): Promise<Blob> {
   const { el, w, h } = await toDrawable(source);
@@ -217,13 +197,9 @@ export async function convertFormat(source: Source, format: ImageFormat, quality
  *
  *
  * @param source 元の画像
- * @param options 透過にする色
- * @param format 許容差(**0 だと厳密一致**。JPEG は圧縮でわずかに色がずれるので、少し許容する)
- * @returns 変換後の Blob
- *
- * @param image 元の画像
- * @param color 透過にする色
- * @param tolerance 許容差(**0 だと厳密一致**。JPEG は圧縮でわずかに色がずれるので少し許容する)
+ * @param options `color` が透過にする色(既定は白)、`tolerance` が許容差
+ *   (**0 だと厳密一致**。JPEG は圧縮でわずかに色がずれるので少し許容する)
+ * @param format 出力形式(既定 `png`。**透過を残すなら png のまま**)
  * @returns 変換後の Blob
  */
 export async function removeBackgroundColor(source: Source, options: { color?: { r: number; g: number; b: number }; tolerance?: number } = {}, format: ImageFormat = "png"): Promise<Blob> {
@@ -246,12 +222,10 @@ export async function removeBackgroundColor(source: Source, options: { color?: {
  * 円/角丸マスク。
  *
  *
- * @param image 元の画像
- * @param mask マスク画像
- * @returns 変換後の Blob
- *
- * @param image 元の画像
- * @param mask マスク画像
+ * @param source 元の画像
+ * @param shape 形（`circle` / `rounded`）
+ * @param radius 角の丸み（`rounded` のとき。px）
+ * @param format 出力の形式（既定 `png`）
  * @returns 変換後の Blob
  */
 export async function maskImage(source: Source, shape: "circle" | "rounded", radius = 24, format: ImageFormat = "png"): Promise<Blob> {

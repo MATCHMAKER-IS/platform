@@ -1,14 +1,27 @@
 # @platform/utils
 
-規律ある汎用ヘルパー。`sleep` / `chunk` / `groupBy` / `uniqueBy` / `assertNever` /
-`safeJsonParse` / `retry` など、純粋で汎用的な関数のみを置きます。
+小さな道具（文字・数値・配列・非同期）。**依存ゼロ**です。
 
-**運用ルール(重要)**: 業務ロジックは置かない。1 箇所でしか使わないものは置かない。
-有名ライブラリで足りるものはそれを使う。これを守らないと"何でも入る引き出し"化して
-属人化が再発します。
+## これは何のためか
 
-## 関数・オブジェクト・配列・非同期(汎用ユーティリティ)
+**「自分で書けば 3 行」のものを、書かせない**ためのものです。
+
+3 行で書けるものは、**3 行の間違いが入ります**——
+全角の数字、`null` の配列、0 除算。**境界で必ず踏みます**。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **`formatNumber` は日本語向け** | 桁区切りは `,`、**全角の数字も受け取ります**（利用者は全角で入れます） |
+| **`chunk` は空配列で空を返す** | 例外にはなりません——**呼び出し側で件数を確かめる**必要はありません |
+| **`pTimeout` は必ず使う** | 外部への呼び出しに時間制限が無いと、**永久に待ちます**——利用者は白い画面のままです |
+| **依存を足さないこと** | ここは**全パッケージが使う土台**です。依存を足すと**全体に広がります** |
+
+## よく使うもの
+
 ```ts
+import { sortBy, partition, keyBy } from "@platform/utils";
 import { debounce, memoize, once, pipe } from "@platform/utils";           // 関数
 import { pick, omit, deepClone, deepMerge, deepEqual, isEmpty } from "@platform/utils"; // オブジェクト
 import { sortBy, partition, keyBy, zip, range, difference } from "@platform/utils";     // 配列

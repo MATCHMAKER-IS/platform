@@ -1,16 +1,43 @@
 "use client";
 /** 固定資産。台帳（現在簿価つき）、資産登録、償却スケジュール表示。 */
 import * as React from "react";
-import { Button, Input, Select } from "@platform/ui";
+import { formatYen } from "@platform/report";
+import { Button, Input, Select, PageShell } from "@platform/ui";
 
-interface Asset { code: string; name: string; acquiredOn: string; cost: number; usefulLifeYears: number; method: string; bookValue: number; currentYearDepreciation: number; accumulated: number; disposed: boolean; disposedOn?: string; disposalType?: string; }
+interface Asset {
+  code: string;
+  name: string;
+  acquiredOn: string;
+  cost: number;
+  usefulLifeYears: number;
+  method: string;
+  bookValue: number;
+  currentYearDepreciation: number;
+  accumulated: number;
+  disposed: boolean;
+  disposedOn?: string;
+  disposalType?: string;
+}
 interface Summary { totalCost: number; totalBookValue: number; totalAccumulated: number; count: number; }
 interface Data { year: number; assets: Asset[]; summary: Summary; }
 interface Row { year: number; depreciation: number; accumulated: number; bookValue: number; }
 interface JournalRow { account: string; debit: number; credit: number; memo?: string; }
 interface DisposeState { code: string; type: "retire" | "sell"; disposedOn: string; proceeds: string; }
+/**
+ * 償却資産税の申告見込み。
+ *
+ * **会計の減価償却とは別の計算**（税務上は取得価額の 5% で下げ止まる）。
+ * 「会計上ほぼ償却済みだから申告不要」は誤りになる。
+ */
+interface PropertyTax {
+  year: number;
+  taxRate: number;
+  taxFreeThreshold: number;
+  assets: { total: number; taxable: number; excluded: number };
+  declaration: { taxableBase: number; belowThreshold: boolean; tax: number };
+}
 
-const yen = (n: number) => `¥${n.toLocaleString()}`;
+const yen = (n: number) => formatYen(n);
 const methodLabel = (m: string) => (m === "declining_balance" ? "定率法" : "定額法");
 
 export interface AssetsClientProps { fetchImpl?: typeof fetch; canWrite?: boolean; }
@@ -23,6 +50,8 @@ export function AssetsClient({ fetchImpl, canWrite = true }: AssetsClientProps) 
   const [disposeResult, setDisposeResult] = React.useState<{ rows: JournalRow[] } | null>(null);
   const [form, setForm] = React.useState({ code: "", name: "", acquiredOn: "", cost: "", usefulLifeYears: "5", method: "straight_line" });
   const [error, setError] = React.useState("");
+  // **申告期限は 1 月 31 日。** 気づくのが 1 月では遅いので、常に見えるようにする
+  const [propertyTax, setPropertyTax] = React.useState<PropertyTax | null>(null);
   const doFetch = fetchImpl ?? (globalThis as unknown as { fetch: typeof fetch }).fetch;
 
   const reload = React.useCallback(async () => {
@@ -30,6 +59,13 @@ export function AssetsClient({ fetchImpl, canWrite = true }: AssetsClientProps) 
     if (res.ok) setData((await res.json()) as Data);
   }, [doFetch]);
   React.useEffect(() => { void reload(); }, [reload]);
+
+  React.useEffect(() => {
+    void (async () => {
+      const res = await doFetch("/api/assets/property-tax");
+      if (res.ok) setPropertyTax((await res.json()) as PropertyTax);
+    })();
+  }, [doFetch]);
 
   const register = async () => {
     setError("");
@@ -60,15 +96,42 @@ export function AssetsClient({ fetchImpl, canWrite = true }: AssetsClientProps) 
   };
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <div className="mb-1 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">固定資産</h1>
-        <Button onClick={showJournal} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">当年の減価償却仕訳</Button>
-      </div>
+    <PageShell title="固定資産" width="wide">
+        <Button onClick={showJournal} variant="secondary" className="rounded px-4 py-2 text-sm">当年の減価償却仕訳</Button>
       <p className="mb-4 text-xs text-[var(--color-muted)]">資産台帳と減価償却（定額法・定率法、残存簿価1円まで）です。当年の償却は決算に反映されます。</p>
+
+      {propertyTax && (
+        <div className="mb-6 rounded border border-[var(--color-border)] p-4">
+          <h2 className="mb-2 text-sm font-medium">
+            償却資産税の申告見込み（{propertyTax.year} 年度）
+            <span className="ml-2 text-xs text-[var(--color-muted)]">申告期限 1 月 31 日</span>
+          </h2>
+          {/* **免税点で分岐する。** 150 万円未満なら課税されないが、
+              **申告そのものは必要**——「税額 0 円だから出さなくてよい」ではない。 */}
+          {propertyTax.declaration.belowThreshold ? (
+            <p className="text-sm">
+              課税標準 <strong>{yen(propertyTax.declaration.taxableBase)}</strong> は
+              免税点（{yen(propertyTax.taxFreeThreshold)}）未満のため<strong>課税されません</strong>。
+              <span className="ml-1 text-xs text-[var(--color-muted)]">ただし申告は必要です。</span>
+            </p>
+          ) : (
+            <p className="text-sm">
+              課税標準 <strong>{yen(propertyTax.declaration.taxableBase)}</strong> ／
+              税額 <strong className="text-[var(--color-warning)]">{yen(propertyTax.declaration.tax)}</strong>
+              <span className="ml-1 text-xs text-[var(--color-muted)]">（税率 {(propertyTax.taxRate * 100).toFixed(1)}%・市区町村により異なります）</span>
+            </p>
+          )}
+          {/* **対象外の件数も見せる。** 「なぜこの資産が入っていないのか」を
+              後から説明できないと、申告の内容を確認できない */}
+          <p className="mt-1 text-xs text-[var(--color-muted)]">
+            対象 {propertyTax.assets.taxable} 件 / 全 {propertyTax.assets.total} 件
+            {propertyTax.assets.excluded > 0 && `（除却済み・取得前など ${propertyTax.assets.excluded} 件は対象外）`}
+          </p>
+        </div>
+      )}
       {journal && (
         <div className="mb-6 rounded border border-[var(--color-border)] bg-[var(--color-subtle)] p-4">
-          <div className="mb-2 flex items-center justify-between"><h2 className="text-sm font-medium">当年の減価償却仕訳（償却費計 {yen(journal.total)}）</h2><Button onClick={() => setJournal(null)} className="text-xs text-[var(--color-muted)] hover:underline">閉じる</Button></div>
+     <div className="mb-2 flex items-center justify-between"><h2 className="text-sm font-medium">当年の減価償却仕訳（償却費計 {yen(journal.total)}）</h2><Button variant="ghost" onClick={() => setJournal(null)} className="text-xs text-[var(--color-muted)] hover:underline">閉じる</Button></div>
           <table className="w-full text-sm">
             <thead><tr className="border-b border-[var(--color-border)] text-left text-xs text-[var(--color-muted)]"><th className="px-2 py-1">勘定科目</th><th className="px-2 py-1">補助</th><th className="px-2 py-1 text-right">借方</th><th className="px-2 py-1 text-right">貸方</th></tr></thead>
             <tbody>
@@ -98,7 +161,7 @@ export function AssetsClient({ fetchImpl, canWrite = true }: AssetsClientProps) 
             <label className="text-xs text-[var(--color-muted)]">取得価額<Input value={form.cost} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, cost: e.target.value })} inputMode="numeric" className="mt-0.5 block w-28 rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
             <label className="text-xs text-[var(--color-muted)]">耐用年数<Input value={form.usefulLifeYears} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, usefulLifeYears: e.target.value })} inputMode="numeric" className="mt-0.5 block w-16 rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
             <label className="text-xs text-[var(--color-muted)]">方法<Select value={form.method} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setForm({ ...form, method: e.target.value })} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" options={[{ label: "定額法", value: "straight_line" }, { label: "定率法", value: "declining_balance" }]} /></label>
-            <Button onClick={register} className="rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">登録</Button>
+      <Button onClick={register} className="rounded px-4 py-1.5 text-sm text-white">登録</Button>
           </div>
         </div>
       )}
@@ -119,7 +182,7 @@ export function AssetsClient({ fetchImpl, canWrite = true }: AssetsClientProps) 
               <td className="px-2 py-2 text-right">{yen(a.cost)}</td>
               <td className="px-2 py-2 text-right">{yen(a.currentYearDepreciation)}</td>
               <td className={`px-2 py-2 text-right font-medium ${a.disposed ? "text-[var(--color-muted)]" : ""}`}>{yen(a.bookValue)}</td>
-              <td className="px-2 py-2 text-right"><span className="flex justify-end gap-2">{a.disposed ? <span className="rounded bg-[var(--color-subtle-strong)] px-1.5 py-0.5 text-xs text-[var(--color-muted)]">処分済（{a.disposalType === "sell" ? "売却" : "除却"}）</span> : (canWrite && <Button onClick={() => setDispose({ code: a.code, type: "retire", disposedOn: "", proceeds: "" })} className="text-[var(--color-danger)] hover:underline">除却/売却</Button>)}<Button onClick={() => showSchedule(a.code)} className="text-[var(--color-primary)] hover:underline">償却表</Button></span></td>
+       <td className="px-2 py-2 text-right"><span className="flex justify-end gap-2">{a.disposed ? <span className="rounded bg-[var(--color-subtle-strong)] px-1.5 py-0.5 text-xs text-[var(--color-muted)]">処分済（{a.disposalType === "sell" ? "売却" : "除却"}）</span> : (canWrite && <Button variant="ghost" onClick={() => setDispose({ code: a.code, type: "retire", disposedOn: "", proceeds: "" })} className="text-[var(--color-danger)] hover:underline">除却/売却</Button>)}<Button variant="ghost" onClick={() => showSchedule(a.code)} className="text-[var(--color-primary)] hover:underline">償却表</Button></span></td>
             </tr>
           ))}
           {(data?.assets.length ?? 0) === 0 && <tr><td colSpan={8} className="px-2 py-4 text-center text-sm text-[var(--color-muted)]">登録された資産はありません。</td></tr>}
@@ -128,19 +191,19 @@ export function AssetsClient({ fetchImpl, canWrite = true }: AssetsClientProps) 
 
       {dispose && (
         <div className="mt-6 rounded border border-[color-mix(in_srgb,var(--color-danger)_25%,transparent)] bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] p-4">
-          <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium">除却・売却（{dispose.code}）</h2><Button onClick={() => setDispose(null)} className="text-xs text-[var(--color-muted)] hover:underline">閉じる</Button></div>
+     <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-medium">除却・売却（{dispose.code}）</h2><Button variant="ghost" onClick={() => setDispose(null)} className="text-xs text-[var(--color-muted)] hover:underline">閉じる</Button></div>
           <div className="flex flex-wrap items-end gap-2">
             <label className="text-xs text-[var(--color-muted)]">処分種別<Select value={dispose.type} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setDispose({ ...dispose, type: e.target.value as "retire" | "sell" })} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" options={[{ label: "除却", value: "retire" }, { label: "売却", value: "sell" }]} /></label>
             <label className="text-xs text-[var(--color-muted)]">処分日<Input type="date" value={dispose.disposedOn} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDispose({ ...dispose, disposedOn: e.target.value })} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
             {dispose.type === "sell" && <label className="text-xs text-[var(--color-muted)]">売却額<Input value={dispose.proceeds} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDispose({ ...dispose, proceeds: e.target.value })} inputMode="numeric" className="mt-0.5 block w-28 rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>}
-            <Button onClick={submitDispose} className="rounded bg-[var(--color-danger)] px-4 py-1.5 text-sm text-white">記録する</Button>
+            <Button onClick={submitDispose} variant="danger" className="rounded px-4 py-1.5 text-sm text-white">記録する</Button>
           </div>
         </div>
       )}
 
       {disposeResult && (
         <div className="mt-6 rounded border border-[var(--color-border)] bg-[var(--color-subtle)] p-4">
-          <div className="mb-2 flex items-center justify-between"><h2 className="text-sm font-medium">処分の仕訳</h2><Button onClick={() => setDisposeResult(null)} className="text-xs text-[var(--color-muted)] hover:underline">閉じる</Button></div>
+     <div className="mb-2 flex items-center justify-between"><h2 className="text-sm font-medium">処分の仕訳</h2><Button variant="ghost" onClick={() => setDisposeResult(null)} className="text-xs text-[var(--color-muted)] hover:underline">閉じる</Button></div>
           <table className="w-full text-sm">
             <thead><tr className="border-b border-[var(--color-border)] text-left text-xs text-[var(--color-muted)]"><th className="px-2 py-1">勘定科目</th><th className="px-2 py-1 text-right">借方</th><th className="px-2 py-1 text-right">貸方</th></tr></thead>
             <tbody>{disposeResult.rows.map((r, i) => <tr key={i} className="border-b border-[var(--color-border)]"><td className="px-2 py-1.5">{r.account}</td><td className="px-2 py-1.5 text-right">{r.debit ? yen(r.debit) : ""}</td><td className="px-2 py-1.5 text-right">{r.credit ? yen(r.credit) : ""}</td></tr>)}</tbody>
@@ -161,6 +224,6 @@ export function AssetsClient({ fetchImpl, canWrite = true }: AssetsClientProps) 
           </table>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

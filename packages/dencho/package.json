@@ -6,7 +6,10 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./search": "./src/search.ts",
+    "./retention": "./src/retention.ts",
+    "./types": "./src/types.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -17,7 +20,11 @@
   "dependencies": {},
   "devDependencies": {
     "@platform/config": "workspace:*",
+    "@types/node": "^22.10.0",
     "typescript": "^5.7.3",
     "vitest": "^3.0.4"
+  },
+  "platform": {
+    "tier": "stable"
   }
 }

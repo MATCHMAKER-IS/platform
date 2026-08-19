@@ -1,4 +1,5 @@
 // public-api: Service Worker 本体。ブラウザが認証なしで取得するため
+// no-rate-limit: Service Worker の配信。ブラウザが取りに来る静的配信
 /**
  * Service Worker。オフラインでも最低限の画面が出るようにする。
  *

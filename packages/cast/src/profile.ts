@@ -25,6 +25,7 @@ export interface ProfileField {
  * **値のある項目だけ**を返す(空欄を「未設定」と並べても意味がない)。
  *
  * @param cast キャスト
+ * @param fields 対象のフィールド(省略時は既定の項目)
  * @returns ラベルと値の配列(**そのまま描画できる形**)
  */
 export function profileItems(cast: Cast, fields: ProfileField[]): ProfileItem[] {
@@ -62,6 +63,7 @@ export function profileCompleteness(cast: Cast, fields: ProfileField[]): number 
  * **公開の前に確認する**。項目が欠けたまま公開すると、見る側に不信感を与える。
  *
  * @param cast キャスト
+ * @param requiredKeys 必須とみなす項目
  * @returns 満たしていれば true と、**足りない項目名**
  */
 export function hasRequiredProfile(cast: Cast, requiredKeys: string[]): boolean {

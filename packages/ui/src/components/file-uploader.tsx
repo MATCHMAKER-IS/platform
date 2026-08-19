@@ -24,7 +24,6 @@ export interface FileUploaderProps {
   className?: string;
 }
 
-/** 選択即アップロード + 進捗表示のアップローダー。 */
 /**
  * ファイルの受け取り。
  *

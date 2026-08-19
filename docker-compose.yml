@@ -58,12 +58,26 @@ services:
       MEILI_MASTER_KEY: masterKey
     ports:
       - "7700:7700"
+    # **healthcheck を付ける。** 無いと `depends_on: condition: service_healthy` が書けず、
+    # アプリが先に起動して接続に失敗する(db / mailpit には最初からある)
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:7700/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   redis:
     image: redis:7-alpine
     profiles: ["optional"]
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    # **永続化しない。** レート制限の計数とロックしか置かないので、
+    # 作り直して消えても業務に影響しない(消えれば制限が緩む方向で、締まる方向ではない)
 
 volumes:
   db-data:

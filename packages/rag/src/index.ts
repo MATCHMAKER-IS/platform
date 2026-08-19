@@ -7,6 +7,9 @@
  */
 
 export * from "./rerank";
+// **RRF（順位で統合）を使う。** BM25 とベクトルは尺度が違うので、
+// 点数ではなく順位で混ぜる（詳しくは `rerank.ts` の説明を見てください）。
+import { fuseByRank } from "./rerank";
 import { AppError, ErrorCode, ok, err, type Result } from "@platform/core";
 
 /** アクセス制御タグ。ドキュメントに付与し、検索時の許可判定に使う。 */
@@ -182,8 +185,10 @@ export interface RagStoreOptions {
 /**
  * RAG ストアを作る。
  *
- * @param options.index ベクトル索引
- * @param options.embed 埋め込みを作る関数
+ * @param options.vectorIndex ベクトル索引。`embedder` が文字列をベクトルにする
+ *   (以前この説明は `index` / `embed` という短い名前だったが、どちらも存在しない)
+ * @param options.embedder 埋め込みを作る処理(**`embed` ではない**)。
+ *   `backend` は検索の実体、`overFetch` は再ランク前に多めに取る倍率(既定 4)
  * @returns ストア(`add` で追加、`search` で検索)
  */
 export function createRagStore(options: RagStoreOptions): RagStore {
@@ -223,15 +228,20 @@ export function createRagStore(options: RagStoreOptions): RagStore {
         return chunk ? [{ chunk, score: h.score ?? 0 }] : [];
       });
 
-      // マージ(id 単位で高い方のスコア)→ 権限フィルタ → limit
-      const merged = new Map<string, RagHit>();
-      for (const h of [...vectorHits, ...textHits]) {
-        const cur = merged.get(h.chunk.id);
-        if (!cur || h.score > cur.score) merged.set(h.chunk.id, h);
-      }
-      const allowed = [...merged.values()]
+      // **順位で統合する（RRF）。** 2026-08 まで「id 単位で高い方のスコア」
+      // としていたが、**BM25(0〜数十)とコサイン類似度(-1〜1)は尺度が違う**ため、
+      // **常に BM25 が勝ち、ベクトル検索が事実上効いていなかった**。
+      //
+      // RRF は**点数を捨てて順位だけ**を使うので尺度の違いが消え、
+      // **両方の検索に出たものが上に来ます**——「語も一致し、意味も近い」
+      // ものが最も確からしいためです。
+      const fused = fuseByRank<RagHit>([
+        vectorHits.map((h) => ({ id: h.chunk.id, item: h })),
+        textHits.map((h) => ({ id: h.chunk.id, item: h })),
+      ]);
+      const allowed = fused
+        .map((f) => f.item)
         .filter((h) => canAccess(principal, h.chunk.acl))
-        .sort((a, b) => b.score - a.score)
         .slice(0, limit);
       return ok(allowed);
     },
@@ -269,6 +279,74 @@ export function buildContext(hits: RagHit[], options: { maxChars?: number } = {}
   }
   return blocks.join("\n\n---\n\n");
 }
+
+/**
+ * **トークン数を見積もる**（`@platform/ai` の `estimateTokens` と同じ目安）。
+ *
+ * **`@platform/ai` を取り込まないのは、依存を増やさないため**です
+ * ——RAG は AI 無しでも（全文検索だけでも）使えるようにしてあります。
+ */
+function estimateTokensLocal(text: string): number {
+  let cjk = 0;
+  let other = 0;
+  for (const ch of text) {
+    if (/[\u3000-\u30ff\u3400-\u9fff\uf900-\ufaff\uff00-\uffef\uac00-\ud7af]/.test(ch)) cjk += 1;
+    else other += 1;
+  }
+  // **切り上げる。** 少なく見ると上限を超えて送ってしまう
+  return Math.ceil(cjk / 0.7) + Math.ceil(other / 4);
+}
+
+/**
+ * **トークン数で区切って**文脈を作る。
+ *
+ * 【なぜ文字数ではだめか】
+ * **文字数とトークン数は比例しません。**
+ *
+ * | | 1 トークンあたり | `maxChars: 4000` は |
+ * |---|---|---|
+ * | 日本語 | **約 0.7 文字** | **約 5,700 トークン** |
+ * | 英語 | 約 4 文字 | 約 1,000 トークン |
+ *
+ * **5 倍以上の開きがあります。** 英語で調整した上限をそのまま日本語で使うと、
+ * **モデルの上限を超えて呼び出しが丸ごと失敗**します
+ * ——しかも**失敗するのは検索ではなく AI の呼び出し**なので、
+ * 「なぜ落ちるのか」が分かりにくい。
+ *
+ * 【途中で切らないこと】
+ * **文書の途中で切ると、意味が変わります。**
+ * 「〜は認められない」が「〜は認められ」で切れると**逆の意味**になります。
+ * ここでは**入り切らない文書は丸ごと落とし**、
+ * **入る分だけを渡します**——中途半端に入れるより安全です。
+ *
+ * @param hits 検索結果（良い順）
+ * @param options `maxTokens`（既定 3,000）と `separator`
+ * @returns 文脈の文字列と、実際に入った件数
+ */
+export function buildContextByTokens(
+  hits: readonly RagHit[],
+  options: { maxTokens?: number; separator?: string } = {},
+): { text: string; used: number; estimatedTokens: number } {
+  const maxTokens = Math.max(1, options.maxTokens ?? 3000);
+  const separator = options.separator ?? "\n\n---\n\n";
+  const sepTokens = estimateTokensLocal(separator);
+
+  const parts: string[] = [];
+  let total = 0;
+
+  for (const hit of hits) {
+    const body = hit.chunk.text;
+    const cost = estimateTokensLocal(body) + (parts.length === 0 ? 0 : sepTokens);
+    // **入り切らないものは丸ごと落とす。** 途中で切ると
+    // **「認められない」が「認められ」になり、逆の意味**になります。
+    if (total + cost > maxTokens) continue;
+    parts.push(body);
+    total += cost;
+  }
+
+  return { text: parts.join(separator), used: parts.length, estimatedTokens: total };
+}
+
 
 // ─────────────────────── VectorIndex 実装 ───────────────────────
 
@@ -342,7 +420,7 @@ export interface PgVectorDb {
  * DB を注入する設計なので、この関数自体は SQL 文字列の組み立てのみ(オフラインでも構築ロジックを検証可能)。
  *
  * @param db Prisma クライアント
- * @param options.table テーブル名
+ * @param table テーブル名（既定 `rag_vectors`）
  * @returns ベクトル索引。**メモリ版と違い件数が増えても実用的**
  */
 export function createPgVectorIndex(db: PgVectorDb, table = "rag_vectors"): VectorIndex {
@@ -432,7 +510,9 @@ export function rowsToDocuments(
  * （ingest でさらに分割される）。
  *
  * @param text 長いテキスト
- * @param options.maxChars 1 塊の最大文字数
+ * @param options.idPrefix 生成する文書 ID の接頭辞、`title` は表題(いずれも必須)。
+ *   `separator` で区切りの正規表現を変えられる(既定は空行 3 つ以上)。
+ *   **文字数での分割はここではしない**(塊の大きさは {@link chunkDocument} の `maxChars`)
  * @returns 分割した文書(**検索の精度は塊の大きさで決まる**。大きすぎると関係ない部分まで文脈に入る)
  */
 export function splitTextToDocuments(

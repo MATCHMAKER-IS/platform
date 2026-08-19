@@ -5,7 +5,6 @@
 import * as React from "react";
 import { cn } from "../lib/cn";
 
-/** ローディングプレースホルダ(幅・高さは className で指定)。 */
 /**
  * 読み込み中の枠(内容の形だけ先に出す)。
  *

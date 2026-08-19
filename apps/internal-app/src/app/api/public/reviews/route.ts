@@ -3,8 +3,12 @@
 import { withApiObservability } from "../../../../server/instrument";
 import { reviewStore } from "../../../../server/platform-services";
 import { summarizeReviews } from "../../../../server/review-repo";
+import { limitPublic } from "../../../../server/rate-limit";
 
 async function handleGET(req: Request): Promise<Response> {
+  // **社外に開いている。** 読み取りでも、連打されれば DB が詰まる
+  const limited = await limitPublic(req, "public-reviews");
+  if (limited) return limited;
   const q = new URL(req.url).searchParams;
   const subjectType = q.get("subjectType") ?? "";
   const subjectId = q.get("subjectId") ?? "";

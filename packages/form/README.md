@@ -1,9 +1,26 @@
 # @platform/form
 
-フォーム統合(react-hook-form + zod + `@platform/ui`)。
-zod スキーマを渡すだけで、型安全なフォームとラベル・エラー付き入力が使えます。
+フォームの検証と整形。**入力の間違いを、送る前に伝えます**。
 
-```tsx
+## これは何のためか
+
+**「エラーが出たが、どこが悪いか分からない」**を無くすためのものです。
+
+**どの項目が、なぜ駄目か**を、**その場で**伝えます。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **同じ項目のエラーは最初の 1 件だけ** | 全部出すと**読まれません**。「必須です。かつ 3 文字以上。かつ英数字のみ」——**直しようがありません** |
+| **項目をまたぐ検証は別に書く** | 「開始日 < 終了日」は**どちらか 1 つの項目の問題ではありません** |
+| **サーバでも必ず検証する** | 画面の検証は**利用者の助け**であって、**守りではありません**——API を直接叩かれれば通ります |
+| **全角を受け取る** | 利用者は**全角の数字**を入れます。弾くより**直して受ける**方が親切です |
+
+## よく使うもの
+
+```ts
+import { readCsrfToken, useCsrfToken, csrfHeaders } from "@platform/form";
 "use client";
 import { z } from "zod";
 import { email, requiredString, prefecture, password } from "@platform/validation";
@@ -123,5 +140,5 @@ if (!result.ok) {
   // errors[name] を各入力の下に表示
 }
 ```
-実結線の例は `demos/validated-form`（検証 + トースト）を参照。
+実結線の例は `apps/showcase`(`pnpm dev:showcase`)で探してください。
 

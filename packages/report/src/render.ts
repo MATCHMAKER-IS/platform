@@ -105,7 +105,13 @@ export function renderInvoiceHtml(doc: InvoiceDocument, options: { locale?: Repo
 <html lang="ja"><head><meta charset="utf-8"><title>${esc(title)} ${esc(doc.invoiceNumber)}</title>
 <style>
   * { box-sizing: border-box; }
-  body { font-family: "Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",sans-serif; color:#0f172a; margin:0; padding:24px; font-size:12px; }
+  /* **サーバで PDF 化する前提の並び。** 端末のフォント(Hiragino / Yu Gothic)は
+     サーバに無く、"Noto Sans JP" は Google Fonts の Web 版の名前で、
+     Debian の fonts-noto-cjk が入れるのは "Noto Sans CJK JP"(別名)。
+     この 2 つを取り違えると全て外れて sans-serif に落ち、
+     日本語グリフを持たないフォントなら □(豆腐)になる。
+     画面は端末のフォントで描くので**開発中は気づけない**。 */
+  body { font-family: "Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans CJK JP","Noto Sans JP",sans-serif; color:#0f172a; margin:0; padding:24px; font-size:12px; }
   h1 { font-size:22px; letter-spacing:.3em; text-align:center; margin:0 0 16px; }
   .head { display:flex; justify-content:space-between; margin-bottom:16px; }
   .box { line-height:1.7; }
@@ -171,7 +177,8 @@ export function renderInvoiceHtml(doc: InvoiceDocument, options: { locale?: Repo
  *
  * **請求書と同じ構造**なので、ラベル(「請求書」→「見積書」)と有効期限だけ差し替える。
  *
- * @param quote 見積書
+ * @param doc 見積書
+ * @param options.locale 言語（金額と日付の書き方が変わります）
  * @returns HTML 文字列
  */
 export function renderQuotationHtml(doc: InvoiceDocument, options: { locale?: ReportLocale } = {}): string {
@@ -183,7 +190,8 @@ export function renderQuotationHtml(doc: InvoiceDocument, options: { locale?: Re
  *
  * **請求書と同じ構造**なので、ラベルと納品日だけ差し替える。
  *
- * @param delivery 納品書
+ * @param doc 納品書
+ * @param options 会社名・ロゴなどの見出し情報
  * @returns HTML 文字列
  */
 export function renderDeliveryNoteHtml(doc: InvoiceDocument, options: { locale?: ReportLocale } = {}): string {

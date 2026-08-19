@@ -20,7 +20,6 @@ export interface VideoPlayerProps {
   className?: string;
 }
 
-/** 動画プレイヤー。 */
 /**
  * 動画の再生。
  *

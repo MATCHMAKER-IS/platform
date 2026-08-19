@@ -21,7 +21,6 @@ export interface ImageCropperProps {
   className?: string;
 }
 
-/** ドラッグで範囲選択して切り抜くコンポーネント。 */
 /**
  * 画像の切り抜き。
  *

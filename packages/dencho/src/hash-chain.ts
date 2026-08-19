@@ -32,18 +32,8 @@ function sortValue(v: unknown): unknown {
 }
 
 /** チェーン上の 1 レコード。 */
-export interface EvidenceRecord {
-  /** 連番(0 起点)。 */
-  seq: number;
-  /** 記録日時(ISO 8601)。 */
-  recordedAt: string;
-  /** 対象データ(取引データや書類のハッシュなど)。 */
-  data: unknown;
-  /** 直前レコードのハッシュ。 */
-  prevHash: string;
-  /** このレコードのハッシュ。 */
-  hash: string;
-}
+export type { EvidenceRecord } from "./types";
+import type { EvidenceRecord } from "./types";
 
 /**
  * レコードのハッシュを計算する(**前のハッシュを含める** = ハッシュチェーン)。
@@ -51,7 +41,9 @@ export interface EvidenceRecord {
  * **電子帳簿保存法の「改ざん防止」要件**を満たすための仕組み。
  * 途中のレコードを書き換えると、それ以降のハッシュがすべて合わなくなるので検出できる。
  *
- * @param record レコード(連番・日時・データ)
+ * @param seq 連番（0 起点）
+ * @param recordedAt 記録日時（ISO 8601）
+ * @param data 対象のデータ
  * @param prevHash 前のレコードのハッシュ(**最初は空文字**)
  * @returns SHA-256 のハッシュ(16 進)
  */
@@ -63,6 +55,8 @@ export function hashEvidence(seq: number, recordedAt: string, data: unknown, pre
 /**
  * チェーンに 1 件追加する(末尾のハッシュを引き継ぐ)。元の配列は変更しない。
  * @param chain 既存のチェーン(空なら genesis から)
+ * @param data 記録する対象
+ * @param recordedAt 記録日時（ISO 8601）
  * @returns 前のハッシュを含めた新しいレコード(**チェーンが繋がる**)
  */
 export function appendEvidence(chain: EvidenceRecord[], data: unknown, recordedAt: string): EvidenceRecord {

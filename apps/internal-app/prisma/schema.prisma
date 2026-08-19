@@ -6,6 +6,25 @@ generator client {
   output   = "../src/generated/prisma"
 }
 
+// 【外部キー(`@relation`)をほとんど張っていない理由】
+//
+// **69 モデルのうち、リレーションを張っているのはチャットの 2 件だけ**で、
+// 残り 34 列は `userId` などの ID を**文字列として持つ**だけ。
+// 2026-08 に確認した判断:
+//
+// - **物理削除をしない運用**が前提。利用者も申請も**消さずに状態で管理**する
+//   (`@platform/pii` の消去は「消せるかを判断する」までで、
+//   **保存義務期間内は消せない**)。孤児が生まれる経路そのものが無い
+// - **アプリをまたいでデータを持つ**(内部アプリと LINE 連携が同じ利用者を指す)。
+//   外部キーを張ると、**片方のアプリだけでマイグレーションできなくなる**
+// - **削除の順序に縛られない**。外部キーがあると「子から消す」順序が必要で、
+//   一括の整理や移行が組みにくい
+//
+// **張るなら全部に張ること。** 2 件だけ張っている今の状態は、
+// 「ここは守られている」と誤解させる——チャットはメッセージが大量に増えるため
+// `onDelete: Cascade` で**部屋を消したら中身も消える**ようにしてあるが、
+// **他は何も守っていない**。整合はアプリ側の責任。
+
 datasource db {
   provider = "postgresql"
 }
@@ -36,6 +55,9 @@ model ExpenseRequest {
   updatedAt   DateTime @updatedAt
 
   @@index([status])
+  // **経費の画面から必ず引く**(この経費の申請はどうなっているか)。
+  // 経費は毎月増え続けるので、無いと全件走査になる
+  @@index([expenseId])
 }
 
 model AuditLog {
@@ -46,6 +68,8 @@ model AuditLog {
   metadata  Json?
   createdAt DateTime @default(now())
 
+  /// **誰の操作かで絞る。** 「この人が何をしたか」は監査の基本
+  @@index([actor])
   @@index([action])
   @@index([target])
   @@index([createdAt])
@@ -54,7 +78,7 @@ model AuditLog {
 model ImportBatch {
   id         String   @id @default(cuid())
   source     String
-  userId     String
+  userId     String  // no-index: 取込は月数回。行が増えない
   total      Int
   inserted   Int
   errorCount Int      @default(0)
@@ -130,7 +154,7 @@ model MessageReadRow {
 model MessageReactionRow {
   id        String   @id @default(cuid())
   messageId String
-  userId    String
+  userId    String  // no-index: @@unique([messageId,userId,kind]) の先頭が messageId。利用者別には引かない
   kind      String
   createdAt DateTime @default(now())
 
@@ -141,7 +165,7 @@ model MessageReactionRow {
 model PinRow {
   id        String   @id @default(cuid())
   roomId    String
-  messageId String
+  messageId String  // no-index: ピンは部屋あたり数件。roomId の索引で足りる
   pinnedBy  String
   pinnedAt  DateTime @default(now())
 
@@ -158,6 +182,10 @@ model BookmarkRow {
 
   @@unique([userId, messageId])
   @@index([userId])
+  // **部屋を消すときに全件走査になる**(この部屋のブックマークを消す)。
+  // メッセージ単位の削除でも引く
+  @@index([roomId])
+  @@index([messageId])
 }
 
 // ─────────── 通知センター / ファイル / 監査 ───────────
@@ -225,6 +253,9 @@ model AnalyticsEventRow {
   @@index([at])
   @@index([path])
   @@index([sessionId])
+  // **最も行が増えるテーブル**(画面を開くたびに 1 行)。
+  // 「この人がどこを使っているか」を出すのに引く
+  @@index([userId])
 }
 
 model DashboardPrefRow {
@@ -236,7 +267,7 @@ model DashboardPrefRow {
 model CmsPostRow {
   slug        String    @id
   title       String
-  categoryId  String?
+  categoryId  String?  // no-index: 記事は数百件。分類での絞り込みは全件でも速い
   excerpt     String?
   eyecatch    String?
   body        String
@@ -278,7 +309,7 @@ model CategoryRow {
   id       String  @id @default(cuid())
   name     String
   slug     String  @unique
-  parentId String?
+  parentId String?  // no-index: 分類は数十件
   order    Int     @default(0)
 
   @@index([order])
@@ -290,7 +321,7 @@ model CmsRevisionRow {
   version     Int
   title       String
   body        String
-  categoryId  String?
+  categoryId  String?  // no-index: 版は記事 ID で引く。分類では引かない
   excerpt     String?
   eyecatch    String?
   tags        Json      @default("[]")
@@ -334,6 +365,16 @@ model StockMovementRow {
   quantity Float
   at       DateTime @default(now())
   ref      String?
+  /// 入庫単価。**`Float` は意図的**（2026-08 に確認）。
+  ///
+  /// 在庫の評価は**移動平均法**（`@platform/inventory` の `valuation.ts`）で、
+  /// `value / qty` を繰り返すため**平均単価に必ず端数が出ます**。
+  /// ここを `Int` にすると、出庫のたびに丸めた値で計算することになり、
+  /// **帳簿の在庫金額が実際とずれていきます**。
+  ///
+  /// **給与や請求と扱いが違う点に注意。** あちらは「1 円単位で確定する金額」なので `Int`。
+  /// ここは「計算の途中で使う単価」なので端数を保ちます。
+  /// **表示するときに丸めてください**（保存する値は丸めない）。
   unitCost Float?
 
   @@index([sku])
@@ -346,12 +387,17 @@ model InvoiceRow {
   registrationNumber String?
   billTo             String
   lines              Json     @default("[]")
-  subtotal           Float
-  tax                Float
-  total              Float
+  subtotal           Int
+  tax                Int
+  total              Int
   issued             Boolean  @default(true)
-  paidAmount         Float    @default(0)
+  paidAmount         Int    @default(0)
   cancelled          Boolean  @default(false)
+  /// **発行日で並べるため。**
+  /// 請求は毎月増えるので、索引が無いと件数に比例して遅くなる。
+  /// 未収の抽出でも `dueDate` を使う。
+  @@index([issueDate])
+  @@index([dueDate])
 }
 
 model QuoteRow {
@@ -360,10 +406,12 @@ model QuoteRow {
   validUntil String
   billTo     String
   lines      Json   @default("[]")
-  subtotal   Float
-  tax        Float
-  total      Float
+  subtotal   Int
+  tax        Int
+  total      Int
   state      String @default("draft")
+  /// **発行日で並べるため。** 毎月増える。
+  @@index([issueDate])
 }
 
 model PurchaseOrderRow {
@@ -374,10 +422,12 @@ model PurchaseOrderRow {
   lines     Json    @default("[]")
   skus      Json    @default("[]")
   receipts  Json    @default("[]")
-  subtotal  Float
-  tax       Float
-  total     Float
+  subtotal  Int
+  tax       Int
+  total     Int
   state     String  @default("ordered")
+  /// **発注日で並べるため。** 毎月増える。
+  @@index([orderDate])
 }
 
 model RecurringPlanRow {
@@ -394,18 +444,38 @@ model RecurringPlanRow {
 model AttendanceRow {
   id           String   @id @default(cuid())
   userId       String
-  date         String
+  /// **日付のみ**(`@db.Date`。時刻を持たない)。
+  ///
+  /// 以前は `String`(YYYY-MM-DD)で、並べ替え・範囲検索が文字列比較に
+  /// 依存していた——ロケールや将来のフォーマット変更に弱い。
+  /// アプリ境界(`attendance-repo.ts` の `rowToEntry`)で `string` に
+  /// 変換して返す(`@platform/attendance` の公開契約 `AttendanceEntry.date: string`
+  /// は変えない。2026-08 に DB 層のみ移行)。
+  date         DateTime @db.Date
   clockIn      String
   clockOut     String
   breakMinutes Int?
   isHoliday    Boolean  @default(false)
 
+  /// **1 人 1 日 1 件。**
+  /// 以前は index だけで、同時に打刻すると同じ日が二重に入った。
+  /// 「先に読んで、無ければ作る」は同時実行に耐えない(2026-08)。
+  @@unique([userId, date])
+  // **100 人 × 250 日 = 年 2.5 万件**になります。
+  // 「その人の、その月の勤怠」を引くので、**組で索引**にします
+  // ——別々に作ると、**組み合わせでは効きません**。
   @@index([userId, date])
 }
 
 model WageRow {
   userId     String @id
-  hourlyWage Float
+  /// 時給（**円単位の整数**）。
+  ///
+  /// **`Float` にしない。** 毎月の計算で丸めの誤差が積み上がり、
+  /// 明細の**内訳と合計が合わなくなる**（説明もできない問い合わせになる）。
+  /// 入り口（`api/payroll/wage`）でも整数に絞っている。
+  /// 端数のある時給が必要になったら、**円未満をどう扱うかを決めてから**変えること。
+  hourlyWage Int
   allowances Json   @default("[]")
   deductions Json   @default("[]")
 }
@@ -415,17 +485,23 @@ model AttendanceApprovalRow {
   userId      String
   month       String
   status      String @default("pending")
-  submittedAt String
+  /// `AttendanceApproval` の公開契約(`submittedAt: string`)は変えない
+  /// ——`rowToApproval` の境界で変換する(2026-08)。
+  submittedAt DateTime
   history     Json   @default("[]")
 
   @@unique([userId, month])
+  // 承認待ちの一覧（**絞る列と並べる列を組で**）
+  @@index([status, submittedAt])
 }
 
 model PurchasePaymentRow {
   id       String @id @default(cuid())
   poNumber String
-  amount   Float
-  paidAt   String
+  amount   Int
+  /// `PurchasePayment` の公開契約(`paidAt: string`)は変えない
+  /// ——`record`/`list` の境界で変換する(2026-08)。
+  paidAt   DateTime
 
   @@index([poNumber])
 }
@@ -435,7 +511,10 @@ model FeePaymentRow {
   payee    String
   category String
   base     Float
-  paidAt   String
+  /// `FeePayment` の公開契約(`paidAt: string`)は変えない
+  /// ——`rowToPayment` の境界で変換する(2026-08)。`base`(Float)は
+  /// 小数に意味がありうるため意図的に維持している(別途記録済み)。
+  paidAt   DateTime
 
   @@index([payee])
 }
@@ -444,12 +523,15 @@ model AssetRow {
   code           String @id
   name           String
   acquiredOn     String
-  cost           Float
+  cost           Int
   usefulLifeYears Int
   method         String @default("straight_line")
   disposedOn     String?
   disposalType   String?
-  proceeds       Float?
+  proceeds       Int?
+  // 取得日の順に並べます。**並べる列に索引が無いと、
+  // 全件を読んでから並べ替え**ます（件数が増えるほど遅くなります）。
+  @@index([acquiredOn])
 }
 
 model BudgetRow {
@@ -457,7 +539,7 @@ model BudgetRow {
   department String
   category   String
   period     String
-  amount     Float
+  amount     Int
 
   @@index([period])
 }
@@ -470,11 +552,29 @@ model PartnerRow {
   note    String?
 }
 
+/// メールの配信停止リスト(取引先・顧客向け一斉/案内メール向け)。
+///
+/// **社内向けの業務通知(経費承認・チャットメンション等)はここを見ない。**
+/// 停止できるのは「任意で受け取る案内」だけで、業務連絡を止める手段にしてはいけない
+/// (承認プロセスが止まっては困る)。
+///
+/// **送信の前に必ずここを引くこと**(`removeSuppressed` を通す)。
+/// 停止したのに届くと、特定電子メール法違反であり信頼も失う。
+model MailSuppressionRow {
+  email     String   @id
+  /// 停止した理由(任意)。「配信停止リンクから」「苦情」など。
+  reason    String?
+  createdAt DateTime @default(now())
+}
+
 model InvoiceReceiptRow {
   id            String @id @default(cuid())
   invoiceNumber String
-  amount        Float
-  receivedAt    String
+  amount        Int
+  /// **フルの日時**(`toISOString()` 形式)。時刻を含むため `@db.Date` ではなく
+  /// 通常の `DateTime`。以前は `String` で、並べ替えが文字列比較に依存していた
+  /// (`ReceiptStore` の公開契約は `string` のまま——DB 層のみ移行。2026-08)。
+  receivedAt    DateTime
 
   @@index([invoiceNumber])
 }
@@ -483,18 +583,28 @@ model DocApprovalRow {
   id          String @id @default(cuid())
   docType     String
   docNumber   String
-  amount      Float
+  amount      Int
   status      String @default("pending")
   currentStep Int    @default(0)
-  submittedAt String
+  /// `DocApproval` の公開契約(`submittedAt: string`)は変えない
+  /// ——`rowToApproval` の境界で変換する(2026-08)。
+  submittedAt DateTime
+  /// **誰が出したか。** 無いと**自己承認を防げず、「誰が出した文書か」も追えません**
+  /// ——2026-08 に追加。**それ以前の行は空**です（分からないものを推測しないため）。
+  submittedBy   String  @default("")
   history     Json   @default("[]")
 
   @@unique([docType, docNumber])
+  // **承認待ちの一覧**は毎日見ます。`status` で絞って `submittedAt` で並べるので、
+  // **組で索引**にします。
+  @@index([status, submittedAt])
 }
 
 model PeriodLockRow {
   period   String @id
-  lockedAt String
+  /// `PeriodLock` の公開契約(`lockedAt: string`)は変えない
+  /// ——`period-lock-repo.ts` の境界で変換する(2026-08)。
+  lockedAt DateTime
   lockedBy String
 }
 
@@ -505,7 +615,9 @@ model MailboxRow {
   to      String
   subject String
   body    String
-  sentAt  String
+  /// `Mailbox` の公開契約(`sentAt: string`)は変えない
+  /// ——`rowToMessage` の境界で変換する(2026-08)。
+  sentAt  DateTime
   read    Boolean @default(false)
 
   @@index([owner])
@@ -513,7 +625,9 @@ model MailboxRow {
 
 model ManualJournalRow {
   id          String @id @default(cuid())
-  date        String
+  /// `JournalEntry`(`@platform/accounting`)の公開契約(`date: string`)は
+  /// 変えない——`rowToManual` の境界で変換する(2026-08)。
+  date        DateTime
   description String
   lines       Json   @default("[]")
 
@@ -533,7 +647,9 @@ model InquiryRow {
   subject   String
   message   String
   status    String @default("new")
-  createdAt String
+  /// `Inquiry` の公開契約(`createdAt: string`)は変えない
+  /// ——`rowToInquiry` の境界で変換する(2026-08)。
+  createdAt DateTime
 
   @@index([status])
 }
@@ -545,9 +661,37 @@ model UserRow {
   roles         String  @default("")
   permissions   String  @default("")
   active        Boolean @default(true)
-  createdAt     String
+  /// **フルの日時**(`toISOString()` 形式)。`User` の公開契約は `string` の
+  /// ままで、DB 層のみ `DateTime` に移行した(`user-repo.ts` の境界で変換。
+  /// 2026-08)。
+  createdAt     DateTime
   passwordHash  String?
-  passwordSetAt String?
+  /// DB では `DateTime?`。公開契約(`passwordSetAt?: string`)は変えない
+  /// ——境界で変換する(2026-08、実際の参照箇所は 3 ファイルのみと
+  /// 判明し、文字列比較も無かったため移行した)。
+  passwordSetAt DateTime?
+
+  /// TOTP のシークレット(base32)。設定していなければ null。
+  ///
+  /// **自前のパスワードを持つなら 2 要素認証を実装する**(ADR-0016)。
+  /// パスワードが漏れた時点で入られるので、2 要素目が唯一の歯止めになる。
+  /// SSO(Zoho)で入る人には不要 — 本人確認は IdP の責務。
+  totpSecret String?
+  /// TOTP を有効にした時刻。null なら未設定(登録の途中で放置された状態と区別する)。
+  totpEnabledAt DateTime?
+  /// **この時刻より前に発行されたセッションを無効にする。**
+  ///
+  /// 退職・異動のときは「権限を消す」だけでは足りない。
+  /// セッションが生きていれば、その中身(ロール)で操作が通ってしまう。
+  /// ここを更新すれば、発行済みのものが一斉に効かなくなる(ADR-0017)。
+  sessionsRevokedAt DateTime?
+
+  /// 予備コード(ハッシュと使用日時)。
+  ///
+  /// **端末を失くしたときの唯一の復旧手段。**
+  /// これが無いと、認証アプリを消した時点で管理者が手で解除するしかない。
+  /// 平文は発行時に一度だけ見せ、保持しない(`@platform/auth` の BackupCodeRecord)。
+  backupCodes Json @default("[]")
 }
 
 model SettingRow {
@@ -563,8 +707,10 @@ model SurveyRow {
   status      String  @default("draft")
   audience    Json    @default("{}")
   anonymous   Boolean @default(false)
-  closesAt    String?
-  createdAt   String
+  /// `Survey` の公開契約(`closesAt?: string`)は変えない
+  /// ——`rowToSurvey` の境界で変換する(2026-08)。
+  closesAt    DateTime?
+  createdAt   DateTime
 }
 
 model SurveyResponseRow {
@@ -572,7 +718,9 @@ model SurveyResponseRow {
   surveyId    String
   respondent  String?
   answers     Json    @default("[]")
-  submittedAt String
+  /// `SurveyResponse` の公開契約(`submittedAt: string`)は変えない
+  /// ——`rowToResponse` の境界で変換する(2026-08)。
+  submittedAt DateTime
 
   @@index([surveyId])
 }
@@ -580,13 +728,15 @@ model SurveyResponseRow {
 model ReviewRow {
   id          String  @id @default(cuid())
   subjectType String
-  subjectId   String
+  subjectId   String  // no-index: 評価は対象あたり数件
   author      String
   rating      Int
   title       String  @default("")
   comment     String  @default("")
   hidden      Boolean @default(false)
-  createdAt   String
+  /// フルの日時。`Review` の公開契約(`createdAt: string`)は変えない
+  /// ——`rowToReview` の境界で変換する(2026-08)。
+  createdAt   DateTime
 
   @@index([subjectType, subjectId])
 }
@@ -594,10 +744,12 @@ model ReviewRow {
 model SignatureRow {
   id          String @id @default(cuid())
   subjectType String
-  subjectId   String
+  subjectId   String  // no-index: 署名は対象あたり 1〜数件
   signer      String
   image       String
-  signedAt    String
+  /// `Signature` の公開契約(`signedAt: string`)は変えない
+  /// ——`rowToSignature` の境界で変換する(2026-08)。
+  signedAt    DateTime
 
   @@index([subjectType, subjectId])
 }
@@ -608,7 +760,9 @@ model WebhookSubscriptionRow {
   events    String
   secret    String
   active    Boolean @default(true)
-  createdAt String
+  /// `WebhookSubscription` の公開契約(`createdAt: string`)は変えない
+  /// ——`rowToSub` の境界で変換する(2026-08)。
+  createdAt DateTime
 }
 
 model ServiceAccountRow {
@@ -618,14 +772,21 @@ model ServiceAccountRow {
   displayPrefix String
   scopes        String
   active        Boolean @default(true)
-  createdAt     String
-  lastUsedAt    String?
+  /// `ServiceAccount` の公開契約(`createdAt: string`)は変えない
+  /// ——`rowToAccount` の境界で変換する(2026-08)。
+  createdAt     DateTime
+  /// **現状どこからも更新されない**(表示専用フィールド。`update` は
+  /// `active` のみ)。将来 API キー使用時に更新する実装を足す場合の
+  /// 受け皿として残している。
+  lastUsedAt    DateTime?
 }
 
 model SecretRow {
   name       String @id
   ciphertext String
-  updatedAt  String
+  /// `SecretRecordStore.list()` の戻り値(`{ name, updatedAt: string }`)は
+  /// 変えない——`list`/`set` の境界で変換する(2026-08)。
+  updatedAt  DateTime
 }
 
 model SearchDocRow {
@@ -642,7 +803,9 @@ model ExportScheduleRow {
   type      String
   frequency String
   enabled   Boolean @default(true)
-  lastRunAt String?
+  /// `ExportSchedule` の公開契約(`lastRunAt?: string`)は変えない
+  /// ——`sRow` の境界で変換する(2026-08)。
+  lastRunAt DateTime?
 }
 
 model ExportRunRow {
@@ -661,7 +824,9 @@ model ReportScheduleRow {
   frequency  String
   recipient  String
   enabled    Boolean @default(true)
-  lastSentAt String?
+  /// `ReportSchedule` の公開契約(`lastSentAt?: string`)は変えない
+  /// ——`row` の境界で変換する(2026-08)。
+  lastSentAt DateTime?
 }
 
 model ReportPresetRow {
@@ -721,7 +886,7 @@ model Task {
   /// 所属プロジェクト(無ければ単独タスク)
   projectId     String?
   /// 親タスク(サブタスクの場合)
-  parentId      String?
+  parentId      String?  // no-index: 入れ子は浅く、件数も少ない
   estimateHours Int?
   actualHours   Int?
   createdAt     DateTime  @default(now())
@@ -778,4 +943,210 @@ model Contract {
   @@index([status])
   @@index([partner])
   @@index([endDate])
+}
+
+/// 口座残高の記録（freee から定期取得）。
+///
+/// **balance-app から統合。** 資金繰り（cashflow）と同じ「お金の動きを見る」用途で、
+/// 見る人も目的も同じだった。別アプリのままだと認可が掛からず、
+/// **社内の口座残高が誰でも見られる**状態でもあった。
+model BalanceSnapshot {
+  id             String   @id @default(cuid())
+  /// freee の口座 ID。
+  walletableId   Int
+  /// 口座名。後から口座が消えても分かるように残す。
+  walletableName String
+  /// 口座の種類（bank_account / credit_card / wallet）。
+  walletableType String
+  /// 残高（円）。マイナスもあるので Int。
+  balance        Int
+  /// 取得した時刻。
+  takenAt        DateTime
+  /// 取得した日（YYYY-MM-DD）。間引きで日単位に絞るため、別に持つ。
+  takenOn        String
+
+  createdAt      DateTime @default(now())
+
+  // 「口座 × 日」で引くことが多い（間引き・グラフの両方）
+  @@index([walletableId, takenOn])
+  @@index([takenAt])
+  // **日付で絞ります**（「この日の残高」）。
+  // **毎日 1 件ずつ増える**ので、索引が無いと**年々遅くなります**。
+  @@index([takenOn])
+}
+
+/// 備品マスタ（equipment-app から統合）。
+///
+/// **固定資産（AssetRow）とは別物。** あちらは取得価額・耐用年数を持つ会計の話で、
+/// こちらは「誰が今借りているか」の話。扱う情報も使う人も違う。
+model EquipmentRow {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  note      String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+/// 貸出履歴。**返却しても消さない**（誰がいつ借りたかは後から必要になる）。
+model LendingRow {
+  id         String  @id @default(cuid())
+  code       String
+  borrower   String
+  /// `Lending` の公開契約(`lentAt: string`)は変えない
+  /// ——`toLn` の境界で変換する(2026-08)。
+  lentAt     DateTime
+  /// 返却日。**貸出中は空文字**(null ではない)。
+  ///
+  /// **なぜ null にしないか。**
+  /// 「貸出中の 1 件だけ一意」にしたいが、PostgreSQL の一意制約は
+  /// **null を重複とみなさない**ので、null のままだと同じ備品を
+  /// 何人でも同時に借りられる(2026-08、実際にその状態だった)。
+  /// 空文字なら制約が効く。
+  returnedAt String @default("")
+
+  /// **1 つの備品につき、貸出中は 1 件だけ。**
+  /// 「読んで → 無ければ作る」は同時実行に耐えないので、DB 側で止める。
+  @@unique([code, returnedAt])
+  @@index([code])
+  // **未返却を探すのに使います**（`returnedAt` が `null` のもの）。
+  // **貸出は増え続ける**ので、索引が無いと**全件を走査**します。
+  @@index([returnedAt])
+}
+
+/// 掲示板の投稿。
+///
+/// **保存を持たせる理由。**
+/// 以前は検索索引にだけ入れており、サーバ側で投稿を引く手段が無かった。
+/// そのため編集・削除がリクエストの `post` をそのまま所有者判定に使っており、
+/// **`authorId` を書き換えれば他人の投稿を操作できた**(2026-08 に発見)。
+/// 「誰の投稿か」はサーバが持つ記録で判断する。
+model BoardPostRow {
+  id        String   @id
+  threadId  String
+  /// 投稿者。**セッションから取る**(クライアントの申告を使わない)。
+  authorId  String  // no-index: 投稿は threadId で引く。投稿者では引かない
+  body      String
+  /// 返信先の投稿 ID。スレッド本文なら null。
+  replyTo   String?
+  /// 編集した時刻。**編集を隠さない**ため、画面に「(編集済み)」を出す。
+  editedAt  DateTime?
+  attachments Json   @default("[]")
+  createdAt DateTime @default(now())
+
+  /// スレッドの表示は「古い順」なので、この並びで引く
+  @@index([threadId, createdAt])
+}
+
+/// 給与計算に要る個人情報(社会保険料・源泉徴収税の算出専用)。
+///
+/// **`UserRow` に混ぜない。** UserRow は認証のたびに読む(ログイン・権限判定)。
+/// 生年月日・扶養人数のような機微な個人情報を、日常的な参照経路に同居させると、
+/// アクセスログを絞りにくく、開示請求(`/api/privacy/disclosure`)の対象範囲も
+/// 曖昧になる。**参照が必要な場面(給与計算)を限定できるよう、別テーブルにする。**
+///
+/// この情報を給与計算(社会保険料の労使折半・介護保険の年齢判定・扶養控除)以外の
+/// 目的で参照しないこと。
+model PayrollProfileRow {
+  userId    String  @id
+  /// 生年月日(YYYY-MM-DD)。**40歳の誕生日の前日が属する月から介護保険が加わる**判定に使う。
+  birthDate String
+  /// 扶養親族等の人数(0〜7)。源泉徴収税額表を引くのに使う。
+  dependents Int    @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+/// Web Push の購読(ブラウザごと)。
+///
+/// **1 人が複数持ちうる。** PC とスマホなど、複数端末で購読することがある
+/// ——ユーザー単位ではなく購読単位で消せるようにする(片方の端末を手放しても、
+/// もう片方の通知は残す)。
+model PushSubscriptionRow {
+  /// 送信先 URL をそのまま主キーにする(ブラウザベンダーごとに一意)。
+  endpoint  String   @id
+  userId    String
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  /// **ユーザーの全端末へ送るとき**に引く
+  @@index([userId])
+}
+
+/// 会議室・設備・イベントの予約(`@platform/booking` を使う純ロジックの永続化先)。
+///
+/// **リソース(会議室名など)はコード側のシードデータのまま**。
+/// 変わらない固定リストなので DB に出す理由が無い——**予約(bookings)だけ**を
+/// 永続化する(以前はメモリ配列で、再起動すると全予約が消えていた)。
+model BookingRow {
+  id         String   @id
+  resourceId String
+  /// 予約者(メール)。
+  userId     String
+  title      String
+  start      DateTime
+  end        DateTime
+  status     String   @default("confirmed")
+  createdAt  DateTime @default(now())
+
+  /// **リソース × 日で引く**(その日の空き枠を出すときの主な経路)。
+  @@index([resourceId, start])
+  /// 「自分の予約」一覧で引く。
+  @@index([userId, start])
+  /// **リマインダー scan が「これから始まる予約」を status で絞り込む**
+  /// (`bookingStore.upcoming`)。上 2 つの索引はどちらも先頭が
+  /// resourceId/userId なので、リソースを問わない横断検索には使えない。
+  @@index([status, start])
+}
+
+/// SMS 二要素認証に要る電話番号(TOTP を設定していない人向けの代替 2FA)。
+///
+/// **`UserRow` に混ぜない**(生年月日と同じ理由。給与プロファイルの
+/// コメントを参照)。
+model UserPhoneRow {
+  userId      String  @id
+  /// E.164 形式(例 +819012345678)。
+  phoneNumber String
+  updatedAt   DateTime @updatedAt
+}
+
+/// SMS OTP のチャレンジ(発行してから検証するまでの間、短命に保持する)。
+///
+/// **平文のコードは持たない**(`@platform/auth` の `hashOtpCode` でハッシュ化
+/// したものだけを保存する)。有効期限が切れたら検証できない——
+/// 期限切れの掃除は `createdAt` でまとめて削除する運用を想定。
+model OtpChallengeRow {
+  id          String   @id
+  identifier  String
+  codeHash    String
+  expiresAt   DateTime
+  attempts    Int      @default(0)
+  maxAttempts Int
+  createdAt   DateTime @default(now())
+
+  /// **同じ利用者の古いチャレンジを無効化する**ときに引く。
+  @@index([identifier, createdAt])
+}
+
+/// 給与明細の一括 PDF 生成ジョブ(`@platform/jobs` で非同期化)。
+///
+/// **画面を待たせないため。** 全社員分の PDF を生成すると数分かかりうる
+/// ——同期処理だとリクエストがタイムアウトし、利用者は「壊れた」と思って
+/// 何度も押す(showcase の `payslip-pdf-batch.ts` に同じ注意がある)。
+/// ジョブとして投げ、状態をポーリングで見せる。
+model PayslipBatchJobRow {
+  id          String   @id
+  month       String
+  requestedBy String
+  status      String   @default("queued")
+  total       Int
+  /// 生成済み件数(進捗表示に使う)。
+  completed   Int      @default(0)
+  failed      Int      @default(0)
+  /// 失敗した従業員のID(カンマ区切り。**誰の分が抜けたか**を後で追えるように)。
+  failedUserIds String @default("")
+  createdAt   DateTime @default(now())
+  finishedAt  DateTime?
+
+  @@index([requestedBy, createdAt])
 }

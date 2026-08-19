@@ -7,12 +7,19 @@ import { withApiObservability } from "../../../../server/instrument";
 import { userStore, settingsStore, auditActions } from "../../../../server/platform-services";
 import { hashPassword } from "../../../../server/password";
 import { canBootstrapAdmin, defaultSeedPlan } from "../../../../server/setup";
+import { limitPublic, getSecretLimiter } from "../../../../server/rate-limit";
 
 async function handlePOST(req: Request): Promise<Response> {
+  // **最初の管理者を作る口。** 認証が存在しない状態なので、**総当たりの的**になる。
+  // **制限器が落ちたら通さない**(`deny`)——ここで fail-open にすると、
+  // **制限器を落とすだけで防御を外せます**。
+  // 「一時的にセットアップできない」方が「誰でも管理者を作れる」より軽い
+  const limited = await limitPublic(req, "bootstrap", { limiter: getSecretLimiter(), onStoreError: "deny" });
+  if (limited) return limited;
   const users = await userStore.list();
   const adminCount = users.filter((u) => u.roles.includes("admin")).length;
   if (!canBootstrapAdmin(adminCount)) return Response.json({ error: "既に管理者が存在します。セットアップは完了しています。" }, { status: 409 });
-  const body = (await req.json()) as { email?: string; name?: string; password?: string; companyName?: string };
+  const body = (await req.json().catch(() => ({}))) as { email?: string; name?: string; password?: string; companyName?: string };
   if (!body.email || !body.name || !body.password || !body.companyName) return Response.json({ error: "email・name・password・companyName が必要です" }, { status: 400 });
   if (body.password.length < 8) return Response.json({ error: "パスワードは8文字以上にしてください" }, { status: 400 });
   await userStore.upsert({ email: body.email, name: body.name, department: "経営", roles: ["admin"], active: true });

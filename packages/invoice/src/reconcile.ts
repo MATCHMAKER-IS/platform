@@ -6,6 +6,19 @@
 import { balanceDue } from "./payment";
 
 /** 消込対象の未収請求書。 */
+/**
+ * 「今」を **JST の日付**として UTC 0 時に正規化する。
+ *
+ * **`new Date()` をそのまま使わない。** UTC で動くサーバ(クラウドの既定)では
+ * JST の 00:00〜08:59 が前日として扱われ、**判定が 1 日ずれる**。
+ * `@platform/datetime` に依存を増やさないための最小実装
+ * (9 時間ずらして UTC として読むだけ。`formatDateJst` と同じ計算)。
+ */
+function todayUtcFromJst(now: Date = new Date()): Date {
+  const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return new Date(`${jst}T00:00:00.000Z`);
+}
+
 export interface OpenInvoice {
   number: string;
   /** 支払期限(ISO)。 */
@@ -103,12 +116,12 @@ export interface AgingBuckets {
  * **回収が遅れている債権を見つける**(30 日以内・60 日・90 日超)。
  * 90 日を超えると回収率が大きく落ちるので、早期に手を打つ。
  *
- * @param invoices 請求書の配列
- * @param payments 入金の配列
- * @param now 基準日(テスト注入用)
+ * @param invoices 未回収の請求書(`total` と `paidAmount` を持ち、**入金は差引済み**。
+ *   入金の配列は受け取らない)
+ * @param asOf 基準日(既定は現在。テスト注入用)
  * @returns 年齢別の残高
  */
-export function agingBuckets(invoices: OpenInvoice[], asOf: Date = new Date()): AgingBuckets {
+export function agingBuckets(invoices: OpenInvoice[], asOf: Date = todayUtcFromJst()): AgingBuckets {
   const b: AgingBuckets = { current: 0, d1_30: 0, d31_60: 0, d61_90: 0, over90: 0, total: 0 };
   // 日付だけの比較。UTC で揃える(実行環境のタイムゾーンで結果を変えない)
   const today = Date.UTC(asOf.getUTCFullYear(), asOf.getUTCMonth(), asOf.getUTCDate());

@@ -1,7 +1,7 @@
 /** 通知テンプレート一覧とプレビュー(GET ?event=&locale=)。管理者の上書きを反映した解決結果で描画する。認証ユーザー。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { templateStore } from "../../../../server/platform-services";
 import { templateEvents, resolveTemplates, renderWithTemplates, type Locale } from "../../../../server/notification-templates";
 
@@ -12,7 +12,7 @@ const SAMPLE: Record<string, Record<string, string | number>> = {
 };
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   if (!user) return Response.json({ error: "認証が必要です" }, { status: 401 });
   const url = new URL(req.url);
   const event = url.searchParams.get("event");

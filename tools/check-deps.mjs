@@ -9,7 +9,8 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = process.cwd();
-const GROUPS = { package: "packages", app: "apps", demo: "demos" };
+// **demos は無くなった。** showcase は apps に移した(実運用扱い)
+const GROUPS = { package: "packages", app: "apps" };
 
 /** 全ワークスペースの {name, layer, deps[]} を集める。 */
 function collect() {
@@ -23,9 +24,23 @@ function collect() {
       const pkgPath = join(base, entry.name, "package.json");
       if (!existsSync(pkgPath)) continue;
       const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+      // **`@platform/testing` への devDependency は循環に数えない。**
+      //
+      // `testing` は**テストの中だけで動く**もので、
+      // 契約テスト(「どの実装でも同じ約束を守るか」)を提供するために
+      // **検査対象の型を参照します**(`Cache` / `Storage`)。
+      // したがって `cache → testing → cache` は**必ず起きる**——
+      // これを循環として弾くと、**契約テストという仕組みそのものが使えません**。
+      //
+      // **実行時には成立しない**(テストはビルド成果物に入らない)ので、
+      // 「本番で読み込みが詰まる」類の問題は起きません。
+      // **`dependencies` に入っていたら従来どおり循環として扱います。**
+      const testOnly = new Set(["@platform/testing"]);
       const deps = new Set(
-        [...Object.keys(pkg.dependencies ?? {}), ...Object.keys(pkg.devDependencies ?? {})]
-          .filter((d) => d.startsWith("@platform/")),
+        [
+          ...Object.keys(pkg.dependencies ?? {}),
+          ...Object.keys(pkg.devDependencies ?? {}).filter((d) => !testOnly.has(d)),
+        ].filter((d) => d.startsWith("@platform/")),
       );
       nodes.set(pkg.name, { layer, deps });
       nameToLayer.set(pkg.name, layer);
@@ -99,5 +114,5 @@ if (violations.length > 0) {
   console.error(`\n❌ 層破り ${violations.length} 件(下位→上位への依存):`);
   for (const v of violations) console.error(`   ${v.from}(${v.fromLayer}) → ${v.to}(${v.toLayer})`);
 }
-if (!failed) console.log("✅ 循環依存なし・層破りなし");
+if (!failed) console.log(`✅ 循環依存なし・層破りなし(${nodes.size} パッケージを検査)`);
 process.exit(failed ? 1 : 0);

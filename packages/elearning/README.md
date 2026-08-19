@@ -1,20 +1,27 @@
 # @platform/elearning
 
-社内 e-learning の中核ロジック。コース構造・進捗計算・クイズ採点・修了判定を純関数で提供します。データ永続化と画面はアプリ側に委ねます。
+社内研修（教材・小テスト・受講記録）。**受けたかどうかを記録に残す**ためのものです。
 
-## 構造
+## これは何のためか
 
-`Course` → `Module`(章)→ `Lesson`(動画/記事/クイズ)。
+**受けたかどうかを記録に残す**ためのものです。
 
-## 主な関数
+安全教育・情報セキュリティ研修は、
+**「全員が受けた」ことを示せる必要**があります。
 
-- `gradeQuiz(questions, answers, passRatio)`: クイズ採点(単一/複数選択・順不同)
-- `courseProgress(course, progress)`: 完了率(estimatedMinutes で重み付け)・修了判定
-- `moduleProgress` / `nextLesson`: 章ごとの進捗・次に学ぶレッスン
-- `markLessonComplete(course, progress, lessonId)`: 完了マーク(不変・重複しない)
-- `issueCertificate(course, progress, learnerId)`: 修了証発行(未修了は拒否)
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **複数選択は順不同で採点** | 選ぶ順序は**関係ありません** |
+| **部分正解は不正解** | 3 つのうち 2 つ合っていても**不正解**です——**中途半端な理解を通さない**ためです |
+| **所要時間で重み付けします** | 一瞬で全問正解は**答えを知っていた**か、**適当に押した**かです |
+| **記録は消せません** | 「受けたことにする」ができると、**記録の意味がなくなります** |
+
+## よく使うもの
 
 ```ts
+import { gradeQuiz, flattenLessons, courseProgress } from "@platform/elearning";
 const result = gradeQuiz(quiz.quiz, { q1: [1], q2: [0, 2] }, 0.6);
 if (result.ok && result.value.passed) { /* 合格 */ }
 

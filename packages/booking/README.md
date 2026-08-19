@@ -1,11 +1,26 @@
 # @platform/booking
 
-予約サイトの基盤処理。営業時間・スロット生成・空き枠計算(キャパシティ考慮)・予約ルール・
-予約ステータスの純ロジック部品。日時計算は `@platform/datetime`、表示は `@platform/ui` の
-`ScheduleCalendar` / `ResourceSchedule`、ステータス遷移は `@platform/fsm` と組み合わせます。
+予約（会議室・設備・面談）。**重なりを防ぎます**。
 
-## 営業時間
+## これは何のためか
+
+**「同じ部屋を 2 人が押さえた」を防ぐ**ためのものです。
+
+紙やホワイトボードだと、**遠隔の人が見られません**。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **時間は半開区間 `[開始, 終了)`** | 10:00-11:00 と 11:00-12:00 は**重なりません**。閉区間にすると**境目で必ず衝突**します |
+| **キャンセルは数えません** | 「有効な予約だけ」で重なりを見ます |
+| **同時押しは DB で防ぐ** | 「空いているか確認 → 予約」の間に**別の人が入ります**。**一意制約**で弾いてください |
+| **繰り返しの予約は個別に持つ** | 「毎週月曜」を 1 件で持つと、**1 回だけ動かす**ときに困ります |
+
+## よく使うもの
+
 ```ts
+import { intervalsOverlap, countOverlapping, isSlotAvailable } from "@platform/booking";
 import { resolveDayHours, isOpenAt, isBusinessDay } from "@platform/booking";
 const weekly = { 1: [{ open: "09:00", close: "12:00" }, { open: "13:00", close: "18:00" }], 0: [] };  // 月:昼休みあり, 日:休
 resolveDayHours("2025-07-28", weekly, { closedDates: ["2025-08-13"], specialDates: { "2025-12-31": [{ open: "10:00", close: "15:00" }] } });

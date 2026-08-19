@@ -1,12 +1,14 @@
 "use client";
 /** 年次推移。売上・費用を棒、純利益を折れ線でインライン SVG 描画。前年比の伸び率も表示。 */
 import * as React from "react";
-import { ComboChart, Select } from "@platform/ui";
+import { formatPercent, parseNumberOr } from "@platform/utils";
+import { formatYen } from "@platform/report";
+import { ComboChart, Select, PageShell } from "@platform/ui";
 
 interface TrendPoint { year: number; revenue: number; expense: number; netIncome: number; growth: number | null; }
 interface TrendData { trend: TrendPoint[]; range: { max: number; min: number }; totals: { revenue: number; expense: number; netIncome: number }; }
 
-const yen = (n: number) => `¥${n.toLocaleString()}`;
+const yen = (n: number) => formatYen(n);
 
 export interface TrendClientProps { fetchImpl?: typeof fetch; }
 
@@ -25,18 +27,15 @@ export function TrendClient({ fetchImpl }: TrendClientProps) {
   React.useEffect(() => { void reload(); }, [reload]);
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <div className="mb-1 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">年次推移</h1>
+    <PageShell title="年次推移" width="wide">
         <label className="text-xs text-[var(--color-muted)]">表示年数
           <Select
             value={years}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setYears(Number(e.target.value))}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setYears(parseNumberOr(e.target.value, 0))}
             className="ml-1 rounded border border-[var(--color-border)] px-2 py-1 text-sm"
             options={YEAR_OPTIONS}
           />
         </label>
-      </div>
       <p className="mb-4 text-xs text-[var(--color-muted)]">売上・費用（棒）と当期純利益（折れ線）の推移です。手動仕訳・減価償却・科目マスタを反映して集計しています。</p>
 
       {data && (() => {
@@ -78,13 +77,13 @@ export function TrendClient({ fetchImpl }: TrendClientProps) {
                 <td className="px-2 py-1.5 text-right">{yen(p.revenue)}</td>
                 <td className="px-2 py-1.5 text-right">{yen(p.expense)}</td>
                 <td className={`px-2 py-1.5 text-right font-medium ${p.netIncome < 0 ? "text-[var(--color-danger)]" : ""}`}>{yen(p.netIncome)}</td>
-                <td className={`px-2 py-1.5 text-right text-xs ${(p.growth ?? 0) < 0 ? "text-[var(--color-danger)]" : "text-[var(--color-muted)]"}`}>{p.growth === null ? "—" : `${p.growth >= 0 ? "+" : ""}${Math.round(p.growth * 1000) / 10}%`}</td>
+                <td className={`px-2 py-1.5 text-right text-xs ${(p.growth ?? 0) < 0 ? "text-[var(--color-danger)]" : "text-[var(--color-muted)]"}`}>{p.growth === null ? "—" : `${p.growth >= 0 ? "+" : ""}${formatPercent(p.growth, 1)}`}</td>
               </tr>
             ))}
             <tr className="border-t-2 border-[var(--color-border)] font-medium"><td className="px-2 py-1.5">期間合計</td><td className="px-2 py-1.5 text-right">{yen(data.totals.revenue)}</td><td className="px-2 py-1.5 text-right">{yen(data.totals.expense)}</td><td className="px-2 py-1.5 text-right">{yen(data.totals.netIncome)}</td><td></td></tr>
           </tbody>
         </table>
       )}
-    </div>
+    </PageShell>
   );
 }

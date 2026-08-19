@@ -47,8 +47,8 @@ export interface GuardOptions {
  * 状態つきのジョブランナーを作る(統計を保持)。
  *
  * @param options.lock ロックストア
- * @param options.key ジョブの識別子
- * @param options.ttlMs ロックの有効期間(**処理より長く**。短いと途中で解けて二重実行になる)
+ * @param options.name ジョブの識別子(**`key` ではない**)。`handler` が処理の本体
+ *   有効期間はロック側の設定で、ここでは指定しない
  */
 export function createGuardedJob(options: GuardOptions): { run: () => Promise<void>; stats: () => JobStats } {
   const now = options.now ?? (() => Date.now());

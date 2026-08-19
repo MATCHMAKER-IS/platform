@@ -1,0 +1,8 @@
+{
+  "_comment": "API の入力検証の状態。unvalidated は上限（増やさない）、schemaBased は下限（減らさない）。直したら --set-floor で刻み直す。",
+  "updatedAt": "2026-08-15",
+  "limits": {
+    "unvalidated": 0,
+    "schemaBased": 45
+  }
+}

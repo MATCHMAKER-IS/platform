@@ -5,7 +5,7 @@ export default function ContactPage() {
   return (
     <main style={{ maxWidth: 640, margin: "2rem auto", padding: "0 1rem" }}>
       <h1 style={{ fontSize: "1.6rem", fontWeight: 700, marginBottom: "1rem" }}>お問い合わせ</h1>
-      <p style={{ color: "#666", marginBottom: "1rem" }}>下記フォームよりお問い合わせください。担当者より折り返しご連絡いたします。</p>
+      <p style={{ color: "var(--color-muted)", marginBottom: "1rem" }}>下記フォームよりお問い合わせください。担当者より折り返しご連絡いたします。</p>
       <ContactClient />
     </main>
   );

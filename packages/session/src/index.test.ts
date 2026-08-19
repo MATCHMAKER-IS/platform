@@ -82,3 +82,71 @@ describe("createServerSession(ストア型)", () => {
     expect(await session.read(`sid=${id}`)).toBeNull();
   });
 });
+
+describe("SameSite=None には Secure が必須", () => {
+  // **ブラウザの仕様。** 欠けていると黙って破棄され、エラーも警告も出ない
+  // ——「ログインできないが原因が分からない」形になる(2026-08 に対処)
+  it("Secure なしの None は組み立てで止める", () => {
+    expect(() => serializeCookie("s", "v", { sameSite: "None", secure: false })).toThrow();
+  });
+  // **既定は Secure が true** なので、None だけ指定すれば通る
+  it("既定の Secure なら通る", () => {
+    expect(serializeCookie("s", "v", { sameSite: "None" })).toContain("Secure");
+  });
+  // **ログアウトも同じ経路を通る**(clearCookie は serializeCookie に委譲)
+  it("clearCookie でも同じ検証が効く", () => {
+    expect(() => clearCookie("s", { sameSite: "None", secure: false })).toThrow();
+  });
+  // **Lax / Strict は Secure なしでも通る**(ローカル開発の http で使う)
+  it("Lax は Secure なしでも通る", () => {
+    expect(serializeCookie("s", "v", { sameSite: "Lax", secure: false })).not.toContain("Secure");
+  });
+});
+
+// **鍵を替えると全員が即ログアウトする。** それでは「漏れたので今すぐ替える」が
+// できない(替えられない鍵は守りにならない)。入れ替え中だけ旧鍵でも読めるようにする
+describe("秘密鍵の入れ替え(previousSecret)", () => {
+  const salt = "rotation-salt-1234";
+  const old = createSession<{ userId: string }>({ secret: "old-secret-value-32chars-minimum", salt });
+  const cookieOf = (header: string) => header.split(";")[0]!;
+
+  it("鍵を替えるだけだと、既存のクッキーは読めなくなる", () => {
+    const issued = cookieOf(old.write({ userId: "u1" }));
+    const fresh = createSession<{ userId: string }>({ secret: "new-secret-value-32chars-minimum", salt });
+    expect(fresh.read(issued)).toBeNull();
+  });
+
+  it("previousSecret を渡せば、旧鍵のクッキーも読める", () => {
+    const issued = cookieOf(old.write({ userId: "u1" }));
+    const rotating = createSession<{ userId: string }>({
+      secret: "new-secret-value-32chars-minimum",
+      previousSecret: "old-secret-value-32chars-minimum",
+      salt,
+    });
+    expect(rotating.read(issued)).toEqual({ userId: "u1" });
+  });
+
+  // **書くのは常に新しい鍵。** 使うたびに移るので、有効期間を過ぎれば旧鍵は不要になる
+  it("書き出したクッキーは新しい鍵のものになる", () => {
+    const rotating = createSession<{ userId: string }>({
+      secret: "new-secret-value-32chars-minimum",
+      previousSecret: "old-secret-value-32chars-minimum",
+      salt,
+    });
+    const reissued = cookieOf(rotating.write({ userId: "u1" }));
+    // 旧鍵しか知らない側では、もう読めない
+    expect(old.read(reissued)).toBeNull();
+    // 新しい鍵だけを知る側では読める
+    const after = createSession<{ userId: string }>({ secret: "new-secret-value-32chars-minimum", salt });
+    expect(after.read(reissued)).toEqual({ userId: "u1" });
+  });
+
+  it("改ざんされたクッキーは、旧鍵があっても通らない", () => {
+    const rotating = createSession<{ userId: string }>({
+      secret: "new-secret-value-32chars-minimum",
+      previousSecret: "old-secret-value-32chars-minimum",
+      salt,
+    });
+    expect(rotating.read("session=tampered-value")).toBeNull();
+  });
+});

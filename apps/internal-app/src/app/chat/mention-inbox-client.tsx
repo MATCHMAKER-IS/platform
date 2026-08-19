@@ -43,7 +43,7 @@ export function MentionInboxClient({ fetchImpl, pollMs = 30000 }: MentionInboxCl
 
   return (
     <div className="relative inline-block">
-      <Button className="relative rounded-full p-2 hover:bg-[var(--color-muted-bg,#f8f8f8)]" onClick={() => setOpen((v) => !v)} aria-label="メンション">
+   <Button variant="secondary" className="relative rounded-full p-2 hover:bg-[var(--color-muted-bg,#f8f8f8)]" onClick={() => setOpen((v) => !v)} aria-label="メンション">
         <span aria-hidden>@</span>
         {count > 0 && (
           <span className="absolute -right-0.5 -top-0.5">

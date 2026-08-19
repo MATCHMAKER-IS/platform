@@ -8,6 +8,7 @@
  * @packageDocumentation
  */
 import * as React from "react";
+import { createWebStorage } from "@platform/web-storage";
 import { applySkin, type Theme, type ThemeMode, type ThemeRegistry } from "@platform/theme";
 
 export interface SkinContextValue {
@@ -53,11 +54,19 @@ export function SkinProvider({ children, registry, mode = "light", setMode, defa
   const [skinId, setSkinId] = React.useState<string>(initial);
 
   // 起動時に保存済みスキンを読む
+  // **`localStorage` を直接触らない**(ADR-0020)。
+  // SSR の分岐もプライベートモードの例外も、基盤側が引き受ける
+  // ——2026-08 まで直接触っており、**プライベートモードで例外が飛ぶと
+  // 画面全体が落ちた**(`ThemeProvider` は既に基盤を使っていた)
+  const store = React.useMemo(
+    () => createWebStorage<string>({ key: storageKey, fallback: "" }),
+    [storageKey],
+  );
+
   React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = window.localStorage.getItem(storageKey);
+    const stored = store.get();
     if (stored && registry.has(stored)) setSkinId(stored);
-  }, [registry, storageKey]);
+  }, [registry, store]);
 
   const skin = registry.resolve(skinId);
 
@@ -69,8 +78,8 @@ export function SkinProvider({ children, registry, mode = "light", setMode, defa
   const setSkin = React.useCallback((id: string) => {
     if (!registry.has(id)) return;
     setSkinId(id);
-    if (typeof window !== "undefined") window.localStorage.setItem(storageKey, id);
-  }, [registry, storageKey]);
+    store.set(id);
+  }, [registry, store]);
 
   const value: SkinContextValue = {
     skinId,

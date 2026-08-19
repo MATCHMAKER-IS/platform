@@ -36,11 +36,43 @@ export interface RateLimiter {
  * if (res.ok && !res.value.allowed) throw new AppError("UNAUTHORIZED", "試行回数が上限を超えました");
  * ```
  */
+/**
+ * キーの最大長。
+ *
+ * **Redis のキー長は理論上 512MB まで許されるが、実用上は短く保つ。**
+ * 256 はメールアドレス(254)に接頭辞が付いても収まる長さ。
+ */
+const MAX_KEY_LENGTH = 256;
+
+/**
+ * **回数の上限**を見張る器を作る。
+ *
+ * ログインの試行・API の呼び出しなど、**短時間に繰り返されると困るもの**に使います。
+ *
+ * 【誰を数えるか】
+ * **鍵の決め方が要です。** IP だけで数えると、**同じ会社の全員が 1 人分**になります
+ * （社内からは同じ IP に見えるため）。**利用者 ID と組み合わせて**ください。
+ *
+ * 【保存先】
+ * `store` を差し替えられます。**メモリ実装は 1 プロセス内でしか効きません**
+ * ——2 台構成なら**上限が実質 2 倍**になります。台数を増やすなら Redis 実装へ。
+ *
+ * @param config `store`（保存先）・`limit`（何回まで）・`windowSeconds`（何秒間で）
+ * @returns 上限を確かめる器（`consume` で 1 回消費します）
+ */
 export function createRateLimiter(config: RateLimiterConfig): RateLimiter {
   const { store, limit, windowSeconds } = config;
   return {
     async check(key) {
-      const r = await tryCatch(() => store.increment(key, windowSeconds));
+      // **キーの長さを切り詰める。** キーは外部入力から組み立てられることが多く
+      // (`login:${email}` など)、任意長を通すと**毎回違う巨大な文字列を送るだけで
+      // ストアにキーが溜まり続ける**——レート制限そのものが攻撃の的になる。
+      //
+      // 切り詰めても**別々の入力が同じキーになるだけ**で、制限は緩まない
+      // (むしろ厳しくなる方向)。呼び出し側で長さを検証するのが本筋だが、
+      // 忘れてもここで止まる(2026-08)。
+      const safeKey = key.length > MAX_KEY_LENGTH ? key.slice(0, MAX_KEY_LENGTH) : key;
+      const r = await tryCatch(() => store.increment(safeKey, windowSeconds));
       if (!r.ok) {
         return {
           ok: false,

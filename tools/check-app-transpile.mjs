@@ -28,7 +28,6 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url));
 /** 検査対象(アプリとデモ。どちらも next build する)。 */
 const TARGETS = [
   ...fs.readdirSync(path.join(ROOT, "apps")).sort().map((n) => ["apps", n]),
-  ...fs.readdirSync(path.join(ROOT, "demos")).sort().map((n) => ["demos", n]),
 ];
 
 /**

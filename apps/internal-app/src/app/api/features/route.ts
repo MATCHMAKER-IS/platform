@@ -1,12 +1,12 @@
 /** 自分が使える機能キーの一覧(GET)。ナビの表示/非表示に使う。認証ユーザー。 */
 import { withApiObservability } from "../../../server/instrument";
 import { currentUser } from "../../../server/authorize";
-import { serverEnv } from "../../../server/env";
+import "../../../server/env";
 import { featureAccessStore } from "../../../server/platform-services";
 import { accessibleFeatures, FEATURE_CATALOG } from "../../../server/feature-access";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   if (!user) return Response.json({ error: "認証が必要です" }, { status: 401 });
   const rules = await featureAccessStore.get();
   const keys = accessibleFeatures(user.roles, rules);

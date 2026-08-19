@@ -73,6 +73,7 @@ function esc(s: string): string {
  * 月次締めレポートの印刷用 HTML を生成する。
  *
  * @param summary 月次の集計
+ * @param options 会社名・宛名などの見出し情報
  * @returns 印刷用の HTML
  */
 export function renderMonthlyReportHtml(summary: MonthlySummary, options: { locale?: ReportLocale } = {}): string {
@@ -82,7 +83,7 @@ export function renderMonthlyReportHtml(summary: MonthlySummary, options: { loca
   const rateRows = summary.byTaxRate.map((r) => `<tr><td>${r.rate}%</td><td style="text-align:right">${yen(r.subtotal)}</td><td style="text-align:right">${yen(r.tax)}</td><td style="text-align:right">${yen(r.total)}</td></tr>`).join("");
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>月次締めレポート ${esc(summary.yearMonth)}</title>
 <style>
-  body{font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;color:#0f172a;padding:24px;font-size:13px}
+  body{font-family:"Hiragino Kaku Gothic ProN","Noto Sans CJK JP","Noto Sans JP",sans-serif;color:#0f172a;padding:24px;font-size:13px}
   h1{font-size:20px;margin:0 0 4px} .sub{color:#64748b;margin:0 0 16px}
   table{border-collapse:collapse;width:100%;max-width:560px;margin-bottom:20px}
   th,td{border:1px solid #cbd5e1;padding:6px 10px;text-align:left} th{background:#f1f5f9}

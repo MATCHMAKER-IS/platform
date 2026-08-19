@@ -9,9 +9,13 @@ import { env, usePrisma } from "./env";
 import { createMemoryItemStore, createPrismaItemStore, type ItemStore, type ItemStoreDb } from "./item-repo";
 
 function prismaDb(): ItemStoreDb {
-  if (!env.DATABASE_URL) throw new Error("PERSISTENCE=prisma には DATABASE_URL が必要です");
-  return createDb(PrismaClient, env.DATABASE_URL) as unknown as ItemStoreDb;
+  return createDb((o) => new PrismaClient(o), env.DATABASE_URL) as unknown as ItemStoreDb;
 }
 
-/** 品目ストア(PERSISTENCE=prisma で PostgreSQL、既定はインメモリ)。 */
+/**
+ * 品目ストア。**既定は PostgreSQL。**
+ *
+ * `PERSISTENCE=memory` のときだけメモリ実装になる(再起動で消えるので、
+ * 開発の使い捨て以外には向かない)。
+ */
 export const itemStore: ItemStore = usePrisma ? createPrismaItemStore(prismaDb()) : createMemoryItemStore();

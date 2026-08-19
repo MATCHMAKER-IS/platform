@@ -13,6 +13,11 @@ import { escapeHtml } from "./escape";
  *
  * @param value 属性値
  * @returns エスケープした文字列
+ *
+ * **要素の中身には `>` も変換する版**を使うこと——ここは属性用なので
+ * `>` を変換しない(属性の中では `>` は無害)。用途を取り違えると、
+ * **属性で `"` が通って JavaScript が動く**か、**要素で `>` がタグを閉じる**
+ * (2026-08 に明記)。
  */
 export function escapeAttribute(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
@@ -32,7 +37,8 @@ function attrs(map: Record<string, string | boolean | number | undefined>): stri
  * スクリプトを実行される)。
  *
  * @param src スクリプトの URL
- * @param options.async / defer 読み込み方法
+ * @param options.async 非同期で読むか
+ * @param options.defer 解析後に読むか
  * @returns `<script>` タグ
  */
 export function embedScript(src: string, options: { async?: boolean; defer?: boolean; id?: string; crossorigin?: string } = {}): string {
@@ -46,6 +52,7 @@ export function embedScript(src: string, options: { async?: boolean; defer?: boo
  * ユーザー入力を混ぜると、そのまま実行される。
  *
  * @param code スクリプトの中身(**信頼済みであること**)
+ * @param options nonce・属性（**CSP を使うなら nonce は必須**）
  * @returns `<script>` タグ
  */
 export function inlineScript(code: string, options: { id?: string } = {}): string {
@@ -59,7 +66,10 @@ export function inlineScript(code: string, options: { id?: string } = {}): strin
  * 埋め込む先を選ぶこと。
  *
  * @param src 埋め込む URL
- * @param options.width / height / title / allow 属性
+ * @param options.width 幅
+ * @param options.height 高さ
+ * @param options.title 読み上げ用の名前（**省略しない**）
+ * @param options.allow 許可する機能
  * @returns `<iframe>` タグ
  */
 export function embedIframe(src: string, options: { width?: number | string; height?: number | string; title?: string; allow?: string; loading?: "lazy" | "eager"; allowfullscreen?: boolean } = {}): string {
@@ -72,6 +82,7 @@ export function embedIframe(src: string, options: { width?: number | string; hei
  * JavaScript が無効な環境でも計測するための `<img>`。
  *
  * @param src 画像の URL
+ * @param options 代替テキスト・大きさ
  * @returns `<noscript>` で囲んだ `<img>` タグ
  */
 export function trackingPixel(src: string, options: { width?: number; height?: number } = {}): string {

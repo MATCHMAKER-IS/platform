@@ -59,6 +59,7 @@ export interface RedeemResult {
 
 /**
  * ポイントを利用する(残高を上限に、注文額も上限に)。
+ * @param balance 保有ポイント
  * @param requested 利用したいポイント
  * @param orderAmount 注文額(これを超えるポイントは使えない)
  * @returns 使用後の取引履歴。**残高を超えて使えない**

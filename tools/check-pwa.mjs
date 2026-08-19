@@ -22,6 +22,7 @@
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ALWAYS_SKIP } from "./lib/collect-files.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -36,7 +37,7 @@ function isPwaApp(appDir) {
 function collect(dir, out = []) {
   if (!existsSync(dir)) return out;
   for (const e of readdirSync(dir, { withFileTypes: true })) {
-    if (["node_modules", ".next", "dist"].includes(e.name)) continue;
+    if (ALWAYS_SKIP.has(e.name)) continue;
     const fp = path.join(dir, e.name);
     if (e.isDirectory()) collect(fp, out);
     else out.push(fp);

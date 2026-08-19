@@ -22,7 +22,6 @@ export interface AppHeaderProps extends React.HTMLAttributes<HTMLElement> {
   sticky?: boolean;
 }
 
-/** アプリのトップバー。 */
 /**
  * 画面上部の帯(アプリ名・検索・利用者メニュー)。
  *

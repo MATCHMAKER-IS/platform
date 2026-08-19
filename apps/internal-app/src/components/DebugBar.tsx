@@ -115,7 +115,7 @@ export function DebugBar({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         style={{
           display: "flex", alignItems: "center", gap: 6, padding: "6px 10px",
           background: bad || hasIssue ? "var(--color-danger, #c00)" : slow ? "var(--color-warning, #d97706)" : "var(--color-fg, #111)",
-          color: "#fff", border: "none", borderRadius: 999, cursor: "pointer",
+          color: "var(--color-bg)", border: "none", borderRadius: 999, cursor: "pointer",
           boxShadow: "0 2px 8px rgba(0,0,0,.2)", fontSize: 11,
         }}
       >

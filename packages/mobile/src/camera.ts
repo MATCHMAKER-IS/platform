@@ -22,8 +22,9 @@ export interface CameraConstraintsInput {
 /**
  * getUserMedia に渡す制約オブジェクトを組み立てる(純ロジック)。
  * deviceId 指定時はそれを優先、無ければ facing で前面/背面を選ぶ。
- * @param options.facing 前面/背面(**`environment` で背面**。商品スキャンには背面)
- * @param options.width / height 解像度
+ * @param input.facing 前面/背面(**`environment` で背面**。商品スキャンには背面)
+ * @param input.width 横の解像度
+ * @param input.height 縦の解像度
  */
 export function cameraConstraints(input: CameraConstraintsInput = {}): { video: Record<string, unknown>; audio: false } {
   const video: Record<string, unknown> = {};
@@ -111,7 +112,7 @@ export interface CaptureOptions {
  * 撮影ボタン押下時に呼ぶ。ブラウザ専用。
  *
  * @param video video 要素
- * @param options.format / quality 出力形式
+ * @param options.type / quality 出力形式
  * @returns 静止画の Blob
  * @throws 描画に失敗した場合
  */
@@ -130,4 +131,91 @@ export async function captureFrame(video: HTMLVideoElement, options: CaptureOpti
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("画像の生成に失敗しました"))), type, options.quality ?? 0.9);
   });
+}
+
+/** 録音の器。 */
+export interface AudioRecorder {
+  /** 録音を始める。**すでに録音中なら何もしません**。 */
+  start(): void;
+  /** 録音を止めて中身を返す。**録音していなければ `undefined`**。 */
+  stop(): Promise<Blob | undefined>;
+  /** 録音中か。 */
+  isRecording(): boolean;
+}
+
+/**
+ * **音声を録る**器を作る。
+ *
+ * 【使いどころ】
+ * 現場のメモ、電話の記録、議事録の下書き——**書くより話す方が速い**場面です。
+ * 録った音は `@platform/ai` に渡して文字にできます。
+ *
+ * 【必ず止めること】
+ * **止めないとマイクが開いたままになります。** ブラウザのタブに
+ * **録音中の印が出続け**、利用者は「盗聴されている」と感じます。
+ * 画面を離れるときは必ず `stop()` を呼んでください。
+ *
+ * 【形式について】
+ * **ブラウザによって形式が違います**（`webm` / `mp4` / `ogg`）。
+ * 保存する側で決め打ちにせず、**返ってきた `Blob` の `type` を見て**ください。
+ *
+ * @param stream `getUserMedia({ audio: true })` で得た音声
+ * @param options `mimeType`（省略時はブラウザに任せる）
+ * @returns 録音の器
+ */
+export function createAudioRecorder(
+  stream: MediaStream,
+  options: { mimeType?: string } = {},
+): AudioRecorder {
+  let recorder: MediaRecorder | undefined;
+  let chunks: Blob[] = [];
+
+  return {
+    start() {
+      // **二重に始めない。** 押し間違いで 2 つ動くと、
+      // **片方が止まらずマイクが開いたまま**になります。
+      if (recorder !== undefined) return;
+      chunks = [];
+      recorder = options.mimeType !== undefined && MediaRecorder.isTypeSupported(options.mimeType)
+        ? new MediaRecorder(stream, { mimeType: options.mimeType })
+        : new MediaRecorder(stream);
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+      recorder.start();
+    },
+
+    async stop() {
+      const r = recorder;
+      if (r === undefined) return undefined;
+      recorder = undefined;
+      return new Promise((resolve) => {
+        r.onstop = () => {
+          // **返ってきた形式をそのまま持たせる。** 保存側で決め打ちにすると、
+          // **別のブラウザで開けないファイル**ができます。
+          resolve(new Blob(chunks, { type: r.mimeType }));
+          chunks = [];
+        };
+        r.stop();
+      });
+    },
+
+    isRecording() {
+      return recorder !== undefined;
+    },
+  };
+}
+
+/**
+ * 録音が使えるかを見る。
+ *
+ * **`getUserMedia` と `MediaRecorder` の両方**が要ります——
+ * 片方だけある環境があるので、**両方を確かめてください**。
+ *
+ * @returns 使えれば true
+ */
+export function isAudioRecordingSupported(): boolean {
+  return typeof navigator !== "undefined"
+    && navigator.mediaDevices?.getUserMedia !== undefined
+    && typeof MediaRecorder !== "undefined";
 }

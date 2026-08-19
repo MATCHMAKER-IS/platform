@@ -40,7 +40,6 @@ export interface TimelineChartProps {
 
 const PALETTE = ["var(--color-primary)", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
 
-/** 時系列ラインチャート。 */
 /**
  * 時系列の帯(期間の重なり)。
  *

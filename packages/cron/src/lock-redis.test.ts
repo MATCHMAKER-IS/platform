@@ -5,7 +5,14 @@ function fakeRedis(now: () => number): RedisLockClient & { store: Map<string, { 
   return {
     store,
     set: async (key, val, _px, ttl) => { const e = store.get(key); if (e && e.exp > now()) return null; store.set(key, { val, exp: now() + ttl }); return "OK"; },
-    eval: async (_s, _n, key, token) => { const e = store.get(key); if (e && e.val === token) { store.delete(key); return 1; } return 0; },
+    // **`eval` の可変長引数は `string | number`**(Redis の仕様に合わせた形)。
+    // `Map<string, ...>` に渡すには文字列化が要る(2026-08、型検査で判明)。
+    eval: async (_s, _n, key, token) => {
+      const k = String(key);
+      const e = store.get(k);
+      if (e && e.val === String(token)) { store.delete(k); return 1; }
+      return 0;
+    },
   };
 }
 describe("redis lock", () => {

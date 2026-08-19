@@ -18,7 +18,6 @@ export interface AppShellProps extends React.HTMLAttributes<HTMLDivElement> {
   sidebarWidth?: string;
 }
 
-/** アプリの外枠レイアウト(ヘッダ固定・サイドバー + 本文)。 */
 /**
  * アプリの骨組み(ヘッダ・サイドバー・本文)。
  *

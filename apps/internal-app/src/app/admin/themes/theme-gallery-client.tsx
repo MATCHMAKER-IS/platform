@@ -5,8 +5,10 @@
  * ここではプレビュー領域にインラインで CSS 変数を当て、選択スキンの見た目を局所的に示す。
  */
 import * as React from "react";
+import { parseNumberOr } from "@platform/utils";
 import { createThemeRegistry, builtInThemes, themeToCssVars, deriveTheme, checkTheme, type ThemeMode, type Theme } from "@platform/theme";
 import { Button, Input, Select, SkinProvider, SkinSelector, useSkin, FileInput } from "@platform/ui";
+import { submitJson } from "@platform/form";
 
 // 標準テーマを登録したレジストリ(アプリ起動時に1回作る。独自テーマはここに register で足せる)。
 const registry = createThemeRegistry({ themes: builtInThemes });
@@ -84,13 +86,8 @@ function CustomThemeMaker({ onCreated }: { onCreated: (id: string) => void }) {
   const create = async () => {
     setMsg("");
     // DB に保存(組織で共有・再訪時も残る)
-    const r = await fetch("/api/admin/theme/custom", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ theme: preview }),
-    });
-    const d = (await r.json()) as { error?: string };
-    if (!r.ok) { setMsg(d.error ?? "保存に失敗しました"); return; }
+    const r = await submitJson("/api/admin/theme/custom", { theme: preview });
+    if (!r.ok) { setMsg(r.error); return; }
     registry.register(preview);
     onCreated(preview.id);
     setSkin(preview.id);
@@ -130,7 +127,7 @@ function CustomThemeMaker({ onCreated }: { onCreated: (id: string) => void }) {
         </label>
         <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12 }}>
           <span style={{ color: "var(--color-muted, #666)" }}>角丸 {radius}px</span>
-          <Input type="range" min={0} max={24} value={radius} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRadius(Number(e.target.value))} />
+          <Input type="range" min={0} max={24} value={radius} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRadius(parseNumberOr(e.target.value, 0))} />
         </label>
       </div>
 
@@ -156,25 +153,35 @@ function CustomThemeManager({ custom, onChanged }: { custom: Theme[]; onChanged:
 
   const remove = async (id: string) => {
     setMsg("");
-    const r = await fetch(`/api/admin/theme/custom?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-    const d = (await r.json()) as { error?: string };
+    const r = await submitJson(`/api/admin/theme/custom?id=${encodeURIComponent(id)}`, undefined, { method: "DELETE" });
     if (r.ok) { setMsg(`「${id}」を削除しました。`); onChanged(); }
-    else setMsg(d.error ?? "削除に失敗しました");
+    else setMsg(r.error);
   };
 
   const exportJson = () => {
     if (typeof window !== "undefined") window.open("/api/admin/theme/custom?export=1", "_blank");
   };
 
+  // **取り込み中は選べなくする。** 2026-08 まで状態を持っておらず、
+  // **続けて選ぶと同じテーマが二重に増えた**
+  const [importing, setImporting] = React.useState(false);
+
   const importJson = async (file: File) => {
+    if (importing) return;
+    setImporting(true);
     setMsg("");
-    const json = await file.text();
-    const r = await fetch("/api/admin/theme/custom", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ json }) });
-    const d = (await r.json()) as { imported?: number; skipped?: string[]; error?: string };
-    if (!r.ok) { setMsg(d.error ?? "取り込みに失敗しました"); return; }
-    const skippedNote = d.skipped && d.skipped.length > 0 ? `（${d.skipped.length} 件スキップ: ${d.skipped[0]}）` : "";
-    setMsg(`${d.imported} 件を取り込みました${skippedNote}`);
-    onChanged();
+    try {
+      const json = await file.text();
+      const r = await submitJson<{ imported?: number; skipped?: string[] }>("/api/admin/theme/custom", { json });
+      if (!r.ok) { setMsg(r.error); return; }
+      const d = r.value;
+      const skippedNote = d.skipped && d.skipped.length > 0 ? `（${d.skipped.length} 件スキップ: ${d.skipped[0]}）` : "";
+      setMsg(`${d.imported} 件を取り込みました${skippedNote}`);
+      onChanged();
+    } finally {
+      // **必ず戻す。** 失敗したまま `true` だと、二度と取り込めなくなる
+      setImporting(false);
+    }
   };
 
   const btn: React.CSSProperties = { padding: "6px 12px", border: "1px solid var(--color-border, #ddd)", borderRadius: 8, background: "var(--color-surface, #fff)", color: "var(--color-fg, #111)", fontSize: 12, cursor: "pointer" };
@@ -200,6 +207,7 @@ function CustomThemeManager({ custom, onChanged }: { custom: Theme[]; onChanged:
           accept=".json,application/json"
           label="JSON を取り込み"
           style={{ ...btn, background: "var(--color-bg, #f9fafb)" }}
+          disabled={importing}
           onSelect={(files) => { const f = files[0]; if (f) void importJson(f); }}
         />
         {msg && <span style={{ fontSize: 12, color: msg.includes("失敗") ? "var(--color-danger, #c00)" : "var(--color-success, #16a34a)" }}>{msg}</span>}
@@ -269,9 +277,8 @@ function Inner() {
 
   const saveAsDefault = async () => {
     setSaveMsg("");
-    const r = await fetch("/api/admin/theme", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ skinId: skin.id, mode: "system" }) });
-    const d = await r.json();
-    setSaveMsg(r.ok ? `「${skin.name}」を組織デフォルトに設定しました。` : (d.error ?? "保存に失敗しました"));
+    const r = await submitJson("/api/admin/theme", { skinId: skin.id, mode: "system" });
+    setSaveMsg(r.ok ? `「${skin.name}」を組織デフォルトに設定しました。` : r.error);
   };
 
   return (

@@ -32,18 +32,29 @@ export interface AttachmentLimits {
 export type AttachmentResult = { ok: true } | { ok: false; error: string };
 
 /**
+ * 添付の既定の上限。
+ *
+ * **既定を無制限にしない。** 呼び出し側が渡し忘れると、
+ * 件数もサイズも無制限に受け取ってしまう。
+ * `@platform/upload` の `DEFAULT_MAX_UPLOAD_BYTES`(25MB)より小さいのは、
+ * 投稿の添付は**画面に並ぶ**ため、大きいと表示が重くなるから。
+ */
+const DEFAULT_LIMITS = { maxCount: 10, maxSizeBytes: 10 * 1024 * 1024 } as const;
+
+/**
  * 添付を検証する(件数・サイズ・種別)。
  *
  * **保存する前に必ず通す**。大きすぎるファイルや、許可していない種別を弾く。
  *
  * @param attachments 添付の配列
- * @param options.maxCount 最大件数
- * @param options.maxTotalBytes 合計サイズの上限
- * @param options.allowedTypes 許可する MIME 種別
+ * @param limits.maxCount 最大件数
+ * @param limits.maxSizeBytes 合計サイズの上限(**`maxTotalBytes` ではない**)
+ * @param limits.allowedTypes 許可する MIME 種別
  * @returns 問題の一覧(**空なら妥当**)
  */
 export function validateAttachments(attachments: Attachment[], limits: AttachmentLimits = {}): AttachmentResult {
-  const { maxCount, maxSizeBytes, allowedTypes } = limits;
+  // **既定を持たせる。** 渡し忘れが無制限にならないように
+  const { maxCount = DEFAULT_LIMITS.maxCount, maxSizeBytes = DEFAULT_LIMITS.maxSizeBytes, allowedTypes } = limits;
   if (maxCount != null && attachments.length > maxCount) {
     return { ok: false, error: `添付は最大${maxCount}件までです` };
   }

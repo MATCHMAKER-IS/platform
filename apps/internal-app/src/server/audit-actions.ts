@@ -22,6 +22,13 @@ export interface AuditActions {
   fileDelete(actor: string, key: string): Promise<AuditEntry>;
   /** ファイルアップロード。 */
   fileUpload(actor: string, key: string, meta: { name: string; size: number; type: string }): Promise<AuditEntry>;
+  /**
+   * ファイルを取り出した記録。
+   *
+   * **持ち出しの記録は upload と同じくらい大事。**
+   * 社内資料が外に出たとき、誰が落としたかを後から辿れるようにする。
+   */
+  fileDownload(actor: string, key: string, meta: { name: string }): Promise<AuditEntry>;
   /** 経費申請の提出。 */
   expenseSubmit(actor: string, expenseId: string, amount: number, category?: string): Promise<AuditEntry>;
   /** 経費申請の承認/却下/差戻し。 */
@@ -51,6 +58,11 @@ export function createAuditActions(auditLog: AuditLog, now: () => string = () =>
     },
     async fileDelete(actor, key) {
       return rec({ actor, action: "file.delete", target: `file:${key}` });
+    },
+    async fileDownload(actor, key, meta) {
+      // **`rec` が正しい。** `record` は存在せず、**この経路だけ実行時に落ちていた**
+      // ——ダウンロードの監査が記録されないまま気づけない状態だった。
+      return rec({ actor, action: "file.download", target: `file:${key}`, after: meta });
     },
     async fileUpload(actor, key, meta) {
       return rec({ actor, action: "file.upload", target: `file:${key}`, after: { name: meta.name, size: meta.size, type: meta.type } });

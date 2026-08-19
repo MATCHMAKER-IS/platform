@@ -23,7 +23,9 @@
 import { readFileSync, readdirSync, existsSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ALWAYS_SKIP } from "./lib/collect-files.mjs";
 
+let scanned = 0;
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SURFACE = path.join(ROOT, "docs/platform/api-surface.json");
 const LIMIT_FILE = new URL("./reimplementation-limit.json", import.meta.url);
@@ -33,6 +35,18 @@ const LIMIT_FILE = new URL("./reimplementation-limit.json", import.meta.url);
  * ここに足すのは「基盤と別物である」と確認したときだけ。
  */
 const ALLOW = {
+  // **基盤の `definePolicy()` で作った値**であって、作り直しではない。
+  // 権限表は**アプリごとに中身が違う**ので、アプリ側に置くのが正しい形
+  // （基盤側の同名は `rbac.ts` の TSDoc に載っている使用例。2026-08）
+  policy: "基盤の definePolicy() で作った値(権限表はアプリごとに違う)",
+  // **偶然の同名**。アプリ側は React のコンテキスト提供者
+  // (`<AuthProvider>{children}</AuthProvider>`)、基盤側は
+  // **ログイン方法の型**(`"zoho" | "google" | ...`)。用途が全く違う(2026-08)
+  AuthProvider: "偶然の同名(アプリは React コンポーネント / 基盤はログイン方法の型)",
+  // **基盤への委譲ラッパー**(中身は `@platform/guard` の guardWrite)。
+  // アプリごとに上限とレート制限のストアが違うので、
+  // **設定を束ねる薄い層**だけを置いている(2026-08)
+  guardWrite: "基盤への委譲ラッパー(上限とストアの設定を束ねるだけ)",
   // Next.js のルートハンドラ。HTTP メソッド名なので基盤の同名とは無関係
   GET: "Next.js のルートハンドラ(HTTP メソッド名)",
   POST: "Next.js のルートハンドラ(HTTP メソッド名)",
@@ -44,6 +58,11 @@ const ALLOW = {
   currentUser: "セッションの取り出し方がアプリごとに異なる",
   // 監査の保存先はアプリが決める
   recordAudit: "保存先(メモリ/DB)をアプリが決めるため",
+  // **どの環境変数が要るかはアプリごとに違う。**
+  // 基盤に定義を置くと、全アプリが全アプリの変数を要求することになる。
+  // 検証そのものは @platform/env の parseEnv に任せており、
+  // ここにあるのは「このアプリのスキーマ」だけ。全アプリが同じ名前で公開している
+  env: "アプリごとに必要な環境変数が違うため(検証は @platform/env の parseEnv)",
 };
 
 if (!existsSync(SURFACE)) {
@@ -60,7 +79,8 @@ for (const [pkg, names] of Object.entries(JSON.parse(readFileSync(SURFACE, "utf8
 function collect(dir, out = []) {
   if (!existsSync(dir)) return out;
   for (const e of readdirSync(dir, { withFileTypes: true })) {
-    if (["node_modules", ".next", "dist"].includes(e.name)) continue;
+  scanned += 1;
+    if (ALWAYS_SKIP.has(e.name)) continue;
     const fp = path.join(dir, e.name);
     if (e.isDirectory()) collect(fp, out);
     else if (/\.tsx?$/.test(e.name) && !e.name.endsWith(".test.ts") && !e.name.endsWith(".test.tsx")) out.push(fp);
@@ -69,7 +89,16 @@ function collect(dir, out = []) {
 }
 
 const hits = [];
-for (const area of ["apps", "demos"]) {
+/**
+ * 実際に効いた除外。
+ *
+ * **効かなくなった除外は消します。** 残っていると、
+ * **同じ名前で本物の作り直しが起きたときに素通り**します
+ * ——「昔ここで許したから」という理由で、**未来の違反まで許すことになります**。
+ */
+const usedAllow = new Set();
+
+for (const area of ["apps"]) {
   for (const f of collect(path.join(ROOT, area))) {
     const rel = path.relative(ROOT, f).replace(/\\/g, "/");
     const src = readFileSync(f, "utf8");
@@ -77,7 +106,7 @@ for (const area of ["apps", "demos"]) {
     if (/@platform\/[a-z-]+ に一本化|基盤の実装を使/.test(src)) continue;
     for (const m of src.matchAll(/^export (?:async )?(?:function|const) ([A-Za-z][A-Za-z0-9_]*)/gm)) {
       const name = m[1];
-      if (ALLOW[name]) continue;
+      if (ALLOW[name]) { usedAllow.add(name); continue; }
       if (!owner.has(name)) continue;
       hits.push({ rel, name, pkg: owner.get(name) });
     }
@@ -121,5 +150,20 @@ if (hits.length > 0) {
   process.exit(0);
 }
 
-console.log("✅ 基盤と同名の実装はありません");
+// **効かなくなった除外を知らせる。**
+//
+// 除外の理由は「書いた時点の状態」でしかありません。
+// 元の実装が消えたり名前が変わったりすると、**除外だけが残ります**。
+// そのまま置いておくと、**同じ名前で本物の作り直しが起きたときに素通り**します
+// ——「昔ここで許したから」という理由で、未来の違反まで許すことになります。
+//
+// **落とさず、知らせるだけ**にしてあります。消すかどうかは人が決めること
+// （一時的に実装を外している最中かもしれません）。
+const staleAllow = Object.keys(ALLOW).filter((k) => !usedAllow.has(k));
+if (staleAllow.length > 0) {
+  console.log(`⚠ 効いていない除外が ${staleAllow.length} 件あります: ${staleAllow.join(", ")}`);
+  console.log("   もう要らないなら ALLOW から消してください（残すと、同じ名前の作り直しを素通りさせます）");
+}
+
+console.log(`✅ 基盤と同名の実装はありません(${scanned} ファイルを検査)`);
 process.exit(0);

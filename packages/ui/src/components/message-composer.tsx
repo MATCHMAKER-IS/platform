@@ -15,7 +15,6 @@ export interface MessageComposerProps {
   className?: string;
 }
 
-/** メッセージ入力+送信。 */
 /**
  * 発言の入力欄。
  *

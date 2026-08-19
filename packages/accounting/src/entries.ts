@@ -60,7 +60,7 @@ export function salesJournal(
   accounts: AccountNames = DEFAULT_ACCOUNTS,
 ): JournalEntry {
   const total = input.net + input.tax;
-  return {
+  return assertBalanced({
     date: input.date,
     description: input.description ?? "売上",
     lines: [
@@ -68,7 +68,7 @@ export function salesJournal(
       { account: accounts.sales, debit: 0, credit: input.net },
       { account: accounts.outputTax, debit: 0, credit: input.tax },
     ],
-  };
+  });
 }
 
 /**
@@ -92,7 +92,7 @@ export function purchaseJournal(
   accounts: AccountNames = DEFAULT_ACCOUNTS,
 ): JournalEntry {
   const total = input.net + input.tax;
-  return {
+  return assertBalanced({
     date: input.date,
     description: input.description ?? "仕入",
     lines: [
@@ -100,7 +100,7 @@ export function purchaseJournal(
       { account: accounts.inputTax, debit: input.tax, credit: 0 },
       { account: accounts.payable, debit: 0, credit: total },
     ],
-  };
+  });
 }
 
 /**
@@ -121,14 +121,14 @@ export function receiptJournal(
   input: { date: string; description?: string; amount: number },
   accounts: AccountNames = DEFAULT_ACCOUNTS,
 ): JournalEntry {
-  return {
+  return assertBalanced({
     date: input.date,
     description: input.description ?? "入金",
     lines: [
       { account: accounts.cash, debit: input.amount, credit: 0 },
       { account: accounts.receivable, debit: 0, credit: input.amount },
     ],
-  };
+  });
 }
 
 /**
@@ -149,14 +149,14 @@ export function paymentJournal(
   input: { date: string; description?: string; amount: number },
   accounts: AccountNames = DEFAULT_ACCOUNTS,
 ): JournalEntry {
-  return {
+  return assertBalanced({
     date: input.date,
     description: input.description ?? "支払",
     lines: [
       { account: accounts.payable, debit: input.amount, credit: 0 },
       { account: accounts.cash, debit: 0, credit: input.amount },
     ],
-  };
+  });
 }
 
 /** 経費精算の支払方法。 */
@@ -191,7 +191,7 @@ export function expenseJournal(
   ];
   if (input.tax > 0) lines.push({ account: accounts.inputTax, debit: input.tax, credit: 0 });
   lines.push({ account: creditAccount, debit: 0, credit: total });
-  return { date: input.date, description: input.description ?? "経費精算", lines };
+  return assertBalanced({ date: input.date, description: input.description ?? "経費精算", lines });
 }
 
 /**
@@ -207,7 +207,8 @@ export function expenseJournal(
  * @param input.date 支給日
  * @param input.description 摘要(任意)
  * @param input.gross 総支給額
- * @param input.withholding 源泉所得税
+ * @param input.withholdingTax 源泉所得税(**`withholding` ではない**)。
+ *   `socialInsurance` は社会保険料、`gross` は総支給額
  * @param input.socialInsurance 社会保険料(従業員負担分)
  * @param input.paid 支払済みか(true なら現金預金、false なら未払金)
  * @param accounts 勘定科目名(既定は DEFAULT_ACCOUNTS)
@@ -225,5 +226,30 @@ export function payrollJournal(
   if (input.withholdingTax > 0) lines.push({ account: accounts.withholdingPayable, debit: 0, credit: input.withholdingTax });
   if (input.socialInsurance > 0) lines.push({ account: accounts.socialPayable, debit: 0, credit: input.socialInsurance });
   lines.push({ account: input.paid ? accounts.cash : accounts.unpaid, debit: 0, credit: net });
-  return { date: input.date, description: input.description ?? "給与支給", lines };
+  return assertBalanced({ date: input.date, description: input.description ?? "給与支給", lines });
+}
+
+/**
+ * **作った仕訳の貸借が一致しているか確かめる。**
+ *
+ * 仕訳を作る関数はすべてこれを通します——**一致しない仕訳を作ってしまうと、
+ * 試算表が合わなくなり、どこで崩れたか分からなくなります**。
+ * 作った時点で止めれば、**原因は直前の 1 か所**に絞れます。
+ *
+ * **例外にします。** `Result` で返すと、呼び出し側が `ok` を見ずに
+ * そのまま保存する経路が生まれます——**帳簿は「たぶん合っている」では困る**ため。
+ *
+ * @param entry 作った仕訳
+ * @returns そのままの仕訳
+ * @throws 借方合計と貸方合計が違う場合
+ */
+function assertBalanced(entry: JournalEntry): JournalEntry {
+  const debit = entry.lines.reduce((a, l) => a + (l.debit ?? 0), 0);
+  const credit = entry.lines.reduce((a, l) => a + (l.credit ?? 0), 0);
+  if (debit !== credit) {
+    throw new Error(
+      `仕訳の貸借が一致しません（借方 ${debit} / 貸方 ${credit}）: ${entry.description ?? ""}`,
+    );
+  }
+  return entry;
 }

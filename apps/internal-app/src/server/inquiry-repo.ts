@@ -80,7 +80,9 @@ export interface InquiryRow {
   subject: string;
   message: string;
   status: string;
-  createdAt: string;
+  /** DB では `Date`。`Inquiry` の公開契約(`createdAt: string`)は変えない
+   *  ——`rowToInquiry` の境界で変換する(2026-08)。 */
+  createdAt: Date;
 }
 
 /** 使用する Prisma デリゲートの最小ポート。 */
@@ -88,14 +90,14 @@ export interface InquiryStoreDb {
   inquiryRow: {
     findMany(args: { where?: { status: string }; orderBy: { createdAt: "desc" } }): Promise<InquiryRow[]>;
     findUnique(args: { where: { id: string } }): Promise<InquiryRow | null>;
-    create(args: { data: { name: string; email: string; category: string; subject: string; message: string; status: string; createdAt: string } }): Promise<InquiryRow>;
+    create(args: { data: { name: string; email: string; category: string; subject: string; message: string; status: string; createdAt: Date } }): Promise<InquiryRow>;
     update(args: { where: { id: string }; data: { status: string } }): Promise<InquiryRow>;
     count(args: { where: { status: { not: string } } }): Promise<number>;
   };
 }
 
 function rowToInquiry(row: InquiryRow): Inquiry {
-  return { id: row.id, name: row.name, email: row.email, category: row.category, subject: row.subject, message: row.message, status: normalizeStatus(row.status), createdAt: row.createdAt };
+  return { id: row.id, name: row.name, email: row.email, category: row.category, subject: row.subject, message: row.message, status: normalizeStatus(row.status), createdAt: row.createdAt.toISOString() };
 }
 
 /** Prisma 実装。 */
@@ -109,7 +111,7 @@ export function createPrismaInquiryStore(db: InquiryStoreDb): InquiryStore {
       return row ? rowToInquiry(row) : undefined;
     },
     async submit(input) {
-      const createdAt = new Date().toISOString();
+      const createdAt = new Date();
       const row = await db.inquiryRow.create({ data: { ...input, status: "new", createdAt } });
       return rowToInquiry(row);
     },

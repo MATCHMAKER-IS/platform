@@ -38,14 +38,27 @@ function esc(s: string): string {
  * **SVG にするのは、フォントの用意なしに文字を描ける**ため
  * (sharp のテキスト描画は環境依存のフォントが要る)。
  *
- * @param options.text 透かしの文字
- * @param options.fontSize / color / opacity 見た目
+ * **既定のフォントは `sans-serif`。** サーバ(Linux コンテナ)で
+ * この SVG を画像化すると、日本語は **□(豆腐)** になる。
+ * 日本語を透かすなら `fontFamily: "Noto Sans CJK JP"` を渡し、
+ * コンテナに `fonts-noto-cjk` を入れておくこと
+ * (`apps/internal-app/Dockerfile` が例)。
+ *
+ * @param text 透かす文字列(**options ではなく第 1 引数**)
+ * @param options `fontSize`(既定 32)・`color`・`opacity`・`shadow`・`fontFamily` で見た目を決める
  * @returns SVG 文字列
  */
 export function watermarkTextSvg(text: string, options: WatermarkTextOptions = {}): string {
   const { fontSize = 32, color = "#ffffff", opacity = 0.6, shadow = true, fontFamily = "sans-serif" } = options;
   const pad = Math.round(fontSize * 0.4);
-  const w = Math.max(1, text.length) * fontSize * 0.62 + pad * 2;
+  // **全角は半角の 2 倍の幅で数える。** `text.length` × 0.62 だと
+  // 日本語で 40% 以上はみ出す(「社外秘」が枠から出る)。
+  // 東アジアの文字・全角記号を 1.0em、それ以外を 0.55em として見積もる。
+  const em = [...text].reduce(
+    (a, ch) => a + (/[\u1100-\u115F\u2E80-\uA4CF\uAC00-\uD7A3\uF900-\uFAFF\uFE30-\uFE6F\uFF00-\uFF60\uFFE0-\uFFE6]/.test(ch) ? 1.0 : 0.55),
+    0,
+  );
+  const w = Math.max(1, em) * fontSize + pad * 2;
   const h = fontSize + pad * 2;
   // **属性に入る値はすべて esc を通す。** 本文(text)だけ通していたが、
   // fontFamily / color も属性なので、`" onload="…` の形で SVG に任意の属性を差し込める。

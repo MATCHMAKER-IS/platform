@@ -30,7 +30,7 @@ export interface RetryOptions extends TransactionOptions {
  *
  * @param db Prisma クライアント
  * @param fn トランザクション内の処理
- * @param options.attempts 最大試行回数
+ * @param options.retries **リトライ回数**(最初の 1 回は含まない)。`baseDelayMs` は待ち時間の基準
  * @returns 処理の結果(**デッドロックは再試行で回復する**ことが多い)
  */
 export async function transactionWithRetry<TClient extends RawCapableClient, T>(

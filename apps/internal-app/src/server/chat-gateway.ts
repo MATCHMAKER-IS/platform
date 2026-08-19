@@ -83,7 +83,9 @@ export function createChatGateway(opts: ChatGatewayOptions): ChatGateway {
       await hub.unsubscribe(roomChannel(roomId), connectionId);
     },
     async send(input) {
-      if (attachmentLimits && input.attachments && input.attachments.length > 0) {
+      // **`attachmentLimits` が無くても検証する**(基盤側に既定がある)。
+      // 以前は未指定だと検証ごと飛ばしていた(2026-08)
+      if (input.attachments && input.attachments.length > 0) {
         const v = validateAttachments(input.attachments, attachmentLimits);
         if (!v.ok) return v;
       }

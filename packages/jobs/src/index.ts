@@ -51,6 +51,7 @@ export interface TypedQueue<T> {
  * @typeParam T ジョブデータの型
  * @param queueName キュー名
  * @param connection Redis 接続
+ * @param queueFactory キューの実体を作る関数（**試験では作り物を渡す**。既定は BullMQ）
  * @returns {@link TypedQueue}
  *
  * @example
@@ -67,7 +68,20 @@ export function createQueue<T>(
   const opts = {
     connection: connectionFromUrl(connection.url),
     // 既定の再試行方針(指数バックオフ 3 回)。アプリ側で上書き可。
-    defaultJobOptions: { attempts: 3, backoff: { type: "exponential", delay: 1000 } },
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: { type: "exponential", delay: 1000 },
+      // **終わったジョブを消す。** BullMQ は既定で**永久に保持**するので、
+      // 日次 1 万件なら 1 年で 365 万件が Redis に残り、
+      // メモリを食い尽くすまで気づかない(ある日突然キューが止まる)。
+      //
+      // 完了は 1 時間 + 直近 1000 件だけ残す。**成功したものを見返すことは無い**が、
+      // 「さっき流したジョブが動いたか」を確かめる分だけは要る。
+      removeOnComplete: { age: 3600, count: 1000 },
+      // **失敗は長く残す。** 調査に要るので 7 日。件数も多めに取る
+      // (障害時はまとめて失敗するため、少ないと原因のジョブが押し出される)。
+      removeOnFail: { age: 7 * 24 * 3600, count: 5000 },
+    },
   };
   const queue: QueueLike = queueFactory ? queueFactory(queueName, opts) : (new Queue(queueName, opts as never) as unknown as QueueLike);
   return {

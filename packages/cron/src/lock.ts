@@ -16,7 +16,7 @@ export interface LockStore {
  * メモリ実装(単一プロセス・TTL 付き)。分散では Redis 実装に差し替える。
  *
  *
- * @param options.now 時刻の取得(テスト注入用)
+ * @param now 現在時刻(**テスト注入用**。渡さなければ `new Date()`)
  * @returns ロックストア(**単一プロセス内のみ**。テスト用)
  */
 export function createMemoryLockStore(now: () => number = () => Date.now()): LockStore {

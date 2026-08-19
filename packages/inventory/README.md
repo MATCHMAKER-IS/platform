@@ -1,14 +1,28 @@
-# @platform/inventory — 在庫管理
+# @platform/inventory
 
-入出庫台帳・発注点・在庫評価(移動平均）。発注入荷（`@platform/purchase`）や売上出荷を入出庫として記録します。
+在庫と発注。**入出庫の履歴から残高を出します**（残高を直接持ちません）。
 
-## 主な API
-- **入出庫台帳**: `onHand(movements)` / `summarize(movements)` / `applyMovement`（出庫超過を検証）。
-  種別は inbound（入荷）/ outbound（出荷）/ adjustment（棚卸差異・符号付き）。
-- **発注点**: `reorderPoint(policy)`（安全在庫 + リードタイム需要）/ `needsReorder` / `reorderQuantity`（目標在庫まで補充）。
-- **在庫評価**: `movingAverage(movements)` → 現在庫・移動平均単価・在庫金額。
+## これは何のためか
+
+**残高を直接持つと、必ず合わなくなります。**
+更新に失敗した、二重に引いた——**どこで狂ったか追えません**。
+
+**入出庫の履歴だけを持ち、残高は計算する**——
+これなら**いつでも作り直せます**。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **`applyMovement` は `ok` を必ず見る** | **`ok` を見ずに `movements` だけ使うと、出庫できていないのに成功したことになります** |
+| **在庫がマイナスになることがあります** | **実務では普通に起きます**（棚卸で判明する）——**計算は止めません**。印が付くので**人が確かめて**ください |
+| **在庫金額が 0 になることがあります** | 単価が入っていない品目です——**警告が付きます** |
+| **一覧は SKU 順で** | 指定しないと、**行を更新するたびに並びが変わります** |
+
+## よく使うもの
 
 ```ts
+import { lotBalances, expiringSoon, expiredLots } from "@platform/inventory";
 import { onHand, needsReorder, reorderQuantity, movingAverage } from "@platform/inventory";
 const movements = [{ type: "inbound", quantity: 100, at: "2025-07-01", unitCost: 500 }, { type: "outbound", quantity: 30, at: "2025-07-05" }];
 onHand(movements);                                   // 70

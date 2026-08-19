@@ -2,8 +2,12 @@
 /** 送信Webhookのイベントカタログ(GET)。開発者向け。認証不要。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { WEBHOOK_EVENTS, WEBHOOK_SIGNATURE_DOC } from "../../../../server/api-reference";
+import { limitPublic } from "../../../../server/rate-limit";
 
-async function handleGET(_req: Request): Promise<Response> {
+async function handleGET(req: Request): Promise<Response> {
+  // **仕様書として社外の開発者が読む。** 認可が無いので回数で守る
+  const limited = await limitPublic(req, "v1-events");
+  if (limited) return limited;
   return Response.json({ events: WEBHOOK_EVENTS, signature: WEBHOOK_SIGNATURE_DOC });
 }
 

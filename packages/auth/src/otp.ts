@@ -45,9 +45,18 @@ export function generateOtpCode(length = 6): string {
  * **平文のコードを保存しない**ため。identifier を混ぜることで、
  * 別ユーザーの challenge に同じコードを使い回せないようにする。
  *
+ * **`identifier` を省略しないこと。** 既定が空文字なので**省略しても動く**が、
+ * そのとき**全員のハッシュが同じ鍵で作られる**——攻撃者が自分宛の
+ * `123456` のハッシュを手に入れれば、**他人の challenge にも通る**。
+ * 省略が事故になる形で、**エラーも出ない**ので気づけない。
+ *
+ * この基盤の `createOtpChallenge` / `verifyOtpCode` は必ず渡すので、
+ * **直接呼ぶ場合だけ注意すること**(2026-08 に明記)。
+ *
  * @param code       OTP コード
  * @param secret     サーバー側の pepper(環境変数などから。**コードに直書きしない**)
- * @param identifier 用途を分ける識別子(メールアドレス・電話番号など)
+ * @param identifier 用途を分ける識別子(メールアドレス・電話番号など)。
+ *   **省略しないこと**(省略すると他人のコードが通る)
  * @returns 16 進のハッシュ文字列
  */
 export function hashOtpCode(code: string, secret: string, identifier = ""): string {
@@ -129,7 +138,18 @@ export function verifyOtpCode(challenge: OtpChallenge, code: string, secret: str
   let match = false;
   try {
     match = expected.length === actual.length && timingSafeEqual(Buffer.from(expected), Buffer.from(actual));
+  // **`timingSafeEqual` は長さが違うと例外を投げる。**
+  // 一致しないとみなして続ける——**長さの違いを先に判定すると、
+  // その分岐で時間差が出る**(タイミング攻撃の手がかりになる)。
+  // 例外を握りつぶすのではなく、**「一致しない」という結果として扱っている**。
   } catch {
+    // **例外は「一致しない」として扱う。** `timingSafeEqual` は
+    // **長さが違うと例外を投げる**ので、ここに来るのは
+    // 保存された値が壊れているか、形式が違う場合。
+    // どちらも**通してはいけない**ので `false` に倒す。
+    //
+    // **`try` の外で長さを比べない。** 先に長さで弾くと、
+    // 応答時間の差から**長さが漏れる**(タイミング攻撃の入口になる)。
     match = false;
   }
   if (match) return { status: "ok", challenge: updated };

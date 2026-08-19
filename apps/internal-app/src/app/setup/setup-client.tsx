@@ -1,7 +1,7 @@
 "use client";
 /** 初期セットアップウィザード。管理者不在時に最初の管理者作成＋会社設定を行う。 */
 import * as React from "react";
-import { Button, Input } from "@platform/ui";
+import { Button, Input, PageShell } from "@platform/ui";
 
 interface State { initialized: boolean; canCreateFirstAdmin: boolean; steps: { admin: boolean; company: boolean }; }
 
@@ -34,9 +34,7 @@ export function SetupClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   );
 
   return (
-    <div className="mx-auto max-w-md p-6">
-      <h1 className="mb-1 text-2xl font-bold">初期セットアップ</h1>
-      <p className="mb-4 text-sm text-[var(--color-muted)]">最初の管理者アカウントと会社情報を設定します。</p>
+        <PageShell title="初期セットアップ" description="最初の管理者アカウントと会社情報を設定します。">
       {msg && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-danger)]">{msg}</p>}
       <div className="space-y-3">
         <label className="block text-xs text-[var(--color-muted)]">会社名<Input value={form.companyName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, companyName: e.target.value })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1.5 text-sm" /></label>
@@ -44,7 +42,7 @@ export function SetupClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         <label className="block text-xs text-[var(--color-muted)]">メールアドレス<Input type="email" value={form.email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, email: e.target.value })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1.5 text-sm" /></label>
         <label className="block text-xs text-[var(--color-muted)]">パスワード（8文字以上）<Input type="password" value={form.password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, password: e.target.value })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1.5 text-sm" /></label>
       </div>
-      <Button onClick={submit} className="mt-4 w-full rounded bg-[var(--color-fg)] px-6 py-2.5 text-sm text-white">セットアップを完了</Button>
-    </div>
+   <Button onClick={submit} className="mt-4 w-full rounded px-6 py-2.5 text-sm text-white">セットアップを完了</Button>
+    </PageShell>
   );
 }

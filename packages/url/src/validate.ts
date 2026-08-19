@@ -47,8 +47,16 @@ export function isHttpUrl(url: string): boolean {
  * **利用者が入力した URL をリンクにする前に必ず通す**
  * (プロフィールの「ホームページ」欄など)。
  *
+ * **これは「リンクにしてよいか」の判定で、「サーバから叩いてよいか」ではない。**
+ * `http://localhost/` も `http://192.168.0.1/` も true になる——
+ * リンクとしては無害だが、**サーバから取得すると社内ネットワークへの踏み台になる**
+ * (SSRF)。Webhook の送信先・画像の取り込み元・URL プレビューなど、
+ * **こちらが接続する先**を検証するなら `@platform/net` の `isSafeExternalUrl` を使うこと。
+ *
+ * 名前が似ているので取り違えやすい(2026-08 に相互参照を足した)。
+ *
  * @param url 判定する文字列
- * @returns 安全なら true
+ * @returns リンクとして安全なら true(**接続先としての安全は見ていない**)
  */
 export function isSafeUrl(url: string): boolean {
   const trimmed = url.trim();

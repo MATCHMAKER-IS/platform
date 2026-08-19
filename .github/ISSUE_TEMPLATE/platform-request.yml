@@ -1,0 +1,80 @@
+name: 基盤への不具合・要望（アプリ開発中に見つけたもの）
+description: アプリを作っていて「基盤がこうだったら」と思ったときに使ってください
+title: "[基盤] "
+labels: ["platform", "from-app"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **基盤（`packages/` `tools/`）を直接編集しないでください。**
+
+        基盤は他のアプリも使っています。アプリの都合で直すと、
+        **気づかないうちに他のアプリを壊します**——しかも壊れたことは
+        **そのアプリを次に触った人**が知ることになります。
+
+        **急ぎで待てないときは、自分のアプリの中に回避を書いてください**
+        （基盤を直すより安全です）。その場合も、この Issue は立ててください。
+
+  - type: input
+    id: app
+    attributes:
+      label: どのアプリを作っていますか
+      placeholder: apps/expense-app
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: 何をしようとしましたか
+      description: 「できなかったこと」ではなく「やりたかったこと」を書いてください。
+      placeholder: 経費申請の一覧に、申請日の新しい順で並べたい
+    validations:
+      required: true
+
+  - type: textarea
+    id: blocked
+    attributes:
+      label: どこで止まりましたか
+      description: 使おうとした関数名と、何が足りなかったかを書いてください。
+      placeholder: |
+        `listExpenses` に並び順を渡せない（引数が `{ status }` だけ）
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: いま回避していますか
+      description: |
+        回避しているなら、その方法と困っている点を書いてください。
+        **回避できているかどうかで、直す急ぎ度が変わります。**
+      placeholder: |
+        呼び出し側で `sort` している。
+        件数が増えると全件読み込むので遅くなりそう。
+    validations:
+      required: false
+
+  - type: input
+    id: commit
+    attributes:
+      label: 基盤のバージョン
+      description: "`git rev-parse --short HEAD` の結果を貼ってください。"
+      placeholder: a1b2c3d
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checked
+    attributes:
+      label: 確認したこと
+      description: |
+        **基盤に既にあるかもしれません。** 探してから出してください——
+        119 個あるので、名前が違うだけで同じものがあることがよくあります。
+      options:
+        - label: "`pnpm advisor find \"<やりたいこと>\"` で探した"
+          required: true
+        - label: "`docs/ops/HANDOVER.md` を検索した（そういう作りにした理由が書いてあるかもしれません）"
+          required: true
+        - label: "基盤のソースは編集していない"
+          required: true

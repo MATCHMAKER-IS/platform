@@ -2,14 +2,14 @@
 import { withApiObservability } from "../../../../../server/instrument";
 import { audienceRecipients } from "../../../../../server/survey-repo";
 import { currentUser, requirePermission } from "../../../../../server/authorize";
-import { serverEnv } from "../../../../../server/env";
+import "../../../../../server/env";
 import { surveyStore, userStore, appMailer, auditActions, settingsStore } from "../../../../../server/platform-services";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "inquiry:write");
   const { id } = await ctx.params;
-  const body = (await req.json()) as { status?: "draft" | "open" | "closed" };
+  const body = (await req.json().catch(() => ({}))) as { status?: "draft" | "open" | "closed" };
   if (!body.status || !["draft", "open", "closed"].includes(body.status)) return Response.json({ error: "状態が不正です" }, { status: 400 });
   await surveyStore.setStatus(id, body.status);
   let notified = 0;
@@ -18,7 +18,12 @@ async function handlePOST(req: Request, ctx: { params: Promise<{ id: string }> }
     if (survey) {
       const recipients = audienceRecipients(await userStore.list(), survey.audience);
       if (recipients.length > 0) {
-        await appMailer.sendMail({ to: recipients, from: (await settingsStore.get()).mailFrom, subject: `[アンケート] ${survey.title} のお願い`, text: `アンケート「${survey.title}」が公開されました。ご回答をお願いします。\n/surveys/${id}` });
+        // **1 件ずつ送る。** remind-scan・[id]/remind と同じ理由
+        // (2026-08、この経路も食い違っていたのを発見)。
+        const mailFrom = (await settingsStore.get()).mailFrom;
+        for (const to of recipients) {
+          await appMailer.sendMail({ to, from: mailFrom, subject: `[アンケート] ${survey.title} のお願い`, text: `アンケート「${survey.title}」が公開されました。ご回答をお願いします。\n/surveys/${id}` });
+        }
         notified = recipients.length;
       }
     }

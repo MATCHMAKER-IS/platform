@@ -57,7 +57,11 @@ export interface FetchLayoutStoreOptions {
  * const { layout, setLayout } = useDashboardLayout(DEFAULT, store);
  * ```
  *
- * @param options.endpoint API の URL
+ * @param url 保存先の URL
+ * @param options.method HTTP メソッド
+ * @param options.headers 追加ヘッダ
+ * @param options.fetch テスト注入用
+ *   **URL は options ではなく引数で渡す**
  * @returns ストア。**端末をまたいで持ち回れる**
  */
 export function createFetchLayoutStore(url: string, options: FetchLayoutStoreOptions = {}): LayoutStore {

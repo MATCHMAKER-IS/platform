@@ -18,8 +18,10 @@ export interface UsePollingOptions {
 /**
  * 一定間隔でデータを取得するフック。
  *
- * @param options.fetch 取得する処理
- * @param options.intervalMs 間隔(**短くしすぎない**。サーバの負荷になる)
+ * @param fetcher 取得する処理
+ *   options に持てるのは `enabled`(停止)と `pauseWhenHidden`(タブが隠れたら止める)だけ
+ * @param intervalMs 間隔(短くしすぎない——サーバの負荷になる)
+ * @param options 止める条件・画面が隠れている間の扱い
  */
 export function usePolling<T>(fetcher: () => Promise<T>, intervalMs: number, options: UsePollingOptions = {}) {
   const { enabled = true, pauseWhenHidden = true } = options;
@@ -55,7 +57,8 @@ export type WsStatus = "connecting" | "open" | "closed";
  * リアルタイム受信フック(自動再接続)。
  *
  * @param url 接続先
- * @param options.onMessage 受信時の処理(**自動再接続する**)
+ * @param options.enabled 有効化(既定 true)。**受信は戻り値の `lastMessage` で受け取る**
+ *   (`onMessage` を渡す形ではない)。接続は自動で張り直す
  */
 export function useWebSocket<T = unknown>(url: string, options: { enabled?: boolean } = {}) {
   const { enabled = true } = options;
@@ -89,7 +92,8 @@ import { appendCapped } from "../lib/live-buffer";
  * useWebSocket("wss://...", { }); // 受信で push(msg)
  * <LineChart data={data} xKey="t" series={[{ key: "v" }]} />
  * ```
- * @param options.max 保持する件数(**上限が無いとメモリを食い尽くす**)
+ * @param max 保持する件数(**上限が無いとメモリを食い尽くす**)
+ * @param initial 最初から入れておく値
  */
 export function useLiveSeries<T>(max = 60, initial: T[] = []) {
   const [data, setData] = React.useState<T[]>(initial);

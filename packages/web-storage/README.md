@@ -1,8 +1,28 @@
 # @platform/web-storage
 
-端末に残す設定・下書き(localStorage / sessionStorage)。**ブラウザ専用・依存は core のみ。**
+ブラウザの保存領域（localStorage の安全な包み）。
+
+## これは何のためか
+
+**`localStorage` は例外を投げます。**
+
+プライベートモード、容量オーバー、設定で無効——
+**書けない環境が普通にあります**。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **書けなくても落ちません** | 静かに失敗します——**保存できたか確かめたいなら戻り値を見て**ください |
+| **壊れた JSON でも落ちません** | 既定値を返します——**手で書き換えられる**ためです |
+| **秘密を入れない** | **JavaScript から読めます**——トークンやパスワードは置かないでください |
+| **消えることがあります** | ブラウザの掃除、容量不足——**消えて困るものは置かないで**ください |
+| **artifacts では使えません** | Claude の成果物では**動きません**——メモリ実装を使ってください |
+
+## よく使うもの
 
 ```ts
+import { createWebStorage, createMemoryWebStorage } from "@platform/web-storage";
 import { createWebStorage } from "@platform/web-storage";
 
 type Theme = "light" | "dark" | "system";

@@ -95,10 +95,26 @@ export interface Allocation {
  *
  * @param movements 入出庫の履歴
  * @param quantity 引き当てたい数量
+ * @param options.now 基準日（**期限切れを引き当てない**ための判定に使う。試験で固定できます）
  * @returns 引当の内訳と、**不足数**(在庫が足りなければ 0 より大きい)
  */
-export function allocateFEFO(movements: LotMovement[], quantity: number): { allocations: Allocation[]; shortfall: number } {
-  const lots = lotBalances(movements).slice().sort((a, b) => {
+export function allocateFEFO(
+  movements: LotMovement[],
+  quantity: number,
+  options: { now?: Date } = {},
+): { allocations: Allocation[]; shortfall: number } {
+  // **期限切れを引き当てない。** FEFO は「期限が近い順」なので、
+  // **期限切れのロットが最優先で選ばれる**——食品・医薬品・化学品では
+  // **出荷してはいけないものが出る**(賞味期限切れが顧客に届く)。
+  //
+  // `now` を渡さなければ従来どおり全ロットが対象(2026-08 に追加)。
+  // 期限切れの分は `shortfall` に含まれるので、**引き当てられなかったこと**が分かる。
+  const limit = options.now;
+  const all = lotBalances(movements);
+  const usable = limit === undefined
+    ? all
+    : all.filter((l) => l.expiry === undefined || new Date(l.expiry) >= limit);
+  const lots = usable.slice().sort((a, b) => {
     if (!a.expiry && !b.expiry) return 0;
     if (!a.expiry) return 1;
     if (!b.expiry) return -1;

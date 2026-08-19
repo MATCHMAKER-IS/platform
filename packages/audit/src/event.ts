@@ -50,7 +50,8 @@ export interface DiffOptions {
  *
  * @param before 変更前
  * @param after 変更後
- * @param options.mask マスクするフィールド(**パスワードなどを監査ログに残さない**)
+ * @param options.redact 値を伏せるフィールド(**パスワードなどを監査ログに残さない**)。
+ *   `ignore` は差分から除外するフィールド(伏せるのではなく、そもそも見ない)
  * @returns 変わったフィールドだけの差分(**変わっていないものは含まない**)
  */
 export function diffChanges(
@@ -96,7 +97,13 @@ export function describeEvent(event: AuditEvent): string {
  *
  * @param before 変更前
  * @param after 変更後
- * @param options.mask マスクするパス
+ * @param prefix パスの接頭辞(**再帰の内部で使う**。呼び出し側は渡さない)
+ *
+ * **`redact` / `ignore` は無い。** 2026-08 まで「値を伏せるパス」と
+ * 説明していたが、**この関数は伏せる仕組みを持たない**——
+ * パスワードを含むオブジェクトをそのまま渡すと、**監査ログに平文で残る**。
+ * 伏せたいなら {@link diffChanges}(配列形式・`redact` あり)を使うか、
+ * 呼び出し側で先に取り除くこと
  * @returns 変わったパスだけの差分
  * 配列やプリミティブは JSON 比較で葉として扱う。UI での差分の詳細表示に使う。
  */

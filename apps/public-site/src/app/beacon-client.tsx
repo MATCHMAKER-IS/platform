@@ -1,31 +1,26 @@
 "use client";
-/** 公開サイトのページビュー計測ビーコン。 */
-import * as React from "react";
-import { createBeacon, ensureSessionId } from "@platform/analytics";
+/**
+ * 公開サイトのページビュー計測。
+ *
+ * **中身は `@platform/ui` の `usePageview` に移した**(2026-08)。
+ * `internal-app` にも同じ形のラッパーがあり、セッション ID の採番と保存を
+ * 別々に書いていた——書き直すたびに「タブを閉じたら消す」
+ * 「保存に失敗しても計測は続ける」が抜ける。
+ */
+import { usePageview } from "@platform/ui";
 
-function getSessionId(): string {
-  try {
-    const store = (globalThis as unknown as { sessionStorage?: Storage }).sessionStorage;
-    const key = "site_sid";
-    const current = store?.getItem(key);
-    const sid = ensureSessionId(current, () => Math.random().toString(36).slice(2) + Date.now().toString(36));
-    store?.setItem(key, sid);
-    return sid;
-  } catch {
-    return ensureSessionId(null, () => Math.random().toString(36).slice(2));
-  }
+/** {@link BeaconClient} の設定。 */
+export interface BeaconClientProps {
+  /** 計測するパス。 */
+  path: string;
 }
 
-export function BeaconClient({ path }: { path: string }) {
-  React.useEffect(() => {
-    const nav = globalThis as unknown as { navigator?: { sendBeacon?: (u: string, b: BodyInit) => boolean }; document?: { referrer: string } };
-    const beacon = createBeacon({
-      sessionId: getSessionId(),
-      ...(nav.navigator?.sendBeacon ? { sendBeacon: (u: string, b: string) => nav.navigator!.sendBeacon!(u, b) } : {}),
-      fetch: (u, init) => fetch(u, init as RequestInit),
-    });
-    const referrer = nav.document?.referrer || undefined;
-    beacon.pageview(path, { ...(referrer ? { referrer } : {}) });
-  }, [path]);
+/**
+ * ページビューを送る(表示は無い)。
+ *
+ * **利用者は渡さない。** 公開サイトは匿名で計測する。
+ */
+export function BeaconClient({ path }: BeaconClientProps) {
+  usePageview({ path, namespace: "public-site" });
   return null;
 }

@@ -141,11 +141,153 @@ export function parseJsonRpc(line: string): { ok: true; value: JsonRpcRequest } 
 }
 
 /**
+ * **走っている処理を止められるようにする器。**
+ *
+ * 【なぜ要るか】
+ * MCP のツールは**長く走ることがあります**（帳票の生成、一括の取り込み）。
+ * 利用者が「やっぱりやめる」と言ったとき、**止める手段が無いと
+ * 終わるまで待つしかありません**——その間も**AI の課金は進みます**。
+ *
+ * MCP は `notifications/cancelled` で中止を伝えますが、
+ * **受け取っただけでは止まりません**——
+ * **走っている処理に伝える仕組み**がここです。
+ *
+ * 【使い方】
+ * ツールの `handler` に `signal` を渡し、**時間のかかる処理の合間に
+ * `signal.aborted` を見て**ください。見ないと止まりません。
+ *
+ * ```ts
+ * for (const row of rows) {
+ *   if (signal.aborted) throw new Error("中止されました");
+ *   await process(row);
+ * }
+ * ```
+ *
+ * **外部への呼び出しには `signal` をそのまま渡せます**（`fetch` が対応しています）。
+ */
+export interface McpCancellation {
+  /** 処理に渡す合図。**`aborted` を見ないと止まりません**。 */
+  signal: AbortSignal;
+  /** 中止を伝える。 */
+  cancel(): void;
+  /** 終わったので後片付けする。**呼ばないと溜まり続けます**。 */
+  done(): void;
+}
+
+/**
+ * **要求 ID ごとに中止の合図を管理する。**
+ *
+ * 【必ず `done()` を呼んでください】
+ * 呼ばないと**終わった処理の合図が残り続け**、
+ * **長く動かすほどメモリを食います**——`finally` で呼ぶのが確実です。
+ *
+ * @returns 中止の管理をする器
+ */
+export function createCancellationRegistry(): {
+  /** 新しい処理を登録する。 */
+  start(requestId: string | number): McpCancellation;
+  /** 中止を伝える（`notifications/cancelled` を受けたとき）。 */
+  cancel(requestId: string | number): boolean;
+  /** いま走っている数（**溜まっていないかの確認用**）。 */
+  size(): number;
+} {
+  const running = new Map<string, AbortController>();
+  const key = (id: string | number) => String(id);
+
+  return {
+    start(requestId) {
+      const controller = new AbortController();
+      running.set(key(requestId), controller);
+      return {
+        signal: controller.signal,
+        cancel: () => controller.abort(),
+        // **`finally` で呼んでください。** 呼ばないと溜まり続けます
+        done: () => { running.delete(key(requestId)); },
+      };
+    },
+
+    cancel(requestId) {
+      const controller = running.get(key(requestId));
+      // **見つからなくても失敗ではありません。**
+      // すでに終わっている処理への中止は**よくあること**です
+      // ——利用者が押した瞬間に終わった、という順序で起きます。
+      if (controller === undefined) return false;
+      controller.abort();
+      running.delete(key(requestId));
+      return true;
+    },
+
+    size: () => running.size,
+  };
+}
+
+/**
+ * ツールの引数が **`inputSchema` に合っているか**を確かめる。
+ *
+ * 【なぜ要るか】
+ * **引数を渡してくるのは AI です。** 型を宣言しても、
+ * **AI が違うものを渡してこない保証はありません**——
+ * 数値のつもりが文字列、必須のはずが欠けている、といったことが実際に起きます。
+ *
+ * **検証せずに `handler` へ渡すと、その場で落ちるか、
+ * もっと悪いことに「それらしい間違った結果」を返します**——
+ * 金額に `"1000円"` が渡って `NaN` になり、**0 円として登録される**のが最悪の形です。
+ *
+ * 【どこまで見るか】
+ * **JSON Schema の全部は見ません**（`required` と `type` だけ）。
+ * 完全な検証が要るなら **`handler` の中で `zod`** を使ってください
+ * ——ここは**明らかな取り違えを門前で弾く**ためのものです。
+ *
+ * @param schema ツールが宣言した `inputSchema`
+ * @param args AI が渡してきた引数
+ * @returns 問題があればその説明。無ければ `undefined`
+ */
+export function validateToolArguments(
+  schema: Record<string, unknown> | undefined,
+  args: Record<string, unknown>,
+): string | undefined {
+  if (schema === undefined) return undefined;
+
+  const required = Array.isArray(schema["required"]) ? schema["required"] : [];
+  for (const key of required) {
+    if (typeof key !== "string") continue;
+    // **`undefined` も `null` も「無い」と見なします。**
+    // AI は「値が無い」を `null` で渡してくることがあります。
+    if (args[key] === undefined || args[key] === null) {
+      return `必須の引数がありません: ${key}`;
+    }
+  }
+
+  const properties = schema["properties"];
+  if (typeof properties !== "object" || properties === null) return undefined;
+
+  for (const [key, value] of Object.entries(args)) {
+    const prop = (properties as Record<string, unknown>)[key];
+    if (typeof prop !== "object" || prop === null) continue;
+    const expected = (prop as Record<string, unknown>)["type"];
+    if (typeof expected !== "string") continue;
+
+    const actual = Array.isArray(value) ? "array"
+      : value === null ? "null"
+      : typeof value;
+    // **`integer` は `number` として見ます**（JSON には整数型がありません）
+    const isOk = expected === "integer"
+      ? actual === "number" && Number.isInteger(value)
+      : expected === actual;
+    if (!isOk) {
+      return `引数の型が違います: ${key} は ${expected} ですが ${actual} が渡されました`;
+    }
+  }
+  return undefined;
+}
+
+/**
  * MCP メッセージを処理する(純関数)。通知(id 無し)は null を返し、応答しない。
  * 対応メソッド: initialize / notifications/initialized / ping / tools/list / tools/call
  *
- * @param request MCP のリクエスト
- * @param handlers ツールの実装
+ * @param options サーバの設定（公開するツールの一覧など）
+ * @param req MCP のリクエスト
+ * @param ctx 呼び出しの文脈（誰が呼んだか。**権限の判定に使う**）
  * @returns レスポンス。**通知(id 無し)には null**(JSON-RPC の規定)
  */
 export async function handleMcpMessage(options: McpServerOptions, req: JsonRpcRequest, ctx: McpCallContext = {}): Promise<JsonRpcResponse | null> {
@@ -182,6 +324,13 @@ export async function handleMcpMessage(options: McpServerOptions, req: JsonRpcRe
       if (verdict !== true) return rpcResult(id, errorResult(typeof verdict === "string" ? verdict : "このツールを実行する権限がありません"));
     }
     try {
+      // **AI が渡す引数は信用できません。**
+      // 宣言した `inputSchema` に合っているかを、**渡す前に**確かめます
+      // ——検証せずに渡すと、その場で落ちるか、
+      // もっと悪いことに**「それらしい間違った結果」**を返します
+      // （金額に `"1000円"` が渡って `NaN` になり、**0 円として登録される**）。
+      const invalid = validateToolArguments(tool.inputSchema, params.arguments ?? {});
+      if (invalid !== undefined) return rpcResult(id, errorResult(invalid));
       const result = await tool.handler(params.arguments ?? {});
       return rpcResult(id, result);
     } catch (e) {
@@ -224,8 +373,9 @@ export interface StdioLike {
 /**
  * 改行区切り JSON の stdio サーバを起動する。入力ストリームが閉じるまで動く。
  * 本番: `serveStdio(options)`(process.stdin/stdout)。ログは stderr へ(標準出力はプロトコル専用)。
- * @param handlers ツールの実装
+ * @param options サーバの設定（公開するツールの一覧など）
  * @param io 入出力(**テストで差し替えられる**)
+ * @param ctx 呼び出しの文脈（誰が呼んだか。**権限の判定に使う**）
  */
 export async function serveStdio(options: McpServerOptions, io?: StdioLike, ctx: McpCallContext = {}): Promise<void> {
   const input = io?.input ?? process.stdin;
@@ -292,9 +442,10 @@ const jsonResponse = (body: unknown, status: number, headers: Record<string, str
  * });
  * ```
  *
- * @param req HTTP リクエスト
- * @param handlers ツールの実装
- * @param options.token 認証トークン(**設定すれば Bearer を検証**)
+ * @param request HTTP リクエスト
+ * @param options ツールの実装と認証をまとめて渡す({@link HttpMcpOptions})。
+ *   `authenticate` を設定すれば Bearer を検証する。
+ *   **以前この説明は `handlers` を別引数として書いていた**が、実装では options の一部
  * @returns HTTP レスポンス
  */
 export async function handleHttpMcp(request: Request, options: HttpMcpOptions): Promise<Response> {

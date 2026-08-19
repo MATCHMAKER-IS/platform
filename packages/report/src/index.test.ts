@@ -37,3 +37,27 @@ describe("renderInvoiceHtml", () => {
     expect(html).toContain(formatYen(3300));   // 税込合計
   });
 });
+
+describe("formatYen: 負の金額", () => {
+  // **`¥-5,000` と書かない。** 消費税の還付・返金・差額で実際に出る値で、
+  // 記号の前に符号が来るのが読み手の期待(2026-08 に修正)
+  it("既定は記号の前に符号を置く", () => {
+    expect(formatYen(-5000)).toBe("-¥5,000");
+  });
+  // **日本の会計帳票は △。** 決算書・試算表はこの書き方
+  it("triangle は会計帳票の書き方", () => {
+    expect(formatYen(-5000, "triangle")).toBe("△5,000");
+  });
+  it("paren は英文会計の書き方", () => {
+    expect(formatYen(-5000, "paren")).toBe("(¥5,000)");
+  });
+  // **0 と正の値は書き方に関係なく同じ**(符号の分岐に入らない)
+  it("0 と正の値は変わらない", () => {
+    expect(formatYen(0, "triangle")).toBe("¥0");
+    expect(formatYen(1234567, "paren")).toBe("¥1,234,567");
+  });
+  // **端数は絶対値で切り捨てる。** -1234.9 は △1,234(△1,235 ではない)
+  it("負の端数は絶対値で切り捨てる", () => {
+    expect(formatYen(-1234.9, "triangle")).toBe("△1,234");
+  });
+});

@@ -3,7 +3,7 @@
  * 掲示板の投稿カード。投稿者・本文・リアクション・返信数を表示。board パッケージ非依存。
  * @packageDocumentation
  */
-import { linkify } from "@platform/html";
+import { Markdown } from "./markdown";
 import { cn } from "../lib/cn";
 
 /** リアクションの表示単位。 */
@@ -40,8 +40,13 @@ export function PostCard({ authorName, body, timestamp, edited, reactions = [], 
         <span className="text-sm font-medium">{authorName}</span>
         <span className="text-xs text-[var(--color-muted)]">{timestamp}{edited ? "（編集済み）" : ""}</span>
       </div>
+      {/* **Markdown として描く。**
+          以前は `linkify` の結果を `dangerouslySetInnerHTML` で流していたが、
+          投稿は利用者が書いたものなので、変換に漏れがあれば script が動く。
+          `Markdown` は React 要素に組み立てるので、その経路が無い。
+          `renderLinks={false}` のときは記法を解かず、そのまま出す */}
       {renderLinks ? (
-        <p className="text-sm whitespace-pre-wrap break-words [&_a]:underline" dangerouslySetInnerHTML={{ __html: linkify(body) }} />
+        <Markdown>{body}</Markdown>
       ) : (
         <p className="text-sm whitespace-pre-wrap break-words">{body}</p>
       )}

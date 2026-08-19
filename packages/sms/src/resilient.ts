@@ -21,7 +21,10 @@ export interface SmsRetryOptions {
  *
  *
  * @param transport 元の送信
- * @param options.attempts 最大試行回数
+ * @param options.retries **リトライ回数**(最初の 1 回は含まない)。
+ *   以前この説明は `attempts 最大試行回数` と書いており、**1 回少なく見積もる**うえ
+ *   その名前は存在しなかった。`backoffMs` は待ち時間、`shouldRetry` は再試行の可否、
+ *   `sleep` はテスト注入用
  * @returns ラップした送信(**恒久エラーは再試行しない**)
  */
 export function withSmsRetry(transport: SmsTransport, options: SmsRetryOptions = {}): SmsTransport {
@@ -49,6 +52,7 @@ export interface SmsFallbackOptions { onFallback?: (failedIndex: number, error: 
  *
  *
  * @param transports 送信の配列(優先順)
+ * @param options 次に移る条件・試す回数
  * @returns ラップした送信
  * @throws 全部失敗した場合
  */

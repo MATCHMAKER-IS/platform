@@ -18,7 +18,6 @@ export interface SearchInputProps extends Omit<React.InputHTMLAttributes<HTMLInp
   clearable?: boolean;
 }
 
-/** 検索入力。アイコン + クリア + Enter で検索。 */
 /**
  * 検索欄(虫眼鏡と消去ボタンつき)。
  *
@@ -46,7 +45,8 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
         value={value}
         placeholder={placeholder}
         onChange={(e) => onValueChange?.(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter") onSearch?.((e.target as HTMLInputElement).value); }}
+        // **変換中の Enter は無視する。** 日本語入力では漢字を選ぶ操作が Enter
+        onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) onSearch?.((e.target as HTMLInputElement).value); }}
         className="h-9 w-full rounded-[var(--radius)] border border-[var(--color-border)] bg-[var(--color-bg)] pl-9 pr-9 text-sm text-[var(--color-fg)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] [&::-webkit-search-cancel-button]:hidden"
         {...props}
       />

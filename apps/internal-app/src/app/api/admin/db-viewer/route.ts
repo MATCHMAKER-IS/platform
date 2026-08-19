@@ -1,16 +1,24 @@
 /** DB Viewer API(管理者専用)。テーブル一覧・スキーマ・データ・SQL実行・行操作。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { listTables, describeTable, selectRows, insertRow, updateRows, deleteRows, runSql, createTable, dropTable, addColumn, dropColumn, exportTableCsv, importTableCsv, type ColumnDef } from "../../../../server/db-viewer";
 
+/**
+ * 管理者だけを通す。
+ *
+ * **権限名を渡す。ロール名ではない。** 2026-08 まで `"admin"` を渡しており、
+ * これは policy に権限として存在しない。admin ロールが `"*"` を持つため
+ * 結果的に通っていたが、**`"*"` を外した瞬間に管理者まで 403 になる**
+ * (「運用操作は名前を明示しておく」という policy 自身の方針と逆行していた)。
+ */
 function requireAdmin(req: Request): boolean {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
-  try { requirePermission(user, "admin"); return true; } catch { return false; }
+  const user = currentUser(req);
+  try { requirePermission(user, "system:manage"); return true; } catch { return false; }
 }
 
 async function handleGET(req: Request): Promise<Response> {
-  if (!requireAdmin(req)) return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
+  if (!requireAdmin(req)) return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
   const u = new URL(req.url);
   const table = u.searchParams.get("table");
   if (table && u.searchParams.get("export") === "csv") {
@@ -30,8 +38,8 @@ async function handleGET(req: Request): Promise<Response> {
 }
 
 async function handlePOST(req: Request): Promise<Response> {
-  if (!requireAdmin(req)) return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
-  const body = (await req.json()) as { action?: string; table?: string; values?: Record<string, unknown>; where?: Record<string, unknown>; sql?: string; allowDanger?: boolean; allowDdl?: boolean; columns?: ColumnDef[]; column?: ColumnDef | string; csv?: string };
+  if (!requireAdmin(req)) return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
+  const body = (await req.json().catch(() => ({}))) as { action?: string; table?: string; values?: Record<string, unknown>; where?: Record<string, unknown>; sql?: string; allowDanger?: boolean; allowDdl?: boolean; columns?: ColumnDef[]; column?: ColumnDef | string; csv?: string };
   if (body.action === "sql" && body.sql !== undefined) {
     const r = await runSql(body.sql, { allowDanger: body.allowDanger === true, allowDdl: body.allowDdl === true });
     return r.ok ? Response.json(r.value) : Response.json({ error: r.error.message, code: r.error.code }, { status: 200 });

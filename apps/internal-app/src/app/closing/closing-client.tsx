@@ -1,7 +1,10 @@
 "use client";
 /** 月次決算。損益計算書・貸借対照表・消費税集計表を月ごとに表示。 */
 import * as React from "react";
-import { Button, Input } from "@platform/ui";
+import { formatPercent } from "@platform/utils";
+import { formatYen } from "@platform/report";
+import { formatMonthJst } from "@platform/datetime";
+import { AsyncBoundary, Button, Input, PageShell } from "@platform/ui";
 import { InfoTip } from "../../components/InfoTip";
 
 interface PL { revenue: number; expense: number; netIncome: number; }
@@ -15,14 +18,15 @@ interface Cmp { current: number; prior: number; delta: number; rate: number | nu
 interface Comparison { years: [number, number]; revenue: Cmp; expense: Cmp; netIncome: Cmp; assets: Cmp; liabilities: Cmp; equity: Cmp; }
 interface Lock { period: string; lockedAt: string; lockedBy: string; }
 
-const yen = (n: number) => `¥${n.toLocaleString()}`;
-const thisMonth = () => new Date().toISOString().slice(0, 7);
+const yen = (n: number) => formatYen(n);
+const thisMonth = () => formatMonthJst();
 
 export interface ClosingClientProps { fetchImpl?: typeof fetch; }
 
 export function ClosingClient({ fetchImpl }: ClosingClientProps) {
   const [month, setMonth] = React.useState(thisMonth());
   const [data, setData] = React.useState<Statements | null>(null);
+  const [error, setError] = React.useState("");
   const [yearEnd, setYearEnd] = React.useState<YearEnd | null>(null);
   const [prior, setPrior] = React.useState("0");
   const [locks, setLocks] = React.useState<Lock[]>([]);
@@ -30,12 +34,20 @@ export function ClosingClient({ fetchImpl }: ClosingClientProps) {
   const [compare, setCompare] = React.useState<Comparison | null>(null);
   const doFetch = fetchImpl ?? (globalThis as unknown as { fetch: typeof fetch }).fetch;
 
-  React.useEffect(() => {
-    void (async () => {
+  // **再試行できるように名前を付ける。**
+  // 月次締めは業務に直結するので、失敗したまま気づかないのが困る
+  const load = React.useCallback(async () => {
+    setError("");
+    try {
       const res = await doFetch(`/api/accounting/statements?month=${month}`);
-      if (res.ok) setData((await res.json()) as Statements);
-    })();
+      if (!res.ok) { setError("決算書を取得できませんでした"); return; }
+      setData((await res.json()) as Statements);
+    } catch {
+      setError("通信に失敗しました。ネットワークを確認してください");
+    }
   }, [doFetch, month]);
+
+  React.useEffect(() => { void load(); }, [load]);
 
   const loadLocks = React.useCallback(async () => {
     const res = await doFetch("/api/accounting/locks");
@@ -63,12 +75,10 @@ export function ClosingClient({ fetchImpl }: ClosingClientProps) {
   };
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">月次決算</h1>
+    <PageShell title="月次決算" width="wide">
         <Input type="month" value={month} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMonth(e.target.value)} className="rounded border border-[var(--color-border)] px-2 py-1 text-sm" />
-      </div>
-      {!data ? <p className="text-sm text-[var(--color-muted)]">読み込み中…</p> : (
+      <AsyncBoundary loading={data === null} error={error} onRetry={() => void load()}>
+      {data !== null && (
         <>
           <div className="mb-6 grid gap-4 md:grid-cols-2">
             <div className="rounded border border-[var(--color-border)] p-4">
@@ -121,8 +131,8 @@ export function ClosingClient({ fetchImpl }: ClosingClientProps) {
             <div className="mb-2 flex items-center justify-between">
               <h2 className="text-sm font-medium">月次締めロック</h2>
               {locks.some((l) => l.period === month)
-                ? <Button onClick={() => toggleLock("unlock")} className="rounded border border-[var(--color-border)] px-4 py-1.5 text-sm">{month} の締めを解除</Button>
-                : <Button onClick={() => toggleLock("lock")} className="rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">{month} を締める</Button>}
+                ? <Button onClick={() => toggleLock("unlock")} variant="secondary" className="rounded px-4 py-1.5 text-sm">{month} の締めを解除</Button>
+        : <Button onClick={() => toggleLock("lock")} className="rounded px-4 py-1.5 text-sm text-white">{month} を締める</Button>}
             </div>
             <p className="text-xs text-[var(--color-muted)]">締めた月は請求の起票・入金記録ができなくなります（後追い修正の防止）。</p>
             {lockMsg && <p className="mt-1 text-xs text-[var(--color-success)]">{lockMsg}</p>}
@@ -133,7 +143,7 @@ export function ClosingClient({ fetchImpl }: ClosingClientProps) {
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <h2 className="text-sm font-medium">年次決算・繰越（{month.slice(0, 4)}年度）</h2>
               <label className="ml-auto text-xs text-[var(--color-muted)]">期首繰越利益剰余金<Input value={prior} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPrior(e.target.value)} inputMode="numeric" className="ml-1 w-28 rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
-              <Button onClick={runYearEnd} className="rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">決算振替を計算</Button>
+       <Button onClick={runYearEnd} className="rounded px-4 py-1.5 text-sm text-white">決算振替を計算</Button>
             </div>
             {yearEnd && (
               <>
@@ -154,10 +164,10 @@ export function ClosingClient({ fetchImpl }: ClosingClientProps) {
           <div className="mt-6 rounded border border-[var(--color-border)] p-4">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-1 text-sm font-medium">前年比較（{month.slice(0, 4)}年度 vs 前年度）<InfoTip text="増減率は（当期−前期）÷前期です。前期が0の項目は算出できないため「—」と表示されます。" /></h2>
-              <Button onClick={runCompare} className="rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">前年比較を計算</Button>
+       <Button onClick={runCompare} className="rounded px-4 py-1.5 text-sm text-white">前年比較を計算</Button>
             </div>
             {compare && (() => {
-              const pct = (r: number | null) => (r === null ? "—" : `${r >= 0 ? "+" : ""}${Math.round(r * 1000) / 10}%`);
+              const pct = (r: number | null) => (r === null ? "—" : `${r >= 0 ? "+" : ""}${formatPercent(r, 1)}`);
               const rowFor = (label: string, c: Cmp) => (
                 <tr key={label} className="border-b border-[var(--color-border)]">
                   <td className="px-2 py-1.5">{label}</td>
@@ -184,6 +194,7 @@ export function ClosingClient({ fetchImpl }: ClosingClientProps) {
           </div>
         </>
       )}
-    </div>
+      </AsyncBoundary>
+    </PageShell>
   );
 }

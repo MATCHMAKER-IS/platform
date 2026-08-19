@@ -1,0 +1,10 @@
+{
+  "connector": "zoho",
+  "title": "Zoho OAuth トークン取得・更新",
+  "endpoint": "POST https://accounts.zoho.jp/oauth/v2/token",
+  "sourceFile": "packages/zoho/src/core/login.ts",
+  "requiredFields": ["access_token"],
+  "note": "access_token が欠けると CRM・Books・Cliq のすべてが止まる。refresh_token は初回のみ、api_domain と expires_in は既定値で代替できるため必須にしない",
+  "capturedAt": null,
+  "fixture": null
+}

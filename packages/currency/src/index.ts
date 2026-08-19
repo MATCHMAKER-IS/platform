@@ -93,6 +93,14 @@ export function formatMoney(m: Money, options: { symbol?: boolean; code?: boolea
  * **`rate` の向きに注意**(「1 from = rate to」)。逆に取ると桁が大きく狂う。
  * **換算先の通貨桁で丸める**(円なら整数に)。
  *
+ * **この関数は「いつのレートか」を持たない。** 会計では
+ * **どの時点のレートで換算したか**を残す義務がある(取引日・決済日・期末で
+ * レートが違い、差額は為替差損益として計上する)。
+ * 換算した金額だけを保存すると、**後から検証できず、監査で説明できない**。
+ *
+ * 保存するときは **`rate` と「そのレートの基準日」を一緒に記録すること**。
+ * 再計算が要る場面(訂正・期末の洗い替え)で必ず必要になる(2026-08 に明記)。
+ *
  * @param m 換算する金額
  * @param to 換算先の通貨
  * @param rate レート(**1 from = rate to**)
@@ -108,8 +116,9 @@ export function convert(m: Money, to: string, rate: number): Money {
  *
  * @param a 金額
  * @param b 金額
- * @returns 合計
- * @throws {@link @platform/core#AppError} コード `VALIDATION` — **通貨が違う場合**(異なる通貨は足せない。レート換算してから足す)
+ * @returns 合計。**通貨が違えば `null`**(異なる通貨は足せない。
+ *   レート換算してから足すこと)——2026-08 まで「例外を投げる」と書いてあったが、
+ *   実装は `null` を返す。**`try/catch` で待ち構えても捕まらず、`null.amount` で落ちる**
  */
 export function addMoney(a: Money, b: Money): Money | null {
   if (a.currency !== b.currency) return null;
@@ -121,8 +130,10 @@ export function addMoney(a: Money, b: Money): Money | null {
  *
  *
  * @param items 金額の配列
- * @returns 合計。**空なら 0**(通貨は最初の要素から取る)
- * @throws {@link @platform/core#AppError} コード `VALIDATION` — 通貨が混在する場合
+ * @returns 合計。**空なら 0**(通貨は最初の要素から取る)。
+ *   **通貨が混在していれば `null`**——2026-08 まで「例外を投げる」と
+ *   書いてあったが、実装は `null` を返す。`try/catch` で待ち構えても捕まらず、
+ *   **`null.amount` で落ちる**
  */
 export function sumMoney(items: readonly Money[]): Money | null {
   if (items.length === 0) return { amount: 0, currency: "JPY" };

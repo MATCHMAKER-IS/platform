@@ -30,7 +30,7 @@ jobs:
         run: |
           set +e
           node tools/i18n-check.mjs \
-            --catalog=demos/showcase/src/i18n/catalog.ts#catalogs \
+            --catalog=apps/showcase/src/i18n/catalog.ts#catalogs \
             --report=i18n-report.md
           echo "status=$?" >> "$GITHUB_OUTPUT"
       - name: Comment PR with i18n report

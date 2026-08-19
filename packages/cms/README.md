@@ -1,19 +1,27 @@
 # @platform/cms
 
-CMS(お知らせ・記事・ページ)の共通基盤。投稿モデル・下書き/公開/予約のステータス管理・改訂履歴・タグ/カテゴリ・公開申請までを部品化しています。
+社内のお知らせ・記事（下書き・公開予約・版管理）。
 
-- `CmsPost` / `CmsPostInput` / `isValidSlug` … 投稿モデルとスラッグ検証
-- `CmsStore`(`createMemoryCmsStore` / `createPrismaCmsStore`) … 保存(メモリ/Prismaの両実装・切替可能)
-- `scheduling` … 予約公開(publishAt)の判定
-- `revision` / `diff` … 改訂履歴と差分
-- `publish-request` … 公開申請(編集者→承認者)のワークフロー
-- `announcement` / `page` / `category-store` / `tags` / `filter` / `summary` … お知らせ・固定ページ・分類・一覧絞り込み
+## これは何のためか
 
-社内アプリ(お知らせ)と公開サイト(ブログ/ページ)の**両方から同じ基盤を使う**のが特徴です。実利用例: apps/internal-app の CMS 管理画面、apps/public-site の記事表示。
+**「誰がいつ何を変えたか」が残らないと、お知らせは信用されません。**
 
-## 使い方
+「前はこう書いてあった」と言われたときに、**確かめられる**必要があります。
+このパッケージは**版を残し、公開前の下書きをサーバに保つ**ためのものです。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **下書きはサーバに保存されます** | タブを閉じても消えません——**書きかけを失う**事故を防ぐためです |
+| **公開予約は「その時刻に自動で出る」** | **定期実行が止まっていると出ません**。予約したら**当日に確認**してください |
+| **画像は `loading="lazy"`** | 付けないと、**一覧に 50 件並べば 50 枚を一度に取りに行きます** |
+| **消しても版は残ります** | 「間違って公開した」を**なかったことにはできません**——訂正のお知らせを出してください |
+
+## よく使うもの
 
 ```ts
+import { cmsPostToBlog, liveBlogViews, isAnnouncementLevel } from "@platform/cms";
 import {
   createMemoryCmsStore, validatePostInput, effectiveStatus, isLive,
   diffRevisions, buildPreviewUrl,

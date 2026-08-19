@@ -1,8 +1,26 @@
 # @platform/microsoft
 
-Microsoft 365 / Entra ID(旧 Azure AD)との連携。OAuth と Microsoft Graph を型付きで扱います。
+Microsoft 365（Graph API・Outlook・Teams・OneDrive・Entra ID）。
+
+## これは何のためか
+
+**Microsoft 365 を使っている会社**では、
+**メールも予定表もファイルも、すでにここにあります**。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **Teams の HTML は限られます** | `<b>` `<a>` `<br>` 程度で、**凝った HTML はそのまま文字として出ます** |
+| **チャネル ID は「一般」でも固定ではありません** | チームごとに違います——**管理画面で確認**してください |
+| **在籍者は `accountEnabled` で絞る** | 絞らないと**退職者も返り**、そのまま同期すると**止めたはずのアカウントが復活**します |
+| **`userPrincipalName` はメールと違うことがあります** | 改姓や転属で `mail` だけ変わる会社が実際にあります——**両方で探して**ください |
+| **「見つかった＝今も社員」ではありません** | `accountEnabled` を見てください |
+
+## よく使うもの
 
 ```ts
+import { createMicrosoftGraphClient, createMicrosoftTokenManager } from "@platform/microsoft";
 import { createMicrosoftTokenManager, createMicrosoftAuthedFetch, createMicrosoftGraphClient } from "@platform/microsoft";
 
 const manager = createMicrosoftTokenManager({

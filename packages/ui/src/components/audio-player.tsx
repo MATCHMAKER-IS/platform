@@ -19,7 +19,6 @@ export interface AudioPlayerProps {
   className?: string;
 }
 
-/** 音声プレイヤー。 */
 /**
  * 音声の再生。
  *

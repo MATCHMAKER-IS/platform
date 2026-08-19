@@ -13,6 +13,7 @@ export interface LineLike {
  * LINE 通知チャネルを作る。
  *
  *
+ * @param client LINE の送信クライアント
  * @param options 送信の設定
  * @returns LINE のチャネル。**push は課金対象**(reply は無料だが 1 回・短時間のみ)
  * @throws {@link @platform/core#AppError} コード `EXTERNAL` — 送信に失敗した場合(`send` 実行時)
@@ -35,6 +36,7 @@ export interface LineClientLike {
  * 実 LINE クライアント(pushText)から通知チャネルを作る。
  *
  *
+ * @param client LINE の送信クライアント
  * @param options 送信の設定
  * @returns LINE(クライアント注入版) のチャネル。**テストでモックできる**
  * @throws {@link @platform/core#AppError} コード `EXTERNAL` — 送信に失敗した場合(`send` 実行時)

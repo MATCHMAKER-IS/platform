@@ -4,7 +4,8 @@
  * 対象を選ぶ → 日付を選ぶ → 空き枠をクリック → 用件を入れて予約。
  */
 import * as React from "react";
-import { Button, Input, Select } from "@platform/ui";
+import { formatDateJst } from "@platform/datetime";
+import { Button, Input, Select, ConfirmDialog } from "@platform/ui";
 
 interface Resource { id: string; name: string; kind: "room" | "equipment" | "event"; capacity: number; note?: string }
 interface SlotInfo { start: string; end: string; available: boolean; remaining: number }
@@ -18,7 +19,10 @@ function nextDays(n: number): string[] {
   const base = new Date();
   for (let i = 0; i < n; i += 1) {
     const d = new Date(base.getTime() + i * 86400000);
-    out.push(d.toISOString().slice(0, 10));
+    // **JST の日付にする。** 2026-08 まで `toISOString().slice(0, 10)` で
+    // **UTC の日付**を出しており、**JST の 00:00〜08:59 に開くと前日から始まった**
+    // ——今日を選べず、既に過ぎた日が並ぶ
+    out.push(formatDateJst(d));
   }
   return out;
 }
@@ -78,6 +82,11 @@ export function BookingsClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
       setMsg(typeof d.error === "string" ? d.error : d.error?.message ?? "予約できませんでした");
     }
   };
+
+  // **取り消しの前に確認を挟む。**
+  // 予約は**押した瞬間に消えます**——**間違えると、他の人が押さえてしまう**ので
+  // **元に戻せません**（同じ枠が空いている保証がありません）。
+  const [confirmingId, setConfirmingId] = React.useState<string | null>(null);
 
   const cancel = async (id: string) => {
     setMsg("");
@@ -193,19 +202,35 @@ export function BookingsClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         {mine.length === 0 && <p style={{ fontSize: 12, color: "var(--color-muted, #999)" }}>まだ予約がありません。</p>}
         {mine.map((b) => (
           <div key={b.id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "6px 0", borderTop: "1px solid var(--color-border, #f3f4f6)", fontSize: 12 }}>
-            <span style={{ color: "var(--color-muted, #888)", minWidth: 130 }}>{b.start.slice(0, 10)} {b.start.slice(11, 16)}〜{b.end.slice(11, 16)}</span>
+            <span style={{ color: "var(--color-muted, #888)", minWidth: 130 }}>{formatDateJst(new Date(b.start))} {b.start.slice(11, 16)}〜{b.end.slice(11, 16)}</span>
             <strong style={{ minWidth: 140 }}>{b.resourceName}</strong>
             <span style={{ flex: 1 }}>{b.title}</span>
             {b.status === "cancelled" ? (
               <span style={{ color: "var(--color-muted, #bbb)" }}>取消済</span>
             ) : (
-              <Button onClick={() => void cancel(b.id)} style={{ padding: "3px 10px", border: "1px solid var(--color-border, #ddd)", borderRadius: 6, background: "transparent", color: "var(--color-danger, #c00)", fontSize: 11, cursor: "pointer" }}>
+              <Button onClick={() => setConfirmingId(b.id)} style={{ padding: "3px 10px", border: "1px solid var(--color-border, #ddd)", borderRadius: 6, background: "transparent", color: "var(--color-danger, #c00)", fontSize: 11, cursor: "pointer" }}>
                 取り消す
               </Button>
             )}
           </div>
         ))}
       </div>
+
+      {/* **取り消しの前に確認。** 予約は**押した瞬間に消え**、
+          **他の人が押さえると戻せません**（同じ枠が空いている保証がない）。 */}
+      <ConfirmDialog
+        open={confirmingId !== null}
+        onOpenChange={(o) => { if (!o) setConfirmingId(null); }}
+        title="この予約を取り消します"
+        description="取り消すと、この枠は他の人が予約できるようになります。元に戻せません。"
+        confirmText="取り消す"
+        destructive
+        onConfirm={() => {
+          const id = confirmingId;
+          setConfirmingId(null);
+          if (id !== null) void cancel(id);
+        }}
+      />
     </div>
   );
 }

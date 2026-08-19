@@ -22,7 +22,6 @@ export interface CommandPaletteProps {
   limit?: number;
 }
 
-/** ⌘K で開く検索/コマンドパレット。 */
 /**
  * コマンド一覧(⌘K で開く検索)。
  *

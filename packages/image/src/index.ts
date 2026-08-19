@@ -54,6 +54,16 @@ export type ImageOp =
   | { op: "resize"; width?: number; height?: number; fit?: FitMode; withoutEnlargement?: boolean }
   | { op: "extract"; left: number; top: number; width: number; height: number }
   | { op: "rotate"; angle: number }
+  /**
+   * EXIF の向き情報どおりに回す。
+   *
+   * **`{ op: "rotate", angle: 0 }` では効かない。** sharp の `rotate()` が
+   * EXIF を見るのは**引数を省いたとき**だけで、`rotate(0)` は
+   * 「0 度回す」という明示的な指示になる。
+   * スマホで撮った写真は横倒しのまま保存されるので、これが無いと
+   * **アップロードした写真が寝たまま表示される**。
+   */
+  | { op: "autoOrient" }
   | { op: "flip" }   // 上下反転
   | { op: "flop" }   // 左右反転(ミラー)
   | { op: "grayscale" }
@@ -97,6 +107,8 @@ function applyOp(img: SharpInstance, op: ImageOp): SharpInstance {
     case "resize": return img.resize({ width: op.width, height: op.height, fit: op.fit, withoutEnlargement: op.withoutEnlargement ?? true });
     case "extract": return img.extract({ left: op.left, top: op.top, width: op.width, height: op.height });
     case "rotate": return img.rotate(op.angle);
+    // **引数を渡さない。** 渡すと EXIF を見ずにその角度で回す
+    case "autoOrient": return img.rotate();
     case "flip": return img.flip();
     case "flop": return img.flop();
     case "grayscale": return img.grayscale();
@@ -155,7 +167,8 @@ export function createImageProcessor(sharp?: SharpFactory): ImageProcessor {
     async normalizeUpload(input, opts = {}) {
       const { maxWidth = 2000, maxHeight = 2000, format = "webp", quality = 82 } = opts;
       return this.process(input, [
-        { op: "rotate", angle: 0 }, // EXIF 向き補正(sharp は rotate() で自動補正)
+        // **EXIF の向きを反映する。** `rotate(0)` では効かない(引数を渡すと EXIF を見ない)
+        { op: "autoOrient" },
         { op: "resize", width: maxWidth, height: maxHeight, fit: "contain", withoutEnlargement: true },
         { op: "format", type: format, quality },
       ]);
@@ -167,7 +180,8 @@ export function createImageProcessor(sharp?: SharpFactory): ImageProcessor {
     async stripMetadata(input, opts = {}) {
       // sharp は withMetadata() を呼ばなければメタデータを出力しない = 再エンコードで EXIF/GPS が落ちる。
       // rotate() で EXIF 向きを反映してから破棄する。
-      const ops: ImageOp[] = [{ op: "rotate", angle: 0 }];
+      // **向きを反映してから EXIF を捨てる。** 順番が逆だと横倒しのまま残る
+      const ops: ImageOp[] = [{ op: "autoOrient" }];
       if (opts.format) ops.push({ op: "format", type: opts.format, quality: opts.quality });
       return this.process(input, ops);
     },

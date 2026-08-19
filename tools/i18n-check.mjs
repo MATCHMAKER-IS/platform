@@ -8,7 +8,7 @@
  *
  * 使い方:
  *   node tools/i18n-check.mjs
- *   node tools/i18n-check.mjs --catalog demos/showcase/src/i18n/catalog.ts#catalogs
+ *   node tools/i18n-check.mjs --catalog apps/showcase/src/i18n/catalog.ts#catalogs
  *   node tools/i18n-check.mjs --report i18n-report.md
  */
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -21,7 +21,7 @@ const args = process.argv.slice(2);
 const reportPath = (args.find((a) => a.startsWith("--report="))?.split("=")[1]) ?? (args.includes("--report") ? "i18n-report.md" : null);
 const extraCatalogs = args.filter((a) => a.startsWith("--catalog=")).map((a) => a.slice("--catalog=".length));
 
-const SCAN_DIRS = ["packages", "demos", "apps"];
+const SCAN_DIRS = ["packages", "apps"];
 const KEY_RE = /(?:^|[^.\w])t\(\s*["'`]([\w.]+)["'`]/g;
 
 function walk(dir, acc = []) {

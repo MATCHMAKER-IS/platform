@@ -25,8 +25,8 @@ export interface SlotOptions {
  * 営業時間帯からスロットを生成する。
  *
  * @param range 営業時間帯
- * @param options.durationMin 1 枠の長さ
- * @param options.intervalMin 枠の開始間隔(**duration と違う値にできる**。30 分枠を 15 分間隔で並べるなど)
+ * @param options.slotMinutes 1 枠の長さ(分)
+ * @param options.stepMinutes 枠の開始間隔(分)。**枠の長さと違う値にできる**(30 分枠を 15 分間隔で並べるなど)
  * @returns スロットの配列
  */
 export function slotsForRange(range: TimeRange, options: SlotOptions): Slot[] {

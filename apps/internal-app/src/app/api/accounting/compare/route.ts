@@ -1,7 +1,7 @@
 /** 会計: 複数年度の比較決算(GET)。当期と前期の損益・貸借を並べ増減を出す。?year=。accounting:read。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { invoiceStore, purchaseStore, assetStore, manualJournalStore, accountMasterStore, settingsStore } from "../../../../server/platform-services";
 import { buildLedger, type LedgerInvoice, type LedgerPurchase } from "../../../../server/ledger";
 import { depreciationJournal, DEPRECIATION_ACCOUNT_TYPES } from "../../../../server/depreciation-journal";
@@ -9,6 +9,7 @@ import { accountTypeMap } from "../../../../server/account-master-repo";
 import { financialStatements } from "../../../../server/financials";
 import { compareStatements } from "../../../../server/comparative";
 import { inFiscalYear } from "../../../../server/fiscal";
+import { yearJst } from "@platform/datetime";
 
 async function statementsForYear(year: number, closingMonth: number) {
   const invoices = (await invoiceStore.list()).filter((i) => inFiscalYear(i.issueDate, year, closingMonth));
@@ -21,9 +22,9 @@ async function statementsForYear(year: number, closingMonth: number) {
 }
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "accounting:read");
-  const year = Number(new URL(req.url).searchParams.get("year") ?? new Date().getFullYear());
+  const year = Number(new URL(req.url).searchParams.get("year") ?? yearJst());
   const closingMonth = (await settingsStore.get()).fiscalClosingMonth;
   const [current, prior] = await Promise.all([statementsForYear(year, closingMonth), statementsForYear(year - 1, closingMonth)]);
   return Response.json({ comparison: compareStatements(year, year - 1, current, prior) });

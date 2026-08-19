@@ -45,12 +45,15 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const LIMIT_FILE = path.join(ROOT, "tools", "handmade-chart-limit.json");
 
 /** 図形の属性に式(`{...}`)が入っている = データから座標を作っている。 */
-const DATA_DRIVEN_SHAPE = /<(polyline|rect|circle|path|line)\b[^>]{0,200}\{/;
+// **属性の長さの上限。** 2026-08 に 200 では**4 件が切れて見逃されていた**
+// （最長 502 文字）——**長い `d` 属性を持つ `<path>` が対象外**になっていた。
+// 余裕をもって 1,200 にしてある。
+const DATA_DRIVEN_SHAPE = /<(polyline|rect|circle|path|line)\b[^>]{0,1200}\{/;
 /** 目盛りを自前で計算している手がかり。 */
 const OWN_SCALE = /Math\.max|Math\.min|\/\s*max\b/;
 
 // `find` は Windows で別コマンドになるため使わない(tools/lib/collect-files.mjs 参照)
-const files = collectFiles(["apps", "demos"], ROOT, { extensions: [".tsx"] })
+const files = collectFiles(["apps"], ROOT, { extensions: [".tsx"] })
   .filter((f) => f.includes("/src/"));
 
 const hits = [];
@@ -91,5 +94,5 @@ if (hits.length > limit) {
     " @platform/ui のグラフ部品へ順次移行してください",
   );
 } else {
-  console.log("✅ グラフはすべて @platform/ui の部品で描かれています");
+  console.log(`✅ グラフはすべて @platform/ui の部品で描かれています(${files.length} ファイルを検査)`);
 }

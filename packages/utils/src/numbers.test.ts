@@ -107,3 +107,20 @@ describe("autocorrelation", () => {
   it("dominantLag", () => expect(dominantLag(per, 8)).toBe(4));
   it("constant -> NaN", () => expect(Number.isNaN(autocorrelation([5, 5, 5], 1))).toBe(true));
 });
+
+describe("丸めの負数(非対称に注意)", () => {
+  // **`round` は負の数で 0 に近づく**(`Math.round` の仕様)。
+  // `round(1.005, 2)` が 1.01 なのに `round(-1.005, 2)` は -1 で**非対称**。
+  // 金額に使うと返金・値引きが小さくなる方向に丸められる(2026-08 に TSDoc へ明記)
+  it("round は負の数で 0 に近づく", () => {
+    expect(round(1.005, 2)).toBe(1.01);
+    expect(round(-1.005, 2)).toBe(-1);
+    expect(round(-2.5)).toBe(-2);
+  });
+  // **`roundHalfEven`(銀行丸め)は負でも対称**。統計・按分にはこちらが向く
+  it("roundHalfEven は負でも対称", () => {
+    expect(roundHalfEven(-0.5)).toBe(0);
+    expect(roundHalfEven(-1.5)).toBe(-2);
+    expect(roundHalfEven(-2.5)).toBe(-2);
+  });
+});

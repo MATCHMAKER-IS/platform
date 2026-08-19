@@ -1,11 +1,27 @@
 # @platform/social
 
-ソーシャル(X / TikTok / Instagram)連携の基盤処理。キャストの SNS アカウントを扱うための、
-ハンドル正規化・妥当性判定、プロフィール/投稿 URL の解析・生成、oEmbed URL 生成、アカウント集合の管理。
-実際の API 取得・投稿はアプリ側(要認証)。URL 一般処理は `@platform/url`、API 取得の土台は `@platform/integrations`。
+SNS のハンドル（正規化・URL 生成）。
 
-## プロフィール URL の解析(キャストが貼るだけ)
+## これは何のためか
+
+**利用者は URL を貼ります。**
+
+「@yamada」と入れてほしくても、
+**`https://x.com/yamada` を貼る**人がいます——**両方受けます**。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **URL からハンドルを取り出します** | 貼られても**そのまま受けられます** |
+| **妥当でなければ `null`** | 推測しません——**間違ったアカウントへリンクする**方が危ないためです |
+| **サービスごとに規則が違います** | 使える文字も長さも違います——**共通の検証はできません** |
+| **なりすましを検証できません** | 「そのハンドルが本人か」は**分かりません**——**本人確認には使わないで**ください |
+
+## よく使うもの
+
 ```ts
+import { normalizeHandle, buildProfileUrl } from "@platform/social";
 import { parseSocialUrl, accountsFromUrls } from "@platform/social";
 
 parseSocialUrl("https://www.tiktok.com/@cast01/video/71");

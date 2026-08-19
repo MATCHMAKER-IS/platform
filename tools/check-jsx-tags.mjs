@@ -4,7 +4,7 @@
  *
  *  1. インライン要素の**開閉数の不一致**(FAIL)
  *     `<strong>` を閉じ忘れると Turbopack が「閉じタグが来るはずが本文が来た」で落ちる
- *     (実例: demos/showcase barcode の `Expected '</', got 'jsx text'`)。
+ *     (実例: apps/showcase barcode の `Expected '</', got 'jsx text'`)。
  *  2. JSX テキストに紛れ込んだ **markdown の `**`**(WARN)
  *     `**強調**` の書き損じ。多くは表示崩れ(ビルドは止めない)なので警告に留める。
  *
@@ -25,6 +25,15 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const TAGS = [
   "strong", "em", "b", "i", "code", "kbd", "mark",
   "small", "sub", "sup", "u", "del", "ins", "abbr", "cite",
+  // **画面の枠も見る。**
+  // 2026-08、一括置換で `</div>` が 1 つ余り、19 画面が 500 になった。
+  // インライン要素だけ見ていたので preflight を通り抜けた。
+  //
+  // **`div` や `span` は対象にしない。** 数が多く、
+  // `{/* … */}` や `style={{…}}` を挟むと数え方が狂って**誤検出が出る**
+  // (実際に 6 件の誤検出を出した)。深さの追跡は tsc に任せ、
+  // ここでは「囲いが 1 つだけの部品」に絞って早期検知に徹する。
+  "PageShell",
 ];
 
 /** node_modules 等を除いて .tsx を集める。 */
@@ -49,7 +58,6 @@ function stripComments(src) {
 // **packages も見る。** 基盤の UI 部品にも JSX があり、壊れれば
 // それを使う全画面のビルドが落ちる。2026-08 まで対象外だった
 const files = walk(path.join(ROOT, "apps"))
-  .concat(walk(path.join(ROOT, "demos")))
   .concat(walk(path.join(ROOT, "packages")));
 
 let errors = 0;
@@ -61,8 +69,36 @@ for (const f of files) {
 
   // 1) インラインタグの開閉均衡(FAIL)
   for (const tag of TAGS) {
-    // 開き: `<tag` の直後が語境界。self-close(`<tag ... />`)は除外。属性・改行に強い。
-    const opens = (src.match(new RegExp(`<${tag}\\b(?![^>]*/>)`, "g")) || []).length;
+    // 開き: `<tag` の直後が語境界。self-close(`<tag ... />`)は除外。
+    //
+    // **`[^>]*` では改行を越えられない。**
+    // 属性を複数行に分けた `<div\n  role="group"\n/>` を「閉じていない」と誤判定する
+    // (2026-08、ブロック要素を対象に足したときに 6 件の誤検出が出た)。
+    // `[\s\S]` で改行も含め、`>` が来る前に `/>` があるかを見る
+    // タグの開始位置を拾い、**対応する `>` まで読んで**自己終了かを見る。
+    // 正規表現だけで済ませようとすると、属性値の中の `>` や改行で崩れる
+    let opens = 0;
+    const openRe = new RegExp(`<${tag}\\b`, "g");
+    for (let m = openRe.exec(src); m !== null; m = openRe.exec(src)) {
+      // タグの終わりを探す(文字列リテラルの中の `>` は飛ばす)
+      let i = m.index + m[0].length;
+      let quote = "";
+      // **`{...}` の入れ子も飛ばす。**
+      // `style={{ width: `${x}%` }}` のように、属性値の中に `>` や
+      // テンプレート文字列が入る。深さを数えないと途中で切れる
+      let brace = 0;
+      while (i < src.length) {
+        const ch = src[i];
+        if (quote !== "") { if (ch === quote) quote = ""; }
+        else if (ch === '"' || ch === "'" || ch === "`") quote = ch;
+        else if (ch === "{") brace += 1;
+        else if (ch === "}") brace -= 1;
+        else if (ch === ">" && brace === 0) break;
+        i += 1;
+      }
+      // 直前が `/` なら自己終了(`<div ... />`)
+      if (src[i - 1] !== "/") opens += 1;
+    }
     const closes = (src.match(new RegExp(`</${tag}>`, "g")) || []).length;
     if (opens !== closes) {
       errors += 1;

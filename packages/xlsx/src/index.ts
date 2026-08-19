@@ -14,6 +14,48 @@ import { AppError, ErrorCode, tryCatch, type Result } from "@platform/core";
 export type Row = Record<string, string | number | boolean | Date | null>;
 
 /**
+ * ExcelJS のセル値を {@link Row} の型に落とす。
+ *
+ * **`as Row[string]` で型を偽らない。** ExcelJS は基本型だけでなく
+ * オブジェクトを返す:
+ *
+ * | セルの中身 | `cell.value` |
+ * |---|---|
+ * | 数式 | `{ formula: "SUM(A1:A9)", result: 100 }` |
+ * | ハイパーリンク | `{ text: "請求書", hyperlink: "http://…" }` |
+ * | 書式付き文字列 | `{ richText: [...] }` |
+ * | エラー | `{ error: "#DIV/0!" }` |
+ *
+ * 2026-08 まで `as` で押し込んでいたため、**取り込み先が文字列を期待していると
+ * `"[object Object]"` になる**。利用者が Excel で合計欄を作っただけで起きるので、
+ * 業務では珍しくない。型検査は `as` を信じるので通ってしまう。
+ *
+ * **数式は計算結果を採る。** 式そのものを取り込んでも意味が無く、
+ * `result` が Excel の計算済みの値。
+ *
+ * @param value ExcelJS のセル値
+ * @returns 基本型に落とした値(判別できないものは文字列化)
+ */
+function normalizeCell(value: unknown): Row[string] {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return value;
+  if (value instanceof Date) return value;
+  if (typeof value === "object") {
+    const v = value as { result?: unknown; text?: unknown; richText?: { text?: string }[]; error?: unknown };
+    // 数式は計算結果を採る(式そのものは取り込んでも使えない)
+    if ("result" in v) return normalizeCell(v.result);
+    // ハイパーリンクは表示文字列。**URL は捨てる**——
+    // 取り込み先の列は「表示された値」を期待している
+    if ("text" in v) return normalizeCell(v.text);
+    if (Array.isArray(v.richText)) return v.richText.map((r) => r.text ?? "").join("");
+    // エラーセル(#DIV/0! 等)はそのまま文字列で残す。**null にしない**——
+    // 消すと「空欄」と区別できず、取り込み側が誤りに気づけない
+    if ("error" in v) return String(v.error);
+  }
+  return String(value);
+}
+
+/**
  * .xlsx バッファを読み、先頭シートを「ヘッダ付きの行配列」として返す。
  * 1 行目をヘッダとして扱う。
  *
@@ -50,7 +92,7 @@ export async function readSheet(
       const obj: Row = {};
       row.eachCell((cell, col) => {
         const key = headers[col];
-        if (key) obj[key] = cell.value as Row[string];
+        if (key) obj[key] = normalizeCell(cell.value);
       });
       rows.push(obj);
     });

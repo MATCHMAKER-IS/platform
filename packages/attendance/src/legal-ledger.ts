@@ -27,6 +27,19 @@
  */
 
 /** 労働者名簿の記載事項（法第107条・施行規則第53条）。 */
+/**
+ * 「今」を **JST の日付**として UTC 0 時に正規化する。
+ *
+ * **`new Date()` をそのまま使わない。** UTC で動くサーバ(クラウドの既定)では
+ * JST の 00:00〜08:59 が前日として扱われ、**判定が 1 日ずれる**。
+ * `@platform/datetime` に依存を増やさないための最小実装
+ * (9 時間ずらして UTC として読むだけ。`formatDateJst` と同じ計算)。
+ */
+function todayUtcFromJst(now: Date = new Date()): Date {
+  const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return new Date(`${jst}T00:00:00.000Z`);
+}
+
 export interface WorkerRecord {
   /** 氏名。 */
   name: string;
@@ -296,7 +309,7 @@ export const RETENTION_YEARS = 5;
  */
 export function checkRetention(
   input: { kind: LedgerKind; target: string; startsOn: string },
-  today: Date = new Date(),
+  today: Date = todayUtcFromJst(),
   years: number = RETENTION_YEARS,
 ): RetentionStatus {
   const start = new Date(`${input.startsOn}T00:00:00Z`);

@@ -81,9 +81,112 @@ const RECORDERS = {
       return { status: res.status, body: await res.json() };
     },
   },
+  // **2026-08 追加。** 契約は 5 件あるのに記録できるのは 3 件だけで、
+  // zoho / line は**鍵を用意しても永久に記録されない**状態だった
+  // (実地課題の副産物として発見)。契約を足したらここにも足すこと。
+  // `check-contract` の C006 が対応漏れを検出する。
+  "zoho-token": {
+    // **DC は既定を持たない。** `com` と `jp` でホストが違い、
+    // 取り違えると「認証情報が誤っている」ようにしか見えない応答が返る。
+    needs: ["ZOHO_CLIENT_ID", "ZOHO_CLIENT_SECRET", "ZOHO_REFRESH_TOKEN", "ZOHO_DATA_CENTER"],
+    async run() {
+      const dc = env("ZOHO_DATA_CENTER");
+      const res = await fetch(`https://accounts.zoho.${dc}/oauth/v2/token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          client_id: env("ZOHO_CLIENT_ID"),
+          client_secret: env("ZOHO_CLIENT_SECRET"),
+          refresh_token: env("ZOHO_REFRESH_TOKEN"),
+        }),
+      });
+      return { status: res.status, body: await res.json() };
+    },
+  },
+  "slack-api": {
+    // **`auth.test` を使う。** 副作用が無く、鍵の有効性も同時に分かる
+    needs: ["SLACK_BOT_TOKEN"],
+    async run() {
+      const res = await fetch("https://slack.com/api/auth.test", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${env("SLACK_BOT_TOKEN")}` },
+      });
+      return { status: res.status, body: await res.json() };
+    },
+  },
+  "microsoft-token": {
+    needs: ["MICROSOFT_TENANT_ID", "MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET", "MICROSOFT_REFRESH_TOKEN"],
+    async run() {
+      const tenant = encodeURIComponent(env("MICROSOFT_TENANT_ID"));
+      const res = await fetch(`https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          client_id: env("MICROSOFT_CLIENT_ID"),
+          client_secret: env("MICROSOFT_CLIENT_SECRET"),
+          refresh_token: env("MICROSOFT_REFRESH_TOKEN"),
+        }),
+      });
+      return { status: res.status, body: await res.json() };
+    },
+  },
+  "notion-page": {
+    // **ページ ID が要る。** 連携先のページをインテグレーションに共有しておくこと
+    needs: ["NOTION_TOKEN", "NOTION_TEST_PAGE_ID"],
+    async run() {
+      const res = await fetch(`https://api.notion.com/v1/pages/${encodeURIComponent(env("NOTION_TEST_PAGE_ID"))}`, {
+        headers: {
+          Authorization: `Bearer ${env("NOTION_TOKEN")}`,
+          // **API バージョンは必須。** 省くと最古の形で返り、契約が意味を失う
+          "Notion-Version": "2022-06-28",
+        },
+      });
+      return { status: res.status, body: await res.json() };
+    },
+  },
+  "line-profile": {
+    // **プロフィール取得には実在の userId が要る**(Bot と友だちになっている人)。
+    // トークンだけでは呼べないため、記録用の ID を別に渡す。
+    // 値は保存しない(`redact` が伏せる)ので、記録から個人は辿れない。
+    needs: ["LINE_CHANNEL_ACCESS_TOKEN", "LINE_TEST_USER_ID"],
+    async run() {
+      const res = await fetch(
+        `https://api.line.me/v2/bot/profile/${encodeURIComponent(env("LINE_TEST_USER_ID"))}`,
+        { headers: { Authorization: `Bearer ${env("LINE_CHANNEL_ACCESS_TOKEN")}` } },
+      );
+      return { status: res.status, body: await res.json() };
+    },
+  },
 };
 
 let updated = 0, skipped = 0, failed = 0;
+
+/**
+ * `--list` … どのコネクタに何の鍵が要るか、いま何が揃っているかを出す。
+ *
+ * **鍵を用意するのは人の仕事**なので、「何を GitHub Secrets に入れればよいか」が
+ * 一覧で見えないと着手できない。実際 HANDOVER には「契約は 5 件」と書かれたまま
+ * **実際は 8 件**になっており、準備の対象数がずれていた(2026-08)。
+ */
+if (process.argv.includes("--list")) {
+  console.log("契約テストに必要な鍵(環境変数)\n");
+  let ready = 0;
+  for (const [name, rec] of Object.entries(RECORDERS)) {
+    const missing = rec.needs.filter((k) => !process.env[k]);
+    const mark = missing.length === 0 ? "✅ 揃っている" : `⏳ 不足 ${missing.length}`;
+    if (missing.length === 0) ready += 1;
+    console.log(`  ${mark.padEnd(14)} ${name}`);
+    for (const k of rec.needs) {
+      console.log(`      ${process.env[k] ? "✓" : "・"} ${k}`);
+    }
+  }
+  console.log(`\n${ready} / ${Object.keys(RECORDERS).length} コネクタが記録可能です。`);
+  console.log("**1 件でも揃えば、そのコネクタだけ記録が始まります**(残りは黙ってスキップ)。");
+  console.log("鍵は GitHub Secrets に入れてください(.github/workflows/contract.yml が読みます)。");
+  process.exit(0);
+}
 
 for (const [name, rec] of Object.entries(RECORDERS)) {
   const file = path.join(DIR, `${name}.contract.json`);

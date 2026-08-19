@@ -22,3 +22,34 @@ describe("premium pay (labor standards)", () => {
     expect(m.workedDays).toBe(22);
   });
 });
+
+// **内訳を足すと総支給になること。** 給与明細で最も問い合わせが来るのがここ
+// (「計算が違う」と言われて、説明もできない)。
+// 2026-08 に「丸める前の値から total を出していた」不具合を直した際の回帰テスト。
+describe("内訳と合計が必ず一致する", () => {
+  // **端数の出やすい組み合わせ**を総当たりで確かめる。
+  // 時給 990 円・残業 13 分で実際に 1 円ずれていた
+  const wages = [990, 1013, 1234, 1500, 2001];
+  const overtimes = [1, 7, 13, 29, 61, 119];
+
+  for (const hourlyWage of wages) {
+    for (const overtimeMinutes of overtimes) {
+      it(`時給 ${hourlyWage} 円・残業 ${overtimeMinutes} 分`, () => {
+        const bd = calcPay({
+          hourlyWage,
+          totalMinutes: 9600 + overtimeMinutes,
+          overtimeMinutes,
+          nightMinutes: 17,
+          holidayMinutes: 43,
+        });
+        const sum = bd.base + bd.overtimePremium + bd.over60Premium + bd.nightPremium + bd.holidayPay;
+        expect(bd.total).toBe(sum);
+        // **すべて整数**(円未満が残ると、明細に小数が出る)
+        for (const v of [bd.base, bd.overtimePremium, bd.over60Premium, bd.nightPremium, bd.holidayPay, bd.total]) {
+          expect(Number.isInteger(v)).toBe(true);
+        }
+      });
+    }
+  }
+});
+

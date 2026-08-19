@@ -69,8 +69,10 @@ export function summarize(movements: StockMovement[]): MovementSummary {
  *
  * @param movements 既存の履歴
  * @param movement 追記する入出庫
- * @returns 追記した新しい履歴
- * @throws {@link @platform/core#AppError} コード `VALIDATION` — 出庫が現在庫を超える場合
+ * @returns `{ ok, movements }`(Result 形式)。**出庫が現在庫を超えれば
+ *   `ok: false` を返し、履歴は変わらない**——2026-08 まで「例外を投げる」と
+ *   書いてあったが実装は返り値で知らせる。**`ok` を見ずに `movements` だけ使うと、
+ *   出庫できていないのに成功したことになる**
  */
 export function applyMovement(movements: StockMovement[], movement: StockMovement): { ok: boolean; movements: StockMovement[] } {
   if (movement.type === "outbound" && onHand(movements) < movement.quantity) {

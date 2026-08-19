@@ -34,7 +34,10 @@ function scheduleOf(plan: RecurringPlan): RecurringSchedule {
 
 function toView(plan: RecurringPlan, asOf: Date): RecurringPlanView {
   const schedule = scheduleOf(plan);
-  const asOfIso = asOf.toISOString().slice(0, 10);
+  // **JST の日付。** `toISOString()` は UTC なので、早朝は前日になる。
+  // このファイルは smoke が単体で読み込むため、`@platform/datetime` に
+  // 依存させず局所で計算する(2026-08)
+  const asOfIso = new Date(asOf.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
   return {
     ...plan,
     nextDate: nextBillingDate(schedule, plan.lastBilled ?? plan.startDate),

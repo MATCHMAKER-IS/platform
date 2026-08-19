@@ -8,6 +8,12 @@ vi.mock("./services.js", () => ({
   notifyOutbox: createMemoryOutboxStore(),
   notifySeen: createMemorySeenStore(),
 }));
+// **decideDelivery が読む。** 未設定なら DEFAULT_PREFERENCE(email 含む)を
+// 返す挙動を再現する——モックしないと実際の DB 接続を試みて失敗する
+// (2026-08、経費承認通知に decideDelivery を統合した際に追加)。
+vi.mock("./platform-services.js", () => ({
+  preferenceStore: { get: vi.fn(async () => ({ defaultChannels: ["inApp", "email"] })) },
+}));
 vi.mock("../lib/expense-notify.js", () => ({
   buildTransitionMails: (i: { applicantEmail?: string; title: string; next: { status: string } }) =>
     i.applicantEmail && i.next.status === "approved" ? [{ to: [i.applicantEmail], subject: "承認", text: i.title }] : [],
@@ -18,7 +24,7 @@ describe("reliable expense notifications", () => {
     const svc = await import("./expense-notify-service");
     const store = createMemoryOutboxStore();
     const seen = createMemorySeenStore();
-    const n = svc.enqueueExpenseTransition({ title: "出張費", prev: { status: "pending" } as never, next: { status: "approved" } as never, applicantEmail: "u@x.jp", store });
+    const n = await svc.enqueueExpenseTransition({ title: "出張費", prev: { status: "pending" } as never, next: { status: "approved" } as never, applicantEmail: "u@x.jp", store });
     expect(n).toBe(1);
     // 一時失敗 → 再試行 → 成功
     let attempts = 0;

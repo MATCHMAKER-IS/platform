@@ -35,7 +35,6 @@ function iconFor(type: string): string {
   return "📎";
 }
 
-/** ファイル一覧。 */
 /**
  * 添付の一覧。
  *

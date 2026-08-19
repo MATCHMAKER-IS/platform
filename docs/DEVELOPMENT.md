@@ -13,7 +13,7 @@ cp .env.example .env      # 必要な環境変数を設定
 ## よく使うコマンド
 | 目的 | コマンド |
 | --- | --- |
-| 開発サーバ(デモ) | `pnpm --filter @demos/showcase dev` |
+| 開発サーバ(デモ) | `pnpm --filter @apps/showcase dev` |
 | 全テスト | `pnpm -r test`(または Vitest ワークスペース `pnpm test`) |
 | 依存不要スモーク | `pnpm smoke` |
 | 型チェック | `pnpm -r typecheck` |

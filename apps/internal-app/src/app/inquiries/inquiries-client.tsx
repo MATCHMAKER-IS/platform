@@ -49,10 +49,17 @@ export function InquiriesClient({ fetchImpl }: InquiriesClientProps) {
       <table className="w-full text-sm">
         <thead><tr className="border-b border-[var(--color-border)] text-left text-xs text-[var(--color-muted)]"><th className="px-2 py-1">状況</th><th className="px-2 py-1">件名</th><th className="px-2 py-1">氏名</th><th className="px-2 py-1">カテゴリ</th><th className="px-2 py-1">受付</th></tr></thead>
         <tbody>
+          {/* **行全体を押させない。**
+              `tr` に onClick を付けるとキーボードで開けない(Tab で止まらない)。
+              件名をボタンにすれば、押す場所も明確になる(2026-08) */}
           {inquiries.map((q) => (
-            <tr key={q.id} onClick={() => setDetail(q)} className="cursor-pointer border-b border-[var(--color-border)] hover:bg-[var(--color-subtle)]">
+            <tr key={q.id} className="border-b border-[var(--color-border)] hover:bg-[var(--color-subtle)]">
               <td className="px-2 py-1.5"><span className={`rounded px-1.5 py-0.5 text-xs ${STATUS_CLS[q.status]}`}>{STATUS_LABEL[q.status]}</span></td>
-              <td className="px-2 py-1.5">{q.subject}</td>
+              <td className="px-2 py-1.5">
+                <Button variant="ghost" size="sm" className="h-auto p-0 text-left underline" onClick={() => setDetail(q)}>
+                  {q.subject}
+                </Button>
+              </td>
               <td className="px-2 py-1.5">{q.name}</td>
               <td className="px-2 py-1.5 text-xs text-[var(--color-muted)]">{q.category}</td>
               <td className="px-2 py-1.5 text-xs text-[var(--color-muted)]">{fmt(q.createdAt)}</td>
@@ -66,13 +73,13 @@ export function InquiriesClient({ fetchImpl }: InquiriesClientProps) {
         <div className="mt-6 rounded border border-[var(--color-border)] p-4">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-sm font-medium">{detail.subject}</h2>
-            <Button onClick={() => setDetail(null)} className="text-xs text-[var(--color-muted)] hover:underline">閉じる</Button>
+            <Button onClick={() => setDetail(null)} variant="ghost" className="text-xs hover:underline">閉じる</Button>
           </div>
           <p className="text-xs text-[var(--color-muted)]">{detail.name}（{detail.email}） ／ {detail.category} ／ {fmt(detail.createdAt)}</p>
           <p className="mt-3 whitespace-pre-wrap text-sm text-[var(--color-fg)]">{detail.message}</p>
           <div className="mt-4 flex gap-2">
             {(["new", "in_progress", "closed"] as const).map((st) => (
-              <Button key={st} onClick={() => setStatus(detail.id, st)} className={`rounded px-3 py-1 text-xs ${detail.status === st ? "bg-[var(--color-fg)] text-white" : "border border-[var(--color-border)]"}`}>{STATUS_LABEL[st]}</Button>
+              <Button key={st} onClick={() => setStatus(detail.id, st)} variant="tab" data-state={detail.status === st ? "active" : undefined}>{STATUS_LABEL[st]}</Button>
             ))}
           </div>
         </div>

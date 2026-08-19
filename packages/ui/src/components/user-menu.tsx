@@ -32,7 +32,6 @@ export interface UserMenuProps {
   className?: string;
 }
 
-/** アバター + ドロップダウンのユーザーメニュー。 */
 /**
  * 利用者のメニュー(設定・ログアウト)。
  *

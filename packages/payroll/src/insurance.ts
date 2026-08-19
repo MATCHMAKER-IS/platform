@@ -199,8 +199,16 @@ export interface InsuranceDeduction {
 export function findGrade(monthlyPay: number, grades: readonly Grade[]): Grade {
   const pay = Math.max(0, monthlyPay);
   const hit = grades.find((g) => pay >= g.from && pay < g.to);
+  if (hit !== undefined) return hit;
+  // **下限を下回った場合は最下位。** ここを分けないと、
+  // **給与が低い人に最上位の等級が当たり、保険料が何倍にもなります**（2026-08）。
+  //
+  // 既定の表は `from: 0` から始まるので今は起きませんが、
+  // **表は引数で差し替えられる**ので、`from` が 0 でない表を渡すと踏みます。
+  const first = grades[0];
+  if (first !== undefined && pay < first.from) return first;
   // 上限を超えた場合は最上位（配列は昇順である前提）
-  return hit ?? grades[grades.length - 1]!;
+  return grades[grades.length - 1]!;
 }
 
 /**

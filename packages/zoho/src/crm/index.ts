@@ -14,6 +14,26 @@ export interface CrmPageInfo { per_page?: number; page?: number; count?: number;
 
 /** CRM クライアント。 */
 export interface ZohoCrmClient {
+  /**
+   * モジュールのレコードを**全件**取る(ページングを内部で回す)。
+   *
+   * **`more_records` を見て次を取る。** これを自前で書くと、
+   * **1 ページ目だけ処理して「件数が合わない」**という形で間違える
+   * ——Zoho の既定は 200 件/ページなので、201 件目から静かに落ちる。
+   *
+   * **上限を設けてある**(既定 50 ページ = 最大 10,000 件)。
+   * 設定ミスで巨大なモジュールを全部引くと、**相手の API 上限を使い切り、
+   * その日は他の連携も動かなくなる**。
+   *
+   * **`page_token` を優先する。** Zoho v8 では `page` 番号より推奨されており、
+   * **取得中にレコードが増減しても重複・欠落が起きにくい**
+   * ——オフセット方式(`page` 番号)だと、1 ページ目の後に 1 件追加されるだけで
+   * 全体が 1 つずれ、**同じレコードを再取得**する(削除なら **1 件飛ばす**)。
+   *
+   * `desk` / `people` / `projects` は**オフセット方式しか無い**ので、
+   * そちらでは避けられない(各パッケージの説明に書いた)。
+   */
+  getAllRecords(module: string, params?: { fields?: string[]; perPage?: number; maxPages?: number; sortBy?: string; sortOrder?: "asc" | "desc" }): Promise<Result<CrmRecord[]>>;
   /** モジュールのレコード一覧(fields/per_page/page/page_token/sort)。 */
   getRecords(module: string, params?: { fields?: string[]; perPage?: number; page?: number; pageToken?: string; sortBy?: string; sortOrder?: "asc" | "desc" }): Promise<Result<{ data?: CrmRecord[]; info?: CrmPageInfo }>>;
   /** ID 指定取得。 */
@@ -50,6 +70,37 @@ export function createZohoCrmClient(config: Omit<ZohoClientConfig, "basePath">):
       api.get(`/${module}`, { query: { fields: params?.fields?.join(","), per_page: params?.perPage, page: params?.page, page_token: params?.pageToken, sort_by: params?.sortBy, sort_order: params?.sortOrder } }),
     getRecord: (module, id, params) =>
       api.get(`/${module}/${enc(id)}`, { query: { fields: params?.fields?.join(",") } }),
+    async getAllRecords(module, params) {
+      // **上限を設ける。** 設定ミスで巨大なモジュールを全部引くと、
+      // 相手の API 上限を使い切って**その日は他の連携も動かなくなる**
+      const maxPages = params?.maxPages ?? 50;
+      const out: CrmRecord[] = [];
+      let pageToken: string | undefined;
+      for (let i = 0; i < maxPages; i += 1) {
+        const res = await api.get<{ data?: CrmRecord[]; info?: CrmPageInfo }>(`/${module}`, {
+          query: {
+            fields: params?.fields?.join(","),
+            per_page: params?.perPage,
+            sort_by: params?.sortBy,
+            sort_order: params?.sortOrder,
+            ...(pageToken !== undefined ? { page_token: pageToken } : {}),
+          },
+        });
+        if (!res.ok) return res;
+        out.push(...(res.value.data ?? []));
+        // **`more_records` が false なら終わり。** ここを見ないと
+        // 1 ページ目だけ処理して「件数が合わない」ことになる
+        const info = res.value.info;
+        if (info?.more_records !== true) return { ok: true, value: out };
+        const next = info.next_page_token;
+        // **トークンが無いのに more_records が true なら止める。**
+        // 同じページを取り続けて無限ループになるより、
+        // **足りないことが分かる形で終わる**方がよい
+        if (next === null || next === undefined || next === "") return { ok: true, value: out };
+        pageToken = next;
+      }
+      return { ok: true, value: out };
+    },
     createRecords: (module, records, options) =>
       api.post(`/${module}`, { body: { data: records, trigger: options?.trigger } }),
     updateRecord: (module, id, fields) =>

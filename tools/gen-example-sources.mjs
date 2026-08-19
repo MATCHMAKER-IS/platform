@@ -5,8 +5,8 @@
  * **実行時にファイルを読まない**ようにするため。`process.cwd()` は Amplify の SSR で
  * 想定と違う場所を指し、ソースが読めずに画面が壊れる。ビルド時に固めれば確実に動く。
  *
- * 入力: demos/showcase/src/examples/*.ts(取り込んだ使用例のソース)
- * 出力: demos/showcase/src/lib/example-sources.generated.ts
+ * 入力: apps/showcase/src/examples/*.ts(取り込んだ使用例のソース)
+ * 出力: apps/showcase/src/lib/example-sources.generated.ts
  *
  * 使い方: node tools/gen-example-sources.mjs
  */
@@ -14,8 +14,8 @@ import { readFileSync, writeFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
-const SRC_DIR = path.join(ROOT, "demos/showcase/src/examples");
-const OUT = path.join(ROOT, "demos/showcase/src/lib/example-sources.generated.ts");
+const SRC_DIR = path.join(ROOT, "apps/showcase/src/examples");
+const OUT = path.join(ROOT, "apps/showcase/src/lib/example-sources.generated.ts");
 
 /** 先頭の packageDocumentation を落とす(画面には要点だけ出す)。 */
 function stripPackageDoc(source) {

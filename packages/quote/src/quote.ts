@@ -1,3 +1,4 @@
+import { AppError, ErrorCode } from "@platform/core";
 /**
  * 見積(純ロジック)。明細計算は @platform/invoice を再利用し、見積特有の有効期限・状態・請求書変換を持つ。
  * @packageDocumentation
@@ -29,6 +30,7 @@ export interface Quote {
  * **税計算は `@platform/invoice` に委譲**(請求書と同じ計算にする)。
  *
  * @param lines 明細
+ * @param rounding 端数処理（既定 floor）
  * @returns 小計・税額・合計
  */
 export function quoteTotals(lines: InvoiceLine[], rounding: Rounding = "floor"): InvoiceTotals {
@@ -40,6 +42,7 @@ export function quoteTotals(lines: InvoiceLine[], rounding: Rounding = "floor"):
  *
  * @param header 取引先・日付・有効期限など
  * @param lines 明細
+ * @param rounding 端数処理（既定 floor）
  * @returns 見積(金額は自動計算)
  */
 export function buildQuote(
@@ -58,10 +61,15 @@ export function buildQuote(
  * @returns 期限を過ぎていれば true。**期限が無ければ false**
  */
 export function isExpired(quote: Pick<Quote, "validUntil">, now: Date = new Date()): boolean {
-  const until = new Date(quote.validUntil);
-  const untilDay = new Date(until.getFullYear(), until.getMonth(), until.getDate()).getTime();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  return today > untilDay;
+  // **JST の日付で比べる。** `getFullYear()` などはサーバのローカル時刻で動くので、
+  // UTC のサーバ(クラウドの既定)では**JST の 00:00〜08:59 が前日**として扱われる
+  // ——JST で 8/11 00:30 なら期限切れのはずが、UTC では「まだ 8/10」で**有効と判定**される。
+  //
+  // 「あと 9 時間だけ使える見積」が生まれ、**失効したはずの価格で受注**しうる。
+  // 依存を増やさないため、9 時間ずらして UTC として読む(2026-08 に修正)。
+  const jstDay = (d: Date): string =>
+    new Date(d.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return jstDay(now) > jstDay(new Date(quote.validUntil));
 }
 
 /**
@@ -89,10 +97,12 @@ export function quoteStatus(quote: Pick<Quote, "validUntil" | "state">, now: Dat
  * @returns 残り日数(**過ぎていれば負**)。期限が無ければ undefined
  */
 export function daysUntilExpiry(quote: Pick<Quote, "validUntil">, now: Date = new Date()): number {
-  const until = new Date(quote.validUntil);
-  const a = new Date(until.getFullYear(), until.getMonth(), until.getDate()).getTime();
-  const b = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  return Math.round((a - b) / 86_400_000);
+  // **JST の日付で数える。** `isExpired` と同じ理由——サーバのローカル時刻で
+  // 計算すると、UTC のサーバでは**JST の 00:00〜08:59 が前日**になり、
+  // 残り日数が 1 日多く出る(2026-08 に修正)。
+  const jstMidnight = (d: Date): number =>
+    Date.parse(`${new Date(d.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)}T00:00:00.000Z`);
+  return Math.round((jstMidnight(new Date(quote.validUntil)) - jstMidnight(now)) / 86_400_000);
 }
 
 /**
@@ -101,7 +111,8 @@ export function daysUntilExpiry(quote: Pick<Quote, "validUntil">, now: Date = ne
  * **明細をそのまま引き継ぐ**ので、転記ミスが起きない(手で作り直すと必ずどこかで間違える)。
  *
  * @param quote 見積
- * @param input 請求書番号・支払期日
+ * @param header 請求書番号・支払期日
+ * @param rounding 端数処理（**見積と同じ丸め方にすること**。変えると金額がずれます）
  * @returns 請求書
  * @throws {@link @platform/core#AppError} コード `VALIDATION` — **承認されていない見積**を変換しようとした場合
  */
@@ -110,5 +121,18 @@ export function convertToInvoice(
   header: { number: string; issueDate: string; dueDate: string; registrationNumber?: string },
   rounding: Rounding = "floor",
 ): Invoice {
+  // **承認されていない見積は変換しない。** 2026-08 まで状態を見ておらず、
+  // **却下された見積・下書きからも請求書が作れた**——説明には
+  // 「承認されていなければ例外」と書いてあったのに、実装が伴っていなかった。
+  // **承認していない金額で請求書を出す**のは、取引先との認識違いに直結する。
+  //
+  // **`state` を持たない見積は通す**(古いデータ・状態を管理しない運用のため)。
+  // 状態を持っているなら `accepted` であることを求める。
+  if (quote.state !== undefined && quote.state !== "accepted") {
+    throw new AppError(
+      ErrorCode.VALIDATION,
+      `承認されていない見積は請求書にできません(現在: ${quote.state})`,
+    );
+  }
   return buildInvoice({ ...header, billTo: quote.billTo }, quote.lines, rounding);
 }

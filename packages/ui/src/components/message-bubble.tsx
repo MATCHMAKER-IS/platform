@@ -3,7 +3,7 @@
  * チャットの吹き出し。自分の発言は右寄せ、他者は左寄せ+名前。chat パッケージ非依存。
  * @packageDocumentation
  */
-import { linkify } from "@platform/html";
+import { Markdown } from "./markdown";
 import { cn } from "../lib/cn";
 
 /** {@link MessageBubble} の props。 */
@@ -23,7 +23,6 @@ export interface MessageBubbleProps {
   className?: string;
 }
 
-/** メッセージの吹き出し。 */
 /**
  * 会話の 1 件(吹き出し)。
  *
@@ -37,11 +36,14 @@ export function MessageBubble({ text, authorName, timestamp, own, edited, render
       <div
         className={cn(
           "max-w-[75%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap break-words [&_a]:underline",
-          own ? "bg-[var(--color-primary)] text-white" : "bg-[var(--color-muted-bg,#f1f1f1)] text-[var(--color-fg)]",
+          own ? "bg-[var(--color-primary)] text-white" : "bg-[var(--color-muted-bg)] text-[var(--color-fg)]",
         )}
-        {...(renderLinks ? { dangerouslySetInnerHTML: { __html: linkify(text) } } : {})}
       >
-        {renderLinks ? null : text}
+        {/* **Markdown として描く。**
+            以前は `linkify` の結果を `dangerouslySetInnerHTML` で流していたが、
+            発言は利用者が書いたものなので、変換に漏れがあれば script が動く。
+            `Markdown` は React 要素に組み立てるので、その経路が無い */}
+        {renderLinks ? <Markdown className="[&>p:first-child]:mt-0 [&>p:last-child]:mb-0">{text}</Markdown> : text}
       </div>
       <span className="px-1 text-[10px] text-[var(--color-muted)]">
         {timestamp}{edited ? "（編集済み）" : ""}

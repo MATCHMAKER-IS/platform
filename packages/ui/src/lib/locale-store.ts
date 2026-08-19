@@ -3,6 +3,7 @@
  * @packageDocumentation
  */
 import { LOCALES, type Locale } from "@platform/i18n";
+import { createWebStorage } from "@platform/web-storage";
 
 /** ロケール保存先。 */
 export interface LocaleStore {
@@ -29,15 +30,23 @@ export function isLocale(v: unknown): v is Locale {
  * @returns ストア
  */
 export function createLocalStorageLocaleStore(key = "app.locale"): LocaleStore {
+  // **`localStorage` を直接触らない**(ADR-0020)。
+  // SSR の分岐(`typeof localStorage === "undefined"`)も
+  // プライベートモードの例外も、基盤側が引き受ける。
+  //
+  // `validate` を渡すので、**壊れた値が入っていても既定へ倒れる**
+  // (以前は `isLocale` で弾いていたが、書き込み側は素通りだった)。
+  const store = createWebStorage<Locale | null>({
+    key,
+    fallback: null,
+    validate: (v): v is Locale | null => v === null || isLocale(v),
+  });
   return {
     async load() {
-      if (typeof localStorage === "undefined") return null;
-      const v = localStorage.getItem(key);
-      return isLocale(v) ? v : null;
+      return store.get();
     },
     async save(locale) {
-      if (typeof localStorage === "undefined") return;
-      localStorage.setItem(key, locale);
+      store.set(locale);
     },
   };
 }

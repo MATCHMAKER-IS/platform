@@ -1,11 +1,29 @@
 # @platform/cache
 
-キャッシュの共通部品(Adapter パターン)。
+キャッシュ（メモリ・タグ無効化・TTL）。
 
-- `createMemoryCache()` … 単一インスタンス・開発向け(TTL 対応)
-- `createRedisCache(config)` … 複数インスタンス・本番向け
+## これは何のためか
+
+**同じ計算を何度もしないため**のものです。
+100 人が同じ一覧を開けば、**100 回同じクエリが飛びます**。
+
+ただし**キャッシュは古いデータを見せます**——
+**「速いが間違っている」より「遅いが正しい」方がまし**な場面があります。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **人によって変わるものは鍵に利用者を** | 含めないと**他人のデータが見えます**。これは事故です |
+| **壊れた値は「無い」として扱います** | **落とすより取り直す**方が安全なためです |
+| **タグの並び順に依存しません** | `["a","b"]` と `["b","a"]` は同じ扱いです |
+| **消し忘れが一番多い** | 更新したら**必ず無効化**してください——**古い金額が出続けます** |
+| **メモリ実装は 1 台まで** | 2 台構成だと**片方だけ古いまま**になります |
+
+## よく使うもの
 
 ```ts
+import { createMemoryCache, createRedisCache, createCache } from "@platform/cache";
 import { createCache, createMemoryCache } from "@platform/cache";
 const cache = createCache(createMemoryCache());
 const users = await cache.getOrSet("users:list", 60, () => fetchUsers());

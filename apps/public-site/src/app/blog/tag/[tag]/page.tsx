@@ -1,3 +1,4 @@
+import { formatDateJst } from "@platform/datetime";
 import * as React from "react";
 import type { Metadata } from "next";
 import { content } from "../../../../server/content";
@@ -22,7 +23,7 @@ export default async function TagPage({ params }: { params: Promise<{ tag: strin
           {posts.map((p) => (
             <li key={p.slug} className="border-b border-[var(--color-border)] pb-3">
               <a href={`/blog/${p.slug}`} className="font-semibold hover:text-[var(--color-primary)]">{p.title}</a>
-              <p className="text-xs text-[var(--color-muted)]">{p.publishedAt.slice(0, 10)}</p>
+              <p className="text-xs text-[var(--color-muted)]">{formatDateJst(new Date(p.publishedAt))}</p>
               {p.excerpt && <p className="mt-1 text-sm text-[var(--color-muted)]">{p.excerpt}</p>}
             </li>
           ))}

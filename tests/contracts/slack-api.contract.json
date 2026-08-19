@@ -1,0 +1,12 @@
+{
+  "connector": "slack",
+  "title": "Slack Web API の共通応答",
+  "endpoint": "POST https://slack.com/api/*",
+  "sourceFile": "packages/slack/src/index.ts",
+  "requiredFields": [
+    "ok"
+  ],
+  "note": "HTTP 200 でも ok:false のことがある。ok を見ないと失敗を握りつぶし、通知が飛んでいないのに成功として扱われる。error は失敗時の理由。",
+  "capturedAt": null,
+  "fixture": null
+}

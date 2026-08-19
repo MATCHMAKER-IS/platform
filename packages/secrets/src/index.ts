@@ -37,7 +37,7 @@ export interface SecretStoreOptions {
  * アプリのコードは変えずに、環境ごとに提供元を変えられる。
  *
  * @param provider 取得元
- * @param options.cacheTtlMs キャッシュの有効期間(**外部サービスを毎回叩かない**)
+ * @param options.ttlMs キャッシュの有効期間(**外部サービスを毎回叩かない**)。`now` はテスト注入用
  * @returns ストア(`get` で取得)
  * @throws {@link @platform/core#AppError} コード `CONFIG` — 必須のシークレットが見つからない場合(`get` 実行時)
  */
@@ -91,8 +91,7 @@ export function createEnvProvider(env: Record<string, string | undefined> = (glo
  * });
  * ```
  *
- * @param options.endpoint 取得先の URL
- * @param options.headers 認証ヘッダ
+ * @param fetcher 名前を渡すと値を返す関数（**呼ばれるたびに取りに行く**。毎回叩きたくないなら `@platform/cache` を挟んでください）
  * @returns プロバイダ(**Secrets Manager など HTTP API 経由**)
  */
 export function createFetchProvider(fetcher: (name: string) => Promise<string | null>): SecretProvider {

@@ -17,7 +17,7 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url));
 /** dev スクリプトを持つワークスペースのポートを集める。 */
 export function collectPorts() {
   const entries = [];
-  for (const area of ["apps", "demos"]) {
+  for (const area of ["apps"]) {
     const dir = path.join(ROOT, area);
     if (!existsSync(dir)) continue;
     for (const name of readdirSync(dir)) {
@@ -46,6 +46,8 @@ export function docPorts() {
   const f1 = path.join(ROOT, "docs/APPS_AND_DEMOS.md");
   if (existsSync(f1)) {
     const body = readFileSync(f1, "utf8");
+// **上限の理由**: 見出しから `localhost:ポート` までの距離。
+// **見つからなければ落ちる**ので、切れても見逃しにはならない。
     const re = /###\s*\d*\.?\s*([a-z-]+)[^\n]*\n[\s\S]{0,200}?localhost:(\d{4})/g;
     let m;
     while ((m = re.exec(body)) !== null) {
@@ -53,8 +55,8 @@ export function docPorts() {
     }
   }
 
-  // 2) SETUP.md のポート表: 「| 3000 | internal-app | ...」
-  const f2 = path.join(ROOT, "docs/ops/SETUP.md");
+  // 2) ../onboarding/01-setup.md のポート表: 「| 3000 | internal-app | ...」
+  const f2 = path.join(ROOT, "docs/onboarding/01-setup.md");
   if (existsSync(f2)) {
     const body = readFileSync(f2, "utf8");
     const re = /^\|\s*(\d{4})\s*\|\s*(?:@demos\/)?([a-z-]+)\s*\|/gm;
@@ -64,7 +66,7 @@ export function docPorts() {
       const name = m[2];
       // インフラ(PostgreSQL 等)は対象外。アプリ名だけ拾う
       if (!name || port < 3000 || port > 3099) continue;
-      map[name] = { port, file: "docs/ops/SETUP.md" };
+      map[name] = { port, file: "docs/onboarding/01-setup.md" };
     }
   }
   return map;

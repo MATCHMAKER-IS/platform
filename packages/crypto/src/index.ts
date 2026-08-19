@@ -18,6 +18,9 @@ import {
 } from "node:crypto";
 import { AppError, ErrorCode } from "@platform/core";
 
+// **ブラウザからも使う部分は別ファイル。** 画面からは `/strength` `/blocks` を直接取ること
+export { passwordStrength } from "./strength";
+
 const ALGO = "aes-256-gcm";
 const IV_LEN = 12;
 const KEY_LEN = 32;
@@ -32,11 +35,42 @@ const KEY_LEN = 32;
  * @returns 32 バイトのキー
  * @throws {@link @platform/core#AppError} コード `CONFIG` — salt が空の場合
  */
+/**
+ * scrypt のコスト設定。
+ *
+ * **Node の既定(N=2^14 / maxmem=32MB)より強くする。** 既定は 2010 年代の目安で、
+ * 現在の GPU なら総当たりが現実的な範囲に入る。
+ *
+ * `N=2^16` は手元の計測で 1 回あたり約 180ms。**ログインの待ち時間として許容でき、
+ * かつ総当たりのコストを 4 倍にできる**境目として選んだ。
+ * OWASP の推奨は `N=2^17` だが、それだと約 4.4 秒かかり、
+ * ログインのたびに待たせることになるので採らない。
+ *
+ * **`maxmem` も一緒に上げること。** scrypt は `128 * N * r` バイトを使うので、
+ * `N` だけ上げると既定の 32MB を超えて**例外になる**(片方だけでは動かない)。
+ */
+const SCRYPT_OPTIONS = { N: 65536, r: 8, p: 1, maxmem: 128 * 1024 * 1024 } as const;
+
+/**
+ * パスワードや秘密から**暗号鍵を導く**。
+ *
+ * **同じ秘密でも salt が違えば別の鍵**になります。
+ * **salt は秘密ではありません**——保存して構いませんが、
+ * **利用者ごとに違うもの**にしてください（同じだと、1 つ破られたら全部破られます）。
+ *
+ * **共有の既定 salt は廃止しました**（ADR 0004）——
+ * 「とりあえず動く」ために同じ salt を使うと、**その意味が失われます**。
+ *
+ * @param secret 元になる秘密（パスワードなど）
+ * @param salt 利用者ごとに違う値（**8 文字以上**）
+ * @returns 導いた鍵
+ * @throws salt が 8 文字未満の場合（`AppError(CONFIG)`）
+ */
 export function deriveKey(secret: string, salt: string): Buffer {
   if (!salt || salt.length < 8) {
     throw new AppError(ErrorCode.CONFIG, "deriveKey には 8 文字以上の一意な salt が必須です(環境ごとに変えてください)");
   }
-  return scryptSync(secret, salt, KEY_LEN);
+  return scryptSync(secret, salt, KEY_LEN, SCRYPT_OPTIONS);
 }
 
 /**
@@ -93,27 +127,57 @@ export function decrypt(ciphertext: string, key: Buffer): string {
 }
 
 /**
- * パスワードを scrypt でハッシュ化する。出力は `base64(salt):base64(hash)`。
+ * パスワードを scrypt でハッシュ化する。
+ *
+ * 出力は `scrypt$N$base64(salt)$base64(hash)`。
+ *
+ * **コストを文字列に含める。** 含めないと、後でコストを上げたときに
+ * **保存済みのハッシュを検証できなくなる**——同じパスワードでも別の値になるため、
+ * **全員がログイン不能**になる。2026-08 にコストを引き上げた際、
+ * 旧形式(`base64(salt):base64(hash)`)を残したまま移行できるようにこの形にした。
+ *
  * @param password 平文パスワード
  * @returns 保存用ハッシュ文字列
  */
 export function hashPassword(password: string): string {
   const salt = randomBytes(16);
-  const hash = scryptSync(password, salt, 64);
-  return `${salt.toString("base64")}:${hash.toString("base64")}`;
+  const hash = scryptSync(password, salt, 64, SCRYPT_OPTIONS);
+  return `scrypt$${SCRYPT_OPTIONS.N}$${salt.toString("base64")}$${hash.toString("base64")}`;
 }
 
 /**
  * パスワードがハッシュと一致するか、タイミング安全に検証する。
+ *
+ * **旧形式(`base64(salt):base64(hash)`)も検証できる。** 2026-08 より前に
+ * 保存されたものはコストが `N=2^14`(Node の既定)なので、その値で計算する。
+ * **利用者が次にパスワードを変えるまで旧形式のまま**なので、
+ * この経路は消さないこと。
+ *
  * @param password 検証する平文
  * @param stored   {@link hashPassword} が返した文字列
  * @returns 一致すれば true
  */
 export function verifyPassword(password: string, stored: string): boolean {
-  const parts = stored.split(":");
-  if (parts.length !== 2) return false;
-  const [saltB64, hashB64] = parts as [string, string];
-  const hash = scryptSync(password, Buffer.from(saltB64, "base64"), 64);
+  let saltB64: string;
+  let hashB64: string;
+  let cost: number;
+  if (stored.startsWith("scrypt$")) {
+    const parts = stored.split("$");
+    if (parts.length !== 4) return false;
+    cost = Number(parts[1]);
+    if (!Number.isInteger(cost) || cost < 1024) return false;
+    [, , saltB64, hashB64] = parts as [string, string, string, string];
+  } else {
+    // **旧形式。** Node の既定コスト(N=2^14)で保存されている
+    const parts = stored.split(":");
+    if (parts.length !== 2) return false;
+    cost = 16384;
+    [saltB64, hashB64] = parts as [string, string];
+  }
+  const hash = scryptSync(password, Buffer.from(saltB64, "base64"), 64, {
+    ...SCRYPT_OPTIONS,
+    N: cost,
+  });
   const expected = Buffer.from(hashB64, "base64");
   return hash.length === expected.length && timingSafeEqual(hash, expected);
 }
@@ -218,50 +282,38 @@ function isSequential(pw: string): boolean {
 }
 
 /**
- * パスワードの強度を推定する(0〜4)。ヒューリスティックで依存ライブラリ不要。
- * 強度メーター表示や、登録時のフィードバックに使う。
+ * 秘密値を**定数時間**で比較する。
  *
- * @param password 評価するパスワード
- * @returns スコア・ラベル・改善ヒント
+ * **`===` は一致した文字数だけ時間が変わる。** その差を測ると、
+ * 攻撃者は 1 文字ずつ正解を絞り込める(先頭が合っていれば少し遅い)。
+ * トークン・API キー・署名の照合には必ずこちらを使う。
+ *
+ * 長さが違う場合も**同じ時間で** false を返す(長さから情報を漏らさない)。
+ *
+ * @param a 比較する値(利用者が持ってきたもの)
+ * @param b 比較する値(こちらが持っている正解)
+ * @returns 一致すれば true
  *
  * @example
  * ```ts
- * const { score, label, suggestions } = passwordStrength(input);
+ * // 誤: 一致した文字数で時間が変わる
+ * if (token === expected) { … }
+ *
+ * // 正
+ * if (safeEqual(token, expected)) { … }
  * ```
  */
-export function passwordStrength(password: string): PasswordStrength {
-  const suggestions: string[] = [];
-  let score = 0;
-  const len = password.length;
-  const lower = /[a-z]/.test(password);
-  const upper = /[A-Z]/.test(password);
-  const digit = /[0-9]/.test(password);
-  const symbol = /[^A-Za-z0-9]/.test(password);
-  const classes = [lower, upper, digit, symbol].filter(Boolean).length;
-
-  if (len >= 12) score += 2;
-  else if (len >= 8) score += 1;
-  else suggestions.push("8文字以上にしてください");
-
-  if (classes >= 3) score += 2;
-  else if (classes >= 2) score += 1;
-  if (!upper) suggestions.push("英大文字を含めると強くなります");
-  if (!digit) suggestions.push("数字を含めると強くなります");
-  if (!symbol) suggestions.push("記号を含めると強くなります");
-
-  if (/(.)\1{2,}/.test(password)) {
-    score -= 1;
-    suggestions.push("同じ文字の連続は避けてください");
-  }
-  if (isSequential(password)) {
-    score -= 1;
-    suggestions.push("連続した文字列は避けてください");
-  }
-  if (COMMON_PASSWORDS.has(password.toLowerCase())) {
-    score = 0;
-    suggestions.push("よくあるパスワードは避けてください");
-  }
-
-  const clamped = Math.max(0, Math.min(4, score)) as 0 | 1 | 2 | 3 | 4;
-  return { score: clamped, label: STRENGTH_LABELS[clamped], suggestions };
+export function safeEqual(a: string, b: string): boolean {
+  // **長さが違っても早期 return しない。**
+  // ここで返すと「長さが合っているか」だけが速さから分かってしまう。
+  // 同じ長さのバッファに詰めてから比較する
+  const bufA = Buffer.from(a, "utf8");
+  const bufB = Buffer.from(b, "utf8");
+  const len = Math.max(bufA.length, bufB.length, 1);
+  const padA = Buffer.alloc(len);
+  const padB = Buffer.alloc(len);
+  bufA.copy(padA);
+  bufB.copy(padB);
+  // 長さの違いは最後に AND する(比較そのものは常に同じ回数)
+  return timingSafeEqual(padA, padB) && bufA.length === bufB.length;
 }

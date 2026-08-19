@@ -226,7 +226,7 @@ function Header() {
 <script dangerouslySetInnerHTML={{ __html: themeInitScript() }} />
 ```
 `ThemeProvider` は OS の `prefers-color-scheme` 変更を監視し、`system` 選択時に自動追従します。
-完成テンプレートは `demos/admin-console`(AdminLayout)を参照。
+完成テンプレートは `apps/showcase` の `/ui` を参照。
 
 ## 通知センター（ヘッダーのベル）
 未読バッジ付きベル + ドロップダウン(今日/昨日/それ以前でグループ表示)。
@@ -330,7 +330,7 @@ const nav = [{ label: "予約", href: "/bookings", permission: "booking:read" },
 const visible = filterNavByPermission(nav, (p) => can(policy, roles, p));  // 空グループは自動で非表示
 <NavMenu items={visible} currentPath={path} />
 ```
-ボタンや画面の出し分けは `<Can permission="…">` パターン（`demos/app` の `rbac.tsx`）を参照。統合例は `demos/app`。
+ボタンや画面の出し分けは `<Can permission="…">` パターンを使う。実例は `apps/internal-app` の `AppNav`(権限が無い項目は最初から出さない)。
 
 ## スクロールエリア / 利用規約同意
 長い本文を枠内でスクロール表示し、読了(最下部到達)を検知できます。
@@ -341,4 +341,46 @@ import { ScrollArea, TermsAcceptance } from "@platform/ui";
 
 // 利用規約: 最後まで読むと同意チェックが有効化される
 <TermsAcceptance onAcceptedChange={setAgreed}>{termsText}</TermsAcceptance>
+```
+
+## フォームの送信
+
+**二重送信を防ぎます。** 利用者は応答が無いと**もう一度押す**ので、
+防がないと**申請や問い合わせが 2 件登録**されます。
+`disabled` だけでは Enter 連打に間に合いません(再描画が追いつかない)。
+
+```tsx
+const { status, error, submit, sending } = useSubmit({ onDone: () => setForm(EMPTY) });
+
+const onSubmit = (e: FormEvent) => {
+  e.preventDefault();
+  void submit(async () => {
+    const res = await fetch("/api/apply", { method: "POST", body: JSON.stringify(form) });
+    if (!res.ok) throw new Error(((await res.json()) as { error?: string }).error ?? "送信に失敗しました");
+  });
+};
+
+<button type="submit" disabled={sending}>{sending ? "送信中…" : "送信"}</button>
+{status === "error" && <p role="alert">{error}</p>}
+```
+
+**エラーの文言は投げた例外の `message`** をそのまま出します。
+内部の例外をそのまま投げると、**スタックトレースや SQL が画面に出ます**。
+
+問い合わせフォームそのものは `ContactForm` があります(送信先とカテゴリを渡すだけ)。
+
+## ページビューの計測
+
+```tsx
+usePageview({ path: pathname, namespace: "internal-app", userId: user.email });
+```
+
+**名前空間をアプリごとに分けてください。** 同じブラウザで社内アプリと
+公開サイトを開いたとき、**セッション ID が混ざると計測が繋がります**。
+公開サイトでは `userId` を渡さない(匿名で計測する)のが原則です。
+
+## よく使うもの
+
+```ts
+import { Button, Card, PageShell, DataTable } from "@platform/ui";
 ```

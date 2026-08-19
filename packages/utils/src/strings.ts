@@ -257,6 +257,55 @@ export function normalizeText(str: string): string {
   return normalizeSpace(toHalfWidth(str));
 }
 
+/**
+ * ひらがなをカタカナに変換する。
+ *
+ * **ふりがな欄はカタカナが慣行**(帳票・銀行口座・保険の書式)。
+ * IME が返す読みはひらがななので、そのまま入れると書式に合わない。
+ *
+ * かな以外(漢字・英数字・記号)はそのまま残す。
+ *
+ * @param str 変換する文字列
+ * @returns カタカナに変換した文字列
+ *
+ * @example
+ * ```ts
+ * toKatakana("やまだ たろう"); // "ヤマダ タロウ"
+ * toKatakana("山田たろう");    // "山田タロウ"(漢字はそのまま)
+ * ```
+ */
+export function toKatakana(str: string): string {
+  // ひらがな(U+3041〜U+3096)は、カタカナへ 0x60 足すだけで対応する。
+  // **`ゝ`(踊り字)や `ー` は範囲外**なので触らない——変換すると別の字になる
+  return str.replace(/[\u3041-\u3096]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) + 0x60));
+}
+
+/**
+ * カタカナをひらがなに変換する。
+ *
+ * 学校・医療の書式ではひらがなを求めることがある。
+ * かな以外はそのまま残す。
+ *
+ * **半角カナは変換しない。** 先に {@link toFullWidthKana} を通すこと
+ * (`ﾔﾏﾀﾞ` をそのまま渡しても `やまだ` にはならない)。
+ *
+ * @param str 変換する文字列
+ * @returns ひらがなに変換した文字列
+ *
+ * @example
+ * ```ts
+ * toHiragana("ヤマダ タロウ"); // "やまだ たろう"
+ * toHiragana(toFullWidthKana("ﾔﾏﾀﾞ")); // "やまだ"(半角は先に全角へ)
+ * ```
+ */
+export function toHiragana(str: string): string {
+  // カタカナ(U+30A1〜U+30F6)を 0x60 引いてひらがなへ。
+  // **`ヴ`(U+30F4)は対応するひらがなが無い**が、範囲に含まれるので
+  // `ゔ`(U+3094)になる——これは正しい対応
+  return str.replace(/[\u30A1-\u30F6]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+}
+
+
 // ───────────────────────── 空白・改行 ─────────────────────────
 
 /**
@@ -489,6 +538,12 @@ const HTML_UNESCAPE: Record<string, string> = { "&amp;": "&", "&lt;": "<", "&gt;
  * **表示直前には使わない**(エスケープを戻したものを HTML に入れると XSS になる)。
  * DB に保存されたエスケープ済みの値を、テキストとして扱いたいときに使う。
  *
+ * **`@platform/html` の `unescapeHtml` とは扱う範囲が違う。**
+ * あちらは `&nbsp;` も空白に戻すが、ここは 5 文字(`&amp; &lt; &gt; &quot; &#39;`)だけ。
+ * **エスケープ側(`escapeHtml`)はどちらも同じ 5 文字**なので守りは揃っている
+ * ——差が出るのは復号だけで、**片方で戻して片方で escape し直すと `&nbsp;` が
+ * `&amp;nbsp;` になり表示が崩れる**。混ぜて使わないこと(2026-08 に確認)。
+ *
  * @param str 対象の文字列
  * @returns 元に戻した文字列
  */
@@ -534,11 +589,22 @@ export function mask(str: string, options: { keepStart?: number; keepEnd?: numbe
  */
 export function maskEmail(email: string): string {
   const at = email.indexOf("@");
-  if (at <= 0) return mask(email);
+  // **`@` が無ければ全体を伏せる。** 2026-08 まで `mask()` に渡しており、
+  // **説明の「全体をマスク」と食い違って**いた——`壊れた文字列` が
+  // `壊****列` になり、**先頭と末尾が残る**。個人情報を扱う人が
+  // 「全体を伏せてくれる」と信じて使うと漏れる。
+  // `@platform/pii` の `maskEmail` と同じ挙動に揃えた。
+  if (at <= 0) return "***";
   const local = email.slice(0, at);
   const domain = email.slice(at);
-  const maskedLocal = local.length <= 1 ? local : local[0] + "*".repeat(local.length - 1);
-  return maskedLocal + domain;
+  // **1 文字でもマスクする。** 2026-08 まで `local.length <= 1` をそのまま返しており、
+  // `a@example.jp` が**丸ごと露出**していた。
+  //
+  // **アスタリスクの数は固定にする。** 文字数に合わせると
+  // 「ローカル部が 6 文字」と分かり、絞り込みの手がかりになる。
+  // `@platform/pii` の `maskEmail` と同じ形に揃えた(片方だけ弱いと、
+  // どちらを使ったかで漏れ方が変わる)。
+  return `${local[0] ?? ""}***${domain}`;
 }
 
 // ───────────────────────── 桁揃え(全角考慮) ─────────────────────────
@@ -628,8 +694,9 @@ export interface HighlightSegment { text: string; match: boolean }
  * **HTML を組み立てずに配列で返す**。呼び出し側で `<mark>` を当てれば、
  * エスケープ漏れによる XSS を避けられる。
  *
- * @param str 対象の文字列
- * @param term 検索語(**大文字小文字は区別しない**)
+ * @param text 対象の文字列
+ * @param query 検索語(**既定では大文字小文字を区別しない**)
+ * @param options.caseSensitive 区別するかどうか
  * @returns `{ text, matched }` の配列。term が空なら 1 要素(全体・matched: false)
  */
 export function highlight(text: string, query: string, options: { caseSensitive?: boolean } = {}): HighlightSegment[] {
@@ -654,8 +721,9 @@ export function highlight(text: string, query: string, options: { caseSensitive?
  * **重なる範囲は統合する**(「経費」と「費用」で「経費用」を検索したとき、
  * 二重にマークされないように)。
  *
- * @param str 対象の文字列
+ * @param text 対象の文字列
  * @param terms 検索語(空白区切りの文字列、または配列)
+ * @param options.caseSensitive 大文字小文字を区別するか
  * @returns `{ text, matched }` の配列
  */
 export function highlightTerms(text: string, terms: string | string[], options: { caseSensitive?: boolean } = {}): HighlightSegment[] {
@@ -702,7 +770,8 @@ export function highlightTerms(text: string, terms: string | string[], options: 
  *
  * @param template テンプレート文字列
  * @param params 置換する値
- * @param options.keepUnknown 未定義のキーを残すか(既定 true)。
+ * @param options.keepMissing 値が無いキーを `{name}` のまま残すか(既定 true)。
+ *   **`keepUnknown` ではない**。
  *   **既定で残すのは、置換漏れに気づけるようにするため**(空文字にすると文が壊れても分からない)
  * @returns 置換した文字列
  */

@@ -22,3 +22,20 @@ describe("bulkhead", () => {
     d.resolve(); await p;
   });
 });
+
+describe("待機キューの既定", () => {
+  // **バルクヘッドの目的は「遅い依存が資源を食い潰すのを防ぐ」こと。**
+  // 待機列が無制限だとまさにそれが起きる(2026-08 に既定を有限にした)
+  it("maxQueue を省いても無制限にはならない", async () => {
+    const b = createBulkhead({ maxConcurrent: 1 });
+    // 1 件を実行中にして、残りを待機させる
+    let release = (): void => {};
+    const held = b.run(() => new Promise<void>((r) => { release = r; }));
+    // 既定の上限まで積んでから、さらに 1 件で拒否されることを確かめる
+    const waiting = Array.from({ length: 1000 }, () => b.run(async () => {}));
+    await expect(b.run(async () => {})).rejects.toThrow();
+    release();
+    await held;
+    await Promise.allSettled(waiting);
+  });
+});

@@ -26,6 +26,7 @@ export interface NotificationReducerOptions {
  *
  * @param state 現在の状態
  * @param action 操作
+ * @param options 上限件数など（**溜まり続けるとメモリを食います**）
  * @returns 新しい状態(**useReducer に渡す**)
  */
 export function notificationReducer(state: AppNotification[], action: NotificationAction, options: NotificationReducerOptions = {}): AppNotification[] {

@@ -35,8 +35,10 @@ export function parseTimeToMinutes(hhmm: string): number {
  *
  * **深夜割増の計算に使う**(勤務時間と 22:00〜5:00 の重なり)。
  *
- * @param a 時間帯(開始・終了の分)
- * @param b 時間帯
+ * @param a1 区間 A の開始（分）
+ * @param a2 区間 A の終了（分）
+ * @param b1 区間 B の開始（分）
+ * @param b2 区間 B の終了（分）
  * @returns 重なりの分数。**重ならなければ 0**
  */
 export function overlapMinutes(a1: number, a2: number, b1: number, b2: number): number {
@@ -47,7 +49,8 @@ export function overlapMinutes(a1: number, a2: number, b1: number, b2: number): 
  * 勤務区間 [startMin, endMin) のうち深夜時間帯(22:00〜翌5:00)に入る分を返す。
  * 日をまたぐ勤務にも対応(前後日ぶんの深夜窓と重ね合わせる)。
  *
- * @param work 勤務時間帯
+ * @param startMin 勤務の開始（0:00 からの分）
+ * @param endMin 勤務の終了（**日をまたぐ場合は 24 時間を超える値**）
  * @returns 深夜(**22:00〜翌 5:00**)に当たる分数。労基法の深夜割増の対象
  */
 export function nightMinutes(startMin: number, endMin: number): number {

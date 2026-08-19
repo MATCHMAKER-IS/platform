@@ -33,7 +33,22 @@ export function parseEnv<T extends z.ZodTypeAny>(
   schema: T,
   source: Record<string, unknown> = process.env,
 ): z.infer<T> {
-  const result = schema.safeParse(source);
+  // **空文字は「未設定」として扱う。**
+  // `.env` に `SMTP_PASS=` と書くと値は `undefined` ではなく空文字になり、
+  // `z.string()` はそれを通す——**「設定した」つもりで空のまま本番へ出る**。
+  // `.env.example` は空で配られるので、**コピーしただけの状態がこれ**。
+  // SMTP なら空パスワードで認証に失敗するが、検証は成功しているので
+  // 「設定漏れ」には見えず、原因を探すのに時間がかかる。
+  //
+  // undefined に寄せると、必須(`z.string()`)は落ち、
+  // 任意(`.optional()` / `.default()`)は既定どおりに動く。
+  // **既存のスキーマを変えずに効く**のが利点。
+  const cleaned: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(source)) {
+    if (typeof v === "string" && v.trim() === "") continue;
+    cleaned[k] = v;
+  }
+  const result = schema.safeParse(cleaned);
   if (!result.success) {
     const issues = result.error.issues.map((i) => ({
       path: i.path.join("."),
@@ -60,6 +75,12 @@ export {
   renderEnvExample,
   requireEnv,
   isProductionRuntime,
+  appEnv,
+  isDevEnv,
+  isStagingEnv,
+  appEnvLabel,
+  isProductionEnv,
+  type AppEnv,
   isBuildPhase,
   requiredAtRuntime,
   optionalEnv,

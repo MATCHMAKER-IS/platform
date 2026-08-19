@@ -50,9 +50,60 @@ export function ensureSessionId(current: string | null | undefined, generate: ()
  * **個人を特定する情報を入れないこと**。パスにユーザー ID や検索語が入ると、
  * 意図せず個人情報を計測基盤に送ることになる。
  *
- * @param config.input パス・セッション ID・参照元など
- * @param config.now 現在時刻(テスト注入用)
+ * @param config.sessionId セッション ID。`endpoint` は送信先(既定 `/api/analytics`)、
+ *   `sendBeacon` / `fetch` は送信手段の差し替え(テスト注入用)。
+ *   **パスや参照元は送信時の引数で渡す**
  * @returns ビーコン(送信する形)
+ */
+/**
+ * ブラウザの API を {@link createBeacon} に渡せる形で取り出す。
+ *
+ * **`navigator` や `document` を直に触らない。** サーバでも動く経路
+ * (Next.js の SSR・テスト)では**存在しない**ので、`globalThis` 越しに
+ * 有無を確かめてから渡す必要がある——**触ると `ReferenceError` で画面が落ちる**。
+ *
+ * この取り出しは `internal-app` と `public-site` で**同じものが書かれていた**ので
+ * 基盤へ移した(2026-08)。
+ *
+ * **`sendBeacon` が使えない環境では省く。** 渡さなければ `createBeacon` が
+ * `fetch` に落とすので、**古いブラウザでも計測は続く**。
+ *
+ * @returns `createBeacon` に渡す依存(`sendBeacon` は使える場合のみ入る)
+ *
+ * @example
+ * ```ts
+ * const beacon = createBeacon({ sessionId, ...browserBeaconDeps() });
+ * ```
+ */
+export function browserBeaconDeps(): BeaconDeps & { pathname: string; referrer: string } {
+  const g = globalThis as unknown as {
+    navigator?: { sendBeacon?: (u: string, b: BodyInit) => boolean };
+    location?: { pathname: string };
+    document?: { referrer: string };
+  };
+  return {
+    // **`sendBeacon` は「あれば使う」。** ページを閉じる瞬間でも送れるので
+    // `fetch` より確実だが、古いブラウザには無い
+    ...(g.navigator?.sendBeacon !== undefined
+      ? { sendBeacon: (u: string, b: string): boolean => g.navigator!.sendBeacon!(u, b) }
+      : {}),
+    fetch: (u, init) => fetch(u, init as RequestInit),
+    pathname: g.location?.pathname ?? "/",
+    referrer: g.document?.referrer ?? "",
+  };
+}
+
+/**
+ * 画面の出来事を**サーバへ送る器**を作る。
+ *
+ * **`sendBeacon` を使うので、画面を閉じても届きます**——
+ * 普通の `fetch` だと、**離脱の記録が一番欲しいときに消えます**。
+ *
+ * **個人情報を送らないでください。** 画面の URL に ID が入ることがあるので、
+ * **送る前に伏せる**か、そもそも含めない設計にしてください。
+ *
+ * @param config 送り先の URL と、まとめて送る間隔
+ * @returns 出来事を積む器
  */
 export function createBeacon(config: { sessionId: string } & BeaconDeps): Beacon {
   const endpoint = config.endpoint ?? "/api/analytics";

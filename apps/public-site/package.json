@@ -4,19 +4,25 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev --port 3004",
     "build": "tsc -p tsconfig.json --noEmit && next build",
-    "start": "next start",
+    "dev": "next dev --port 3004",
     "lint": "eslint src",
+    "predev": "node ../../tools/predev.mjs",
+    "start": "next start",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@platform/analytics": "workspace:*",
     "@platform/board": "workspace:*",
     "@platform/cms": "workspace:*",
+    "@platform/crypto": "workspace:*",
+    "@platform/datetime": "workspace:*",
     "@platform/env": "workspace:*",
+    "@platform/feed": "workspace:*",
+    "@platform/form": "workspace:*",
     "@platform/html": "workspace:*",
     "@platform/observability": "workspace:*",
+    "@platform/ratelimit": "workspace:*",
     "@platform/search": "workspace:*",
     "@platform/security": "workspace:*",
     "@platform/seo": "workspace:*",
@@ -24,13 +30,21 @@
     "@platform/social": "workspace:*",
     "@platform/theme": "workspace:*",
     "@platform/ui": "workspace:*",
-    "next": "16.2.0",
-    "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "next": "^15.5.21",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@platform/config": "workspace:*",
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
+    "tailwindcss": "^4.0.0",
     "typescript": "^5.7.3"
+  },
+  "platform": {
+    "plannedDeps": {
+      "@platform/analytics": "採用サイトの流入計測で使う予定。同意取得(cookie バナー)の方針が決まってから繋ぐ"
+    }
   }
 }

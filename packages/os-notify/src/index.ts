@@ -48,6 +48,7 @@ function shEscape(s: string): string {
 /**
  * デスクトップ通知を出すコマンドを OS 別に生成する(純関数)。
  * @param platform process.platform 相当
+ * @param n 通知の中身（題名・本文）
  * @returns OS ごとの通知コマンド(**macOS は osascript、Windows は PowerShell、Linux は notify-send**)
  */
 export function buildNotifyCommand(platform: OsPlatform, n: OsNotification): OsCommand {
@@ -76,7 +77,8 @@ export function buildNotifyCommand(platform: OsPlatform, n: OsNotification): OsC
  * 音を鳴らすコマンドを OS 別に生成する(純関数)。
  * soundFile 未指定ならシステム既定音(ビープ等)。
  *
- * @param sound 音の種類
+ * @param platform process.platform 相当
+ * @param soundFile 鳴らす音のファイル（**省略すると既定の音**）
  * @returns OS ごとの再生コマンド
  */
 export function buildSoundCommand(platform: OsPlatform, soundFile?: string): OsCommand {
@@ -120,7 +122,7 @@ export interface OsNotifyLogStore {
  * **最大件数を超えたら古いものから捨てる**(通知履歴は無限に増えるため)。
  * 本番で長期保存したいなら DB 実装を使う。
  *
- * @param options.capacity 保持する件数
+ * @param options.max 保持する件数(既定 200)。**`capacity` ではない**
  * @returns 履歴ストア
  */
 export function createMemoryNotifyLog(options: { max?: number } = {}): OsNotifyLogStore {
@@ -175,6 +177,19 @@ export interface OsNotifier {
  */
 const SPAWN_SETTLE_MS = 50;
 
+/**
+ * **OS のデスクトップ通知**を出す器を作る。
+ *
+ * **利用者が画面を見ていないときに気づかせる**ためのものです。
+ * ブラウザのタブが裏にあっても出ます。
+ *
+ * **許可を求める体験が重い**ことに注意してください——
+ * 開いた直後に許可を求めると、**多くの人が拒否**します。
+ * **必要になった場面で**（「この案件を追いますか」など）求めてください。
+ *
+ * @param options 通知の既定（アイコン・音の有無など）
+ * @returns 通知を出す器
+ */
 export function createOsNotifier(options: OsNotifierOptions = {}): OsNotifier {
   const platform = options.platform ?? "linux";
   const spawn = options.spawn;

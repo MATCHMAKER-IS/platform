@@ -1,15 +1,28 @@
 # @platform/mail
 
-メール送信の共通部品(Adapter パターン)。`createMailer()` で作った Mailer の `sendMail` を呼ぶだけで、送信基盤(SMTP / Resend)を意識せずに済みます。
+メール送信（SMTP・テンプレート・添付）。
 
-- `createSmtpTransport` … 本番/ローカル(MailHog/Mailpit)向け SMTP
-- `createMemoryTransport` … テスト・デバッグ用(送信内容を配列に記録)
+## これは何のためか
 
-送信基盤(SES/Resend 等)を足す時は `MailTransport` を実装するだけで、アプリは無変更です。
+**送れなかったことに気づけないのが一番困ります。**
 
-## テンプレートメール
-件名・本文を {{変数}} 差し込みで生成します。**HTML 本文の差し込み値は自動エスケープ**(注入対策)、件名・テキストは生で差し込みます。
+「案内を送ったのに来ていない」——**送信側は成功したつもり**で、
+**受信側は届いていない**。この食い違いを減らすためのものです。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **Outbox 経由で送る** | 直接送ると、**失敗したときに「送ったか」が分かりません** |
+| **開発中は MailHog に届きます** | `http://localhost:8025` で見られます——**本物には飛びません** |
+| **宛先を間違えると取り返せません** | 送信前に**宛先を画面に出して**確認させてください |
+| **添付は 10MB まで** | 超えると**相手のサーバで弾かれます**。大きいものは**リンクで渡して**ください |
+| **BCC を使う** | 複数人に送るとき TO や CC にすると、**全員のメールアドレスが互いに見えます** |
+
+## よく使うもの
+
 ```ts
+import { isAllowedRecipient, filterRecipients, applyRecipientPolicy } from "@platform/mail";
 import { createTemplateMailer } from "@platform/mail";
 const tm = createTemplateMailer(mailer, {
   welcome: { subject: "{{name}}さん、ようこそ", html: "<p>{{name}}さん、登録ありがとうございます。</p>" },

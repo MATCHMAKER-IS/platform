@@ -13,6 +13,7 @@ export interface MailerLike {
  * メール通知チャネルを作る。件名は固定 or level から決める。
  *
  *
+ * @param mailer メールの送信
  * @param options 送信の設定
  * @returns メール のチャネル。**`@platform/mail` の Transport を包む**ので、送信業者は差し替えられる
  * @throws {@link @platform/core#AppError} コード `EXTERNAL` — 送信に失敗した場合(`send` 実行時)

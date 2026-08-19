@@ -1,21 +1,15 @@
 /**
  * レポート配信スキャン(POST)。期限が来たレポートを生成し宛先へメール＋受信箱で配信。cron 等から定期実行。
  * X-Cron-Token(env CRON_TOKEN)一致、または管理者。
+ * 推奨頻度・他の scan API との一覧は `docs/ops/CRON_JOBS.md` を参照。
  */
 import { withApiObservability } from "../../../../server/instrument";
-import { currentUser } from "../../../../server/authorize";
-import { serverEnv, featureEnv } from "../../../../server/env";
+import { isCronAuthorized } from "../../../../server/cron-auth";
 import { reportScheduleStore, invoiceStore, inventoryStore, appMailer, notificationStore, userStore, deliveryLogStore, settingsStore } from "../../../../server/platform-services";
 import { dueReports, buildReportMessage, resolveRecipients, type ReportType } from "../../../../server/report-schedule";
 import { salesReport, receivablesReport, inventoryReport, type Report } from "../../../../server/reports";
 import { makeDeliveryEntry } from "../../../../server/delivery-log";
 
-async function authorized(req: Request): Promise<boolean> {
-  const token = featureEnv.CRON_TOKEN;
-  if (token && req.headers.get("x-cron-token") === token) return true;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
-  return !!user && user.roles.includes("admin");
-}
 
 async function buildReport(type: ReportType, now: Date): Promise<Report> {
   if (type === "inventory") {
@@ -29,7 +23,7 @@ async function buildReport(type: ReportType, now: Date): Promise<Report> {
 }
 
 async function handlePOST(req: Request): Promise<Response> {
-  if (!(await authorized(req))) return Response.json({ error: "権限がありません" }, { status: 403 });
+  if (!(isCronAuthorized(req))) return Response.json({ error: "権限がありません" }, { status: 403 });
   const now = new Date();
   const mailFrom = (await settingsStore.get()).mailFrom;
   const due = dueReports(await reportScheduleStore.list(), now);
@@ -42,7 +36,11 @@ async function handlePOST(req: Request): Promise<Response> {
     const msg = buildReportMessage(sched.reportType, now, summary);
     const recipients = resolveRecipients(sched.recipient, users);
     if (recipients.length > 0) {
-      await appMailer.sendMail({ to: recipients, from: mailFrom, subject: msg.subject, text: msg.body });
+      // **1 件ずつ送る。** `to` に配列を渡すと受信者全員に他の宛先が
+      // 見える(2026-08、他の通知経路と同じ穴を発見して修正)。
+      for (const to of recipients) {
+        await appMailer.sendMail({ to, from: mailFrom, subject: msg.subject, text: msg.body });
+      }
       // **id は必須**(AppNotification)。既読管理に使うので重複しない値を入れる
       for (const email of recipients) {
         await notificationStore.add(email, {

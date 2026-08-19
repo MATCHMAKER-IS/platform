@@ -35,9 +35,7 @@ export interface ZohoCliqClient {
 /**
  * Zoho Cliq(チャット)のクライアントを作る。
  *
- * @param config.tokenManager トークンマネージャ(**自動更新される**)
- * @param config.dc データセンター(**契約時の DC を指定**。間違えると 404 になる)
- * @param config.fetchImpl fetch の実装(テスト注入用)
+ * @param config.dataCenter データセンター(**契約時の DC を指定**。間違えると 404 になる)
  * @returns Cliq のクライアント。**すべてのメソッドは Result 型を返す**(例外を投げない)
  */
 export function createZohoCliqClient(config: ZohoCliqConfig): ZohoCliqClient {

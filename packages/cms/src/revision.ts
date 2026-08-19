@@ -44,7 +44,8 @@ export function snapshotOf(post: CmsPost): Omit<Revision, "id" | "postSlug" | "v
  *
  * **下書きとして戻す**(いきなり公開しない)。復元した内容を確認してから公開できる。
  *
- * @param revision リビジョン
+ * @param rev リビジョン
+ * @param slug 記事のスラッグ
  * @returns 記事の入力(status は下書き)
  */
 export function revisionToInput(rev: Revision, slug: string): CmsPostInput {
@@ -66,7 +67,8 @@ export interface RevisionStore {
 /**
  * リビジョンストアのメモリ実装(開発・テスト用)。
  *
- * @param seed 初期データ
+ * @param genId ID を作る関数（**試験では固定値を返す**ようにできます）
+ * @param now 現在時刻(**テスト注入用**。渡さなければ `new Date()`)
  * @returns リビジョンストア(再起動で消える)
  */
 export function createMemoryRevisionStore(genId: () => string = () => `rev_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, now: () => string = () => new Date().toISOString()): RevisionStore {

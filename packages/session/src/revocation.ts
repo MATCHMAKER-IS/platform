@@ -156,6 +156,7 @@ export interface RevocationGate {
  * // 退職者を止める
  * await gate.block("u42", { reason: "退職(2026-08-31)", by: "admin@example.com" });
  * ```
+ * @throws 失効ストアに問い合わせられない場合（**通してはいけない**ので落とします）
  */
 export function createRevocationGate(options: RevocationGateOptions): RevocationGate {
   const { store, prefix = "revoke", ttlSec = 400 * 24 * 60 * 60, now = Date.now } = options;

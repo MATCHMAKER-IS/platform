@@ -5,7 +5,6 @@
  */
 import { type Announcement } from "@platform/site";
 
-/** お知らせの入力。 */
 /**
  * お知らせの重要度。**`@platform/site` の `Announcement["level"]` と同じ**。
  * ずれると「CMS で保存できるのにサイトで型エラー」になる。

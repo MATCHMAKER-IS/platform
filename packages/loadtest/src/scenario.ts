@@ -79,8 +79,9 @@ export function weightedPick(steps: ScenarioStep[], r: number): ScenarioStep {
  * ランプアップ中に、経過時間に応じて「今アクティブにすべきワーカー数」を返す（純関数）。
  * elapsed >= rampUpMs なら全開。rampUpMs=0 なら即全開。
  *
+ * @param concurrency 最終的な同時実行数
+ * @param rampUpMs ここまでかけて増やす（**一気に負荷をかけない**。徐々に増やして、どこで壊れるかを見る）
  * @param elapsedMs 経過時間
- * @param ramp 増やし方(**一気に負荷をかけない**。徐々に増やして、どこで壊れるかを見る)
  * @returns その時点の並列数
  */
 export function activeWorkers(concurrency: number, rampUpMs: number, elapsedMs: number): number {

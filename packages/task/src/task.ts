@@ -9,6 +9,17 @@
  */
 import { AppError, ErrorCode } from "@platform/core";
 
+/**
+ * 「今日」を **JST の日付**(`YYYY-MM-DD`)で返す。
+ *
+ * **`toISOString()` は UTC。** そのまま使うと、UTC で動くサーバ(クラウドの既定)では
+ * **JST の 00:00〜08:59 が前日として扱われ、判定が 1 日ずれる**
+ * ——期限切れのはずのものが「まだ間に合う」と出る(2026-08 に修正)。
+ */
+function jstDate(d: Date): string {
+  return new Date(d.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
 /** タスクの状態。 */
 export type TaskStatus = "todo" | "doing" | "review" | "done" | "canceled";
 
@@ -95,7 +106,7 @@ export function transition(task: Task, to: TaskStatus, now = new Date()): Task {
 export function isOverdue(task: Task, today = new Date()): boolean {
   if (!task.dueDate) return false;
   if (task.status === "done" || task.status === "canceled") return false;
-  const t = today.toISOString().slice(0, 10);
+  const t = jstDate(today);
   return task.dueDate < t;
 }
 
@@ -109,7 +120,7 @@ export function isOverdue(task: Task, today = new Date()): boolean {
 export function daysUntilDue(task: Task, today = new Date()): number | undefined {
   if (!task.dueDate) return undefined;
   const due = new Date(`${task.dueDate}T00:00:00Z`).getTime();
-  const base = new Date(`${today.toISOString().slice(0, 10)}T00:00:00Z`).getTime();
+  const base = new Date(`${jstDate(today)}T00:00:00Z`).getTime();
   return Math.round((due - base) / 86_400_000);
 }
 

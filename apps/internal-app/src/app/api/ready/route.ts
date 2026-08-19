@@ -1,4 +1,5 @@
 // public-api: 起動完了の確認。ロードバランサが認可なしで叩く
+// no-rate-limit: 死活監視は数十秒ごとに叩かれるのが要件。制限すると監視そのものが落ちる
 /** レディネスチェック API(GET)。DB・マイグレーション等を集約し 200/503 を返す(デプロイの健全性確認用)。 */
 import { withApiObservability } from "../../../server/instrument";
 import { checkReadiness, readinessHttpStatus } from "../../../lib/readiness";

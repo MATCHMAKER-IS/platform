@@ -8,7 +8,6 @@ import { cn } from "../lib/cn";
 /** {@link NumberInput} の props。 */
 export type NumberInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "type">;
 
-/** 共通数値入力。 */
 /**
  * 数値の入力(増減ボタンつき)。
  *

@@ -26,6 +26,17 @@
  * @packageDocumentation
  */
 
+/**
+ * 「今日」を **JST の日付**(`YYYY-MM-DD`)で返す。
+ *
+ * **`toISOString()` は UTC。** そのまま使うと、UTC で動くサーバ(クラウドの既定)では
+ * **JST の 00:00〜08:59 が前日として扱われ、判定が 1 日ずれる**
+ * ——期限切れのはずのものが「まだ間に合う」と出る(2026-08 に修正)。
+ */
+function jstDate(d: Date): string {
+  return new Date(d.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
 /** 通報の受付経路。 */
 export type ReportChannel =
   /** 社内の窓口。 */
@@ -133,7 +144,7 @@ export interface Handler {
 export function canAccess(handler: Handler, today: Date = new Date()): boolean {
   // **書面での指定が無ければ従事者ではない**
   if (handler.designatedOn === undefined) return false;
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = jstDate(today);
   if (handler.designatedOn > todayStr) return false;
   if (handler.revokedOn !== undefined && handler.revokedOn <= todayStr) return false;
   return true;
@@ -200,7 +211,7 @@ export function checkReportHandling(
   today: Date = new Date(),
 ): ReportIssue[] {
   const out: ReportIssue[] = [];
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = jstDate(today);
 
   for (const r of reports) {
     // 完了しているものは対象外

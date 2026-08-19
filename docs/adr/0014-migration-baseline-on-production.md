@@ -102,3 +102,32 @@ cd apps/internal-app && pnpm exec prisma migrate deploy
 - `docs/adr/0013-db-push-not-migrations.md`(この ADR の前提。開発中は `db push`)
 - `docs/ops/BACKUP_RESTORE.md`(baseline の前に必須のバックアップと復元確認)
 - `docs/DATABASE.md`
+
+## 追記(2026-08): `pnpm db baseline` を用意した
+
+手順に書いた `pnpm exec prisma migrate diff ...` は、**このリポジトリでは動かない**。
+
+Prisma 7 は設定ファイル(`prisma.config.ts`)があると `--schema` を受け付けず、
+どの schema を使うかは環境変数 `PRISMA_SCHEMA` で渡す必要がある。
+`pnpm exec prisma` を直接叩くと、その変数が渡らない。
+
+```bash
+pnpm db baseline internal-app            # 何をするか見る
+pnpm db baseline internal-app --dry-run
+```
+
+### この道具がやること・やらないこと
+
+| | |
+|---|---|
+| やる | 今のスキーマから `0_init/migration.sql` を作る |
+| やる | 既に baseline 済みなら止める(1 度きりの作業) |
+| **やらない** | **DB に触れること**(テーブルは既にある) |
+| **やらない** | **SQL が正しいかの判断**(`db push` で入った差分が漏れていないかは人が読む) |
+
+確認できたら、次を実行する。
+
+```bash
+pnpm db migrate internal-app -- resolve --applied 0_init
+pnpm db migrate internal-app -- status
+```

@@ -174,8 +174,9 @@ export interface TotpUriOptions extends TotpOptions {
  * 例: otpauth://totp/MyApp:user@example.com?secret=...&issuer=MyApp&digits=6&period=30
  *
  * @param secret Base32 の秘密鍵
- * @param account 利用者の識別子(メールアドレスなど)
- * @param issuer サービス名(認証アプリに表示される)
+ * @param options `issuer`(サービス名・認証アプリに表示される)と
+ *   `account`(利用者の識別子。メールアドレスなど)は必須。
+ *   桁数・周期は {@link TotpOptions} を継承しており、省略時は 6 桁・30 秒
  * @returns otpauth:// URI。**QR コードにしてスキャンさせる**
  */
 export function totpAuthUri(secret: string, options: TotpUriOptions): string {

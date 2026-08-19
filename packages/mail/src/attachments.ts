@@ -59,9 +59,10 @@ export function attachmentFromBytes(filename: string, bytes: Uint8Array, content
  * 外部 URL の画像はメーラーでブロックされることが多いので、
  * 確実に見せたいならインラインにする。
  *
- * @param cid 参照する ID
+ * @param cid 本文から参照する ID（`<img src="cid:...">`）
  * @param filename ファイル名
- * @param bytes バイト列
+ * @param base64 中身（**Base64 の文字列**。バイト列ではありません）
+ * @param contentType MIME 種別（省略時はファイル名から推測）
  * @returns 添付(**inline**)
  */
 export function inlineImage(cid: string, filename: string, base64: string, contentType?: string): MailAttachment {
@@ -97,6 +98,32 @@ export function totalAttachmentSize(attachments: MailAttachment[]): number {
   return attachments.reduce((sum, a) => sum + attachmentSize(a), 0);
 }
 
+/**
+ * 送信時の転送量を返す(base64 で膨らんだ後のバイト数)。
+ *
+ * **受信側の上限は転送量に対する制限。** Gmail 25MB / Outlook 20MB は
+ * どちらも「メール全体の大きさ」であって、添付の元サイズではない。
+ * base64 は 3 バイトを 4 文字にするので約 1.33 倍、
+ * さらに 76 文字ごとの改行が入る。
+ *
+ * **これで測ると「送れるはずが弾かれる」を防げる。**
+ * 20MB の PDF は転送量 27MB になり、Gmail でも Outlook でも通らない。
+ *
+ * @param attachments 添付の配列
+ * @returns 転送時のおおよそのバイト数(**本文とヘッダは含まない**)
+ *
+ * @example
+ * ```ts
+ * transferSize([{ filename: "a.pdf", content: buf }]); // 元 3MB → 約 4MB
+ * ```
+ */
+export function transferSize(attachments: MailAttachment[]): number {
+  const raw = totalAttachmentSize(attachments);
+  // base64: 3 バイト → 4 文字。加えて 76 文字ごとに改行(CRLF)が入る
+  const encoded = Math.ceil(raw / 3) * 4;
+  return encoded + Math.ceil(encoded / 76) * 2;
+}
+
 /** {@link validateAttachments} の制約。 */
 export interface AttachmentLimits {
   /** 合計サイズの上限(バイト)。既定 25MB。 */
@@ -112,8 +139,19 @@ export interface AttachmentLimits {
 /**
  * 添付を検証する。問題があれば errors に理由を積む。
  *
+ * **サイズは復号後の実バイト数で見る。** 送信時は base64 で約 1.33 倍に
+ * 膨らむので、**既定の 25MB は「転送量 33MB」を意味する**。
+ * 受信側の上限(Gmail 25MB / Outlook 20MB 等)は**転送量に対する制限**なので、
+ * 相手に合わせるなら `maxTotalBytes` を下げること
+ * (Gmail 宛に確実に届かせたいなら 18MB 程度)。
+ *
+ * 2026-08 まで、この説明が無いまま既定 25MB を「Gmail と同じ」と
+ * 読める状態だった。実際には**通ったのに相手に弾かれる**。
+ *
  * @param attachments 添付の配列
- * @param options.maxTotalBytes / maxCount / allowedTypes 制限
+ * @param limits `maxTotalBytes`(既定 25MB・復号後)、`maxCount`、
+ *   `blockedExtensions`(拒否する拡張子)。**`allowedTypes` という項目は無い**
+ * @returns `ok` と、問題の理由を並べた `errors`
  */
 export function validateAttachments(attachments: MailAttachment[], limits: AttachmentLimits = {}): { ok: boolean; errors: string[] } {
   const errors: string[] = [];

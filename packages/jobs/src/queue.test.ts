@@ -25,3 +25,30 @@ describe("jobs", () => {
     expect(q.failed()[0]!.attempts).toBe(2);
   });
 });
+
+describe("終わったジョブを残し続けない", () => {
+  /** createQueue に渡された設定を取り出す。 */
+  function optionsOf(): { removeOnComplete?: { age?: number; count?: number }; removeOnFail?: { age?: number; count?: number } } {
+    let opts: { defaultJobOptions?: Record<string, unknown> } = {};
+    const factory = (_n: string, o: unknown): QueueLike => {
+      opts = o as typeof opts;
+      return { add: async () => {}, close: async () => {} };
+    };
+    createQueue("t", { url: "redis://h" }, factory);
+    return opts.defaultJobOptions as ReturnType<typeof optionsOf>;
+  }
+
+  // **BullMQ は既定で永久に保持する。** 日次 1 万件なら 1 年で 365 万件が
+  // Redis に残り、メモリを食い尽くすまで気づかない
+  it("完了ジョブは時間と件数で消す", () => {
+    const o = optionsOf();
+    expect(o.removeOnComplete?.age).toBeGreaterThan(0);
+    expect(o.removeOnComplete?.count).toBeGreaterThan(0);
+  });
+  // **失敗は調査に要るので長く残す。** 完了より長いことを固定する
+  it("失敗ジョブは完了より長く残す", () => {
+    const o = optionsOf();
+    expect(o.removeOnFail?.age).toBeGreaterThan(o.removeOnComplete?.age ?? 0);
+    expect(o.removeOnFail?.count).toBeGreaterThan(o.removeOnComplete?.count ?? 0);
+  });
+});

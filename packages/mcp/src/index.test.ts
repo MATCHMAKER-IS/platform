@@ -161,7 +161,10 @@ describe("tools/call", () => {
 });
 
 describe("authorizeTool(呼び出し側の権限で止める)", () => {
-  const withAuth = (verdict: boolean | string) =>
+  // **戻り値は `true | string`**(`false` は無い)。
+  // 拒否は**理由の文字列**で返す——「なぜ止まったか」を呼び出し側に伝えるため。
+  // `boolean` で受けると `false` が入りうるので代入できない(2026-08、型検査で判明)。
+  const withAuth = (verdict: true | string) =>
     server({ authorizeTool: () => verdict });
 
   it("true なら実行できる", async () => {
@@ -169,8 +172,11 @@ describe("authorizeTool(呼び出し側の権限で止める)", () => {
     expect(JSON.stringify(res?.result)).toContain("ok");
   });
 
-  it("false なら実行せずに断る", async () => {
-    const res = await handleMcpMessage(withAuth(false), req("tools/call", { name: "echo", arguments: { text: "ng" } }));
+  // **`false` は返せない**(実型は `true | string`)。
+  // 拒否は**理由の文字列**で返す——「なぜ止まったか」を呼び出し側に伝えるため。
+  // 2026-08 まで `false` を渡すテストがあり、実型と食い違っていた。
+  it("true 以外なら実行せずに断る", async () => {
+    const res = await handleMcpMessage(withAuth("権限がありません"), req("tools/call", { name: "echo", arguments: { text: "ng" } }));
     expect(JSON.stringify(res?.result)).not.toContain("ng");
     expect((res?.result as { isError?: boolean }).isError).toBe(true);
   });
@@ -180,10 +186,13 @@ describe("authorizeTool(呼び出し側の権限で止める)", () => {
     expect(JSON.stringify(res?.result)).toContain("経理部のみ");
   });
 
+  // **`McpCallContext` が持つのは `subject`**(認証済みの主体と scope)。
+  // 2026-08 まで `ctx.user` を見ており、**存在しないプロパティ**だった
+  // ——`undefined` が入るので、`authorizeTool` で誰が呼んだか判断できない。
   it("呼び出しコンテキストが渡る", async () => {
     let seen: unknown;
-    const opts = server({ authorizeTool: (_tool, ctx) => { seen = ctx.user; return true; } });
-    await handleMcpMessage(opts, req("tools/call", { name: "echo" }), { user: "taro" });
+    const opts = server({ authorizeTool: (_tool, ctx) => { seen = ctx.subject?.id; return true; } });
+    await handleMcpMessage(opts, req("tools/call", { name: "echo" }), { subject: { id: "taro", scopes: [] } });
     expect(seen).toBe("taro");
   });
 });

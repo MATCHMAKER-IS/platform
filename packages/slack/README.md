@@ -1,11 +1,26 @@
 # @platform/slack
 
-Slack の Web API と、Slack **からの受信**（イベント・スラッシュコマンド）の署名検証。
+Slack 連携（通知・承認ボタン・ファイル送信）。
 
-> **一方向に通知を送るだけなら `@platform/notify` の `createSlackChannel`（Incoming Webhook）で足ります。**
-> こちらは、スレッド返信・メッセージ更新・利用者の照会・受信が必要な場合に使います。
+## これは何のためか
+
+**承認や障害の知らせを、見る場所に流す**ためのものです。
+メールは埋もれますが、**Slack は見ています**。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **Webhook の URL は秘密です** | 漏れると**誰でもその部屋に投稿できます**。`.env` に置き、**コードに書かないでください** |
+| **署名の検証を必ず** | ボタンの押下を受けるときは、**Slack から来たことを確かめて**ください |
+| **何でも通知しない** | **鳴りすぎると見なくなります**。「これが 1 件出たら誰かが動くか」で決めてください |
+| **ファイル送信は 3 段階** | **③まで通って初めて成功**です——途中で止まると、**送ったつもりなのに誰にも見えません** |
+| **本文に個人情報を入れない** | Slack は**社外の仕組み**です。「経費が承認されました」で十分です |
+
+## よく使うもの
 
 ```ts
+import { createSlackClient, buildApprovalBlocks, verifySlackSignature } from "@platform/slack";
 import { createSlackClient, verifySlackSignature } from "@platform/slack";
 
 const slack = createSlackClient(process.env.SLACK_BOT_TOKEN);

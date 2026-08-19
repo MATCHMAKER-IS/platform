@@ -37,6 +37,6 @@ export function backupManifest(bundle: BackupBundle): { name: string; count: num
 
 /** ダウンロード用のファイル名（日付入り）。 */
 export function backupFilename(now: Date, app = "internal-app"): string {
-  const d = now.toISOString().slice(0, 10);
+  const d = new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
   return `backup-${app}-${d}.json`;
 }

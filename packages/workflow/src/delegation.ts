@@ -31,13 +31,21 @@ export interface Delegation {
 export function activeDelegations(delegations: Delegation[], now: Date = new Date()): Delegation[] {
   const t = now.getTime();
   return delegations.filter((d) =>
-    (!d.since || d.since.getTime() <= t) && (!d.until || t < d.until.getTime()),
+    // **自分自身への委任は無効。** `{ from: "u1", to: "u1", roles: ["director"] }` は
+    // **持っていないロールを自分で獲得する**ことになる——委任の登録画面に
+    // 「委任元」の入力があれば、自分の名前を入れるだけで昇格できてしまう。
+    // 設定ミス(コピペで from と to が同じ)でも起きるので、ここで落とす(2026-08)。
+    d.from !== d.to
+    && (!d.since || d.since.getTime() <= t) && (!d.until || t < d.until.getTime()),
   );
 }
 
 /**
  * actor の実効ロールを返す(自分のロール + actor に委任されたロール)。
- * @param roleOf 委任元 ID からその人のロールを引く関数(委任元の全ロールを委任する場合に使用)。
+ * @param actor 判定する人（本人のロールを含む）
+ * @param delegations 委任の配列
+ * @param options.now 判定する時刻（**試験で固定する**ため）
+ * @param options.roleOf 委任元 ID からその人のロールを引く関数(委任元の全ロールを委任する場合に使用)。
  * @returns 委任を反映したロール(**代理人が本人のロールで承認できる**)
  */
 export function effectiveRoles(
@@ -58,9 +66,11 @@ export function effectiveRoles(
 /**
  * actor が(代理を含めて)そのステップを承認できるか。
  * 代理で承認する場合、その委任元(onBehalfOf)も返す(監査ログ用)。
- * @param userId 承認しようとする人
+ * @param step 承認しようとしている段階
+ * @param actor 承認しようとする人
  * @param delegations 委任の配列
- * @param at 判定する時刻
+ * @param options.now 判定する時刻
+ * @param options.roleOf 委任元のロールを引く関数
  */
 export function resolveApprovalAuthority(
   step: WorkflowStep,

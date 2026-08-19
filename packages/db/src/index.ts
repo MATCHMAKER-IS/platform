@@ -7,7 +7,12 @@
  *
  * @packageDocumentation
  */
-export { createDb } from "./client";
+// **型も一緒に出す。** `createDb` の戻り値は `PrismaClient<DbClientOptions, …>` に
+// なるので、`DbClientOptions` が公開されていないと、アプリ側で
+// `TS2742: The inferred type of 'db' cannot be named without a reference to
+// '.../@platform/db/src/client'` になる(2026-08)。
+// **深いパスを import させない**ためにも、入口から出しておく。
+export { createDb, type DbClientOptions, type CreateDbOptions, type QueryInfo } from "./client";
 export {
   queryRaw,
   queryRawValidated,
@@ -15,13 +20,16 @@ export {
   transaction,
   normalizeBigInt,
   sql,
+  raw,
   rawQuery,
   rawExecute,
+  type SqlQuery,
+  type RawFragment,
 } from "./raw";
 export { recordAudit, recordAuditChange, type AuditEntry, type AuditChangeEntry } from "./audit";
 export { diffChanges, hasChanges, type FieldChange, type DiffOptions } from "./audit-diff";
 export { cachedQuery, invalidateQuery, createQueryCache, type QueryCache, type QueryCacheOptions } from "./query-cache";
-export { mapPrismaError, isRetryablePrismaError } from "./errors";
+export { mapPrismaError, isRetryablePrismaError, isStatementTimeout } from "./errors";
 export {
   paginate, cursorPaginate, buildPageMeta,
   type Paginated, type CursorPage, type PaginateOptions, type CursorPaginateOptions,
@@ -43,3 +51,4 @@ export { createTenantClient, tenantWhere, tenantData, type TenantClientOptions }
 // 基盤はこの構造的な型だけを要求する(client-types.ts に理由を詳述)
 export type { RawCapableClient, TransactionClient, TransactionClientOf, AuditCapableClient, ModelDelegate } from "./client-types";
 export { model, toJson } from "./client-types";
+export * from "./slow-query";

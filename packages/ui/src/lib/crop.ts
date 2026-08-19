@@ -10,7 +10,10 @@ export interface Rect { left: number; top: number; width: number; height: number
  * ドラッグの始点・終点から正規化した矩形(負の幅を吸収)。
  *
  *
- * @param a / b 2 点
+ * @param x1 1 点目の x
+ * @param y1 1 点目の y
+ * @param x2 2 点目の x
+ * @param y2 2 点目の y
  * @returns 正規化した矩形(**逆方向のドラッグに対応**)
  */
 export function rectFromPoints(x1: number, y1: number, x2: number, y2: number): Rect {
@@ -22,7 +25,10 @@ export function rectFromPoints(x1: number, y1: number, x2: number, y2: number): 
  *
  *
  * @param rect 表示上の矩形
- * @param scale 表示倍率
+ * @param displayW 画面上の幅
+ * @param displayH 画面上の高さ
+ * @param naturalW 元画像の幅
+ * @param naturalH 元画像の高さ
  * @returns 元画像の座標系の矩形(**縮小表示で切り抜くとき、そのままの座標では合わない**)
  */
 export function displayToNaturalRect(rect: Rect, displayW: number, displayH: number, naturalW: number, naturalH: number): Rect {

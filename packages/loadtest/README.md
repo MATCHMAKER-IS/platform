@@ -1,12 +1,28 @@
 # @platform/loadtest
 
-簡易負荷試験の基盤(純ロジック)。シナリオ定義・実行・レイテンシ統計を提供します。HTTP実行自体は fetch を注入するため、テストではモックできます。
+負荷測定（同時実行・応答時間の集計）。**「今は速い」は「100 人でも速い」ではありません**。
 
-- `scenario` … 重み付きリクエストシナリオ(`weightedPick`)
-- `runner` … 並列ワーカーでの実行(`activeWorkers`)
-- `stats` … `percentile` / `latencyStats` / `formatResult`(p50/p95/p99等)
+## これは何のためか
+
+**「今は速い」は「100 人でも速い」ではありません。**
+
+**先に測っておかないと、遅くなったときに比べる相手がありません**。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **平均ではなく p95 を見る** | 95 人が 100ms・5 人が 10 秒でも、**平均は 595ms で「まあ速い」に見えます**——**その 5 人は毎回 10 秒待っています** |
+| **落ちた数を必ず見る** | **速くても落ちていたら意味がありません**——`statusCounts` に 500 が混ざっていないか確認してください |
+| **本番に向けない** | 業務時間に流すと、**利用者が使えなくなります** |
+| **基準を記録する** | 最初の数字を残してください——**これが無いと「遅くなった」が分かりません** |
+
+手順は `docs/ops/LOAD_TESTING.md` にあります。
+
+## よく使うもの
 
 ```ts
+import { runLoad, formatResult, weightedPick } from "@platform/loadtest";
 import { latencyStats } from "@platform/loadtest";
 const s = latencyStats(durationsMs);  // { p50, p95, p99, avg, max }
 ```

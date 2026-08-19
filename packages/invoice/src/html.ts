@@ -16,8 +16,24 @@ function yen(n: number, symbol: string): string {
   return `${symbol}${n.toLocaleString("ja-JP")}`;
 }
 
+/**
+ * HTML の特殊文字を実体参照にする。
+ *
+ * **5 文字すべてを変換する**(`&` `<` `>` `"` `'`)。2026-08 まで 3 文字だけで、
+ * **属性値に使うと破れる**状態だった——`title="${esc(x)}"` に
+ * `" onmouseover="alert(1)` を渡されると、**属性を抜けて JavaScript が動く**。
+ * 現状は属性に使っていないが、**次に誰かが使ったときに事故になる**。
+ *
+ * **`&` を最初に変換する**——後にすると、変換した実体参照の `&` を
+ * さらに変換して `&amp;lt;` のように壊れる。
+ */
 function esc(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 const RATE_LABEL: Record<number, string> = { 10: "10%", 8: "8%(軽減)", 0: "0%" };
@@ -27,6 +43,7 @@ const RATE_LABEL: Record<number, string> = { 10: "10%", 8: "8%(軽減)", 0: "0%"
  *
  *
  * @param invoice 請求書
+ * @param options 会社名・ロゴなどの見出し情報
  * @returns HTML(**A4 想定**。印刷用の CSS は `@platform/report` の wrapForPrint で足す)
  */
 export function renderInvoiceHtml(invoice: Invoice, options: InvoiceHtmlOptions = {}): string {
@@ -41,7 +58,7 @@ export function renderInvoiceHtml(invoice: Invoice, options: InvoiceHtmlOptions 
     .map((r) => `<tr><td>${RATE_LABEL[r.rate]} 対象</td><td class="num">${yen(r.net, symbol)}</td><td class="num">${yen(r.tax, symbol)}</td></tr>`)
     .join("");
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><style>
-body{font-family:"Hiragino Sans","Noto Sans JP",sans-serif;color:#111;font-size:12px}
+body{font-family:"Hiragino Sans","Noto Sans CJK JP","Noto Sans JP",sans-serif;color:#111;font-size:12px}
 h1{font-size:20px;margin:0 0 16px}
 .meta{display:flex;justify-content:space-between;margin-bottom:24px}
 table{width:100%;border-collapse:collapse;margin-bottom:16px}

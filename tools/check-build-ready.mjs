@@ -28,9 +28,11 @@
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { collectFiles } from "./lib/collect-files.mjs";
+import { argsAt, stripComments } from "./lib/source-text.mjs";
 
+let scanned = 0;
 const ROOT = path.resolve(import.meta.dirname, "..");
-const SITE = path.join(ROOT, "demos/showcase");
+const SITE = path.join(ROOT, "apps/showcase");
 
 /** ディレクトリを再帰してソースを集める。 */
 /**
@@ -43,7 +45,7 @@ const SITE = path.join(ROOT, "demos/showcase");
  * そこで、判定を機械的に広げず「コード例を持つ画面」だけを対象にする。
  */
 const SAMPLE_CODE_FILES = [
-  "demos/showcase/src/app/code/page.tsx",
+  "apps/showcase/src/app/code/page.tsx",
 ];
 
 /**
@@ -155,7 +157,8 @@ export function check() {
     const keys = d.exports && typeof d.exports === "object" ? Object.keys(d.exports) : ["."];
     subpathMap.set(`@platform/${name}`, new Set(keys));
   }
-  for (const rel of collectFiles(["packages", "apps", "demos"], ROOT, { extensions: [".ts", ".tsx"] })) {
+  for (const rel of collectFiles(["packages", "apps"], ROOT, { extensions: [".ts", ".tsx"] })) {
+    scanned += 1;
     if (rel.includes(".test.")) continue;
     const text = readFileSync(path.join(ROOT, rel), "utf8");
     for (const m of text.matchAll(/from\s+["'](@platform\/[a-z0-9-]+)(\/[^"']+)["']|import\s+["'](@platform\/[a-z0-9-]+)(\/[^"']+)["']/g)) {
@@ -175,7 +178,7 @@ export function check() {
   // `.js` を付けると **`tsc` は通るのに `next build` だけが落ちる**
   // (実体は `.ts` なので Turbopack が解決できない)。
   // Node の ESM 流儀(`.js` 必須)と混ざりやすいので明示的に止める。
-  for (const rel of collectFiles(["packages", "apps", "demos"], ROOT, { extensions: [".ts", ".tsx"] })) {
+  for (const rel of collectFiles(["packages", "apps"], ROOT, { extensions: [".ts", ".tsx"] })) {
     if (rel.includes(".test.")) continue;
     const text = readFileSync(path.join(ROOT, rel), "utf8");
     for (const m of text.matchAll(/(?:from|import)\s+["'](\.{1,2}\/[^"']*\.js)["']/g)) {
@@ -185,9 +188,10 @@ export function check() {
 
   // ── A4: middleware.ts と proxy.ts が両方ないか ──
   // Next 16 で `middleware.ts` は `proxy.ts` に改称された。**両方あるとビルドが落ちる**
+  // (この基盤は **Next 15 系なので `middleware.ts` を使う**。ADR-0025)
   // (`Both middleware file and proxy file are detected`)。
   // 改称のとき片方を消し忘れると、**型検査は通るのに next build だけが落ちる**。
-  for (const group of ["apps", "demos"]) {
+  for (const group of ["apps"]) {
     const groupDir = path.join(ROOT, group);
     if (!existsSync(groupDir)) continue;
     for (const name of readdirSync(groupDir)) {
@@ -198,7 +202,7 @@ export function check() {
       if (hasMiddleware && hasProxy) {
         issues.push(
           `[A4] ${group}/${name}: middleware.ts と proxy.ts が両方あります` +
-          `\n     → Next 16 は proxy.ts を使います。middleware.ts の中身を移して削除してください`,
+          `\n     → この基盤は Next 15 系なので middleware.ts を使います。proxy.ts の中身を移して削除してください`,
         );
       }
     }
@@ -216,11 +220,67 @@ export function check() {
     issues.push(`[A5] ${rel}: React フックを使うのに "use client" がありません`);
   }
 
+  // ── A7: `"use client"` がファイルの先頭にあるか ──
+  //
+  // **位置が命**。import より下に書くと Next は
+  // `The "use client" directive must be placed before other expressions` で落ちる。
+  // **型検査も試験も通る**ので、ビルドまで分からない
+  // ——2026-08 に `internal-app` の 3 ファイルがこの形で落ちた
+  // （過去の一括編集で import が上に差し込まれた跡）。
+  //
+  // コメントと空行より下でも構わない（Next はそこは飛ばす）。
+  for (const base of [path.join(ROOT, "apps")]) {
+    for (const f of collect(base)) {
+      const text = readFileSync(f, "utf8");
+      const lines = text.split("\n");
+      const at = lines.findIndex((l) => l.trim() === '"use client";' || l.trim() === "'use client';");
+      if (at <= 0) continue;
+      // 上にあるのがコメントと空行だけなら問題ない
+      const before = lines.slice(0, at).map((l) => l.trim())
+        .filter((l) => l !== "" && !l.startsWith("//") && !l.startsWith("*") && !l.startsWith("/*"));
+      if (before.length > 0) {
+        issues.push(
+          `[A7] ${path.relative(ROOT, f).replace(/\\/g, "/")}: "use client" が ${at + 1} 行目にあります` +
+          `\n     → ファイルの先頭に置いてください（上にあるのは: ${before[0].slice(0, 40)}）`,
+        );
+      }
+    }
+  }
+
+  // ── A8: `route.ts` が決められた名前以外を export していないか ──
+  //
+  // App Router のルートは **`GET` / `POST` / `runtime` / `config` などしか
+  // export できません**。ほかを足すと、`next build` の型検査が
+  // `Type 'Route' is not assignable to type 'never'` で落ちます。
+  //
+  // 2026-08 に OpenAPI の宣言（`export const spec`）をハンドラと同じファイルに
+  // 置いて落としました。**同じフォルダの `spec.ts` なら問題ありません**
+  // ——ルートファイルでなければ制約を受けないためです。
+  const ROUTE_ALLOWED = new Set([
+    "GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS",
+    "runtime", "dynamic", "dynamicParams", "revalidate", "fetchCache",
+    "preferredRegion", "maxDuration", "config", "generateStaticParams",
+  ]);
+  for (const base of [path.join(ROOT, "apps")]) {
+    for (const f of collect(base)) {
+      if (path.basename(f) !== "route.ts" && path.basename(f) !== "route.tsx") continue;
+      const text = readFileSync(f, "utf8");
+      for (const m of text.matchAll(/^export\s+(?:const|function|async function|let|var)\s+([A-Za-z0-9_]+)/gm)) {
+        if (ROUTE_ALLOWED.has(m[1])) continue;
+        issues.push(
+          `[A8] ${path.relative(ROOT, f).replace(/\\/g, "/")}: ${m[1]} を export しています` +
+          `\n     → App Router のルートは決まった名前しか export できません` +
+          `\n     → 同じフォルダの spec.ts など、別ファイルに移してください`,
+        );
+      }
+    }
+  }
+
   // ── A6: Next のメタデータファイルが default export か ──
   // `app/robots.ts` `app/sitemap.ts` `app/manifest.ts` は**メタデータファイル**として
   // 特別扱いされ、`default` export を要求する。`GET` を書くと
   // `Export default doesn't exist in target module` で落ちる(型検査は通る)。
-  for (const group of ["apps", "demos"]) {
+  for (const group of ["apps"]) {
     const groupDir = path.join(ROOT, group);
     if (!existsSync(groupDir)) continue;
     for (const name of readdirSync(groupDir)) {
@@ -275,21 +335,50 @@ export function check() {
   }
 
   // ── E: import の解決 ──
-  const sitePkg = JSON.parse(readFileSync(path.join(SITE, "package.json"), "utf8"));
-  const deps = Object.keys(sitePkg.dependencies ?? {}).filter((k) => k.startsWith("@platform/"));
-  const targets = [path.join(SITE, "src"), ...deps.map((d) => path.join(ROOT, "packages", d.split("/")[1], "src"))];
+  //
+  // **全アプリを見る。** 2026-08 まで `showcase` だけを見ており、
+  // **他の 4 アプリの解決できない import が丸ごと素通り**していた
+  // ——`internal-app` の 3 ルートが `import "../../../server/env";` を
+  // 1 階層ずれたまま持っていて、`next build` で初めて出た。
+  // **1 アプリだけ見て「揃っています」と言うのは嘘**だった。
+  const appNames = readdirSync(path.join(ROOT, "apps"))
+    .filter((n) => existsSync(path.join(ROOT, "apps", n, "package.json")));
+  const targets = [];
+  const seen = new Set();
+  for (const name of appNames) {
+    const appDir = path.join(ROOT, "apps", name);
+    const pkg = JSON.parse(readFileSync(path.join(appDir, "package.json"), "utf8"));
+    const deps = Object.keys(pkg.dependencies ?? {}).filter((k) => k.startsWith("@platform/"));
+    for (const dir of [path.join(appDir, "src"), ...deps.map((d) => path.join(ROOT, "packages", d.split("/")[1], "src"))]) {
+      if (seen.has(dir)) continue;
+      seen.add(dir);
+      targets.push(dir);
+    }
+  }
   for (const base of targets) {
     for (const f of collect(base)) {
       const s = readFileSync(f, "utf8");
       const specs = [
         ...[...s.matchAll(/from\s+"([^"]+)"/g)].map((m) => m[1]),
         ...[...s.matchAll(/import\("([^"]+)"\)/g)].map((m) => m[1]),
+        // **副作用だけの import(`import "./x";`)も見る。**
+        // `from` が無いので上の 2 つに引っかからず、**丸ごと素通り**していた
+        // ——`internal-app` の 3 ルートが `import "../../../server/env";` を
+        // 1 階層ずれたまま持っており、**typecheck は通るのに next build が落ちた**
+        // (2026-08。TypeScript は解決できない副作用 import を見逃すことがある)。
+        // 起動時の環境変数チェックは**この形で読み込む**ので、
+        // ずれていると**検証そのものが走らない**まま本番に出る
+        ...[...s.matchAll(/(?:^|\n)\s*import\s+"([^"]+)"\s*;/g)].map((m) => m[1]),
       ];
       for (const spec of specs) {
         if (spec.startsWith("@platform/")) {
           const t = entries.get(spec);
           if (!t) issues.push(`[E] ${path.relative(ROOT, f)}: ${spec} が解決できない`);
           else if (!existsSync(t)) issues.push(`[E] ${path.relative(ROOT, f)}: ${spec} → 実体が無い`);
+        } else if (spec.includes("generated/prisma")) {
+          // **`prisma generate` が作る。** リポジトリには無いのが正しいので、
+          // 「解決できない」と言うと**毎回赤くなって誰も見なくなる**
+          continue;
         } else if (spec.startsWith(".") && !spec.endsWith(".css")) {
           // Turbopack は .js → .ts を解決しない(実際に 336 件の Module not found が出た)。
           // moduleResolution: Bundler なので拡張子は不要。
@@ -572,7 +661,17 @@ export function check() {
           const name = raw.trim();
           if (!name || name.startsWith("type ")) continue;
           const fn = name.split(" as ")[0].trim();
-          const fm = new RegExp(`export\\s+function\\s+${fn}\\s*(?:<[^>]*>)?\\s*\\([^)]*\\)\\s*:\\s*([^{;]+)`, "s").exec(tsrc);
+          // **`[^)]*` で引数を取らない。** `at: Date = new Date()` のような
+          // 既定値があると `)` で切れ、**戻り値の型を取り違える**
+          // (同じ誤りを 2026-08 に 8 回繰り返した。`argsAt` を使う)
+          const fnDecl = new RegExp(`export\\s+function\\s+${fn}\\s*(?:<[^>]*>)?\\s*\\(`, "s").exec(tsrc);
+          const fm = fnDecl === null
+            ? null
+            : (() => {
+                const open = fnDecl.index + fnDecl[0].length - 1;
+                const after = tsrc.slice(open + argsAt(tsrc, open).length + 2);
+                return /^\s*:\s*([^{;]+)/.exec(after);
+              })();
           if (!fm) continue;
           for (const id of new Set([...(fm[1] ?? "").matchAll(/\b([A-Z]\w*)/g)].map((x) => x[1]))) {
             if (BUILTIN.has(id) || !decl.has(id) || out.has(id)) continue;
@@ -759,7 +858,7 @@ export function check() {
           const name = spec.startsWith("@") ? `${parts[0]}/${parts[1]}` : parts[0];
           if (!name || declared.has(name)) continue;
           issues.push(
-            `[P] ${path.relative(ROOT, f)}: "${name}" は demos/showcase/package.json に無い` +
+            `[P] ${path.relative(ROOT, f)}: "${name}" は apps/showcase/package.json に無い` +
             ` — .npmrc が巻き上げを抑えているので Module not found になる。基盤(@platform/*)経由で使うこと`,
           );
         }
@@ -787,7 +886,8 @@ export function check() {
         const name = m[1];
         if (!name || KNOWN_OK.has(name)) continue;
         // コメントと空白を落として比較(表記ゆれで誤検知しないように)
-        const body = (m[2] ?? "").replace(/\/\*\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "").replace(/\s+/g, " ").trim();
+        // **共通処理を使う**(TSDoc の掴み違い・URL の `//` 巻き込みを防ぐ)
+        const body = stripComments(m[2] ?? "").replace(/\s+/g, " ").trim();
         const list = shapes.get(name) ?? [];
         if (!list.some((x) => x.pkg === pkg)) list.push({ pkg, body });
         shapes.set(name, list);
@@ -852,7 +952,7 @@ export function check() {
   // ---- 例外と 404 の受け皿があるか ----
   // 無いと**既定の白い画面**が出て、利用者には「壊れた」としか伝わらない。
   // ビルドは通るため、実際に例外が起きるまで気づけない。
-  for (const area of ["apps", "demos"]) {
+  for (const area of ["apps"]) {
     const areaDir = path.join(ROOT, area);
     if (!existsSync(areaDir)) continue;
     for (const app of readdirSync(areaDir)) {
@@ -891,4 +991,4 @@ if (issues.length > 0) {
   console.error(`\n${issues.length} 件。next build が失敗します。`);
   process.exit(1);
 }
-console.log("✅ next build が通る前提は揃っています(エントリ/重複export/use client/import解決)");
+console.log(`✅ next build が通る前提は揃っています(${scanned} ファイル / エントリ・重複export・use client の位置・route の export・import解決)`);

@@ -44,6 +44,7 @@ export interface TesseractLike {
  * if (res.ok) console.log(res.value.text);
  * ```
  * @returns OCR の実装。**ローカルで動く**ので外部に画像を送らない(機密文書に向く)。ただし精度はクラウドに劣る
+ * @param options.lang 認識する言語（既定は日本語＋英語の想定）
  */
 export function createTesseractOcr(tesseract: TesseractLike, options: { lang?: string } = {}): OcrEngine {
   const lang = options.lang ?? "jpn+eng";
@@ -81,9 +82,10 @@ export interface HttpOcrOptions {
  * ここを通すことで、アプリ側のコードは変えずに済む。
  *
  * @param options.endpoint API の URL
- * @param options.apiKey 認証キー
+ * @param options.headers 認証などの追加ヘッダ(**`apiKey` という項目は無い**。
+ *   `{ Authorization: ... }` の形で渡す)
  * @param options.fieldName 画像を送るフィールド名(既定 `file`)
- * @param options.parseResponse 応答からテキストを取り出す関数
+ * @param options.parse 応答からテキストを取り出す関数。`fieldName` は送信するフィールド名
  * @returns OCR の実装
  */
 export function createHttpOcr(options: HttpOcrOptions): OcrEngine {

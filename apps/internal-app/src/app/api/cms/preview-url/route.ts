@@ -2,10 +2,10 @@
 import { buildPreviewUrl } from "@platform/cms";
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv, featureEnv } from "../../../../server/env";
+import { featureEnv } from "../../../../server/env";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:read");
   const slug = new URL(req.url).searchParams.get("slug") ?? "";
   const token = featureEnv.PREVIEW_TOKEN || undefined;

@@ -145,3 +145,4 @@ export function createGoogleMapsClient(config: { apiKey: string; fetchImpl?: typ
 export * from "./oauth";
 export * from "./gmail";
 export * from "./drive";
+export * from "./workspace";

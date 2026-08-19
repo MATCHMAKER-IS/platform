@@ -13,6 +13,7 @@ export interface SmsLike {
  * SMS 通知チャネルを作る。
  *
  *
+ * @param sms SMS の送信
  * @param options 送信の設定
  * @returns SMS のチャネル。**1 通あたり課金**。長文は分割されて通数が増える
  * @throws {@link @platform/core#AppError} コード `EXTERNAL` — 送信に失敗した場合(`send` 実行時)

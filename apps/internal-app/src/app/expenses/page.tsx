@@ -47,7 +47,7 @@ export default function ExpensesPage() {
           formatY={(y) => yen(y)}
           series={[
             { name: "月次合計", points: monthSeries, showArea: true },
-            { name: "移動平均(2)", color: "#f59e0b", points: ma.map((v, i) => ({ x: i + 1, y: v })) },
+            { name: "移動平均(2)", color: "var(--color-border)", points: ma.map((v, i) => ({ x: i + 1, y: v })) },
           ]}
         />
       </section>

@@ -6,7 +6,6 @@ import { Progress as Primitive } from "radix-ui";
 import { Slider } from "./slider";
 import { cn } from "../lib/cn";
 
-/** 進捗バー(0〜100、非操作)。 */
 /**
  * 進み具合の帯。
  *

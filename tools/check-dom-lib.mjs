@@ -65,12 +65,14 @@ function hasDomLib(pkgDir) {
 }
 
 const problems = [];
+let scanned = 0;
 const pkgRoot = path.join(ROOT, "packages");
 const names = existsSync(pkgRoot) ? readdirSync(pkgRoot).filter((n) => existsSync(path.join(pkgRoot, n, "src"))) : [];
 
 /** そのパッケージを import している利用側(依存元)を集める。 */
 const consumers = new Map(names.map((n) => [n, []]));
 for (const n of names) {
+  scanned += 1;
   const pkgPath = path.join(pkgRoot, n, "package.json");
   if (!existsSync(pkgPath)) continue;
   const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
@@ -130,5 +132,5 @@ if (problems.length > 0) {
   );
   process.exitCode = 1;
 } else {
-  console.log("✅ DOM の型と tsconfig の lib は整合しています");
+  console.log(`✅ DOM の型と tsconfig の lib は整合しています(${scanned} パッケージを検査)`);
 }

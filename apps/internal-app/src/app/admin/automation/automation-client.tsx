@@ -1,7 +1,8 @@
 "use client";
 /** 管理: エクスポートのスケジュール実行と、通知テンプレートの編集。 */
 import * as React from "react";
-import { Button, Input, Select } from "@platform/ui";
+import { formatDateJst } from "@platform/datetime";
+import { Button, Input, Select, PageShell } from "@platform/ui";
 
 interface Schedule { id: string; type: string; frequency: string; enabled: boolean; lastRunAt?: string; }
 interface Run { id: string; type: string; at: string; status: string; recordCount: number; }
@@ -76,10 +77,9 @@ export function AutomationClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   };
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <h1 className="mb-1 text-2xl font-bold">自動化</h1>
+        <PageShell title="自動化">
       <div className="mb-4 flex gap-1 border-b border-[var(--color-border)]">
-        {[["export", "エクスポート予約"], ["reports", "レポート配信"], ["log", "配信ログ"], ["templates", "通知テンプレート"]].map(([k, l]) => <Button key={k} onClick={() => setTab(k!)} className={`px-3 py-2 text-sm ${tab === k ? "border-b-2 border-[var(--color-fg)] font-medium" : "text-[var(--color-muted)]"}`}>{l}</Button>)}
+        {[["export", "エクスポート予約"], ["reports", "レポート配信"], ["log", "配信ログ"], ["templates", "通知テンプレート"]].map(([k, l]) => <Button key={k} onClick={() => setTab(k!)} variant="tab" data-state={tab === k ? "active" : undefined}>{l}</Button>)}
       </div>
       {msg && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-success)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-success)]">{msg}</p>}
 
@@ -88,13 +88,13 @@ export function AutomationClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
           <div className="mb-4 flex items-end gap-2 rounded border border-[var(--color-border)] p-3">
             <label className="text-xs text-[var(--color-muted)]">種別<Select value={newType} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewType(e.target.value)} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" options={[{ label: "バックアップ", value: "backup" }, { label: "取引先", value: "partners" }, { label: "請求", value: "invoices" }, { label: "監査ログ", value: "audit" }]} /></label>
             <label className="text-xs text-[var(--color-muted)]">頻度<Select value={newFreq} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setNewFreq(e.target.value)} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" options={[{ label: "毎日", value: "daily" }, { label: "毎週", value: "weekly" }, { label: "毎月", value: "monthly" }]} /></label>
-            <Button onClick={addSchedule} className="rounded bg-[var(--color-fg)] px-3 py-1.5 text-sm text-white">追加</Button>
+      <Button onClick={addSchedule} className="rounded px-3 py-1.5 text-sm text-white">追加</Button>
           </div>
           <ul className="mb-4 divide-y divide-neutral-100 rounded border border-[var(--color-border)]">
             {schedules.map((s) => (
               <li key={s.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                <span><span className={`mr-2 rounded px-1.5 py-0.5 text-xs ${s.enabled ? "bg-[color-mix(in_srgb,var(--color-success)_15%,transparent)] text-[var(--color-success)]" : "bg-[var(--color-subtle-strong)] text-[var(--color-muted)]"}`}>{s.enabled ? "有効" : "停止"}</span>{TYPE_LABEL[s.type] ?? s.type} / {s.frequency === "daily" ? "毎日" : s.frequency === "weekly" ? "毎週" : "毎月"}{s.lastRunAt && <span className="ml-2 text-xs text-[var(--color-muted)]">前回: {s.lastRunAt.slice(0, 10)}</span>}</span>
-                <span className="flex gap-2 text-xs"><Button onClick={() => toggle(s.id, !s.enabled)} className="text-[var(--color-primary)] hover:underline">{s.enabled ? "停止" : "有効化"}</Button><Button onClick={() => remove(s.id)} className="text-[var(--color-danger)] hover:underline">削除</Button></span>
+                <span><span className={`mr-2 rounded px-1.5 py-0.5 text-xs ${s.enabled ? "bg-[color-mix(in_srgb,var(--color-success)_15%,transparent)] text-[var(--color-success)]" : "bg-[var(--color-subtle-strong)] text-[var(--color-muted)]"}`}>{s.enabled ? "有効" : "停止"}</span>{TYPE_LABEL[s.type] ?? s.type} / {s.frequency === "daily" ? "毎日" : s.frequency === "weekly" ? "毎週" : "毎月"}{s.lastRunAt && <span className="ml-2 text-xs text-[var(--color-muted)]">前回: {formatDateJst(new Date(s.lastRunAt))}</span>}</span>
+        <span className="flex gap-2 text-xs"><Button variant="ghost" onClick={() => toggle(s.id, !s.enabled)} className="text-[var(--color-primary)] hover:underline">{s.enabled ? "停止" : "有効化"}</Button><Button variant="ghost" onClick={() => remove(s.id)} className="text-[var(--color-danger)] hover:underline">削除</Button></span>
               </li>
             ))}
             {schedules.length === 0 && <li className="px-3 py-4 text-center text-xs text-[var(--color-muted)]">予約はありません。</li>}
@@ -114,13 +114,13 @@ export function AutomationClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
             <label className="text-xs text-[var(--color-muted)]">レポート<Select value={rType} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRType(e.target.value)} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" options={[{ label: "売上", value: "sales" }, { label: "売掛", value: "receivables" }, { label: "在庫", value: "inventory" }]} /></label>
             <label className="text-xs text-[var(--color-muted)]">頻度<Select value={rFreq} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRFreq(e.target.value)} className="mt-0.5 block rounded border border-[var(--color-border)] px-2 py-1 text-sm" options={[{ label: "毎日", value: "daily" }, { label: "毎週", value: "weekly" }, { label: "毎月", value: "monthly" }]} /></label>
             <label className="flex-1 text-xs text-[var(--color-muted)]">宛先（カンマ区切り / role:admin 等）<Input value={rTo} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRTo(e.target.value)} placeholder="boss@example.com, role:finance" className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
-            <Button onClick={addReport} className="rounded bg-[var(--color-fg)] px-3 py-1.5 text-sm text-white">追加</Button>
+      <Button onClick={addReport} className="rounded px-3 py-1.5 text-sm text-white">追加</Button>
           </div>
           <ul className="divide-y divide-neutral-100 rounded border border-[var(--color-border)]">
             {reportScheds.map((s) => (
               <li key={s.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                <span><span className={`mr-2 rounded px-1.5 py-0.5 text-xs ${s.enabled ? "bg-[color-mix(in_srgb,var(--color-success)_15%,transparent)] text-[var(--color-success)]" : "bg-[var(--color-subtle-strong)] text-[var(--color-muted)]"}`}>{s.enabled ? "有効" : "停止"}</span>{RLABEL[s.reportType] ?? s.reportType}レポート / {s.frequency === "daily" ? "毎日" : s.frequency === "weekly" ? "毎週" : "毎月"} → {s.recipient}{s.lastSentAt && <span className="ml-2 text-xs text-[var(--color-muted)]">前回: {s.lastSentAt.slice(0, 10)}</span>}</span>
-                <span className="flex gap-2 text-xs"><Button onClick={() => toggleReport(s.id, !s.enabled)} className="text-[var(--color-primary)] hover:underline">{s.enabled ? "停止" : "有効化"}</Button><Button onClick={() => removeReport(s.id)} className="text-[var(--color-danger)] hover:underline">削除</Button></span>
+                <span><span className={`mr-2 rounded px-1.5 py-0.5 text-xs ${s.enabled ? "bg-[color-mix(in_srgb,var(--color-success)_15%,transparent)] text-[var(--color-success)]" : "bg-[var(--color-subtle-strong)] text-[var(--color-muted)]"}`}>{s.enabled ? "有効" : "停止"}</span>{RLABEL[s.reportType] ?? s.reportType}レポート / {s.frequency === "daily" ? "毎日" : s.frequency === "weekly" ? "毎週" : "毎月"} → {s.recipient}{s.lastSentAt && <span className="ml-2 text-xs text-[var(--color-muted)]">前回: {formatDateJst(new Date(s.lastSentAt))}</span>}</span>
+        <span className="flex gap-2 text-xs"><Button variant="ghost" onClick={() => toggleReport(s.id, !s.enabled)} className="text-[var(--color-primary)] hover:underline">{s.enabled ? "停止" : "有効化"}</Button><Button variant="ghost" onClick={() => removeReport(s.id)} className="text-[var(--color-danger)] hover:underline">削除</Button></span>
               </li>
             ))}
             {reportScheds.length === 0 && <li className="px-3 py-4 text-center text-xs text-[var(--color-muted)]">配信予約はありません。cron から /api/admin/report-scan を実行してください。</li>}
@@ -161,9 +161,9 @@ export function AutomationClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
               ))}
             </div>
           ))}
-          <Button onClick={saveTpl} className="rounded bg-[var(--color-fg)] px-6 py-2 text-sm text-white">保存</Button>
+     <Button onClick={saveTpl} className="rounded px-6 py-2 text-sm text-white">保存</Button>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

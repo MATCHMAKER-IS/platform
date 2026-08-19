@@ -47,8 +47,31 @@ export function departmentClosing(entries: JournalEntry[], yearMonth: string) {
   return { period: yearMonth, byDepartment: profitAndLossByDepartment(period), balances: departmentSummary(period) };
 }
 
-/** 仕訳を外部会計 SaaS(freee 等)へ送信する。send は接続先ごとに注入。 */
+/**
+ * 仕訳を外部会計 SaaS(freee 等)へ送信する。send は接続先ごとに注入。
+ *
+ * **`unknown`(送ったか分からない)が出たら、そのままにしない。**
+ * 通信が切れた場合、相手に届いているかもしれないし届いていないかもしれない。
+ *
+ * - `alreadySent` に入れる → 再送されない。**届いていなければ欠落**
+ * - 入れない → 再送される。**届いていれば二重計上**
+ *
+ * **どちらも危険なので、自動で決めない。** `pending` として返し、
+ * **人が相手側で確認してから**「送信済み」か「未送信」かを決める。
+ *
+ * 呼び出し側は `pending.length > 0` のとき**必ず通知を出すこと**
+ * ——ログだけでは気づけず、気づくのは決算のときになる(2026-08)。
+ *
+ * @param entries 送る仕訳
+ * @param send 送信する関数(接続先ごとに注入)
+ * @param accountItemIds 勘定科目名 → ID の対応表
+ * @param alreadySent 送信済みの冪等キー(再実行時の二重登録を防ぐ)
+ * @returns 送信結果と集計、**確認が要る冪等キーの一覧**(`pending`)
+ */
 export async function syncToAccountingSaaS(entries: JournalEntry[], send: Sender, accountItemIds: Record<string, number>, alreadySent?: Set<string>) {
   const result = await syncJournals(entries, { send, accountItemIds, alreadySent });
-  return { ...result, summary: summarizeSync(result.results) };
+  const summary = summarizeSync(result.results);
+  // **送ったか分からないものを取り出す。** ここを見ずに再実行すると二重計上になる
+  const pending = result.results.filter((r) => r.status === "unknown").map((r) => r.key);
+  return { ...result, summary, pending, needsConfirmation: pending.length > 0 };
 }

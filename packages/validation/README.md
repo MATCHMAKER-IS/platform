@@ -1,30 +1,26 @@
 # @platform/validation
 
-zod をベースにした共通バリデーション。日本の業務アプリで頻出するパターンを集約しています。
+日本の業務で使う識別子の検証（法人番号・マイナンバー・適格請求書番号）。
 
-## 主なスキーマ
-- 文字列: `requiredString` / `optionalString` / `email` / `url`
-- 日本固有: `zipCodeJp` / `phoneJp` / `mobileJp` / `katakana` / `hiragana` / `prefecture`
-  / `myNumber`(チェックディジット検証)/ `corporateNumber`(同)
-- 数値: `positiveInt` / `amount`(円)/ `percentage`
-- その他: `uuid` / `agreement`(同意チェック)/ `dateString`
+## これは何のためか
 
-## 追加パターン
-- 文字種: `alphanumeric`(半角英数字)/ `halfWidthKana`(半角カナ)
-- 金融: `creditCard`(Luhn 検証)/ `bankCode` / `branchCode` / `accountNumber`
-- その他: `time`(HH:mm)/ `httpsUrl`
+**「形が正しいか」を確かめる**ためのものです。
 
-## フォームパターン
-- `password(options)` … 強度要件(長さ・文字種)
-- `passwordWithConfirm()` … パスワード確認一致
-- `dateRange()` … 開始日 ≤ 終了日
-- `between(min, max)` … 数値範囲 / `futureDate()` / `pastDate()`
-- `nonEmptyArray(item)` … 1件以上必須 / `fileConstraints({ maxSizeBytes, allowedMimeTypes })` … アップロード検証
+**実在するかは分かりません**——それは**外部の照会**が要ります。
 
-## 正規化
-- `toHalfWidth` / `digitsToHalfWidth` / `normalizeSpace`(検証前の前処理)
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **種類ごとに検証の強さが違います** | 法人番号とマイナンバーは**チェックディジット**があり、**打ち間違いを検出できます**。適格請求書番号は**形だけ**です |
+| **検証の前に必ず正規化** | ハイフンや全角が混ざります——**そのまま検証すると、正しい番号を弾きます** |
+| **形が正しくても実在するとは限りません** | **国税庁の照会**が別に要ります |
+| **マイナンバーは扱いに注意** | **保管には法令上の制限**があります——**要らないなら持たない**のが最善です |
+
+## よく使うもの
 
 ```ts
+import { normalizeDocumentNumber, isValidDriversLicenseNumber, isValidJapanPassportNumber } from "@platform/validation";
 import { validate, z, email, phoneJp, prefecture, passwordWithConfirm } from "@platform/validation";
 
 const schema = z.object({ email, phone: phoneJp, pref: prefecture });

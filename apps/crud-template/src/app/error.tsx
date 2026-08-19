@@ -17,9 +17,9 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
 
   return (
     <main style={{ maxWidth: 520, margin: "4rem auto", padding: "0 1rem", textAlign: "center" }}>
-      <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
+      <div style={{ fontSize: "2.5rem", marginBottom: 12 }}>⚠️</div>
       <h1 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: 10 }}>この画面を表示できませんでした</h1>
-      <p style={{ fontSize: 13.5, color: "var(--color-muted)", lineHeight: 2, margin: "0 0 20px" }}>
+      <p style={{ fontSize: "0.8125rem", color: "var(--color-muted)", lineHeight: 1.5, margin: "0 0 20px" }}>
         <strong>この画面だけの問題</strong>です。他の画面は開けます。
         <br />
         続くようなら、下の識別子を添えて情報システム部門へお知らせください。
@@ -29,8 +29,8 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         <Button variant="secondary" onClick={() => { window.location.href = "/"; }}>最初の画面へ</Button>
       </div>
       {error.digest && (
-        <p style={{ fontSize: 11.5, color: "var(--color-muted)" }}>
-          識別子: <code style={{ fontFamily: "monospace" }}>{error.digest}</code>
+        <p style={{ fontSize: "0.6875rem", color: "var(--color-muted)" }}>
+          識別子: <code style={{ fontFamily: "var(--font-mono)" }}>{error.digest}</code>
         </p>
       )}
     </main>

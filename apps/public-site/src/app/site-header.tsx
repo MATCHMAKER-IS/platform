@@ -18,12 +18,12 @@ export function SiteHeader({ siteName, nav }: { siteName: string; nav: NavItem[]
           <Input
             value={q}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQ(e.target.value)}
-            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") onSubmit(); }}
+            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) onSubmit(); }}
             placeholder="検索…"
             className="w-32 rounded border border-[var(--color-border)] px-2 py-1 text-sm sm:w-48"
             aria-label="サイト内検索"
           />
-          <Button onClick={onSubmit} className="rounded bg-[var(--color-fg)] px-3 py-1 text-sm text-white">検索</Button>
+     <Button onClick={onSubmit} className="rounded px-3 py-1 text-sm text-white">検索</Button>
         </div>
       </div>
     </header>

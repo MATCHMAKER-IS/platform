@@ -1,7 +1,8 @@
 "use client";
 /** 管理コンソール。お知らせ配信・システム設定・監査ダッシュボード・権限マトリクス・ヘルス・ログイン監視を1画面に集約。 */
 import * as React from "react";
-import { Button, Input, Textarea } from "@platform/ui";
+import { parseNumberOr } from "@platform/utils";
+import { Button, Input, Textarea, PageShell } from "@platform/ui";
 
 interface Count { key: string; count: number; }
 interface Settings { companyName: string; fiscalClosingMonth: number; consumptionTaxRate: number; mailFrom: string; invoicePrefix: string; signatureThreshold: number; }
@@ -76,12 +77,10 @@ export function AdminConsoleClient({ fetchImpl }: AdminConsoleClientProps) {
   )); };
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <h1 className="mb-1 text-2xl font-bold">管理コンソール</h1>
-      <p className="mb-4 text-xs text-[var(--color-muted)]">管理者向けの運用機能をまとめています。</p>
+        <PageShell title="管理コンソール" width="wide" description="管理者向けの運用機能をまとめています。">
       {error && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-danger)]">{error}</p>}
       <div className="mb-4 flex flex-wrap gap-1 border-b border-[var(--color-border)]">
-        {TABS.map(([k, label]) => <Button key={k} onClick={() => setTab(k!)} className={`px-3 py-2 text-sm ${tab === k ? "border-b-2 border-[var(--color-fg)] font-medium" : "text-[var(--color-muted)]"}`}>{label}</Button>)}
+        {TABS.map(([k, label]) => <Button key={k} onClick={() => setTab(k!)} variant="tab" data-state={tab === k ? "active" : undefined}>{label}</Button>)}
       </div>
 
       {tab === "broadcast" && (
@@ -90,7 +89,7 @@ export function AdminConsoleClient({ fetchImpl }: AdminConsoleClientProps) {
           <div className="flex flex-col gap-2">
             <Input value={bc.subject} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBc({ ...bc, subject: e.target.value })} placeholder="件名" className="rounded border border-[var(--color-border)] px-2 py-1 text-sm" />
             <Textarea value={bc.body} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setBc({ ...bc, body: e.target.value })} rows={5} placeholder="本文" className="rounded border border-[var(--color-border)] px-2 py-1 text-sm" />
-            <div className="flex items-center gap-3"><Button onClick={sendBroadcast} className="self-start rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">配信する</Button>{bcMsg && <span className="text-xs text-[var(--color-muted)]">{bcMsg}</span>}</div>
+      <div className="flex items-center gap-3"><Button variant="ghost" onClick={sendBroadcast} className="self-start rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">配信する</Button>{bcMsg && <span className="text-xs text-[var(--color-muted)]">{bcMsg}</span>}</div>
           </div>
         </div>
       )}
@@ -100,13 +99,13 @@ export function AdminConsoleClient({ fetchImpl }: AdminConsoleClientProps) {
           <h2 className="mb-3 text-sm font-medium">システム設定</h2>
           <div className="grid grid-cols-2 gap-3">
             <label className="text-xs text-[var(--color-muted)]">会社名<Input value={settings.companyName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, companyName: e.target.value })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-[var(--color-muted)]">決算月<Input type="number" value={settings.fiscalClosingMonth} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, fiscalClosingMonth: Number(e.target.value) })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-[var(--color-muted)]">消費税率（例 0.10）<Input value={settings.consumptionTaxRate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, consumptionTaxRate: Number(e.target.value) })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-[var(--color-muted)]">決算月<Input type="number" value={settings.fiscalClosingMonth} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, fiscalClosingMonth: parseNumberOr(e.target.value, 0) })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-[var(--color-muted)]">消費税率（例 0.10）<Input value={settings.consumptionTaxRate} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, consumptionTaxRate: parseNumberOr(e.target.value, 0) })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
             <label className="text-xs text-[var(--color-muted)]">送信メール既定From<Input value={settings.mailFrom} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, mailFrom: e.target.value })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
             <label className="text-xs text-[var(--color-muted)]">請求書番号の接頭辞<Input value={settings.invoicePrefix} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, invoicePrefix: e.target.value })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
-            <label className="text-xs text-[var(--color-muted)]">承認で署名必須の金額（円・0で無効）<Input type="number" value={settings.signatureThreshold} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, signatureThreshold: Number(e.target.value) })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
+            <label className="text-xs text-[var(--color-muted)]">承認で署名必須の金額（円・0で無効）<Input type="number" value={settings.signatureThreshold} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, signatureThreshold: parseNumberOr(e.target.value, 0) })} className="mt-0.5 block w-full rounded border border-[var(--color-border)] px-2 py-1 text-sm" /></label>
           </div>
-          <div className="mt-3 flex items-center gap-3"><Button onClick={saveSettings} className="rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">保存</Button>{setMsg && <span className="text-xs text-[var(--color-muted)]">{setMsg}</span>}</div>
+     <div className="mt-3 flex items-center gap-3"><Button variant="ghost" onClick={saveSettings} className="rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">保存</Button>{setMsg && <span className="text-xs text-[var(--color-muted)]">{setMsg}</span>}</div>
         </div>
       )}
 
@@ -158,7 +157,7 @@ export function AdminConsoleClient({ fetchImpl }: AdminConsoleClientProps) {
         <div className="rounded border border-[var(--color-border)] p-4">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-sm font-medium">監査アラート（大量削除・ログイン失敗の連続・深夜帯の操作）</h2>
-            <Button onClick={dispatchAlerts} className="rounded bg-[var(--color-fg)] px-4 py-1.5 text-sm text-white">管理者へ通知</Button>
+      <Button onClick={dispatchAlerts} className="rounded px-4 py-1.5 text-sm text-white">管理者へ通知</Button>
           </div>
           {alertMsg && <p className="mb-2 text-xs text-[var(--color-muted)]">{alertMsg}</p>}
           {alerts.length === 0 ? (
@@ -176,6 +175,6 @@ export function AdminConsoleClient({ fetchImpl }: AdminConsoleClientProps) {
           )}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

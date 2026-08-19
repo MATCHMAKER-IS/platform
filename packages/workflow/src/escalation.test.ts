@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { pendingSince, evaluateSla, escalationTarget, findStalledApprovals } from "./escalation";
-const pending = (h: { step: string; action: string; actor: string; at: string }[] = []) => ({ status: "pending" as const, currentStep: 0, history: h });
+import type { WorkflowEvent, WorkflowState } from "./index";
+// **`action` はリテラル型**(`"approve" | "reject" | "sendback"`)。
+// `string` で受けると代入できない——型検査が回っていなかったため
+// 食い違ったまま通っていた(2026-08)。
+const pending = (h: WorkflowEvent[] = []): WorkflowState => ({ status: "pending", currentStep: 0, history: h });
 const start = new Date("2025-07-25T09:00:00Z");
 const policy = { remindAfterMin: 60, reminderIntervalMin: 60, escalateAfterMin: 240 };
 describe("escalation / SLA", () => {

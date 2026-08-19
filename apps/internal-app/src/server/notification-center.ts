@@ -47,11 +47,28 @@ export interface NotificationCenter {
   notify(userId: string, notification: NewNotification): Promise<AppNotification>;
 }
 
+/**
+ * 通知一覧の既定件数。
+ *
+ * **通知は溜まり続ける。** 上限を付けないと、長く使っている利用者ほど
+ * 全件を読み込んで遅くなる。画面は「最近のもの」しか見ないので 50 で足りる。
+ */
+const DEFAULT_NOTIFICATION_LIMIT = 50;
+
+/** 一度に返す上限。**画面のクエリ文字列から渡る前提**で決める。 */
+const MAX_NOTIFICATION_LIMIT = 200;
+
 /** 一覧の絞り込み・整列を共通化。 */
 function selectNotifications(all: AppNotification[], options: { unreadOnly?: boolean; limit?: number } = {}): AppNotification[] {
   let rows = all.slice().sort((a, b) => (a.createdAt > b.createdAt ? -1 : a.createdAt < b.createdAt ? 1 : 0));
   if (options.unreadOnly) rows = rows.filter((n) => !n.read);
-  if (options.limit !== undefined) rows = rows.slice(0, options.limit);
+  // **Prisma 実装と同じ既定・上限にする。** 片方だけ全件返すと、
+  // 開発(メモリ)では気づかず本番でだけ遅い、という形になる
+  const asked = options.limit;
+  const take = Number.isInteger(asked) && asked !== undefined && asked > 0
+    ? Math.min(asked, MAX_NOTIFICATION_LIMIT)
+    : DEFAULT_NOTIFICATION_LIMIT;
+  rows = rows.slice(0, take);
   return rows;
 }
 
@@ -154,7 +171,25 @@ export function createPrismaNotificationStore(db: NotificationStoreDb): Notifica
     },
     async list(userId, opts = {}) {
       const where = opts.unreadOnly ? { userId, read: false } : { userId };
-      const rows = await db.notificationRow.findMany({ where, orderBy: { createdAt: "desc" }, ...(opts.limit !== undefined ? { take: opts.limit } : {}) });
+      // **上限を必ず付ける。** 通知は溜まり続けるので、`limit` を渡さないと
+      // **全件を読み込む**——長く使っている利用者ほど遅くなり、
+      // ある日「通知を開くと固まる」という形で表面化する。
+      // 上限の範囲外(0 以下・巨大な値)も既定に寄せる(2026-08)。
+      const asked = opts.limit;
+      const take = Number.isInteger(asked) && asked !== undefined && asked > 0
+        ? Math.min(asked, MAX_NOTIFICATION_LIMIT)
+        : DEFAULT_NOTIFICATION_LIMIT;
+      // **上限を付ける。** 通知は**消さない限り増え続けます**——
+      // 100 人が毎日 5 件受け取れば、**1 年で 18 万件**。
+      // **画面に出すのは直近だけ**なので上で計算した `take` で足ります
+      // ——それ以上を見たい人には、**期間で絞る画面**を用意してください。
+      //
+      // **`take: 100` という決め打ちが重複していた。** 上で計算した
+      // `take` 変数を上書きしないよう削除した——オブジェクトリテラルで
+      // 同名プロパティが 2 つあると後勝ちになるため実害は無かったが
+      // (JS の仕様で `take` 変数の値が優先されていた)、意図が不明瞭な
+      // 古いコードの残骸だった(2026-08、全 route.ts の一括型検査で発見)。
+      const rows = await db.notificationRow.findMany({ where, orderBy: { createdAt: "desc" }, take });
       return rows.map(rowToNotification);
     },
     async unreadCount(userId) {

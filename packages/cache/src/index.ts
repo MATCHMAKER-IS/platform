@@ -49,6 +49,7 @@ function cacheError(cause: unknown, msg: string): AppError {
 /**
  * Adapter を注入して Cache を作る。
  * @param adapter 保存先({@link createMemoryCache} / {@link createRedisCache})
+ * @param now 現在時刻(**テスト注入用**。渡さなければ `new Date()`)
  * @returns {@link Cache}
  *
  * @example
@@ -64,7 +65,17 @@ export function createCache(adapter: CacheAdapter, now: () => number = () => Dat
     async get<T>(key: string) {
       const r = await tryCatch(() => adapter.get(key));
       if (!r.ok) return { ok: false, error: cacheError(r.error.cause ?? r.error, "キャッシュ取得に失敗しました") };
-      return { ok: true, value: r.value === null ? null : (JSON.parse(r.value) as T) };
+      // **壊れた値は「無い」として扱う。** 2026-08 まで `JSON.parse` が
+      // `tryCatch` の外にあり、例外がそのまま呼び出し側へ出ていた——
+      // Redis の値は**手で書き換えられる**し、**別のアプリや古い版が
+      // 書いた形**が残ることもある。キャッシュは取り直せるので、
+      // **落とすより取り直す**方がよい。
+      if (r.value === null) return { ok: true, value: null };
+      try {
+        return { ok: true, value: JSON.parse(r.value) as T };
+      } catch {
+        return { ok: true, value: null };
+      }
     },
     async set<T>(key: string, value: T, ttlSeconds?: number) {
       const r = await tryCatch(() => adapter.set(key, JSON.stringify(value), ttlSeconds));

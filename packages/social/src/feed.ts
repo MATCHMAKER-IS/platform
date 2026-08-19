@@ -105,6 +105,7 @@ export function latestPerPlatform(posts: SocialPost[]): SocialPost[] {
 
 /**
  * 前回取得済みの投稿を除いた新着だけを返す(差分取得・通知用)。
+ * @param posts 取得した投稿
  * @param knownKeys 既知の postKey 集合
  * @returns 前回から増えた投稿(**一意キーで比較**するので、内容が変わっただけでは新着にしない)
  */

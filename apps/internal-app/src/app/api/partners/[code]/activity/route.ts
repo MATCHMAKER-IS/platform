@@ -1,13 +1,13 @@
 /** 取引先: 活動集約（請求・発注・報酬の名寄せ）(GET)。partner:read。 */
 import { withApiObservability } from "../../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../../server/authorize";
-import { serverEnv } from "../../../../../server/env";
+import "../../../../../server/env";
 import { partnerStore, invoiceStore, purchaseStore, feePaymentStore } from "../../../../../server/platform-services";
 import { partnerActivity, type LinkInvoice, type LinkOrder, type LinkFeePayment } from "../../../../../server/partner-link";
 
 async function handleGET(req: Request, ctx: { params: Promise<{ code: string }> }): Promise<Response> {
   const { code } = await ctx.params;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "partner:read");
   const partner = await partnerStore.get(code);
   if (!partner) return Response.json({ error: "取引先が見つかりません" }, { status: 404 });

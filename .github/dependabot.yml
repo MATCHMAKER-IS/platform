@@ -1,4 +1,15 @@
 # 依存の脆弱性・更新を自動 PR 化。CI の pnpm audit / CodeQL と併用。
+# **依存の更新は Dependabot だけを使います。**
+#
+# 2026-08 まで `renovate.json` も置いてあり、**両方が npm を見て
+# 同じ依存に 2 つの PR が来る**状態でした（引き継いだ人が混乱します）。
+#
+# **Dependabot に寄せた理由**:
+# - **GitHub 標準**で、アプリの導入が要らない（Renovate は導入が必要）
+# - **docker も見られる**（下の 2 つ目の設定）
+#
+# Renovate の方が設定は柔軟ですが、**数人で引き継ぐなら
+# 「設定なしで動く」方が確実**です。
 version: 2
 updates:
   - package-ecosystem: "npm"

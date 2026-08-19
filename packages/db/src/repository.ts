@@ -52,7 +52,7 @@ export interface Repository<T> {
  * ```
  *
  * @param delegate Prisma のモデル
- * @param options.toDomain / toRow ドメインと行の変換
+ * @param options.idField / toRow ドメインと行の変換
  * @returns リポジトリ(**Prisma の型をアプリに漏らさない**)
  */
 export function createRepository<T>(delegate: RepositoryDelegate<T>, options: RepositoryOptions = {}): Repository<T> {

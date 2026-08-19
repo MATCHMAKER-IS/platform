@@ -1,3 +1,8 @@
+// **順序が大事。** tokens.css(色などの変数)→ globals.css(Tailwind 本体)。
+// どちらが欠けても見た目が崩れる(変数が無ければ色が出ず、Tailwind が
+// 無ければレイアウトが効かない)
+import "@platform/ui/tokens.css";
+import "./globals.css";
 import * as React from "react";
 import { CopyrightNotice, AppSkin } from "@platform/ui";
 import { siteConfig, content } from "../server/content";

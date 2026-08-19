@@ -5,11 +5,20 @@
  */
 import { AppError, ErrorCode } from "./error";
 
+/**
+ * 待機キューの既定上限。
+ *
+ * **同時実行の上限に対して十分大きく、無制限ではない値。**
+ * 溢れたら即座に拒否し、呼び出し側が「今は混んでいる」と応答できる。
+ * 待たせ続けるより早く失敗させる方が、利用者にも上流にも親切。
+ */
+const DEFAULT_MAX_QUEUE = 1000;
+
 /** {@link createBulkhead} のオプション。 */
 export interface BulkheadOptions {
   /** 同時実行の上限。 */
   maxConcurrent: number;
-  /** 待機キューの上限(超えたら拒否)。0=待たせず即拒否、既定 Infinity=無制限に待つ。 */
+  /** 待機キューの上限(超えたら拒否)。0=待たせず即拒否、**既定 1000**(無制限にしない)。 */
   maxQueue?: number;
   /** 待機のタイムアウト(ms)。超えたら拒否。既定なし。 */
   queueTimeoutMs?: number;
@@ -45,7 +54,12 @@ interface Waiter {
  */
 export function createBulkhead(options: BulkheadOptions): Bulkhead {
   const maxConcurrent = Math.max(1, options.maxConcurrent);
-  const maxQueue = options.maxQueue ?? Infinity;
+  // **既定を無制限にしない。** バルクヘッドの目的は
+  // 「1 つの遅い依存が全体の資源を食い潰すのを防ぐ」ことなのに、
+  // 待機列が無制限だと**まさにそれが起きる**——外部 API が遅くなるほど
+  // 待機が積み上がり、各待機が Promise とクロージャを保持し続ける。
+  // 既定を持たせるのは「指定を忘れた場合に目的を果たす」ため(2026-08)。
+  const maxQueue = options.maxQueue ?? DEFAULT_MAX_QUEUE;
   const queueTimeoutMs = options.queueTimeoutMs;
 
   let running = 0;

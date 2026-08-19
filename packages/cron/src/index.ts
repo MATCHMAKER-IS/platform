@@ -21,7 +21,18 @@ import type { LockStore } from "./lock";
 export interface CronJob {
   /** ジョブ名(ログ・管理用)。 */
   name: string;
-  /** cron 式(例: "0 9 * * *" = 毎日9時)。croner の拡張構文も可。 */
+  /**
+   * cron 式(例 `"0 9 * * *"` = 毎日 9 時)。croner の拡張構文も可。
+   *
+   * **月末処理に `31` を使わない。** `"0 0 31 * *"` は
+   * **2 / 4 / 6 / 9 / 11 月に実行されない**(31 日が無いため)——
+   * 年 5 回、月次の締めや請求が飛ぶ。**`"0 0 L * *"`(L = 月末)**を使うこと。
+   *
+   * **営業日は cron 式では書けない。** 祝日を扱えないので、
+   * 「営業日の朝 9 時」は**毎日動かして handler の中で判定する**
+   * (`@platform/datetime` の `isBusinessDay`)。
+   * 祝日に動いて何もせず終わるのは正常な動作(2026-08 に明記)。
+   */
   schedule: string;
   /** 実行内容。 */
   handler: () => Promise<void>;
@@ -31,7 +42,17 @@ export interface CronJob {
   preventOverlap?: boolean;
   /** 実行前に 0..jitterMs のランダム遅延(同時発火の平準化)。 */
   jitterMs?: number;
-  /** 分散ロック(複数インスタンスでの重複実行防止)。TTL は実行より十分長く。 */
+  /**
+   * 分散ロック(複数インスタンスでの重複実行防止)。
+   *
+   * **`ttlMs` は処理時間より十分長くすること。** 短いと処理の途中で
+   * ロックが期限切れになり、**別インスタンスが動き出して二重実行になる**
+   * ——これはこの仕組みが防ぐはずのもの。誤解放はトークン照合で防げるが、
+   * 二重実行そのものは防げない。
+   *
+   * 目安は「最も遅かったときの実行時間 × 3」。短すぎるより長すぎる方が安全
+   * (長すぎても、正常終了時は `finally` で必ず解放される)。
+   */
   lock?: { store: LockStore; ttlMs: number; key?: string };
 }
 
@@ -58,6 +79,7 @@ export interface Scheduler {
  *
  * @param jobs    登録する定期ジョブ
  * @param onError ジョブ失敗時のハンドラ(ログ出力等。既定は何もしない)
+ * @param onResult 成功も含めた結果のハンドラ（**所要時間の記録**などに使う）
  * @returns {@link Scheduler}
  *
  * @example

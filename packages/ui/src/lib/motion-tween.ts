@@ -69,9 +69,10 @@ export function toHexColor(rgb: [number, number, number]): string {
  * **RGB の線形補間**なので、彩度の高い色同士だと途中が濁ることがある
  * (厳密には HSL や Lab で補間する方が綺麗だが、実用上は十分)。
  *
- * @param from 開始色(`#rrggbb`)
- * @param to 終了色
+ * @param fromHex 開始色(`#rrggbb`)
+ * @param toHex 終了色
  * @param t 進捗(0–1)
+ * @param ease 変化の付け方（既定 `linear`）
  * @returns 補間した色
  */
 export function tweenColor(fromHex: string, toHex: string, t: number, ease: AnyEasingName = "linear"): string {
@@ -89,7 +90,11 @@ export interface Keyframe {
 }
 
 /**
- * @keyframes ルール文字列を生成する。CSS-in-JS やスタイルタグ挿入で使う。
+ * CSS の `@keyframes` ルール文字列を生成する。CSS-in-JS やスタイルタグ挿入で使う。
+ *
+ * **説明を `@keyframes` で書き始めない。** 行頭の `@` は TSDoc のタグと
+ * 見分けがつかず、検査が「説明が無い」と判定する(2026-08 に実際に起きた)。
+ *
  * @param name アニメーション名
  * @param frames キーフレーム配列(offset 昇順でなくても内部でソート)
  * @returns CSS の `@keyframes` の中身

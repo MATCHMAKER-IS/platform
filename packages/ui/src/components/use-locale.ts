@@ -10,8 +10,8 @@ import type { LocaleStore } from "../lib/locale-store";
 /**
  * ロケール設定フック。
  *
- * @param options.supported 対応するロケール
- * @param options.fallback 既定
+ * @param store 保存先（利用者が選んだ言語を覚えておく）
+ * @param fallback 保存が無いときの言語（既定 `ja`）
  */
 export function useLocalePreference(store: LocaleStore, fallback: Locale = "ja") {
   const [locale, setLocaleState] = React.useState<Locale>(fallback);

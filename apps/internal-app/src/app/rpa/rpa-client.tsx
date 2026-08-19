@@ -32,7 +32,7 @@ export function RpaClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
 
   React.useEffect(() => { void loadEvents(); }, []);
 
-  const card: React.CSSProperties = { background: "var(--color-surface, #fff)", border: "1px solid #e8e8e8", borderRadius: 10, padding: 16 };
+  const card: React.CSSProperties = { background: "var(--color-surface, #fff)", border: "1px solid var(--color-border)", borderRadius: 10, padding: 16 };
   const actionColor = (a: string): string => a.includes("success") ? "var(--color-success, #16a34a)" : a.includes("error") || a.includes("timeout") ? "var(--color-danger, #dc2626)" : a.includes("start") ? "var(--color-primary, #2563eb)" : "var(--color-muted, #666)";
 
   return (
@@ -47,9 +47,9 @@ export function RpaClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         </label>
         <label style={{ fontSize: 13, display: "block", marginBottom: 8 }}>
           冪等キー（同じ値の2回目以降はスキップ）:
-          <Input value={idempotencyKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIdempotencyKey(e.target.value)} placeholder="例: 2025-01-daily" style={{ marginLeft: 6, padding: "4px 8px", border: "1px solid #ddd", borderRadius: 6 }} />
+          <Input value={idempotencyKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIdempotencyKey(e.target.value)} placeholder="例: 2025-01-daily" style={{ marginLeft: 6, padding: "4px 8px", border: "1px solid var(--color-border)", borderRadius: 6 }} />
         </label>
-        <Button onClick={run} disabled={busy} style={{ padding: "8px 20px", background: busy ? "#ccc" : "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>{busy ? "実行中…" : "サンプル RPA を実行"}</Button>
+        <Button onClick={run} style={{ padding: "8px 20px", background: busy ? "var(--color-border)" : "var(--color-primary, #2563eb)", color: "var(--color-surface, #fff)", border: "none", borderRadius: 8 }}>{busy ? "実行中…" : "サンプル RPA を実行"}</Button>
         {result && <div style={{ marginTop: 12, fontSize: 13, color: "var(--color-success, #16a34a)" }}>成功（{result.rows} 件処理・試行 {result.attempts} 回{result.skipped ? "・冪等スキップ" : ""}）</div>}
         {error && <div style={{ marginTop: 12, fontSize: 13, color: "var(--color-danger, #dc2626)" }}>失敗: {error}</div>}
       </div>
@@ -58,7 +58,7 @@ export function RpaClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8 }}>監査ログ（新しい順）</div>
         {events.length === 0 && <p style={{ fontSize: 13, color: "var(--color-muted, #999)" }}>まだ実行されていません。</p>}
         {events.map((e, i) => (
-          <div key={i} style={{ fontSize: 12, padding: "4px 0", borderBottom: "1px solid #f5f5f5", display: "flex", gap: 8 }}>
+          <div key={i} style={{ fontSize: 12, padding: "4px 0", borderBottom: "1px solid var(--color-surface)", display: "flex", gap: 8 }}>
             <code style={{ color: actionColor(e.action), minWidth: 120 }}>{e.action}</code>
             <span style={{ color: "var(--color-muted, #999)" }}>{e.target}</span>
             {e.metadata?.step !== undefined && <span style={{ color: "var(--color-muted, #666)" }}>step {String(e.metadata.step)}/{String(e.metadata.of)}</span>}

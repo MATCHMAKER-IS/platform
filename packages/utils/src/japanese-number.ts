@@ -29,7 +29,8 @@ function fourDigits(n: number, style: Style): string {
 /**
  * 整数を漢数字にする。
  *
- * @param n 整数(**負数・0 も扱える**)
+ * @param value 整数(**負数・0 も扱える**)
+ * @param options 位取りの書き方（`一千` を使うかなど）
  * @returns 漢数字の文字列
  *
  * @example
@@ -63,7 +64,8 @@ export function toKanjiNumber(value: number, options: { daiji?: boolean } = {}):
  * **契約書・領収書で改ざんを防ぐため**の表記(「一」に線を足して「二」にできない)。
  * 法的な文書で求められることがある。
  *
- * @param amount 金額(円)
+ * @param value 金額(円)
+ * @param options 書式（**改ざん防止の大字**。契約書・領収書で使う）
  * @returns 「金壱萬弐千参百四拾五円」形式
  */
 export function toDaijiAmount(value: number, options: { withPrefix?: boolean; withSuffix?: boolean } = {}): string {

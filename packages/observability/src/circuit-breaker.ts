@@ -1,6 +1,10 @@
 /**
  * サーキットブレーカー。連続失敗で「開」にして即座に失敗させ、一定時間後に「半開」で試験的に通す。
  * 外部依存(Zoho/決済 API 等)の障害伝播を止め、回復を待つ。依存ゼロ。
+ *
+ * **こちらが既定。** `@platform/core` にも同名の実装があるが、
+ * あちらは半開で通す本数の制御や状態変化の通知を持つぶん設定が多い。
+ * 「落ちているか」だけ分かればよい場面ではこちらを使う。
  * @packageDocumentation
  */
 
@@ -46,7 +50,8 @@ export interface CircuitBreaker {
  *
  * @param options.failureThreshold 何回続けて失敗したら開くか
  * @param options.resetTimeoutMs 開いてから、試しに 1 回通してみるまでの時間
- * @param options.onStateChange 状態が変わったときの通知(任意)
+ * @param options.successThreshold 半開のとき何回成功したら閉じるか。
+ *   **状態変化の通知(`onStateChange`)は無い**。必要なら呼び出し側で `state` を見ること
  * @returns ブレーカー。`run` で処理を通す
  * @throws {@link @platform/core#AppError} コード `EXTERNAL` — 開いている間に `run` を呼んだ場合(即座に失敗させる)
  */

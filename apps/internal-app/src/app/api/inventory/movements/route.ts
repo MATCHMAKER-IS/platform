@@ -1,14 +1,14 @@
 /** 在庫: 入出庫の記録(POST)。inventory:write が必要。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { inventoryStore, auditActions } from "../../../../server/platform-services";
 import { type StockMovement } from "@platform/inventory";
 
 async function handlePOST(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "inventory:write");
-  const body = (await req.json()) as { sku: string } & StockMovement;
+  const body = (await req.json().catch(() => ({}))) as { sku: string } & StockMovement;
   if (!body.sku || !(await inventoryStore.getProduct(body.sku))) return Response.json({ error: "商品が見つかりません" }, { status: 404 });
   if (body.type !== "inbound" && body.type !== "outbound" && body.type !== "adjustment") return Response.json({ error: "type が不正です" }, { status: 400 });
   if (typeof body.quantity !== "number" || Number.isNaN(body.quantity)) return Response.json({ error: "quantity が不正です" }, { status: 400 });

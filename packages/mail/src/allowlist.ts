@@ -89,7 +89,8 @@ export interface ApplyPolicyOptions {
  * それ以外は許可された宛先だけを残し、全滅なら message=null(送信しない)。
  *
  * @param message メッセージ
- * @param policy ポリシー
+ * @param policy 宛先の許可・置き換えの決まり
+ * @param options 差し止めたときの扱い（件名への印付けなど）
  * @returns 許可された宛先だけのメッセージ。**全員拒否なら null**(空の宛先で送ると API がエラーになる)
  */
 export function applyRecipientPolicy(
@@ -97,23 +98,40 @@ export function applyRecipientPolicy(
   policy: RecipientPolicy,
   options: ApplyPolicyOptions = {},
 ): PolicyApplication {
-  const originalTo = Array.isArray(message.to) ? message.to : [message.to];
+  // **`bcc` / `cc` も対象にする。** `to` だけを見ていると、
+  // **開発環境から本番の宛先へ一斉配信が飛ぶ**——誤送信防止の仕組みが
+  // 一番効いてほしい場面(一斉配信)で素通りしていた(2026-08 に修正)。
+  const asList = (v: string | string[] | undefined): string[] =>
+    v === undefined ? [] : Array.isArray(v) ? v : [v];
+  const originalTo = asList(message.to);
+  const originalBcc = asList(message.bcc);
+  const originalCc = asList(message.cc);
 
   if (options.redirectTo) {
     return {
-      message: { ...message, to: options.redirectTo },
+      // **付け替えるときは bcc / cc を消す。** 残すと本番の宛先へ届く
+      message: { ...message, to: options.redirectTo, bcc: undefined, cc: undefined },
       blocked: [],
       redirected: true,
     };
   }
 
   const { allowed, blocked } = filterRecipients(originalTo, policy);
-  if (allowed.length === 0) {
-    return { message: null, blocked, redirected: false };
+  const bccResult = filterRecipients(originalBcc, policy);
+  const ccResult = filterRecipients(originalCc, policy);
+  const allBlocked = [...blocked, ...bccResult.blocked, ...ccResult.blocked];
+  // **to が全滅でも bcc が残っていれば送る**(一斉配信は bcc が本体)
+  if (allowed.length === 0 && bccResult.allowed.length === 0) {
+    return { message: null, blocked: allBlocked, redirected: false };
   }
   return {
-    message: { ...message, to: allowed.length === 1 ? allowed[0]! : allowed },
-    blocked,
+    message: {
+      ...message,
+      to: allowed.length === 1 ? allowed[0]! : allowed,
+      ...(originalBcc.length > 0 ? { bcc: bccResult.allowed } : {}),
+      ...(originalCc.length > 0 ? { cc: ccResult.allowed } : {}),
+    },
+    blocked: allBlocked,
     redirected: false,
   };
 }
@@ -126,8 +144,9 @@ interface Sendable { send(message: MailMessage): Promise<unknown>; }
 /**
  * 送信を宛先ポリシーでラップする。**開発環境で本番の顧客にメールを送る事故**を防ぐ。
  *
- * @param transport 元の送信
- * @param policy ポリシー
+ * @param mailer 元の送信（**包んで返す**ので、呼ぶ側は差し替えるだけ）
+ * @param policy 宛先の許可・置き換えの決まり
+ * @param options.onBlocked 差し止めた宛先を受け取る処理（**記録に残す**）
  * @returns ラップした送信
  */
 export function withRecipientPolicy<M extends Sendable>(

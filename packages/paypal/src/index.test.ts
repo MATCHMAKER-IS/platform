@@ -38,3 +38,21 @@ describe("paypal", () => {
     expect(tokenCalls).toHaveLength(1);
   });
 });
+
+describe("既定の接続先", () => {
+  // **「指定を忘れた」が本番事故になる既定にしない。**
+  // 2026-08 まで既定が live で、本番の鍵がある環境では実際に決済が走った
+  it("environment を省くと sandbox に繋がる", async () => {
+    let url = "";
+    const client = createPayPalClient({
+      clientId: "id",
+      clientSecret: "sec",
+      fetchImpl: (async (u: string) => {
+        url = String(u);
+        return new Response(JSON.stringify({ access_token: "t", expires_in: 3600 }), { status: 200 });
+      }) as unknown as typeof fetch,
+    });
+    await client.createOrder({ intent: "CAPTURE", purchase_units: [] } as never);
+    expect(url).toContain("sandbox");
+  });
+});

@@ -21,7 +21,6 @@ export interface ScatterProps {
   className?: string;
 }
 
-/** 散布図。 */
 /**
  * 散布図(2 つの値の関係)。
  *

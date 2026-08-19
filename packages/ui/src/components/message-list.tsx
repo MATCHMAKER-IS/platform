@@ -33,7 +33,6 @@ export interface MessageListProps {
   className?: string;
 }
 
-/** メッセージ一覧(日付区切り・未読ライン付き)。 */
 /**
  * 会話の履歴。
  *
@@ -46,7 +45,7 @@ export function MessageList({ groups, firstUnreadId, className }: MessageListPro
       {groups.map((group) => (
         <div key={group.date} className="flex flex-col gap-2">
           <div className="flex items-center justify-center">
-            <span className="rounded-full bg-[var(--color-muted-bg,#f1f1f1)] px-3 py-0.5 text-xs text-[var(--color-muted)]">{group.date}</span>
+            <span className="rounded-full bg-[var(--color-muted-bg)] px-3 py-0.5 text-xs text-[var(--color-muted)]">{group.date}</span>
           </div>
           {group.messages.map((m) => (
             <React.Fragment key={m.id}>

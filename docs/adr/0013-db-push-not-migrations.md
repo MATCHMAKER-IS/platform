@@ -37,12 +37,12 @@ Prisma には 2 つの適用方法がある。
 |---|---|
 | スキーマ変更の履歴 | Git のコミット履歴(schema.prisma の差分)で追う |
 | 本番での安全な差分適用 | **本番稼働を始める前に、この ADR を見直してマイグレーションへ移行する** |
-| データ移行スクリプトの置き場 | 必要になったら `scripts/migrations/` を作る |
+| データ移行スクリプトの置き場 | 必要になったら `prisma/migrations/` を作る |
 
 ## 結果
 
 - CI(e2e.yml)を `prisma migrate deploy` → **`prisma db push`** に変更する。
-- SETUP.md の「チーム開発・本番はマイグレーション履歴を推奨」という記述を、この決定に合わせて改める。
+- ../onboarding/01-setup.md の「チーム開発・本番はマイグレーション履歴を推奨」という記述を、この決定に合わせて改める。
 - **本番稼働の前に必ずこの ADR を見直す**(下記の条件)。
 
 ## この決定を見直す条件(重要)
@@ -65,3 +65,14 @@ pnpm --filter internal-app exec prisma migrate dev --name add_task_table
 # 3. 本番へは
 pnpm --filter internal-app exec prisma migrate deploy
 ```
+
+## 続き: 本番へ切り替えるとき
+
+**この ADR は「開発中は `db push`」という話です。**
+本番へ出すときは**マイグレーション履歴へ切り替え**ます——
+その手順は **`docs/adr/0014-migration-baseline-on-production.md`** にあります
+（データを保持したまま baseline を取る方法）。
+
+**0013 だけ読んで「履歴は要らない」と判断しないこと。**
+本番に出たあとで `db push` を使うと、**差分の適用順が保証されず、
+戻せなくなります**。

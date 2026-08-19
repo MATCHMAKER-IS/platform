@@ -18,7 +18,6 @@ export interface HistogramProps {
   className?: string;
 }
 
-/** ヒストグラム。 */
 /**
  * 度数分布(値の散らばり)。
  *

@@ -72,8 +72,38 @@ export function getCookie(header: string | null | undefined, name: string): stri
  * @param options.path 対象パス(既定 `/`)
  * @returns `Set-Cookie` に渡す文字列
  */
+/**
+ * **`__Host-` 接頭辞は使っていない。**
+ *
+ * 付けるとブラウザが `Secure` + `Path=/` + `Domain` 指定なしを強制し、
+ * **サブドメインから上書きできなくなる**
+ * (`evil.example.co.jp` が `example.co.jp` のセッションを
+ * 差し替える攻撃を防ぐ)。
+ *
+ * 採用しない理由は 2 つ。
+ *
+ * 1. **切り替えた瞬間に全員のセッションが切れる。**
+ *    名前が変わるので既存の Cookie が読めない。
+ *    業務時間中に入れると、全員が作業中のまま弾き出される
+ * 2. **サブドメインを他所に貸していない。** 攻撃の前提が今は無い
+ *
+ * 社外にサブドメインを貸す構成になったら、**そのときに入れる**
+ * (深夜のメンテナンス枠で切り替える)。
+ * @param name クッキーの名前
+ * @param value 値（**自分でエスケープしないでください**——ここで行います）
+ * @param options 有効期限・パス・`httpOnly` など
+ * @returns `Set-Cookie` に入れる文字列
+ * @throws 名前や値に使えない文字が含まれる場合
+ */
 export function serializeCookie(name: string, value: string, options: CookieOptions = {}): string {
   const { httpOnly = true, secure = true, sameSite = "Lax", path = "/", domain, maxAge, expires } = options;
+  // **`SameSite=None` には `Secure` が必須。** ブラウザの仕様で、
+  // 欠けているクッキーは**黙って破棄される**——エラーも警告も出ないので、
+  // 「ログインできないが原因が分からない」という形になる。
+  // 組み立てる側で気づけるよう、ここで止める。
+  if (sameSite === "None" && !secure) {
+    throw new Error("SameSite=None には Secure が必要です(ブラウザがクッキーを破棄します)");
+  }
   const parts = [`${name}=${encodeURIComponent(value)}`];
   parts.push(`Path=${path}`);
   if (domain) parts.push(`Domain=${domain}`);

@@ -34,11 +34,11 @@ ChatGPT との壁打ち(AWS 展開方針+社内 AI/DX プラットフォーム�
 | モニタリング / デバッグ支援 | ✅/🔶 | observability・status-page / エラー解析AIは P3 |
 | テスト基盤 / CI/CD | ✅ | testing・smoke855・preflight・全8WF(AIレビュー段は📋P3) |
 | セキュリティ / Secrets | ✅ | security・crypto・guard・secrets・pii |
-| 開発テンプレート / サンプル | ✅ | crud-template・equipment-app・demos 26本 |
+| 開発テンプレート / サンプル | ✅ | crud-template・showcase のデモ |
 | Generator 群 | 🔶 | tools/scaffold を核に CRUD/API/Test Generator へ拡張(P3) |
 | Package Finder / 重複検出 / Advisor | 🔶 | **tools/advisor.mjs✅**(find/dup/report・Portal統合)。GitHub Issue連携・AIレビューが次 |
 | AI向け/人向けドキュメント | ✅ | docs/ai 3点+README+API Reference+ER図+画面/API一覧+**依存グラフ✅**(Portal統合) |
-| Platform Portal | 🔶 | **最小版✅**(apps/platform-portal・カタログ/ヘルス/ADR)。Reference/Advisor/Issue連携が次 |
+| Platform Portal | 🔶 | **最小版✅**(showcase の /apps/portal・カタログ/ヘルス/ADR)。Reference/Advisor/Issue連携が次 |
 | Platform Analytics | 🔶 | **tools/platform-report.mjs 初版✅**(テスト率91%等)。品質スコア化は P3 |
 | ADR | ✅ | docs/adr(6本+テンプレ) |
 | Feature Flag | ✅ | @platform/flags(既存) |
@@ -49,7 +49,7 @@ ChatGPT との壁打ち(AWS 展開方針+社内 AI/DX プラットフォーム�
 
 ## フェーズ(現状に合わせて再定義)
 
-- **P1 基盤品質** — ほぼ完了。残: CI 実走(docs/ops/CI_FIRST_RUN.md のチェックリスト消化)
+- **P1 基盤品質** — ほぼ完了。残: CI 実走(docs/ops/GITHUB_ACTIONS.md のチェックリスト消化)
 - **P2 AI利用基盤** — ai✅ → RAG(権限継承)/ Event Bus / Function Calling / Prompt管理
 - **RPA 安全実行** — @platform/rpa✅(ランナー骨格: 直列化/リトライ/冪等/タイムアウト/監査)。本体は持たず枠組みのみ(API>MCP>RPA)
 - **P3 AI開発支援** — Portal✅・Advisor✅・PR自動レビュー✅・**Reference Generator✅**(Portal統合)/ Doc Generator(ER図・画面仕様)が残

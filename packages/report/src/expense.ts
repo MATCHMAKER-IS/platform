@@ -61,7 +61,6 @@ function esc(s: string): string {
  *
  * @param record 経費記録
  * @returns 税抜・消費税・税込
- * @param record 経費記録
  */
 export function expenseTaxBreakdown(record: ExpenseRecord): { subtotal: number; tax: number; total: number; rate: number } {
   const rate = record.taxRate ?? 10;
@@ -80,7 +79,7 @@ export function renderExpenseHtml(record: ExpenseRecord): string {
   const row = (k: string, v: string) => `<tr><th>${esc(k)}</th><td>${v}</td></tr>`;
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>支払記録</title>
 <style>
-  body { font-family: "Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif; color:#0f172a; padding:24px; font-size:13px; }
+  body { font-family: "Hiragino Kaku Gothic ProN","Noto Sans CJK JP","Noto Sans JP",sans-serif; color:#0f172a; padding:24px; font-size:13px; }
   h1 { font-size:20px; letter-spacing:.2em; text-align:center; margin:0 0 16px; }
   table { border-collapse:collapse; width:100%; max-width:460px; }
   th,td { border:1px solid #cbd5e1; padding:8px 12px; text-align:left; }

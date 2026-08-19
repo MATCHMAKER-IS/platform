@@ -90,5 +90,5 @@ test("フォームを Tab と Enter だけで送信できる", async ({ page }) 
   // 送信された合図（結果の成否は問わない。押せたかどうかを見る）
   // このデモは資格情報が決め打ちなので、上の入力では**必ず失敗する**。
   // ここで見たいのは「Enter で送信できたか」なので、エラーが出れば十分
-  await expect(page.getByText(/メールアドレスまたはパスワードが違います/)).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText(/メールアドレスまたはパスワードが違います/).first()).toBeVisible({ timeout: 5000 });
 });

@@ -77,6 +77,8 @@ function sameSet(a: number[], b: number[]): boolean {
 
 /**
  * クイズを採点する。answers は questionId → 選んだ選択肢インデックス配列。
+ * @param questions 出題
+ * @param answers 回答（**設問と同じ並び**）
  * @param passRatio 合格に必要な正答率(0–1・既定 0.6)
  * @returns 得点と合否(**合格点は問題側で決める**。コースによって基準が違う)
  */

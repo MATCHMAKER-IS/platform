@@ -1,0 +1,103 @@
+# 残債（上限方式で先送りしている件数）の推移を記録する（月次）。
+#
+# 目的: **検査が見つけたものを消化する段を、担当と期限のある作業にする。**
+#
+# この基盤は「検査を足す」ところまではよくできているが、上限方式は増加を
+# 止めるだけで既存分は放っておけば永久に残る。実際 `check-tsdoc-params` の
+# P4 は、追加した時点の 92 件がそのまま上限になり、**検査を追加した動機
+# そのものだった zoho の 20 件が手つかずで残っていた**。
+# 検査は毎回 `⚠`（上限内）を出すが preflight は緑なので、誰も読まない。
+#
+# 動き:
+#   1. 今日の残債を `ops/debt-history.json` に記録する
+#   2. 差分があれば PR を作る（人が中身を見て merge する）
+#   3. **3 か月以上どの項目も減っていなければ Issue を立てる**
+#
+# 減らないこと自体は責めない（優先度の判断がある）。
+# 防ぎたいのは「気づかないうちに何か月も止まっていた」ほうで、
+# 順位付けは中身を見た人がする。
+name: debt
+
+on:
+  schedule:
+    - cron: "0 21 1 * *" # 毎月 1 日 6:00 JST
+  workflow_dispatch: # 手動実行（棚卸しのとき）
+
+# **必要な権限だけを与える。**
+permissions:
+  contents: write # 履歴を commit する
+  pull-requests: write
+  issues: write
+
+jobs:
+  record:
+    name: 残債を記録する
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 残債の一覧
+        run: node tools/debt.mjs
+
+      # **たるみがあれば先に詰める。** 直したのに上限を下げ忘れていると、
+      # その差分だけ後戻りが素通りする
+      - name: たるみを詰める
+        run: node tools/debt.mjs --tighten
+
+      - name: 今日の値を記録する
+        run: node tools/debt.mjs --record
+
+      - name: 差分があれば PR を作る
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore: 残債の推移を記録"
+          branch: chore/debt-record
+          title: "残債の推移（自動記録）"
+          body: |
+            `tools/debt.mjs` が今月の残債を記録しました。
+
+            - 上限のたるみがあれば詰めてあります（`--tighten`）
+            - 中身は `pnpm debt` で確認できます
+
+            **何から手を付けるかは中身を見て決めてください。**
+            機械が言えるのは「今いくつあるか」「動いているか」までです。
+
+      # **止まっていることに気づかせる。** 3 か月分の記録を比べて、
+      # どの項目も減っていなければ知らせる
+      - name: 止まっていれば Issue を立てる
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const p = "ops/debt-history.json";
+            if (!fs.existsSync(p)) return;
+            const { entries } = JSON.parse(fs.readFileSync(p, "utf8"));
+            if (entries.length < 4) return; // 記録が 3 か月分たまるまでは何も言わない
+            const now = entries.at(-1), old = entries.at(-4);
+            const moved = Object.entries(now.values)
+              .filter(([k, v]) => typeof old.values[k] === "number" && v < old.values[k]);
+            if (moved.length > 0) return; // 1 つでも減っていればよい
+            const total = Object.values(now.values).reduce((a, b) => a + b, 0);
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `残債が 3 か月動いていません（合計 ${total} 件）`,
+              body: [
+                `${old.date} から ${now.date} まで、**どの項目も減っていません**。`,
+                "",
+                "```",
+                Object.entries(now.values).filter(([, v]) => v > 0)
+                  .map(([k, v]) => `${String(v).padStart(6)}  ${k}`).join("\n"),
+                "```",
+                "",
+                "`pnpm debt` で中身と、それぞれを見るコマンドが出ます。",
+                "",
+                "**優先度は中身を見て決めてください。**「直しやすいものから」だと、",
+                "危険なものだけが残ります。実際 P4 では、検査を追加した動機だった",
+                "zoho の 20 件が最後まで残っていました。",
+              ].join("\n"),
+            });

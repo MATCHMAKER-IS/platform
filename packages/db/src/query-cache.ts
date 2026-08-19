@@ -15,7 +15,8 @@ import type { Result } from "@platform/core";
  *
  * @param cache キャッシュ
  * @param key キー
- * @param fn 取得する処理
+ * @param ttlSeconds 保つ秒数（**短くする**。古い値を見せる時間になります）
+ * @param loader 見つからなかったときに取得する処理
  * @returns 結果(**キャッシュがあればそれを返す**)
  */
 export function cachedQuery<T>(cache: Cache, key: string, ttlSeconds: number, loader: () => Promise<T>): Promise<Result<T>> {
@@ -62,6 +63,7 @@ export interface QueryCache {
  * await qc.invalidateTag("orders"); // orders タグの全キャッシュを無効化
  * ```
  *
+ * @param cache キャッシュの実体（`@platform/cache`）
  * @param options.prefix キーの接頭辞(既定 `q`)
  * @param options.defaultTtlSec 既定の保持時間(秒。既定 60)
  * @returns キャッシュ

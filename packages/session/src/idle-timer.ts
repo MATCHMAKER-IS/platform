@@ -37,9 +37,9 @@ export interface IdleTimer {
  *
  * **席を離れたまま放置されたセッションを閉じる**。共用 PC で他人に操作される事故を防ぐ。
  *
- * @param options.timeoutMs 無操作がこの時間続いたら発火
- * @param options.onIdle 発火したときの処理(ログアウトなど)
- * @param options.onWarn 発火前の警告(任意。「あと 1 分で切れます」)
+ * @param config.timeoutMs 無操作がこの時間続いたら発火
+ * @param config.onIdle 発火したときの処理(ログアウトなど)
+ * @param config.onWarn 発火前の警告(任意。「あと 1 分で切れます」)
  * @returns タイマー。`touch` で操作があったことを伝える
  */
 export function createIdleTimer(config: IdleTimerConfig): IdleTimer {

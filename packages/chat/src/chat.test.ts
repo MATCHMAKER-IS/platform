@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { createMessage, editMessage, sortMessages, groupByDate, extractMentions, mentionsOf, repliesTo } from "./message";
 import { createRoom, lastMessage, unreadCount, markRead, firstUnread, sortRoomsByActivity } from "./room";
+import { validateAttachments } from "./attachment";
 
 const M = (id: string, senderId: string, at: string, text = "x") => ({ id, roomId: "r1", senderId, text, at });
 
@@ -43,5 +44,23 @@ describe("room", () => {
   it("最新活動順にルームを並べる", () => {
     const rooms = [createRoom({ id: "r1", name: "A", kind: "group", memberIds: [], createdAt: "2025-01-01T00:00:00Z" }), createRoom({ id: "r2", name: "B", kind: "group", memberIds: [], createdAt: "2025-01-02T00:00:00Z" })];
     expect(sortRoomsByActivity(rooms, { r1: msgs, r2: [] })[0]?.id).toBe("r1");
+  });
+});
+
+describe("添付の既定の上限", () => {
+  // **`key` は必須**(保存先を指す識別子)。`url` は `Attachment` に無い
+  const file = (size: number) => ({ key: "k1", name: "a.png", type: "image/png", size });
+  // **渡し忘れが無制限にならない。** 以前は既定が無く、
+  // 呼び出し側が指定しなければ件数もサイズも無制限だった(2026-08)
+  it("上限を渡さなくても件数で弾く", () => {
+    const many = Array.from({ length: 11 }, () => file(1000));
+    expect(validateAttachments(many).ok).toBe(false);
+  });
+  it("上限を渡さなくてもサイズで弾く", () => {
+    expect(validateAttachments([file(20 * 1024 * 1024)]).ok).toBe(false);
+  });
+  // **既定の範囲内なら通る**(境界)
+  it("既定の範囲内は通る", () => {
+    expect(validateAttachments([file(1024)]).ok).toBe(true);
   });
 });

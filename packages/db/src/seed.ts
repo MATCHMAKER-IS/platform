@@ -50,7 +50,11 @@ export function createSeeder(logger: SeedLogger = console): Seeder {
       for (const s of steps) {
         const r = await tryCatch(s.run);
         if (!r.ok) {
-          logger.error(`シード失敗: ${s.name}`);
+          // **原因をその場で出す。** 名前だけでは何が起きたか分からず、
+          // 呼び出し側も `cause` を掘らないと表示できない(2026-08 に実際に詰まった)
+          const cause = r.error.cause ?? r.error;
+          const detail = cause instanceof Error ? cause.message : String(cause);
+          logger.error(`シード失敗: ${s.name}\n     ${detail}`);
           return err(new AppError(ErrorCode.DATABASE, `シード「${s.name}」に失敗しました`, { cause: r.error.cause ?? r.error, details: { completed } }));
         }
         completed.push(s.name);

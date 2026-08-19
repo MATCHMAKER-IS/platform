@@ -4,21 +4,23 @@
  */
 import { withApiObservability } from "../../../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../../../server/authorize";
-import { serverEnv } from "../../../../../../server/env";
+import "../../../../../../server/env";
 import { chatStore } from "../../../../../../server/chat";
+import { validate, z } from "@platform/validation";
+
+/** 既読位置の入力。**ISO 日時の形を強制する**(不正な文字列がそのまま保存されていた)。 */
+const ReadInput = z.object({ at: z.string().datetime().optional() });
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ roomId: string }> }): Promise<Response> {
   const { roomId } = await ctx.params;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "chat:read");
 
-  let at = new Date().toISOString();
-  try {
-    const body = (await req.json()) as { at?: string };
-    if (body?.at) at = body.at;
-  } catch {
-    /* 本文なしは現在時刻 */
+  const parsed = validate(ReadInput, await req.json().catch(() => ({})));
+  if (!parsed.ok) {
+    return Response.json({ error: parsed.error.message, details: parsed.error.details }, { status: 400 });
   }
+  const at = parsed.value.at ?? new Date().toISOString();
   await chatStore.markRead(user!.email, roomId, at);
   return Response.json({ roomId, lastReadAt: at });
 }

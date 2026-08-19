@@ -28,7 +28,13 @@ export interface RedisCacheClient {
 export function createRedisCache(configOrClient: RedisCacheConfig | RedisCacheClient): CacheAdapter {
   const client: RedisCacheClient =
     "url" in configOrClient
-      ? (new Redis(configOrClient.url, { keyPrefix: configOrClient.keyPrefix }) as unknown as RedisCacheClient)
+      ? (new Redis(configOrClient.url, {
+          keyPrefix: configOrClient.keyPrefix,
+          // **待たせない。** キャッシュは無ければ元を引けばよいので、
+          // 既定の 20 回リトライ(数十秒)は本末転倒(2026-08)
+          maxRetriesPerRequest: 1,
+          enableOfflineQueue: false,
+        }) as unknown as RedisCacheClient)
       : configOrClient;
   return {
     async get(key) {

@@ -32,7 +32,8 @@
  * ```
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync } from "node:fs";
+import { createDecipheriv, scryptSync } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -86,6 +87,9 @@ function withDatabase(url, db) {
 
 /** パスワードを伏せる(ログ・画面共有に残るため)。 */
 const mask = (s) => s.replace(/:[^:@/]*@/, ":***@");
+
+// **所要時間を測る。** 記録に手で書かせると、だいたい概算になる
+const startedAt = Date.now();
 
 const steps = [];
 
@@ -214,32 +218,111 @@ if (!DRY) {
     process.exit(1);
   }
 
+  // **全テーブルを照合する。**
+  // 以前は名前順の先頭 5 件だけを見ており、**空のテーブルばかり当たると
+  // 何も確かめていないのと同じ**だった(2026-08)。
   const names = query(restoreDb,
     "SELECT table_name FROM information_schema.tables WHERE table_schema='public' "
-    + "ORDER BY table_name LIMIT 5").split("\n").filter(Boolean);
+    + "ORDER BY table_name").split("\n").filter(Boolean);
+
   let mismatch = 0;
+  let withRows = 0;
+  const shown = [];
   for (const t of names) {
     const before = query(SOURCE_DB, `SELECT count(*) FROM "${t}"`);
     const after = query(restoreDb, `SELECT count(*) FROM "${t}"`);
-    const same = before === after;
-    if (!same) mismatch += 1;
-    console.log(`     ${same ? "✅" : "❌"} ${t}: 元 ${before} / 復元 ${after}`);
+    if (before !== after) { mismatch += 1; shown.push(`❌ ${t}: 元 ${before} / 復元 ${after}`); }
+    else if (Number(before) > 0) { withRows += 1; shown.push(`✅ ${t}: ${before} 件`); }
   }
+
+  // **中身のあるテーブルを優先して出す。** 0 件の並びを見ても意味がない
+  for (const line of shown.slice(0, 12)) console.log(`     ${line}`);
+  if (shown.length > 12) console.log(`     … 他 ${shown.length - 12} 件`);
+  console.log(`   照合: ${names.length} テーブル / 中身があるもの ${withRows} 件`);
+
   if (mismatch > 0) {
     console.error("\n❌ 件数が一致しないテーブルがあります。ダンプの取得時点を確認してください");
+    process.exit(1);
+  }
+
+  // **全部 0 件なら「戻せた」と言えない。**
+  // 手順が動くことしか示しておらず、本番の障害では役に立たない
+  if (withRows === 0) {
+    console.error("\n❌ すべてのテーブルが 0 件です。");
+    console.error("   これでは**手順が動くこと**しか確かめられていません。");
+    console.error("   `pnpm seed` でデータを入れてから、もう一度流してください。");
     process.exit(1);
   }
 }
 
 // ── 5. 鍵を確かめる ──
-// **典型的な失敗**: DB は戻せたが鍵が無く、暗号化した項目が読めない
-const keyVars = ["ENCRYPTION_KEY", "SESSION_SECRET"];
+// **典型的な失敗**: DB は戻せたが鍵が無く、暗号化した項目が読めない。
+//
+// 2026-08 まで `ENCRYPTION_KEY` を見ていたが、**この名前はどこにも存在しなかった**
+// (使っているのは drill 自身と、drill を見張る smoke の 2 か所だけ)。
+// つまり正しく設定された環境でも必ず警告が出る = 読む人が警告を無視するようになる。
+// 実際に使われている名前は `SECRET_MASTER_KEY`(未設定なら `SESSION_SECRET` を流用)。
+const keyVars = ["SECRET_MASTER_KEY", "SESSION_SECRET"];
 const missing = keyVars.filter((k) => (process.env[k] ?? "") === "");
-if (missing.length > 0) {
-  console.log(`\n   ⚠ 秘密鍵が環境にありません: ${missing.join(", ")}`);
-  console.log("     DB を戻せても、**暗号化した項目(マイナンバー等)は読めません**。");
-  console.log("     鍵は DB と別の場所に保管し、訓練でも復号まで確かめてください。");
-  console.log("     (シェルに無いだけで .env にはある場合もあります。画面側で確認してください)");
+// **SECRET_MASTER_KEY は未設定でも SESSION_SECRET で代替される**ので、
+// 「両方無い」ときだけが本当に困る状態。片方だけを欠落として騒がない。
+const masterKey = process.env["SECRET_MASTER_KEY"] ?? process.env["SESSION_SECRET"] ?? "";
+
+/**
+ * **暗号化した項目が本当に読めるかを確かめる。**
+ *
+ * 手順書は「人が画面で確かめる」としていたが、鍵と暗号文が揃っていれば
+ * ここで判定できる。人にしか出来ないことだけを人に残す。
+ *
+ * 判定は 3 通り:
+ *  - 暗号文が 1 件も無い … 確かめる対象が無い(**訓練の欠落ではない**)
+ *  - 復号できた         … 鍵と DB の組み合わせが正しい
+ *  - 復号できない       … **最も危険**。DB は戻ったのに中身が読めない
+ */
+function verifyDecryption(db) {
+  if (masterKey === "") {
+    return { state: "no-key", detail: `${keyVars.join(" / ")} がどちらも環境にありません` };
+  }
+  const row = query(db, 'SELECT ciphertext FROM "SecretRow" LIMIT 1');
+  if (row === "") return { state: "no-data", detail: "SecretRow に暗号文がありません" };
+  try {
+    // `@platform/crypto` と同じ導出・同じ形式(base64(iv):base64(tag):base64(本体))。
+    // salt は apps/internal-app の secret-store.ts に合わせる。
+    const key = scryptSync(masterKey, "platform-secret-store", 32);
+    const [iv, tag, body] = row.split(":");
+    const d = createDecipheriv("aes-256-gcm", key, Buffer.from(iv, "base64"));
+    d.setAuthTag(Buffer.from(tag, "base64"));
+    Buffer.concat([d.update(Buffer.from(body, "base64")), d.final()]);
+    return { state: "ok", detail: "暗号化した項目を復号できました" };
+  } catch (e) {
+    return { state: "ng", detail: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+if (!DRY) {
+  const v = verifyDecryption(restoreDb);
+  if (v.state === "ok") {
+    console.log(`   🔓 復号確認: ${v.detail}`);
+  } else if (v.state === "no-data") {
+    // **これは訓練の失敗ではない。** ただし「確かめていない」ことは伝える
+    console.log(`   ⚪ 復号確認: ${v.detail}(確かめる対象がありません)`);
+    console.log("      現在このリポジトリで暗号化して保存しているのは SecretRow だけです。");
+    console.log("      暗号化する列を増やしたら、ここの確認対象も増やしてください。");
+  } else if (v.state === "no-key") {
+    console.log(`\n   ⚠ ${v.detail}`);
+    console.log("     DB を戻せても、**暗号化した項目は読めません**。");
+    console.log("     鍵は DB と別の場所に保管し、訓練でも復号まで確かめてください。");
+    console.log("     (シェルに無いだけで .env にはある場合もあります)");
+  } else {
+    console.error(`\n❌ 復号できませんでした: ${v.detail}`);
+    console.error("   **DB は戻せたのに中身が読めない状態です。** 鍵が当時のものと違う可能性があります。");
+    console.error("   鍵をローテーションしたなら、古い鍵も保管されているか確認してください。");
+    process.exit(1);
+  }
+}
+if (missing.length === keyVars.length && DRY) {
+  console.log(`\n   ⚠ 秘密鍵が環境にありません: ${keyVars.join(", ")}`);
+  console.log("     このまま流すと、復号の確認だけ飛ばされます。");
 }
 
 const minutes = Math.max(1, Math.round((Date.now() - started) / 60_000));
@@ -254,12 +337,40 @@ if (DRY) {
 console.log(`✅ 復元できました(${minutes} 分)`);
 console.log(`   ダンプ: ${path.relative(ROOT, hostDump)}`);
 console.log("");
-console.log("**ここからは人がやること**:");
+// **機械で分かる分は自分で書く。**
+// 「あとで記録する」は積み重なって未記録のまま残る(2026-08)。
+// 実施日・所要時間・元のダンプ・照合結果は測れるので、ここで入れておく。
+// **人が書くのは「詰まったこと」と「直したこと」**だけにする。
+if (!DRY) {
+  const recordPath = path.join(ROOT, "ops/drills/restore-drill.json");
+  try {
+    const rec = JSON.parse(readFileSync(recordPath, "utf8"));
+    rec.lastDrillAt = new Date().toISOString();
+    rec.durationMinutes = Math.max(1, Math.round((Date.now() - startedAt) / 60_000));
+    rec.restoredFrom = dumpName;
+    // **人が書く欄は消さない。** 前回の指摘が残っていれば引き継ぐ
+    rec.operator = rec.operator ?? null;
+    writeFileSync(recordPath, `${JSON.stringify(rec, null, 2)}\n`);
+    console.log(`   記録に書きました: ${path.relative(ROOT, recordPath)}`);
+    console.log("   **実施者・詰まったこと・直したことは、人が足してください。**");
+    console.log("");
+  } catch (e) {
+    console.warn("   ⚠ 記録に書けませんでした(訓練そのものは成功しています)", e);
+  }
+}
+
+// **人にしか出来ないことだけを人に残す。**
+// 件数の照合と復号の確認は上で機械が済ませた。残るのは
+// 「画面を開いて業務が再開できると判断すること」と「詰まりを書くこと」だけ。
+console.log("**ここからは人がやること**(2 つ):");
 console.log(`  1. アプリを ${restoreDb} に向けて起動し、ログインして主要画面を 1 つ開く`);
 console.log("     (テーブルが戻っただけでは、業務が再開できる証明になりません)");
-console.log("  2. 暗号化した項目が読めるか確かめる");
-console.log("  3. 詰まった箇所を docs/ops/BACKUP_RESTORE.md に書き足す");
-console.log("  4. 記録する:");
+console.log("");
+console.log(`     DATABASE_URL="${mask(withDatabase(sourceUrl, restoreDb))}" pnpm dev:internal`);
+console.log("     ※ パスワードは伏せて表示しています。実行時は .env の値に置き換えてください");
+console.log("");
+console.log("  2. 詰まった箇所を docs/ops/BACKUP_RESTORE.md に書き足し、記録を仕上げる");
+console.log("     (実施日・所要時間・元のダンプ・件数の照合・復号の確認は書き込み済み):");
 console.log("");
 console.log(`     node tools/record-drill.mjs \\`);
 console.log(`       --minutes <画面確認まで含めた実測> \\`);

@@ -70,7 +70,7 @@ export function findUsages(exportName) {
       }
     }
   };
-  for (const area of ["apps", "demos"]) {
+  for (const area of ["apps"]) {
     const dir = path.join(ROOT, area);
     if (existsSync(dir)) walk(dir);
   }

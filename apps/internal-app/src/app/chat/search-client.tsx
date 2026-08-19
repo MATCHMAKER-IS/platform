@@ -61,7 +61,10 @@ export function SearchClient({ scope = "chat", fetchImpl }: SearchClientProps) {
     <div className="flex flex-col gap-3">
       {/* SearchInput は onChange ではなく **onValueChange**(文字列を直接受け取る) */}
       <SearchInput value={query} onValueChange={setQuery} placeholder="メッセージを検索" />
-      {query.trim().length > 0 && results.length === 0 && !loading && <EmptyState title="一致する結果がありません" />}
+      {query.trim().length > 0 && results.length === 0 && !loading && <EmptyState
+      title="一致する結果がありません"
+      description="別の言葉で探すか、期間や相手の絞り込みを外してみてください。"
+    />}
       <List>
         {results.map((r) => {
           const body = "text" in r ? r.text : "";

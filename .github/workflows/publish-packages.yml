@@ -1,0 +1,86 @@
+name: Publish packages (GitHub Packages)
+
+# **タグを打ったときだけ動きます。** main への push では動きません。
+#
+# 【なぜタグ起点か】
+# main へ入るたびに publish すると、**アプリ側が「いつの版か」を選べません**。
+# 月 2 回の更新に合わせてタグを打ち、その時点のものを配ります。
+#
+#   git tag v2026.8.0 && git push origin v2026.8.0
+#
+# 【版の付け方】
+# **日付式・120 パッケージ一括（lockstep）**です（ADR-0026）。
+#   v2026.8.0 … 2026 年 8 月の 1 回目
+#   v2026.8.1 … 同月の修正版
+# 個別に版を振らないのは、**120 個の組み合わせを検証できない**からです。
+on:
+  push:
+    tags: ["v[0-9]*"]
+  # **手で流せるようにしておく。** 初回や、publish だけやり直したいときに使う
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "publish せずに、何が出るかだけ見る"
+        type: boolean
+        default: true
+
+# **必要な権限だけを与える。**
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          # **GitHub Packages を向ける。** スコープは Organization 名と
+          # 一致していなければならない（GitHub Packages の制約）
+          registry-url: https://npm.pkg.github.com
+          scope: "@mtmk-cc"
+
+      - run: pnpm install --frozen-lockfile
+
+      # **配る前に、通ることを確かめる。**
+      # ここを飛ばすと、**壊れたものが数十本のアプリに配られます**。
+      # 取り消しはできません（同じ版で publish し直せない）
+      - name: 検査
+        run: pnpm check
+
+      - name: ビルド
+        run: pnpm -r --workspace-concurrency=1 run build
+
+      # タグから版を取り出す（v2026.8.0 → 2026.8.0）
+      - name: 版を決める
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=0.0.0-dev.$(date +%Y%m%d%H%M%S)" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # **`private: true` のままでは publish できません。**
+      # リポジトリのファイルは書き換えず、**CI の中だけ**で外します
+      # （コミットに戻さないこと。手元は今までどおり workspace で動かす）
+      - name: publish 用に package.json を整える
+        run: node tools/prepare-publish.mjs --version "${{ steps.version.outputs.value }}"
+
+      - name: publish
+        if: ${{ github.event_name == 'push' || !inputs.dry-run }}
+        run: pnpm -r --filter "./packages/**" publish --no-git-checks --access restricted
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: dry-run（何が出るかだけ）
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry-run }}
+        run: pnpm -r --filter "./packages/**" publish --dry-run --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

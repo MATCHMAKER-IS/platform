@@ -7,8 +7,6 @@
       "DOM.Iterable"
     ],
     "jsx": "preserve",
-    "module": "esnext",
-    "moduleResolution": "bundler",
     "noEmit": true,
     "plugins": [
       {
@@ -23,6 +21,7 @@
   ],
   "exclude": [
     "**/*.test.ts",
-    "**/*.test.tsx"
+    "**/*.test.tsx",
+    "src/generated/**"
   ]
 }

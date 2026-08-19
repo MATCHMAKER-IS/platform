@@ -25,6 +25,17 @@ RUN pnpm install --frozen-lockfile --offline
 # `--schema` は Prisma 7 の設定ファイルと併用できない(拒否される)。環境変数で渡す
 RUN PRISMA_SCHEMA=../../apps/internal-app/prisma/schema.prisma pnpm --filter @platform/db exec prisma generate
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# **コンテナの時刻を JST にする。** 既定は UTC で、
+# `new Date().getHours()` などが **9 時間ずれます**。
+#
+# 日付の表示は `formatDateJst` を通しているので画面は正しく出ますが、
+# **サーバ側でローカル時刻を使う箇所**(`check-server-localtime` が
+# 上限 25 件で管理)が UTC で動いてしまいます
+# ——「今日の分」を数える処理が、**JST の 09:00 で日付が変わる**ことになる。
+#
+# `tzdata` を入れないと `TZ` を指定しても効きません。
+ENV TZ=Asia/Tokyo
 # env.ts の fail-fast(zod 必須値)対策: ビルド時のみのダミー値(実行時は env_file で上書き)
 RUN DATABASE_URL=postgresql://build:build@localhost:5432/build \
     MAIL_FROM=build@example.com \
@@ -33,6 +44,20 @@ RUN DATABASE_URL=postgresql://build:build@localhost:5432/build \
 
 # 実行(standalone 出力のみの薄いイメージ)
 FROM node:22-bookworm-slim AS runner
+
+# **日本語フォントを入れる。** slim イメージには 1 つも入っていない。
+#
+# 無いと PDF・画像出力の日本語がすべて □(豆腐)になる。
+# 画面(ブラウザ)は利用者の端末のフォントで描くので**開発中は気づけず**、
+# サーバ側で描く帳票・グラフ・OGP 画像だけが壊れる。
+# しかも文字化けではなく「□が並ぶ」ので、原因がフォントだと分かりにくい。
+#
+# `fonts-noto-cjk` は Noto Sans CJK JP を含む(約 100MB)。
+# 帳票を出さないアプリでは不要なので、他の Dockerfile には入れていない。
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends fonts-noto-cjk tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000

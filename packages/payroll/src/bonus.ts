@@ -190,7 +190,7 @@ export function bonusWithholdingTax(
   const row = table.rows.find((r) => r.dependents === col && prev >= r.from && prev < r.to);
   if (row === undefined) {
     throw new Error(
-      `賞与の算出率表(${table.year})に 扶養 ${col} 人・前月給与 ${prev.toLocaleString()} 円 の行がありません`,
+      `賞与の算出率表(${table.year})に 扶養 ${col} 人・前月給与 ${prev.toLocaleString("ja-JP")} 円 の行がありません`,
     );
   }
   return Math.floor(Math.max(0, input.bonusAfterInsurance) * row.rate);

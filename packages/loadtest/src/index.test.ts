@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { percentile, latencyStats, weightedPick, activeWorkers, formatResult } from "./index";
+import { percentile, latencyStats, weightedPick, activeWorkers, formatResult, type ScenarioStep } from "./index";
 
 describe("percentile", () => {
   const samples = [10, 20, 30, 40, 50];
@@ -71,10 +71,14 @@ describe("latencyStats", () => {
 });
 
 describe("weightedPick(利用パターンの再現)", () => {
-  const steps = [
-    { name: "一覧", weight: 7, request: () => ({ url: "/list" }) },
-    { name: "詳細", weight: 2, request: () => ({ url: "/detail" }) },
-    { name: "更新", weight: 1, request: () => ({ url: "/update" }) },
+  // **`request` は `Promise<RequestOutcome>` を返す。**
+  // `{ url }` を返しており実型と食い違っていた——`weightedPick` は
+  // `request` を呼ばないのでテストは通っていたが、**型としては誤り**
+  // (2026-08、型検査が回っていなかったため気づけなかった)。
+  const steps: ScenarioStep[] = [
+    { name: "一覧", weight: 7, request: async () => ({ ok: true }) },
+    { name: "詳細", weight: 2, request: async () => ({ ok: true }) },
+    { name: "更新", weight: 1, request: async () => ({ ok: true }) },
   ];
 
   it("**乱数を引数で受け取るので結果を固定できる**(テストが揺れない)", () => {
@@ -93,9 +97,9 @@ describe("weightedPick(利用パターンの再現)", () => {
   });
 
   it("重み未指定は 1 として扱う", () => {
-    const equal = [
-      { name: "a", request: () => ({ url: "/a" }) },
-      { name: "b", request: () => ({ url: "/b" }) },
+    const equal: ScenarioStep[] = [
+      { name: "a", request: async () => ({ ok: true }) },
+      { name: "b", request: async () => ({ ok: true }) },
     ];
     expect(weightedPick(equal, 0.2).name).toBe("a");
     expect(weightedPick(equal, 0.8).name).toBe("b");

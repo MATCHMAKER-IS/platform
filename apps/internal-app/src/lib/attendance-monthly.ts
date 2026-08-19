@@ -5,12 +5,26 @@
 import { utcDate, daysInMonth, isBusinessDay } from "@platform/datetime";
 import { summarizeAttendance, type AttendanceRecord } from "./attendance";
 
-/** 指定月(year, month=1〜12)の営業日数(土日・祝日を除く)。 */
-export function expectedWorkdays(year: number, month: number): number {
+/**
+ * 指定月(year, month=1〜12)の営業日数(土日・祝日を除く)。
+ *
+ * **会社休日を渡すこと。** 年末年始(12/29〜1/3)や夏季休暇は**祝日ではない**ので、
+ * 渡さないと営業日として数えられる——**12 月は 3 日・1 月は 2 日多く出る**。
+ *
+ * 所定労働日数が過大になると**出勤率(実績 ÷ 所定)が低く出る**ため、
+ * **有給の付与条件(出勤率 8 割)の判定を誤らせる**。
+ * 12 月と 1 月だけ勤怠の見え方が変わるので、原因も分かりにくい(2026-08 に対応)。
+ *
+ * @param year 年
+ * @param month 月(1〜12)
+ * @param extraHolidays 会社休日(`"YYYY-MM-DD"` の集合。就業規則のカレンダー)
+ * @returns 営業日数
+ */
+export function expectedWorkdays(year: number, month: number, extraHolidays?: ReadonlySet<string>): number {
   let count = 0;
   const dim = daysInMonth(year, month);
   for (let d = 1; d <= dim; d++) {
-    if (isBusinessDay(utcDate(year, month, d))) count++;
+    if (isBusinessDay(utcDate(year, month, d), extraHolidays)) count++;
   }
   return count;
 }
@@ -42,11 +56,13 @@ export function monthlyAttendance(
   records: readonly AttendanceRecord[],
   yearMonth: string,
   leaves: readonly LeaveRecord[] = [],
+  /** 会社休日(`"YYYY-MM-DD"` の集合)。**渡さないと年末年始が営業日に数えられる**。 */
+  extraHolidays?: ReadonlySet<string>,
 ): MonthlyAttendance {
   const [y, m] = yearMonth.split("-").map(Number);
   const monthRecords = records.filter((r) => inMonth(r.date, yearMonth));
   const summary = summarizeAttendance(monthRecords);
-  const expected = y && m ? expectedWorkdays(y, m) : 0;
+  const expected = y && m ? expectedWorkdays(y, m, extraHolidays) : 0;
   const paidLeaveDays = leaves.filter((l) => inMonth(l.date, yearMonth) && l.type === "paid").length;
   return {
     yearMonth,

@@ -5,6 +5,7 @@
  * @packageDocumentation
  */
 import { errorResult, jsonResult, textResult, type McpToolDef, type McpResourceDef, type McpPromptDef } from "@platform/mcp";
+import { createApprovalQueue } from "@platform/ai";
 import { salesReport, reportToCsv } from "./reports";
 
 /** ツールが必要とする請求の最小形。 */
@@ -20,7 +21,10 @@ export interface McpInvoiceLike {
 
 /** Zoho CRM 呼び出しの最小形(@platform/zoho の Result 形と構造互換)。 */
 export interface McpZohoLike {
-  searchRecords(module: string, query: { word?: string; criteria?: string; email?: string }): Promise<{ ok: boolean; value?: { data?: unknown[] }; error?: unknown }>;
+  // **`info.more_records` を型に含める。** 「まだ他にもある」ことを
+  // 伝えるために使っているのに、以前は型定義に無かった(2026-08、
+  // 同種のパターンを全 route.ts の一括型検査で発見)。
+  searchRecords(module: string, query: { word?: string; criteria?: string; email?: string }): Promise<{ ok: boolean; value?: { data?: unknown[]; info?: { more_records?: boolean } }; error?: unknown }>;
   getRecord(module: string, id: string): Promise<{ ok: boolean; value?: { data?: unknown[] }; error?: unknown }>;
 }
 
@@ -42,8 +46,35 @@ export interface McpToolDeps {
     audit(action: string, target: string, detail: Record<string, unknown>): Promise<void>;
     /** 監査に残す実行主体(API キーの id 等)。 */
     actor: string;
+    /**
+     * **破壊的な操作(`invoice_cancel`)の承認キュー。**
+     * 渡さなければ即実行(従来どおり)。渡すと「提案」に留め、
+     * 人が承認するまで実行しない——AI に強い道具を安全に持たせるための中間段。
+     */
+    approvals?: ReturnType<typeof createApprovalQueue>;
+    /**
+     * 承認待ちが積まれたときに知らせる(任意)。
+     *
+     * **承認画面を毎回開いて確認する運用は現実的ではない。** 承認は
+     * 「早く見てほしいが緊急ではない」種類の通知で、push が向く用途
+     * (`@platform/push` の設計コメントを参照)。
+     *
+     * @param approvalId 承認キューが払い出した ID
+     */
+    notifyApprovers?: (approvalId: string, action: string, reason: string) => Promise<void>;
   };
   now?: () => Date;
+  /**
+   * 実行の記録先(`@platform/ai` の `createToolCallLog`)。
+   *
+   * **渡さなければ記録しない**(既定はメモリ実装の作成コストを避ける)。
+   * 「なぜこのデータが変わったか」を追えないと、AI が変な動きをしたときに
+   * 原因が分からない——`@platform/audit`(人の操作)とは別に、
+   * **「誰の指示で AI が何を呼んだか」**を残す。
+   */
+  toolCallLog?: {
+    record(input: { actor: string; tool: string; input: Record<string, unknown>; ok: boolean; latencyMs: number; error?: string }): void;
+  };
 }
 
 const str = (v: unknown): string | undefined => (typeof v === "string" && v.trim() ? v.trim() : undefined);
@@ -85,7 +116,18 @@ export function buildMcpTools(deps: McpToolDeps): McpToolDef[] {
       name: "partner_list",
       description: "取引先の一覧(コード・名称・区分)。kind で絞り込み可(customer / supplier など)。",
       inputSchema: { type: "object", properties: { kind: { type: "string" } } },
-      handler: async (args) => jsonResult(await deps.partnerStore.list(str(args.kind))),
+      handler: async (args) => {
+        // **全件を返さない。** 取引先は数百件になりうるので、そのまま返すと
+        // **AI のコンテキストを埋め尽くす**——1 件 500 文字 × 200 件で 10 万文字になり、
+        // **会話の履歴や指示が押し出される**(AI が「何を聞かれていたか」を見失う)。
+        const MAX_ROWS = 50;
+        const all = await deps.partnerStore.list(str(args.kind));
+        if (all.length > MAX_ROWS) {
+          // **切り詰めたことを伝える**(黙って切ると「これで全部」と思われる)
+          return jsonResult({ partners: all.slice(0, MAX_ROWS), total: all.length, note: `全 ${all.length} 件のうち先頭 ${MAX_ROWS} 件。kind で絞ってください。` });
+        }
+        return jsonResult(all);
+      },
     },
     {
       name: "inventory_status",
@@ -123,11 +165,20 @@ export function buildMcpTools(deps: McpToolDeps): McpToolDef[] {
         if (!deps.zoho) return errorResult("Zoho が未設定です(ZOHO_CLIENT_ID / ZOHO_CLIENT_SECRET / ZOHO_REFRESH_TOKEN を設定して再起動してください)");
         const module = str(args.module);
         if (!module) return errorResult("module は必須です");
-        const query = { word: str(args.word), criteria: str(args.criteria), email: str(args.email) };
+        // **返す件数を絞る。** Zoho の既定は 200 件/ページで、
+        // そのまま返すと **AI のコンテキストを埋め尽くす**。
+        // 足りなければ条件を絞ってもらう方が、結局は速い(2026-08)。
+        const MAX_ROWS = 20;
+        const query = { word: str(args.word), criteria: str(args.criteria), email: str(args.email), perPage: MAX_ROWS };
         if (!query.word && !query.criteria && !query.email) return errorResult("word / criteria / email のいずれかを指定してください");
         const r = await deps.zoho.searchRecords(module, query);
         if (!r.ok) return errorResult(`Zoho 検索に失敗しました: ${JSON.stringify(r.error)}`);
-        return jsonResult(r.value?.data ?? []);
+        const rows = r.value?.data ?? [];
+        // **切り詰めたことを伝える。** 黙って切ると「これで全部」と思われる
+        if (r.value?.info?.more_records === true) {
+          return jsonResult({ records: rows, note: `他にもレコードがあります(この結果は先頭 ${MAX_ROWS} 件)。条件を絞ってください。` });
+        }
+        return jsonResult(rows);
       },
     },
     {
@@ -170,13 +221,37 @@ export function buildMcpTools(deps: McpToolDeps): McpToolDef[] {
       },
       {
         name: "invoice_cancel",
-        description: "請求書を取り消す(破壊的・書き込み)。number を指定。実行は監査ログに残る。",
-        inputSchema: { type: "object", properties: { number: { type: "string" } }, required: ["number"] },
+        description: w.approvals
+          ? "請求書の取消を提案する(破壊的)。number と reason(取消理由)を指定。**即座には実行されない**——人が承認するまで待つ。"
+          : "請求書を取り消す(破壊的・書き込み)。number を指定。実行は監査ログに残る。",
+        inputSchema: {
+          type: "object",
+          properties: {
+            number: { type: "string" },
+            // **承認キュー方式のときだけ理由を求める。** 「なぜそうしたいか」が
+            // 無いと、承認する人は AI の言い分を判断できない。
+            ...(w.approvals ? { reason: { type: "string", description: "取消の理由(承認者が読む)" } } : {}),
+          },
+          required: w.approvals ? ["number", "reason"] : ["number"],
+        },
         scopes: ["invoice:write"],
         destructive: true,
         handler: async (args) => {
           const number = str(args.number);
           if (!number) return errorResult("number は必須です");
+          // **破壊的操作は、承認キューがあれば提案に留める。**
+          // AI が「取り消したい」と言ってきても、その場では何も起きない。
+          // 人が承認画面で押すまで、請求書はそのまま残る。
+          if (w.approvals) {
+            const reason = str(args.reason);
+            if (!reason) return errorResult("reason(取消理由)は必須です");
+            const id = w.approvals.propose({ actor: w.actor, action: `invoice_cancel: ${number}`, reason, payload: { number } });
+            // **通知は失敗しても提案自体は成立させる。** push が届かなくても、
+            // 承認待ちの記録は残っているので、画面を開けば気づける
+            // (通知は「早く気づく」ための補助であって、唯一の経路にしない)。
+            await w.notifyApprovers?.(id, `invoice_cancel: ${number}`, reason).catch(() => undefined);
+            return jsonResult({ proposed: true, approvalId: id, message: "承認待ちに登録しました。管理者の承認後に実行されます。" });
+          }
           const r = await w.cancelInvoice(number);
           if (!r.ok) return errorResult(r.error);
           await w.audit("invoice.cancel", number, {});
@@ -186,7 +261,28 @@ export function buildMcpTools(deps: McpToolDeps): McpToolDef[] {
     );
   }
 
-  return tools;
+  // **全ツールの実行を記録で包む。** 個々のハンドラに記録コードを
+  // 埋め込むと、ツールを足すたびに書き忘れが起きる——1 箇所で漏れなく行う。
+  if (!deps.toolCallLog) return tools;
+  const log = deps.toolCallLog;
+  const actor = deps.writes?.actor ?? "mcp";
+  return tools.map((t) => ({
+    ...t,
+    handler: async (args: Record<string, unknown>) => {
+      const started = Date.now();
+      try {
+        const result = await t.handler(args);
+        // **`isError` も失敗として数える。** ハンドラが例外を投げず
+        // `errorResult(...)` を返す設計なので、catch だけでは拾えない。
+        const failed = (result as { isError?: boolean }).isError === true;
+        log.record({ actor, tool: t.name, input: args, ok: !failed, latencyMs: Date.now() - started });
+        return result;
+      } catch (e) {
+        log.record({ actor, tool: t.name, input: args, ok: false, latencyMs: Date.now() - started, error: e instanceof Error ? e.message : String(e) });
+        throw e;
+      }
+    },
+  }));
 }
 
 /** MCP リソース(読み取り専用の参照データ)を組み立てる。 */

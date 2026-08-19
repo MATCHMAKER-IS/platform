@@ -8,10 +8,10 @@
  *
  * 変更したら `node --experimental-strip-types tools/smoke.mjs` で
  * 「findContrastIssues は空」が通ることを必ず確認する。
- */
-/**
- * 標準テーマ(スキン)。性格の異なる 4 種を用意。アプリはこれをそのまま使うか、
- * registry.register() で独自テーマを追加して差し替える。
+ *
+ * 標準テーマ(スキン)は性格の異なる 4 種を用意。アプリはこれをそのまま使うか、
+ * `registry.register()` で独自テーマを追加して差し替える。
+ *
  * @packageDocumentation
  */
 import type { Theme } from "./tokens";

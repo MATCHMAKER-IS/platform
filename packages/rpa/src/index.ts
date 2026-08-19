@@ -53,6 +53,17 @@ export interface RpaRetryOptions {
 }
 
 /** RPA タスク定義。 */
+/**
+ * タスク 1 件の既定タイムアウト(ミリ秒)。
+ *
+ * **10 分。** 画面操作の往復を含めても普通は数分で終わる。
+ * これを超えるものは「相手が応答していない」とみなす方が、
+ * 待ち続けて後続を止めるより被害が小さい。
+ *
+ * 長時間の処理を承知で回すなら `timeoutMs: 0` で無効にできる。
+ */
+const DEFAULT_TASK_TIMEOUT_MS = 10 * 60 * 1000;
+
 export interface RpaTask<T> {
   /** タスク名(監査・ログに出る)。 */
   name: string;
@@ -65,7 +76,7 @@ export interface RpaTask<T> {
   lockTtlMs?: number;
   /** ロック取得の待機上限(既定 0 = 待たずに、取れなければ CONFLICT)。 */
   lockWaitMs?: number;
-  /** タスク全体のタイムアウト(既定 なし)。超えると signal.aborted=true にし、TIMEOUT を返す。 */
+  /** タスク全体のタイムアウト(**既定 10 分**)。超えると signal.aborted=true にし、TIMEOUT を返す。`0` で無効。 */
   timeoutMs?: number;
   /** 冪等キー。同じキーで既に成功済みなら実行をスキップ(runOnce に記憶を注入)。 */
   idempotencyKey?: string;
@@ -120,8 +131,10 @@ const defaultSleep = (ms: number): Promise<void> => new Promise((r) => setTimeou
  *   },
  * });
  * ```
- * @param options.browser ブラウザの実装(**Playwright などを注入**)
- * @param options.timeoutMs 各操作のタイムアウト
+ * @param options.lock 二重実行を防ぐロック。`audit` は監査ログの記録先、
+ *   `seenStore` は同じ入力を二度処理しないための記録先、`actor` は実行者名。
+ *   `now` / `genRunId` / `sleep` はテスト注入用。
+ *   **ブラウザや待ち時間はここでは渡さない**(手順の側で指定する)
  */
 export function createRpaRunner(options: RpaRunnerOptions = {}) {
   const now = options.now ?? (() => Date.now());
@@ -163,8 +176,18 @@ export function createRpaRunner(options: RpaRunnerOptions = {}) {
 
       const signal = { aborted: false };
       let timer: ReturnType<typeof setTimeout> | undefined;
-      if (task.timeoutMs !== undefined) {
-        timer = setTimeout(() => { signal.aborted = true; }, task.timeoutMs);
+      // **既定のタイムアウトを持たせる。** このパッケージの説明は
+      // 「タイムアウトを共通化する」なのに、指定しなければ効かなかった(2026-08)。
+      //
+      // RPA は外部システム(ブラウザ操作・画面遷移)を待つので、
+      // 相手が応答しないと待ち続ける。**直列化しているので後続が全部止まり**、
+      // `cron` から呼ばれていれば次回もスキップされ続ける
+      // ——**業務が止まっているのにエラーも出ない**。
+      //
+      // 0 を渡せば無効にできる(長時間の処理を承知で回す場合)。
+      const timeoutMs = task.timeoutMs ?? DEFAULT_TASK_TIMEOUT_MS;
+      if (timeoutMs > 0) {
+        timer = setTimeout(() => { signal.aborted = true; }, timeoutMs);
       }
 
       const maxAttempts = Math.max(1, task.retry?.maxAttempts ?? 1);

@@ -8,7 +8,7 @@
  * 呼び出しは cron から(`/api/admin/system-alerts/scan`)。
  * @packageDocumentation
  */
-import { createAlertManager, errorRateAbove, avgLatencyAbove, type Alert, type MetricsView } from "@platform/observability";
+import { createAlertManager, errorRateAbove, avgLatencyAbove, type Alert, type MetricsView, type AlertRule } from "@platform/observability";
 import { metrics } from "./observability";
 import { log, mailer } from "./services";
 import { featureEnv } from "./env";
@@ -18,7 +18,13 @@ import { featureEnv } from "./env";
  * - エラー率 0% が絶対の線 → 1% 超で critical
  * - 一覧の p95 目標 300ms → 平均 500ms 超が続くなら warning
  */
-const RULES = [
+// **型注釈を付ける。** 2026-08 に `describe` を `message` と書き誤り、
+// **評価器が実行時に落ちる**状態のまま気づけなかった
+// ——`AlertRule[]` と書いてあれば型検査で止まる。
+//
+// **静的な検査(文字列が含まれるか)は通っていた**のも見落としの原因。
+// ルールは**実際に評価器へ通して**確かめること(smoke に追加済み)。
+const RULES: AlertRule[] = [
   {
     name: "http_error_rate",
     severity: "critical" as const,
@@ -32,9 +38,59 @@ const RULES = [
     },
   },
   {
+    name: "outbox_exhausted",
+    severity: "critical" as const,
+    // **再試行を使い切った通知がある。** 2026-08 まで `log.warn` だけで、
+    // **見る人がいなければ気づけなかった**——経費の承認通知が届かないと、
+    // 申請者は「まだ承認されない」、承認者は「依頼が来ていない」と思ったまま
+    // **承認が止まる**。1 件でも起きたら知らせる(件数が少ないほど原因を追いやすい)
+    condition: (view: { counters: Record<string, number> }) =>
+      Object.entries(view.counters)
+        .filter(([k]) => k.startsWith("outbox.exhausted"))
+        .reduce((a, [, v]) => a + v, 0) > 0,
+    describe: () => "通知の再試行が上限に達しました。届いていない通知があります",
+  },
+  {
+    name: "cron_failed",
+    severity: "critical" as const,
+    // **定期実行が失敗している。** メトリクスには載っていた
+    // (`cron_runs_total{outcome:"error"}`)が、**アラートが無く誰も見ていなかった**。
+    //
+    // 通知リレーが止まると **Outbox が溜まり続け**、やがて再試行を使い切って
+    // `outbox_exhausted` になる——**そこまで進む前に気づきたい**。
+    // 定期実行は「動いていて当たり前」なので、**止まっても誰も報告してこない**。
+    condition: (view: { counters: Record<string, number> }) =>
+      Object.entries(view.counters)
+        .filter(([k]) => k.startsWith("cron_runs_total") && k.includes("error"))
+        .reduce((a, [, v]) => a + v, 0) > 0,
+    describe: () => "定期実行が失敗しました。通知やレポートが止まっている可能性があります",
+  },
+  {
+    name: "audit_write_failed",
+    severity: "critical" as const,
+    // **監査ログの記録に失敗した。** 「誰がいつログインしたか」を後から追えなくなる。
+    //
+    // **欠けたこと自体が記録に残らない**のが問題で、監査のときに
+    // **「記録が無い＝ログインしていない」と誤読される**——
+    // 実際には「記録できなかっただけ」かもしれない。
+    // 1 件でも起きたら知らせる。
+    condition: (view: { counters: Record<string, number> }) =>
+      Object.entries(view.counters)
+        .filter(([k]) => k.startsWith("audit.write_failed"))
+        .reduce((a, [, v]) => a + v, 0) > 0,
+    describe: () => "監査ログの記録に失敗しました。追跡できない操作があります",
+  },
+  {
     name: "http_latency",
     severity: "warning" as const,
     forEvaluations: 3,
+    // **ADR 0012 の目標は「p95 300ms」だが、ここは「平均 500ms」を見ている。**
+    // **平均と p95 は別物**——平均が 500ms 以下でも、
+    // **一部の利用者だけが 2 秒待たされている**ことはありうる。
+    //
+    // p95 を出す材料はある(`metrics.snapshot().histograms` に
+    // `buckets` / `sum` / `count`)ので、**測るなら自前で計算する**。
+    // 今は平均で「明らかに遅い」だけを拾っている(2026-08 に確認)。
     condition: avgLatencyAbove("http_request_duration_ms", 500),
     describe: () => "API の平均応答が 500ms を超えています(一覧の目標は p95 300ms)",
   },
@@ -100,8 +156,20 @@ export async function evaluateAndNotify(deps?: {
 
   if (slack) {
     try {
+      // no-ssrf-check: 送信先は Slack の Webhook URL(環境変数で設定する固定値)。利用者は指定できない
       const post = deps?.postSlack ?? (async (url: string, text: string) => {
-        const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) });
+        // **時間を切る。**
+        // 相手が応答しないと、アラート送信でこちらが止まる。
+        // 「異常を知らせる仕組みが異常で詰まる」のが最悪(2026-08)
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ text }),
+          signal: AbortSignal.timeout(5000),
+          // **リダイレクトを追わない。** 通知先が差し替えられたとき、
+          // 障害の内容(内部の状態)が別の場所へ送られる
+          redirect: "manual",
+        });
         if (!res.ok) throw new Error(`Slack が ${res.status} を返しました`);
       });
       await post(slack, `${subject}\n${body}`);

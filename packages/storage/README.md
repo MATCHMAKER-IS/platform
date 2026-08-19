@@ -1,11 +1,25 @@
 # @platform/storage
 
-ファイル操作の共通部品(Adapter パターン)。保存先を意識せず使えます。
+ファイルの保管（ローカル・S3 互換）。
 
-- `createLocalStorage(root)` … ローカルディスク(開発・小規模)
-- `createS3Storage(config)` … AWS S3 / ConoHa 等の S3 互換ストレージ
+## これは何のためか
+
+**保管先を後から変えられる**ようにするためのものです。
+開発中はローカル、本番は S3——**アプリのコードは変えません**。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **key に `../` は使えません** | 例外になります——**利用者が付けた名前をそのまま key にすると踏みます**。**key はこちらで作って**ください |
+| **既定では上書きしません** | 同じ key に置くと失敗します——**事故で消える**のを防ぐためです |
+| **消しても戻せません** | バケットの版管理は**こちらでは面倒を見ません**。消す前に確かめてください |
+| **ローカル実装は 1 台まで** | 2 台構成だと**片方にしか無いファイル**ができます |
+
+## よく使うもの
 
 ```ts
+import { createLocalStorage, createS3Storage } from "@platform/storage";
 import { createStorage, createLocalStorage } from "@platform/storage";
 const storage = createStorage(createLocalStorage("./uploads"));
 await storage.put("invoices/2026-01.pdf", bytes, { contentType: "application/pdf" });

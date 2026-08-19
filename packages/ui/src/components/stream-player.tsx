@@ -23,7 +23,6 @@ export interface StreamPlayerProps {
   className?: string;
 }
 
-/** HLS/DASH ストリーミングプレイヤー。 */
 /**
  * 配信の再生。
  *

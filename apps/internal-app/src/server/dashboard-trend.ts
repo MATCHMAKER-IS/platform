@@ -21,7 +21,7 @@ export interface TrendPoint {
 
 /** 直近 n か月の月リスト（YYYY-MM・古い順）を作る。 */
 export function recentMonths(now: Date, n: number): string[] {
-  const to = now.toISOString().slice(0, 7);
+  const to = new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10).slice(0, 7);
   const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (n - 1), 1));
   const from = start.toISOString().slice(0, 7);
   return monthRange(from, to);

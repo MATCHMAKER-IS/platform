@@ -30,7 +30,9 @@ export interface OEmbedOptions {
  * 投稿 URL から oEmbed エンドポイント URL を作る。
  * Instagram はトークンが必要なため null(アプリ側で Graph API 経由に)。
  *
- * @param url 投稿の URL
+ * @param platform 対象のサービス
+ * @param postUrl 投稿の URL
+ * @param options 返す形式・大きさ
  * @returns oEmbed のエンドポイント。**Instagram はトークンが必要なため null**(Graph API 経由にする)
  */
 export function oembedEndpoint(platform: SocialPlatform, postUrl: string, options: OEmbedOptions = {}): string | null {

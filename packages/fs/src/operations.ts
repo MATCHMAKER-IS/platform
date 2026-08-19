@@ -194,7 +194,7 @@ export interface WalkOptions {
  * `node_modules` などを除外する `exclude` を渡すこと。
  *
  * @param root ディレクトリのパス
- * @param options.exclude 除外するディレクトリ名
+ * @param options.filter 除外するディレクトリ名
  * @returns ファイルのパスの配列
  */
 export async function walk(root: string, options: WalkOptions = {}): Promise<string[]> {

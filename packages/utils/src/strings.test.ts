@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   truncate, truncateMiddle, truncateWords, truncateByWidth, textWidth, charLength,
+  toKatakana, toHiragana,
   toHalfWidth, toFullWidth, toHalfWidthDigits, toFullWidthKana, normalizeText,
   normalizeSpace, normalizeNewlines, isBlank, splitLines,
   capitalize, capitalizeWords, camelCase, pascalCase, kebabCase, snakeCase, slugify,
@@ -109,4 +110,52 @@ describe("highlightTerms", () => {
   it("merges overlaps", () => expect(highlightTerms("aaaa", ["aa", "aaa"]).filter((x) => x.match).length).toBe(1));
   it("case-insensitive", () => expect(highlightTerms("Foo foo", "foo").filter((x) => x.match).length).toBe(2));
   it("no match", () => expect(highlightTerms("abc", "xyz")).toEqual([{ text: "abc", match: false }]));
+});
+
+describe("かなの相互変換(ふりがな欄で使う)", () => {
+  // **ふりがな欄はカタカナが慣行**(帳票・銀行口座・保険の書式)。
+  // IME が返す読みはひらがななので、変換して入れる
+  it("ひらがな → カタカナ", () => {
+    expect(toKatakana("やまだ たろう")).toBe("ヤマダ タロウ");
+  });
+  it("カタカナ → ひらがな", () => {
+    expect(toHiragana("ヤマダ タロウ")).toBe("やまだ たろう");
+  });
+  // **かな以外はそのまま。** 漢字混じりでも壊さない
+  it("漢字・記号はそのまま残す", () => {
+    expect(toKatakana("山田たろう")).toBe("山田タロウ");
+    expect(toHiragana("山田タロウ")).toBe("山田たろう");
+  });
+  // **`ー`(長音)は変換しない。** 範囲外なので触らない
+  it("長音記号は変わらない", () => {
+    expect(toHiragana("ラーメン")).toBe("らーめん");
+    expect(toKatakana("らーめん")).toBe("ラーメン");
+  });
+  // **`ヴ` は `ゔ` に対応する**(範囲に含まれるので変換される)
+  it("ヴ ↔ ゔ", () => {
+    expect(toHiragana("ヴ")).toBe("ゔ");
+    expect(toKatakana("ゔ")).toBe("ヴ");
+  });
+  // **半角カナは対象外。** 先に toFullWidthKana を通す必要がある
+  it("半角カナはそのまま(先に全角へ)", () => {
+    expect(toHiragana("ﾔﾏﾀﾞ")).toBe("ﾔﾏﾀﾞ");
+  });
+});
+
+describe("maskEmail: 文字数を漏らさない", () => {
+  // **既存のテストは 4 文字(`taro`)だったので偶然通っていた。**
+  // 文字数に合わせてアスタリスクを増やすと「6 文字」と分かり、
+  // 絞り込みの手がかりになる(2026-08 に固定長へ)
+  it("長さに関わらずアスタリスクは 3 つ", () => {
+    expect(maskEmail("yamada@example.co.jp")).toBe("y***@example.co.jp");
+    expect(maskEmail("ab@example.jp")).toBe("a***@example.jp");
+  });
+  // **1 文字でもマスクする。** 修正前は `a@example.jp` が丸ごと露出していた
+  it("ローカル部が 1 文字でもマスクする", () => {
+    expect(maskEmail("a@example.jp")).toBe("a***@example.jp");
+  });
+  // **`@` が無ければ全体をマスク**(不正な形式でも漏らさない)
+  it("@ が無ければ全体をマスク", () => {
+    expect(maskEmail("こわれた")).not.toContain("こわれた");
+  });
 });

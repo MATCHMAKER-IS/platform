@@ -182,7 +182,21 @@ let memResp = 0;
 export function createMemorySurveyStore(): SurveyStore {
   const surveys: Survey[] = [];
   const responses: SurveyResponse[] = [];
-  const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
+  // **`JSON.parse(JSON.stringify())` を使わない。**
+  // `Date` が文字列になり、`undefined` の項目が消え、`Set` / `Map` は空になる
+  // ——回答に日時が入っていると型が壊れる。
+  //
+  // `@platform/utils` の `deepClone` と同じ形。**依存を増やさない**ため複製している
+  // (この repo は smoke で単体読み込みするので、外部 import を足すと解決できない)。
+  // 片方を直したらもう片方も直すこと(2026-08)。
+  const clone = <T>(x: T): T => {
+    if (x === null || typeof x !== "object") return x;
+    if (x instanceof Date) return new Date(x.getTime()) as unknown as T;
+    if (Array.isArray(x)) return x.map((v) => clone(v)) as unknown as T;
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(x as Record<string, unknown>)) out[k] = clone(v);
+    return out as T;
+  };
   return {
     async list() {
       return surveys.map(clone).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
@@ -222,8 +236,11 @@ export interface SurveyRow {
   status: string;
   audience: unknown;
   anonymous: boolean;
-  closesAt: string | null;
-  createdAt: string;
+  /** DB では `Date | null`。`Survey` の公開契約(`closesAt?: string`)は
+   *  変えない——`rowToSurvey` の境界で変換する(2026-08)。 */
+  closesAt: Date | null;
+  /** DB では `Date`。`Survey` の公開契約(`createdAt: string`)は変えない。 */
+  createdAt: Date;
 }
 
 /** SurveyResponseRow の必要部分（answers は JSON）。 */
@@ -232,7 +249,9 @@ export interface SurveyResponseRow {
   surveyId: string;
   respondent: string | null;
   answers: unknown;
-  submittedAt: string;
+  /** DB では `Date`。`SurveyResponse` の公開契約(`submittedAt: string`)は
+   *  変えない——`rowToResponse` の境界で変換する(2026-08)。 */
+  submittedAt: Date;
 }
 
 /** 使用する Prisma デリゲートの最小ポート。 */
@@ -240,17 +259,17 @@ export interface SurveyStoreDb {
   surveyRow: {
     findMany(args: { orderBy: { createdAt: "desc" } }): Promise<SurveyRow[]>;
     findUnique(args: { where: { id: string } }): Promise<SurveyRow | null>;
-    create(args: { data: { title: string; description: string; questions: unknown; status: string; audience: unknown; anonymous: boolean; closesAt: string | null; createdAt: string } }): Promise<SurveyRow>;
+    create(args: { data: { title: string; description: string; questions: unknown; status: string; audience: unknown; anonymous: boolean; closesAt: Date | null; createdAt: Date } }): Promise<SurveyRow>;
     update(args: { where: { id: string }; data: { status: string } }): Promise<SurveyRow>;
   };
   surveyResponseRow: {
     findMany(args: { where: { surveyId: string } }): Promise<SurveyResponseRow[]>;
-    create(args: { data: { surveyId: string; respondent: string | null; answers: unknown; submittedAt: string } }): Promise<SurveyResponseRow>;
+    create(args: { data: { surveyId: string; respondent: string | null; answers: unknown; submittedAt: Date } }): Promise<SurveyResponseRow>;
   };
 }
 
-const rowToSurvey = (row: SurveyRow): Survey => ({ id: row.id, title: row.title, description: row.description, questions: Array.isArray(row.questions) ? (row.questions as Question[]) : [], status: row.status as Survey["status"], audience: normalizeAudience((row.audience ?? {}) as Partial<Audience>), anonymous: row.anonymous, ...(row.closesAt ? { closesAt: row.closesAt } : {}), createdAt: row.createdAt });
-const rowToResponse = (row: SurveyResponseRow): SurveyResponse => ({ id: row.id, surveyId: row.surveyId, ...(row.respondent ? { respondent: row.respondent } : {}), answers: Array.isArray(row.answers) ? (row.answers as Answer[]) : [], submittedAt: row.submittedAt });
+const rowToSurvey = (row: SurveyRow): Survey => ({ id: row.id, title: row.title, description: row.description, questions: Array.isArray(row.questions) ? (row.questions as Question[]) : [], status: row.status as Survey["status"], audience: normalizeAudience((row.audience ?? {}) as Partial<Audience>), anonymous: row.anonymous, ...(row.closesAt ? { closesAt: row.closesAt.toISOString() } : {}), createdAt: row.createdAt.toISOString() });
+const rowToResponse = (row: SurveyResponseRow): SurveyResponse => ({ id: row.id, surveyId: row.surveyId, ...(row.respondent ? { respondent: row.respondent } : {}), answers: Array.isArray(row.answers) ? (row.answers as Answer[]) : [], submittedAt: row.submittedAt.toISOString() });
 
 /** Prisma 実装。 */
 export function createPrismaSurveyStore(db: SurveyStoreDb): SurveyStore {
@@ -263,14 +282,14 @@ export function createPrismaSurveyStore(db: SurveyStoreDb): SurveyStore {
       return row ? rowToSurvey(row) : undefined;
     },
     async create(input) {
-      const row = await db.surveyRow.create({ data: { title: input.title, description: input.description ?? "", questions: withQuestionIds(input.questions), status: "draft", audience: normalizeAudience(input.audience), anonymous: input.anonymous ?? false, closesAt: input.closesAt ?? null, createdAt: new Date().toISOString() } });
+      const row = await db.surveyRow.create({ data: { title: input.title, description: input.description ?? "", questions: withQuestionIds(input.questions), status: "draft", audience: normalizeAudience(input.audience), anonymous: input.anonymous ?? false, closesAt: input.closesAt ? new Date(input.closesAt) : null, createdAt: new Date() } });
       return rowToSurvey(row);
     },
     async setStatus(id, status) {
       await db.surveyRow.update({ where: { id }, data: { status } });
     },
     async respond(surveyId, answers, respondent) {
-      const row = await db.surveyResponseRow.create({ data: { surveyId, respondent: respondent ?? null, answers, submittedAt: new Date().toISOString() } });
+      const row = await db.surveyResponseRow.create({ data: { surveyId, respondent: respondent ?? null, answers, submittedAt: new Date() } });
       return rowToResponse(row);
     },
     async responses(surveyId) {

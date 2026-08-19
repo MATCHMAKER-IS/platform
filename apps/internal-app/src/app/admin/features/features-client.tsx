@@ -1,7 +1,7 @@
 "use client";
 /** 機能アクセス設定。各機能の有効/無効と、使える役割を管理者が設定する（表示/非表示に反映）。 */
 import * as React from "react";
-import { Button, Checkbox } from "@platform/ui";
+import { Button, Checkbox, PageShell } from "@platform/ui";
 
 interface Feature { key: string; label: string; href: string; }
 interface Rule { enabled: boolean; roles: string[]; }
@@ -30,9 +30,7 @@ export function FeaturesClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   };
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <h1 className="mb-1 text-2xl font-bold">機能アクセス設定</h1>
-      <p className="mb-4 text-xs text-[var(--color-muted)]">機能ごとに有効/無効と、使える役割を設定します。役割を指定しない場合は全役割が対象です。管理者は常に全機能を使えます。</p>
+        <PageShell title="機能アクセス設定" description="機能ごとに有効/無効と、使える役割を設定します。役割を指定しない場合は全役割が対象です。管理者は常に全機能を使えます。">
       {msg && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-success)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-success)]">{msg}</p>}
       <div className="overflow-x-auto rounded border border-[var(--color-border)]">
         <table className="w-full text-sm">
@@ -57,7 +55,7 @@ export function FeaturesClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         </table>
       </div>
       <p className="mt-2 text-xs text-[var(--color-muted)]">役割の列にチェックが無い＝その役割は非表示（使用不可）。全て空＝全役割に表示。</p>
-      <Button onClick={save} className="mt-4 rounded bg-[var(--color-fg)] px-6 py-2 text-sm text-white">保存</Button>
-    </div>
+   <Button onClick={save} className="mt-4 rounded px-6 py-2 text-sm text-white">保存</Button>
+    </PageShell>
   );
 }

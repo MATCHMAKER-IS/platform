@@ -1,22 +1,25 @@
 # @platform/chat
 
-チャットの純ロジック（メッセージ・ルーム・未読管理）。リアルタイム配信は `@platform/realtime` と組み合わせる。
+社内チャット（部屋・メンション・既読・ピン留め）。
 
-## メッセージ（message.ts）
-- `createMessage(input)` / `editMessage(message, text)` — 空・空白のみ・長すぎ（`MAX_MESSAGE_LENGTH=4000`）は失敗。trim。
-- `sortMessages` — 時系列（古→新）。`groupByDate` — 日付ごとにグループ化（区切り表示用）。
-- `extractMentions(text)` / `mentionsOf(messages, handle)` — `@handle` 抽出・宛先絞り込み。
-- `repliesTo(messages, id)` — スレッド返信。
+## これは何のためか
 
-## ルーム（room.ts）
-- `createRoom` — `kind: "dm" | "group"`、メンバー重複除去。
-- `unreadCount(messages, member)` — 自分以外・最終既読より後を数える。`markRead` / `firstUnread`。
-- `lastMessage` / `sortRoomsByActivity` — ルーム一覧を最新活動順に。
+**メールより速く、電話より記録が残る**やり取りのためのものです。
 
-すべて外部依存なし・純関数。UI は `@platform/ui` の `ChatWindow` / `MessageList` / `MessageComposer`。
+ただし**チャットは流れます**——大事なことは
+**掲示板（`@platform/board`）か文書**に残してください。
 
-## 添付（attachment.ts）
-- `Attachment { key, name, size, type }` — `@platform/upload` の UploadedFile と整合。
-- `validateAttachments(files, { maxCount, maxSizeBytes, allowedTypes })` — 件数・サイズ・MIME（前方一致）を検証。
-- `imageAttachments` / `totalSize`。
-- `createMessage` は本文が空でも添付が 1 件以上あれば成功する。
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **一覧には必ず `take`** | メッセージは**増え続けます**。無いと**部屋を開くたびに全件を読みます** |
+| **宛先は都度 DB から引く** | 起動時に読み込む形だと、**入社・退職が反映されません** |
+| **既読は「開いた」であって「読んだ」ではない** | **既読が付いたから伝わった、とは限りません**——大事なことは返事をもらってください |
+| **メンションは通知が飛びます** | `@全員` は**100 人の手を止めます**。本当に全員に要るか考えてください |
+
+## よく使うもの
+
+```ts
+import { validateAttachments, imageAttachments, totalSize } from "@platform/chat";
+```

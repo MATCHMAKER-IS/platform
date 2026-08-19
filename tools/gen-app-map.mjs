@@ -1,6 +1,6 @@
 /**
  * Next.js App Router のファイル構成から「API 一覧」と「画面(ルート)一覧」を生成する(人向けドキュメント)。
- *   node tools/gen-app-map.mjs                # 全アプリを docs/platform/appmap/<app>.md に出力
+ *   node tools/gen-app-map.mjs                # 全アプリを apps/<name>/docs/<app>.md に出力
  *   node tools/gen-app-map.mjs internal-app   # 指定アプリのみ
  * route.ts の HTTP メソッド export と page.tsx のパスを走査し、URL に変換する。
  * 動的セグメント [id] は :id 表記に。API はメソッド、画面はパスと(あれば)metadata.title を出す。
@@ -107,9 +107,13 @@ function toMarkdown({ app, apis, pages, nav }) {
 function generate(app) {
   const r = analyze(app);
   if (!r || (r.apis.length === 0 && r.pages.length === 0)) return null;
-  const outDir = path.join(ROOT, "docs/platform/appmap");
+  // **アプリの資料はアプリの中に置く**(2026-08)。
+  // 基盤は**アプリを保証できない**——アプリを直したら基盤側の資料も直す、
+  // という状態は責任の境界が曖昧。アプリを別リポジトリにするときも、
+  // **資料が基盤側に残ると参照できなくなる**。
+  const outDir = path.join(ROOT, "apps", app, "docs");
   mkdirSync(outDir, { recursive: true });
-  writeFileSync(path.join(outDir, `${app}.md`), toMarkdown(r));
+  writeFileSync(path.join(outDir, "appmap.md"), toMarkdown(r));
   return { app, apis: r.apis.length, pages: r.pages.length };
 }
 
@@ -120,7 +124,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const results = [];
   for (const app of apps) {
     const r = generate(app);
-    if (r) { results.push(r); console.log(`✅ docs/platform/appmap/${r.app}.md 生成(画面 ${r.pages} / API ${r.apis})`); }
+    if (r) { results.push(r); console.log(`✅ apps/${r.app}/docs/appmap.md (画面 ${r.pages} / API ${r.apis})`); }
   }
   if (results.length === 0) console.log("App Router の対象が見つかりませんでした");
 }

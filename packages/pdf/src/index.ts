@@ -45,6 +45,7 @@ export interface PdfService {
  *
  * @example
  * ```ts
+ * // import { createPlaywrightRenderer } from "@platform/pdf/playwright";
  * const pdf = createPdf(createPlaywrightRenderer());
  * const res = await pdf.fromHtml(invoiceHtml, { format: "A4" });
  * if (res.ok) await storage.put("invoices/2026-01.pdf", res.value);
@@ -74,4 +75,9 @@ export function createPdf(renderer: PdfRenderer): PdfService {
  */
 export const DEFAULT_INVOICE_PDF_OPTIONS: PdfOptions = { format: "A4", margin: { top: "15mm", right: "15mm", bottom: "15mm", left: "15mm" } };
 
-export { createPlaywrightRenderer } from "./renderers/playwright";
+// **playwright のレンダラはここから出さない。**
+// `playwright-core` は `chromium-bidi` を動的に読み込むので、
+// **アプリのバンドルに載せると `Module not found` で落ちます**
+// （`internal-app` が実際にそうなっていました。2026-08）。
+// 使うときは **`@platform/pdf/playwright`** から取ってください——
+// バッチや CLI など、**ブラウザを起動できる場所だけ**です。

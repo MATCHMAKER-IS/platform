@@ -7,15 +7,24 @@
  *   「実行時未検証のキャスト」による型の嘘を防ぐ。
  * - PostgreSQL の `COUNT(*)` 等は BigInt を返すため {@link normalizeBigInt} を用意。
  *
+ * **`Prisma.sql` は使わない。** `Prisma`(値)は `prisma generate` の生成物で、
+ * `typecheck` は generate を走らせないため **生成物が無いと必ず型検査が落ちる**
+ * (2026-08 の `pnpm typecheck` で `TS2305: has no exported member 'Prisma'`)。
+ * `client-types.ts` の「生成物に依存しない」方針に合わせ、タグは `sql-tag.ts` に
+ * 自前で持ち、実行は `$queryRawUnsafe` / `$executeRawUnsafe` に**パラメータを分けて**渡す。
+ * 値は一切文字列に連結されないので、安全性は `Prisma.sql` と同じ
+ * (詳細は `sql-tag.ts` の冒頭)。副次的に、Prisma 7.2.0 の `Prisma.sql` の
+ * 合成に関する既知バグ(GitHub Issue #28963)からも切り離される。
+ *
  * @packageDocumentation
  */
 
 import type { z } from "zod";
-import { Prisma } from "@prisma/client";
 // **生成物の PrismaClient 型を使わない。** どの schema で生成したかに縛られるため
 // (理由は client-types.ts に詳述)
 import type { RawCapableClient, TransactionClient, TransactionClientOf } from "./client-types";
 import { AppError, ErrorCode, tryCatch, type Result } from "@platform/core";
+import { compileSql, type SqlQuery } from "./sql-tag";
 
 function toDbError(cause: unknown): AppError {
   return new AppError(ErrorCode.DATABASE, "生SQLの実行に失敗しました", { cause });
@@ -34,9 +43,10 @@ function toDbError(cause: unknown): AppError {
  */
 export async function queryRaw<T>(
   db: RawCapableClient,
-  query: Prisma.Sql,
+  query: SqlQuery,
 ): Promise<Result<T[]>> {
-  const res = await tryCatch(() => db.$queryRaw<T[]>(query));
+  const { text, values } = compileSql(query);
+  const res = await tryCatch(() => db.$queryRawUnsafe<T[]>(text, ...values));
   return res.ok ? res : { ok: false, error: toDbError(res.error.cause ?? res.error) };
 }
 
@@ -59,10 +69,11 @@ export async function queryRaw<T>(
  */
 export async function queryRawValidated<S extends z.ZodTypeAny>(
   db: RawCapableClient,
-  query: Prisma.Sql,
+  query: SqlQuery,
   schema: S,
 ): Promise<Result<z.infer<S>[]>> {
-  const res = await tryCatch(() => db.$queryRaw<unknown[]>(query));
+  const { text, values } = compileSql(query);
+  const res = await tryCatch(() => db.$queryRawUnsafe<unknown[]>(text, ...values));
   if (!res.ok) return { ok: false, error: toDbError(res.error.cause ?? res.error) };
 
   const rows: z.infer<S>[] = [];
@@ -90,9 +101,10 @@ export async function queryRawValidated<S extends z.ZodTypeAny>(
  */
 export async function executeRaw(
   db: RawCapableClient,
-  query: Prisma.Sql,
+  query: SqlQuery,
 ): Promise<Result<number>> {
-  const res = await tryCatch(() => db.$executeRaw(query));
+  const { text, values } = compileSql(query);
+  const res = await tryCatch(() => db.$executeRawUnsafe(text, ...values));
   return res.ok ? res : { ok: false, error: toDbError(res.error.cause ?? res.error) };
 }
 
@@ -145,8 +157,11 @@ export function normalizeBigInt<T>(value: T): unknown {
 
 /**
  * SQL タグ。値をプレースホルダ化して安全にクエリを組み立てる。
+ *
+ * 実体は `sql-tag.ts`(生成物に依存しない自前実装)。**差し込んだ値は
+ * 文字列に連結されず、必ず `$1, $2, …` として束縛される**。
  */
-export const sql = Prisma.sql;
+export { sql, raw, type SqlQuery, type RawFragment } from "./sql-tag";
 
 /**
  * 普通の SQL 文字列を実行して結果行を返す(SELECT 等)。

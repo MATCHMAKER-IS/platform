@@ -26,7 +26,6 @@ export interface RankingListProps {
 
 const defaultFormat = (n: number) => n.toLocaleString("ja-JP");
 
-/** ランキングリスト。値の降順に順位・バー・値を表示する。 */
 /**
  * 順位の一覧。
  *

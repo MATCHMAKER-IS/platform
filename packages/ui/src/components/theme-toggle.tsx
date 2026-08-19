@@ -24,7 +24,6 @@ export interface ThemeToggleProps {
   className?: string;
 }
 
-/** ライト/ダークを切り替えるアイコンボタン。 */
 /**
  * 明るい/暗いの切り替え。
  *

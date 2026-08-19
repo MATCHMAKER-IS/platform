@@ -1,0 +1,120 @@
+# 検証(staging)用。**本番と同じイメージ**を、別の DB・別のポートで動かす。
+#
+# 【何のためにあるか】
+# **本番へ出す前に、本番と同じものを一度動かす**ため。
+# 特に **スキーマの適用**(`migrate`)は、本番でしか起きない失敗が多い——
+# 既存データがある状態での列追加・型変更は、空の DB では再現しない。
+#
+# 【本番と違うのはここだけ】
+#
+# | | 本番 | 検証 |
+# |---|---|---|
+# | `APP_ENV` | `production` | `staging` |
+# | ポート | 3000 | **3001**(同じ VPS に同居できる) |
+# | DB のボリューム | `db-data` | **`db-data-staging`**(別物。混ざらない) |
+# | 使う `.env` | `.env` | **`.env.staging`** |
+# | イメージのタグ | `:main` | **`:main`(同じ)** |
+#
+# **イメージは同じものを使う。** 検証で別ビルドを動かすと、
+# 「検証では通ったのに本番で落ちた」の原因が分からなくなる。
+#
+# 【使い方】
+#
+#   docker compose -f docker-compose.staging.yml pull
+#   docker compose -f docker-compose.staging.yml run --rm migrate
+#   docker compose -f docker-compose.staging.yml up -d app db
+#
+# 【本番と同じ VPS に置いてよいか】
+# **小規模なら置いてよい**(1 台で足りるのに 2 台借りると、維持できなくなる)。
+# ただし**同居の代償**は理解しておくこと:
+#   ・検証の負荷試験は本番に影響する(`pnpm loadtest` は staging へ向けない)
+#   ・VPS ごと落ちたら両方止まる
+# 本番のデータが増えてきたら、**まず DB だけを別ホストへ**分けるとよい。
+services:
+  app:
+    # **タグを固定しない。** `:main` に固定すると、壊れた版を出した直後に
+    # **`pull` で取れるのが壊れた最新**になり、**戻す手段が無くなる**
+    # (「前回の成功したデプロイを Re-run」しても同じものを取ってくる)。
+    # `IMAGE_TAG` に `sha-abc1234` を入れれば、その版へ即座に戻せる。
+    # 使えるタグは GHCR の一覧で確認: `docker image ls` ではなくレジストリ側
+    image: ghcr.io/OWNER/REPO/internal-app:${IMAGE_TAG:-main}    # OWNER/REPO を自リポジトリに置換
+    # **ログを溜め続けない。** Docker の既定(json-file)は**上限なし**で、
+    # 1 台の VPS では**ディスクを食い潰してすべて止まります**——
+    # DB が書けなくなり、アプリも落ち、**ログが原因だと気づくまでに時間がかかる**。
+    # 100MB × 3 世代 = 最大 300MB に抑える(それ以上は送り先へ出す前提)
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
+    restart: always
+    env_file: .env.staging
+    environment:
+      # **ここで上書きする。** `.env.staging` に書き忘れても検証として動くように
+      APP_ENV: staging
+    ports:
+      - "3001:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    # **アプリ自身の healthcheck。** 応答しないまま生きている状態を検知する
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  # スキーマ適用(run --rm で一度だけ実行)。
+  # **方式は tools/apply-schema.mjs が選ぶ**(migrations/ の有無を見る)
+  migrate:
+    # **アプリと同じタグを使う。** ここだけ最新のままだと、
+    # **前の版へ戻したのにスキーマは新しい**という食い違いが起きる
+    image: ghcr.io/OWNER/REPO/internal-app-migrate:${IMAGE_TAG:-main}
+    # **ログを溜め続けない。** Docker の既定(json-file)は**上限なし**で、
+    # 1 台の VPS では**ディスクを食い潰してすべて止まります**——
+    # DB が書けなくなり、アプリも落ち、**ログが原因だと気づくまでに時間がかかる**。
+    # 100MB × 3 世代 = 最大 300MB に抑える(それ以上は送り先へ出す前提)
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
+    env_file: .env.staging
+    environment:
+      APP_ENV: staging
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  db:
+    image: postgres:17-alpine
+    # **ログを溜め続けない。** Docker の既定(json-file)は**上限なし**で、
+    # 1 台の VPS では**ディスクを食い潰してすべて止まります**——
+    # DB が書けなくなり、アプリも落ち、**ログが原因だと気づくまでに時間がかかる**。
+    # 100MB × 3 世代 = 最大 300MB に抑える(それ以上は送り先へ出す前提)
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "3"
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    # **本番と同じポートを開けない。** 同じ VPS に同居したとき衝突する。
+    # 検証の DB を外から触りたいときだけ、次を有効にする:
+    # ports: ["5433:5432"]
+    volumes:
+      # **本番と別のボリューム。** ここを揃えると、検証の投入データが本番に混ざる
+      - db-data-staging:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db-data-staging:

@@ -27,7 +27,10 @@ describe("maintenance gate (store/GUI toggle)", () => {
   const now = () => new Date("2025-07-25T12:00:00Z");
   it("toggles via store without restart", async () => {
     const store = createMemoryMaintenanceStore();
-    const gate = createAsyncMaintenanceGate(() => stateToConfig(store.get(), { allowRoles: ["admin"] }), now);
+    // **`store.get()` は Promise を返しうる**(`Promise<MaintenanceState> | MaintenanceState`)。
+    // `createAsyncMaintenanceGate` は名前のとおり非同期前提なので、
+    // ここも `async` で受ける(2026-08、型検査で判明)。
+    const gate = createAsyncMaintenanceGate(async () => stateToConfig(await store.get(), { allowRoles: ["admin"] }), now);
     expect((await gate.evaluate({ path: "/x" })).active).toBe(false);
     store.set({ enabled: true, estimatedRecovery: "22:00" });
     expect((await gate.evaluate({ path: "/x" })).active).toBe(true);

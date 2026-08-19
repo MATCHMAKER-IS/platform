@@ -1,8 +1,27 @@
 # @platform/observability
 
-依存ゼロの軽量トレーシング・メトリクス・耐障害プリミティブ。外部連携の可視化と保護に。
+ログ・計測・追跡。**何が起きたかを後から追える**ようにします。
+
+## これは何のためか
+
+**「動かない」と言われたときに、何も残っていないのが一番困ります。**
+
+このパッケージは、**リクエストごとに追跡 ID を振り**、
+ログ・エラー・遅さを**その ID で繋げる**ためのものです。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **`console.log` を使わない** | **伏せ字を通りません**——個人情報がそのままログに残ります |
+| **ログは検索できる形で** | 「エラー」だけでは探せません。**何の・どれが・なぜ**を入れてください |
+| **アラートは鳴りすぎると無視される** | 「これが 1 件出たら誰かが動くか」で決めてください。動かないなら**メトリクスに留める** |
+| **記録は消えます** | メモリ実装です。**長期の傾向は監視サービス**で見てください |
+
+## よく使うもの
 
 ```ts
+import { errorRateAbove, avgLatencyAbove, gaugeAtLeast } from "@platform/observability";
 import { createTracer, createMetrics, createCircuitBreaker, relayOutbox } from "@platform/observability";
 
 const tracer = createTracer(exporter);       // W3C traceparent 対応スパン

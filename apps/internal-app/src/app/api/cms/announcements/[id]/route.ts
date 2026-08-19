@@ -2,14 +2,14 @@
 import { validateAnnouncementInput, type AnnouncementInput } from "@platform/cms";
 import { withApiObservability } from "../../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../../server/authorize";
-import { serverEnv } from "../../../../../server/env";
+import "../../../../../server/env";
 import { announcementStore, auditActions } from "../../../../../server/platform-services";
 
 async function handlePUT(req: Request, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
   const { id } = await ctx.params;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:edit");
-  const body = (await req.json()) as AnnouncementInput;
+  const body = (await req.json().catch(() => ({}))) as AnnouncementInput;
   const valid = validateAnnouncementInput(body);
   if (!valid.ok) return Response.json({ error: valid.error }, { status: 400 });
   const a = await announcementStore.update(id, valid.value);
@@ -20,7 +20,7 @@ async function handlePUT(req: Request, ctx: { params: Promise<{ id: string }> })
 
 async function handleDELETE(req: Request, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
   const { id } = await ctx.params;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:edit");
   const removed = await announcementStore.remove(id);
   if (!removed) return Response.json({ error: "お知らせが見つかりません" }, { status: 404 });

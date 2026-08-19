@@ -8,7 +8,6 @@ import { Dialog as Primitive } from "radix-ui";
 import { X } from "lucide-react";
 import { cn } from "../lib/cn";
 
-/** ドロワーのルート。 */
 /**
  * 横から出る引き出し。
  *

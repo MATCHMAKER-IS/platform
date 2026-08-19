@@ -18,17 +18,18 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ALWAYS_SKIP } from "./lib/collect-files.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // **packages も見る。** 基盤の UI 部品は全画面で使われるので、
 // ここに問題があると影響範囲が最も広い。2026-08 まで対象外になっており、
 // フォーカスの輪郭を消したまま代替が無い箇所が 6 件残っていた。
-const TARGET_DIRS = ["apps", "demos", "packages"];
+const TARGET_DIRS = ["apps", "packages"];
 
 /** 走査対象の .tsx を集める。 */
 function collect(dir, out = []) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (e.name === "node_modules" || e.name === ".next" || e.name === "dist") continue;
+    if (ALWAYS_SKIP.has(e.name)) continue;
     const p = path.join(dir, e.name);
     if (e.isDirectory()) collect(p, out);
     else if (e.name.endsWith(".tsx")) out.push(p);
@@ -104,6 +105,7 @@ const hasName = (t) => /\baria-label\s*=|\baria-labelledby\s*=|\btitle\s*=/.test
 const ICON_ONLY = /^[\s\p{Emoji}\p{S}\u200d\ufe0f×✕✖←→↑↓▶◀]+$/u;
 
 const violations = [];
+let scanned = 0;
 const add = (file, line, code, msg) => violations.push({ file: path.relative(ROOT, file), line, code, msg });
 
 for (const dir of TARGET_DIRS) {
@@ -111,6 +113,7 @@ for (const dir of TARGET_DIRS) {
   if (!fs.existsSync(abs)) continue;
 
   for (const file of collect(abs)) {
+    scanned += 1;
     const raw = fs.readFileSync(file, "utf8");
     const src = stripComments(raw);
 
@@ -178,7 +181,7 @@ for (const dir of TARGET_DIRS) {
 }
 
 if (violations.length === 0) {
-  console.log("✅ アクセシビリティの静的検査に違反はありません(img/クリック可能要素/tabIndex/lang/アイコンボタン/フォーカス表示)");
+  console.log(`✅ アクセシビリティの静的検査に違反はありません(${scanned} ファイル / img・クリック可能要素・tabIndex・lang・アイコンボタン・フォーカス表示)`);
   process.exit(0);
 }
 

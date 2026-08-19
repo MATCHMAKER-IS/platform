@@ -1,22 +1,16 @@
 /**
  * ダイジェスト配信スキャン(POST)。頻度が来た利用者へ未読通知のまとめをメール送信。cron 等から定期実行。
  * X-Cron-Token(env CRON_TOKEN)一致、または管理者。
+ * 推奨頻度・他の scan API との一覧は `docs/ops/CRON_JOBS.md` を参照。
  */
 import { withApiObservability } from "../../../../server/instrument";
-import { currentUser } from "../../../../server/authorize";
-import { serverEnv, featureEnv } from "../../../../server/env";
+import { isCronAuthorized } from "../../../../server/cron-auth";
 import { digestSettingStore, notificationStore, appMailer, settingsStore } from "../../../../server/platform-services";
 import { isDigestDue, buildDigestSummary, type DigestItem } from "../../../../server/digest";
 
-async function authorized(req: Request): Promise<boolean> {
-  const token = featureEnv.CRON_TOKEN;
-  if (token && req.headers.get("x-cron-token") === token) return true;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
-  return !!user && user.roles.includes("admin");
-}
 
 async function handlePOST(req: Request): Promise<Response> {
-  if (!(await authorized(req))) return Response.json({ error: "権限がありません" }, { status: 403 });
+  if (!(isCronAuthorized(req))) return Response.json({ error: "権限がありません" }, { status: 403 });
   const now = new Date();
   const mailFrom = (await settingsStore.get()).mailFrom;
   const all = await digestSettingStore.all();

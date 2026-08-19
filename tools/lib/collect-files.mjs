@@ -7,7 +7,7 @@
  * `FIND: パラメーターが違います` で落ちる。
  *
  * この基盤は Windows での開発を明示的に支援している(`scripts/setup.ps1`・
- * `docs/ops/GETTING_STARTED.md`・`check-win-setup`)にもかかわらず、
+ * `docs/onboarding/01-setup.md`・`check-win-setup`)にもかかわらず、
  * **`preflight` の一部が Windows では一度も動いていなかった**。
  * 「動かないことに気づけない」型なので、共通処理として Node だけで書き直す。
  *
@@ -17,8 +17,17 @@
 import { readdirSync, existsSync } from "node:fs";
 import path from "node:path";
 
-/** 走査から常に外すディレクトリ(生成物・依存)。 */
-const ALWAYS_SKIP = new Set([
+/**
+ * 走査から常に外すディレクトリ(生成物・依存)。
+ *
+ * **自前でディレクトリを歩く検査もこれを使うこと。**
+ * 2026-08 に測ったところ、`collectFiles` を使わない 21 本のうち
+ * **11 本が `.turbo` を除外していなかった**。CI は `pnpm install` 前に走るので
+ * `.turbo` は存在せず問題にならないが、**手元で `pnpm build` した後に流すと
+ * 検査ごとに結果が変わる**——「手元では落ちるが CI では通る」という、
+ * 最も追いにくい形になる。
+ */
+export const ALWAYS_SKIP = new Set([
   "node_modules", ".next", ".turbo", "dist", ".git", "coverage",
   // **生成物は検査しない。** Prisma の `src/generated/prisma/index.d.ts` は数万行あり、
   // 「大きいファイル」「長い行」「相対 import の .js」を大量に誤検知する。

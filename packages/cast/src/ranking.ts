@@ -25,8 +25,8 @@ export interface RankedCast extends Cast {
  *
  * @param rating そのキャストの平均評価(R)
  * @param reviewCount そのキャストの評価件数(v)
- * @param minCount 全体の平均評価(C)
- * @param globalMean 信頼できるとみなす件数(m)。**これを下回るほど全体平均に寄る**
+ * @param minCount 信頼できるとみなす件数(m)。**これを下回るほど全体平均に寄る**
+ * @param globalMean 全体の平均評価(C)
  * @returns 重み付きスコア
  */
 export function weightedRating(rating: number, reviewCount: number, minCount: number, globalMean: number): number {
@@ -71,7 +71,9 @@ export interface RankingEntry<T> {
  * 口コミ連動のランキングを作る(在籍中のみ・重み付きスコア降順)。
  *
  * @returns ランキング(**重み付きスコアの降順**。件数の少ない高評価は上位に来ない)
- * @param minCount 信頼に足る最小件数(既定 10)
+ * @param casts キャストの配列
+ * @param options.minCount 信頼に足る最小件数(既定 10)
+ * @param options.limit 返す上限（**省略すると全部返る**）
  */
 export function rankCasts<T extends RankedCast>(casts: T[], options: { minCount?: number; limit?: number } = {}): RankingEntry<T>[] {
   const list = activeCasts(casts);
@@ -91,6 +93,7 @@ export function rankCasts<T extends RankedCast>(casts: T[], options: { minCount?
  * (それでよい場面用。通常は {@link bayesianRanking} を使う)。
  *
  * @param casts キャストの配列
+ * @param limit 返す上限（**省略すると全部返る**）
  * @returns 平均評価の降順。**同点なら件数の多い順**
  */
 export function rankByRawRating<T extends RankedCast>(casts: T[], limit?: number): RankingEntry<T>[] {

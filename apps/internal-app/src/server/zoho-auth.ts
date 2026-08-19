@@ -29,7 +29,9 @@ export function zohoAuthConfigFromEnv(env: Record<string, string | undefined> = 
     redirectUri: env.ZOHO_REDIRECT_URI ?? "",
     scope: (env.ZOHO_SCOPE ?? "AaaServer.profile.READ,email").split(","),
     sessionSecret: env.SESSION_SECRET ?? "",
-    sessionTtlSec: env.SESSION_TTL_SEC ? Number(env.SESSION_TTL_SEC) : 8 * 3600,
+    // **ここの `env` は `process.env`**(引数の既定値)なので、値は文字列。
+    // `server/env.ts` の検証済み `env` とは別物——数値へ直してから渡す。
+    sessionTtlSec: env.SESSION_TTL_SEC !== undefined ? Number(env.SESSION_TTL_SEC) : 8 * 3600,
     allowedEmailDomains: env.ALLOWED_EMAIL_DOMAINS ? env.ALLOWED_EMAIL_DOMAINS.split(",") : undefined,
   };
 }

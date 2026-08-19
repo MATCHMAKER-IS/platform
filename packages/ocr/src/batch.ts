@@ -12,8 +12,9 @@ import { extractReceiptFields, type ReceiptImportItem } from "./extraction";
  * **1 枚失敗しても全体を止めない**(結果に成否を含めて返す)。
  * 100 枚のうち 1 枚が読めないだけで全部やり直しでは使えない。
  *
+ * @param engine OCR の実装（外部サービス）
  * @param images 画像の配列
- * @param recognize OCR の実装(外部サービス)
+ * @param options 同時実行数・失敗したときの扱い
  * @returns 各画像の抽出結果と成否
  */
 export async function recognizeReceiptsBatch(

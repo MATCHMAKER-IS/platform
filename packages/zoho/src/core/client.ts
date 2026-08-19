@@ -25,9 +25,10 @@ export interface ZohoClientConfig {
  *
  * 認証ヘッダは `Zoho-oauthtoken`(**`Bearer` ではない**。Zoho 独自)。
  *
- * @param options.tokenManager トークンマネージャ(自動更新される)
- * @param options.service サービス
- * @param options.dc データセンター
+ * @param config.apiDomain API ドメイン（例 `https://www.zohoapis.jp`。**DC ごとに違う**）
+ * @param config.accessToken アクセストークン（`createZohoTokenManager` で得たもの）
+ * @param config.basePath ベースパス（例 `/crm/v8` `/books/v3`）
+ * @param config.defaultQuery 全要求に付ける既定クエリ（Books の `organization_id` など）
  * @returns API クライアント
  */
 export function createZohoApiClient(config: ZohoClientConfig): ApiClient {

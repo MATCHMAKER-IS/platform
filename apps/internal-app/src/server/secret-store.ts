@@ -92,7 +92,9 @@ export async function putSecret(recordStore: SecretRecordStore, secretStore: Sec
 export interface SecretRow {
   name: string;
   ciphertext: string;
-  updatedAt: string;
+  /** DB では `Date`。`list()` の戻り値(`updatedAt: string`)は変えない
+   *  ——`list`/`set` の境界で変換する(2026-08)。 */
+  updatedAt: Date;
 }
 
 /** 使用する Prisma デリゲートの最小ポート。 */
@@ -100,7 +102,7 @@ export interface SecretRecordStoreDb {
   secretRow: {
     findMany(args: { orderBy: { name: "asc" } }): Promise<SecretRow[]>;
     findUnique(args: { where: { name: string } }): Promise<SecretRow | null>;
-    upsert(args: { where: { name: string }; create: SecretRow; update: { ciphertext: string; updatedAt: string } }): Promise<SecretRow>;
+    upsert(args: { where: { name: string }; create: SecretRow; update: { ciphertext: string; updatedAt: Date } }): Promise<SecretRow>;
     delete(args: { where: { name: string } }): Promise<SecretRow>;
   };
 }
@@ -109,14 +111,14 @@ export interface SecretRecordStoreDb {
 export function createPrismaSecretRecordStore(db: SecretRecordStoreDb): SecretRecordStore {
   return {
     async list() {
-      return (await db.secretRow.findMany({ orderBy: { name: "asc" } })).map((r) => ({ name: r.name, updatedAt: r.updatedAt }));
+      return (await db.secretRow.findMany({ orderBy: { name: "asc" } })).map((r) => ({ name: r.name, updatedAt: r.updatedAt.toISOString() }));
     },
     async getCiphertext(name) {
       const row = await db.secretRow.findUnique({ where: { name } });
       return row?.ciphertext ?? null;
     },
     async set(name, ciphertext) {
-      const updatedAt = new Date().toISOString();
+      const updatedAt = new Date();
       await db.secretRow.upsert({ where: { name }, create: { name, ciphertext, updatedAt }, update: { ciphertext, updatedAt } });
     },
     async remove(name) {

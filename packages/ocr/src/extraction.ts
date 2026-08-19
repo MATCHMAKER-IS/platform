@@ -19,6 +19,8 @@ export interface ReceiptFields {
 const pad = (n: number) => String(n).padStart(2, "0");
 const iso = (y: number, m: number, d: number) => `${y}-${pad(m)}-${pad(d)}`;
 const eraBase: Record<string, number> = { "令和": 2018, "平成": 1988, "昭和": 1925, R: 2018, H: 1988, S: 1925 };
+/** 漢字 1 文字の略記(領収書のスタンプで使われる)。 */
+const eraShort: Record<string, number> = { "令": 2018, "平": 1988, "昭": 1925 };
 
 /**
  * 日本語の日付を ISO 形式にする(**西暦・和暦の両対応**)。
@@ -38,6 +40,16 @@ export function parseJapaneseDate(text: string): string | null {
   // 和暦(略記): R6.1.5 / H31-4-30
   m = text.match(/\b([RHS])\s*(\d{1,2})[./-](\d{1,2})[./-](\d{1,2})\b/i);
   if (m) return iso(eraBase[m[1]!.toUpperCase()]! + Number(m[2]), Number(m[3]), Number(m[4]));
+  // **和暦(漢字 1 文字の略記): 令6.8.10 / 平31-4-30**
+  //
+  // 領収書や請求書のスタンプ・レジのレシートでは、幅を節約するために
+  // **元号を 1 文字**にすることが多い。読めないと日付が空のまま取り込まれ、
+  // **計上月が決まらず手入力に戻る**(2026-08 に対応)。
+  m = text.match(/(令|平|昭)\s*(元|\d{1,2})[./-](\d{1,2})[./-](\d{1,2})/);
+  if (m) {
+    const yr = m[2] === "元" ? 1 : Number(m[2]);
+    return iso(eraShort[m[1]!]! + yr, Number(m[3]), Number(m[4]));
+  }
   // 西暦: 2026年1月5日 / 2026/1/5 / 2026-01-05 / 2026.1.5
   m = text.match(/(\d{4})\s*[年/.-]\s*(\d{1,2})\s*[月/.-]\s*(\d{1,2})/);
   if (m) return iso(Number(m[1]), Number(m[2]), Number(m[3]));
@@ -88,7 +100,13 @@ export function extractAmount(text: string): number | null {
  * @returns 登録番号。**見つからなければ null**
  */
 export function findRegistrationNumber(text: string): string | null {
-  const m = text.match(/T\s?(\d{13})\b/);
+  // **正規化を通す。** 他の抽出関数(`parseJapaneseDate` / `extractAmount`)は
+  // 通しているのに、ここだけ生のテキストを見ていた——**全角の `Ｔ` が読めず**、
+  // 登録番号が空のまま取り込まれる(2026-08 に修正)。
+  //
+  // **小文字の `t` も拾う。** OCR は書体によって大文字小文字を取り違える。
+  // インボイス番号は必ず大文字なので、`t` で来たら大文字に直してよい。
+  const m = normalizeOcrText(text).match(/[Tt]\s?(\d{13})\b/);
   return m ? `T${m[1]}` : null;
 }
 
@@ -99,7 +117,18 @@ export function findRegistrationNumber(text: string): string | null {
  * @returns 電話番号。**見つからなければ null**
  */
 export function findPhone(text: string): string | null {
-  const m = text.match(/(0\d{1,4}-\d{1,4}-\d{3,4})/);
+  // **正規化を通す**(全角の `０３－１２３４－５６７８` を読むため)。
+  // ここも生のテキストを見ていた(2026-08 に修正)。
+  const norm = normalizeOcrText(text);
+  // **FAX 番号を電話番号として拾わない。**
+  // 領収書には `TEL 03-1234-5678 FAX 03-1234-5679` と並んでいることが多く、
+  // FAX を取り込むと**確認の電話がかからない**(先方に届かず、
+  // 「連絡が取れない取引先」として扱われる)。
+  // FAX の直後に来る番号を除いた文字列から探す。
+  const withoutFax = norm.replace(/FAX[:：]?\s*0[\d-\s]{8,}/gi, " ");
+  // ハイフン区切りを優先し、無ければ連続 10〜11 桁を拾う
+  const m = withoutFax.match(/(0\d{1,4}-\d{1,4}-\d{3,4})/)
+    ?? withoutFax.match(/(?:^|[^\d])(0\d{9,10})(?![\d])/);
   return m ? m[1]! : null;
 }
 
@@ -205,7 +234,24 @@ export function normalizeOcrText(text: string): string {
     .replace(/[０-９]/g, (d) => String.fromCharCode(d.charCodeAt(0) - 0xfee0))
     .replace(/[Ａ-Ｚａ-ｚ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
     .replace(/￥/g, "¥").replace(/，/g, ",").replace(/．/g, ".").replace(/：/g, ":")
-    .replace(/　/g, " ").replace(/[ \t]+/g, " ");
+    // **全角のハイフンを半角に。** 電話番号や日付が `０３－１２３４` の形で来る。
+    // 全角ハイフンマイナス(U+FF0D)・全角マイナス(U+2212)・ダッシュ(U+2010〜2015)。
+    .replace(/[\uFF0D\u2212\u2010-\u2015]/g, "-")
+    // **数字に挟まれた長音記号もハイフンとみなす。**
+    // OCR は `03-1234` の `-` を長音記号「ー」と読むことがある。
+    // **数字に挟まれた場合だけ**にする——「コーヒー」を壊さないため。
+    .replace(/(\d)ー(?=\d)/g, "$1-")
+    .replace(/　/g, " ").replace(/[ \t]+/g, " ")
+    // **3 桁区切りのピリオドはカンマの誤読とみなす。**
+    // OCR は `1,234` を `1.234` と読むことがあり、そのままだと
+    // `.234` だけを拾って **234 円**になる——1,000 円少なく取り込まれる。
+    // 経費精算なら過少申告、請求なら請求漏れで、**金額が小さくなる方向**
+    // なので気づきにくい。
+    //
+    // **日本円に小数は無い**(銭は廃止済み)ので、`数字.数字3桁` が
+    // 続く形は区切りとみなしてよい。`1.5` のような 1〜2 桁は変えない
+    // (単価や数量の可能性がある)。2026-08 に対処。
+    .replace(/(\d)\.(\d{3})(?=\D|$)/g, "$1,$2");
 }
 
 /** 明細の 1 行。 */

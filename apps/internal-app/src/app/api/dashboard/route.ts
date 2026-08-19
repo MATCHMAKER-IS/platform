@@ -6,12 +6,12 @@ import { buildAlerts } from "../../../server/alerts";
 import { collectAlertInput } from "../../../server/alert-collect";
 import { withApiObservability } from "../../../server/instrument";
 import { currentUser, requirePermission } from "../../../server/authorize";
-import { serverEnv } from "../../../server/env";
+import "../../../server/env";
 import { notificationStore, fileManager, auditLog, mailboxStore, inquiryStore, invoiceStore, inventoryStore } from "../../../server/platform-services";
 import { db } from "../../../server/services";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "chat:read");
   const isAdmin = user!.roles.includes("admin");
 

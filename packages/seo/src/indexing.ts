@@ -73,6 +73,7 @@ export function xRobotsTag(visibility: SiteVisibility): string {
  *   return { rules: [{ userAgent: "*", disallow: "/" }] };
  * }
  * ```
+ * @returns **すべて拒否する** `robots.txt`（社内向けの画面が検索に載らないように）
  */
 export function internalRobotsTxt(): string {
   return buildRobotsTxt({ rules: [{ userAgent: "*", disallow: ["/"] }] });

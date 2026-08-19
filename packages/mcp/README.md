@@ -1,14 +1,25 @@
 # @platform/mcp
 
-**MCP(Model Context Protocol)サーバの最小実装**。JSON-RPC 2.0 上で `initialize` / `tools/list` / `tools/call` を提供し、Claude Desktop / Claude Code などの MCP クライアントから社内基盤の機能を「ツール」として呼び出せるようにします。
+MCP サーバ（AI に道具を渡す仕組み）。
 
-- `handleMcpMessage(options, req)` … プロトコル処理の**純関数**(トランスポート無しでテスト可能)
-- `serveStdio(options, io?)` … 改行区切り JSON の stdio サーバ(io 注入でテスト可能)
-- `McpToolDef` … ツール定義 `{ name, description, inputSchema(JSON Schema), handler }`
-- `textResult` / `jsonResult` / `errorResult` … 結果ヘルパ(実行エラーは JSON-RPC エラーではなく `isError` で返すのが MCP 流儀)
-- バージョン交渉: 2025-06-18 / 2025-03-26 / 2024-11-05 に対応(未対応要求は最新へ)
+## これは何のためか
+
+**AI に社内のデータを引かせる**ためのものです。
+Claude や他の AI クライアントから、**基盤の機能を道具として呼べます**。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **道具の説明は AI が読みます** | 「経費を検索」より「**指定した月の経費の一覧と合計を返す**」——**何が返るか**まで書いてください。分かりにくいと**使ってくれません** |
+| **引数は信用できません** | AI は**存在しない ID や範囲外の日付**を渡してきます。`validateToolArguments` で**渡す前に検証**してください |
+| **危ないことをさせない** | 削除・送金・送信を道具にすると、**AI の勘違いで実行されます**。**読み取りだけ**にするか、**人の確認を挟んで**ください |
+| **長く走る道具は中止できるように** | 止める手段が無いと、**終わるまで待つしかありません**（`createCancellationRegistry`） |
+
+## よく使うもの
 
 ```ts
+import { handleMcpMessage, validateToolArguments, jsonResult } from "@platform/mcp";
 import { serveStdio, textResult, type McpToolDef } from "@platform/mcp";
 const tools: McpToolDef[] = [{
   name: "hello", description: "挨拶する",

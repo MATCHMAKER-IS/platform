@@ -4,8 +4,8 @@
  *   node tools/impact.mjs --base origin/main     … git 差分から自動で拾う
  *
  * 【なぜ必要か】
- * この基盤は 113 パッケージあり、`@platform/core` は **54 パッケージから使われている**。
- * つまり core の 1 行を変えると、54 パッケージ + それを使う全アプリに影響しうる。
+ * この基盤は 100 を超えるパッケージがあり、`@platform/core` は**その半数近くから使われている**。
+ * つまり core の 1 行を変えると、**半数以上のパッケージ** + それを使う全アプリに影響しうる。
  *
  * ところが PR の画面に出るのは「変更したファイル」だけで、**影響範囲は見えない**。
  * レビューする人も、出した人も、どこまで確認すべきか分からないまま通してしまう。
@@ -35,7 +35,7 @@ function buildReverseDeps() {
     reverse.get(dep).add(user);
   };
 
-  for (const base of ["packages", "apps", "demos"]) {
+  for (const base of ["packages", "apps"]) {
     const dir = path.join(ROOT, base);
     if (!existsSync(dir)) continue;
     for (const e of readdirSync(dir, { withFileTypes: true })) {

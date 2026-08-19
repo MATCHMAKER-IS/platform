@@ -69,8 +69,8 @@ export function lerp(a: number, b: number, t: number): number {
  *
  * **値が範囲のどこにあるか**を 0–1 で返す。プログレスバーの計算などに使う。
  *
- * @param a 始点
- * @param b 終点
+ * @param a 範囲の下端
+ * @param b 範囲の上端
  * @param value 対象の値
  * @returns 0–1 の位置。**a === b なら 0**(0 除算を避ける)
  */
@@ -83,8 +83,10 @@ export function inverseLerp(a: number, b: number, value: number): number {
  * 値を別の範囲へ写像する。
  *
  * @param value 対象の値
- * @param inMin / inMax 入力の範囲
- * @param outMin / outMax 出力の範囲
+ * @param inMin 入力の下端
+ * @param inMax 入力の上端
+ * @param outMin 出力の下端
+ * @param outMax 出力の上端
  * @param clamp 出力を範囲内に丸めるか(**false だと範囲外に出る**)
  * @returns 写像した値
  */
@@ -147,10 +149,10 @@ export function stepSpring(state: SpringState, target: number, config: SpringCon
  * **位置だけでなく速度も見る**。目標を通過する瞬間は位置が一致するが、
  * まだ動いている(そこで止めると不自然に見える)。
  *
- * @param position 現在位置
- * @param target 目標
- * @param velocity 速度
- * @param options.positionThreshold / velocityThreshold 静止とみなす閾値
+ * @param state 現在の位置と速度(位置と速度は**別々には受け取らない**)
+ * @param target 目標位置
+ * @param epsilon 静止とみなす閾値(既定 0.01)。**位置と速度で共通の 1 つの値**で、
+ *   以前この説明にあった `positionThreshold` / `velocityThreshold` は存在しない
  * @returns 静止していれば true
  */
 export function isSpringSettled(state: SpringState, target: number, epsilon = 0.01): boolean {

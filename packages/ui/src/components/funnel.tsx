@@ -26,7 +26,6 @@ export interface FunnelProps {
 
 const defaultFormat = (n: number) => n.toLocaleString("ja-JP");
 
-/** ファネル。先頭を 100% とした幅で各段を描画し、遷移率・離脱を示す。 */
 /**
  * 漏斗図(段階ごとに減っていく様子)。
  *

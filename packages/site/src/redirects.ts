@@ -33,7 +33,8 @@ function normalize(path: string): string {
  *
  * @param rules リダイレクトのルール
  * @param path 元のパス
- * @returns 転送先。**該当が無ければ undefined**
+ * @returns 転送先。**該当が無ければ `null`**（`undefined` ではありません——
+ *   `=== undefined` で確かめると、**常に false になって素通りします**）
  */
 export function resolveRedirect(rules: RedirectRule[], path: string): RedirectResult | null {
   const target = normalize(path);
@@ -59,7 +60,8 @@ export function resolveRedirect(rules: RedirectRule[], path: string): RedirectRe
  * **循環は `maxHops` で打ち切る**(A→B→A を無限に辿らないため)。
  *
  * @param rules リダイレクトのルール
- * @param maxHops 辿る最大回数(既定 10)
+ * @param path 元のパス
+ * @param maxHops 辿る最大回数(既定 10。**輪になっているときに止める**)
  * @returns 解決済みのルール。**循環したものは元のまま残す**(消すと 404 になり、原因も分からなくなる)
  */
 export function resolveRedirectChain(rules: RedirectRule[], path: string, maxHops = 10): RedirectResult | null {

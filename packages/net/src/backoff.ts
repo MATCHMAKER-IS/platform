@@ -42,6 +42,7 @@ export function backoffDelay(attempt: number, options: BackoffOptions = {}): num
  *
  * @param promise 対象の Promise
  * @param ms タイムアウト(ミリ秒)
+ * @param message 時間切れのときのメッセージ（**利用者に見せる文**にすること）
  * @returns 元の結果
  * @throws タイムアウトした場合
  */
@@ -74,7 +75,9 @@ export interface RetryOptions extends BackoffOptions {
  * かえってアカウントをロックする。
  *
  * @param fn 実行する処理
- * @param options.attempts 最大試行回数
+ * @param options.retries **リトライ回数**(既定 3)。最初の 1 回は含まないので、
+ *   3 なら最大 4 回実行される。以前この説明は `attempts 最大試行回数` と
+ *   書いており、**1 回少なく見積もる**うえ名前も存在しなかった
  * @param options.shouldRetry 再試行するか判定する関数
  * @returns 成功した結果
  * @throws **全部失敗したら最後のエラー**

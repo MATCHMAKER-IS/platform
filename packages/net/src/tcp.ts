@@ -42,8 +42,10 @@ function attachFraming(socket: net.Socket, onMessage: (payload: Uint8Array, conn
  * 2 通が繋がって届いたり、1 通が分割されて届く)。
  *
  * @param options.port 待ち受けポート
- * @param options.onMessage メッセージを受け取ったときの処理
- * @param options.onError エラー時の処理(任意)
+ * @param onMessage メッセージを受け取ったときの処理(**options ではなく第 2 引数**)
+ *
+ * **エラーを受け取る引数は無い。** 待ち受けに失敗した場合は
+ * 戻り値の Promise が reject される(`onError` を渡す形ではない)。
  * @returns サーバ。`close` で停止する
  */
 export function createFramedServer(
@@ -69,7 +71,7 @@ export function createFramedServer(
  *
  * @param options.host 接続先
  * @param options.port ポート
- * @param options.onMessage メッセージを受け取ったときの処理
+ * @param onMessage メッセージを受け取ったときの処理(**options ではなく第 2 引数**)
  * @returns 接続。`send` で送信、`close` で切断
  */
 export function connectFramed(

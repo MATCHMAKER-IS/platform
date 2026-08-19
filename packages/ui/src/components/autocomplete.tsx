@@ -23,7 +23,6 @@ export interface AutocompleteProps {
   className?: string;
 }
 
-/** サジェスト表示付きテキスト入力。 */
 /**
  * 入力補完(打つと候補が出る)。
  *
@@ -68,6 +67,9 @@ export function Autocomplete({
         onBlur={() => setTimeout(() => setOpen(false), 120)}
         onKeyDown={(e) => {
           if (!open || filtered.length === 0) return;
+          // **変換中の Enter は候補の確定に使わない。** 日本語入力では
+          // 漢字を選ぶ操作が Enter なので、見ないと変換確定で候補が選ばれる
+          if (e.nativeEvent.isComposing) return;
           if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => Math.min(a + 1, filtered.length - 1)); }
           else if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)); }
           else if (e.key === "Enter") { e.preventDefault(); const s = filtered[active]; if (s) choose(s); }

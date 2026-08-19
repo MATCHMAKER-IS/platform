@@ -11,7 +11,6 @@ export interface SpinnerProps extends React.SVGAttributes<SVGSVGElement> {
   size?: number;
 }
 
-/** 回転スピナー。 */
 /**
  * 読み込み中の回転。
  *

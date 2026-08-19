@@ -45,7 +45,10 @@ export function createBoardService(opts: BoardServiceOptions): BoardService {
   const { newId, onMentions, attachmentLimits, onHookError, onPosted } = opts;
   return {
     async post(input) {
-      if (attachmentLimits && input.attachments && input.attachments.length > 0) {
+      // **`attachmentLimits` が無くても検証する。** 以前は未指定だと
+      // 検証ごと飛ばしており、**件数もサイズも無制限**だった。
+      // 基盤側に既定(10 件 / 10MB)があるので、渡さなくても守られる(2026-08)。
+      if (input.attachments && input.attachments.length > 0) {
         const v = validateAttachments(input.attachments, attachmentLimits);
         if (!v.ok) return v;
       }

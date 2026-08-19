@@ -67,6 +67,7 @@ export function abortTransaction(reason: string | AppError): never {
  *
  * @param db Prisma クライアント
  * @param fn トランザクション内の処理
+ * @param options 分離レベル・再試行の回数・待ち時間
  * @returns 処理の結果(**例外が出たらロールバック**。{@link abortTransaction} で明示的に中断できる)
  */
 export async function withTransaction<TClient extends RawCapableClient, T>(

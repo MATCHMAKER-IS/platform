@@ -21,7 +21,8 @@ export interface ShippingZone {
  *
  * **送料はエリアで決まる**(北海道・沖縄は高い)。
  *
- * @param prefecture 都道府県
+ * @param zones 送料の区分表
+ * @param region 地域（都道府県など）
  * @returns エリア。**未知の都道府県なら null**
  */
 export function resolveZone(zones: ShippingZone[], region: string): ShippingZone | undefined {
@@ -32,8 +33,10 @@ export function resolveZone(zones: ShippingZone[], region: string): ShippingZone
  * 地域と小計から送料を算出する。エリアの無料閾値を満たせば 0。
  * エリア不明時は fallbackFee(既定 0)。
  *
- * @param prefecture 都道府県
- * @param table 送料表
+ * @param zones 送料の区分表
+ * @param region 地域（都道府県など）
+ * @param subtotal 小計（**無料条件の判定に使う**）
+ * @param fallbackFee 区分に当てはまらないときの送料
  * @returns 送料。**未知の都道府県なら既定の送料**(注文を止めない)
  */
 export function shippingFeeForRegion(zones: ShippingZone[], region: string, subtotal: number, fallbackFee = 0): number {

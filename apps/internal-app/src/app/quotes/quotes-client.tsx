@@ -1,8 +1,10 @@
 "use client";
 /** 見積管理。一覧（状態・残日数）、作成（明細入力）、状態遷移、請求書へ変換。 */
 import * as React from "react";
+import { parseNumberOr } from "@platform/utils";
+import { formatYen } from "@platform/report";
 import { formatDateJst } from "@platform/datetime";
-import { Button, Input, Select } from "@platform/ui";
+import { Button, Input, Select, PageShell } from "@platform/ui";
 
 interface Line { description: string; quantity: number; unitPrice: number; taxRate?: 10 | 8 | 0; }
 interface Totals { subtotal: number; tax: number; total: number; }
@@ -15,7 +17,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   rejected: { label: "失注", cls: "bg-[var(--color-subtle-strong)] text-[var(--color-muted)]" },
   expired: { label: "期限切れ", cls: "bg-[color-mix(in_srgb,var(--color-danger)_15%,transparent)] text-[var(--color-danger)]" },
 };
-const yen = (n: number) => `¥${n.toLocaleString()}`;
+const yen = (n: number) => formatYen(n);
 
 export interface QuotesClientProps { fetchImpl?: typeof fetch; canWrite?: boolean; }
 
@@ -64,11 +66,8 @@ export function QuotesClient({ fetchImpl, canWrite = true }: QuotesClientProps) 
   };
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">見積</h1>
-        {canWrite && <Button onClick={() => setCreating((v) => !v)} className="rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white">{creating ? "閉じる" : "新規作成"}</Button>}
-      </div>
+    <PageShell title="見積" width="wide">
+    {canWrite && <Button onClick={() => setCreating((v) => !v)} className="rounded px-4 py-2 text-sm text-white">{creating ? "閉じる" : "新規作成"}</Button>}
       {error && <p className="mb-3 rounded bg-[color-mix(in_srgb,var(--color-danger)_8%,transparent)] px-3 py-2 text-sm text-[var(--color-danger)]">{error}</p>}
 
       {creating && (
@@ -85,11 +84,11 @@ export function QuotesClient({ fetchImpl, canWrite = true }: QuotesClientProps) 
               {lines.map((l, i) => (
                 <tr key={i}>
                   <td className="px-1 py-1"><Input value={l.description} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { description: e.target.value })} className="w-full rounded border border-[var(--color-border)] px-2 py-1" /></td>
-                  <td className="px-1 py-1"><Input value={String(l.quantity)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { quantity: Number(e.target.value) || 0 })} inputMode="numeric" className="w-full rounded border border-[var(--color-border)] px-2 py-1" /></td>
-                  <td className="px-1 py-1"><Input value={String(l.unitPrice)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { unitPrice: Number(e.target.value) || 0 })} inputMode="numeric" className="w-full rounded border border-[var(--color-border)] px-2 py-1" /></td>
+                  <td className="px-1 py-1"><Input value={String(l.quantity)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { quantity: parseNumberOr(e.target.value, 0) || 0 })} inputMode="numeric" className="w-full rounded border border-[var(--color-border)] px-2 py-1" /></td>
+                  <td className="px-1 py-1"><Input value={String(l.unitPrice)} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLine(i, { unitPrice: parseNumberOr(e.target.value, 0) || 0 })} inputMode="numeric" className="w-full rounded border border-[var(--color-border)] px-2 py-1" /></td>
                   <td className="px-1 py-1">
                     <Select
-                      value={String(l.taxRate ?? 10)} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setLine(i, { taxRate: Number(e.target.value) as 10 | 8 | 0 })} className="w-full rounded border border-[var(--color-border)] px-1 py-1"
+                      value={String(l.taxRate ?? 10)} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setLine(i, { taxRate: parseNumberOr(e.target.value, 0) as 10 | 8 | 0 })} className="w-full rounded border border-[var(--color-border)] px-1 py-1"
                       options={[
                         { label: "10%", value: "10"},
                         {label: "8%", value: "8"},
@@ -97,16 +96,16 @@ export function QuotesClient({ fetchImpl, canWrite = true }: QuotesClientProps) 
                       ]}
                     />
                   </td>
-                  <td className="px-1 py-1">{lines.length > 1 && <Button aria-label="この明細行を削除" title="この明細行を削除" onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))} className="text-[var(--color-muted)]">×</Button>}</td>
+         <td className="px-1 py-1">{lines.length > 1 && <Button variant="ghost" aria-label="この明細行を削除" title="この明細行を削除" onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))} className="text-[var(--color-muted)]">×</Button>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           <div className="flex items-center justify-between">
-            <Button onClick={() => setLines((ls) => [...ls, { description: "", quantity: 1, unitPrice: 0, taxRate: 10 }])} className="text-sm text-[var(--color-primary)]">＋ 明細を追加</Button>
+      <Button onClick={() => setLines((ls) => [...ls, { description: "", quantity: 1, unitPrice: 0, taxRate: 10 }])} variant="secondary" className="text-sm">＋ 明細を追加</Button>
             <span className="text-sm text-[var(--color-muted)]">税抜計 {yen(preview)}</span>
           </div>
-          <Button onClick={submit} className="mt-3 rounded bg-[var(--color-fg)] px-4 py-2 text-sm text-white">見積を作成</Button>
+     <Button onClick={submit} className="mt-3 rounded px-4 py-2 text-sm text-white">見積を作成</Button>
         </div>
       )}
 
@@ -128,9 +127,9 @@ export function QuotesClient({ fetchImpl, canWrite = true }: QuotesClientProps) 
               <td className="px-2 py-2">
                 {canWrite && (
                   <span className="flex gap-2 text-xs">
-                    {q.state === "draft" && <Button onClick={() => changeState(q.number, "sent")} className="text-[var(--color-primary)] hover:underline">送付</Button>}
-                    {(q.state === "draft" || q.state === "sent") && q.status !== "expired" && <Button onClick={() => convert(q)} className="text-[var(--color-success)] hover:underline">請求書化</Button>}
-                    {q.state !== "rejected" && q.state !== "accepted" && <Button onClick={() => changeState(q.number, "rejected")} className="text-[var(--color-muted)] hover:underline">失注</Button>}
+          {q.state === "draft" && <Button onClick={() => changeState(q.number, "sent")} variant="secondary" className="hover:underline">送付</Button>}
+          {(q.state === "draft" || q.state === "sent") && q.status !== "expired" && <Button onClick={() => convert(q)} variant="secondary" className="hover:underline">請求書化</Button>}
+                    {q.state !== "rejected" && q.state !== "accepted" && <Button onClick={() => changeState(q.number, "rejected")} variant="ghost" className="hover:underline">失注</Button>}
                   </span>
                 )}
               </td>
@@ -139,6 +138,6 @@ export function QuotesClient({ fetchImpl, canWrite = true }: QuotesClientProps) 
           {quotes.length === 0 && <tr><td colSpan={6} className="px-2 py-4 text-center text-sm text-[var(--color-muted)]">見積がありません。</td></tr>}
         </tbody>
       </table>
-    </div>
+    </PageShell>
   );
 }

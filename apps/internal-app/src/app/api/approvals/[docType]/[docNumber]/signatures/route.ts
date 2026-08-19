@@ -1,13 +1,13 @@
 /** 承認の署名: 状況取得(GET)・署名保存(POST)。承認に紐づく手書きサインを扱う。認証ユーザー。 */
 import { withApiObservability } from "../../../../../../server/instrument";
 import { currentUser } from "../../../../../../server/authorize";
-import { serverEnv } from "../../../../../../server/env";
+import "../../../../../../server/env";
 import { signatureStore, settingsStore, auditActions } from "../../../../../../server/platform-services";
 import { isValidSignatureImage } from "../../../../../../server/signature-repo";
 import { approvalSubjectId, approvalSignatureStatus, canFinalizeApproval, signatureRequiredByAmount } from "../../../../../../server/approval-signature";
 
 async function handleGET(req: Request, ctx: { params: Promise<{ docType: string; docNumber: string }> }): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   if (!user) return Response.json({ error: "認証が必要です" }, { status: 401 });
   const { docType, docNumber } = await ctx.params;
   const url = new URL(req.url);
@@ -19,10 +19,10 @@ async function handleGET(req: Request, ctx: { params: Promise<{ docType: string;
 }
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ docType: string; docNumber: string }> }): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   if (!user) return Response.json({ error: "認証が必要です" }, { status: 401 });
   const { docType, docNumber } = await ctx.params;
-  const body = (await req.json()) as { image?: string };
+  const body = (await req.json().catch(() => ({}))) as { image?: string };
   if (!body.image || !isValidSignatureImage(body.image)) return Response.json({ error: "署名画像が不正です" }, { status: 400 });
   const sig = await signatureStore.save({ subjectType: "approval", subjectId: approvalSubjectId(docType, docNumber), signer: user.email, image: body.image });
   await auditActions.record(user.email, "approval.sign", `${docType}:${docNumber}`, {});

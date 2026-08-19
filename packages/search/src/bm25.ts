@@ -58,7 +58,14 @@ export function createBm25Index(options: Bm25Options = {}): Bm25Index {
       if (field === "id" || value == null) continue;
       const weight = Math.max(1, Math.round(boosts[field] ?? 1));
       const toks = tokenize(String(value));
-      for (let w = 0; w < weight; w++) out.push(...toks);
+      // **`push(...toks)` を使わない。**
+      // スプレッドは**引数として展開される**ので、`toks` が数万語になると
+      // **「引数が多すぎる」でスタックが溢れます**——
+      // **長い文書を入れたときだけ落ちる**ので、気づくのが遅れます
+      // （2026-08、README を長くしたら実際に落ちました）。
+      for (let w = 0; w < weight; w++) {
+        for (const t of toks) out.push(t);
+      }
     }
     return out;
   }

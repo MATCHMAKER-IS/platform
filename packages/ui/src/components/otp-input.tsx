@@ -19,7 +19,6 @@ export interface OTPInputProps {
   className?: string;
 }
 
-/** 桁区切りのワンタイムコード入力。 */
 /**
  * 確認コードの入力(1 文字ずつの枠)。
  *

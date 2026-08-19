@@ -24,8 +24,26 @@ export interface SequenceOptions {
   prefix?: string;
   /** サフィックス。 */
   suffix?: string;
-  /** ゼロ埋めの桁数(例 6 → "000123")。既定 0(埋めない)。 */
+  /**
+   * ゼロ埋めの桁数(例 6 → `"000123"`)。既定 0(埋めない)。
+   *
+   * **桁を超えたら例外を投げる。** `padding: 4` で 10001 件目が来ると
+   * 番号が 1 桁伸びるが、それを黙って通すと**固定長を前提にした処理が壊れる**
+   * ——全銀ファイルや CSV の桁揃えが崩れ、DB の `varchar(N)` で切れ、
+   * 番号でソートすると順序が狂う(文字列比較なので `10000 < 9999`)。
+   *
+   * **黙って形式が変わる方が危ない**ので、気づける形にする(2026-08)。
+   * 桁が足りなくなったら `padding` を増やすか、期間でリセットすること
+   * (`resetPeriod: "yearly"` なら年ごとに 1 へ戻る)。
+   */
   padding?: number;
+  /**
+   * 桁あふれを許すか(既定 `false`)。
+   *
+   * `true` にすると、桁を超えても例外を投げずにそのまま伸びる。
+   * **固定長を前提にしていない用途**(画面の表示だけ、など)でのみ使うこと。
+   */
+  allowOverflow?: boolean;
   /** リセット周期(既定 never)。yearly は暦年、fiscalYearly は年度(4月始まり)。 */
   resetPeriod?: ResetPeriod;
   /** 期間トークンと番号の区切り(例 "-")。既定 "-"。 */
@@ -48,13 +66,22 @@ export interface Sequencer {
  * **「年度で連番をリセットする」を実現する**ための鍵。
  * 同じトークンの間は連番が続き、変わると 1 に戻る。
  *
- * @param reset リセット単位(`never` / `yearly` / `monthly` / `daily`)
+ * @param period リセット単位(`never` / `yearly` / `monthly` / `daily`)
  * @param now 基準日(テスト注入用)
+ * @param fiscalStartMonth 期初の月（**4 月始まりなら 4**。年度で区切るときに使う）
  * @returns 期間トークン(`2026` / `2026-07` など)
  */
 export function periodToken(period: ResetPeriod, now: Date, fiscalStartMonth: number): string {
-  const y = now.getFullYear();
-  const m = now.getMonth() + 1;
+  // **JST で年月を取る。** `getFullYear()` / `getMonth()` は**サーバのタイムゾーン**に
+  // 依存する。UTC で動くサーバ(クラウドの既定)だと、JST の 8/1 00:30 はまだ 7 月なので、
+  // **月次リセットの採番で 8 月最初の伝票に 7 月の連番が払い出される**。
+  // 昼間に試すと必ず通り、深夜の申請でだけ起きるので気づけない(2026-08 に修正)。
+  // JST は UTC+9。**9 時間ずらしてから UTC として読む**のが最小の実装。
+  // `@platform/datetime` の `formatMonthJst` と同じ計算だが、
+  // 採番のためだけに依存を増やさない(この 1 行以外に日時の処理は無い)。
+  const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString();
+  const y = Number(jst.slice(0, 4));
+  const m = Number(jst.slice(5, 7));
   if (period === "never") return "";
   if (period === "yearly") return String(y);
   if (period === "monthly") return `${y}${String(m).padStart(2, "0")}`;
@@ -71,13 +98,16 @@ export function periodToken(period: ResetPeriod, now: Date, fiscalStartMonth: nu
  * (メモリ実装を除く)。
  *
  * @param store 採番の状態を持つストア
+ * @param name 採番の名前（**種類ごとに分ける**。請求書と見積で別の連番にする）
  * @param options.prefix 接頭辞(`INV-` など)
- * @param options.reset リセット単位
+ * @param options.resetPeriod 採番をリセットする単位(年度・月など)。
+ *   `fiscalStartMonth` は年度の開始月、`prefix` / `suffix` / `separator` / `padding` は書式
  * @param options.padding ゼロ埋めの桁数
  * @returns 採番器(`next` で次の番号)
+ * @throws 採番の形式が不正な場合（**桁が足りないと請求書番号が重複します**）
  */
 export function createSequencer(store: SequenceStore, name: string, options: SequenceOptions = {}): Sequencer {
-  const { prefix = "", suffix = "", padding = 0, resetPeriod = "never", separator = "-", fiscalStartMonth = 4 } = options;
+  const { prefix = "", suffix = "", padding = 0, resetPeriod = "never", separator = "-", fiscalStartMonth = 4, allowOverflow = false } = options;
 
   function keyFor(now: Date = new Date()): string {
     const token = periodToken(resetPeriod, now, fiscalStartMonth);
@@ -86,7 +116,15 @@ export function createSequencer(store: SequenceStore, name: string, options: Seq
 
   function format(seq: number, now: Date): string {
     const token = periodToken(resetPeriod, now, fiscalStartMonth);
-    const num = padding > 0 ? String(seq).padStart(padding, "0") : String(seq);
+    const raw = String(seq);
+    // **桁あふれを黙って通さない。** 番号の長さが変わると、
+    // 固定長を前提にした処理(帳票の桁揃え・DB の varchar・文字列ソート)が壊れる
+    if (padding > 0 && raw.length > padding && !allowOverflow) {
+      throw new Error(
+        `採番が ${padding} 桁を超えました(${raw})。padding を増やすか、resetPeriod で期間ごとに戻してください`,
+      );
+    }
+    const num = padding > 0 ? raw.padStart(padding, "0") : raw;
     const middle = token ? `${token}${separator}${num}` : num;
     return `${prefix}${middle}${suffix}`;
   }

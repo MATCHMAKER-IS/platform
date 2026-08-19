@@ -100,3 +100,30 @@ DB 起動は `DATABASE_URL` を設定し `pnpm --filter internal-app prisma migr
 ## E2E テスト
 
 `e2e/expense-flow.spec.ts`(取込→ダッシュボード→承認→履歴)。CI は `.github/workflows/e2e.yml`(Postgres サービス + prisma migrate + playwright)。ローカルは `pnpm --filter internal-app e2e`。
+
+## このアプリの運用
+
+**基盤の手順は `docs/ops/` にあります。** ここには**このアプリ固有のこと**だけを書きます。
+
+### 出し先
+
+| 環境 | どこへ |
+|---|---|
+| 本番 | **ConoHa VPS**（方針は `docs/adr/0009-deploy-conoha-first-aws-next.md`。**手順書はまだありません**——出すときに書いてください） |
+| 将来 | AWS へ移す想定（`docs/ops/DEPLOY_AWS.md`） |
+
+### 試験の状況
+
+| 種類 | 状況 |
+|---|---|
+| smoke | 基盤側で全体を確認しています |
+| E2E（`pnpm e2e`） | **経費・勤怠・承認はカバー済み**。**請求・契約は未カバー**——ブラウザの実機が要ります |
+| 負荷 | **未実施**。手順は `docs/ops/LOAD_TESTING.md` へ |
+
+### 動かすのに要るもの
+
+- PostgreSQL（`docker compose up -d`）
+- `.env`（`.env.example` を写して埋める）
+- **外部連携を使うなら**、それぞれの認証情報（Zoho / freee / LINE / Slack）
+
+**認証情報が無くても起動します**——**使ったときに初めて失敗**します。

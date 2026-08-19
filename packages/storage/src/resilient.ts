@@ -31,7 +31,10 @@ async function retry<T>(fn: () => Promise<T>, o: Required<Pick<StorageRetryOptio
  *
  *
  * @param adapter 元のストレージ
- * @param options.attempts 最大試行回数
+ * @param options.retries **リトライ回数**(最初の 1 回は含まない)。
+ *   以前この説明は `attempts 最大試行回数` と書いており、**1 回少なく見積もる**うえ
+ *   その名前は存在しなかった。`backoffMs` は待ち時間、`shouldRetry` は再試行の可否、
+ *   `sleep` はテスト注入用
  * @returns ラップしたストレージ(**恒久エラーは再試行しない**)
  */
 export function withStorageRetry(adapter: StorageAdapter, options: StorageRetryOptions = {}): StorageAdapter {
@@ -70,7 +73,8 @@ export interface FallbackStorageOptions {
  * const storage = createStorage(adapter); // S3 障害時はローカルで継続
  * ```
  *
- * @param storages ストレージの配列(優先順)
+ * @param adapters ストレージの配列(優先順)
+ * @param options 次に移る条件・試す回数
  * @returns ラップしたストレージ
  * @throws 全部失敗した場合
  */

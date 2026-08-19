@@ -7,10 +7,11 @@
  * ロジックは `@platform/task` の担当。ここは保存と取り出しだけ。
  * @packageDocumentation
  */
+import { addDays, formatDateJst, todayJst } from "@platform/datetime";
 import { randomUUID } from "node:crypto";
 import type { Task, TaskStatus, TaskPriority } from "@platform/task";
 import { db } from "./services";
-import { featureEnv } from "./env";
+import { usePrisma } from "./env";
 
 /** 保存先。 */
 export interface TaskStore {
@@ -184,11 +185,9 @@ export function createPrismaTaskStore(): TaskStore {
 
 /** 動かして確かめられるよう、最初から少しデータを入れておく。 */
 function seedTasks(): Task[] {
-  const day = (offset: number): string => {
-    const d = new Date();
-    d.setDate(d.getDate() + offset);
-    return d.toISOString().slice(0, 10);
-  };
+  // **JST で切る。** `toISOString()` は UTC なので、
+  // **JST の 0 時〜9 時は前日**になります——朝に開くと期限が 1 日ずれる
+  const day = (offset: number): string => formatDateJst(addDays(todayJst(), offset));
   const base = { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
   const mk = (id: string, title: string, status: TaskStatus, priority: TaskPriority, o: Partial<Task> = {}): Task =>
     ({ id, title, status, priority, ...base, ...o });
@@ -209,6 +208,6 @@ function seedTasks(): Task[] {
  * `PERSISTENCE=prisma` なら DB、それ以外はメモリ(seed 付き)。
  * **DB を用意しなくても触れる**ようにしてある(評価・デモ用)。
  */
-export const taskStore: TaskStore = featureEnv.TASK_PERSISTENCE === "prisma"
+export const taskStore: TaskStore = usePrisma
   ? createPrismaTaskStore()
   : createMemoryTaskStore(seedTasks());

@@ -1,0 +1,5 @@
+{
+  "_comment": "変換中を見ずに Enter を拾っている箇所の上限。useComposition() を使うと減る。増やさないための歯止め。",
+  "limit": 0,
+  "updatedAt": "2026-08-18"
+}

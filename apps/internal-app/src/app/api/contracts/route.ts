@@ -1,15 +1,16 @@
 /**
  * 契約 API。期限判定・アラート・更新は `@platform/contract` の担当。
  */
+
 import { withApiObservability } from "../../../server/instrument";
 import { currentUser } from "../../../server/authorize";
-import { serverEnv } from "../../../server/env";
+import "../../../server/env";
 import { contractStore } from "../../../server/contract-repo";
 import { contractAlerts, summarizeContracts, daysUntilEnd, noticeDeadline, canGiveNotice, renew } from "@platform/contract";
 import { AppError } from "@platform/core";
 
 function user(req: Request) {
-  return currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  return currentUser(req);
 }
 
 async function handleGET(req: Request): Promise<Response> {
@@ -31,8 +32,8 @@ async function handleGET(req: Request): Promise<Response> {
 
 async function handlePOST(req: Request): Promise<Response> {
   const u = user(req);
-  if (!u?.roles.includes("admin")) return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
-  const body = (await req.json()) as { id?: string; action?: "renew" | "terminate" };
+  if (!u?.roles.includes("admin")) return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
+  const body = (await req.json().catch(() => ({}))) as { id?: string; action?: "renew" | "terminate" };
   if (!body.id) return Response.json({ error: "id が必要です" }, { status: 400 });
   const cur = await contractStore.get(body.id);
   if (!cur) return Response.json({ error: "契約が見つかりません" }, { status: 404 });

@@ -1,20 +1,24 @@
 # @platform/os-notify
 
-OS ネイティブのデスクトップ通知・音を鳴らします(Windows / macOS / Linux)。
+デスクトップ通知（OS の通知領域に出す）。
 
-`@platform/notify` が Slack / メール / SMS など「外部サービスへの通知」を扱うのに対し、こちらは**実行中のマシン自身**に通知・音を出す用途です(常駐ツール・RPA・バッチの完了通知など)。
+## これは何のためか
 
-- `buildNotifyCommand(platform, { title, message, sound })`: OS 別の通知コマンドを生成(純関数)
-- `buildSoundCommand(platform, soundFile?)`: OS 別の音コマンドを生成(純関数)
-- `createOsNotifier({ platform, spawn })`: 通知ランナー。`spawn` を渡すと実行、渡さなければ dry-run(コマンド生成のみ)
+**ブラウザのタブを見ていなくても気づく**ためのものです。
 
-| OS | 通知 | 音 |
-|---|---|---|
-| Windows | PowerShell トースト(標準 API・追加モジュール不要) | `[console]::Beep` / SoundPlayer |
-| macOS | `osascript display notification` | `afplay` |
-| Linux | `notify-send` | `paplay` / 端末ベル |
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **許可が要ります** | 断られると出せません——**なぜ要るかを説明してから**求めてください |
+| **鳴りすぎると切られます** | 一度切られると、**設定を開かないと戻せません**——**本当に要るものだけ**にしてください |
+| **本文に個人情報を入れない** | **画面がロックされていても表示**されます——**周りの人に見えます** |
+| **クリックしたときの動きを決める** | 押しても何も起きないと、**次から押されません** |
+
+## よく使うもの
 
 ```ts
+import { buildNotifyCommand, buildSoundCommand, createMemoryNotifyLog } from "@platform/os-notify";
 import { spawn } from "node:child_process";
 import { createOsNotifier, type OsPlatform } from "@platform/os-notify";
 

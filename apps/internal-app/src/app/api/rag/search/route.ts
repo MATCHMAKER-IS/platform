@@ -1,16 +1,21 @@
 /** RAG 検索(POST {query}). ログイン中ユーザーのロールを継承して検索(権限のない文書は返らない)。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { ragStore, ensureSeeded, normalizeTranscript } from "../../../../server/rag-service";
+import { validate, z } from "@platform/validation";
+
+const SearchInput = z.object({ query: z.string().trim().min(1, "query は必須です").max(500) });
 
 async function handlePOST(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   if (!user) return Response.json({ error: "認証が必要です" }, { status: 401 });
   await ensureSeeded();
-  const body = (await req.json()) as { query?: string };
-  const rawQuery = (body.query ?? "").trim();
-  if (!rawQuery) return Response.json({ error: "query は必須です" }, { status: 400 });
+  const parsed = validate(SearchInput, await req.json().catch(() => ({})));
+  if (!parsed.ok) {
+    return Response.json({ error: parsed.error.message, details: parsed.error.details }, { status: 400 });
+  }
+  const rawQuery = parsed.value.query;
   // 検索クエリも辞書補正(ユーザーが誤変換のまま入力しても正しい語で検索)
   const normalized = normalizeTranscript(rawQuery);
   const query = normalized.corrected;

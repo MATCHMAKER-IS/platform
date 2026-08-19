@@ -47,8 +47,18 @@ export function detectDataCenter(apiDomainOrUrl: string): ZohoDataCenter {
   return (ZOHO_DATA_CENTERS as readonly string[]).includes(tld ?? "") ? (tld as ZohoDataCenter) : "com";
 }
 
-/** Zoho の対象サービス。 */
-export type ZohoService = "crm" | "books" | "desk" | "inventory" | "campaigns" | "projects" | "people" | "sign" | "recruit" | "workdrive" | "analytics" | "cliq" | "creator" | "bookings";
+/**
+ * Zoho の対象サービス。
+ *
+ * **`index.ts` が export しているクライアントと必ず一致させること。**
+ * 2026-08、`mail` / `meeting` / `expense` / `vault` の 4 つがこの型に無いまま
+ * `serviceBaseUrl(...)` に渡されており、**4 サービスが型検査を通らない**状態だった
+ * (`pnpm typecheck` が CI で実際には走り切っていなかったため気づけなかった)。
+ */
+export type ZohoService =
+  | "crm" | "books" | "desk" | "inventory" | "campaigns" | "projects" | "people"
+  | "sign" | "recruit" | "workdrive" | "analytics" | "cliq" | "creator" | "bookings"
+  | "mail" | "meeting" | "expense" | "vault";
 
 /**
  * サービスと DC からベース URL を解決する。
@@ -76,5 +86,31 @@ export function serviceBaseUrl(service: ZohoService, dc: ZohoDataCenter): string
     case "cliq": return `https://cliq.zoho.${dc}/api/v2`;
     case "creator": return `https://www.zohoapis.${dc}/creator/v2.1`;
     case "bookings": return `https://www.zohoapis.${dc}/bookings/v1/json`;
+    case "mail": return `https://mail.zoho.${dc}/api`;
+    case "meeting": return `https://meeting.zoho.${dc}/api/v2`;
+    case "expense": return `https://www.zohoapis.${dc}/expense/v1`;
+    case "vault": return `https://vault.zoho.${dc}/api/rest/json/v1`;
   }
+}
+
+/**
+ * サービスと DC から {@link ZohoClientConfig} のドメイン部とパス部を返す。
+ *
+ * `createZohoApiClient` は `apiDomain` と `basePath` を**別々に**受け取るため、
+ * `serviceBaseUrl` の戻り値(1 本の URL)をそのまま渡すことはできない。
+ * **ここで分解を 1 か所にまとめる**——各クライアントで文字列を切ると必ずずれる。
+ *
+ * @param service サービス
+ * @param dc データセンター
+ * @returns `apiDomain`(オリジン)と `basePath`(先頭 `/` 付きのパス)
+ *
+ * @example
+ * ```ts
+ * serviceClientParts("mail", "jp");
+ * // => { apiDomain: "https://mail.zoho.jp", basePath: "/api" }
+ * ```
+ */
+export function serviceClientParts(service: ZohoService, dc: ZohoDataCenter): { apiDomain: string; basePath: string } {
+  const url = new URL(serviceBaseUrl(service, dc));
+  return { apiDomain: url.origin, basePath: url.pathname.replace(/\/$/, "") };
 }

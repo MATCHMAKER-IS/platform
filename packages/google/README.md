@@ -1,10 +1,28 @@
 # @platform/google
 
-Google Workspace 連携の総合クライアント。**ログイン(OAuth)/ ユーザー情報 / Sheets /
-Calendar / Gmail / Drive / Maps** を型付きで扱います。トークンは自動更新に対応。
+Google Workspace（Drive / Gmail / Sheets / Calendar / Maps / Docs / Forms / Apps Script）。
 
-## ログイン(OAuth)+ トークン管理
+## これは何のためか
+
+**社内にすでに Google の資産があります**——
+議事録の雛形、申請フォーム、スプレッドシートのマクロ。
+
+**全部を作り直すのは現実的でない**ので、**そのまま使えるように**します。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **スコープはサービスごとに別** | 足りないスコープで呼ぶと **403**——「認証したのに動かない」の多くはこれです |
+| **10 秒で切れます** | 相手が応答しないとき**永久に待たない**ためです——**利用者は白い画面のまま**になります |
+| **Docs の雛形は複製してから差し込む** | そのまま差し込むと**雛形が壊れます** |
+| **Forms の質問名で対応付けない** | **総務の人が質問文を直した瞬間に壊れます**——**質問 ID** を控えてください |
+| **Apps Script はエラーを 200 で返します** | HTTP は成功でも**本文に `error`** が入ります——`ok` だけ見て安心しないでください |
+
+## よく使うもの
+
 ```ts
+import { createGoogleDriveClient, createGoogleSheetsClient } from "@platform/google";
 import { buildGoogleAuthUrl, exchangeGoogleCode, createGoogleTokenManager, createGoogleAuthedFetch, getGoogleUserInfo } from "@platform/google";
 
 // 1) ログイン画面へ誘導

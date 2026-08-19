@@ -1,12 +1,26 @@
 # @platform/auth
 
-認証・認可の共通部品。
+権限の判定（この人はこの操作をしてよいか）。**ログインの仕組みとは分けてあります**。
 
-- **RBAC**: `definePolicy` / `can` / `assertCan` / `permissionsOf`(純ロジック、再利用可)
-- **セッション型**: `AuthUser` / `Session`
-- **OIDC 設定の標準化**: `OidcProviderConfig` / `resolveIssuer`(Entra / Google / generic)
+## これは何のためか
+
+**「誰か」と「何をしてよいか」は別**です。
+ログインの仕組み（`@platform/session`）とは分けてあります——
+**混ぜると、権限を変えるたびにログインの処理を触る**ことになります。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **画面で隠すのは守りではない** | ボタンを消しても、**API を直接叩かれれば通ります**。**API 側で必ず確かめて**ください |
+| **`requirePermission` は戻り値を見なくても止まる** | `if` を書き忘れても素通りしません——これが `userCan` との違いです |
+| **ロールを増やしすぎない** | 「営業部長」「経理課長」…と増やすと、**誰が何をできるか誰も分からなくなります** |
+| **権限は「操作」で定義する** | 「管理者」ではなく「`expense:approve`」——**役職が変わっても定義が生きます** |
+
+## よく使うもの
 
 ```ts
+import { resolveHierarchy, canAny, canAll } from "@platform/auth";
 import { definePolicy, assertCan } from "@platform/auth";
 
 export const policy = definePolicy({

@@ -1,16 +1,28 @@
-# @platform/audit — 監査ログ（操作履歴）
+# @platform/audit
 
-「誰が・いつ・何を・どう変えたか」を追記専用で記録し、**ハッシュチェーンで改ざんを検知**します。
-ブループリント遷移・承認・仕訳などの業務イベントの証跡に使えます。
+監査ログ（誰が何をしたか）。**後から追えることが目的**です。
 
-## 主な API
-- `appendEvent(log, event, hashFn?)` / `appendAll` — イベントを追記（seq・prevHash・hash を連鎖）。
-- `verifyChain(log, hashFn?)` — **値の書換え・削除・並べ替えを検知**（`brokenAt` で位置）。
-- `diffChanges(before, after)` / `describeEvent` — 変更差分と可読化。
-- `filterByActor` / `filterByAction`（前方一致）/ `filterByPeriod` / `historyOf`。
-- ハッシュ関数は注入可能（既定は依存なしの `fnv1a`。運用では sha256 を渡す）。
+## これは何のためか
+
+**「誰がやったか分からない」が一番困ります。**
+
+不正を疑うためではなく、**間違いを直すため**です——
+「この金額はいつ変わったのか」を追えれば、**戻せます**。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **変わっていない項目は記録しません** | 全部を残すと**差分が埋もれます**。**何が変わったか**だけを見せてください |
+| **監査ログは人が読むもの** | ID の羅列ではなく、**「山田が経費 1234 の金額を 3,000 → 5,000 に変えた」**と書いてください |
+| **後から足せません** | 「あのとき記録していれば」は取り返しがつきません——**迷ったら記録**してください |
+| **保持期間は用途で決める** | 会計に関わるものは**7 年**（電子帳簿保存法）です |
+| **消せません** | 本人から求められても、**法令で残す義務があるもの**は消せません（ADR 0018） |
+
+## よく使うもの
 
 ```ts
+import { diffChanges, describeEvent, deepDiffChanges } from "@platform/audit";
 import { appendEvent, verifyChain, historyOf } from "@platform/audit";
 let log = [];
 log = appendEvent(log, { at: new Date().toISOString(), actor: "u1", action: "expense.approve", target: "expense:123", before: { status: "submitted" }, after: { status: "approved" } });

@@ -1,17 +1,25 @@
 /** 給与: 本人の当月給与明細(GET)。勤怠の月次集計と給与設定から算出。payroll:read。 */
 import { withApiObservability } from "../../../server/instrument";
+import { formatMonthJst } from "@platform/datetime";
 import { currentUser, requirePermission } from "../../../server/authorize";
-import { serverEnv } from "../../../server/env";
-import { attendanceStore, wageStore } from "../../../server/platform-services";
+import "../../../server/env";
+import { attendanceStore, wageStore, payrollProfileStore } from "../../../server/platform-services";
 import { computePayroll, defaultWage } from "../../../server/payroll-repo";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "payroll:read");
-  const month = new URL(req.url).searchParams.get("month") ?? new Date().toISOString().slice(0, 7);
+  const month = new URL(req.url).searchParams.get("month") ?? formatMonthJst();
   const summary = await attendanceStore.monthly(user!.email, month);
   const wage = (await wageStore.get(user!.email)) ?? defaultWage(user!.email);
-  const result = computePayroll(month, wage, { totalMinutes: summary.totalMinutes, overtimeMinutes: summary.overtimeMinutes, nightMinutes: summary.nightMinutes, holidayMinutes: summary.holidayMinutes, workedDays: summary.days.length });
+  // **プロファイル未登録なら `undefined`。** `computePayroll` はその場合
+  // 社会保険料を計算せず、`insurance` を省いたまま返す(未計算を明示する)。
+  const profile = await payrollProfileStore.get(user!.email);
+  const result = computePayroll(
+    month, wage,
+    { totalMinutes: summary.totalMinutes, overtimeMinutes: summary.overtimeMinutes, nightMinutes: summary.nightMinutes, holidayMinutes: summary.holidayMinutes, workedDays: summary.days.length },
+    profile,
+  );
   return Response.json(result);
 }
 

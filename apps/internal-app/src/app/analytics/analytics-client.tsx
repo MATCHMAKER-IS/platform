@@ -1,33 +1,43 @@
 "use client";
 /** 経営分析。売上・仕入・経費・粗利の月次推移を折れ線＋棒グラフ（インラインSVG）で表示。 */
 import * as React from "react";
-import { Button, ComboChart } from "@platform/ui";
+import { formatYen } from "@platform/report";
+import { AsyncBoundary, Button, ComboChart, PageShell } from "@platform/ui";
 
 interface Point { month: string; sales: number; purchases: number; expenses: number; profit: number; }
 interface Summary { totalSales: number; totalProfit: number; avgProfit: number; profitMoM: number; }
 interface Data { from: string; to: string; points: Point[]; summary: Summary; }
 
-const yen = (n: number) => `¥${n.toLocaleString()}`;
+const yen = (n: number) => formatYen(n);
 
 export interface AnalyticsClientProps { fetchImpl?: typeof fetch; }
 
 export function AnalyticsClient({ fetchImpl }: AnalyticsClientProps) {
   const [data, setData] = React.useState<Data | null>(null);
+  const [error, setError] = React.useState("");
   const [months, setMonths] = React.useState(6);
   const doFetch = fetchImpl ?? (globalThis as unknown as { fetch: typeof fetch }).fetch;
 
-  React.useEffect(() => {
-    void (async () => {
+  // **再試行できるように名前を付ける。**
+  // 即時関数のままだと、失敗しても呼び直す手段が無い
+  const load = React.useCallback(async () => {
+    setError("");
       const now = new Date();
       const to = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
       const start = new Date(Date.UTC(now.getFullYear(), now.getMonth() - (months - 1), 1));
       const from = `${start.getUTCFullYear()}-${String(start.getUTCMonth() + 1).padStart(2, "0")}`;
       const res = await doFetch(`/api/analytics/trend?from=${from}-01&to=${to}-01`);
       if (res.ok) setData((await res.json()) as Data);
-    })();
   }, [doFetch]);
 
-  if (!data) return <div className="mx-auto max-w-4xl p-6"><h1 className="text-2xl font-bold">経営分析</h1><p className="mt-4 text-sm text-[var(--color-muted)]">読み込み中…</p></div>;
+  React.useEffect(() => { void load(); }, [load]);
+
+  // **`AsyncBoundary` に渡す前に返す。** children は JSX なので
+  // **この部品が判断するより先に評価される**——`data` が null のままだと
+  // `data.…` で画面ごと落ちる(2026-08 の型検査で 7 画面が同じ形だった)。
+  if (data === null) {
+    return <AsyncBoundary loading={error === ""} error={error} onRetry={() => void load()} />;
+  }
 
   const pts = data.points;
   // **グラフは @platform/ui の ComboChart に任せる。** 軸・凡例・目盛り・整形・
@@ -40,10 +50,10 @@ export function AnalyticsClient({ fetchImpl }: AnalyticsClientProps) {
   }));
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <h1 className="mb-1 text-2xl font-bold">経営分析</h1>
+    <AsyncBoundary loading={false} error={error} onRetry={() => void load()}>
+        <PageShell title="経営分析" width="wide">
       <p className="mb-4 text-xs text-[var(--color-muted)]">{data.from} 〜 {data.to} の月次推移（売上＝棒、粗利＝折れ線）。</p>
-      <div className="mb-3 flex gap-1">{[3, 6, 12].map((m) => <Button key={m} onClick={() => setMonths(m)} className={`rounded px-2 py-1 text-xs ${months === m ? "bg-[var(--color-fg)] text-white" : "bg-[var(--color-subtle)] text-[var(--color-muted)]"}`}>{m}か月</Button>)}</div>
+      <div className="mb-3 flex gap-1">{[3, 6, 12].map((m) => <Button key={m} onClick={() => setMonths(m)} variant="tab" data-state={months === m ? "active" : undefined}>{m}か月</Button>)}</div>
 
       <div className="mb-4 grid grid-cols-4 gap-3 text-center text-sm">
         <div className="rounded border border-[var(--color-border)] p-3"><div className="text-xs text-[var(--color-muted)]">総売上</div><div className="mt-1 font-bold">{yen(data.summary.totalSales)}</div></div>
@@ -80,6 +90,7 @@ export function AnalyticsClient({ fetchImpl }: AnalyticsClientProps) {
           ))}
         </tbody>
       </table>
-    </div>
+    </PageShell>
+    </AsyncBoundary>
   );
 }

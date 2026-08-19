@@ -14,7 +14,7 @@ import { readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
-const SITE = path.join(ROOT, "demos/showcase");
+const SITE = path.join(ROOT, "apps/showcase");
 
 /** ディレクトリを再帰して .ts / .tsx を集める。 */
 function collectSources(dir) {
@@ -53,7 +53,7 @@ export function check() {
   //    (--filter に存在しない名前を書いても、実行するまで気づけない)
   const rootPkg = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8"));
   const names = new Set();
-  for (const dir of ["apps", "demos", "packages"]) {
+  for (const dir of ["apps", "packages"]) {
     const base = path.join(ROOT, dir);
     if (!existsSync(base)) continue;
     for (const name of readdirSync(base)) {

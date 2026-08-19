@@ -1,21 +1,25 @@
 # @platform/board
 
-掲示板の純ロジック（スレッド・投稿・返信・リアクション）。
+掲示板（スレッド・投票・お知らせ）。**チャットは流れるので、残す場所**として使います。
 
-## 投稿（post.ts）
-- `createThread` / `createPost` — 空・長すぎ（`MAX_POST_LENGTH=10000` / `MAX_TITLE_LENGTH=200`）は失敗。trim。
-- `canReply(thread)` — 施錠（`locked`）で返信不可。`rootPosts` / `repliesOf` — 本文と返信の分離。
-- `extractMentions` — `@handle` 抽出。
+## これは何のためか
 
-## リアクション（reaction.ts）
-- `toggleReaction` — 同じ種別を再度押すと解除（トグル）。`countReactions` / `userReactions`。
+**チャットは流れます。** 大事なことを残す場所が要ります。
 
-## 一覧（thread-list.ts）
-- `summarize(thread, posts)` — 返信数・参加者数・最終更新。
-- `sortThreads` — ピン→最新順。`filterByTag` / `searchThreads`（タイトル・本文）。
+「いつまでに何をするか」「どう決まったか」——
+**後から探せる形**で置くためのものです。
 
-UI は `@platform/ui` の `PostCard`。
+## 使う前に知っておくこと
 
-## 添付（attachment.ts）
-- `Attachment` / `validateAttachments` / `imageAttachments` — chat と同形。
-- `createPost` は本文が空でも添付があれば成功する。
+| | |
+|---|---|
+| **一覧には既定の上限があります** | 渡し忘れても**無制限になりません**——**投稿は増え続けます** |
+| **投票の同時更新は 1 票ずれます** | 実害が小さいので見ていません。**厳密に数えたいなら `increment`** を使ってください |
+| **消した投稿も記録は残ります** | 「無かったことにする」ためのものではありません |
+| **通知は本人以外に** | 自分の投稿で自分に通知が飛ぶと、**通知を見なくなります** |
+
+## よく使うもの
+
+```ts
+import { validateAttachments, imageAttachments, adjacentPosts } from "@platform/board";
+```

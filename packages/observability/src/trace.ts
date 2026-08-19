@@ -62,7 +62,8 @@ export function toTraceparent(traceId: string, spanId: string, sampled = true): 
  * **他システムから呼ばれたとき**、そのトレース ID を引き継ぐために使う。
  *
  * @param header traceparent ヘッダの値
- * @returns トレース ID・スパン ID・サンプリング。**形式が不正なら undefined**
+ * @returns トレース ID・スパン ID・サンプリング。**形式が不正なら `null`**(**`undefined` ではない**——
+ *   `=== undefined` で判定すると通り抜ける)
  */
 export function parseTraceparent(header: string): { traceId: string; spanId: string; sampled: boolean } | null {
   const m = header.match(/^00-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/);
@@ -92,8 +93,8 @@ export interface ActiveSpan {
 /**
  * トレーサを作る。
  *
- * @param options.exporter 送信先(渡すとスパン終了時に送信)
- * @param options.now 時刻の取得(テスト注入用)
+ * @param exporter 送信先(渡すとスパン終了時に送信)
+ * @param now 現在時刻(**テスト注入用**。渡さなければ `new Date()`)
  * @returns トレーサ。`startSpan` で区間を開始する
  */
 export function createTracer(exporter?: SpanExporter, now: () => number = () => Date.now()): Tracer {

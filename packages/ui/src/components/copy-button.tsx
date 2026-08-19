@@ -42,7 +42,6 @@ export interface CopyButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLBut
   copiedLabel?: string;
 }
 
-/** テキストをコピーするボタン(コピー後にチェック表示)。 */
 /**
  * 押すとコピーするボタン。
  *

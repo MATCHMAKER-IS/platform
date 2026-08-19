@@ -1,13 +1,13 @@
 /** 横断全文検索(GET ?q=)。請求・取引先・監査(管理者のみ)を全文検索。認証ユーザー。 */
 import { withApiObservability } from "../../../server/instrument";
 import { currentUser, userCan } from "../../../server/authorize";
-import { serverEnv } from "../../../server/env";
+import "../../../server/env";
 import { searchIndexStore } from "../../../server/platform-services";
 import { toSearchResults } from "../../../server/entity-search";
 import { searchIndexed } from "../../../server/search-index";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   if (!user) return Response.json({ error: "認証が必要です" }, { status: 401 });
   const q = new URL(req.url).searchParams.get("q")?.trim() ?? "";
   if (q.length === 0) return Response.json({ results: [] });

@@ -10,5 +10,8 @@
   "files": [
     "tsconfig.base.json",
     "vitest.preset.mjs"
-  ]
+  ],
+  "platform": {
+    "tier": "stable"
+  }
 }

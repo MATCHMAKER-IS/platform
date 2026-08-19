@@ -3,6 +3,15 @@
  * 画面向けに生成した帳票 HTML に @page ルールやページ区切りを与え、PDF 化したときに
  * 用紙サイズ・余白・改ページが正しく効くようにする。複数帳票を 1 つの PDF にまとめる一括出力も。
  * PDF 変換自体は @platform/pdf(fromHtml)に渡す。ここは HTML を整えるだけで pdf に依存しない。
+ * **`@platform/invoice` にも同名の実装がある。**
+ *
+ * こちらは**帳票の枠組み**(見出し・印章・注記)を持つ汎用の描画。
+ * `@platform/invoice` は請求書に特化し、インボイス制度の
+ * 記載要件(登録番号・税率区分ごとの内訳)を満たす。
+ * 社内アプリは後者を使っている。
+ *
+ * 統合しないのは、**満たすべき要件が違う**ため(ADR-0015)。
+ *
  * @packageDocumentation
  */
 
@@ -21,8 +30,9 @@ export interface PrintOptions {
  *
  * **画面用の CSS のままでは紙に収まらない**(余白・改ページ・背景色の扱いが違う)。
  *
- * @param options.size 用紙(既定 A4)
- * @param options.orientation 向き(既定 portrait)
+ * @param options.format 用紙(既定 A4)
+ * @param options.landscape 横向きにするか(真偽値・既定 false)。
+ *   **`orientation` に `"portrait"` を渡す形ではない**
  * @param options.margin 余白
  * @returns CSS 文字列
  */

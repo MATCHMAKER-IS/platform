@@ -1,13 +1,15 @@
 /** CMS 記事: 取得(GET)・更新(PUT)・削除(DELETE)。 */
 import { withApiObservability } from "../../../../../server/instrument";
 import { currentUser, requirePermission, userCan } from "../../../../../server/authorize";
-import { serverEnv } from "../../../../../server/env";
-import { cmsStore, auditActions, revisionStore, publishRequestStore, notificationCenter } from "../../../../../server/platform-services";
+import "../../../../../server/env";
+import { cmsStore, auditActions, revisionStore, publishRequestStore, notificationCenter, userStore } from "../../../../../server/platform-services";
 import { validatePostInput, isPublishAction, type CmsPostInput } from "../../../../../server/cms-store";
+import { can } from "@platform/auth";
+import { APP_POLICY } from "../../../../../server/policy";
 
 async function handleGET(req: Request, ctx: { params: Promise<{ slug: string }> }): Promise<Response> {
   const { slug } = await ctx.params;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:read");
   const post = await cmsStore.get(slug);
   if (!post) return Response.json({ error: "記事が見つかりません" }, { status: 404 });
@@ -16,9 +18,9 @@ async function handleGET(req: Request, ctx: { params: Promise<{ slug: string }> 
 
 async function handlePUT(req: Request, ctx: { params: Promise<{ slug: string }> }): Promise<Response> {
   const { slug } = await ctx.params;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:edit");
-  const body = (await req.json()) as CmsPostInput;
+  const body = (await req.json().catch(() => ({}))) as CmsPostInput;
   const valid = validatePostInput(body);
   if (!valid.ok) return Response.json({ error: valid.error }, { status: 400 });
   const before = await cmsStore.get(slug);
@@ -38,7 +40,13 @@ async function handlePUT(req: Request, ctx: { params: Promise<{ slug: string }> 
   if (pendingPublish) {
     const request = await publishRequestStore.request(post.slug, user!.email);
     await auditActions.record(user!.email, "cms.publish.request", `post:${post.slug}`);
-    await notificationCenter.notify("cms-approvers", { title: "公開申請があります", body: `${post.title}（${user!.email}）`, href: "/cms/publish-requests", kind: "info" });
+    // **`"cms-approvers"` という文字列は実在しないユーザー ID だった。**
+    // 公開承認者に通知は一度も届いていなかった(2026-08、mailer.sendMail
+    // の全点検の延長で発見。cms/posts/route.ts と同じ穴)。
+    const approvers = (await userStore.list()).filter((u) => u.active && can(APP_POLICY, u.roles, "cms:publish"));
+    for (const approver of approvers) {
+      await notificationCenter.notify(approver.email, { title: "公開申請があります", body: `${post.title}（${user!.email}）`, href: "/cms/publish-requests", kind: "info" });
+    }
     await notificationCenter.notify(user!.email, { title: "公開申請を送信しました", body: `${post.title}（承認待ち）`, href: "/cms", kind: "info" });
     return Response.json({ ...post, publishRequest: request });
   }
@@ -47,7 +55,7 @@ async function handlePUT(req: Request, ctx: { params: Promise<{ slug: string }> 
 
 async function handleDELETE(req: Request, ctx: { params: Promise<{ slug: string }> }): Promise<Response> {
   const { slug } = await ctx.params;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:edit");
   const removed = await cmsStore.remove(slug);
   if (!removed) return Response.json({ error: "記事が見つかりません" }, { status: 404 });

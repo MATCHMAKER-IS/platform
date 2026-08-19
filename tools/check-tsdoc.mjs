@@ -67,7 +67,10 @@ function analyzeFile(pkg, file) {
   // /** ... */ の直後の export function を対象にする(コメントが無いものも拾う)。
   // 引数は複数行・ネストした括弧(デフォルト引数の `new Date()` など)を含むため、
   // [^)]* では途中で切れる。[\s\S]*? で最短一致させ、`) :` または `) {` で閉じる。
-  const re = /(\/\*\*[\s\S]*?\*\/\s*)?export\s+(?:async\s+)?function\s+(\w+)\s*(?:<[^>]*>)?\s*\(([\s\S]*?)\)\s*(?::\s*([^{;]+?))?\s*\{/g;
+  // **`[\s\S]*?` では前のブロックから掴む。** 非貪欲でも、間に別の TSDoc
+  // (`@typedef` など)があると**そちらの説明を関数の説明と誤認する**。
+  // `(?!\*\/)` で「閉じるまで」に限定する(`check-tsdoc-params` は最初からこの形)。
+  const re = /(\/\*\*(?:(?!\*\/)[\s\S])*?\*\/\s*)?export\s+(?:async\s+)?function\s+(\w+)\s*(?:<[^>]*>)?\s*\(([\s\S]*?)\)\s*(?::\s*([^{;]+?))?\s*\{/g;
   let m;
   while ((m = re.exec(src)) !== null) {
     const doc = m[1] ?? "";
@@ -76,7 +79,17 @@ function analyzeFile(pkg, file) {
     const ret = (m[4] ?? "").trim();
     // 本体を粗く切り出して throw の有無を見る(次の export か末尾まで)
     const bodyStart = m.index + m[0].length;
-    const nextExport = src.indexOf("\nexport ", bodyStart);
+    // **次の `export` だけでなく、次のトップレベル関数でも切る。**
+    // 2026-08 に `toHankakuKana` が「`@throws` が不足」と言われたが、
+    // **実際は投げず**、**後ろにある非 export の補助関数の `throw` を拾って**いた
+    // ——`export` の間に補助関数があると、**そこの throw が混ざります**。
+    const nextExport = (() => {
+      const a = src.indexOf("\nexport ", bodyStart);
+      const b = src.indexOf("\nfunction ", bodyStart);
+      if (a === -1) return b;
+      if (b === -1) return a;
+      return Math.min(a, b);
+    })();
     const body = src.slice(bodyStart, nextExport === -1 ? src.length : nextExport);
 
     // 説明文 = タグ以外の本文があるか
@@ -96,7 +109,13 @@ function analyzeFile(pkg, file) {
       hasParam: doc.includes("@param"),
       returnsValue: ret !== "" && !/^(void|Promise<void>)$/.test(ret),
       hasReturns: doc.includes("@returns"),
-      throws: /\bthrow\s+new\b/.test(body),
+      // **コメントの中の `throw new` は数えない。**
+      // 2026-08 に、TSDoc の使用例に書いた `throw new Error(...)` を拾って
+      // **「投げないのに @throws が不足」**と言われた。
+      // 説明のための例を書けなくなるので、**コメントを除いてから**見る。
+      throws: /\bthrow\s+new\b/.test(
+        body.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, ""),
+      ),
       hasThrows: doc.includes("@throws"),
     });
   }

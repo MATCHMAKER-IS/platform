@@ -24,6 +24,7 @@ export interface PostFilter {
  *
  * @param posts 記事の配列
  * @param filter 絞り込み条件(状態・タグ・カテゴリ・キーワードなど)
+ * @param now 現在時刻(**テスト注入用**。渡さなければ `new Date()`)
  * @returns 条件に合う記事
  */
 export function filterPosts(posts: CmsPost[], filter: PostFilter, now: Date = new Date()): CmsPost[] {

@@ -12,12 +12,27 @@
  */
 import { createLogger } from "@platform/logger";
 import { getContext, getRequestId, runWithContext } from "@platform/context";
+import { guardWrite } from "@platform/guard";
+// **制限器は `rate-limit.ts` にある。** 2026-08 に `guardWrite` を
+// `@platform/guard` へ寄せた際、ここの import を付け忘れており、
+// `getWriteLimiter` / `MAX_BODY_BYTES` が未定義のまま残っていた
+// (**雛形なので、コピーされた新規アプリ全部に伝播する**)。
+import { getWriteLimiter } from "./rate-limit";
 import { createMetrics, createTracer } from "@platform/observability";
 import { toErrorEnvelope, httpStatusFor, AppError } from "@platform/core";
 import type { AuditEvent } from "@platform/audit";
 
 /** 相関ID を運ぶヘッダ名。**受けるときも返すときも同じ名前**を使う。 */
 export const REQUEST_ID_HEADER = "x-request-id";
+
+/**
+ * 受け付ける本文の上限(1MB)。
+ *
+ * **これが無いと、巨大な本文を送られただけでメモリを食う。**
+ * 画面からの登録・更新でこれを超えるものは無い(ファイルは
+ * `@platform/upload` の経路で別に受ける)。
+ */
+export const MAX_BODY_BYTES = 1_000_000;
 
 /**
  * ログ。秘密情報(password / token / email など)は基盤側で自動的に伏せられる。
@@ -125,6 +140,21 @@ export function withApi(route: string, handler: Handler): (req: Request, ctx?: u
 
     // コンテキストはここで張る。**入口が 1 つ**なので、ルートが増えても付け忘れが起きない。
     return runWithContext(seed, async () => {
+      // **書き込みだけ回数を制限する。**
+      // ここに置けば、ルートが増えても付け忘れない。
+      // 読み取りは副作用が無く遅くなるだけなので対象外。
+      //
+      // **同一サイトからの要求だけを受ける(CSRF 対策)。**
+      // 他所のページから勝手に書き込ませる攻撃を防ぐ。
+      // `Origin` はブラウザが管理するので偽装できない。
+      // 送ってこない相手(古いクライアント)は通す — 送られたときだけ見る。
+      // **書き込みの共通ガード**(本文サイズ・CSRF・レート制限)は
+      // `@platform/guard` の `guardWrite` に移した(2026-08)。
+      // 3 つとも「書き忘れても動いてしまう」ので、**アプリごとに書かない**
+      // ——`line-console` にも同じ実装があった。
+      const blocked = await guardWrite(req, { limiter: getWriteLimiter(), maxBodyBytes: MAX_BODY_BYTES });
+      if (blocked !== null) return blocked;
+
       const started = Date.now();
       const span = tracer.startSpan(`${req.method} ${route}`);
       try {

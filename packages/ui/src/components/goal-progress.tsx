@@ -21,7 +21,6 @@ export interface GoalProgressProps {
 
 const defaultFormat = (n: number) => n.toLocaleString("ja-JP");
 
-/** 目標達成バー。達成率で色が変わり(100%以上は緑)、目標位置にマーカーを表示。 */
 /**
  * 目標に対する進み。
  *

@@ -1,12 +1,27 @@
 # @platform/security
 
-Web セキュリティの共通部品。
+セキュリティの守り（CSP・埋め込み制御・再送防止・入力の無害化）。
 
-- `securityHeaders(options)` … CSP / HSTS / X-Frame-Options 等のヘッダ(helmet 相当)
-- `sanitize(html)` / `stripHtml(html)` … HTML サニタイズ(XSS・インジェクション対策)
-- `createCsrf({ secret })` … CSRF トークンの発行/検証(署名付き double-submit、ステートレス)
+## これは何のためか
+
+**攻撃は「うっかり」から入ります。**
+利用者が貼った HTML、外部サイトからの埋め込み、同じ要求の再送——
+**どれも悪意なく起きて、悪意ある人に使われます**。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **`unsafe-inline` は本番で必ず `false`** | 開発時に許すのは構いませんが、**本番で残すと CSP の意味がありません** |
+| **`'self'` は nonce を使うと無視されます** | 両方書いても効きません——**どちらか一方**にしてください |
+| **埋め込みの許可は最小に** | `sanitizeEmbed` と CSP を**揃えて**ください。片方だけ緩いと**そこから入られます** |
+| **再送防止の期限は短すぎない** | 短いと**同じ要求を 2 回通します**（`createMemoryReplayStore`） |
+| **入力の無害化は「表示前」に** | 保存時に消すと、**元が何だったか分からなくなります** |
+
+## よく使うもの
 
 ```ts
+import { createCsrf, assertCsrf, CSRF_COOKIE } from "@platform/security";
 // Next middleware でヘッダを付与
 import { securityHeaders } from "@platform/security";
 const headers = securityHeaders();

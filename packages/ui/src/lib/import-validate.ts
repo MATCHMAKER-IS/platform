@@ -116,7 +116,7 @@ export interface ImportSummary { total: number; valid: number; errorRows: number
  * 検証結果の要約を作る。
  *
  * @param validation.rows 全行
- * @param validation.errors 検証結果
+ * @param validation 検証結果(**それ自体が検証結果**。`errors` を持つ器ではない)
  * @returns 総数・有効・無効の件数
  */
 export function summarizeImport(validation: ImportValidation): ImportSummary {
@@ -184,12 +184,17 @@ export function canRollback(status: ImportHistoryRow["status"]): boolean {
 }
 
 /**
- * ユーザーがロールバックできるか(状態 + ロール)。allowedRoles のいずれかを持つ場合のみ可。
- * allowedRoles 未指定なら状態のみで判定。
+ * 取り込みを巻き戻せるかを判定する(状態 + ロール)。
  *
- * @param history 履歴行
- * @param options.maxAgeMs ロールバックを許す期間
- * @returns ロールバックできるか(**古い取り込みは戻せない**。後続の変更を壊すため)
+ * **`allowedRoles` を省略すると、状態だけで判定する**——
+ * つまり**誰でも巻き戻せる**。巻き戻しは取り込んだデータを消す破壊的操作なので、
+ * **省略は「全員に許す」という明示的な選択**として使うこと。
+ * 迷うなら渡す(2026-08 に明記)。
+ *
+ * @param status 取り込みの状態
+ * @param actorRoles 操作する人のロール
+ * @param allowedRoles 巻き戻しを許すロール。**省略すると全員が巻き戻せる**
+ * @returns 巻き戻せるなら true
  */
 export function canRollbackWith(status: ImportHistoryRow["status"], actorRoles: string[], allowedRoles?: string[]): boolean {
   if (!canRollback(status)) return false;

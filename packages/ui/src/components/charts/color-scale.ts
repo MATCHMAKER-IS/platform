@@ -32,8 +32,11 @@ export function interpolateColor(from: string, to: string, t: number): string {
  * value を [min,max] で正規化し、from→to の色に写像する。
  *
  *
- * @param colors 色の配列(**2 色以上**)
- * @param t 位置(0–1)
+ * @param value 写像する値
+ * @param min 範囲の下端（**value がこれ以下なら from の色**）
+ * @param max 範囲の上端
+ * @param from 下端の色
+ * @param to 上端の色
  * @returns その位置の色(**多段のグラデーション**。ヒートマップなどに使う)
  */
 export function colorScale(value: number, min: number, max: number, from = "#e0f2f1", to = "#0d9488"): string {

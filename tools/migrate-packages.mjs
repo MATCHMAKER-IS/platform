@@ -7,7 +7,7 @@
  *   node tools/migrate-packages.mjs                      # 全カテゴリの計画
  *   node tools/migrate-packages.mjs --category=外部SaaS連携  # 1カテゴリ(パイロット)
  *
- * 実適用は docs/ops/PACKAGE_RECATEGORIZATION_PLAN.md の手順(Phase 1 のツール抽象化が先)。
+ * 実適用は docs/ops/PACKAGE_CONSOLIDATION.md の手順(Phase 1 のツール抽象化が先)。
  * 誤操作防止のため、本ツール自体はファイルを移動しない。
  */
 import fs from "node:fs";
@@ -67,4 +67,4 @@ if (sorted.length === 0) console.log("  なし");
 console.log(`\n── ワークスペース設定の変更(移行期間は両グロブ併記) ──`);
 console.log(`  pnpm-workspace.yaml: packages/* に加えて "packages/*/*" を追加(全移行後に packages/* を削除)`);
 console.log(`\n合計: ${totalMoves} パッケージ移動 / 影響ファイル ${sorted.length} 件(dry-run・変更なし)`);
-console.log(`実適用の手順: docs/ops/PACKAGE_RECATEGORIZATION_PLAN.md`);
+console.log(`実適用の手順: docs/ops/PACKAGE_CONSOLIDATION.md`);

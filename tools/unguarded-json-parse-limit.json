@@ -1,0 +1,4 @@
+{
+  "_comment": "try/catch で守られていない JSON.parse の上限。増やさないための歯止め。減らしたら --set-limit で下げる。",
+  "limit": 0
+}

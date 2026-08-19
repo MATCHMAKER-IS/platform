@@ -26,9 +26,8 @@ export interface Bookmark {
  * **ピンはルーム全体で共有**(全員に見える)。個人用は {@link toggleBookmark}。
  *
  * @param pins 現在のピン
- * @param input ルーム・メッセージ・操作者
- * @param now 現在時刻(テスト注入用)
- * @returns 更新した**新しい**配列と、付けたか外したか
+ * @param pin 付け外しするピン(同じ roomId・messageId が既にあれば解除)
+ * @returns 更新した**新しい**配列(元の配列は変更しない)
  */
 export function togglePin(pins: Pin[], pin: Pin): Pin[] {
   const exists = pins.some((p) => p.roomId === pin.roomId && p.messageId === pin.messageId);
@@ -65,9 +64,8 @@ export function pinsOf(pins: Pin[], roomId: string): Pin[] {
  * **ブックマークは個人用**(自分にしか見えない)。全員に見せるなら {@link togglePin}。
  *
  * @param bookmarks 現在のブックマーク
- * @param input ユーザー・メッセージ
- * @param now 現在時刻(テスト注入用)
- * @returns 更新した新しい配列と、付けたか外したか
+ * @param bookmark 付け外しするブックマーク(同じものが既にあれば解除)
+ * @returns 更新した新しい配列(元の配列は変更しない)
  */
 export function toggleBookmark(bookmarks: Bookmark[], bookmark: Bookmark): Bookmark[] {
   const exists = bookmarks.some((b) => b.userId === bookmark.userId && b.messageId === bookmark.messageId);

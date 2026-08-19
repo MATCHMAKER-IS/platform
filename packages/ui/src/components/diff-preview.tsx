@@ -17,7 +17,6 @@ export interface DiffPreviewProps<T extends Record<string, unknown>> {
   className?: string;
 }
 
-/** 差分プレビュー。 */
 /**
  * 変更前後の比較。
  *

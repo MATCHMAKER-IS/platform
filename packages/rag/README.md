@@ -1,13 +1,29 @@
 # @platform/rag
 
-**RAG(検索拡張生成)の骨格**。役割は「検索」(操作は @platform/mcp)。以下を提供します:
+社内文書の検索（RAG）。**AI に「うちの規程では」と答えさせる**ためのものです。
 
-- **チャンク分割**(`chunkDocument`): 段落境界を尊重し、長い段落は文字数で強制分割(overlap 対応)
-- **権限継承検索**(`createRagStore` + `canAccess`): ドキュメントの ACL(roles / users / public)を検索時に強制。**ACL 未設定は既定で不可**、管理者ロールでも自動的に全件は見えない(壁打ちの要件「管理者権限で全検索しない」)
-- **embedding 差し込み口**(`Embedder` / `VectorIndex`): 未接続なら BM25(@platform/search)のみで動作。接続すればベクトル+全文のハイブリッド(スコアの高い方を採用)
-- **文脈整形**(`buildContext`): 検索結果を引用番号つきで LLM プロンプト用テキストに
+## これは何のためか
+
+**AI は社内のことを知りません。**
+就業規則も、経費の上限も、取引先の名前も。
+
+**引いた文書を渡して答えさせる**——これが RAG です。
+**目的は「嘘をつかせない」こと**です。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **入れてはいけない文書があります** | 給与表・人事評価が索引に入ると、**誰かの質問で引かれます**。**入れる前に弾いて**ください（`checkAiExclusion`）——**入れてから消しても、その間に引かれた分は戻せません** |
+| **権限は必ず絞る** | **管理者でも全件は返しません**。「見られる文書だけ」を検索します |
+| **引用元を必ず示す** | 「どの規程の何条か」が分からないと、**利用者は答えを信じられません** |
+| **書いていないことを答えます** | `findUnsupportedClaims`（`@platform/ai`）で**数字と固有名詞を照合**してください |
+| **文脈はトークン数で区切る** | 文字数で区切ると、**日本語では 5 倍以上ずれます** |
+
+## よく使うもの
 
 ```ts
+import { createRagStore, buildContextByTokens, selectDiverse } from "@platform/rag";
 import { createRagStore, buildContext } from "@platform/rag";
 import { createSearch, createMemorySearch } from "@platform/search";
 

@@ -1,20 +1,21 @@
 /** 会計: 勘定科目マスタ 一覧(GET)・登録更新/削除(POST)。accounting:read（財務）。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { accountMasterStore, auditActions } from "../../../../server/platform-services";
 import { normalizeType } from "../../../../server/account-master-repo";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "accounting:read");
   return Response.json({ accounts: await accountMasterStore.list() });
 }
 
 async function handlePOST(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
-  requirePermission(user, "accounting:read");
-  const body = (await req.json()) as { account: string; type?: string; remove?: boolean };
+  const user = currentUser(req);
+  // **書き込みは read では通さない**
+  requirePermission(user, "accounting:write");
+  const body = (await req.json().catch(() => ({}))) as { account: string; type?: string; remove?: boolean };
   if (!body.account) return Response.json({ error: "account が必要です" }, { status: 400 });
   if (body.remove) { await accountMasterStore.remove(body.account); await auditActions.record(user!.email, "account.remove", `account:${body.account}`, {}); return Response.json({ removed: body.account }); }
   const type = normalizeType(body.type ?? "");

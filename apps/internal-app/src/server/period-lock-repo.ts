@@ -46,10 +46,16 @@ export function createMemoryPeriodLockStore(): PeriodLockStore {
 
 // ── Prisma 実装 ──
 
-/** PeriodLockRow の必要部分。 */
+/**
+ * PeriodLockRow の必要部分。
+ *
+ * **`lockedAt` は DB では `Date`。** `PeriodLock` の公開契約
+ * (`lockedAt: string`)は変えない——この境界(`list`/`lock` の
+ * 戻り値組み立て)で変換する(2026-08、DB 層のみ移行)。
+ */
 export interface PeriodLockRow {
   period: string;
-  lockedAt: string;
+  lockedAt: Date;
   lockedBy: string;
 }
 
@@ -57,7 +63,7 @@ export interface PeriodLockRow {
 export interface PeriodLockStoreDb {
   periodLockRow: {
     findMany(args: { orderBy: { period: "asc" } }): Promise<PeriodLockRow[]>;
-    upsert(args: { where: { period: string }; create: PeriodLockRow; update: { lockedAt: string; lockedBy: string } }): Promise<PeriodLockRow>;
+    upsert(args: { where: { period: string }; create: { period: string; lockedAt: Date; lockedBy: string }; update: { lockedAt: Date; lockedBy: string } }): Promise<PeriodLockRow>;
     delete(args: { where: { period: string } }): Promise<unknown>;
   };
 }
@@ -66,15 +72,15 @@ export interface PeriodLockStoreDb {
 export function createPrismaPeriodLockStore(db: PeriodLockStoreDb): PeriodLockStore {
   return {
     async list() {
-      return (await db.periodLockRow.findMany({ orderBy: { period: "asc" } })).map((r) => ({ period: r.period, lockedAt: r.lockedAt, lockedBy: r.lockedBy }));
+      return (await db.periodLockRow.findMany({ orderBy: { period: "asc" } })).map((r) => ({ period: r.period, lockedAt: r.lockedAt.toISOString(), lockedBy: r.lockedBy }));
     },
     async lockedSet() {
       return new Set((await db.periodLockRow.findMany({ orderBy: { period: "asc" } })).map((r) => r.period));
     },
     async lock(period, by) {
-      const lockedAt = new Date().toISOString();
+      const lockedAt = new Date();
       await db.periodLockRow.upsert({ where: { period }, create: { period, lockedAt, lockedBy: by }, update: { lockedAt, lockedBy: by } });
-      return { period, lockedAt, lockedBy: by };
+      return { period, lockedAt: lockedAt.toISOString(), lockedBy: by };
     },
     async unlock(period) {
       await db.periodLockRow.delete({ where: { period } });

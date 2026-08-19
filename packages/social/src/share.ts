@@ -27,8 +27,8 @@ function enc(v: string): string {
  * ここで吸収するので、呼び出し側は意識しなくてよい。
  *
  * @param platform プラットフォーム
- * @param options.url シェアする URL
- * @param options.text 添える文
+ * @param target.url シェアする URL
+ * @param target.title 添える見出し
  * @returns シェア用の URL(**新しいタブで開く**)
  */
 export function shareUrl(platform: SharePlatform, target: ShareTarget): string {
@@ -69,9 +69,9 @@ export const SHARE_LABELS: Record<SharePlatform, string> = {
 /**
  * 複数プラットフォームのシェアリンクをまとめて作る。
  *
- * @param options.url シェアする URL
- * @param options.text 添える文
- * @param options.platforms 対象(既定は全部)
+ * @param platforms 対象のサービス（既定は全部）
+ * @param target.url シェアする URL
+ * @param target.title 添える見出し
  * @returns プラットフォームとシェア URL の配列
  */
 export function shareLinks(platforms: SharePlatform[], target: ShareTarget): { platform: SharePlatform; label: string; url: string }[] {

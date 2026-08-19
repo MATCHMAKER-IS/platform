@@ -1,5 +1,7 @@
 # 実装パターン集(AI向け)
 
+> **この資料は手書きです。** `pnpm gen:all` では更新されません（同じ `docs/ai/` に生成物が混ざっています）。
+
 新規実装時は**既存の同型コードを1つ開いて真似る**のが最短。ここでは代表パターンの雛形と参照先を示す。
 
 > ⚠️ **ただし UI だけは既存を真似ないこと。**
@@ -8,8 +10,8 @@
 
 ## 0. UI 部品は `@platform/ui` を使う ★最初に読む
 
-参照: `demos/showcase/src/app/ui/page.tsx`(全部品の一覧) /
-`demos/showcase/src/app/inquiries/register-demo.tsx`(フォームの実例)
+参照: `apps/showcase/src/app/ui/page.tsx`(全部品の一覧) /
+`apps/showcase/src/app/inquiries/register-demo.tsx`(フォームの実例)
 
 ```tsx
 // ❌ 生タグ + inline style / Tailwind 直書き
@@ -151,11 +153,11 @@ import { BarChart, LineChart, ComboChart } from "@platform/ui";
 
 書き込み系ツールを足す場合は `auditActions.record` とセットにし、README のツール一覧も更新する。
 
-## 7. 認証の最小移植(実例: apps/equipment-app)
+## 7. 認証の最小移植(実例: apps/line-console)
 
 新アプリに認証を足すときは internal-app から**2ファイル分を統合コピー**するだけでよい:
 
-1. `zoho-session.ts`(HMAC 署名セッション)+ `password.ts`(scrypt)→ 新アプリの `src/server/auth.ts` に統合(equipment-app が実例)
+1. `zoho-session.ts`(HMAC 署名セッション)+ `password.ts`(scrypt)→ 新アプリの `src/server/auth.ts` に統合(line-console が実例)
 2. `src/server/guard.ts` を作成: import 時に `seedUsers(env.ADMIN_PASSWORD)` を播種し、`requireUser(req)` を export
 3. login route: `login()` → `signSession()` → `set-cookie: session=...; HttpOnly; SameSite=Lax; Max-Age=28800`。logout は Max-Age=0
 4. 各 route の冒頭で `if (!requireUser(req)) return 401`
@@ -164,7 +166,7 @@ import { BarChart, LineChart, ComboChart } from "@platform/ui";
 
 ## 8. 子レコードと状態遷移(実例: 貸出/返却)
 
-参照: `apps/equipment-app/src/server/equipment-repo.ts`
+参照: `apps/internal-app/src/server/equipment/repo.ts`
 
 - 親(備品)と子(貸出履歴)は**別レコード**にし、「貸出中」は `returnedAt: null` の子が存在すること、と定義する(状態フラグを親に持たせない)
 - 状態を変える操作(lend / giveBack)は `{ ok: true, ... } | { ok: false, error: string }` を返し、**業務ルール違反の理由を文言で持つ**(「貸出中です(借用者: 山田)」)
@@ -306,4 +308,4 @@ export const openItemDetail = defineModal<{ code: string }, "saved" | "deleted">
 if (await openItemDetail({ code: "A-001" }) === "saved") await reload();
 ```
 
-動く実例は `/modal` デモ(`demos/showcase/src/app/modal/page.tsx`)。
+動く実例は `/modal` デモ(`apps/showcase/src/app/modal/page.tsx`)。

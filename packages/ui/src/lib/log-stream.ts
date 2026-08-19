@@ -44,7 +44,8 @@ function defaultTransform(data: string): string[] {
  *
  *
  * @param options.url 接続先(SSE)
- * @param options.max 保持する件数
+ *   `transform` は受信データを行配列にする処理。
+ *   **保持件数(`max`)はここではなく {@link useLogStream} 側で指定する**
  * @returns ログストリーム(**自動再接続する**)
  */
 export function createLogStream(options: LogStreamOptions): LogStream {

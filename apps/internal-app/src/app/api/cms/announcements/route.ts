@@ -2,19 +2,19 @@
 import { validateAnnouncementInput, type AnnouncementInput } from "@platform/cms";
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { announcementStore, auditActions } from "../../../../server/platform-services";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:read");
   return Response.json({ announcements: await announcementStore.list() });
 }
 
 async function handlePOST(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:edit");
-  const body = (await req.json()) as AnnouncementInput;
+  const body = (await req.json().catch(() => ({}))) as AnnouncementInput;
   const valid = validateAnnouncementInput(body);
   if (!valid.ok) return Response.json({ error: valid.error }, { status: 400 });
   const a = await announcementStore.create(valid.value);

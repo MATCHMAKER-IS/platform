@@ -1,0 +1,129 @@
+{
+  "entries": [
+    {
+      "date": "2026-08-08",
+      "values": {
+        "api-auth": 0,
+        "app-bypass": 1,
+        "handmade-chart": 0,
+        "colors": 0,
+        "colors-app": 0,
+        "reimplementation": 0,
+        "utc-date": 0,
+        "ui-raw-tag": 0,
+        "big-files": 7,
+        "long-lines": 1376,
+        "css-vars": 0,
+        "tsdoc-p2": 0,
+        "tsdoc-p3": 249,
+        "api-error-shape": 23,
+        "tsdoc-p4": 0
+      }
+    },
+    {
+      "date": "2026-08-09",
+      "values": {
+        "api-auth": 0,
+        "app-bypass": 1,
+        "handmade-chart": 0,
+        "colors": 0,
+        "colors-app": 0,
+        "reimplementation": 0,
+        "utc-date": 0,
+        "ui-raw-tag": 0,
+        "big-files": 7,
+        "long-lines": 1376,
+        "ime-enter": 0,
+        "css-vars": 0,
+        "tsdoc-p2": 0,
+        "tsdoc-p3": 246,
+        "api-error-shape": 0,
+        "tsdoc-p4": 0
+      }
+    },
+    {
+      "date": "2026-08-10",
+      "values": {
+        "api-auth": 0,
+        "app-bypass": 1,
+        "handmade-chart": 0,
+        "colors": 0,
+        "colors-app": 0,
+        "reimplementation": 2,
+        "utc-date": 0,
+        "ui-raw-tag": 0,
+        "big-files": 8,
+        "long-lines": 1370,
+        "ime-enter": 0,
+        "css-vars": 0,
+        "tsdoc-p2": 0,
+        "tsdoc-p3": 229,
+        "api-error-shape": 0,
+        "tsdoc-p4": 0
+      }
+    },
+    {
+      "date": "2026-08-11",
+      "values": {
+        "api-auth": 0,
+        "app-bypass": 1,
+        "handmade-chart": 0,
+        "colors": 0,
+        "colors-app": 0,
+        "reimplementation": 0,
+        "utc-date": 0,
+        "ui-raw-tag": 0,
+        "big-files": 8,
+        "long-lines": 1370,
+        "ime-enter": 0,
+        "css-vars": 0,
+        "tsdoc-p2": 0,
+        "tsdoc-p3": 221,
+        "api-error-shape": 0,
+        "tsdoc-p4": 0
+      }
+    },
+    {
+      "date": "2026-08-12",
+      "values": {
+        "api-auth": 0,
+        "app-bypass": 1,
+        "handmade-chart": 0,
+        "colors": 0,
+        "colors-app": 0,
+        "reimplementation": 0,
+        "utc-date": 0,
+        "ui-raw-tag": 0,
+        "big-files": 9,
+        "long-lines": 1370,
+        "ime-enter": 0,
+        "css-vars": 0,
+        "tsdoc-p2": 0,
+        "tsdoc-p3": 223,
+        "api-error-shape": 0,
+        "tsdoc-p4": 0
+      }
+    },
+    {
+      "date": "2026-08-13",
+      "values": {
+        "api-auth": 0,
+        "app-bypass": 1,
+        "handmade-chart": 0,
+        "colors": 0,
+        "colors-app": 0,
+        "reimplementation": 0,
+        "utc-date": 0,
+        "ui-raw-tag": 0,
+        "big-files": 10,
+        "long-lines": 1372,
+        "ime-enter": 0,
+        "css-vars": 0,
+        "tsdoc-p2": 0,
+        "tsdoc-p3": 223,
+        "api-error-shape": 0,
+        "tsdoc-p4": 0
+      }
+    }
+  ]
+}

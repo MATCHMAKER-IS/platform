@@ -5,11 +5,11 @@
 import { handleUpload } from "@platform/upload";
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv, featureEnv } from "../../../../server/env";
+import { featureEnv } from "../../../../server/env";
 import { fileStorage, fileManager, auditActions } from "../../../../server/platform-services";
 
 async function handlePOST(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:edit");
   const res = await handleUpload(req, { storage: fileStorage, keyPrefix: "cms", maxSizeBytes: 10_000_000, allowedMimeTypes: ["image/png", "image/jpeg", "image/webp", "image/gif", "image/svg+xml"] });
   if (!res.ok) return Response.json({ error: res.error.message }, { status: 400 });

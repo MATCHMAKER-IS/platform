@@ -1,10 +1,27 @@
 # @platform/address
 
-郵便番号から住所を逆引きする共通部品(Adapter パターン)。
+住所と郵便番号（正規化・検索）。**入力の揺れを吸収**します。
 
-- `createZipcloudAdapter()` … 既定。認証不要・無料(zipcloud、日本郵便データ由来)。
+## これは何のためか
+
+**利用者は住所を自由に書きます。**
+
+「1-2-3」「１−２−３」「一丁目二番三号」——
+**同じ住所が別のものとして保存される**と、突き合わせができません。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **正規化は桁を見ません** | `normalizeZipcode` は**形を整えるだけ**です。**7 桁かどうかは別に検証**してください |
+| **検証してから外部 API へ** | 誤入力をそのまま送ると、**無駄な呼び出しと料金**が発生します |
+| **住所は完全には正規化できません** | ビル名・部屋番号は**書き方が無限**です。**突き合わせに使うのは番地まで**にしてください |
+| **郵便番号から住所は引けますが、逆は不確実** | 1 つの住所に**複数の郵便番号**があることがあります |
+
+## よく使うもの
 
 ```ts
+import { normalizeZipcode, isValidZipcode } from "@platform/address";
 import { createAddressLookup, createZipcloudAdapter } from "@platform/address";
 const address = createAddressLookup(createZipcloudAdapter());
 const res = await address.lookup("100-0001"); // 全角・ハイフン混在OK

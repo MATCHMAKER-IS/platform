@@ -36,6 +36,8 @@ export type DeviceSize = "mobile" | "tablet" | "desktop";
  * **あくまで幅での推定**(タッチかどうかは {@link isTouchPrimary} で見る)。
  *
  * @param width 画面幅
+ * @param options.tabletMin タブレットとみなす下限（px）
+ * @param options.desktopMin デスクトップとみなす下限（px）
  * @returns `mobile`(<768)/ `tablet`(<1024)/ `desktop`
  */
 export function deviceSizeFromWidth(width: number, options?: { tabletMin?: number; desktopMin?: number }): DeviceSize {

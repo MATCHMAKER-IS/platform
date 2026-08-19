@@ -7,61 +7,11 @@
  */
 import { createHmac } from "node:crypto";
 
+// **伏せ字は `./mask` に分けてある。** 画面から使うときは
+// `@platform/pii/mask` を直接取ること（入口は node:crypto を巻き込む）
+export { maskEmail, maskPhone, maskName, maskPartial } from "./mask";
+
 // ─────────────────────────── マスキング(表示・ログ用・純関数) ───────────────────────────
-
-/**
- * メールアドレスをマスクする。
- *
- * **ドメインは残す**(社内か社外かは調査に役立つ)。全部隠すと本人確認ができない。
- *
- * @param email メールアドレス
- * @returns マスクしたアドレス。**@ が無ければ全体をマスク**(不正な形式でも漏らさない)
- */
-export function maskEmail(email: string): string {
-  const at = email.indexOf("@");
-  if (at <= 0) return "***";
-  const local = email.slice(0, at);
-  const domain = email.slice(at);
-  const head = local[0] ?? "";
-  return `${head}***${domain}`;
-}
-
-/**
- * 電話番号をマスクする(**末尾 4 桁のみ残す**)。
- *
- * 「自分の番号だ」と分かる最小限。全部隠すと本人確認に使えない。
- *
- * @param phone 電話番号
- * @returns マスクした番号
- */
-export function maskPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  if (digits.length <= 4) return "*".repeat(digits.length);
-  return "*".repeat(digits.length - 4) + digits.slice(-4);
-}
-
-/**
- * 氏名をマスクする(**先頭 1 文字 + 伏字**)。
- *
- * @param name 氏名
- * @returns マスクした氏名
- */
-export function maskName(name: string): string {
-  if (name.length === 0) return "";
-  return `${name[0]}***`;
-}
-
-/**
- * 任意の文字列を部分マスクする。
- *
- * @param value 対象の文字列
- * @param visibleHead 先頭に残す文字数
- * @returns マスクした文字列。**残す文字数が元の長さ以上なら全マスク**(安全側)
- */
-export function maskPartial(value: string, visibleHead = 1): string {
-  if (value.length <= visibleHead) return "*".repeat(value.length);
-  return value.slice(0, visibleHead) + "*".repeat(Math.max(3, value.length - visibleHead));
-}
 
 // ─────────────────────────── 検索可能暗号(blind index) ───────────────────────────
 
@@ -70,9 +20,20 @@ export function maskPartial(value: string, visibleHead = 1): string {
  * 暗号化した列とは別に「検索用の決定的ハッシュ列」を持たせることで、平文を復号せずに
  * 完全一致検索(例: メールでユーザ検索)ができる。HMAC 鍵は暗号鍵とは別管理を推奨。
  *
+ * **候補が少ない項目には使わない。** 同じ値は常に同じハッシュになるので、
+ * DB を見られると**値の分布が分かる**——性別・都道府県・部署のように
+ * 取りうる値が数個〜数十個しかない項目では、**頻度から中身を当てられる**
+ * (「東京都」が全体の 30% なら、最多のハッシュが東京都)。
+ *
+ * メールアドレスや電話番号のように**一意に近い値**なら実害は小さいが、
+ * それでも「同じメールを使っている行」は特定できる。
+ *
+ * **部分一致・前方一致はできない**(ハッシュなので順序が保たれない)。
+ * 「〜で始まる」検索が要るなら、この方式では実現できない(2026-08 に明記)。
+ *
  * @param value 索引を作る値
  * @param hmacKey pepper(**環境変数から**)
- * @returns 決定的なハッシュ。**暗号化した項目を検索可能にする**(完全一致のみ。部分一致はできない)
+ * @returns 決定的なハッシュ。**暗号化した項目を検索可能にする**(完全一致のみ)
  */
 export function blindIndex(value: string, hmacKey: string): string {
   const normalized = value.trim().toLowerCase();
@@ -130,6 +91,15 @@ export const PII_TOMBSTONE = "[削除済み]";
 /**
  * レコードの指定フィールドを匿名化する(削除権・保持期間超過時の処理)。
  * 実際の行削除ではなく、PII だけを消して関連データ(集計・監査)は保持する用途。
+ *
+ * **消す項目を挙げ漏らすと、残りから本人が分かる。**
+ * 氏名とメールを消しても、**生年月日・郵便番号・性別の 3 つが揃えば
+ * 相当な確率で個人を特定できる**(有名な再識別の研究がある)。
+ * 「直接それと分かる項目」だけでなく、**組み合わせで分かる項目**も対象にすること。
+ *
+ * **他のテーブルに残った参照も消えない。** このレコードだけを匿名化しても、
+ * 監査ログ・通知の履歴・添付ファイル名に氏名が残っていれば意味がない。
+ * 削除権への対応では、**どこに何が残るかを先に洗うこと**(2026-08 に明記)。
  * @param record 対象レコード(コピーを返す・元は変更しない)
  * @param fields 匿名化するフィールド名
  * @param tombstone 置換値(既定 {@link PII_TOMBSTONE})

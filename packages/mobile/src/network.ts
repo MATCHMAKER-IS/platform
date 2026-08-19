@@ -38,7 +38,8 @@ export function classifyConnection(input: { online?: boolean; effectiveType?: st
  * (利用者が明示的に節約したいと言っているなら従う)。
  *
  * @returns 低速なら true。**非対応のブラウザでは false**(判断材料が無い)
- * @param connection 回線情報
+ * @param quality 回線の質
+ * @param saveDataFlag 利用者が「データ節約」を選んでいるか（**本人の意思なので最優先**）
  */
 export function shouldSaveData(quality: ConnectionQuality, saveDataFlag?: boolean): boolean {
   return saveDataFlag === true || quality === "slow" || quality === "offline";

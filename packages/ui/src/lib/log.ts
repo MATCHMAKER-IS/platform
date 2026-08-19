@@ -43,6 +43,7 @@ export interface LogLine { index: number; line: string; level: LogLevel | null; 
  * ログ行を解析してレベル・時刻・構造化フィールドを付ける。
  *
  * @param lines ログ行の配列
+ * @param options 解析の設定（時刻の形式・重大度の読み取り方）
  * @returns 解析済みの行(**元の順序と原インデックスを保つ**。絞り込んでも元の行に戻れる)
  */
 export function parseLogLines(lines: string[], options: { structured?: boolean } = {}): LogLine[] {
@@ -171,8 +172,9 @@ const LOCALE_TAG: Record<string, string> = { ja: "ja-JP", en: "en-US", zh: "zh-C
  *
  * **「10:23:45」より「3分前」の方が状況が分かる**(障害対応中は特に)。
  *
- * @param timestamp epoch ミリ秒
- * @param now 現在時刻(テスト注入用)
+ * @param fromMs 対象の時刻（epoch ミリ秒）
+ * @param nowMs 現在時刻(テスト注入用)
+ * @param locale 言語（既定 ja）
  * @returns `3分前` 形式(`Intl.RelativeTimeFormat` を使うのでロケールに追従)
  */
 export function formatRelativeTime(fromMs: number, nowMs: number = Date.now(), locale = "ja"): string {
@@ -295,7 +297,7 @@ export function fieldFacets(parsed: LogLine[], key: string): Array<{ value: stri
     if (v == null) continue;
     counts.set(v, (counts.get(v) ?? 0) + 1);
   }
-  return [...counts.entries()].map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
+  return [...counts.entries()].map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, "ja"));
 }
 
 /**

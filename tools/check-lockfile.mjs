@@ -34,8 +34,11 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const LOCK = path.join(ROOT, "pnpm-lock.yaml");
 
 if (!existsSync(LOCK)) {
-  console.error("❌ pnpm-lock.yaml が見つかりません");
-  process.exit(1);
+// **依存を入れる前は「まだ確かめられない」だけ**なので落としません（2026-08）。
+// `pnpm install` の前に `pnpm check` を走らせるのは**引き継いだ人がまずやること**で、
+// ここで赤くなると「壊れている」と誤解します。**CI では必ず lockfile があります**。
+console.log("⏭ pnpm-lock.yaml がまだありません（`pnpm install` の後に効きます）");
+process.exit(0);
 }
 
 /** lockfile の importers セクションを {importerPath: {depName: specifier}} に読む。 */

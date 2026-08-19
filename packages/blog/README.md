@@ -1,11 +1,25 @@
 # @platform/blog
 
-ブログ/コンテンツの基盤処理。スラッグ生成・抜粋・読了時間・目次、記事の公開状態/絞り込み/関連記事、
-RSS・サイトマップ生成。全文検索は `@platform/search`(BM25)、本文編集は `@platform/ui` の
-`RichTextEditor` と組み合わせます。すべて純ロジックで保存や画面はアプリ側。
+社外向けの記事（公開サイト用）。**コメントとタグ**を扱います。
 
-## スラッグ・抜粋・読了時間・目次
+## これは何のためか
+
+**社外に出す文章**のためのものです。
+社内のお知らせは `@platform/cms` を使ってください。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **表示の前に必ず無害化** | コメントは**誰でも書けます**。`@platform/html` を通してください——**返信も含めて**です |
+| **無害化は「おおまかな除去」** | 完全ではありません。**表示の場所に応じた関数**を選んでください |
+| **公開したものは残ります** | 検索エンジンにも SNS にも**すでに載っています**——消しても**キャッシュは残ります** |
+| **社外に出す前に確認を** | 誤字は直せますが、**取引先の名前を間違えると**取り返しがつきません |
+
+## よく使うもの
+
 ```ts
+import { buildCommentTree, approvedComments, sortComments } from "@platform/blog";
 import { slugify, ensureSlug, uniqueSlug, excerpt, readingTime, extractHeadings } from "@platform/blog";
 
 slugify("Hello World!");                          // "hello-world"

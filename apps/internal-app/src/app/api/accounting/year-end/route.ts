@@ -1,7 +1,7 @@
 /** 会計: 年次決算・繰越(GET)。当期の損益を繰越利益剰余金へ振り替える。?year=&priorRetained=。accounting:read。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { invoiceStore, purchaseStore, assetStore, manualJournalStore, accountMasterStore, settingsStore } from "../../../../server/platform-services";
 import { buildLedger, type LedgerInvoice, type LedgerPurchase } from "../../../../server/ledger";
 import { depreciationJournal, DEPRECIATION_ACCOUNT_TYPES } from "../../../../server/depreciation-journal";
@@ -9,12 +9,13 @@ import { yearEndClosing } from "../../../../server/year-end";
 import { inFiscalYear } from "../../../../server/fiscal";
 import { accountTypeMap } from "../../../../server/account-master-repo";
 import { journalToRows } from "@platform/accounting";
+import { yearJst } from "@platform/datetime";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "accounting:read");
   const params = new URL(req.url).searchParams;
-  const year = Number(params.get("year") ?? new Date().getFullYear());
+  const year = Number(params.get("year") ?? yearJst());
   const closingMonth = (await settingsStore.get()).fiscalClosingMonth;
   const priorRetained = Number(params.get("priorRetained") ?? 0);
 

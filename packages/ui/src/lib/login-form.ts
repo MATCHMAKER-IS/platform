@@ -25,6 +25,8 @@ export function isEmailLike(value: string): boolean {
 
 /**
  * メールログイン入力を検証する。
+ * @param email 入力されたメールアドレス
+ * @param password 入力されたパスワード
  * @param options.minPasswordLength パスワードの最小文字数(既定 8)
  * @returns 問題の一覧(**空なら送信してよい**)
  */

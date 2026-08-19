@@ -1,0 +1,114 @@
+# アプリを別リポジトリにしたときの CI
+#
+# **このファイルはアプリ側のリポジトリに置くもの**です。
+# `apps/<あなたのアプリ>/.github/workflows/ci.yml` としてコピーしてください。
+#
+# ## なぜこれが要るのか — **基盤の CI はアプリを見られません**
+#
+# 基盤の `.gitignore` は `apps/*` を除外しています（ADR 0021）。
+# つまり**基盤のリポジトリにアプリのソースは入っていません**。
+#
+# 基盤の検査は 50 種類がアプリを走査しますが、基盤の CI から見えるのは
+# `showcase` と `crud-template` の 2 つだけです。2026-08 の実測では、
+# **API 264 本のうち CI が見ていたのは 22 本（8%）**でした。
+#
+# **残り 242 本を見るのは、このワークフローだけです。**
+# これを置かないアプリは、**認可の付け忘れも並び順の欠落も誰も気づきません**。
+#
+# ## なぜ基盤を clone するのか
+#
+# アプリは `@platform/*` を **`workspace:*`** で参照しています。
+# **アプリのリポジトリだけでは依存が解決できません**——
+# 基盤を隣に置いて、同じ workspace の中で動かす必要があります。
+#
+# npm へ公開していないのは意図的です（ADR 0011）。
+# **内製で数人が触るだけ**なら、公開の手間より clone の方が確実です。
+#
+# ## 何を検査するか
+#
+# `node tools/preflight.mjs` が **77 種類**の検査を走らせ、
+# **そのうち 50 がアプリを見ます**:
+#
+# - API に認可が付いているか（付け忘れると誰でも叩けます）
+# - 金額・日付・率の表示が揃っているか（`¥-500` と `-¥500` が混ざります）
+# - 一覧に並び順の指定があるか（**無いと開くたびに並びが変わります**）
+# - **安全な部品が実際に使われているか**（`check-safety-parts`。
+#   基盤に置いただけで繋がれていない部品は、無いのと同じです）
+# - 削除に確認があるか
+#
+# **`pnpm check` ではありません。** あれは `typecheck && lint && smoke` で、
+# **smoke が呼ぶのは 16 種類だけ**です（2026-08 まで、このテンプレートは
+# `pnpm check` を「72 種類」と書いて呼んでいた——**実際に走っていたのは
+# 16 種類**で、アプリを見る検査の大半が素通りしていました）。
+#
+# **基盤を更新したら、このワークフローで壊れが分かります。**
+
+name: ci
+
+on:
+  push:
+  pull_request:
+  # **基盤の更新に追随するため週 1 回も回します。**
+  # 基盤を直した人はアプリを知らないので、**壊れたことに気づけるのはこちら側**です。
+  schedule:
+    - cron: "0 0 * * 1"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. **基盤を先に置く。** アプリはこの中に入れます
+      - name: 基盤を取得
+        uses: actions/checkout@v4
+        with:
+          repository: <あなたの組織>/platform
+          path: platform
+          # 非公開リポジトリなら、読み取り権限のあるトークンが要ります
+          # token: ${{ secrets.PLATFORM_READ_TOKEN }}
+
+      # 2. **アプリを `apps/` の下に置く。** 場所が違うと workspace に入りません
+      - name: アプリを取得
+        uses: actions/checkout@v4
+        with:
+          path: platform/apps/${{ github.event.repository.name }}
+
+      - uses: pnpm/action-setup@v4 # バージョンは基盤の package.json から読まれます
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22 # 基盤の engines と揃えてください（22.6 未満では動きません）
+          cache: pnpm
+          cache-dependency-path: platform/pnpm-lock.yaml
+
+      # 3. **依存を入れる前に、オフラインの検査を回す。**
+      #    `preflight` は依存を要しないので、ここで落ちれば原因が絞れます。
+      # `--apps-only` … **基盤そのものを見る検査（22 件）は飛ばす**。
+      # `verify-checks`（検査自体が壊れていないかの自己検証）だけで 174 秒かかり、
+      # アプリのソースを 1 行も見ない。基盤の CI が回すので、
+      # **アプリごとに繰り返す意味がない**（実測 6 分 → 2 分 40 秒）。
+      #
+      # **アプリを走査する検査はすべて実行されます。** 飛ばす一覧は
+      # `tools/preflight.mjs` の `PLATFORM_ONLY` にあり、
+      # ここへ足すとそのアプリは誰にも検査されなくなるので注意してください。
+      - name: 検査（アプリを見る 57 種類）
+        working-directory: platform
+        run: node tools/preflight.mjs --apps-only
+
+      - name: 依存を入れる
+        working-directory: platform
+        run: pnpm install --frozen-lockfile
+
+      - name: 型
+        working-directory: platform
+        run: pnpm typecheck
+
+      - name: Lint
+        working-directory: platform
+        run: pnpm lint
+
+      - name: テスト
+        working-directory: platform
+        run: pnpm -r test
+
+      - name: ビルド
+        working-directory: platform
+        run: pnpm --filter ${{ github.event.repository.name }} build

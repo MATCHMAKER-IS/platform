@@ -1,13 +1,13 @@
 /** メールボックス: 既読化(POST)。自分宛のメッセージのみ既読にできる。 */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { mailboxStore } from "../../../../server/platform-services";
 
 async function handlePOST(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   if (!user) return Response.json({ error: "認証が必要です" }, { status: 401 });
-  const body = (await req.json()) as { id: string };
+  const body = (await req.json().catch(() => ({}))) as { id: string };
   if (!body.id) return Response.json({ error: "id が必要です" }, { status: 400 });
   const msg = await mailboxStore.get(body.id);
   if (!msg || msg.owner !== user.email) return Response.json({ error: "メッセージが見つかりません" }, { status: 404 });

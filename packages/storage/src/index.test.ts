@@ -42,3 +42,22 @@ describe("storage (local adapter)", () => {
     if (!res.ok) expect(res.error.code).toBe("EXTERNAL");
   });
 });
+
+describe("保存先の外を指すキーを弾く", () => {
+  const a = createLocalStorage("/tmp/storage-verify");
+
+  // **`join(root, key)` は `../` をそのまま解決する。**
+  // キーは利用者の入力から作られることがあり(ダウンロード API のパラメータ・
+  // アップロード時のファイル名)、**root の外を読み書きされる**(2026-08 に対処)
+  it("上へ抜けるキーで例外", async () => {
+    await expect(a.get("../../../etc/passwd")).rejects.toThrow(/保存先の外/);
+  });
+  it("途中で上へ抜けるキーも弾く", async () => {
+    await expect(a.get("sub/../../secret.txt")).rejects.toThrow(/保存先の外/);
+  });
+  // **正常なキーは通る**(入れ子も可)
+  it("入れ子のキーは通る", async () => {
+    await a.put("sub/dir/b.txt", new Uint8Array([4]));
+    expect((await a.get("sub/dir/b.txt")).length).toBe(1);
+  });
+});

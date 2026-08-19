@@ -40,11 +40,16 @@ function dueDateOf(o: PayableOrder): string {
 export function payablesSummary(orders: PayableOrder[], now: Date = new Date()): PayablesSummary {
   const open = orders.filter((o) => !o.cancelled && balanceDue(o.total, o.paidAmount) > 0);
   const asOpen: OpenInvoice[] = open.map((o) => ({ number: o.number, dueDate: dueDateOf(o), total: o.total, paidAmount: o.paidAmount }));
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  // **JST の日付で数える。** サーバのローカル時刻で計算すると、
+  // UTC のサーバでは **JST の 00:00〜08:59 が前日**になり、**支払遅延の日数が 1 日短く出る**
+  // (`receivables` と同じ問題。2026-08 に修正)。
+  const jstMidnight = (d: Date): number =>
+    Date.parse(`${new Date(d.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)}T00:00:00.000Z`);
+  const today = jstMidnight(now);
   const upcoming: PayableDue[] = open
     .map((o) => {
       const due = new Date(dueDateOf(o));
-      const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate()).getTime();
+      const dueDay = jstMidnight(due);
       return { number: o.number, supplier: o.supplier, dueDate: dueDateOf(o), amountDue: balanceDue(o.total, o.paidAmount), overdueDays: Math.round((today - dueDay) / 86_400_000) };
     })
     .sort((a, b) => b.overdueDays - a.overdueDays);
@@ -95,14 +100,16 @@ export interface PurchasePaymentRow {
   id: string;
   poNumber: string;
   amount: number;
-  paidAt: string;
+  /** DB では `Date`。`PurchasePayment` の公開契約(`paidAt: string`)は
+   *  変えない——`record`/`list` の境界で変換する(2026-08)。 */
+  paidAt: Date;
 }
 
 /** 使用する Prisma デリゲートの最小ポート。 */
 export interface PurchasePaymentStoreDb {
   purchasePaymentRow: {
     findMany(args: { orderBy: { paidAt: "asc" } }): Promise<PurchasePaymentRow[]>;
-    create(args: { data: { poNumber: string; amount: number; paidAt: string } }): Promise<PurchasePaymentRow>;
+    create(args: { data: { poNumber: string; amount: number; paidAt: Date } }): Promise<PurchasePaymentRow>;
   };
 }
 
@@ -110,8 +117,10 @@ export interface PurchasePaymentStoreDb {
 export function createPrismaPurchasePaymentStore(db: PurchasePaymentStoreDb): PurchasePaymentStore {
   return {
     async record(poNumber, amount, paidAt = new Date().toISOString()) {
-      const row = await db.purchasePaymentRow.create({ data: { poNumber, amount, paidAt } });
-      return { poNumber: row.poNumber, amount: row.amount, paidAt: row.paidAt };
+      // **引数は文字列(公開契約)のまま受け取る。** DB へ書く直前だけ
+      // Date に変換する(2026-08、paidAt を DateTime に移行)。
+      const row = await db.purchasePaymentRow.create({ data: { poNumber, amount, paidAt: new Date(paidAt) } });
+      return { poNumber: row.poNumber, amount: row.amount, paidAt: row.paidAt.toISOString() };
     },
     async paidByOrder() {
       const rows = await db.purchasePaymentRow.findMany({ orderBy: { paidAt: "asc" } });
@@ -120,7 +129,7 @@ export function createPrismaPurchasePaymentStore(db: PurchasePaymentStoreDb): Pu
       return map;
     },
     async list() {
-      return (await db.purchasePaymentRow.findMany({ orderBy: { paidAt: "asc" } })).map((r) => ({ poNumber: r.poNumber, amount: r.amount, paidAt: r.paidAt }));
+      return (await db.purchasePaymentRow.findMany({ orderBy: { paidAt: "asc" } })).map((r) => ({ poNumber: r.poNumber, amount: r.amount, paidAt: r.paidAt.toISOString() }));
     },
   };
 }

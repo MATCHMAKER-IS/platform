@@ -1,5 +1,5 @@
 import {
-  describe, it, expect } from "vitest"; import {   isLeapYear, daysInMonth, addDays, addMonths, addYears, daysBetween, daysUntil, isPast, isFuture, isSameDay, isToday, age, weekdayNameJa, isWeekend, quarter, startOfMonth, endOfMonth, startOfWeek, formatDate, parseDate, holidayName, holidaysInYear, isBusinessDay, addBusinessDays, businessDaysBetween, rangeContains, rangesOverlap, rangeIntersection, rangeDays, eachDayOfRange, splitRangeByMonth, clampDate, toWareki, formatWareki, formatRelativeDay, roundToNearestMinutes, floorToMinutes, ceilToMinutes, formatDuration, parseDuration, businessMinutesBetween, todayJst, formatDateJst, dayNumber, dayNumberJst, dayOfWeek, isBeforeDay, isAfterDay, utcDate, isHoliday, formatClock,
+  describe, it, expect } from "vitest"; import {   isLeapYear, daysInMonth, addDays, addMonths, addYears, daysBetween, daysUntil, isPast, isFuture, isSameDay, isToday, age, weekdayNameJa, isWeekend, quarter, startOfMonth, endOfMonth, startOfWeek, formatDate, parseDate, holidayName, holidaysInYear, isBusinessDay, addBusinessDays, businessDaysBetween, rangeContains, rangesOverlap, rangeIntersection, rangeDays, eachDayOfRange, splitRangeByMonth, clampDate, toWareki, formatWareki, formatWarekiDate, formatRelativeDay, roundToNearestMinutes, floorToMinutes, ceilToMinutes, formatDuration, parseDuration, businessMinutesBetween, todayJst, formatDateJst, dayNumber, dayNumberJst, dayOfWeek, isBeforeDay, isAfterDay, utcDate, isHoliday, formatClock,
 } from "./calendar";
 
 const D = (s: string) => new Date(s + "T00:00:00Z");
@@ -151,5 +151,42 @@ describe("formatClock(時計表示)", () => {
     // カウントダウンで毎秒幅が変わると読みにくい
     expect(formatClock(65)).toBe("01:05");
     expect(formatDuration(65)).toBe("1分5秒");
+  });
+});
+
+describe("formatWarekiDate: 帳票の日付", () => {
+  // **紙に出す帳票は年月日まで要る。** `formatWareki` は年で終わるので別関数
+  it("年月日を返す", () => {
+    expect(formatWarekiDate(new Date("2026-07-15"))).toBe("令和8年7月15日");
+  });
+  // **元年は「元」。** 公文書・帳票の慣行で 1 年目だけ表記が変わる
+  it("元年は「元」と書く", () => {
+    expect(formatWarekiDate(new Date("2019-05-01"))).toBe("令和元年5月1日");
+  });
+  // **月日は JST で解釈する。** UTC で読むと早朝に 1 日ずれた帳票が出る
+  it("JST の月初早朝でも当日になる", () => {
+    expect(formatWarekiDate(new Date("2026-07-31T15:30:00Z"))).toBe("令和8年8月1日");
+  });
+  // **明治より前は西暦。** 元号を無理に当てない
+  it("明治より前は西暦にフォールバック", () => {
+    expect(formatWarekiDate(new Date("1850-01-01"))).toBe("1850年1月1日");
+  });
+});
+
+describe("age: JST の日付で数える", () => {
+  const birth = new Date("2000-08-10T00:00:00Z");
+  // **UTC で数えると誕生日当日の早朝に 1 歳少なく出る。**
+  // 年齢は扶養控除・健康診断の対象判定・定年の計算に使うので、
+  // 1 歳のずれがそのまま業務の誤りになる(2026-08 に修正)
+  it("JST の誕生日当日 00:30 は加齢後", () => {
+    expect(age(birth, new Date("2026-08-09T15:30:00Z"))).toBe(26);
+  });
+  it("JST の誕生日前日 23:30 は加齢前", () => {
+    expect(age(birth, new Date("2026-08-09T14:30:00Z"))).toBe(25);
+  });
+  // **昼間は従来どおり**(境界以外で挙動が変わっていないこと)
+  it("昼間は変わらない", () => {
+    expect(age(birth, new Date("2026-08-10T03:00:00Z"))).toBe(26);
+    expect(age(birth, new Date("2026-08-08T03:00:00Z"))).toBe(25);
   });
 });

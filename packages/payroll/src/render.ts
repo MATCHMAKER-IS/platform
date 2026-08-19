@@ -17,6 +17,16 @@ export interface PayslipHtmlOptions {
 function yen(n: number): string {
   return `¥${n.toLocaleString("ja-JP")}`;
 }
+/**
+ * HTML の特殊文字を実体参照にする(**要素の中身用**)。
+ *
+ * **属性値には使わない。** `"` を変換しないので、
+ * `title="${esc(x)}"` に `" onmouseover="alert(1)` を渡されると
+ * **属性を抜けて JavaScript が動く**。属性に埋めるなら
+ * `@platform/html` の `escapeAttribute` を使うこと(2026-08 に明記)。
+ *
+ * **`&` を最初に変換する**——後にすると `&amp;lt;` のように壊れる。
+ */
 function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -27,6 +37,7 @@ function esc(s: string): string {
  * **法定の記載事項**(支給額の内訳・控除の内訳・差引支給額)を満たす形にする。
  *
  * @param payslip 給与明細
+ * @param options 会社名・宛名などの見出し情報
  * @returns HTML 文字列
  */
 export function renderPayslipHtml(payslip: Payslip, options: PayslipHtmlOptions = {}): string {
@@ -38,7 +49,7 @@ export function renderPayslipHtml(payslip: Payslip, options: PayslipHtmlOptions 
   const earningRows = earnings.map(([n, v]) => `<tr><td>${esc(n)}</td><td class="num">${yen(v)}</td></tr>`).join("");
   const deductionRows = payslip.deductions.map((d) => `<tr><td>${esc(d.name)}</td><td class="num">${yen(d.amount)}</td></tr>`).join("");
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><style>
-body{font-family:"Hiragino Sans","Noto Sans JP",sans-serif;color:#111;font-size:12px}
+body{font-family:"Hiragino Sans","Noto Sans CJK JP","Noto Sans JP",sans-serif;color:#111;font-size:12px}
 h1{font-size:18px;margin:0 0 4px}
 .meta{color:#555;margin-bottom:20px}
 .cols{display:flex;gap:24px}

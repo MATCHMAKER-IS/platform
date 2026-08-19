@@ -3,27 +3,39 @@ import { allTags } from "@platform/board";
 import { renameTagInPosts, mergeTagsInPosts, removeTagFromPosts } from "@platform/cms";
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { cmsStore, auditActions } from "../../../../server/platform-services";
+import { validate, z } from "@platform/validation";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:read");
   const posts = await cmsStore.list();
   return Response.json({ tags: allTags(posts) });
 }
 
-interface TagOp {
-  op: "rename" | "merge" | "remove";
-  from?: string;
-  sources?: string[];
-  to?: string;
-}
+/**
+ * タグ操作の入力。
+ *
+ * **`sources` を配列で強制する。** 型注釈だけだと文字列を渡しても
+ * 実行時には素通りし、`mergeTagsInPosts` に配列でない値が渡る
+ * (`op: "rename"` の場合は不要なので optional のまま)。
+ */
+const TagOpInput = z.object({
+  op: z.enum(["rename", "merge", "remove"]),
+  from: z.string().optional(),
+  sources: z.array(z.string()).optional(),
+  to: z.string().optional(),
+});
 
 async function handlePOST(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:edit");
-  const body = (await req.json()) as TagOp;
+  const parsed = validate(TagOpInput, await req.json().catch(() => ({})));
+  if (!parsed.ok) {
+    return Response.json({ error: parsed.error.message, details: parsed.error.details }, { status: 400 });
+  }
+  const body = parsed.value;
   const posts = await cmsStore.list();
   let changed: { slug: string; tags: string[] }[] = [];
   if (body.op === "rename" && body.from && body.to) changed = renameTagInPosts(posts, body.from, body.to);

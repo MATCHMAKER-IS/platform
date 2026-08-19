@@ -25,7 +25,7 @@ export interface Metrics {
  *
  * **アプリで 1 つだけ作る**(複数あると数値が分散して意味をなさない)。
  *
- * @param options.defaultLabels すべての指標に付けるラベル(サービス名など)
+ * @param histogramBuckets ヒストグラムの区切り（**あとから変えると過去の値と比べられません**）
  * @returns レジストリ。カウンタ・ゲージ・ヒストグラムを記録できる
  */
 export function createMetrics(histogramBuckets: number[] = [5, 10, 25, 50, 100, 250, 500, 1000, 2500]): Metrics {

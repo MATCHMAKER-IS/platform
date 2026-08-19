@@ -35,6 +35,7 @@ export interface MemoryReplayStoreOptions {
  * プロセス内メモリの ReplayStore(単一インスタンス向け)。期限切れは遅延パージ。
  *
  * @returns リプレイ攻撃の検出ストア(**単一プロセスのみ**。本番では Redis 実装を)
+ * @param options.now 現在時刻を返す関数（**試験で固定する**ため）
  */
 export function createMemoryReplayStore(options: MemoryReplayStoreOptions = {}): ReplayStore {
   const now = options.now ?? (() => Date.now());
@@ -76,7 +77,9 @@ export interface ReplayGuardOptions {
  * const guard = createReplayGuard({}, createRedisReplayStore(redis));
  * ```
  *
- * @param options.windowMs 有効期間
+ * @param options.ttlMs 一度使った nonce を覚えておく時間。
+ *   `clockSkewMs` は許容する時計のずれ(**別物**。以前この説明は
+ *   両方をまとめて `windowMs` と呼んでおり、どちらの意味か分からなかった)
  * @param store 検出ストア
  * @returns ガード(**同じ nonce の再送を弾く**。傍受した正当なリクエストの再利用を防ぐ)
  */

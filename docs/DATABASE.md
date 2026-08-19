@@ -1,8 +1,27 @@
 # データベース運用(@platform/db)
 
+## 日常の操作は `pnpm db` を通す
+
+**prisma を直接呼ばない。** Prisma 7 は設定ファイル(`prisma.config.ts`)がある場合
+`--schema` を受け付けず、どの schema を使うかは環境変数 `PRISMA_SCHEMA` で渡す必要がある。
+`tools/db.mjs` がその面倒を見る。
+
+```bash
+pnpm db generate all          # Prisma クライアントを生成(install 後は自動)
+pnpm db push <app>|all        # スキーマを DB へ反映(開発)
+pnpm db reset <app>           # **データを全部消して作り直す**(開発のみ・本番では動かない)
+pnpm db studio <app>          # 中身を見る
+```
+
+`pnpm install` の `postinstall` が `generate` を流すので、
+clone や差し替えの直後でも別途実行する必要はない。
+
 ## マイグレーション
-- 開発中(スキーマ変更):`pnpm --filter <app> exec prisma migrate dev --name <変更名>`
+- 開発中(スキーマ変更):`pnpm db migrate <app>`
 - 本番/CI 適用:`prisma migrate deploy`(アプリ起動時に `runMigrations()` でも実行可)
+
+> **開発では `db push` を使う。** マイグレーションのファイルを作らない方針
+> (ADR-0013)。本番へ出す段になって baseline を切る(ADR-0014)。
 
 ```ts
 import { runMigrations } from "@platform/db";
@@ -100,3 +119,76 @@ const upd = await rawExecute(db, "UPDATE users SET active = $1 WHERE id = $2", [
 ## その他
 - `paginate` / `cursorPaginate`(ページング)、`createRepository`(汎用CRUD+ソフト削除)
 - `mapPrismaError`(P2002→409 等)、`checkDatabase`(疎通確認)、`recordAudit`(監査ログ)
+
+---
+
+# Prisma の書き方の例
+
+**`docs/DATABASE.md` を統合したものです（2026-08）。**
+
+```prisma
+/// 取り込み履歴
+model ImportHistory {
+  id         String   @id @default(cuid())
+  source     String   // "csv" | "paste"
+  userId     String
+  importedAt DateTime
+  total      Int
+  inserted   Int
+  errorCount Int
+  status     String   // success | partial | failed
+  createdAt  DateTime @default(now())
+}
+
+/// 列表示設定(ユーザー×テーブル)
+model UserColumnPref {
+  userId    String
+  table     String
+  prefs     Json
+  updatedAt DateTime @updatedAt
+  @@id([userId, table])
+}
+```
+
+保存フロー: `saveConfirmedExpenses`(tools/import-service-example.ts)が
+`withTransaction` 内で経費の一括作成と `ImportHistory` の記録を all-or-nothing で行う。
+列設定は `createColumnPrefsStore({ endpoint, userId })` が `UserColumnPref` を GET/PUT する。
+
+## 言語設定(ユーザー別・サーバ保存)
+
+```prisma
+/// ユーザーの言語設定
+model UserLocalePref {
+  userId    String   @id
+  locale    String   // ja | en | zh | ko
+  updatedAt DateTime @updatedAt
+}
+```
+
+クライアントは `createFetchLocaleStore({ endpoint: "/api/locale", userId })` で GET/PUT。
+`/api/locale` は `UserLocalePref` を upsert して返す。全端末で言語が共有される。
+
+---
+
+# 時刻の扱い（2026-08 整理）
+
+**層ごとに基準が違います。** 混ぜると 9 時間ずれます。
+
+| 層 | 基準 | なぜ |
+|---|---|---|
+| **DB（PostgreSQL）** | **UTC** | 保存は UTC、表示で変換するのが定石。`docker-compose` に `TZ` を書いていないのは**わざと** |
+| **アプリのコンテナ** | **JST**（`TZ=Asia/Tokyo`） | サーバ側で「今日」を数える処理があるため。**`tzdata` も要る**（無いと `TZ` が効かない） |
+| **画面の表示** | **JST**（`formatDateJst`） | `toISOString().slice(0, 10)` は**UTC の日付**になり、**JST の 00:00〜08:59 に前日が出る** |
+
+## 気をつけること
+
+**生 SQL で `NOW()` を使わないでください。** DB は UTC なので、
+**JS 側で作った時刻を渡す**形に統一しています（現在 0 件）。
+混ぜると「アプリでは今日、DB では昨日」という状態が生まれます。
+
+**Prisma の `DateTime` はタイムゾーンなしの列**（`timestamp(3)`）になります。
+Prisma が UTC で書き、UTC で読むので**一貫していれば問題ありません**が、
+**他のツールから直接見るときは UTC だと意識してください**。
+
+**日付だけの列は `@db.Date`** を使います（4 列）。
+時刻を持たせると、**タイムゾーンの変換で日付がずれます**。

@@ -1,11 +1,27 @@
 # @platform/url
 
-URL・ドメインの汎用処理。URL の解析/組み立て、クエリパラメータ操作、ドメイン抽出(eTLD+1)、
-正規化、検証・安全性判定。記事の URL 構造は `@platform/blog`(permalink)、低レベルの
-ネットワークは `@platform/net`。すべて純ロジック(標準の URL API を使用)。
+URL の正規化と判定。**同じ URL を別物として扱わない**ためのものです。
 
-## URL 解析・組み立て
+## これは何のためか
+
+**`https://example.com/` と `https://example.com` は同じ**ですが、
+**文字列としては別物**です。
+
+**重複の判定や、社内外の区別**に使います。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **比較の前に必ず正規化** | 末尾のスラッシュ、大文字小文字、既定のポート——**全部そろえて**から比べてください |
+| **解釈できなければ空文字** | 例外にはなりません——**呼び出し側で確かめて**ください |
+| **同じ組織かは eTLD+1 で見る** | `a.example.co.jp` と `b.example.co.jp` は**同じ組織**です。**`co.jp` で切ると全部同じ**になります |
+| **`javascript:` を通さない** | リンクに使う URL は**必ず検証**してください（`@platform/html` の `sanitizeUrl`） |
+
+## よく使うもの
+
 ```ts
+import { normalizeUrl, getRegistrableDomain } from "@platform/url";
 import { parseUrl, buildUrl, getOrigin, getPath, isAbsoluteUrl } from "@platform/url";
 parseUrl("https://ex.com:8080/blog/a?x=1#top");  // { protocol, hostname, port, pathname, search, hash, origin }
 parseUrl("/foo", "https://ex.com");               // 相対URLはbaseで解決

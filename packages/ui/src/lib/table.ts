@@ -18,9 +18,18 @@ export interface TableQuery {
 /** クエリ結果。 */
 export interface TableResult<T> {
   rows: T[];
+  /** 絞り込み後の総件数（**全行の数ではない**）。 */
   total: number;
   page: number;
   pageCount: number;
+  /**
+   * 1 ページの件数（**実際に使った値**）。
+   *
+   * 呼ぶ側は `pageSize` を省略できるので、**既定値を知っているのはここだけ**です。
+   * 返さないと「1〜20 件目 / 全 143 件」の表示のために
+   * **画面側でもう一度 20 を書く**ことになり、片方だけ変えたときにずれます。
+   */
+  pageSize: number;
 }
 
 /**
@@ -58,7 +67,7 @@ export function queryRows<T extends Record<string, unknown>>(rows: T[], q: Table
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const page = Math.min(Math.max(1, q.page ?? 1), pageCount);
   const start = (page - 1) * pageSize;
-  return { rows: out.slice(start, start + pageSize), total, page, pageCount };
+  return { rows: out.slice(start, start + pageSize), total, page, pageCount, pageSize };
 }
 
 // ─────────────── 一覧の選択状態(複数選択・一括操作) ───────────────
@@ -133,10 +142,12 @@ export function isIndeterminate(selection: Selection, keys: string[]): boolean {
  *
  * **絞り込み中は、絞り込んだ分だけ**(見えていない行を勝手に選ばない)。
  *
+ * **選ぶ・解除するの指定は受け取らない。** 表示中の行が既に全選択なら解除、
+ * そうでなければ全選択、と現在の状態から決める(チェックボックスの挙動と同じ)。
+ *
  * @param selection 現在の選択
- * @param visibleKeys 表示中の行のキー
- * @param checked 選択するか
- * @returns 更新した新しい選択
+ * @param keys 表示中の行のキー(絞り込み後のもの)
+ * @returns 更新した新しい選択(元の選択は変更しない)
  */
 export function toggleAll(selection: Selection, keys: string[]): Selection {
   if (isAllSelected(selection, keys)) {

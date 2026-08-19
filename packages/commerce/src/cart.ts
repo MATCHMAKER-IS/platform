@@ -39,6 +39,38 @@ export interface AddToCartInput {
  *
  * @returns 空のカート
  */
+/**
+ * カートに入れられる 1 商品あたりの上限。
+ *
+ * **業務用途では十分すぎる値**にしてある。上限が無いと、
+ * 10 億個の注文が金額 1,000 億円として与信や決済まで進んでしまう
+ * (在庫で失敗するのはその後)。表示も桁あふれで崩れる。
+ */
+export const MAX_CART_QUANTITY = 9999;
+
+/**
+ * 数量を整数に丸め、上限に収める。
+ *
+ * **小数を通さない。** `1.5 個` は在庫の引き当てと合わず、
+ * 画面から送れるなら**そのまま注文が成立する**(2026-08 に追加)。
+ * 切り捨てにするのは、**注文者が意図した以上に買わせない**ため。
+ *
+ * @param quantity 入力された数量
+ * @returns 0 以上 {@link MAX_CART_QUANTITY} 以下の整数(不正な値は 0)
+ */
+export function normalizeQuantity(quantity: number): number {
+  if (!Number.isFinite(quantity) || quantity <= 0) return 0;
+  return Math.min(Math.floor(quantity), MAX_CART_QUANTITY);
+}
+
+/**
+ * **空のかご**を作る。
+ *
+ * **毎回新しい配列を返します**——同じものを使い回すと、
+ * **ある人のかごに別の人の商品が入ります**（参照を共有するため）。
+ *
+ * @returns 何も入っていないかご
+ */
 export function emptyCart(): Cart {
   return { items: [] };
 }
@@ -56,16 +88,19 @@ export function findCartItem(cart: Cart, productId: string): CartItem | undefine
 
 /**
  * 商品を追加する。既にあれば数量を加算、無ければ明細追加。
+ * @param cart 現在のカート（**書き換えず、新しいカートを返します**）
  * @param item 追加する明細(quantity 既定 1)
  * @returns 更新した新しいカート(**同じ商品なら数量を足す**。明細を増やさない)
  */
 export function addToCart(cart: Cart, item: AddToCartInput): Cart {
-  const qty = item.quantity ?? 1;
+  // **小数・上限超えを正規化する。** 画面から任意の数を送れる前提で守る
+  const qty = normalizeQuantity(item.quantity ?? 1);
   if (qty <= 0) return cart;
   const existing = findCartItem(cart, item.productId);
   if (existing) {
     return {
-      items: cart.items.map((i) => (i.productId === item.productId ? { ...i, quantity: i.quantity + qty } : i)),
+      // **足した結果も上限に収める**(何度も追加すれば超えられては意味がない)
+      items: cart.items.map((i) => (i.productId === item.productId ? { ...i, quantity: normalizeQuantity(i.quantity + qty) } : i)),
     };
   }
   const newItem: CartItem = { ...item, quantity: qty };
@@ -83,8 +118,9 @@ export function addToCart(cart: Cart, item: AddToCartInput): Cart {
  * @returns 更新した**新しいカート**(元は変更しない)
  */
 export function setQuantity(cart: Cart, productId: string, quantity: number): Cart {
-  if (quantity <= 0) return removeFromCart(cart, productId);
-  return { items: cart.items.map((i) => (i.productId === productId ? { ...i, quantity } : i)) };
+  const q = normalizeQuantity(quantity);
+  if (q <= 0) return removeFromCart(cart, productId);
+  return { items: cart.items.map((i) => (i.productId === productId ? { ...i, quantity: q } : i)) };
 }
 
 /**

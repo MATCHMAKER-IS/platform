@@ -1,10 +1,26 @@
 # @platform/depreciation
 
-固定資産の減価償却を計算します。**帳簿と申告に使う数字**なので、端数の扱いを法令に合わせてあります。
+減価償却（定額法・定率法）。**税法の決まりに沿って計算**します。
 
-計算だけを行い、保存や画面は持ちません（`apps/` 側の担当）。
+## これは何のためか
+
+**減価償却は「だいたい」では通りません。**
+税務調査で指摘されるのは、**細かい決まりを守っていない**ところです。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **最終年度に 1 円を残します** | **備忘価額**といい、税法上の決まりです——**0 にしてはいけません** |
+| **定率法は途中で定額法に切り替わります** | **改定償却率**を下回ったときです。**知らないと最後まで定率で計算して合いません** |
+| **円未満は切り捨て** | 四捨五入ではありません |
+| **耐用年数は資産の種類で決まっています** | **勝手に決められません**——省令の表に従ってください |
+| **期中取得は月割り** | 年の途中で買ったものは、**使った月数分**だけです |
+
+## よく使うもの
 
 ```ts
+import { straightLineRate, decliningBalanceRate, straightLineSchedule } from "@platform/depreciation";
 import { depreciationSchedule, bookValueAt, monthlyAmount } from "@platform/depreciation";
 
 const asset = { cost: 1_200_000, usefulLifeYears: 5, method: "straight-line" as const };

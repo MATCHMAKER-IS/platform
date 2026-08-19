@@ -20,6 +20,84 @@ import { createHmac, timingSafeEqual } from "node:crypto";
  * @param params.secret 共有シークレット
  * @returns 正当なら true
  */
+/**
+ * 署名に時刻を含めて検証する。
+ *
+ * 【なぜ要るか】
+ * 署名だけだと、**過去の正しい要求をそのまま送り直せる**。
+ * 「重複を弾く」記録は期限で消えるので、
+ * その後に再送されると通ってしまう(24 時間後に同じ入金通知、など)。
+ *
+ * 送信側は `t=<epoch秒>,v1=<署名>` の形でヘッダを送り、
+ * **署名の対象は `<epoch秒>.<本文>`** とする(Stripe などと同じ作法)。
+ *
+ * @param params 本文・ヘッダ・鍵・許容する時刻のずれ
+ * @returns 検証の結果
+ *
+ * @example
+ * ```ts
+ * const r = verifySignedAt({
+ *   payload: rawBody,
+ *   header: req.headers.get("x-signature") ?? "",
+ *   secret: env.WEBHOOK_SECRET,
+ * });
+ * if (!r.ok) return Response.json({ error: r.reason }, { status: 400 });
+ * ```
+ */
+export function verifySignedAt(params: {
+  /** 生ボディ(パース前)。 */
+  payload: string;
+  /** `t=...,v1=...` 形式のヘッダ値。 */
+  header: string;
+  /** 共有シークレット。 */
+  secret: string;
+  /**
+   * 許容する時刻のずれ(秒。既定 300)。
+   *
+   * **短すぎると時計のずれで弾く。**
+   * サーバ間で数分ずれることは珍しくない。
+   */
+  toleranceSec?: number;
+  /** 現在時刻(テスト用)。 */
+  now?: () => number;
+}): { ok: true } | { ok: false; reason: "malformed" | "expired" | "invalid_signature" } {
+  const { payload, header, secret, toleranceSec = 300, now = () => Date.now() } = params;
+
+  const parts = new Map<string, string>();
+  for (const kv of header.split(",")) {
+    const i = kv.indexOf("=");
+    if (i > 0) parts.set(kv.slice(0, i).trim(), kv.slice(i + 1).trim());
+  }
+  const t = Number(parts.get("t"));
+  const v1 = parts.get("v1");
+  if (!Number.isFinite(t) || v1 === undefined || v1 === "") return { ok: false, reason: "malformed" };
+
+  // **未来も弾く。** 時計を進めた署名を先に作り置きされるのを防ぐ
+  const diff = Math.abs(Math.floor(now() / 1000) - t);
+  if (diff > toleranceSec) return { ok: false, reason: "expired" };
+
+  // **署名の対象は「時刻 + 本文」。**
+  // 時刻を署名に含めないと、時刻だけ書き換えられる
+  const expected = createHmac("sha256", secret).update(`${t}.${payload}`).digest("hex");
+  if (v1.length !== expected.length) return { ok: false, reason: "invalid_signature" };
+  try {
+    const same = timingSafeEqual(Buffer.from(v1, "hex"), Buffer.from(expected, "hex"));
+    return same ? { ok: true } : { ok: false, reason: "invalid_signature" };
+  } catch {
+    return { ok: false, reason: "invalid_signature" };
+  }
+}
+
+/**
+ * HMAC 署名を検証する。
+ *
+ * **比較は時間一定で行う**(`timingSafeEqual`)。素朴な `===` だと
+ * 一致する文字数で応答時間が変わり、総当たりの手がかりになる。
+ *
+ * @param params `payload`(署名対象の生ボディ)・`signature`(受信した署名)・
+ *   `secret`(検証鍵)をまとめて渡す。**個別の引数ではない**
+ * @returns 一致すれば true
+ */
 export function verifyHmacSignature(params: {
   /** リクエストの生ボディ(パース前の文字列)。 */
   payload: string;
@@ -55,7 +133,10 @@ export interface WebhookIdempotencyStore {
  *
  * **本番では DB 実装を使うこと**(再起動で購読が消えると、通知が止まる)。
  *
- * @param seed 初期データ
+ * @param ttlMs 記録を保持する時間(ミリ秒)。**初期データではない**——
+ *   2026-08 まで `seed` と説明しており、**配列を渡すつもりで数値の位置に
+ *   入れると TTL が壊れる**(受信済みの判定ができなくなり、**同じ通知を二重に処理**する)
+ * @param now 現在時刻(**テスト注入用**。渡さなければ `new Date()`)
  * @returns ストア
  */
 export function createMemoryWebhookStore(ttlMs = 24 * 60 * 60 * 1000, now: () => number = () => Date.now()): WebhookIdempotencyStore {
@@ -118,7 +199,8 @@ export interface WebhookReceiver<E> {
  * ```
  *
  * @param options.secret 共有シークレット
- * @param options.onEvent イベントを受け取ったときの処理
+ *   `eventId` は冪等キーの取り出し。**受信時の処理は `onEvent` ではなく、
+ *   戻り値の受信器に登録する**
  * @returns 受信器。**署名を検証してから onEvent を呼ぶ**
  */
 export function createWebhookReceiver<E>(options: WebhookReceiverOptions<E>): WebhookReceiver<E> {

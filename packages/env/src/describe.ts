@@ -123,7 +123,8 @@ export function maskSecrets(values: Record<string, unknown>): Record<string, str
  * スキーマから .env.example の中身を生成する。必須・任意でセクション分けし、
  * 説明・型・既定値をコメントで添える。秘密値は空にしておく(値を書かない)。
  *
- * @param env 環境変数
+ * @param schema 環境変数の定義（`parseEnv` に渡しているもの）
+ * @param options 先頭に入れる見出し
  * @returns `.env.example` の内容(**値は空にする**。秘密をコミットしないため)
  */
 export function renderEnvExample(schema: z.ZodObject<z.ZodRawShape>, options: { header?: string } = {}): string {
@@ -224,6 +225,124 @@ export function isProductionRuntime(source: Record<string, string | undefined> =
   return source.NEXT_PHASE !== "phase-production-build";
 }
 
+/** どの環境で動いているか。 */
+export type AppEnv = "development" | "staging" | "production";
+
+/**
+ * **どの環境で動いているか**を返す(development / staging / production)。
+ *
+ * **`NODE_ENV` とは別物。** `NODE_ENV` は Node と Next の**動作モード**で、
+ * ビルド最適化やソースマップの有無を決める——
+ * **検証環境も本番と同じ `production` でビルドする**
+ * (本番と違うものを検証しても意味がないため)。
+ * したがって `NODE_ENV` では**検証と本番を見分けられない**。
+ *
+ * 見分けが要る場面:
+ *
+ * | 用途 | 分けないとどうなるか |
+ * |---|---|
+ * | エラー追跡の振り分け | **検証中の失敗が本番の障害として通知され**、そのうち誰も見なくなる |
+ * | メール・通知の宛先 | **検証から取引先へ請求書が飛ぶ** |
+ * | 危険な操作の可否 | 本番でだけ止めたい操作を、判定できない |
+ *
+ * **知らない値は `development` に倒す。** 綴り間違い(`prod` / `stg`)で
+ * **本番扱いになる**のが最も危ない——権限の弱い側へ倒す。
+ *
+ * @param source 環境変数(既定 `process.env`)
+ * @returns 環境名。未設定・不明な値なら `development`
+ *
+ * @example
+ * ```ts
+ * if (appEnv() !== "production") {
+ *   // 検証では、宛先を自分たちに差し替える
+ *   to = "dev-team@example.com";
+ * }
+ * ```
+ */
+export function appEnv(source: Record<string, string | undefined> = process.env): AppEnv {
+  const raw = source.APP_ENV;
+  if (raw === "production" || raw === "staging") return raw;
+  return "development";
+}
+
+/**
+ * **開発環境か。**
+ *
+ * `APP_ENV` が未設定・綴り違いのときも true になります——
+ * **知らない値は開発に倒す**のが安全側です(本番の機能を誤って有効にしない)。
+ *
+ * @param source 環境変数(既定 `process.env`)
+ * @returns 開発なら true
+ */
+export function isDevEnv(source: Record<string, string | undefined> = process.env): boolean {
+  return appEnv(source) === "development";
+}
+
+/**
+ * **検証環境（staging）か。**
+ *
+ * **本番と同じ作りで、宛先だけ違う**環境です。
+ * ここで「本番のつもり」で操作されると事故になるので、
+ * **画面に印を出してください**（{@link appEnvLabel} / `EnvBadge`）。
+ *
+ * @param source 環境変数(既定 `process.env`)
+ * @returns 検証環境なら true
+ */
+export function isStagingEnv(source: Record<string, string | undefined> = process.env): boolean {
+  return appEnv(source) === "staging";
+}
+
+/**
+ * **画面に出す環境の名前と色。**
+ *
+ * 【なぜ要るか】
+ * **検証環境と本番は、見た目が同じです。**
+ * 同じ画面が 2 つ開いていると、**どちらで操作しているか分からなくなります**——
+ * 「検証で試したつもりが本番だった」は、実際に起きる事故です。
+ *
+ * **本番では何も出しません**（`null`）。常に帯が出ていると、
+ * **利用者が慣れて読まなくなる**ためです。
+ *
+ * @param source 環境変数(既定 `process.env`)
+ * @returns 表示する名前と色。**本番なら null**
+ *
+ * @example
+ * ```tsx
+ * const env = appEnvLabel();
+ * {env && <div className={env.className}>{env.label}</div>}
+ * ```
+ */
+export function appEnvLabel(
+  source: Record<string, string | undefined> = process.env,
+): { label: string; tone: "warning" | "info" } | null {
+  switch (appEnv(source)) {
+    case "production":
+      // **本番では出さない。** 常時表示は読まれなくなる
+      return null;
+    case "staging":
+      // **検証環境は目立たせる。** 本番と間違えると実害が出る
+      return { label: "検証環境（本番ではありません）", tone: "warning" };
+    default:
+      return { label: "開発環境", tone: "info" };
+  }
+}
+
+/**
+ * **本番か**(`APP_ENV === "production"`)。
+ *
+ * **`isProductionRuntime` と混同しないこと。** あちらは
+ * 「`NODE_ENV=production` で**実際に起動しているか**」——
+ * **検証環境でも真**になる(検証も本番と同じビルドで動かすため)。
+ * 秘密値を必須にするかの判定にはあちらを、
+ * **宛先や通知先を分ける**にはこちらを使う。
+ *
+ * @param source 環境変数(既定 `process.env`)
+ * @returns 本番なら true
+ */
+export function isProductionEnv(source: Record<string, string | undefined> = process.env): boolean {
+  return appEnv(source) === "production";
+}
+
 /**
  * 必須の秘密値(SESSION_SECRET など)を検証付きで読む。
  * `process.env` を各所で直接読むのを避けるための入口。欠けていれば CONFIG エラー。
@@ -256,6 +375,8 @@ export function requireEnv<K extends string>(
  * 任意の環境変数を読む(既定値付き)。requireEnv と対になる読み取り口。
  *
  * @param name 環境変数名
+ * @param fallback 未設定のときの値
+ * @param source 読み取り元（既定 `process.env`。**試験では差し替える**）
  * @returns 値。**無ければ undefined**(必須なら requireEnv を使う)
  */
 export function optionalEnv(

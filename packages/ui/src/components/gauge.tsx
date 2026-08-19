@@ -17,7 +17,6 @@ export interface GaugeProps {
   className?: string;
 }
 
-/** 達成率ゲージ(半円)。 */
 /**
  * 円弧のメーター(達成度・使用率)。
  *

@@ -18,7 +18,6 @@ export interface SparklineProps {
   className?: string;
 }
 
-/** スパークライン。色は currentColor に従う。 */
 /**
  * 極小の折れ線(数値の横に置く推移)。
  *

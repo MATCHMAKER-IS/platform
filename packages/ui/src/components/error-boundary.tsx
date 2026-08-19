@@ -18,7 +18,6 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-/** 描画エラーを捕捉するエラー境界。 */
 /**
  * 画面の一部が壊れたときの受け皿。
  *

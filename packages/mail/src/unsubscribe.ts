@@ -106,11 +106,14 @@ export function listUnsubscribeHeaders(options: { url?: string; mailto?: string;
 /**
  * 配信停止済みかを判定する。
  *
- * @param email メールアドレス
- * @param category カテゴリ
- * @param unsubscribed 停止リスト
- * @returns 停止済みなら true(**カテゴリ単位で停止できる**。全部止めるか、
- *   お知らせだけ止めるかを選べる)
+ * **カテゴリ単位の停止には対応していない。** 停止は宛先ごとの全面停止だけで、
+ * 「お知らせだけ止める」はできない。以前ここには対応していると書いてあったが、
+ * 実装にカテゴリは無く、**読んだ人が使えると誤解する**状態だった(2026-08 に修正)。
+ * 必要になったら、`suppressed` をカテゴリ別の集合にするところから設計すること。
+ *
+ * @param email メールアドレス(**大小文字は区別しない**)
+ * @param suppressed 停止リスト(小文字で保持した集合)
+ * @returns 停止済みなら true
  */
 export function isSuppressed(email: string, suppressed: ReadonlySet<string>): boolean {
   return suppressed.has(email.toLowerCase());
@@ -121,10 +124,12 @@ export function isSuppressed(email: string, suppressed: ReadonlySet<string>): bo
  *
  * **送信の前に必ず通す**(停止したのに届くと、法令違反であり信頼も失う)。
  *
+ * カテゴリ単位の停止に対応していないのは {@link isSuppressed} と同じ。
+ *
  * @param emails 宛先の配列
- * @param category カテゴリ
- * @param unsubscribed 停止リスト
- * @returns 送ってよい宛先
+ * @param suppressed 停止リスト(小文字で保持した集合)
+ * @returns `sendable` は送ってよい宛先、`suppressed` は除外した宛先。
+ *   **除外した側も返す**ので、何件落としたかを記録できる
  */
 export function removeSuppressed(emails: string[], suppressed: ReadonlySet<string>): { sendable: string[]; suppressed: string[] } {
   const sendable: string[] = [];

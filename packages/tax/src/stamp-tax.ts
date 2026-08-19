@@ -200,20 +200,20 @@ export function stampTax(input: StampTaxInput): StampTaxResult {
       tax = lookup(CONTRACT_BRACKETS, input.amount);
       reason = tax === 0
         ? "第 2 号（請負）で 1 万円未満のため非課税です"
-        : `第 2 号（請負）で契約金額 ${input.amount.toLocaleString()} 円の段です`;
+        : `第 2 号（請負）で契約金額 ${input.amount.toLocaleString("ja-JP")} 円の段です`;
       break;
     case "transfer":
       tax = lookup(TRANSFER_BRACKETS, input.amount);
       reason = tax === 0
         ? "第 1 号で 1 万円未満のため非課税です"
-        : `第 1 号で契約金額 ${input.amount.toLocaleString()} 円の段です`;
+        : `第 1 号で契約金額 ${input.amount.toLocaleString("ja-JP")} 円の段です`;
       break;
     case "receipt":
       tax = lookup(RECEIPT_BRACKETS, input.amount);
       // **5 万円未満は非課税**。知らずに貼ると無駄になる
       reason = tax === 0
         ? "領収書は 5 万円未満のため非課税です"
-        : `第 17 号（領収書）で受取金額 ${input.amount.toLocaleString()} 円の段です`;
+        : `第 17 号（領収書）で受取金額 ${input.amount.toLocaleString("ja-JP")} 円の段です`;
       break;
   }
 

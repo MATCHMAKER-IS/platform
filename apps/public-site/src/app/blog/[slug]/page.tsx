@@ -1,9 +1,9 @@
 import * as React from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { formatDateJst } from "@platform/datetime";
 import { shareLinks } from "@platform/social";
-import { nl2br, linkify } from "@platform/html";
-import { Eyecatch, SocialShare } from "@platform/ui";
+import { Eyecatch, SocialShare, Markdown } from "@platform/ui";
 import { content, siteConfig } from "../../../server/content";
 import { BeaconClient } from "../../beacon-client";
 
@@ -21,13 +21,18 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
   const [adj, related] = await Promise.all([content.adjacent(slug), content.related(slug, 3)]);
   const url = `${siteConfig.baseUrl}/blog/${post.slug}`;
   const links = shareLinks(["x", "facebook", "line", "hatena"], { url, title: post.title });
-  const bodyHtml = nl2br(linkify(post.body));
   return (
     <main className="mx-auto max-w-3xl p-6">
       {post.eyecatch && <Eyecatch image={post.eyecatch} title={post.title} className="mb-6" />}
       <h1 className="mb-2 text-2xl font-bold">{post.title}</h1>
-      <p className="mb-4 text-xs text-[var(--color-muted)]">{post.publishedAt.slice(0, 10)}</p>
-      <article className="leading-relaxed [&_a]:text-[var(--color-primary)] [&_a]:underline" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
+      <p className="mb-4 text-xs text-[var(--color-muted)]">{formatDateJst(new Date(post.publishedAt))}</p>
+      {/* **Markdown として描く。**
+          以前は `nl2br(linkify(...))` を `dangerouslySetInnerHTML` で流していた。
+          本文は CMS の編集者が書いたもので、サニタイズを通していなかった。
+          `Markdown` は React 要素に組み立てるので、その経路が無い */}
+      <article className="leading-relaxed">
+        <Markdown>{post.body}</Markdown>
+      </article>
       {post.tags && post.tags.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2">
           {post.tags.map((t) => <a key={t} href={`/blog/tag/${encodeURIComponent(t)}`} className="rounded bg-[var(--color-subtle)] px-2 py-0.5 text-xs text-[var(--color-muted)] hover:bg-[var(--color-subtle-strong)]">#{t}</a>)}

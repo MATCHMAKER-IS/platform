@@ -13,7 +13,7 @@
  * 会社概要や採用情報のような**文書ページのブロック**(`heading` `text` `list` `image` `embed`)。
  * どちらも「ブロックの並び」として同じ枠組みで扱う。
  *
- * 増やしたら `demos/showcase/src/lib/union-literals.ts` の `blockTypes` にも足すこと
+ * 増やしたら `apps/showcase/src/lib/union-literals.ts` の `blockTypes` にも足すこと
  * (**ラベル表が漏れると画面が空欄になる**)。
  */
 export type BlockType =

@@ -11,7 +11,7 @@
 /// <reference path="./ffprobe-static.d.ts" />
 // **この 1 行が無いと、別パッケージからコンパイルされたときに型が見つからない。**
 // `.d.ts` は同じフォルダに置いただけでは「そのパッケージの tsconfig の include」に
-// 入るだけで、`demos/showcase` のように**外から index.ts を辿ってきた場合**は
+// 入るだけで、`apps/showcase` のように**外から index.ts を辿ってきた場合**は
 // プログラムに含まれず、TS7016(暗黙の any)になる。
 // `barcode/src/index.ts` も同じ作法で参照している。
 
@@ -51,11 +51,36 @@ export interface MediaProcessor {
   trim(input: string, output: string, startSec: number, durationSec: number): Promise<Result<void>>;
 }
 
+/**
+ * 1 回の処理に許す時間(ミリ秒)。
+ *
+ * **ffmpeg は壊れた入力で終わらないことがある。** 利用者がアップロードした
+ * ファイルを処理する経路なので、**1 つの不正なファイルで CPU を占有され続ける**。
+ * 時間で打ち切らないと、溜まった分だけサーバが遅くなる。
+ *
+ * 10 分は「長い動画の変換は通るが、異常は止まる」ための目安。
+ * 長時間の変換が要るならジョブキューへ回すこと(この関数は同期的に待つ)。
+ */
+const RUN_TIMEOUT_MS = 10 * 60 * 1000;
+
 function run(build: (cmd: ffmpeg.FfmpegCommand) => ffmpeg.FfmpegCommand, output: string): Promise<Result<void>> {
   return new Promise((resolve) => {
-    build(ffmpeg())
-      .on("end", () => resolve({ ok: true, value: undefined }))
-      .on("error", (e) => resolve({ ok: false, error: new AppError(ErrorCode.INTERNAL, "メディア処理に失敗しました", { cause: e }) }))
+    const cmd = build(ffmpeg());
+    let done = false;
+    const finish = (r: Result<void>): void => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      resolve(r);
+    };
+    // **時間切れでプロセスを殺す。** `kill` しないと ffmpeg は走り続ける
+    const timer = setTimeout(() => {
+      cmd.kill("SIGKILL");
+      finish({ ok: false, error: new AppError(ErrorCode.INTERNAL, `メディア処理が ${RUN_TIMEOUT_MS / 1000} 秒で終わりませんでした`) });
+    }, RUN_TIMEOUT_MS);
+    cmd
+      .on("end", () => finish({ ok: true, value: undefined }))
+      .on("error", (e) => finish({ ok: false, error: new AppError(ErrorCode.INTERNAL, "メディア処理に失敗しました", { cause: e }) }))
       .save(output);
   });
 }

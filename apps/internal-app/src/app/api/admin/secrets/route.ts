@@ -6,19 +6,19 @@ import { secretRecordStore, appSecretStore, auditActions } from "../../../../ser
 import { putSecret } from "../../../../server/secret-store";
 
 function admin(req: Request) {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   return user && user.roles.includes("admin") ? user : null;
 }
 
 async function handleGET(req: Request): Promise<Response> {
-  if (!admin(req)) return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
+  if (!admin(req)) return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
   return Response.json({ secrets: await secretRecordStore.list() });
 }
 
 async function handlePOST(req: Request): Promise<Response> {
   const user = admin(req);
-  if (!user) return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
-  const body = (await req.json()) as { name?: string; value?: string };
+  if (!user) return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
+  const body = (await req.json().catch(() => ({}))) as { name?: string; value?: string };
   if (!body.name || !body.value) return Response.json({ error: "name と value が必要です" }, { status: 400 });
   await putSecret(secretRecordStore, appSecretStore, serverEnv.SECRET_MASTER_KEY, body.name, body.value);
   await auditActions.record(user.email, "secret.set", `secret:${body.name}`, {});

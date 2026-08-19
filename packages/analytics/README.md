@@ -1,14 +1,27 @@
 # @platform/analytics
 
-サイト/アプリのアクセス解析(純ロジック)。イベント(ページビュー等)の記録形式と、集計関数を提供します。保存や送信は呼び出し側(アプリ/adapter)の責務です。
+利用状況の集計（アクセス・画面速度）。**使われているかを数字で知る**ためのものです。
 
-- `pageViews` / `uniqueVisitors` / `uniqueUsers` … 基本指標
-- `topPages` / `referrerBreakdown` … 上位ページ・流入元の内訳
-- `timeSeries` … 日次などの時系列化
-- `bounceRate` / `summarize` … 直帰率・サマリー
-- `browser.ts` … ブラウザ側の計測ビーコン送信ヘルパ
+## これは何のためか
+
+**「使われているか」を数字で知る**ためのものです。
+
+作った機能が**誰にも使われていない**ことは、
+**聞かないと分かりません**——聞かれた人も気を使って言いません。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **分母を揃える** | 「先月比 2 倍」も、**分母が違えば意味がありません**。何を数えているか**必ず添えて**ください |
+| **平均ではなく p75** | 75 人が 1 秒・25 人が 10 秒でも、**平均は 3.25 秒で「まあまあ」に見えます** |
+| **個人を追わない** | 「誰が何回開いたか」は**監視**になります。**画面ごとの傾向**で十分です |
+| **送りすぎない** | 全画面から毎回送ると、**それ自体が負荷**です——1 割で傾向は分かります |
+
+## よく使うもの
 
 ```ts
+import { summarizeVitals, observeWebVitals } from "@platform/analytics";
 import { summarize, topPages } from "@platform/analytics";
 const s = summarize(events);          // { pageViews, uniqueVisitors, ... }
 const pages = topPages(events, 10);   // 上位10ページ

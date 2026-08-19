@@ -49,3 +49,26 @@ describe("watermarkTextSvg(属性のエスケープ)", () => {
     expect(svg.startsWith("<svg")).toBe(true);
   });
 });
+
+describe("watermarkTextSvg(全角の幅)", () => {
+  /** SVG の width 属性を取り出す。 */
+  const widthOf = (svg: string): number => Number(svg.match(/width="(\d+)"/)?.[1] ?? 0);
+
+  // **全角は半角の 2 倍。** `text.length` で数えると日本語がはみ出す
+  it("日本語は枠に収まる幅になる", () => {
+    const w = widthOf(watermarkTextSvg("社外秘", { fontSize: 32 }));
+    // 3 文字 × 32px = 96px + 余白。以前は 3 × 32 × 0.62 = 60px で足りなかった
+    expect(w).toBeGreaterThanOrEqual(96);
+  });
+  // **英字は従来どおり詰めて数える**(広げすぎると余白が目立つ)
+  it("英字は全角ほど広くしない", () => {
+    const ja = widthOf(watermarkTextSvg("あいう", { fontSize: 32 }));
+    const en = widthOf(watermarkTextSvg("abc", { fontSize: 32 }));
+    expect(en).toBeLessThan(ja);
+  });
+  // **混在も正しく数える**
+  it("和英が混ざっても収まる", () => {
+    const w = widthOf(watermarkTextSvg("社外秘 CONFIDENTIAL", { fontSize: 32 }));
+    expect(w).toBeGreaterThan(widthOf(watermarkTextSvg("CONFIDENTIAL", { fontSize: 32 })));
+  });
+});

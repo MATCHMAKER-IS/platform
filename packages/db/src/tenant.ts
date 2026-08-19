@@ -6,7 +6,15 @@
  *
  * @packageDocumentation
  */
-import type { PrismaClient } from "@prisma/client";
+// **`@prisma/client` の `PrismaClient` 型を import しない。**
+// Prisma 7 では生成物(スキーマごとの output)にしか無く、基盤から
+// 直接 import できない(`TS2305: has no exported member 'PrismaClient'`)。
+// `createTenantClient` は元々 `db as unknown as { $extends: ... }` と
+// 実行時には構造的にしか使っておらず、公開シグネチャだけが
+// `PrismaClient` 型に依存していた——ジェネリックにして、呼び出し側の
+// 実際のクライアント型をそのまま通す形に直した(2026-08、ユーザーの
+// typecheck.log で発見。`client-types.ts` と同じ「生成物に依存しない」
+// 方針に揃えた)。
 
 /**
  * where 句にテナント条件を合成する。
@@ -14,6 +22,7 @@ import type { PrismaClient } from "@prisma/client";
  *
  * @param tenantId テナント
  * @param where 元の条件
+ * @param tenantField テナントを表す列名（既定 `tenantId`）
  * @returns テナント条件を足した where。**全クエリに必ず適用する**(1 箇所でも漏れると、他社のデータが見える)
  */
 export function tenantWhere(tenantId: string, where: unknown, tenantField = "tenantId"): Record<string, unknown> {
@@ -56,11 +65,13 @@ const WHERE_OPS = new Set(["findFirst", "findFirstOrThrow", "findMany", "count",
  * @param tenantId テナント
  * @returns テナント条件を自動で付けるクライアント(**付け忘れを防ぐ**。手で書くと必ずどこかで漏れる)
  */
-export function createTenantClient(db: PrismaClient, tenantId: string, options: TenantClientOptions = {}): PrismaClient {
+export function createTenantClient<T extends { $extends: (ext: unknown) => T }>(
+  db: T,
+  tenantId: string,
+  options: TenantClientOptions = {},
+): T {
   const tenantField = options.tenantField ?? "tenantId";
-  const extended = (db as unknown as {
-    $extends: (ext: unknown) => PrismaClient;
-  }).$extends({
+  const extended = db.$extends({
     query: {
       $allModels: {
         async $allOperations({ operation, args, query }: { operation: string; args: Record<string, unknown>; query: (a: unknown) => Promise<unknown> }) {

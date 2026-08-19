@@ -1,4 +1,5 @@
 // public-api: 翻訳カタログの配信。秘密情報を含まない
+// no-rate-limit: 翻訳カタログの配信。画面表示のたびに引かれる
 /** i18n: 指定ロケールの文言を返す(GET)。?locale=ja|en|zh|ko。 */
 import { withApiObservability } from "../../../server/instrument";
 import { appCatalogs } from "../../../server/i18n";

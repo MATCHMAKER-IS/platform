@@ -77,7 +77,7 @@ const todos = [];
         how: [
           `対象: ${missing.join(" / ")}`,
           "認証情報（Secrets）を設定して `node tools/record-contract.mjs` を実行",
-          "手順: `docs/ops/CONTRACT_TESTING.md`",
+          "手順: `docs/ops/TESTING_GUIDE.md`",
         ],
       });
     }

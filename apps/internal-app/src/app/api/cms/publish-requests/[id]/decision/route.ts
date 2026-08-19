@@ -1,15 +1,21 @@
 /** 公開申請の承認/却下(POST)。承認時は対象記事を公開する。cms:publish が必要。 */
 import { withApiObservability } from "../../../../../../server/instrument";
+import { validate, z } from "@platform/validation";
+
+const DecisionInput = z.object({ decision: z.enum(["approved", "rejected"]), note: z.string().optional() });
 import { currentUser, requirePermission } from "../../../../../../server/authorize";
-import { serverEnv } from "../../../../../../server/env";
+import "../../../../../../server/env";
 import { cmsStore, auditActions, publishRequestStore, notificationCenter } from "../../../../../../server/platform-services";
 
 async function handlePOST(req: Request, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
   const { id } = await ctx.params;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "cms:publish");
-  const body = (await req.json()) as { decision: "approved" | "rejected"; note?: string };
-  if (body.decision !== "approved" && body.decision !== "rejected") return Response.json({ error: "decision が不正です" }, { status: 400 });
+  const parsed = validate(DecisionInput, await req.json().catch(() => ({})));
+  if (!parsed.ok) {
+    return Response.json({ error: parsed.error.message, details: parsed.error.details }, { status: 400 });
+  }
+  const body = parsed.value;
 
   const request = await publishRequestStore.get(id);
   if (!request) return Response.json({ error: "申請が見つかりません" }, { status: 404 });

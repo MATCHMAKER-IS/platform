@@ -14,7 +14,6 @@ export interface CsvExportButtonProps extends Omit<ButtonProps, "onClick"> {
   columns?: CsvColumn[];
 }
 
-/** クリックで CSV をダウンロードするボタン(Excel 用に BOM 付き)。 */
 /**
  * CSV 書き出しボタン。
  *

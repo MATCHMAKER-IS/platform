@@ -282,7 +282,8 @@ export function mergeIntervals(intervals: TimeInterval[]): TimeInterval[] {
  * 終日イベントはウィンドウ全体を占有する扱い(includeAllDay=false で除外可)。
  *
  * @param events イベントの配列
- * @param window 対象の時間帯
+ * @param windowStart 対象の時間帯の開始
+ * @param windowEnd 対象の時間帯の終了
  * @param options.includeAllDay 終日イベントを含めるか(既定 true)
  * @returns 埋まっている区間(**重なりはまとめ済み**)
  */
@@ -330,7 +331,11 @@ export function computeFreeSlots(events: CalendarEvent[], windowStart: Date, win
 
 /**
  * 指定の長さ(分)以上の空き枠だけを返す(予約可能スロットの抽出)。
- * @param stepMin 枠の刻み(分)。指定すると各空き区間を stepMin 間隔の候補開始に分割する。
+ * @param events 予定の配列
+ * @param windowStart 探す範囲の開始
+ * @param windowEnd 探す範囲の終了
+ * @param durationMin 必要な長さ(分)
+ * @param options.stepMin 枠の刻み(分)。指定すると各空き区間を stepMin 間隔の候補開始に分割する。
  * @returns 予約可能な枠。**指定の長さに満たない隙間は除く**(5 分の空きを「予約できます」と出さない)
  */
 export function findAvailableSlots(
@@ -364,7 +369,10 @@ export function findAvailableSlots(
  *
  * **重なりを二重に数えない**(まとめてから合計する)。
  *
- * @param intervals 区間の配列
+ * @param events イベントの配列
+ * @param windowStart 対象の時間帯の開始
+ * @param windowEnd 対象の時間帯の終了
+ * @param options.includeAllDay 終日イベントを含めるか（既定 true）
  * @returns 合計の分数
  */
 export function totalBusyMinutes(events: CalendarEvent[], windowStart: Date, windowEnd: Date, options?: { includeAllDay?: boolean }): number {
@@ -378,10 +386,11 @@ export function totalBusyMinutes(events: CalendarEvent[], windowStart: Date, win
  *
  * **「今」の横線を引く**のに使う(予定表で現在時刻が一目で分かる)。
  *
- * @param date 表示している日
- * @param window 表示している時間帯
- * @param now 現在時刻(テスト注入用)
- * @returns 上端からの位置(%)。**その日でない、または時間帯の外なら null**
+ * @param day 表示している日
+ * @param now 現在時刻(既定は現在。テスト注入用)
+ * @returns 上端からの位置を **0..1 の比**で返す(百分率ではない。
+ *   以前は「(%)」と書いており、100 倍して使うと画面外へ飛ぶ)。
+ *   **その日でなければ null**。時間帯の指定は受け取らず、常に 1 日 24 時間で割る
  */
 export function nowOffset(day: Date, now: Date = new Date()): number | null {
   if (day.getFullYear() !== now.getFullYear() || day.getMonth() !== now.getMonth() || day.getDate() !== now.getDate()) return null;

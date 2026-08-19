@@ -5,11 +5,11 @@ import { maskAuditRow } from "../../../server/pii-view";
  */
 import { withApiObservability } from "../../../server/instrument";
 import { currentUser, userCan, requirePermission } from "../../../server/authorize";
-import { serverEnv } from "../../../server/env";
+import "../../../server/env";
 import { auditLog } from "../../../server/platform-services";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "audit:read");
   const url = new URL(req.url);
   const q: { actor?: string; action?: string; target?: string; from?: string; to?: string; limit?: number } = {};
@@ -17,8 +17,14 @@ async function handleGET(req: Request): Promise<Response> {
     const v = url.searchParams.get(k);
     if (v) q[k] = v;
   }
+  // **既定で 200 件に絞る。** 2026-08 まで `limit` を渡さなければ**無制限**で、
+  // 画面は渡していなかった——**監査ログは増え続ける**ので、
+  // 開くたびに全件を読み込んで描画することになる。
+  //
+  // **200 は「1 画面をスクロールして追える量」**。それ以上は絞り込むか、
+  // CSV で落として表計算で見る方が早い(`?format=csv` がある)。
   const limit = url.searchParams.get("limit");
-  if (limit) q.limit = Number(limit) || 100;
+  q.limit = limit ? Math.min(Number(limit) || 200, 1000) : 200;
   const [rows, verification] = await Promise.all([auditLog.query(q), auditLog.verify()]);
   const unmask = userCan(user, "pii:unmask");
   const masked = rows.map((r) => maskAuditRow(r, unmask));

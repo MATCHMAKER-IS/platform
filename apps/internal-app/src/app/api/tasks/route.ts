@@ -4,13 +4,13 @@
  */
 import { withApiObservability } from "../../../server/instrument";
 import { currentUser } from "../../../server/authorize";
-import { serverEnv } from "../../../server/env";
+import "../../../server/env";
 import { taskStore } from "../../../server/task-repo";
 import { summarize, toKanban, sortTasks, filterTasks, transition, workloadByAssignee, type TaskStatus } from "@platform/task";
 import { AppError } from "@platform/core";
 
 function user(req: Request) {
-  return currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  return currentUser(req);
 }
 
 async function handleGET(req: Request): Promise<Response> {
@@ -38,7 +38,7 @@ async function handleGET(req: Request): Promise<Response> {
 async function handlePOST(req: Request): Promise<Response> {
   const u = user(req);
   if (!u) return Response.json({ error: "ログインが必要です" }, { status: 401 });
-  const body = (await req.json()) as { title?: string; priority?: string; assignee?: string; dueDate?: string; projectId?: string; estimateHours?: number };
+  const body = (await req.json().catch(() => ({}))) as { title?: string; priority?: string; assignee?: string; dueDate?: string; projectId?: string; estimateHours?: number };
   if (!body.title?.trim()) return Response.json({ error: "件名を入力してください" }, { status: 400 });
 
   const task = await taskStore.create({
@@ -54,7 +54,7 @@ async function handlePOST(req: Request): Promise<Response> {
 
 async function handlePATCH(req: Request): Promise<Response> {
   if (!user(req)) return Response.json({ error: "ログインが必要です" }, { status: 401 });
-  const body = (await req.json()) as { id?: string; status?: TaskStatus; assignee?: string; actualHours?: number };
+  const body = (await req.json().catch(() => ({}))) as { id?: string; status?: TaskStatus; assignee?: string; actualHours?: number };
   if (!body.id) return Response.json({ error: "id が必要です" }, { status: 400 });
   const cur = await taskStore.get(body.id);
   if (!cur) return Response.json({ error: "タスクが見つかりません" }, { status: 404 });

@@ -4,14 +4,14 @@
  */
 import { withApiObservability } from "../../../../server/instrument";
 import { currentUser } from "../../../../server/authorize";
-import { serverEnv } from "../../../../server/env";
+import "../../../../server/env";
 import { partnerStore, settingsStore, auditActions } from "../../../../server/platform-services";
 import { parseBackupBundle, restorePlan, applyRestore, type Appliers } from "../../../../server/restore";
 
 async function handlePOST(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
-  if (!user || !user.roles.includes("admin")) return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
-  const body = (await req.json()) as { bundle?: unknown; dryRun?: boolean };
+  const user = currentUser(req);
+  if (!user || !user.roles.includes("admin")) return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
+  const body = (await req.json().catch(() => ({}))) as { bundle?: unknown; dryRun?: boolean };
   const parsed = parseBackupBundle(typeof body.bundle === "string" ? body.bundle : JSON.stringify(body.bundle ?? {}));
   if (!parsed.ok || !parsed.bundle) return Response.json({ error: parsed.error ?? "バンドルが不正です" }, { status: 400 });
 

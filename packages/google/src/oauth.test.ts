@@ -24,3 +24,21 @@ describe("google oauth", () => {
     expect(ui.email).toBe("a@x.com"); expect(ui.hd).toBe("x.com");
   });
 });
+
+describe("state は必須(CSRF 対策)", () => {
+  // **任意だと渡し忘れが事故になる。** state が無いと攻撃者が自分の認可コードを
+  // 送り込め、**被害者のアカウントに攻撃者の Google アカウントが紐づく**
+  it("必ず URL に載る", () => {
+    const url = buildGoogleAuthUrl({
+      clientId: "cid", redirectUri: "https://app/cb", scopes: ["openid"], state: "abc123",
+    });
+    expect(new URL(url).searchParams.get("state")).toBe("abc123");
+  });
+  // **`microsoft` と揃える**(あちらは最初から必須)
+  it("空文字でも載る(呼び出し側が乱数を入れる前提)", () => {
+    const url = buildGoogleAuthUrl({
+      clientId: "cid", redirectUri: "https://app/cb", scopes: ["openid"], state: "",
+    });
+    expect(new URL(url).searchParams.has("state")).toBe(true);
+  });
+});

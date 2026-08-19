@@ -11,4 +11,4 @@ export * from "./outbox";
 export { createRedisIdempotencyStore, type RedisIdempotencyClient, type AsyncIdempotencyStore } from "./idempotency-redis";
 export { createSqlOutboxStore, type OutboxDbClient, type SqlOutboxStore } from "./outbox-sql";
 export { createOtlpExporter, type OtlpExporter, type OtlpExporterOptions } from "./otlp";
-export { createAlertManager, errorRateAbove, avgLatencyAbove, gaugeAtLeast, type AlertRule, type Alert, type AlertManager, type MetricsView, type Severity } from "./alerting";
+export { createAlertManager, errorRateAbove, avgLatencyAbove, gaugeAtLeast, counterBelow, type AlertRule, type Alert, type AlertManager, type MetricsView, type Severity } from "./alerting";

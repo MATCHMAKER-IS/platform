@@ -17,7 +17,6 @@ export interface TrendProps {
   className?: string;
 }
 
-/** 前期比バッジ。 */
 /**
  * 増減の表示(前と比べてどうか)。
  *

@@ -7,7 +7,6 @@ import * as React from "react";
 import { Tooltip as Primitive } from "radix-ui";
 import { cn } from "../lib/cn";
 
-/** Tooltip のプロバイダ(アプリ上位で 1 度囲む)。 */
 /**
  * 補足の吹き出し(マウスを乗せると出る)。
  *

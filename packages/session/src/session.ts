@@ -14,6 +14,28 @@ export interface SessionConfig {
   /** 暗号化の秘密鍵(十分に長い秘密値。`@platform/env` で検証)。 */
   secret: string;
   /**
+   * **1 つ前の秘密鍵**(鍵の入れ替え中だけ設定する)。
+   *
+   * 【なぜ要るか】
+   * `secret` を替えると、**既に配ってあるクッキーが全部読めなくなります**——
+   * つまり**全員が即ログアウト**します。業務時間中にやると問い合わせが殺到し、
+   * **「鍵が漏れたので今すぐ替える」ができなくなります**(替えられない鍵は、守りになりません)。
+   *
+   * ここに旧鍵を入れておくと、**読むときだけ旧鍵も試します**。
+   * 書くのは常に新しい鍵なので、**利用者が 1 回操作するたびに新しい鍵へ移ります**。
+   *
+   * 【手順】
+   * 1. `SESSION_SECRET` を新しい値に、`SESSION_SECRET_PREVIOUS` に旧値を入れて再起動
+   * 2. **有効期間(既定 7 日)より長く待つ** — 全員のクッキーが入れ替わる
+   * 3. `SESSION_SECRET_PREVIOUS` を消して再起動
+   *
+   * **2 を飛ばさないこと。** 消した瞬間に、まだ旧鍵の人がログアウトします。
+   *
+   * **漏洩したときは待たない。** 旧鍵を残すのは「漏れた鍵を使い続ける」ことなので、
+   * その場合は `previousSecret` を**設定せず**に入れ替えます(全員ログアウトを受け入れる)。
+   */
+  previousSecret?: string;
+  /**
    * 鍵導出のソルト(**必須**・8 文字以上)。**アプリ/環境ごとに一意の値**を設定する。
    *
    * @remarks
@@ -145,7 +167,7 @@ interface SessionEnvelope<T> {
  * @returns セッション。`seal` で署名、`unseal` で検証
  */
 export function createSession<T>(config: SessionConfig): Session<T> {
-  const { secret, salt, cookieName = "session", maxAgeSec, idleTimeoutSec, cookie } = config;
+  const { secret, previousSecret, salt, cookieName = "session", maxAgeSec, idleTimeoutSec, cookie } = config;
   // **0 は無制限。** 既定は絶対期限 7 日 / 無操作は無制限
   const maxAgeMs = limitMs(maxAgeSec, 60 * 60 * 24 * 7, "maxAgeSec");
   const idleMs = limitMs(idleTimeoutSec, null, "idleTimeoutSec");
@@ -153,6 +175,11 @@ export function createSession<T>(config: SessionConfig): Session<T> {
   const cookieMaxAge = maxAgeMs === null ? MAX_COOKIE_AGE_SEC : Math.floor(maxAgeMs / 1000);
   // salt は必須(deriveKey が 8 文字未満なら AppError を投げる)
   const key = deriveKey(secret, salt);
+  // **入れ替え中だけ、旧鍵でも読めるようにする。**
+  // 書くのは常に新しい鍵(下の `seal`)なので、**使うたびに新しい鍵へ移る**
+  const previousKey = previousSecret !== undefined && previousSecret !== ""
+    ? deriveKey(previousSecret, salt)
+    : null;
   const now = () => Date.now();
 
   /** 生クッキーを検証し、有効ならエンベロープを返す(絶対期限 + 無操作の両方を判定)。 */
@@ -160,7 +187,7 @@ export function createSession<T>(config: SessionConfig): Session<T> {
     const raw = getCookie(cookieHeader, cookieName);
     if (!raw) return null;
     try {
-      const env = JSON.parse(decrypt(raw, key)) as SessionEnvelope<T>;
+      const env = JSON.parse(openWithKeys(raw)) as SessionEnvelope<T>;
       // exp は無制限のとき null。数値なら期限として判定する
       if (env.exp !== null && (typeof env.exp !== "number" || env.exp < now())) return null;
       // 無操作タイムアウト(設定時のみ。旧クッキーで seen が無ければ判定しない)
@@ -170,6 +197,21 @@ export function createSession<T>(config: SessionConfig): Session<T> {
       return env;
     } catch {
       return null; // 改ざん・鍵不一致・破損
+    }
+  }
+
+  /**
+   * 新しい鍵で開く。だめなら**入れ替え中の旧鍵**で開く。
+   *
+   * **旧鍵を先に試さない。** 大多数は新しい鍵なので、
+   * 毎回 2 回復号すると無駄が出る(復号は鍵導出より安いが、回数が多い)。
+   */
+  function openWithKeys(raw: string): string {
+    try {
+      return decrypt(raw, key);
+    } catch (e) {
+      if (previousKey === null) throw e;
+      return decrypt(raw, previousKey);
     }
   }
 

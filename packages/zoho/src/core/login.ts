@@ -26,11 +26,11 @@ export interface AuthorizationUrlInput {
  * **`state` は必ず検証すること**(CSRF 対策)。生成時にセッションへ保存し、
  * 戻ってきたときに一致を確認する。
  *
- * @param config.clientId クライアント ID
- * @param config.redirectUri 戻り先の URL(**Zoho 側の設定と完全一致**であること)
- * @param config.scope 要求する権限
- * @param config.dataCenter データセンター
- * @param config.state CSRF 対策のトークン
+ * @param input.clientId クライアント ID
+ * @param input.redirectUri 戻り先の URL(**Zoho 側の設定と完全一致**であること)
+ * @param input.scope 要求する権限
+ * @param input.dataCenter データセンター
+ * @param input.state CSRF 対策のトークン
  * @returns 認可 URL
  */
 export function buildAuthorizationUrl(input: AuthorizationUrlInput): string {
@@ -100,7 +100,7 @@ export interface ZohoUserInfo { zuid?: string; email: string; displayName?: stri
  * アクセストークンでユーザー情報を取得する(ログイン後の本人特定)。
  *
  * @param config.accessToken アクセストークン
- * @param config.dc データセンター
+ * @param config.dataCenter データセンター
  * @param config.fetchImpl fetch の実装(テスト注入用)
  * @returns メールアドレス・氏名など
  */

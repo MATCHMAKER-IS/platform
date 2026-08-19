@@ -69,7 +69,6 @@ const LEVEL_BG: Record<LogLevel, string> = {
   debug: "bg-[var(--color-subtle-strong)]",
 };
 
-/** ログ/長文ビューア。 */
 /**
  * ログの表示。
  *
@@ -191,8 +190,8 @@ export function LogViewer({
               key={i}
               type="button"
               onClick={() => jumpTo(b.start)}
-              title={new Date(b.start).toLocaleTimeString()}
-              aria-label={`${new Date(b.start).toLocaleTimeString()} へ移動`}
+              title={new Date(b.start).toLocaleTimeString("ja-JP")}
+              aria-label={`${new Date(b.start).toLocaleTimeString("ja-JP")} へ移動`}
               className="flex flex-1 cursor-pointer flex-col-reverse rounded-sm hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
               style={{ height: "100%" }}
             >

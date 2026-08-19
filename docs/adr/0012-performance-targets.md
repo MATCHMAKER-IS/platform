@@ -39,7 +39,7 @@ pnpm dev:internal        # 対象を起動
 pnpm loadtest -- --url http://localhost:3000/api/health --concurrency 10 --duration 10000
 ```
 
-業務パターンでの測定は `demos/loadtest-scenarios` を使う（朝の打刻・経費ラッシュ・平常運転・月次決算）。
+業務パターンでの測定は `packages/loadtest`(`pnpm loadtest`) を使う（朝の打刻・経費ラッシュ・平常運転・月次決算）。
 
 ### 何を見るか
 
@@ -63,7 +63,7 @@ pnpm loadtest -- --url http://localhost:3000/api/health --concurrency 10 --durat
 
 代わりに:
 
-- **リリース前に手元で測る**（`demos/loadtest-scenarios` の該当シナリオ）
+- **リリース前に手元で測る**（`packages/loadtest`(`pnpm loadtest`) の該当シナリオ）
 - **本番では継続監視**（`@platform/observability` のメトリクス）
 - **遅くなったという声が上がったら測る**（変更前後の比較）
 
@@ -84,3 +84,26 @@ pnpm loadtest -- --url http://localhost:3000/api/health --concurrency 10 --durat
 - 利用者が 1,000 名を超えた（同時アクセスの前提が変わる）
 - 社外向けサービスを提供することになった（SLA が必要になる）
 - CI ランナーが専用マシンになり、性能測定が安定するようになった
+
+## 追記(2026-08): 一覧に上限を置いた
+
+`findMany` に件数の上限が無い箇所が **44 件**あった。
+今は数十件なので目標を満たしているが、
+勤怠は「人数 × 日数」で毎日増え、監査ログや掲示板の投稿も減らない。
+**全件返す作りでは、いずれ必ず p95 300ms を超える。**
+
+- `list-limit.ts` に既定(200 件)と `clampLimit()` を置いた
+- **画面ごとに数字を散らさない。** 超える理由があるときだけ指定する
+- 増え続けるもの(請求・口コミ・掲示板)から適用した
+
+残り 41 件は、増え方が緩やかなもの(マスタ・設定)。
+**一度に全部入れるより、影響の大きいものを確実に押さえる**方針とした。
+smoke が主要な 3 件を見張る。
+
+## 現況(2026-08 追記)
+
+**目標は p95 だが、アラートは平均で見ている。** 詳しい理由と、
+p95 を出す材料がどこにあるかは
+`apps/internal-app/src/server/system-alerts.ts` の `http_latency` ルールに書いた。
+
+**目標は変えない**——測り方が追いついていないだけ。

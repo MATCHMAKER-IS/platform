@@ -4,7 +4,9 @@
  * @packageDocumentation
  */
 import * as React from "react";
-import { Button, Checkbox, Input, Select, Textarea, FileInput } from "@platform/ui";
+import { formatDateJst } from "@platform/datetime";
+import { Button, Checkbox, ConfirmDialog, Input, Select, Textarea, FileInput, PageShell } from "@platform/ui";
+import { useUnsavedChangesWarning } from "@platform/form";
 import { nl2br, linkify } from "@platform/html";
 import { filterPosts, diffRevisions, effectiveStatus } from "@platform/cms";
 
@@ -65,6 +67,13 @@ export interface CmsClientProps {
 export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
   const [posts, setPosts] = React.useState<Post[]>([]);
   const [editing, setEditing] = React.useState<Draft | null>(null);
+
+  // **書きかけで閉じたら確かめる。** 記事は**長文を書く画面**なので、
+  // 誤ってタブを閉じると**書いた分がすべて消える**——
+  // 経費や資産の入力(数個の欄)とは失うものが違う。
+  //
+  // **`draft` は公開状態であって自動保存ではない**(保存を押すまで残らない)。
+  useUnsavedChangesWarning(editing !== null);
   const [originalSlug, setOriginalSlug] = React.useState<string | null>(null);
   const [error, setError] = React.useState("");
   const [saving, setSaving] = React.useState(false);
@@ -119,6 +128,10 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
     setPreview(false);
     await reload();
   };
+
+  // **消す前に確かめる。** 記事は元に戻せません(下書きも版も一緒に消えます)。
+  // 一覧の「削除」は編集ボタンの隣にあり、**押し間違えます**
+  const [removing, setRemoving] = React.useState<string | null>(null);
 
   const remove = async (slug: string) => {
     const res = await doFetch(`/api/cms/posts/${slug}`, { method: "DELETE" });
@@ -184,7 +197,7 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
     autosaveTimer.current = setTimeout(async () => {
       const payload = { slug: editing.slug, title: editing.title, categoryId: editing.categoryId || undefined, excerpt: editing.excerpt || undefined, eyecatch: editing.eyecatch || undefined, body: editing.body, tags: editing.tags, status: "draft" as const };
       const res = await doFetch(`/api/cms/posts/${originalSlug}`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
-      if (res.ok) { setAutoSaved(new Date().toLocaleTimeString()); }
+      if (res.ok) { setAutoSaved(new Date().toLocaleTimeString("ja-JP")); }
     }, 2000);
     return () => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current); };
   }, [editing?.title, editing?.body, editing?.excerpt, originalSlug]);
@@ -201,11 +214,8 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
   };
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">記事管理</h1>
-        <Button onClick={startNew} className="rounded bg-[var(--color-primary)] px-4 py-2 text-sm text-white">新規記事</Button>
-      </div>
+    <PageShell title="記事管理" width="wide">
+    <Button onClick={startNew} className="rounded px-4 py-2 text-sm text-white">新規記事</Button>
 
       {editing ? (
         <div className="flex flex-col gap-3 rounded border border-[var(--color-border)] p-4">
@@ -233,28 +243,28 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
             <Input type="datetime-local" value={editing.publishedAt} onChange={(e: React.ChangeEvent<HTMLInputElement>) => set({ publishedAt: e.target.value })} className="mt-1 block rounded border border-[var(--color-border)] px-2 py-1" />
           </label>
           <div className="flex items-center gap-2 text-sm">
-            <FileInput
+            <FileInput disabled={uploading}
               accept="image/*"
               label={uploading ? "アップロード中…" : "アイキャッチ画像を選択"}
               className="cursor-pointer rounded border border-[var(--color-border)] px-3 py-1"
               onSelect={(files) => { const f = files[0]; if (f) void uploadEyecatch(f); }}
             />
-            <Button type="button" onClick={openLibrary} className="rounded border border-[var(--color-border)] px-3 py-1">ライブラリから選択</Button>
-            {editing.eyecatch && <img src={editing.eyecatch} alt="" className="h-10 w-16 rounded object-cover" />}
-            <Button type="button" onClick={() => setPreview((v) => !v)} className="ml-auto rounded border border-[var(--color-border)] px-3 py-1">{preview ? "編集に戻る" : "プレビュー"}</Button>
+            <Button type="button" onClick={openLibrary} variant="secondary" className="rounded px-3 py-1">ライブラリから選択</Button>
+            {editing.eyecatch && <img loading="lazy" decoding="async" src={editing.eyecatch} alt="" className="h-10 w-16 rounded object-cover" />}
+            <Button type="button" onClick={() => setPreview((v) => !v)} variant="secondary" className="ml-auto rounded px-3 py-1">{preview ? "編集に戻る" : "プレビュー"}</Button>
           </div>
           {showLibrary && (
             <div className="rounded border border-[var(--color-border)] p-3">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-sm font-medium">メディアライブラリ</span>
-                <Button type="button" onClick={() => setShowLibrary(false)} className="text-sm text-[var(--color-muted)]">閉じる</Button>
+                <Button type="button" onClick={() => setShowLibrary(false)} variant="ghost" className="text-sm">閉じる</Button>
               </div>
               {library.length === 0 ? (
                 <p className="text-xs text-[var(--color-muted)]">画像がありません。</p>
               ) : (
                 <div className="grid grid-cols-4 gap-2">
                   {library.map((m) => (
-                    <Button key={m.key} type="button" onClick={() => { set({ eyecatch: m.url }); setShowLibrary(false); }} className="overflow-hidden rounded border border-[var(--color-border)] hover:border-[var(--color-primary)]">
+                    <Button key={m.key} type="button" onClick={() => { set({ eyecatch: m.url }); setShowLibrary(false); }} variant="secondary" className="overflow-hidden rounded hover:border-[var(--color-primary)]">
                       <img src={m.url} alt={m.name} className="h-16 w-full object-cover" loading="lazy" />
                     </Button>
                   ))}
@@ -264,23 +274,23 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
           )}
           {preview && (
             <div className="rounded border border-[var(--color-border)] bg-[var(--color-muted-bg,#fafafa)] p-4">
-              {editing.eyecatch && <img src={editing.eyecatch} alt="" className="mb-3 h-40 w-full rounded object-cover" />}
+              {editing.eyecatch && <img loading="lazy" decoding="async" src={editing.eyecatch} alt="" className="mb-3 h-40 w-full rounded object-cover" />}
               <h3 className="mb-1 text-xl font-bold">{editing.title || "(無題)"}</h3>
               <div className="leading-relaxed [&_a]:text-[var(--color-primary)] [&_a]:underline" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
             </div>
           )}
           <div className="flex gap-2">
-            <Button onClick={save} disabled={saving} className="rounded bg-[var(--color-primary)] px-4 py-2 text-sm text-white disabled:opacity-50">{saving ? "保存中…" : "保存"}</Button>
-            <Button onClick={() => { setEditing(null); setOriginalSlug(null); }} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">キャンセル</Button>
-            {originalSlug && <Button onClick={openHistory} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">変更履歴</Button>}
-            {originalSlug && <Button onClick={openPreview} className="rounded border border-[var(--color-border)] px-4 py-2 text-sm">公開サイトでプレビュー ↗</Button>}
+      <Button onClick={save} disabled={saving} className="rounded px-4 py-2 text-sm text-white disabled:opacity-50">{saving ? "保存中…" : "保存"}</Button>
+            <Button onClick={() => { setEditing(null); setOriginalSlug(null); }} variant="secondary" className="rounded px-4 py-2 text-sm">キャンセル</Button>
+            {originalSlug && <Button onClick={openHistory} variant="secondary" className="rounded px-4 py-2 text-sm">変更履歴</Button>}
+            {originalSlug && <Button onClick={openPreview} variant="secondary" className="rounded px-4 py-2 text-sm">公開サイトでプレビュー ↗</Button>}
             {autoSaved && <span className="ml-auto self-center text-xs text-[var(--color-muted)]">自動保存しました（{autoSaved}）</span>}
           </div>
           {showHistory && (
             <div className="rounded border border-[var(--color-border)] p-3">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-sm font-medium">変更履歴</span>
-                <Button type="button" onClick={() => setShowHistory(false)} className="text-sm text-[var(--color-muted)]">閉じる</Button>
+                <Button type="button" onClick={() => setShowHistory(false)} variant="ghost" className="text-sm">閉じる</Button>
               </div>
               {revisions.length === 0 ? (
                 <p className="text-xs text-[var(--color-muted)]">履歴がありません。</p>
@@ -290,8 +300,8 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
                     <li key={r.id} className="flex items-center justify-between rounded border border-[var(--color-border)] px-2 py-1 text-sm">
                       <span>v{r.version}・{r.title} <span className="text-xs text-[var(--color-muted)]">{r.savedAt.slice(0, 16).replace("T", " ")}・{r.savedBy}</span></span>
                       <span className="flex gap-3">
-                        <Button type="button" onClick={() => showDiff(r)} className="text-[var(--color-primary)] hover:underline">現在と比較</Button>
-                        <Button type="button" onClick={() => restoreRevision(r.id)} className="text-[var(--color-primary)] hover:underline">この版に戻す</Button>
+            <Button type="button" onClick={() => showDiff(r)} variant="secondary" className="hover:underline">現在と比較</Button>
+            <Button type="button" onClick={() => restoreRevision(r.id)} variant="secondary" className="hover:underline">この版に戻す</Button>
                       </span>
                     </li>
                   ))}
@@ -301,7 +311,7 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
                 <div className="mt-3 rounded border border-[var(--color-border)] p-2 text-sm">
                   <div className="mb-1 flex items-center justify-between">
                     <span className="font-medium">v{diff.version} → 現在の差分</span>
-                    <Button type="button" onClick={() => setDiff(null)} className="text-xs text-[var(--color-muted)]">閉じる</Button>
+                    <Button type="button" onClick={() => setDiff(null)} variant="ghost" className="text-xs">閉じる</Button>
                   </div>
                   {diff.result.titleChanged && <p className="text-xs">タイトル: <span className="text-[var(--color-danger)] line-through">{diff.result.titleFrom}</span> → <span className="text-[var(--color-success)]">{diff.result.titleTo}</span></p>}
                   {diff.result.statusChanged && <p className="text-xs">状態: {diff.result.statusFrom} → {diff.result.statusTo}</p>}
@@ -324,7 +334,7 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
         <>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
-            <Button key={t} onClick={() => setTab(t)} className={tab === t ? "rounded bg-[var(--color-primary)] px-3 py-1 text-sm text-white" : "rounded border border-[var(--color-border)] px-3 py-1 text-sm"}>
+            <Button key={t} onClick={() => setTab(t)} variant="tab" data-state={tab === t ? "active" : undefined}>
               {TAB_LABELS[t]}
             </Button>
           ))}
@@ -367,10 +377,10 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
                     <span className={badge}>{label}</span>
                     {eff === "scheduled" && <span className="ml-2 text-xs text-[var(--color-warning)]">{untilLabel(p.publishedAt)}</span>}
                   </td>
-                  <td className="px-2 py-2 text-xs text-[var(--color-muted)]">{p.updatedAt.slice(0, 10)}</td>
+                  <td className="px-2 py-2 text-xs text-[var(--color-muted)]">{formatDateJst(new Date(p.updatedAt))}</td>
                   <td className="px-2 py-2 text-right">
-                    <Button onClick={() => startEdit(p)} className="mr-2 text-[var(--color-primary)] hover:underline">編集</Button>
-                    <Button onClick={() => remove(p.slug)} className="text-[var(--color-danger)] hover:underline">削除</Button>
+          <Button onClick={() => startEdit(p)} variant="secondary" className="mr-2 hover:underline">編集</Button>
+                    <Button onClick={() => setRemoving(p.slug)} variant="danger" className="hover:underline">削除</Button>
                   </td>
                 </tr>
               );
@@ -379,6 +389,15 @@ export function CmsClient({ fetchImpl, canPublish = true }: CmsClientProps) {
         </table>
         </>
       )}
-    </div>
+          <ConfirmDialog
+        open={removing !== null}
+        onOpenChange={(open) => { if (!open) setRemoving(null); }}
+        title="この記事を削除しますか"
+        description="元に戻せません。公開中の記事なら、公開サイトからも見えなくなります。"
+        confirmText="削除する"
+        destructive
+        onConfirm={() => { const slug = removing; setRemoving(null); if (slug !== null) void remove(slug); }}
+      />
+</PageShell>
   );
 }

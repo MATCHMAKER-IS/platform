@@ -1,20 +1,20 @@
 /** アンケート: 一覧(GET)・作成(POST)。作成は manager 以上。 */
 import { withApiObservability } from "../../../server/instrument";
 import { currentUser, requirePermission } from "../../../server/authorize";
-import { serverEnv } from "../../../server/env";
+import "../../../server/env";
 import { surveyStore, auditActions } from "../../../server/platform-services";
 import { type QuestionType } from "../../../server/survey-repo";
 
 async function handleGET(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   if (!user) return Response.json({ error: "認証が必要です" }, { status: 401 });
   return Response.json({ surveys: await surveyStore.list() });
 }
 
 async function handlePOST(req: Request): Promise<Response> {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "inquiry:write");
-  const body = (await req.json()) as { title?: string; description?: string; questions?: { text: string; type: QuestionType; options?: string[] }[] };
+  const body = (await req.json().catch(() => ({}))) as { title?: string; description?: string; questions?: { text: string; type: QuestionType; options?: string[] }[] };
   if (!body.title || !Array.isArray(body.questions) || body.questions.length === 0) return Response.json({ error: "タイトルと設問（1つ以上）が必要です" }, { status: 400 });
   const survey = await surveyStore.create({ title: body.title, description: body.description, questions: body.questions });
   await auditActions.record(user!.email, "survey.create", `survey:${survey.id}`, { after: { questions: survey.questions.length } });

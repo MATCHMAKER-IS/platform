@@ -37,6 +37,24 @@ export interface ChatStoreDb {
     findUnique(args: { where: { userId_roomId: { userId: string; roomId: string } } }): Promise<MessageReadRow | null>;
     upsert(args: { where: { userId_roomId: { userId: string; roomId: string } }; create: { userId: string; roomId: string; lastReadAt: Date }; update: { lastReadAt: Date } }): Promise<unknown>;
   };
+  // **以下 3 モデル + `$transaction` は、以前は型定義に無かった。**
+  // `deleteMessage` が実際に呼んでいるのに、`ChatStoreDb` に宣言が
+  // 無かった——`db as unknown as ChatStoreDb` というキャスト経由の配線
+  // (chat.ts)がこの食い違いを外部の型検査から隠していた
+  // (2026-08、全 route.ts の一括型検査で発見。manual-journal-repo.ts・
+  // audit-log.ts・doc-approval-repo.ts と同じパターンの、モデル単位の
+  // 欠落版)。`chat-pins.ts` が独自に持つ `pinRow`/`bookmarkRow` の型
+  // 定義と同じ形で揃えた。
+  messageReactionRow: {
+    deleteMany(args: { where: { messageId: string } }): Promise<unknown>;
+  };
+  pinRow: {
+    deleteMany(args: { where: { messageId: string } }): Promise<unknown>;
+  };
+  bookmarkRow: {
+    deleteMany(args: { where: { messageId: string } }): Promise<unknown>;
+  };
+  $transaction(ops: unknown[]): Promise<unknown>;
 }
 
 /** 行 → ドメインのメッセージへ。 */
@@ -76,7 +94,19 @@ export function createPrismaChatStore(db: ChatStoreDb, options: { keepPerRoom?: 
       await db.chatMessageRow.update({ where: { id: message.id }, data: { text: message.text, editedAt: message.editedAt ? new Date(message.editedAt) : new Date() } });
     },
     async remove(_roomId, messageId) {
-      await db.chatMessageRow.delete({ where: { id: messageId } });
+      // **メッセージに紐づくものも一緒に消す。** リアクション・ピン・ブックマークは
+      // `messageId` を文字列で持つだけ(スキーマにリレーションが無い)ので、
+      // **メッセージを消しても残る**——「ピン留め一覧に、もう無いメッセージが並ぶ」
+      // 「ブックマークを開くと何も表示されない」という形になる。
+      //
+      // スキーマに onDelete: Cascade を足す手もあるが **migration が要る**ので、
+      // まずアプリ側で揃える(2026-08)。
+      await db.$transaction([
+        db.messageReactionRow.deleteMany({ where: { messageId } }),
+        db.pinRow.deleteMany({ where: { messageId } }),
+        db.bookmarkRow.deleteMany({ where: { messageId } }),
+        db.chatMessageRow.delete({ where: { id: messageId } }),
+      ]);
     },
     async markRead(userId, roomId, at) {
       const existing = await db.messageReadRow.findUnique({ where: { userId_roomId: { userId, roomId } } });

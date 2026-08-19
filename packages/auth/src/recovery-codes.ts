@@ -107,9 +107,10 @@ export interface BackupCodeVerifyResult {
  * * バックアップコードを検証し、一致すれば使用済みにする(単回利用・定数時間比較)。
  * 既に使用済みのコードには一致しない。返り値の records を保存し直すこと。
  *
+ * @param code    利用者が入力したコード(正規化前でよい)
  * @param records 保存してあるコードの記録
- * @param input   利用者が入力したコード(正規化前でよい)
  * @param secret  作成時と同じ pepper
+ * @param now 現在時刻(**テスト注入用**。渡さなければ `new Date()`)
  * @returns 一致したかと、使用済みに更新した records。**成功したら records を保存し直すこと**
  */
 export function verifyBackupCode(code: string, records: BackupCodeRecord[], secret: string, now: Date = new Date()): BackupCodeVerifyResult {
@@ -120,7 +121,18 @@ export function verifyBackupCode(code: string, records: BackupCodeRecord[], secr
     let match = false;
     try {
       match = rec.hash.length === target.length && timingSafeEqual(Buffer.from(rec.hash), Buffer.from(target));
+    // **`timingSafeEqual` は長さが違うと例外を投げる。**
+    // 一致しないとみなして続ける——**長さの違いを先に判定すると、
+    // その分岐で時間差が出る**(タイミング攻撃の手がかりになる)。
+    // 例外を握りつぶすのではなく、**「一致しない」という結果として扱っている**。
     } catch {
+      // **例外は「一致しない」として扱う。** `timingSafeEqual` は
+      // **長さが違うと例外を投げる**ので、ここに来るのは
+      // 保存された値が壊れているか、形式が違う場合。
+      // どちらも**通してはいけない**ので `false` に倒す。
+      //
+      // **`try` の外で長さを比べない。** 先に長さで弾くと、
+      // 応答時間の差から**長さが漏れる**(タイミング攻撃の入口になる)。
       match = false;
     }
     if (match) {

@@ -43,6 +43,7 @@ export function findVariant(variants: ProductVariant[], selected: Record<string,
  * **`stock` 未指定は在庫ありとみなす**(在庫管理しない商品もあるため)。
  *
  * @param variant バリエーション
+ * @param quantity 必要な数（既定 1）
  * @returns 在庫があれば true
  */
 export function variantInStock(variant: ProductVariant, quantity = 1): boolean {

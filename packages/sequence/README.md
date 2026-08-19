@@ -1,9 +1,27 @@
 # @platform/sequence
 
-帳票番号などの連番採番(依存ゼロ)。請求書・伝票番号を、プレフィックス・ゼロ埋め・
-年度/月次リセット付きで発番します。原子的インクリメントは注入ストアに委譲(本番は DB/Redis)。
+採番（請求書番号・伝票番号）。**連番と年度リセット**に対応します。
+
+## これは何のためか
+
+**番号の重複と飛びを防ぐ**ためのものです。
+
+請求書番号が重複すると、**どちらの請求書か分かりません**——
+経理では**致命的**です。
+
+## 使う前に知っておくこと
+
+| | |
+|---|---|
+| **年またぎに注意** | 12 月 31 日に採番して、**JST では 1 月 1 日**——**1 年ずれた番号**が出ます。`@platform/datetime` の JST 変換を通してください |
+| **年度も JST 基準** | 4 月 1 日の 0 時〜9 時は、**UTC では前年度**です |
+| **飛びは避けられません** | 採番してから保存に失敗すると、**その番号は欠けます**——**欠番があってよい**設計にしてください |
+| **同時採番は DB で** | メモリで数えると、**2 台構成で同じ番号**が出ます |
+
+## よく使うもの
 
 ```ts
+import { periodToken, createSequencer, createMemorySequenceStore } from "@platform/sequence";
 import { createSequencer, createMemorySequenceStore } from "@platform/sequence";
 
 const invoiceNo = createSequencer(store, "invoice", {

@@ -53,8 +53,9 @@ export interface ApproverDirectory {
  * const to = approverRecipients(def, state, directory);
  * for (const p of to) await mailer.sendMail({ to: p.email!, subject, text });
  * ```
- * @param request 申請
- * @param delegations 委任の配列
+ * @param def ワークフローの定義（段階ごとの承認ロール）
+ * @param state 申請のいまの状態
+ * @param directory ロールから宛先（メール・Slack）を引く表
  */
 export function approverRecipients(
   def: { steps: { approverRole: string }[] },

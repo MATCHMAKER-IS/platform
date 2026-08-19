@@ -9,18 +9,19 @@
  */
 import { withApiObservability } from "../../../../../server/instrument";
 import { currentUser, requirePermission } from "../../../../../server/authorize";
-import { serverEnv } from "../../../../../server/env";
+import "../../../../../server/env";
+import { auditActions } from "../../../../../server/platform-services";
 import { getCustomThemes, saveCustomTheme, deleteCustomTheme } from "../../../../../server/theme-setting";
 import { themesToJson, themesFromJson } from "@platform/theme";
 import { AppError } from "@platform/core";
 
 function adminUser(req: Request): string | null {
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
-  try { requirePermission(user, "admin"); return (user as { email?: string } | null)?.email ?? "admin"; } catch { return null; }
+  const user = currentUser(req);
+  try { requirePermission(user, "system:manage"); return (user as { email?: string } | null)?.email ?? "admin"; } catch { return null; }
 }
 
 async function handleGET(req: Request): Promise<Response> {
-  if (!adminUser(req)) return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
+  if (!adminUser(req)) return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
   const themes = await getCustomThemes();
   if (new URL(req.url).searchParams.get("export") === "1") {
     return new Response(themesToJson(themes), {
@@ -35,8 +36,8 @@ async function handleGET(req: Request): Promise<Response> {
 
 async function handlePOST(req: Request): Promise<Response> {
   const actor = adminUser(req);
-  if (!actor) return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
-  const body = (await req.json()) as { theme?: unknown; json?: string };
+  if (!actor) return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
+  const body = (await req.json().catch(() => ({}))) as { theme?: unknown; json?: string };
   try {
     // JSON まとめ取り込み
     if (typeof body.json === "string") {
@@ -63,10 +64,13 @@ async function handlePOST(req: Request): Promise<Response> {
 
 async function handleDELETE(req: Request): Promise<Response> {
   const actor = adminUser(req);
-  if (!actor) return Response.json({ error: "管理者権限が必要です" }, { status: 403 });
+  if (!actor) return Response.json({ error: "管理者権限が必要です。必要な場合は管理者に依頼してください" }, { status: 403 });
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return Response.json({ error: "id が必要です" }, { status: 400 });
   const removed = await deleteCustomTheme(id, actor);
+  // **消したことを残す。** テーマは全社員の画面に効くので、
+  // 「急に見た目が変わった」の原因を後から辿れないと困る
+  if (removed) await auditActions.record(actor, "theme.custom.delete", `theme:${id}`);
   return Response.json({ ok: removed, themes: await getCustomThemes() });
 }
 

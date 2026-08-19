@@ -1,20 +1,14 @@
 /**
  * エクスポート実行スキャン(POST)。期限が来たスケジュールのエクスポートを実行し履歴に記録。cron 等から定期実行。
  * X-Cron-Token(env CRON_TOKEN)一致、または管理者。
+ * 推奨頻度・他の scan API との一覧は `docs/ops/CRON_JOBS.md` を参照。
  */
 import { withApiObservability } from "../../../../server/instrument";
-import { currentUser } from "../../../../server/authorize";
-import { serverEnv, featureEnv } from "../../../../server/env";
+import { isCronAuthorized } from "../../../../server/cron-auth";
 import { exportScheduleStore, exportRunStore, invoiceStore, partnerStore, auditLog, userStore, settingsStore } from "../../../../server/platform-services";
 import { dueSchedules, type ExportType } from "../../../../server/export-schedule";
 import { buildBackup } from "../../../../server/backup";
 
-async function authorized(req: Request): Promise<boolean> {
-  const token = featureEnv.CRON_TOKEN;
-  if (token && req.headers.get("x-cron-token") === token) return true;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
-  return !!user && user.roles.includes("admin");
-}
 
 /** 種別ごとに件数を算出（実運用ではここでストレージへ書き出す）。 */
 async function runExport(type: ExportType): Promise<number> {
@@ -28,7 +22,7 @@ async function runExport(type: ExportType): Promise<number> {
 }
 
 async function handlePOST(req: Request): Promise<Response> {
-  if (!(await authorized(req))) return Response.json({ error: "権限がありません" }, { status: 403 });
+  if (!(isCronAuthorized(req))) return Response.json({ error: "権限がありません" }, { status: 403 });
   const now = new Date();
   const due = dueSchedules(await exportScheduleStore.list(), now);
   const results: { type: ExportType; recordCount: number }[] = [];

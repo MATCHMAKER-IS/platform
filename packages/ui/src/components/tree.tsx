@@ -29,7 +29,6 @@ export interface TreeProps extends Omit<React.HTMLAttributes<HTMLUListElement>, 
   defaultExpandedIds?: string[];
 }
 
-/** 階層ツリー。行クリックで選択、三角で展開/折りたたみ。 */
 /**
  * 階層の表示(組織・分類)。
  *

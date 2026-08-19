@@ -1,4 +1,5 @@
 "use client";
+import { PageShell } from "@platform/ui";
 /** 開発者向けドキュメント。外部API(OpenAPI)・送信Webhookイベント・APIキー発行手順をまとめて表示。 */
 import * as React from "react";
 
@@ -9,12 +10,20 @@ export function DeveloperClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   const [events, setEvents] = React.useState<EventDef[]>([]);
   const [sig, setSig] = React.useState<{ header: string; algorithm: string; eventHeader: string } | null>(null);
 
-  React.useEffect(() => { (async () => { const r = await doFetch("/api/v1/events"); if (r.ok) { const d = (await r.json()) as { events: EventDef[]; signature: typeof sig }; setEvents(d.events); setSig(d.signature); } })(); }, [doFetch]);
+  React.useEffect(() => {
+    void (async () => {
+      const r = await doFetch("/api/v1/events");
+      // **失敗しても画面は出す。** 一覧が空になるだけで、
+      // 他の説明（APIキーの発行手順など）は読める方がよい
+      if (!r.ok) return;
+      const d = (await r.json()) as { events: EventDef[]; signature: typeof sig };
+      setEvents(d.events);
+      setSig(d.signature);
+    })();
+  }, [doFetch]);
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <h1 className="mb-4 text-2xl font-bold">開発者向けドキュメント</h1>
-
+        <PageShell title="開発者向けドキュメント">
       <section className="mb-6 rounded border border-[var(--color-border)] p-4">
         <h2 className="mb-2 text-lg font-semibold">外部API（v1）</h2>
         <p className="text-sm text-[var(--color-muted)]">サービスアカウント（APIキー）で認証する外部向け API です。OpenAPI 仕様は下記から取得できます。</p>
@@ -39,11 +48,27 @@ export function DeveloperClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
         <h2 className="mb-2 text-lg font-semibold">送信Webhook</h2>
         {sig && <p className="mb-2 text-sm text-[var(--color-muted)]">署名は <code>{sig.header}</code> ヘッダに <code>{sig.algorithm}</code>。イベント種別は <code>{sig.eventHeader}</code> ヘッダ。</p>}
         <table className="w-full text-sm">
-          <thead><tr className="border-b border-[var(--color-border)] text-left text-xs text-[var(--color-muted)]"><th className="px-2 py-1">イベント</th><th className="px-2 py-1">説明</th><th className="px-2 py-1">ペイロード例</th></tr></thead>
-          <tbody>{events.map((e) => <tr key={e.event} className="border-b border-[var(--color-border)]"><td className="px-2 py-1.5"><code>{e.event}</code></td><td className="px-2 py-1.5">{e.description}</td><td className="px-2 py-1.5"><code className="text-xs">{JSON.stringify(e.payloadExample)}</code></td></tr>)}</tbody>
+          <thead>
+            <tr className="border-b border-[var(--color-border)] text-left text-xs text-[var(--color-muted)]">
+              <th className="px-2 py-1">イベント</th>
+              <th className="px-2 py-1">説明</th>
+              <th className="px-2 py-1">ペイロード例</th>
+            </tr>
+          </thead>
+          <tbody>
+            {events.map((e) => (
+              <tr key={e.event} className="border-b border-[var(--color-border)]">
+                <td className="px-2 py-1.5"><code>{e.event}</code></td>
+                <td className="px-2 py-1.5">{e.description}</td>
+                <td className="px-2 py-1.5">
+                  <code className="text-xs">{JSON.stringify(e.payloadExample)}</code>
+                </td>
+              </tr>
+            ))}
+          </tbody>
         </table>
         <p className="mt-2 text-xs text-[var(--color-muted)]">購読は <a href="/admin/insights" className="text-[var(--color-primary)] hover:underline">/admin/insights</a> の送信Webhookタブで管理します。</p>
       </section>
-    </div>
+    </PageShell>
   );
 }

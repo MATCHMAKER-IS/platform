@@ -15,8 +15,11 @@ export interface StepUpConfig {
  * 直近の認証時刻(authAt: epoch ms)から、重要操作に再認証が必要かを判定する。
  *
  * @param authAt 最後に認証した時刻(epoch ミリ秒)。**未設定なら再認証が必要**
- * @param maxAgeMs この時間を過ぎたら再認証を求める
- * @param now 現在時刻(テスト注入用)
+ * @param config `freshnessSec` は鮮度を**秒**で指定する(例 300 = 直近5分なら再認証不要)。
+ *   **`authAt` はミリ秒、こちらは秒**で単位が違うので注意。
+ *   以前この説明は `maxAgeMs` と書いており、ミリ秒を渡すと 1000 倍ゆるくなる
+ *   ——**再認証が事実上働かない**——読み違いを招く状態だった(2026-08 に修正)。
+ *   `now` は現在時刻(テスト注入用)
  * @returns true なら再認証を要求すべき
  */
 export function stepUpRequired(authAt: number | undefined, config: StepUpConfig): boolean {
@@ -44,8 +47,8 @@ export function markAuthenticated(now: () => number = () => Date.now()): number 
  *
  * セッションデータに `authAt`(最後に認証した時刻)を持たせて使う。
  *
- * @param options.maxAgeMs この時間を過ぎたら再認証を求める
- * @param options.now 時刻の取得(テスト注入用)
+ * @param config.freshnessSec 再認証が有効とみなす鮮度（**秒**。例 300 = 直近 5 分なら再認証不要）
+ * @param config.now 時刻の取得(テスト注入用)
  * @returns ヘルパー。`needsStepUp` で判定する
  */
 export function createStepUp(config: StepUpConfig) {
@@ -78,8 +81,8 @@ export interface RememberMeConfig {
  * 危険なので、既定は短い方。
  *
  * @param remember ログイン状態を保持するか
- * @param options.rememberSec 保持する場合の期間(既定 30 日)
- * @param options.defaultSec 通常の期間(既定 1 日)
+ * @param config.defaultMaxAgeSec 通常の有効期間（秒）
+ * @param config.rememberMaxAgeSec 「保持する」を選んだときの有効期間（秒。例 30 日）
  * @returns 有効期間(秒)
  * ログインフォームの「ログイン状態を保持する」チェックに使う。
  */

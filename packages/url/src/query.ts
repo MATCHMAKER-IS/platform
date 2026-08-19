@@ -58,7 +58,7 @@ function editSearch(url: string, edit: (sp: URLSearchParams) => void): string {
  *
  * @param url URL
  * @param key キー
- * @returns 値。**複数あれば最初の 1 つ**。無ければ undefined
+ * @returns 値。**複数あれば最初の 1 つ**。**無ければ `null`**(`undefined` ではない)
  */
 export function getParam(url: string, key: string): string | null {
   const qIndex = url.indexOf("?");

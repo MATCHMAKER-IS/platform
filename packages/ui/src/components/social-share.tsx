@@ -25,7 +25,6 @@ const BRAND: Record<string, string> = {
   x: "#000000", facebook: "#1877F2", line: "#06C755", hatena: "#00A4DE", linkedin: "#0A66C2", email: "#666666", whatsapp: "#25D366", telegram: "#26A5E4",
 };
 
-/** SNS シェアボタン群。 */
 /**
  * 共有ボタン(SNS・メール)。
  *

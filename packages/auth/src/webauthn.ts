@@ -116,11 +116,23 @@ export function webAuthnAuthenticationOptions(input: AuthenticationOptionsInput)
  * clientDataJSON をデコードして解析する。
  *
  * @param clientDataJSONBase64Url ブラウザから返る clientDataJSON(Base64URL)
- * @returns 解析した内容(type / challenge / origin)
+ * @returns 解析した内容(type / challenge / origin)。**壊れていれば undefined**
  */
-export function decodeClientData(clientDataJSONBase64Url: string): { type: string; challenge: string; origin: string; crossOrigin?: boolean } {
-  const json = new TextDecoder().decode(fromBase64Url(clientDataJSONBase64Url));
-  return JSON.parse(json);
+export function decodeClientData(clientDataJSONBase64Url: string): { type: string; challenge: string; origin: string; crossOrigin?: boolean } | undefined {
+  // **ブラウザから来る値なので、壊れていることがある。** 2026-08 まで
+  // `JSON.parse` を直接呼んでおり、細工した値を送られると**経路が 500** になった。
+  // 認証の失敗として扱うべきものが、サーバの障害に見える。
+  // **`verifyClientData` は内部で try/catch していた**ので実害は無かったが、
+  // 公開 API として直接呼ばれると落ちる。
+  try {
+    const json = new TextDecoder().decode(fromBase64Url(clientDataJSONBase64Url));
+    const v: unknown = JSON.parse(json);
+    // **形も確かめる**(`null` や配列が来ても後段で落ちないように)
+    if (typeof v !== "object" || v === null) return undefined;
+    return v as { type: string; challenge: string; origin: string; crossOrigin?: boolean };
+  } catch {
+    return undefined;
+  }
 }
 
 /** clientData 検証の結果。 */
@@ -141,12 +153,10 @@ export function verifyClientData(
   clientDataJSONBase64Url: string,
   expected: { challenge: string; origin: string | string[]; type: "webauthn.create" | "webauthn.get" },
 ): ClientDataVerification {
-  let data: ReturnType<typeof decodeClientData>;
-  try {
-    data = decodeClientData(clientDataJSONBase64Url);
-  } catch {
-    return { valid: false, error: "clientDataJSON の解析に失敗" };
-  }
+  // **`decodeClientData` は壊れていれば undefined を返す**(2026-08 に変更)。
+  // 認証の失敗として扱う——サーバの障害ではない
+  const data = decodeClientData(clientDataJSONBase64Url);
+  if (data === undefined) return { valid: false, error: "clientDataJSON の解析に失敗" };
   if (data.type !== expected.type) return { valid: false, error: `type 不一致: ${data.type}` };
   if (data.challenge !== expected.challenge) return { valid: false, error: "challenge 不一致(リプレイの可能性)" };
   const origins = Array.isArray(expected.origin) ? expected.origin : [expected.origin];
@@ -228,10 +238,26 @@ export function isSignCountValid(storedCount: number, newCount: number): boolean
 }
 
 /**
- * * アサーション署名を検証する(認証時)。
- * 署名対象 = authenticatorData || SHA256(clientDataJSON)。登録時に保存した公開鍵(PEM)で検証する。
- * @param params Node の verify に渡すアルゴリズム(ES256 は "sha256" を指定し鍵は EC)。
+ * アサーション署名を検証する(認証時)。
  *
+ * 署名対象 = `authenticatorData || SHA256(clientDataJSON)`。
+ * 登録時に保存した公開鍵(PEM)で検証する。
+ *
+ * **これだけでは認証は完了しない。** WebAuthn は次の 6 つを**すべて**通す必要があり、
+ * この関数はそのうち 1 つ(5 番)しか見ない。**署名が正しければ本人**と考えると、
+ * **チャレンジの使い回し(リプレイ攻撃)を許す**。
+ *
+ * 1. チャレンジが**自分が発行したもの**か(使い捨て。保存して照合し、使ったら消す)
+ * 2. `origin` が自分のサイトか … {@link verifyClientData}
+ * 3. `type` が `webauthn.get` か … {@link verifyClientData}
+ * 4. `rpIdHash` が一致するか … {@link verifyRpIdHash}
+ * 5. 署名が正しいか … **この関数**
+ * 6. `signCount` が増えているか(クローン検知) … {@link isSignCountValid}
+ *
+ * 1 番は保存が要るので、この基盤では提供していない(アプリ側の責任)。
+ *
+ * @param params 署名・authenticatorData・clientDataJSON・公開鍵(PEM)と、
+ *   Node の verify に渡すアルゴリズム(ES256 は `"sha256"` を指定し鍵は EC)
  * @returns 署名が正しければ true
  */
 export function verifyAssertionSignature(params: {

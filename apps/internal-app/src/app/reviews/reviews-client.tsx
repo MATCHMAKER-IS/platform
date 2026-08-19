@@ -1,7 +1,7 @@
 "use client";
 /** 口コミページ。対象（社内ツール等）を選び、その口コミ一覧・投稿を表示。 */
 import * as React from "react";
-import { Button } from "@platform/ui";
+import { Button, PageShell } from "@platform/ui";
 import { ReviewSection } from "../../components/ReviewSection";
 
 const SUBJECTS = [
@@ -17,12 +17,11 @@ export function ReviewsClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
   const [isAdmin, setIsAdmin] = React.useState(false);
   React.useEffect(() => { (async () => { const r = await doFetch("/api/auth/me"); if (r.ok) { const d = (await r.json()) as { user?: { roles: string[] } }; setIsAdmin(!!d.user?.roles.includes("admin")); } })(); }, [doFetch]);
   return (
-    <div className="mx-auto max-w-2xl p-6">
-      <h1 className="mb-4 text-2xl font-bold">口コミ</h1>
+        <PageShell title="口コミ" width="narrow">
       <div className="mb-4 flex flex-wrap gap-2">
-        {SUBJECTS.map((s) => <Button key={s.id} onClick={() => setSel(s)} className={`rounded-full border px-3 py-1 text-sm ${sel.id === s.id ? "border-[var(--color-fg)] bg-[var(--color-fg)] text-white" : "border-[var(--color-border)]"}`}>{s.label}</Button>)}
+        {SUBJECTS.map((s) => <Button key={s.id} onClick={() => setSel(s)} variant="tab" data-state={sel.id === s.id ? "active" : undefined}>{s.label}</Button>)}
       </div>
       <ReviewSection subjectType={sel.type} subjectId={sel.id} canModerate={isAdmin} />
-    </div>
+    </PageShell>
   );
 }

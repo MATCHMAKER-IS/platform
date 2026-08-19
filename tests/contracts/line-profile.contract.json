@@ -1,0 +1,13 @@
+{
+  "connector": "line",
+  "title": "LINE 利用者プロフィール取得",
+  "endpoint": "GET https://api.line.me/v2/bot/profile/{userId}",
+  "sourceFile": "packages/line/src/index.ts",
+  "requiredFields": [
+    "userId",
+    "displayName"
+  ],
+  "note": "応対コンソールで相手を表示するのに使う。pictureUrl は任意(無くても応対は続けられる)",
+  "capturedAt": null,
+  "fixture": null
+}

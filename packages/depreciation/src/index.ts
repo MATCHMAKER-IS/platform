@@ -72,8 +72,9 @@ function isLastMeaningfulYear(yearIndex: number, life: number): boolean {
  * **最終年度は 1 円を残す**(備忘価額)。0 にすると帳簿から消えてしまい、
  * まだ使っている資産を管理できなくなる。
  *
- * @param acquisitionCost 取得価額
- * @param usefulLife 耐用年数
+ * @param cost 取得価額
+ * @param usefulLifeYears 耐用年数
+ * @param startYear 初年度（**年の途中で取得しても月割りしません**）
  * @returns 年次の償却額と期末簿価
  */
 export function straightLineSchedule(cost: number, usefulLifeYears: number, startYear: number): ScheduleRow[] {
@@ -106,8 +107,10 @@ export function straightLineSchedule(cost: number, usefulLifeYears: number, star
  * 採る近似で切り替えている。結果はごく近い(耐用年数 5 年・100 万円で切替年に 1 円差)が、
  * **申告書の数字と一致させる必要があるなら、耐用年数省令の表を実装すること**。
  *
- * @param acquisitionCost 取得価額
- * @param usefulLife 耐用年数
+ * @param cost 取得価額
+ * @param usefulLifeYears 耐用年数
+ * @param startYear 初年度（**年の途中で取得しても月割りしません**）
+ * @param rate 償却率（省略時は耐用年数から求める）
  * @returns 年次の償却額と期末簿価
  */
 export function decliningBalanceSchedule(cost: number, usefulLifeYears: number, startYear: number, rate?: number): ScheduleRow[] {

@@ -24,7 +24,7 @@ export interface AlertInput {
   reorderCount: number;
 }
 
-const yen = (n: number) => `¥${n.toLocaleString()}`;
+const yen = (n: number) => `¥${n.toLocaleString("ja-JP")}`;
 
 /** 入力から必要なアラートだけを組み立てる（該当が無い項目は出さない）。 */
 export function buildAlerts(input: AlertInput): Alert[] {

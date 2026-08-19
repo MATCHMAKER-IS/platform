@@ -3,14 +3,14 @@
  * `data: {json}\n\n` 形式で送り続ける。切断時は購読解除。長時間接続のため観測ラッパは付けない。
  */
 import { currentUser, requirePermission } from "../../../../../../server/authorize";
-import { serverEnv } from "../../../../../../server/env";
+import "../../../../../../server/env";
 import { chatGateway, presence } from "../../../../../../server/chat";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request, ctx: { params: Promise<{ roomId: string }> }): Promise<Response> {
   const { roomId } = await ctx.params;
-  const user = currentUser(req.headers.get("cookie")?.match(/session=([^;]+)/)?.[1], serverEnv.SESSION_SECRET);
+  const user = currentUser(req);
   requirePermission(user, "chat:read");
 
   const connectionId = crypto.randomUUID();

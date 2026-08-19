@@ -6,6 +6,7 @@
  * この画面は表示と、操作を API に渡すことだけを行う。
  */
 import * as React from "react";
+import { formatPercent } from "@platform/utils";
 import { Button, Input } from "@platform/ui";
 import type { FaqItem } from "@platform/faq";
 
@@ -71,7 +72,7 @@ export function FaqClient({ fetchImpl }: { fetchImpl?: typeof fetch }) {
           {matched && <span style={{ fontSize: 10, color: "var(--color-muted, #999)" }}>{matched}で一致</span>}
           {rate !== undefined && (
             <span style={{ fontSize: 10, color: rate >= 0.7 ? "var(--color-success, #16a34a)" : "var(--color-muted, #999)" }}>
-              {Math.round(rate * 100)}% 役立った
+              {formatPercent(rate)} 役立った
             </span>
           )}
         </Button>

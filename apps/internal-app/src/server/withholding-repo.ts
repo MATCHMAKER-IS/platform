@@ -86,26 +86,30 @@ export interface FeePaymentRow {
   payee: string;
   category: string;
   base: number;
-  paidAt: string;
+  /** DB では `Date`。`FeePayment` の公開契約(`paidAt: string`)は変えない
+   *  ——`rowToPayment` の境界で変換する(2026-08)。 */
+  paidAt: Date;
 }
 
 /** 使用する Prisma デリゲートの最小ポート。 */
 export interface FeePaymentStoreDb {
   feePaymentRow: {
     findMany(args: { orderBy: { paidAt: "asc" } }): Promise<FeePaymentRow[]>;
-    create(args: { data: { payee: string; category: string; base: number; paidAt: string } }): Promise<FeePaymentRow>;
+    create(args: { data: { payee: string; category: string; base: number; paidAt: Date } }): Promise<FeePaymentRow>;
   };
 }
 
 function rowToPayment(row: FeePaymentRow): FeePayment {
-  return { payee: row.payee, category: row.category, base: row.base, paidAt: row.paidAt };
+  return { payee: row.payee, category: row.category, base: row.base, paidAt: row.paidAt.toISOString() };
 }
 
 /** Prisma 実装。 */
 export function createPrismaFeePaymentStore(db: FeePaymentStoreDb): FeePaymentStore {
   return {
     async record(payment) {
-      await db.feePaymentRow.create({ data: { payee: payment.payee, category: payment.category, base: payment.base, paidAt: payment.paidAt } });
+      // **`payment.paidAt` は文字列(公開契約)のまま受け取る。** DB へ書く
+      // 直前だけ Date に変換する(2026-08、paidAt を DateTime に移行)。
+      await db.feePaymentRow.create({ data: { payee: payment.payee, category: payment.category, base: payment.base, paidAt: new Date(payment.paidAt) } });
       return toView(payment);
     },
     async list(year) {

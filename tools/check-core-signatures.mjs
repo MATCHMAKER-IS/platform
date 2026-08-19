@@ -6,7 +6,7 @@
  * 型検査でしか分からず、依存が広いほど気づくのが遅れる。
  *
  * 実測（`@platform/core`）:
- *   - **54 パッケージ**が依存
+ *   - **半数以上のパッケージ**が依存(実数は `node tools/impact.mjs @platform/core`)
  *   - **142 ファイル**が取り込む
  *
  * ここが変わると全体が止まるため、他のパッケージと同じ扱いにはしない。
@@ -18,6 +18,7 @@
  */
 import { readFileSync, readdirSync, existsSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { stripComments } from "./lib/source-text.mjs";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -37,7 +38,10 @@ function extractSignatures(pkgDir) {
     for (const e of readdirSync(dir, { withFileTypes: true })) {
       const fp = path.join(dir, e.name);
       if (e.isDirectory()) { walk(fp); continue; }
-      if (!fp.endsWith(".ts") || fp.includes(".test.")) continue;
+      // **拡張子を 1 つに絞らない。**
+      // 今の対象(core / integrations / auth / datetime)は `.ts` だけだが、
+      // 対象を足したとき `.tsx` を見落とす
+      if (!/\.tsx?$/.test(fp) || fp.includes(".test.")) continue;
       const src = readFileSync(fp, "utf8");
 
       // export function 名(引数): 戻り値
@@ -56,9 +60,10 @@ function extractSignatures(pkgDir) {
 
 /** 空白とコメントを落として、書式の違いを差分にしない。 */
 function normalize(text) {
-  return text
-    .replace(/\/\*\*[\s\S]*?\*\//g, "")
-    .replace(/\/\/[^\n]*/g, "")
+  // **共通処理を使う**(`tools/lib/source-text.mjs`)。
+  // 素朴に `//` を消すと、既定値の URL(`= "https://…"`)で
+  // **シグネチャの後半が失われ、変更していないのに差分に見える**
+  return stripComments(text)
     .replace(/\s+/g, " ")
     .trim();
 }

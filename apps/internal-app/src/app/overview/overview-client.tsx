@@ -1,7 +1,8 @@
 "use client";
 /** 経営ダッシュボード。売掛・買掛・在庫・勤怠承認・請求の KPI を一画面に集約。 */
 import * as React from "react";
-import { Button } from "@platform/ui";
+import { formatYen } from "@platform/report";
+import { AsyncBoundary, Button, PageShell } from "@platform/ui";
 
 interface Kpi {
   receivables: { outstanding: number; overdue: number };
@@ -14,7 +15,7 @@ interface Kpi {
 }
 
 interface Alert { level: "warning" | "info"; title: string; body: string; href: string; }
-const yen = (n: number) => `¥${n.toLocaleString()}`;
+const yen = (n: number) => formatYen(n);
 
 export interface OverviewClientProps { fetchImpl?: typeof fetch; }
 
@@ -22,16 +23,29 @@ export function OverviewClient({ fetchImpl }: OverviewClientProps) {
   const [kpi, setKpi] = React.useState<Kpi | null>(null);
   const [alerts, setAlerts] = React.useState<Alert[]>([]);
   const [sent, setSent] = React.useState("");
+  // **この state 宣言が欠落していた。** `setError`/`error` は使われて
+  // いるのに宣言が無く、確実に型エラーになっていた
+  // (2026-08、ユーザーの typecheck.log で発見)。
+  const [error, setError] = React.useState("");
   const doFetch = fetchImpl ?? (globalThis as unknown as { fetch: typeof fetch }).fetch;
 
-  React.useEffect(() => {
-    void (async () => {
-      const res = await doFetch("/api/dashboard/kpi");
-      if (res.ok) setKpi((await res.json()) as Kpi);
+  // **再試行できるように名前を付ける。**
+  // 即時関数のままだと、失敗しても呼び直す手段が無い
+  const load = React.useCallback(async () => {
+    setError("");
+      try {
+        const res = await doFetch("/api/dashboard/kpi");
+        // **失敗を握らない。** 握ると「読み込み中…」のまま止まる
+        if (!res.ok) { setError("データを取得できませんでした"); return; }
+        setKpi((await res.json()) as Kpi);
+      } catch {
+        setError("通信に失敗しました。ネットワークを確認してください");
+      }
       const a = await doFetch("/api/alerts");
       if (a.ok) setAlerts(((await a.json()) as { alerts: Alert[] }).alerts);
-    })();
   }, [doFetch]);
+
+  React.useEffect(() => { void load(); }, [load]);
 
   const notifyMe = async () => {
     setSent("");
@@ -39,12 +53,16 @@ export function OverviewClient({ fetchImpl }: OverviewClientProps) {
     if (res.ok) { const d = (await res.json()) as { sent: number; emailed: boolean }; setSent(d.sent > 0 ? `${d.sent} 件のアラートを通知${d.emailed ? "とメール" : ""}に送りました` : "通知するアラートはありません"); }
   };
 
-  if (!kpi) return <div className="mx-auto max-w-4xl p-6"><h1 className="text-2xl font-bold">ダッシュボード</h1><p className="mt-4 text-sm text-[var(--color-muted)]">読み込み中…</p></div>;
+  // **`AsyncBoundary` に渡す前に返す。** children は JSX なので
+  // **この部品が判断するより先に評価される**——`kpi` が null のままだと
+  // `kpi.…` で画面ごと落ちる(2026-08 の型検査で 7 画面が同じ形だった)。
+  if (kpi === null) {
+    return <AsyncBoundary loading={error === ""} error={error} onRetry={() => void load()} />;
+  }
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
-      <h1 className="mb-4 text-2xl font-bold">ダッシュボード</h1>
-
+    <AsyncBoundary loading={false} error={error} onRetry={() => void load()}>
+        <PageShell title="ダッシュボード" width="wide">
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3">
         <div className="rounded border border-[var(--color-border)] p-4">
           <div className="text-xs text-[var(--color-muted)]">運転資本（売掛−買掛）</div>
@@ -66,7 +84,7 @@ export function OverviewClient({ fetchImpl }: OverviewClientProps) {
         <div className="mb-6 rounded border border-[var(--color-border)] p-4">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-sm font-medium">アラート（{alerts.length} 件）</h2>
-            <Button onClick={notifyMe} className="rounded border border-[var(--color-border)] px-3 py-1 text-xs">自分に通知する</Button>
+            <Button onClick={notifyMe} variant="secondary" className="rounded px-3 py-1 text-xs">自分に通知する</Button>
           </div>
           {sent && <p className="mb-2 text-xs text-[var(--color-success)]">{sent}</p>}
           <ul className="space-y-2">
@@ -95,6 +113,7 @@ export function OverviewClient({ fetchImpl }: OverviewClientProps) {
           <div className={`mt-1 text-2xl font-bold ${kpi.overdueInvoices > 0 ? "text-[var(--color-danger)]" : "text-[var(--color-muted)]"}`}>{kpi.overdueInvoices}</div>
         </a>
       </div>
-    </div>
+    </PageShell>
+    </AsyncBoundary>
   );
 }

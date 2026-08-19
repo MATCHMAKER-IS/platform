@@ -26,12 +26,12 @@ export function ApprovalSignaturePanel({ docType, docNumber, required = false, f
       <div className="flex items-center gap-2 text-xs">
         <span className="text-[var(--color-muted)]">サイン: {sigs.length > 0 ? `${sigs.length}件（${sigs.map((s) => s.signer).join("、")}）` : "なし"}</span>
         {required && sigs.length === 0 && <span className="rounded bg-[color-mix(in_srgb,var(--color-danger)_15%,transparent)] px-1.5 py-0.5 text-[var(--color-danger)]">署名が必要です</span>}
-        <Button type="button" onClick={() => setOpen((v) => !v)} className="text-[var(--color-primary)] hover:underline">{open ? "閉じる" : "サインする"}</Button>
+        <Button type="button" variant="secondary" size="sm" onClick={() => setOpen((v) => !v)}>{open ? "閉じる" : "サインする"}</Button>
       </div>
       {open && <div className="mt-2"><SignaturePad onSave={onSave} width={320} height={120} /></div>}
       {sigs.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
-          {sigs.map((s) => <div key={s.id} className="rounded border border-[var(--color-border)] p-1"><img src={s.image} alt={`${s.signer}の署名`} className="h-12 w-auto" /><p className="text-center text-xs text-[var(--color-muted)]">{s.signer}</p></div>)}
+          {sigs.map((s) => <div key={s.id} className="rounded border border-[var(--color-border)] p-1"><img loading="lazy" decoding="async" src={s.image} alt={`${s.signer}の署名`} className="h-12 w-auto" /><p className="text-center text-xs text-[var(--color-muted)]">{s.signer}</p></div>)}
         </div>
       )}
     </div>

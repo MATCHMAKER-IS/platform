@@ -118,12 +118,36 @@ export async function deleteRows(table: string, where: Record<string, unknown>):
 /** 任意 SQL の実行種別を判定する。 */
 export function classifySql(sql: string): { kind: "read" | "write" | "danger" | "ddl"; statement: string } {
   const trimmed = sql.trim().replace(/;+\s*$/, "");
-  const head = trimmed.toLowerCase().split(/\s+/)[0] ?? "";
+
+  // **コメントを外してから見る。**
+  // `/* x */ DROP TABLE users` の先頭は `/*` なので、
+  // そのまま判定すると **write 扱いになり danger の確認を通らない**
+  // (2026-08 に気づいた)。
+  const bare = trimmed
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/^\s*--[^\n]*\n/gm, " ")
+    .trim();
+
+  const head = bare.toLowerCase().split(/\s+/)[0] ?? "";
   const danger = ["drop", "truncate", "grant", "revoke"];
   const ddl = ["create", "alter"];
   if (danger.includes(head)) return { kind: "danger", statement: trimmed };
   if (ddl.includes(head)) return { kind: "ddl", statement: trimmed };
-  if (["select", "with", "show", "explain"].includes(head)) return { kind: "read", statement: trimmed };
+
+  // **`WITH` は中身を見る。**
+  // `WITH a AS (SELECT 1) DELETE FROM users` は先頭だけ見ると read だが、
+  // 実際は削除する。CTE は書き込みを隠せる。
+  //
+  // どこに現れても書き込みなら write 扱いにする
+  // (`SELECT` の中の文字列に `delete` が入る場合もあるが、
+  //  **厳しく倒す**方が安全 — 読むだけの文が write と判定されても
+  //  確認が 1 つ増えるだけで済む)。
+  if (head === "with") {
+    const writes = /\b(insert|update|delete|merge)\b/i.test(bare);
+    return { kind: writes ? "write" : "read", statement: trimmed };
+  }
+
+  if (["select", "show", "explain"].includes(head)) return { kind: "read", statement: trimmed };
   return { kind: "write", statement: trimmed };
 }
 
