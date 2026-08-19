@@ -1,31 +1,25 @@
-# ============================================================================
-# コードオーナー(自動レビュー割り当て)
+﻿# ============================================================================
+# 繧ｳ繝ｼ繝峨が繝ｼ繝翫・(閾ｪ蜍輔Ξ繝薙Η繝ｼ蜑ｲ繧雁ｽ薙※)
 #
-# ⚠️ 導入時に必ず置換してください
-#   `@platform-team` は**プレースホルダ**です。実在しないチームのままブランチ保護で
-#   「コードオーナーのレビュー必須」を有効にすると、**誰も承認できず PR がマージ不能**になります。
-#   自社の GitHub チーム(例: @your-org/platform)か個人(例: @yamada)に置き換えてください。
-#
-# 目的
-#   基盤(packages) の変更は必ず基盤担当のレビューを必須にし、
-#   「アプリ作業で基盤を勝手に変えない」運用を PR レベルで担保する。
-#
-# 設定方法
-#   1. このファイルの @platform-team を実在のチーム/個人に置換
-#   2. GitHub → Settings → Branches → main → Require review from Code Owners を有効化
-#   詳細: docs/ops/CI_FIRST_RUN.md
-# ============================================================================
+# 笞・・蟆主・譎ゅ↓蠢・★鄂ｮ謠帙＠縺ｦ縺上□縺輔＞
+#   `@MATCHMAKER-IS` 縺ｯ**繝励Ξ繝ｼ繧ｹ繝帙Ν繝**縺ｧ縺吶ょｮ溷惠縺励↑縺・メ繝ｼ繝縺ｮ縺ｾ縺ｾ繝悶Λ繝ｳ繝∽ｿ晁ｭｷ縺ｧ
+#   縲後さ繝ｼ繝峨が繝ｼ繝翫・縺ｮ繝ｬ繝薙Η繝ｼ蠢・医阪ｒ譛牙柑縺ｫ縺吶ｋ縺ｨ縲・*隱ｰ繧よ価隱阪〒縺阪★ PR 縺後・繝ｼ繧ｸ荳崎・**縺ｫ縺ｪ繧翫∪縺吶・#   閾ｪ遉ｾ縺ｮ GitHub 繝√・繝(萓・ @your-org/platform)縺句倶ｺｺ(萓・ @yamada)縺ｫ鄂ｮ縺肴鋤縺医※縺上□縺輔＞縲・#
+# 逶ｮ逧・#   蝓ｺ逶､(packages) 縺ｮ螟画峩縺ｯ蠢・★蝓ｺ逶､諡・ｽ薙・繝ｬ繝薙Η繝ｼ繧貞ｿ・医↓縺励・#   縲後い繝励Μ菴懈･ｭ縺ｧ蝓ｺ逶､繧貞享謇九↓螟峨∴縺ｪ縺・埼°逕ｨ繧・PR 繝ｬ繝吶Ν縺ｧ諡・ｿ昴☆繧九・#
+# 險ｭ螳壽婿豕・#   1. 縺薙・繝輔ぃ繧､繝ｫ縺ｮ @MATCHMAKER-IS 繧貞ｮ溷惠縺ｮ繝√・繝/蛟倶ｺｺ縺ｫ鄂ｮ謠・#   2. GitHub 竊・Settings 竊・Branches 竊・main 竊・Require review from Code Owners 繧呈怏蜉ｹ蛹・#
+#   **1 莠ｺ縺ｧ驕狗畑縺吶ｋ蝣ｴ蜷・*縺ｯ縲√％縺薙〒豁｢縺ｾ繧翫∪縺吮披・*閾ｪ蛻・・ PR 繧定・蛻・〒謇ｿ隱阪〒縺阪↑縺・*縺溘ａ縲・#   縺昴・蝣ｴ蜷医・ Require approvals 繧・0 縺ｫ縺吶ｋ縺九，ode Owners 繧堤┌蜉ｹ縺ｫ縺励※縺上□縺輔＞
+#   (CI 縺ｮ蠢・亥喧縺ｯ谿九☆縲よｩ滓｢ｰ縺ｮ讀懈渊縺縺代〒繧ょｮ医ｊ縺ｫ縺ｪ繧翫∪縺・縲・#
+#   隧ｳ邏ｰ: docs/ops/GITHUB_ACTIONS.md・医悟・蝗槫ｮ溯ｵｰ繝√ぉ繝・け繝ｪ繧ｹ繝医阪・謇句燕・・# ============================================================================
 
-# 基盤(全アプリに影響する)
-/packages/            @platform-team
+# 蝓ｺ逶､(蜈ｨ繧｢繝励Μ縺ｫ蠖ｱ髻ｿ縺吶ｋ)
+/packages/            @MATCHMAKER-IS
 
-# 開発ツール・検査(壊れると全員が困る)
-/tools/               @platform-team
+# 髢狗匱繝・・繝ｫ繝ｻ讀懈渊(螢翫ｌ繧九→蜈ｨ蜩｡縺悟峅繧・
+/tools/               @MATCHMAKER-IS
 
-# 規約・設定(勝手に変えられると統制が効かなくなる)
-/CLAUDE.md            @platform-team
-/CONTRIBUTING.md      @platform-team
-/eslint.config.mjs    @platform-team
-/tsconfig.base.json   @platform-team
-/turbo.json           @platform-team
-/.github/             @platform-team
+# 隕冗ｴ・・險ｭ螳・蜍晄焔縺ｫ螟峨∴繧峨ｌ繧九→邨ｱ蛻ｶ縺悟柑縺九↑縺上↑繧・
+/CLAUDE.md            @MATCHMAKER-IS
+/CONTRIBUTING.md      @MATCHMAKER-IS
+/eslint.config.mjs    @MATCHMAKER-IS
+/tsconfig.base.json   @MATCHMAKER-IS
+/turbo.json           @MATCHMAKER-IS
+/.github/             @MATCHMAKER-IS
