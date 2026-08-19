@@ -49,7 +49,7 @@ jobs:
       # 壊れた版を出したときは、ここに前の版の `sha-xxxxxxx` を入れて実行する
       IMAGE_TAG: ${{ github.event.inputs.image_tag || 'main' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Copy compose file to server
         uses: appleboy/scp-action@v0.1.7
         with:
