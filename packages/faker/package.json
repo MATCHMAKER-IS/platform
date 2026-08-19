@@ -15,7 +15,7 @@
     "lint": "eslint src"
   },
   "dependencies": {
-    "@faker-js/faker": "^9.4.0"
+    "@faker-js/faker": "^10.5.0"
   },
   "devDependencies": {
     "@platform/config": "workspace:*",
